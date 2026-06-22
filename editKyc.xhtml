@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+        <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+             
+<p:dialog widgetVar="statusDialog"  draggable="false" closable="false" resizable="false" showHeader="false">
+    <h:graphicImage value="/img/ajax-loader-128x128.gif" />
+</p:dialog>
+        <h:form enctype="multipart/form-data"  prependId="false" id="form" style="font-size:12px;">
+<script>
+
+            $(document).ready(function () {
+                $(".datepicker").datepicker({
+                    dateFormat: 'dd/mm/yy',
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "1900:2040"
+                });
+            });
+            
+             $(document).ready(function () {   
+              $('body').on('change','#txt_subject', function() {
+               $('#txt_ddTp').val(this.value);
+    });
+});
+ $(document).ready(function () {
+  var wrapper = $(".input_fields_wrap");
+  var add_button = $(".add_field_button");
+
+  var x = 1;
+  $(add_button).click(function(e) {
+    e.preventDefault();
+   
+      $(wrapper).append('<div><h:inputFile value="#{Kyc.file1}" pt:multiple="true" label="Supporting document"/><a href="#" class="remove_field">Remove</a></div>');
+ 
+  });
+
+  $(wrapper).on("click", ".remove_field", function(e) {
+    e.preventDefault();
+    $(this).parent('div').remove();
+    x--;
+  });
+});
+        </script>
+        
+           
+            <p:growl id="mainmsgs" />
+            <p:panel header="Edit Kyc ">
+
+           
+              
+                <h:panelGrid columns="2" >
+
+                     <h:outputLabel value="Entity : *" for="txt_ent" ></h:outputLabel>
+                 <p:selectOneMenu id="txt_ent" value="#{Kyc.qd_ent_ref}" required="true" filter="true" filterMatchMode="startsWith" >
+                      <f:selectItem itemLabel="Select One" itemValue="" />
+                    <f:selectItems  value="#{Kyc.qd_ent_refs}" />
+                 </p:selectOneMenu>
+                     
+                    <h:outputLabel value="Process Reference Number" ></h:outputLabel>
+                    <h:inputText  value="#{Kyc.qd_proc_ref_no}" readonly="true"/>
+
+                    <h:outputLabel value="Business Counterparty Category : *" for="txt_bsCatg"></h:outputLabel>
+                    <h:selectOneMenu id="txt_bsCatg" value="#{Kyc.qd_business_counter_catg}" required="true" style="width:125px">
+                       
+                         <f:selectItem itemLabel="Select One" itemValue="" />
+                         <f:selectItems  value="#{Kyc.bcpList}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Business Counterparty Type : *" for="txt_bsCtp"></h:outputLabel>
+                    <h:selectOneMenu id="txt_bsCtp" value="#{Kyc.qd_business_counter_type}" required="true" style="width:125px">
+                     <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItem itemLabel="Legal Person" itemValue="Legal Person" />
+                        <f:selectItem itemLabel="Natural Person" itemValue="Natural Person" />
+
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Subject : *" for="txt_subject"></h:outputLabel>
+                    <h:selectOneMenu id="txt_subject" value="#{Kyc.qd_subject}" required="true" style="width:125px">
+                          <p:ajax event="change" update="txt_ddTp" listener="#{Kyc.subjectSelectionChanged}" />
+                        <f:selectItem itemLabel="Select One" itemValue="Select One" />
+                        <f:selectItem itemLabel="AdHoc KYC" itemValue="AdHoc KYC" />
+                        <f:selectItem itemLabel="Simplified KYC" itemValue="Simplified KYC" />
+                        <f:selectItem itemLabel="Enhanced KYC" itemValue="Enhanced KYC" />
+
+                    </h:selectOneMenu>
+
+                  
+                    <h:outputLabel value="Request Made By : *" for="txt_rqMadBy"></h:outputLabel>
+                    <p:selectOneMenu id="txt_rqMadBy" value="#{Kyc.qd_request_made_by}"  filter="true" filterMatchMode="startsWith" required="true">
+<f:selectItem itemLabel="Select One" itemValue="" />
+                       <f:selectItems  value="#{Kyc.requestByList}" />
+                    </p:selectOneMenu>
+
+                    <h:outputLabel value="Request Date : *" for="txt_rqdate"></h:outputLabel>
+                   <p:inputMask  id="txt_rqdate" value="#{Kyc.qd_req_date}"     mask="99/99/9999"/>
+
+                    <h:outputLabel value="Due Diligence Type : *" for="txt_ddTp"></h:outputLabel>
+                    <h:inputText id="txt_ddTp" value="#{Kyc.qd_due_dig_type}" readonly="true" />
+                    <h:outputLabel value="Due Diligence Made By : *" for="txt_ddMadBy"></h:outputLabel>
+                    <h:inputText id="txt_ddMadBy" value="#{Kyc.qd_due_dig_made_by}" required="true" readonly="true"/>
+
+                    <h:outputLabel value="Final Conclusion : *" for="txt_finalConclusion"></h:outputLabel>
+                    <h:inputTextarea id="txt_finalConclusion" value="#{Kyc.qd_final_conclusion}" cols="80" required="true"/>
+
+                    <h:outputLabel value="KYC Report Status : *" for="txt_rpStatus"></h:outputLabel>
+                    <h:selectOneMenu id="txt_rpStatus" value="#{Kyc.qd_kyc_report_status}" required="true">
+                             <f:selectItem itemLabel="Select One" itemValue="" />
+                    <f:selectItems  value="#{Kyc.reportStatus}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Risk Level : *" for="txt_riskStatus"></h:outputLabel>
+                    <h:selectOneMenu id="txt_riskStatus" value="#{Kyc.qd_risk_level}" required="true">
+                       <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItem itemLabel="Low" itemValue="Low" />
+                        <f:selectItem itemLabel="Medium" itemValue="Medium" />
+                        <f:selectItem itemLabel="High" itemValue="High" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Next steps:*" for="txt_nextstep"></h:outputLabel>
+                    <h:inputTextarea id="txt_nextstep" value="#{Kyc.qd_kyc_next_step}" cols="80" required="true"/>
+                    
+                     
+                     <h:outputLabel value="Uploaded Supporting Documents:*" ></h:outputLabel>
+                   <h:dataTable value="#{Kyc.docList}" var="docs" border="1">
+                     
+                        <h:column>
+    				<f:facet name="header">Support Documents</f:facet>
+    				#{docs.qd_doc_name}
+    			</h:column>
+    			
+                    </h:dataTable>
+ <h:outputLabel value="Upload Documents *" for="txt_docs"></h:outputLabel>
+                   <h:inputFile value="#{Kyc.file1}" pt:multiple="true" label="Supporting document"/>
+                      <div class="input_fields_wrap">
+    <button class="add_field_button"> Add Supporting Documents</button>
+   
+                     </div>
+                    
+                </h:panelGrid>
+
+                <h:commandButton value="Save as Draft" action="#{Kyc.editSaveKyc(Kyc)}" >
+                    <f:ajax execute="@all" render="@form"/>
+                </h:commandButton>
+                <h:commandButton value="Save and Submit" action="#{Kyc.editSubmitKyc(Kyc)}">
+                    <f:ajax execute="@all" render="@form"/>
+                </h:commandButton>
+               <h:commandButton  value="Preview" action="#{Kyc.preview}" />
+                
+            </p:panel>
+
+        </h:form>
+
+    </h:body>
+</html>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.EntityReference" table="EntityReference"  optimistic-lock="version">
+       <id name="qd_er_id" type="int">
+            <column name="qd_er_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+          
+        </property>
+        <property name="qd_sp_id" type="int">
+            <column name="qd_sp_id" />
+        </property>
+       
+           </class>
+</hibernate-mapping>

@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+       xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+          xmlns:f="http://java.sun.com/jsf/core">
+    <body>
+        <ui:composition>
+            <h:form>
+                  <p:growl id="messages" showDetail="true" />
+            <div class="row">
+                <div class="col-xs-5 col-md-6">
+                    <a href='#'><h:graphicImage value="/img/qlogo.png" /></a>
+                </div>
+                <div class="col-xs-7 col-md-6">
+                    <a id="MyAnchor" class="exit pull-right margin-top-10" href="/KycReport">Exit</a>
+                    <div class="clearfix"></div>
+                    <div class="proifle pull-right">
+                        Welcome 
+                           <h:outputLabel value="#{MenuView.name}" />&nbsp;&nbsp;
+                      
+                         <p:menuButton class="btn btn-primary" value="Switch Role">
+                         <p:menuitem   value="Level2" action="#{MenuView.switchRole2}" rendered="#{MenuView.isLevel2}"  url="/KycReport/rfimaster.xhtml" />
+                        <p:menuitem   value="Contributor" action="#{MenuView.switchRole1}"  rendered="#{MenuView.isLevel1}"  url="/KycReport/master.xhtml"/>
+                      
+                       </p:menuButton>
+                            
+                    </div>
+                   
+                </div>
+            </div>
+            </h:form>
+        </ui:composition>
+    </body>
+</html>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.KycWfComments" table="KycWfComments"  optimistic-lock="version">
+       <id name="qd_comm_id" type="int">
+            <column name="qd_comm_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+          
+        </property>
+         <property name="qd_comments" type="string">
+            <column name="qd_comments" />
+          
+        </property>
+         <property name="qd_comm_user" type="string">
+            <column name="qd_comm_user" />
+          
+        </property>
+         <property name="qd_comm_date" type="string">
+            <column name="qd_comm_date" />
+          
+        </property>
+        <property name="qd_comm_wf_status" type="string">
+            <column name="qd_comm_wf_status" />
+          
+        </property>
+      
+    </class>
+</hibernate-mapping>

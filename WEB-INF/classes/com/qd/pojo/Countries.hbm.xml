@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.Countries" table="Countries"  optimistic-lock="version">
+       <id name="country_name" type="string">
+            <column name="country_name" />
+            <generator class="assigned" />
+        </id>
+       
+        
+        <property name="country_region" type="string">
+            <column name="country_region" />
+        </property>
+       
+           </class>
+</hibernate-mapping>

@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+        <h:form>
+           
+            <p:growl id="mainmsgs" />
+            <p:panel header="New Kyc Creation Form">
+
+           
+                <h:panelGrid>
+                    <h style="margin-top: 0">Entity List</h>
+                    <p:pickList id="pickList" value="#{Kyc.entities}" var="entities" itemLabel="#{entities.spName}" 
+                                itemValue="#{entities.qd_sp_id}"  showSourceFilter="true" showTargetFilter="true" filterMatchMode="contains"/>
+                              
+                </h:panelGrid>
+                <h:panelGrid columns="2" >
+
+                    <h:outputLabel value="Process Reference Number" ></h:outputLabel>
+                    <h:inputText  value="#{Kyc.qd_proc_ref_no}" readonly="true"/>
+
+                    <h:outputLabel value="Business Counterparty Category : *" for="txt_bsCatg"></h:outputLabel>
+                    <h:selectOneMenu id="txt_bsCatg" value="#{Kyc.qd_business_counter_catg}" required="true" style="width:125px">
+                        <f:selectItem itemLabel="Select One" itemValue="Select One" />
+                        <f:selectItem itemLabel="Vendor" itemValue="Vendor" />
+                        <f:selectItem itemLabel="Consultant" itemValue="Consultant" />
+                        <f:selectItem itemLabel="Contractor" itemValue="Contractor" />
+                        <f:selectItem itemLabel="AD Asset Buyer" itemValue="AD Asset Buyer" />
+                        <f:selectItem itemLabel="Supplier" itemValue="Supplier" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Business Counterparty Type : *" for="txt_bsCtp"></h:outputLabel>
+                    <h:selectOneMenu id="txt_bsCtp" value="#{Kyc.qd_business_counter_type}" required="true" style="width:125px">
+                        <f:selectItem itemLabel="Select One" itemValue="Select One" />
+                        <f:selectItem itemLabel="Legal Person" itemValue="Legal Person" />
+                        <f:selectItem itemLabel="Natural Person" itemValue="Natural Person" />
+
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Subject : *" for="txt_subject"></h:outputLabel>
+                    <h:selectOneMenu id="txt_subject" value="#{Kyc.qd_subject}" required="true" style="width:125px">
+                        <f:selectItem itemLabel="Select One" itemValue="Select One" />
+                        <f:selectItem itemLabel="AdHoc Kyc" itemValue="AdHoc Kyc" />
+                        <f:selectItem itemLabel="Simplified Kyc" itemValue="Simplified Kyc" />
+                        <f:selectItem itemLabel="Enhanced Kyc" itemValue="Enhanced Kyc" />
+
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Counterparty Designation : *" for="txt_cntDesignation"></h:outputLabel>
+                    <h:inputText id="txt_cntDesignation" value="#{Kyc.qd_count_designation}" required="true"/>
+
+                  
+
+                    <h:outputLabel value="Request Made By : *" for="txt_rqMadBy"></h:outputLabel>
+                    <h:inputText id="txt_rqMadBy" value="#{Kyc.qd_request_made_by}" required="true"/>
+
+                    <h:outputLabel value="Request Date : *" for="txt_rqdate"></h:outputLabel>
+                    <h:outputText id="txt_rqdate" value="#{Kyc.qd_req_date}"/>
+
+                    <h:outputLabel value="Due Diligence Type : *" for="txt_ddTp"></h:outputLabel>
+                    <h:selectOneMenu id="txt_ddTp" value="#{Kyc.qd_due_dig_type}" required="true">
+                        <f:selectItem itemLabel="AdHoc Kyc" itemValue="AdHoc Kyc" />
+                        <f:selectItem itemLabel="Simplified Kyc" itemValue="Simplified Kyc" />
+                        <f:selectItem itemLabel="Enhanced Kyc" itemValue="Enhanced Kyc" />
+                    </h:selectOneMenu>
+                    <h:outputLabel value="Due Diligence Made By : *" for="txt_ddMadBy"></h:outputLabel>
+                    <h:inputText id="txt_ddMadBy" value="#{Kyc.qd_due_dig_made_by}" required="true"/>
+
+
+
+                    <h:outputLabel value="Initial Request Message: : *" for="txt_inMsg"></h:outputLabel>
+                    <h:inputTextarea id="txt_inMsg" value="#{Kyc.qd_initial_req_msg}" cols="80" required="true"/>
+
+                    <h:outputLabel value="Final Conclusion : *" for="txt_finalConclusion"></h:outputLabel>
+                    <h:inputTextarea id="txt_finalConclusion" value="#{Kyc.qd_final_conclusion}" cols="80" required="true"/>
+
+                    <h:outputLabel value="KYC Report Status : *" for="txt_rpStatus"></h:outputLabel>
+                    <h:selectOneMenu id="txt_rpStatus" value="#{Kyc.qd_kyc_report_status}" required="true">
+                        <f:selectItem itemLabel="Closed Successfully" itemValue="Closed Successfully" />
+                        <f:selectItem itemLabel="On-Hold" itemValue="On-Hold" />
+                        <f:selectItem itemLabel="Closed UnSuccessfully" itemValue="Closed UnSuccessfully" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Risk Level : *" for="txt_riskStatus"></h:outputLabel>
+                    <h:selectOneMenu id="txt_riskStatus" value="#{Kyc.qd_risk_level}" required="true">
+                      
+                        <f:selectItem itemLabel="Select One" itemValue="Select One" />
+                        <f:selectItem itemLabel="Low" itemValue="low" />
+                        <f:selectItem itemLabel="Medium" itemValue="medium" />
+                        <f:selectItem itemLabel="High" itemValue="high" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Next steps:*" for="txt_nextstep"></h:outputLabel>
+                    <h:inputTextarea id="txt_nextstep" value="#{Kyc.qd_kyc_next_step}" cols="80" required="true"/>
+
+
+                </h:panelGrid>
+                <h:panelGrid>
+                    <p:fileUpload fileUploadListener="#{Kyc.handleFileUpload}"  dragDropSupport="false" 
+                  multiple="true" update="messages" sizeLimit="100000" fileLimit="3"  />
+                      <p:growl id="messages" showDetail="true" />           
+                </h:panelGrid>
+
+                <h:commandButton value="Save as Draft" action="#{Kyc.saveKyc}" disabled="#{Kyc.isDisable}"/>
+                <h:commandButton value="Save and Submit" action="#{Kyc.submitKyc}"/>
+              
+                
+            </p:panel>
+
+        </h:form>
+
+    </h:body>
+</html>

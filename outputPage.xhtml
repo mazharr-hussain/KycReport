@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+        <h:form>
+            <div>
+                KYC Successfully created
+            </div>
+            <p:growl id="mainmsgs" />
+            <p:panel>
+
+             
+
+                <h:panelGrid columns="2" >
+
+                    <h:outputLabel value="Process Reference Number" ></h:outputLabel>
+                    <h:outputLabel  value="#{Kyc.qd_proc_ref_no}" />
+
+                     </h:panelGrid>
+
+            </p:panel>
+
+        </h:form>
+
+    </h:body>
+</html>

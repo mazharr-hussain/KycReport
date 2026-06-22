@@ -1,0 +1,271 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<faces-config version="2.2"
+              xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_2.xsd">
+<managed-bean>
+		<managed-bean-name>Kyc</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.Kyc</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+        <managed-bean>
+		<managed-bean-name>KycReportStatusMaster</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.KycReportStatusMaster</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+         <managed-bean>
+		<managed-bean-name>KycRequestBy</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.KycRequestBy</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+         <managed-bean>
+		<managed-bean-name>Business_Counterparty_Category</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.Business_Counterparty_Category</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+         <managed-bean>
+		<managed-bean-name>KycResults</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.KycResults</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+        <managed-bean>
+		<managed-bean-name>SearchPattern</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.SearchPattern</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+	<managed-bean>
+		<managed-bean-name>Login</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.Login</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+        <managed-bean>
+		<managed-bean-name>ubo</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.Ubo</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+        <managed-bean>
+		<managed-bean-name>KycWfComments</managed-bean-name>
+		<managed-bean-class>com.qd.pojo.KycWfComments</managed-bean-class>
+		<managed-bean-scope>request</managed-bean-scope>
+	</managed-bean>
+       
+	<navigation-rule>
+
+		<from-view-id>/login.xhtml</from-view-id>
+
+		<navigation-case>
+			<from-action>#{Login._loginVerification}</from-action>
+			<from-outcome>contributor</from-outcome>
+			<to-view-id>/master.xhtml</to-view-id>
+		</navigation-case>
+                
+                <navigation-case>
+			<from-action>#{Login._loginVerification}</from-action>
+			<from-outcome>approver</from-outcome>
+			<to-view-id>/apmaster.xhtml</to-view-id>
+		</navigation-case>
+                 <navigation-case>
+			<from-action>#{Login._loginVerification}</from-action>
+			<from-outcome>rfi</from-outcome>
+			<to-view-id>/rfimaster.xhtml</to-view-id>
+		</navigation-case>
+
+		<navigation-case>
+			<from-action>#{Login._loginVerification}</from-action>
+			<from-outcome>invalid</from-outcome>
+			<to-view-id>/invalidPage.xhtml</to-view-id>
+		</navigation-case>
+	</navigation-rule>
+        <navigation-rule>
+            
+            <navigation-case>
+			<from-action>#{MenuView.createnew}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/landing.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.kycRequestBy}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/BackOfficeMaster/KycRequestByMaster.xhtml</to-view-id>
+		</navigation-case>
+                
+                <navigation-case>
+			<from-action>#{MenuView.createNewEntity}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/entity/entityMaster.xhtml</to-view-id>
+		</navigation-case>
+                  <navigation-case>
+			<from-action>#{MenuView.kycReportStatus}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/BackOfficeMaster/KycReportStatusMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.kycResults}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/BackOfficeMaster/KycResultsMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.kycSearch}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/master.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.entitySearch}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/entity/entitySearchMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.entityVersionSearch}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/entity/entityVersionSearchMaster.xhtml</to-view-id>
+		</navigation-case>
+                  <navigation-case>
+			<from-action>#{MenuView.charts}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/charts/chartMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{MenuView.userManagement}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/um/userManagementMaster.xhtml</to-view-id>
+		</navigation-case>
+                 <navigation-case>
+			<from-action>#{MenuView.Business_Counterparty_Category}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/BackOfficeMaster/Business_Counterparty_CategoryMaster.xhtml</to-view-id>
+		</navigation-case>
+                 <navigation-case>
+			<from-action>#{MenuView.report}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/reports/reportMaster.xhtml</to-view-id>
+		</navigation-case>
+        </navigation-rule>
+	<navigation-rule>
+
+		<from-view-id>/master.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{kyclist.kycApprove}</from-action>
+			<from-outcome>approved</from-outcome>
+			<to-view-id>/apmaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{kyclist.kycReject}</from-action>
+			<from-outcome>rejected</from-outcome>
+			<to-view-id>/apmaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+  
+         <navigation-rule>
+
+		<from-view-id>/landing.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{Kyc.saveKyc}</from-action>
+			<from-outcome>savedKyc</from-outcome>
+			<to-view-id>/output.xhtml</to-view-id>
+		</navigation-case>
+                 <navigation-case>
+			<from-action>#{Kyc.submitKyc}</from-action>
+			<from-outcome>submitKyc</from-outcome>
+			<to-view-id>/output.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+        <navigation-rule>
+
+		<from-view-id>/master.xhtml</from-view-id>
+ <navigation-case>
+			<from-action>#{kyclist.createnew}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/landing.xhtml</to-view-id>
+		</navigation-case>
+                
+
+	</navigation-rule>
+        <navigation-rule>
+
+		<from-view-id>/entity/entity.xhtml</from-view-id>
+
+		<navigation-case>
+			<from-action>#{SearchPattern.saveEntity}</from-action>
+			<from-outcome>success</from-outcome>
+			<to-view-id>/master.xhtml</to-view-id>
+		</navigation-case>
+                
+
+	</navigation-rule>
+        <navigation-rule>
+
+		<from-view-id>/entity/entitySearchMaster.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{SearchPattern.entityInfo}</from-action>
+			<from-outcome>editEntityMaster</from-outcome>
+			<to-view-id>/entity/editEntityMaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+        
+        
+        <navigation-rule>
+
+		<from-view-id>/entity/entitySearchMaster.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{SearchPattern.entityInfo}</from-action>
+			<from-outcome>entityUpdateMaster</from-outcome>
+			<to-view-id>/entity/entityUpdateMaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+        
+        
+         <navigation-rule>
+
+		<from-view-id>/entity/editEntityMaster.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{SearchPattern.updateSaveEntity}</from-action>
+			<from-outcome>entitySearchMaster</from-outcome>
+			<to-view-id>/entity/entitySearchMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{SearchPattern.updateApproveEntity}</from-action>
+			<from-outcome>entitySearchMaster</from-outcome>
+			<to-view-id>/entity/entitySearchMaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+         <navigation-rule>
+
+	<from-view-id>/entity/editEntityMaster.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{ubo.uboData}</from-action>
+			<from-outcome>editUboMaster</from-outcome>
+			<to-view-id>/entity/editUboMaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+        
+        
+        <navigation-rule>
+
+		<from-view-id>/master.xhtml</from-view-id>
+
+                <navigation-case>
+			<from-action>#{Kyc.editKyc}</from-action>
+			<from-outcome>editKycMaster</from-outcome>
+			<to-view-id>/editKycMaster.xhtml</to-view-id>
+		</navigation-case>
+                <navigation-case>
+			<from-action>#{SearchPattern.updateApproveEntity}</from-action>
+			<from-outcome>entitySearchMaster</from-outcome>
+			<to-view-id>/entity/entitySearchMaster.xhtml</to-view-id>
+		</navigation-case>
+
+	</navigation-rule>
+        
+</faces-config>

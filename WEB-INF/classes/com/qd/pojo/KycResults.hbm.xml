@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.KycResults" table="KycResults"  optimistic-lock="version">
+        <id name="qd_result_id" type="int">
+            <column name="qd_result_id" />
+            <generator class="increment" />
+        </id>
+       
+         <property name="qd_results" type="string">
+            <column name="qd_results" />
+        </property>
+        
+         <property name="result_color" type="string">
+            <column name="result_color" />
+        </property>
+      
+        
+    </class>
+</hibernate-mapping>

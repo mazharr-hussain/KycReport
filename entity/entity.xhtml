@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+        <script>
+
+            $(document).ready(function () {
+                $(".datepicker").datepicker({
+                    dateFormat: 'dd/mm/yy',
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "1900:2040"
+                });
+            });
+        </script>
+        <h:form style="font-size:12px;" id="form">
+
+            <p:growl id="mainmsgs"/>
+
+            <p:panel header="New Entity Creation Form" style="font-size:12px;">
+
+                <h:outputLabel value="Related to Existing Entity?:"></h:outputLabel>
+
+                <p:selectCheckboxMenu id="multiple" value="#{SearchPattern.selectedEnties}" label="Cities" multiple="true"
+                                      filter="true" filterMatchMode="startsWith" panelStyle="width:250px">
+                    <f:selectItems value="#{SearchPattern.entityList}" />
+                </p:selectCheckboxMenu>
+
+                <h:panelGrid columns="2" >
+                    <h:outputLabel value="Entity Nature : *" for="txt_spnature" ></h:outputLabel>
+                    <h:selectOneMenu id="txt_spnature" value="#{SearchPattern.qd_sp_nature}" required="true" style="width:125px" label="Please Enter Entity Nature">
+                        <p:ajax event="change" update="txt_idNOPassport,txt_personDob,adp,txt_cmpreg,txt_nationality" listener="#{SearchPattern.entitySelectionChanged}"  />
+                      <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItem itemLabel="Natural Person" itemValue="Natural Person" />
+                        <f:selectItem itemLabel="Legal Person" itemValue="Legal Person" />
+
+
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Name : *" ></h:outputLabel>
+                    <p:autoComplete value="#{SearchPattern.spName}"
+                                    maxResults="10"
+                                    completeMethod="#{SearchPattern.nameSuggestions}" />
+
+
+                    <h:outputLabel value="Country Location : *" for="txt_spCountryLoc"></h:outputLabel>
+                    <p:selectOneMenu id="txt_spCountryLoc" value="#{SearchPattern.spCountryLoc}"  filter="true" filterMatchMode="startsWith" required="true">
+                            <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItems  value="#{SearchPattern.countries}" />
+                    </p:selectOneMenu>
+
+                    <h:outputLabel value=" Headquarters Address : *" for="txt_sphq"></h:outputLabel>
+                    <p:inputTextarea id="txt_sphq" value="#{SearchPattern.qd_sp_head_quarters}" cols="80" required="true" label="Please enter the Headquarter Address"/>
+
+
+                    <h:outputLabel value="Results : *" for="txt_spResults"></h:outputLabel>
+                    <h:selectOneMenu id="txt_spResults" value="#{SearchPattern.spResults}" required="true" label="Please Enter the Resutls">
+<f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItems  value="#{SearchPattern.reportResult}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Conclusion : *" for="txt_spConclusion"></h:outputLabel>
+                    <h:inputTextarea id="txt_spConclusion" value="#{SearchPattern.spConclusion}" cols="80" required="true" label="Please Enter the Conslusion"/>
+
+                    <h:outputLabel value="Entity Risk Level : *" for="txt_riskStatus"></h:outputLabel>
+                    <h:selectOneMenu id="txt_riskStatus" value="#{SearchPattern.qd_risk_level}" required="true" label="Report Risk Level">
+
+                        <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItem itemLabel="Low" itemValue="Low" />
+                        <f:selectItem itemLabel="Medium" itemValue="Medium" />
+                        <f:selectItem itemLabel="High" itemValue="High" />
+                    </h:selectOneMenu>
+
+                </h:panelGrid>
+
+            </p:panel>
+
+            <p:panel  header="Natural Person"  style="font-size:12px;">
+                <h:panelGrid columns="2" >
+                    <h:outputLabel value="Nationality : *" for="txt_nationality"></h:outputLabel>
+                    <p:selectOneMenu disabled="#{SearchPattern.is_nautal_person}" id="txt_nationality" value="#{SearchPattern.qd_natural_person_nationality}"  filter="true" filterMatchMode="startsWith" required="#{SearchPattern.is_legal_person}" label="Please select  Nationality" >
+                       <f:selectItem itemLabel="Select One" itemValue="" />
+                        <f:selectItems  value="#{SearchPattern.countries}" />
+                    </p:selectOneMenu>
+
+                    <h:outputLabel value="Person ID number / Passport number  : *" for="txt_idNOPassport"></h:outputLabel>
+                    <h:inputText disabled="#{SearchPattern.is_nautal_person}" id="txt_idNOPassport" value="#{SearchPattern.qd_person_id}"  required="#{SearchPattern.is_legal_person}" label="Please Enter the Person ID number / Passport number"/>
+
+                    <h:outputLabel value="Date of Birth  : *" for="txt_personDob"></h:outputLabel>
+                    <p:inputMask disabled="#{SearchPattern.is_nautal_person}" id="txt_personDob" value="#{SearchPattern.qd_natural_person_dob}"   required="#{SearchPattern.is_legal_person}" label="Please Enter Date of Birth" mask="99/99/9999"/>
+                </h:panelGrid>
+            </p:panel>
+
+
+
+
+
+
+
+            <p:outputPanel id="ubos">
+                <p:panel header="Legal Person" style="font-size:12px;">
+                    <h:panelGrid columns="2" >
+                        <h:outputLabel value="Company Registration No : *" for="txt_cmpreg"></h:outputLabel>
+                        <h:inputText id="txt_cmpreg" value="#{SearchPattern.qd_legal_reg_no}"  required="#{SearchPattern.is_nautal_person}"  disabled="#{SearchPattern.is_legal_person}" label="Please Enter the Company Registration No"/>
+                    </h:panelGrid>
+                    <p:commandButton    oncomplete="PF('UBODialog').show();"  value="Add New Participant" disabled="#{SearchPattern.is_legal_person}"   id="adp" />
+                    <p:dataTable value="#{uboCollectorView.ubos}" var="ubo" id="uboTable">
+
+                        <p:column headerText="Name">
+                            <h:outputText value="#{ubo.ubo_name}" />
+                        </p:column>
+                        <p:column headerText="Type">
+                            <h:outputText value="#{ubo.ubo_type}" />
+                        </p:column>
+
+
+                        <p:column headerText="Nationality">
+                            <f:facet name="header">
+                                <h:outputText value="Nationality" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_nationality}" />
+                        </p:column>
+                        <p:column headerText="Date Of Birth">
+                            <f:facet name="header">
+                                <h:outputText value="Date Of Birth" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_dob}" />
+                        </p:column>
+                        <p:column headerText="National ID / Passport Number">
+                            <f:facet name="header">
+                                <h:outputText value="National ID / Passport Number" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_idno}" />
+                        </p:column>
+
+                        <p:column headerText="ID Expiry Date">
+                            <f:facet name="header">
+                                <h:outputText value="ID Expiry Date" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_id_exp_date}" />
+                        </p:column>
+
+                        <p:column headerText="Results">
+                            <f:facet name="header">
+                                <h:outputText value="Results" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_results}" />
+                        </p:column>
+                        <p:column headerText="Conclusion">
+                            <f:facet name="header">
+                                <h:outputText value="Conclusion" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_oth_scn_proc}" />
+                        </p:column>
+                        <p:column headerText="Source">
+                            <f:facet name="header">
+                                <h:outputText value="Source" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_source}" />
+                        </p:column>
+                         <p:column headerText="Action">
+                             <p:commandLink ajax="False" value="Remove" action="#{uboCollectorView.remove(ubo)}">
+                 
+                </p:commandLink>
+            </p:column>
+ 
+                    </p:dataTable>
+                </p:panel>
+            </p:outputPanel>
+
+            <p:dialog header="Participant Details" widgetVar="UBODialog" modal="true" showEffect="fade" hideEffect="fade" resizable="true" width="500" height="500">
+                <p:outputPanel id="UBODetail" >
+                    <h:panelGrid columns="2" cellpadding="5">
+
+                        <h:outputLabel value="Type *" for="txt_type"></h:outputLabel>
+                        <h:selectOneMenu id="txt_type" value="#{uboCollectorView.ubo.ubo_type}" required="true" style="width:125px">
+                            
+                            <f:selectItem itemLabel="UBO" itemValue="UBO" />
+                            <f:selectItem itemLabel="Authorized Signatories" itemValue="Authorized Signatories" />
+
+                        </h:selectOneMenu>
+
+                        <h:outputLabel value="Name : *" for="txt_uboname"></h:outputLabel>
+                        <h:inputText id="txt_uboname" value="#{uboCollectorView.ubo.ubo_name}" />
+
+                        <h:outputLabel value="Nationality : *" for="txt_ubonationality"></h:outputLabel>
+
+                        <p:selectOneMenu id="txt_ubonationality" value="#{uboCollectorView.ubo.ubo_nationality}"  filter="true" filterMatchMode="startsWith" required="true">
+  <f:selectItem itemLabel="Select One" itemValue="Qatar" />
+                            <f:selectItems  value="#{SearchPattern.countries}" />
+                        </p:selectOneMenu>
+
+                        <h:outputLabel value="Date of Birth : *" for="txt_ubodob" ></h:outputLabel>
+                        <p:inputMask  id="txt_ubodob" value="#{uboCollectorView.ubo.ubo_dob}"    mask="99/99/9999"/>
+
+                        <h:outputLabel value="National ID / Passport Number : *" for="txt_uboid"></h:outputLabel>
+                        <h:inputText id="txt_uboid" value="#{uboCollectorView.ubo.ubo_idno}" />
+
+
+
+                        <h:outputLabel value="ID Expiry Date : " for="txt_iexpdt"></h:outputLabel>
+
+                        <p:inputMask  id="txt_iexpdt" value="#{uboCollectorView.ubo.ubo_id_exp_date}"    mask="99/99/9999"/>
+                        <h:outputLabel value="Results : *" for="txt_uboresults"></h:outputLabel>
+
+
+                        <h:selectOneMenu id="txt_uboresults" value="#{uboCollectorView.ubo.ubo_results}" required="true">
+  <f:selectItem itemLabel="Select One" itemValue="[Positive Match - Local PEP]" />
+                            <f:selectItems  value="#{SearchPattern.reportResult}" />
+                        </h:selectOneMenu>
+
+                        <h:outputLabel value="Conclusion :" for="txt_ubootjprc"></h:outputLabel>
+                        <h:inputText id="txt_ubootjprc" value="#{uboCollectorView.ubo.ubo_oth_scn_proc}" />
+                        <h:outputLabel value="Source :" for="txt_ubosource"></h:outputLabel>
+                        <h:inputText id="txt_ubosource" value="#{uboCollectorView.ubo.ubo_source}" />
+
+
+                        <p:commandButton id="ubo_reset" value="Reset" type="reset"/>
+                        <p:commandButton  ajax="False" value="Add"  action="#{uboCollectorView.reinit}" >
+                            <p:collector value="#{uboCollectorView.ubo}" addTo="#{uboCollectorView.ubos}" unique="true"/>
+                        </p:commandButton>
+                    </h:panelGrid>
+                </p:outputPanel>
+            </p:dialog>
+            <p:commandButton value="Save as Draft" update="mainmsgs" class="btn btn-primary" action="#{SearchPattern.saveAsDraftEntity()}" />
+
+            <p:commandButton value="Save and Approve" update="mainmsgs"  class="btn btn-primary"   action="#{SearchPattern.saveAndApproveEntity()}"/>
+
+        </h:form>
+
+
+    </h:body>
+</html>

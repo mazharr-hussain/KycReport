@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <title>KYC</title>
+        <h:outputStylesheet library="css" name="styles.css" />
+        <link type="text/css" rel="stylesheet" 
+              href="/JavaServerFaces/faces/javax.faces.resource/table-style.css?ln=css" />
+
+        <style type="text/css">
+            .ui-datatable .ui-datatable-header {
+                text-align: right !important;
+            }
+
+            .ui-button-text-only .ui-button-text {
+                padding: 0.3em 0.4em;
+            }
+
+            .ui-selectcheckboxmenu-panel .ui-selectcheckboxmenu-header .ui-chkbox {
+                visibility: hidden;
+            }
+
+            .ui-filter-column .ui-column-customfilter .custom-filter {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .year-spinner input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .value {
+                font-weight: bold;
+            }
+        </style>
+    </h:head>
+
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+        <h:form id="form"> 
+              <p:growl id="msgs"  showDetail="true"/>
+            <p:dataTable var="entitybean" id="entitybean" value="#{kyclist.entitybean}" widgetVar="entityTable"
+                         emptyMessage="No Entity found with given criteria" filteredValue="#{kyclist.filteredSp}" 
+                         rows="15"
+                 paginator="true"
+                 paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                 rowsPerPageTemplate="5,10,15" style="font-size:12px;" draggableColumns="true">
+                <f:facet name="header">
+                    <p:outputPanel>
+                        <h:outputText value="Search all fields:" />
+                        <p:inputText id="globalFilter" onkeyup="PF('entityTable').filter()" style="width:150px" placeholder="Enter keyword"/>
+                    </p:outputPanel>
+                </f:facet>
+                <p:column  headerText="Name" filterBy="#{entitybean.spName}" filterMatchMode="contains">
+                    <h:outputText value="#{entitybean.spName}" />
+                </p:column>
+                <p:column  headerText="Head Quarters"  filterBy="#{entitybean.qd_sp_head_quarters}" filterMatchMode="contains">
+                    <h:outputText value="#{entitybean.qd_sp_head_quarters}" />
+                </p:column>
+                <p:column  headerText="Country Location"  filterBy="#{entitybean.spCountryLoc}" filterMatchMode="contains">
+                    
+                     <f:facet name="filter">
+                <p:selectOneMenu onchange="PF('entityTable').filter()" styleClass="custom-filter">
+                    <f:selectItem itemLabel="All" itemValue="#{null}" noSelectionOption="true" />
+                    <f:selectItems  value="#{SearchPattern.countries}" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{entitybean.spCountryLoc}" /></p:column>
+
+                <p:column  headerText="Results"  filterBy="#{entitybean.spResults}" filterMatchMode="contains">
+                    <f:facet name="filter">
+                <p:selectOneMenu onchange="PF('entityTable').filter()" styleClass="custom-filter">
+                    <f:selectItem itemLabel="All" itemValue="#{null}" noSelectionOption="true" />
+                    <f:selectItems  value="#{SearchPattern.reportResult}" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{entitybean.spResults}" /></p:column>
+
+                <p:column  headerText="Status"  filterBy="#{entitybean.qd_sp_status}" filterMatchMode="contains">
+                     <f:facet name="filter">
+                <p:selectOneMenu  onchange="PF('entityTable').filter()" styleClass="custom-filter">
+                      <f:selectItem itemLabel="All" itemValue="" />
+                    <f:selectItem itemLabel="Draft" itemValue="Draft" />
+                    <f:selectItem itemLabel="Approved" itemValue="Approved" />
+                 
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{entitybean.qd_sp_status}" /></p:column>
+
+                <p:column  headerText="Action">
+                    <p:commandButton   value="Edit or Approve" action="#{SearchPattern.entityInfo(entitybean)}" rendered="#{entitybean.qd_is_edit}" />
+                    <p:commandLink update=":form:Entity" oncomplete="PF('Entity').show()"  value="View" action="#{SearchPattern.viewInfo(entitybean)}" rendered="#{entitybean.qd_is_update}" title="Entity View">
+                         <h:graphicImage value="/img/search.png" />
+                    </p:commandLink>    
+                    <p:commandButton   value="Create Version" action="#{SearchPattern.entityUpdateInfo(entitybean)}" rendered="#{entitybean.qd_is_update}"/>
+                    
+                </p:column>
+
+            </p:dataTable>
+            <p:dialog header="Entity" widgetVar="Entity" modal="true" showEffect="fade" hideEffect="fade" resizable="true" width="600" height="600">
+                <p:outputPanel id="Entity">
+                    <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="1">
+                            <h:graphicImage value="/img/qlogo.png" />
+
+                        </h:panelGrid>
+                    </p:panel>
+                    <p:panel>
+                        <h:panelGrid columns="2" >
+                             <h:outputLabel value="Related Entities :" ></h:outputLabel>
+                            <ui:repeat var="item" value="#{SearchPattern.selectedEnties}"> 
+                                          #{item}
+        </ui:repeat> 
+                            <h:outputLabel value="Entity Nature :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_sp_nature}"/>
+                            
+                            <h:outputLabel value="Name :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.spName}"/>
+                            
+                            <h:outputLabel value="Country Location :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.spCountryLoc}"/>
+                            
+                            <h:outputLabel value="Headquarters Address :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_sp_head_quarters}"/>
+                            
+                            <h:outputLabel value="Results :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.spResults}"/>
+                            
+                            <h:outputLabel value="Conclusion :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.spConclusion}"/>
+                            
+                             <h:outputLabel value="Entity Risk Level :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_risk_level}"/>
+                            
+                            
+                            
+                        </h:panelGrid>
+                    </p:panel>
+               
+                   
+                    <p:panel header="Natural Person" rendered="#{SearchPattern.is_legal_person}">
+                        <h:panelGrid columns="2"  >
+                            <h:outputLabel value="Nationality :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_natural_person_nationality}"/>
+                            
+                            <h:outputLabel value="Person ID number / Passport number :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_person_id}"/>
+                            
+                            <h:outputLabel value="Date of Birth :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_natural_person_dob}"/>
+                            
+                           
+                            
+                        </h:panelGrid>
+                    </p:panel>
+                    <p:panel header="Legal Person" rendered="#{SearchPattern.is_nautal_person}">
+                        <h:panelGrid columns="2"  >
+                            <h:outputLabel value="Company Registration No :" ></h:outputLabel>
+                            <h:outputText  value="#{SearchPattern.qd_legal_reg_no}"/>
+                        </h:panelGrid>
+                         <h:panelGrid>
+                           
+                            
+                    <p:dataTable var="ubo"  value="#{ubo.ubolist}" widgetVar="uboTable"
+                                 emptyMessage="No UBO found with given criteria" >
+
+                         <p:column headerText="Name">
+                        <h:outputText value="#{ubo.ubo_name}" />
+                    </p:column>
+                     <p:column headerText="Type">
+                        <h:outputText value="#{ubo.ubo_type}" />
+                    </p:column>
+
+
+                    <p:column headerText="Nationality">
+                        <f:facet name="header">
+                            <h:outputText value="Nationality" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_nationality}" />
+                    </p:column>
+                    <p:column headerText="Date Of Birth">
+                        <f:facet name="header">
+                            <h:outputText value="Date Of Birth" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_dob}" />
+                    </p:column>
+                    <p:column headerText="National ID / Passport Number">
+                        <f:facet name="header">
+                            <h:outputText value="National ID / Passport Number" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_idno}" />
+                    </p:column>
+                    
+                     <p:column headerText="ID Expiry Date">
+                        <f:facet name="header">
+                            <h:outputText value="ID Expiry Date" />
+                        </f:facet>
+                         <h:outputText value="#{ubo.ubo_id_exp_date}" />
+                    </p:column>
+                    
+                    <p:column headerText="Results">
+                        <f:facet name="header">
+                            <h:outputText value="Results" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_results}" />
+                    </p:column>
+                    <p:column headerText="Conclusion">
+                        <f:facet name="header">
+                            <h:outputText value="Conclusion" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_oth_scn_proc}" />
+                    </p:column>
+                    <p:column headerText="Source">
+                        <f:facet name="header">
+                            <h:outputText value="Source" />
+                        </f:facet>
+                        <h:outputText value="#{ubo.ubo_source}" />
+                    </p:column>
+
+                    </p:dataTable>
+                        </h:panelGrid>
+                         
+                    </p:panel>
+                     
+
+                </p:outputPanel>
+                
+
+            </p:dialog>
+        </h:form>
+
+    </h:body>
+</html>

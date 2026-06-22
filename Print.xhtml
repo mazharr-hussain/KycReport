@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+     
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+    <h:head>
+        <title>Login | KYC</title>
+
+    </h:head>
+    <h:body>
+
+        <h:form class="form-horizontal">
+            <p:outputPanel  style="text-align:center;">
+                <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="1">
+                            <h:graphicImage value="/img/qlogo.png" />
+
+                        </h:panelGrid>
+                    </p:panel>
+                <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="2" cellpadding="5">
+
+                            <h:outputLabel value="Process Reference Number :"></h:outputLabel>
+                            <h:outputText value="#{printController.viewData.qd_proc_ref_no}" />
+
+                            <h:outputLabel value="Business Counterparty Category :" ></h:outputLabel>
+                    
+
+                            <h:outputLabel value="Business Counterparty Type :" ></h:outputLabel>
+                          
+
+
+
+
+                            <h:outputLabel value="Subject : "></h:outputLabel>
+                           
+
+                            <h:outputLabel value="Counterparty Designation :"></h:outputLabel>
+                           
+
+                            <h:outputLabel value="UBO' :"></h:outputLabel>
+                           
+
+                            <h:outputLabel value="Request Made By :"></h:outputLabel>
+                          
+
+                            <h:outputLabel value="Request Date : " ></h:outputLabel>
+                        
+                        </h:panelGrid>
+                    </p:panel>
+                <p:panel header="Search Pattern" style="margin-bottom:20px">
+                    <p:dataTable var="splist" value="#{printController.splist}">
+                       
+                         <p:column headerText="Name">
+                            <h:outputText value="#{splist.spName}" />
+                        </p:column>
+                        <p:column headerText="Conclusion">
+                            <h:outputText value="#{splist.spConclusion}" />
+                        </p:column>
+
+                        <p:column headerText="Country Location">
+                            <h:outputText value="#{splist.spCountryLoc}" />
+                        </p:column>
+
+                       
+                        <p:column headerText="Results">
+                            <h:outputText value="#{splist.spResults}" />
+                        </p:column>
+                    </p:dataTable>
+                     </p:panel>
+            </p:outputPanel>
+          
+
+        </h:form>
+    </h:body>
+</html>

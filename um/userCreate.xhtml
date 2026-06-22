@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <title>User List</title>
+        <h:outputStylesheet library="css" name="styles.css" />
+        <link type="text/css" rel="stylesheet" 
+              href="/JavaServerFaces/faces/javax.faces.resource/table-style.css?ln=css" />
+        <style type="text/css">
+            .ui-datatable .ui-datatable-header {
+                text-align: right !important;
+            }
+
+            .ui-button-text-only .ui-button-text {
+                padding: 0.3em 0.4em;
+            }
+
+            .ui-selectcheckboxmenu-panel .ui-selectcheckboxmenu-header .ui-chkbox {
+                visibility: hidden;
+            }
+
+            .ui-filter-column .ui-column-customfilter .custom-filter {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .year-spinner input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .value {
+                font-weight: bold;
+            }
+        </style>
+    </h:head>
+
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+        <h:form id="form" style="font-size:12px;"> 
+            <p:growl id="mainmsgs"  />
+
+                <p:outputPanel >
+                    <p:panel header="New User  Creation Form">
+                        <h:panelGrid columns="2" >
+
+
+
+
+                            <h:outputLabel value="Contributor *" for="txt_usrRole"></h:outputLabel>
+                            <h:selectOneMenu id="txt_usrRole" value="#{Login.role}" >
+                                   <f:selectItem itemLabel="No" itemValue="" />
+                                 <f:selectItem itemLabel="Yes" itemValue="contributor" />
+                             
+                            </h:selectOneMenu>
+                            <h:outputLabel value="Level1 *" for="txt_usrRole1"></h:outputLabel>
+                            <h:selectOneMenu id="txt_usrRole1" value="#{Login.role1}"  >
+                                   <f:selectItem itemLabel="No" itemValue="" />
+                                   <f:selectItem itemLabel="Yes" itemValue="level1" />
+                                 
+                               
+                            </h:selectOneMenu>
+                              <h:outputLabel value="Level2 *" for="txt_usrRole2"></h:outputLabel>
+                           <h:selectOneMenu id="txt_usrRole2" value="#{Login.role2}" >
+                               <f:selectItem itemLabel="No" itemValue="" />
+                                   <f:selectItem itemLabel="Yes" itemValue="level2" />
+                            </h:selectOneMenu>
+                    
+                            <h:outputLabel value="First Name : *" for="txt_usrFirstName"></h:outputLabel>
+                            <h:inputText id="txt_usrFirstName" value="#{Login.first_name}" label="Please Enter the First Name" required="true"/>
+
+                            <h:outputLabel value="Last Name : *" for="txt_usrLastName" ></h:outputLabel>
+                            <h:inputText id="txt_usrLastName" value="#{Login.last_name}" label="Please Enter the Last Name" required="true"/>
+
+                            <h:outputLabel value="Login ID : *" for="txt_usrLoginId"></h:outputLabel>
+                            <h:inputText id="txt_usrLoginId" value="#{Login.userId}" label="Please Enter the Login ID " required="true"/>
+                            
+                            <h:outputLabel value="Password : *" for="txt_usrpwd"></h:outputLabel>
+                            <h:inputText id="txt_usrpwd" value="#{Login.userPass}" label="Please Enter the Password " required="true"/>
+
+                            <h:outputLabel value="Mobile :" for="txt_usrMobile"></h:outputLabel>
+                            <h:inputText id="txt_usrMobile" value="#{Login.mobile}"/>
+                            
+                            <h:outputLabel value="Email :" for="txt_email"></h:outputLabel>
+                            <h:inputText id="txt_email" value="#{Login.email_id}"/>
+
+                            <p:commandButton value="Create" update="mainmsgs" action="#{Login.createUser}"/>
+                        </h:panelGrid>
+                    </p:panel>
+                </p:outputPanel>
+           
+        </h:form>
+
+    </h:body>
+</html>

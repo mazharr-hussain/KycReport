@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.SearchPattern" table="KycSP"  optimistic-lock="version">
+       <id name="qd_sp_id" type="int">
+            <column name="qd_sp_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+          
+        </property>
+        <property name="spName" type="string">
+            <column name="qd_spname" />
+        </property>
+         <property name="spCountryLoc" type="string">
+            <column name="qd_spcountry_loc" />
+        </property>
+         <property name="spResults" type="string">
+            <column name="qd_spresults" />
+        </property>
+        <property name="spConclusion" type="string">
+            <column name="qd_spconclusion" />
+        </property>
+          <property name="qd_sp_head_quarters" type="string">
+            <column name="qd_sp_head_quarters" />
+        </property>
+          <property name="qd_active" type="string">
+            <column name="qd_active" />
+          
+        </property>
+          <property name="qd_sp_status" type="string">
+            <column name="qd_sp_status" />
+           </property>
+            <property name="qd_is_edit" type="string">
+            <column name="qd_is_edit" />
+           </property>
+           <property name="qd_is_update" type="string">
+            <column name="qd_is_update" />
+           </property>
+            <property name="qd_is_used" type="string">
+            <column name="qd_is_used" />
+           </property>
+           
+           <property name="qd_version" type="int">
+            <column name="qd_version" />
+           </property>
+           
+           
+           
+           
+           <property name="qd_chronic_id" type="int">
+            <column name="qd_chronic_id" />
+           </property>
+           
+           <property name="qd_version_no" type="int">
+            <column name="qd_version_no" />
+           </property>
+        
+           <property name="qd_sp_nature" type="string">
+            <column name="qd_sp_nature" />
+           </property>
+           
+            <property name="qd_person_id" type="string">
+            <column name="qd_person_id" />
+           </property>
+           
+            <property name="qd_legal_reg_no" type="string">
+            <column name="qd_legal_reg_no" />
+           </property>
+           
+            <property name="qd_natural_person_dob" type="string">
+            <column name="qd_natural_person_dob" />
+           </property>
+           
+            <property name="qd_natural_person_nationality" type="string">
+            <column name="qd_natural_person_nationality" />
+           </property>
+           
+           <property name="qd_risk_level" type="string">
+            <column name="qd_risk_level" />
+           </property>
+           
+           
+           </class>
+</hibernate-mapping>

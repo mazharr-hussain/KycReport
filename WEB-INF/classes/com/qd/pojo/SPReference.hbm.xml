@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.SPReference" table="SPReference"  optimistic-lock="version">
+       <id name="qd_sp_id" type="int">
+            <column name="qd_sp_id" />
+            <generator class="increment" />
+        </id>
+        <property name="er_ref_no" type="int">
+            <column name="er_ref_no" />
+          
+        </property>
+        <property name="er_rel_ref_no" type="int">
+            <column name="er_rel_ref_no" />
+        </property>
+       
+           </class>
+</hibernate-mapping>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.Kyc" table="Kyc"  optimistic-lock="version">
+        <id name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+            <generator class="assigned" />
+        </id>
+        <property name="qd_business_counter_catg" type="string">
+            <column name="qd_business_counter_catg" />
+        </property>
+        <property name="qd_business_counter_type" type="string">
+            <column name="qd_business_counter_type" />
+        </property>
+        <property name="qd_subject" type="string">
+            <column name="qd_subject" />
+        </property>
+        <property name="qd_final_conclusion" type="string">
+            <column name="qd_final_conclusion" />
+        </property>
+         <property name="qd_req_date" type="string">
+            <column name="qd_req_date" />
+        </property>
+        <property name="qd_count_designation" type="string">
+            <column name="qd_count_designation" />
+        </property>
+       
+         <property name="qd_request_made_by" type="string">
+            <column name="qd_request_made_by" />
+        </property>
+         <property name="qd_due_dig_type" type="string">
+            <column name="qd_due_dig_type" />
+        </property>
+        <property name="qd_due_dig_made_by" type="string">
+            <column name="qd_due_dig_made_by" />
+        </property>
+          <property name="qd_initial_req_msg" type="string">
+            <column name="qd_initial_req_msg" />
+        </property>
+         <property name="qd_kyc_report_status" type="string">
+            <column name="qd_kyc_report_status" />
+        </property>
+         <property name="qd_risk_level" type="string">
+            <column name="qd_risk_level" />
+        </property>
+      
+         <property name="qd_seq_id" type="int">
+            <column name="qd_seq_id" />
+        </property>
+        
+        
+         <property name="qd_kyc_wf_status" type="string">
+            <column name="qd_kyc_wf_status" />
+             </property>
+              <property name="qd_kyc_next_step" type="string">
+            <column name="qd_kyc_next_step" />
+        </property>
+        <property name="qd_is_draft" type="string">
+            <column name="qd_is_draft" />
+        </property>
+         <property name="qd_is_approve" type="string">
+            <column name="qd_is_approve" />
+        </property>
+          <property name="wf_level" type="int">
+            <column name="wf_level" />
+        </property>
+        
+         <property name="qd_ent_ref" type="int">
+            <column name="qd_ent_ref" />
+        </property>
+        <property name="qd_last_actioned_date" type="string">
+            <column name="qd_last_actioned_date" />
+        </property>
+    </class>
+</hibernate-mapping>

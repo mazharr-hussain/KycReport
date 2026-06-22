@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+        <script>
+
+            $(document).ready(function () {
+                $(".datepicker").datepicker({
+                    dateFormat: 'yy/mm/dd',
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "1960:2017"
+                });
+            });
+        </script>
+
+        <h:form >
+
+            <p:growl id="mainmsgs" />
+
+            <p:panel header="Update Entity Form">
+
+                <h:outputLabel value="Related to Exist Entity?:"></h:outputLabel>
+
+                <p:selectOneMenu id="txt_entity" value="#{SearchPattern.qd_proc_ref_no}"  filter="true" filterMatchMode="startsWith">
+                    <f:selectItem itemLabel="No" itemValue="0" />
+                    <f:selectItems  value="#{SearchPattern.entities}" />
+                </p:selectOneMenu>
+
+                <h:panelGrid columns="2" >
+
+
+                    <h:outputLabel value="Id" for="txt_spId"></h:outputLabel>
+                    <h:inputText id="txt_spId" value="#{SearchPattern.qd_sp_id}" readonly="true" />
+
+                    <h:outputLabel value="Name :" for="txt_spName" ></h:outputLabel>
+                    <h:inputText id="txt_spName" value="#{SearchPattern.spName}" readonly="#{SearchPattern.isReadonly}"/>
+
+                    <h:outputLabel value="Country Location : *" for="txt_spCountryLoc"></h:outputLabel>
+                    <h:selectOneMenu id="txt_ubonationality" value="#{SearchPattern.spCountryLoc}" readonly="#{SearchPattern.isReadonly}" >
+                        <f:selectItems  value="#{SearchPattern.country}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="Head Quarters :" for="txt_sph"></h:outputLabel>
+                    <h:inputTextarea id="txt_sph" value="#{SearchPattern.qd_sp_head_quarters}" cols="80" readonly="#{SearchPattern.isReadonly}"/>
+
+                    <h:outputLabel value="Results : " for="txt_spResults"></h:outputLabel>
+                    <h:inputText id="txt_spResults" value="#{SearchPattern.spResults}" readonly="#{SearchPattern.isReadonly}"/>
+
+                    <h:outputLabel value="Conclusion : *" for="txt_spConclusion"></h:outputLabel>
+                    <h:inputTextarea id="txt_spConclusion" value="#{SearchPattern.spConclusion}" cols="80" readonly="#{SearchPattern.isReadonly}" />
+
+                </h:panelGrid><h:panelGrid>
+                    <p:commandButton    oncomplete="PF('UBODialog').show();"  value="Add New UBO"  />
+
+                    <p:dataTable value="#{SearchPattern.ubos}" var="ubo" id="uboTable">
+
+                        <p:column headerText="Name">
+                            <h:outputText value="#{ubo.ubo_name}" />
+                        </p:column>
+
+                        <p:column headerText="Nationality">
+                            <f:facet name="header">
+                                <h:outputText value="Nationality" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_nationality}" />
+                        </p:column>
+                        <p:column headerText="Date Of Birth">
+                            <f:facet name="header">
+                                <h:outputText value="Date Of Birth" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_dob}" />
+                        </p:column>
+                        <p:column headerText="ID">
+                            <f:facet name="header">
+                                <h:outputText value="ID" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_idno}" />
+                        </p:column>
+                        <p:column headerText="Results">
+                            <f:facet name="header">
+                                <h:outputText value="Results" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_results}" />
+                        </p:column>
+                        <p:column headerText="Other Process">
+                            <f:facet name="header">
+                                <h:outputText value="Other Process" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_oth_scn_proc}" />
+                        </p:column>
+                        <p:column headerText="Source">
+                            <f:facet name="header">
+                                <h:outputText value="Source" />
+                            </f:facet>
+                            <h:outputText value="#{ubo.ubo_source}" />
+                        </p:column>
+
+                        <p:column headerText="Action">
+                            <p:commandLink value="Delete" rendered="#{SearchPattern.isDisabled}" />
+                        </p:column>
+
+                    </p:dataTable>
+
+                    
+                </h:panelGrid>
+                <p:dialog header="Add UBO" widgetVar="UBODialog" modal="true" showEffect="fade" hideEffect="fade" resizable="true" width="500" height="500">
+                    <p:outputPanel id="UBODetail" >
+                        <p:panel header="New UBO  Creation Form">
+                            <h:panelGrid columns="2" >
+
+                                <h:outputLabel value="Id " ></h:outputLabel>
+                                <h:inputText  value="#{SearchPattern.qd_sp_id}"  />
+
+
+                                <h:outputLabel value="Name : *" for="txt_uboname"></h:outputLabel>
+                                <h:inputText id="txt_uboname" value="#{ubo.ubo_name}"/>
+
+                                <h:outputLabel value="Nationality : *" for="ubo_nationality"></h:outputLabel>
+                                <h:selectOneMenu id="ubo_nationality" value="#{ubo.ubo_nationality}">
+                                    <f:selectItems  value="#{ubo.country}" />
+
+                                </h:selectOneMenu>
+
+                                <h:outputLabel value="Date Of Birth : *" for="ubo_dob"></h:outputLabel>
+                                <h:inputText id="ubo_dob" value="#{ubo.ubo_dob}" styleClass="datepicker"/>
+
+                                <h:outputLabel value="ID : *" for="txt_uboid"></h:outputLabel>
+                                <h:inputText id="txt_uboid" value="#{ubo.ubo_idno}" />
+                                <h:outputLabel value="Results : *" for="txt_uboresults"></h:outputLabel>
+                                <h:inputText id="txt_uboresults" value="#{ubo.ubo_results}" />
+
+                                <h:outputLabel value="Other Process : *" for="txt_ubootjprc"></h:outputLabel>
+                                <h:inputText id="txt_ubootjprc" value="#{ubo.ubo_oth_scn_proc}" />
+
+                                <h:outputLabel value="Source : *" for="txt_ubosource"></h:outputLabel>
+                                <h:inputText id="txt_ubosource" value="#{ubo.ubo_source}" />
+
+                                <h:commandButton value="Submit" action="#{SearchPattern.AddUpdateEntity(ubo)}" />
+                            </h:panelGrid>
+                        </p:panel>
+                    </p:outputPanel>
+                </p:dialog>
+            </p:panel>
+            <h:commandButton value="Update"   action="#{SearchPattern.UpdateEntity(SearchPattern)}"  />
+            
+        </h:form>
+
+
+
+
+
+
+
+    </h:body>
+</html>

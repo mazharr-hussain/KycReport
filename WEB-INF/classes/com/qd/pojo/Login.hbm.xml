@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.Login" table="Login"  optimistic-lock="version">
+        <id name="userId" type="string">
+            <column name="userId" />
+            <generator class="assigned" />
+        </id>
+        <property name="userPass" type="string">
+            <column name="userPass" />
+        </property>
+        <property name="first_name" type="string">
+            <column name="first_name" />
+        </property>
+         <property name="last_name" type="string">
+            <column name="last_name" />
+        </property>
+        <property name="mobile" type="string">
+            <column name="mobile" />
+        </property>
+          <property name="role" type="string">
+            <column name="role" />
+        </property>
+         <property name="role1" type="string">
+            <column name="role1" />
+        </property>
+         <property name="role2" type="string">
+            <column name="role2" />
+        </property>
+        <property name="email_id" type="string">
+            <column name="email_id" />
+        </property>
+    </class>
+</hibernate-mapping>

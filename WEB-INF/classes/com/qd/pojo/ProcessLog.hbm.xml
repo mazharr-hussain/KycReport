@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.ProcessLog" table="ProcessLog"  optimistic-lock="version">
+       <id name="qd_kyc_log_id" type="int">
+            <column name="qd_kyc_log_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+          
+        </property>
+         <property name="kyc_wf_status" type="string">
+            <column name="kyc_wf_status" />
+          
+        </property>
+         <property name="log_user" type="string">
+            <column name="log_user" />
+          
+        </property>
+         <property name="kyc_comments" type="string">
+            <column name="kyc_comments" />
+          
+        </property>
+        <property name="log_date" type="string">
+            <column name="log_date" />
+          
+        </property>
+      
+    </class>
+</hibernate-mapping>

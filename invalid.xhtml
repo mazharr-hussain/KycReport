@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	>
+
+
+
+
+<h:head>
+	<title>Invalid Login | KYC</title>
+	<script name="jquery/jquery.js" library="primefaces"></script>
+</h:head>
+<h:body>
+
+	<h:outputStylesheet library="css" name="QDstyle.css" />
+	<h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+	<h:form class="form-horizontal">
+
+		<div class="row">
+			<div class="col-md-12 logo">
+				<img src="img/qlogo.png" alt="Lusail" />
+			</div>
+		</div>
+
+		<img src="img/slide-2-1.jpg" class="img-responsive" />
+
+		<div class="col-md-6 col-md-offset-3">
+			<div class="clearfix"></div>
+			<h5
+				style="color: red; padding-right: 50px; padding-left: 10px; float: right;">
+				<h:outputLabel ></h:outputLabel>
+			</h5>
+			<h5 style="float: right;">
+				<h:outputLabel ></h:outputLabel>
+			</h5>
+			<div class="row-fluid">
+				<span class="heading_separator h4">
+					Invalid user name or password
+				</span>
+
+			</div>
+			<div class="col-xs-6 col-sm-2"></div>
+			<div class="col-xs-6 col-sm-2"></div>
+			<div class="col-xs-6 col-sm-2">
+				<h:link value="login" outcome="login" />
+			</div>
+
+		</div>
+
+
+	</h:form>
+</h:body>
+</html>

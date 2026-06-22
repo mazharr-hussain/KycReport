@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.Business_Counterparty_Category" table="Business_Counterparty_Category"  optimistic-lock="version">
+        <id name="qd_bcp_id" type="int">
+            <column name="qd_bcp_id" />
+            <generator class="increment" />
+        </id>
+       
+         <property name="qd_bcp_name" type="string">
+            <column name="qd_bcp_name" />
+        </property>
+      
+        
+    </class>
+</hibernate-mapping>

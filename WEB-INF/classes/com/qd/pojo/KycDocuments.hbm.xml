@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.KycDocuments" table="KycDocuments"  optimistic-lock="version">
+       <id name="qd_doc_id" type="int">
+            <column name="qd_doc_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_id" type="string">
+            <column name="qd_proc_ref_id" />
+          
+        </property>
+         <property name="qd_doc_name" type="string">
+            <column name="qd_doc_name" />
+          
+        </property>
+         <property name="qd_doc_date" type="string">
+            <column name="qd_doc_date" />
+          
+        </property>
+         <property name="qd_doc_path" type="string">
+            <column name="qd_doc_path" />
+          
+        </property>
+         
+    </class>
+</hibernate-mapping>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <title>KYC Dashboard</title>
+        <h:outputStylesheet library="css" name="styles.css" />
+        <link type="text/css" rel="stylesheet" 
+              href="/JavaServerFaces/faces/javax.faces.resource/table-style.css?ln=css" />
+      <style type="text/css">
+    .right div {
+        float: right;
+    }
+    hr.new5 {
+  border: 5px solid #7D3C98;
+  border-radius: 2px;
+}
+</style>
+    </h:head>
+
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+
+     <h:form style="font-size:12px;">
+    <p:growl id="growl" showDetail="true" />
+ 
+    <h:panelGrid columns="1" columnClasses="left,right" style="width:100%">
+    
+         <p:chart id="item1" type="bar" model="#{ChartView.animatedModel1}" style="height:300px"/>
+     </h:panelGrid>
+    <hr class="new5">
+    </hr>     
+    <h:panelGrid columns="3" columnClasses="left,right" style="width:100%">
+    
+ 
+        <p:chart id="item2" type="bar" model="#{ChartView.animatedModel2}" style="width:250px;height:200px">
+            <p:ajax event="itemSelect" listener="#{ChartView.itemSelect}" update="growl" />
+        </p:chart>  
+        
+        <p:chart id="item3" type="pie" model="#{ChartView.pieModel1}" style="width:250px;height:200px" />
+        <p:chart id="item4" type="donut" model="#{ChartView.donutModel1}" style="width:250px;height:300px" />
+    </h:panelGrid>
+    
+    <p:poll interval="3" update="item4,item3,item2,item1" />
+</h:form>
+
+    </h:body>
+</html>

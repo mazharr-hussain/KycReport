@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+   
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+    <h:head>
+        <title>KYC</title>
+        <h:outputStylesheet library="css" name="styles.css" />
+        <link type="text/css" rel="stylesheet" 
+              href="/JavaServerFaces/faces/javax.faces.resource/table-style.css?ln=css" />
+        <style type="text/css">
+            .ui-datatable .ui-datatable-header {
+                text-align: right !important;
+            }
+
+            .ui-button-text-only .ui-button-text {
+                padding: 0.3em 0.4em;
+            }
+
+            .ui-selectcheckboxmenu-panel .ui-selectcheckboxmenu-header .ui-chkbox {
+                visibility: hidden;
+            }
+
+            .ui-filter-column .ui-column-customfilter .custom-filter {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .year-spinner input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .value {
+                font-weight: bold;
+            }
+            #JSFFrameId {
+  visibility:hidden;
+}
+        </style>
+    </h:head>
+
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+        <script>
+              
+              function removeIFrame()
+{
+  document.getElementById("JSFFrameId").removeNode();
+}
+        </script>
+
+        <h:form id="form"> 
+            <p:dataTable var="kycbean"  id="kycbean" value="#{kyclist.kycbean}" widgetVar="kycTable"
+                         emptyMessage="No Kyc found with given criteria" filteredValue="#{kyclist.filteredKyc}" scrollable="true"  scrollHeight="700" 
+                         style="font-size:12px;"
+                         rows="15"
+                 paginator="true"
+                 paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                 rowsPerPageTemplate="5,10,15" draggableColumns="true">
+                <f:facet name="header">
+                    <p:outputPanel>
+                      <p:commandButton id="toggler" type="button" value="Columns" style="float:right"  />
+        <p:columnToggler datasource="kycbean" trigger="toggler" />
+                        <h:outputText value="Search all fields:" />
+                        <p:inputText id="globalFilter" onkeyup="PF('kycTable').filter()" style="width:150px" placeholder="Enter keyword"/>
+                    </p:outputPanel>
+                
+                </f:facet>
+                <p:column style="width:50px" filterBy="#{kycbean.qd_proc_ref_no}" headerText="Process Ref No"  filterMatchMode="contains" >
+                    <h:outputText value="#{kycbean.qd_proc_ref_no}" />
+                </p:column>
+                
+             <p:column style="width:40px" filterBy="#{kycbean.qd_count_designation}" headerText="Counter Party  Designation"  filterMatchMode="contains">
+                    <h:outputText value="#{kycbean.qd_count_designation}" />
+             </p:column>
+
+                <p:column style="width:40px" filterBy="#{kycbean.qd_risk_level}" headerText="Report Risk Level"   filterMatchMode="equals">
+                        <f:facet name="filter">
+                <p:selectOneMenu  onchange="PF('kycTable').filter()" styleClass="custom-filter">
+                      <f:selectItem itemLabel="All" itemValue="" />
+                    <f:selectItem itemLabel="Low" itemValue="Low" />
+                    <f:selectItem itemLabel="Medium" itemValue="Medium" />
+                    <f:selectItem itemLabel="High" itemValue="High" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{kycbean.qd_risk_level}" /></p:column>
+
+            <p:column style="width:40px" filterBy="#{kycbean.qd_kyc_report_status}" headerText="Report Status"  filterMatchMode="contains">
+                    
+                     <f:facet name="filter">
+                <p:selectOneMenu onchange="PF('kycTable').filter()" styleClass="custom-filter">
+                      <f:selectItem itemLabel="All" itemValue="" />
+                    <f:selectItems value="#{kyclist.kycReportStatusList}" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{kycbean.qd_kyc_report_status}" /></p:column>
+                    
+                    
+                                  
+                    <p:column style="width:40px" filterBy="#{kycbean.qd_kyc_wf_status}" headerText="Approval Status"  filterMatchMode="contains">
+                        <f:facet name="filter">
+                <p:selectOneMenu  onchange="PF('kycTable').filter()" styleClass="custom-filter">
+                       <f:selectItem itemLabel="All" itemValue="" />
+                      <f:selectItem itemLabel="Draft" itemValue="Draft" />
+                    <f:selectItem itemLabel="Approved" itemValue="Approved" />
+                    <f:selectItem itemLabel="Rejected" itemValue="Rejected" />
+                    <f:selectItem itemLabel="Waiting for level 1 Approval" itemValue="Waiting for level 1 Approval" />
+                      <f:selectItem itemLabel="Waiting for level 2 Approval" itemValue="Waiting for level 2 Approval" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{kycbean.qd_kyc_wf_status}" />
+                    </p:column>
+                
+                <p:column style="width:40px" filterBy="#{kycbean.qd_due_dig_made_by}" headerText="Made by">
+                    <f:facet name="filter">
+                <p:selectOneMenu onchange="PF('kycTable').filter()" styleClass="custom-filter">
+                      <f:selectItem itemLabel="All" itemValue="" />
+                    <f:selectItems value="#{kyclist.kycRequestMadeList}" />
+                </p:selectOneMenu>
+            </f:facet>
+                    <h:outputText value="#{kycbean.qd_due_dig_made_by}" />
+                    </p:column>
+                   
+                <p:column  style="width:10px" headerText="View">
+                   <h:commandLink action="#{printController.getPdf(kycbean)}"   >
+                       <h:graphicImage value="/img/pdf.png" />
+                   </h:commandLink>
+                </p:column>
+              
+                 <p:column  headerText="Action" style="width:10px">
+                    <p:commandLink action="#{kycbean.editKyc(kycbean)}" rendered="#{kycbean.qd_is_draft}"  >
+                      <h:graphicImage value="/img/edit_new.png" />
+                     </p:commandLink>
+                </p:column>
+                 <p:column  headerText="Comments" style="width:30px">
+                     <p:commandLink update=":form:Comments" oncomplete="PF('Comments').show()"   action="#{kyclist.getComments(kycbean)}">
+                      <h:graphicImage value="/img/comments.jpg" />
+                     </p:commandLink>
+                </p:column>
+                 <p:column  headerText="Attachments" style="width:30px">
+                     <p:commandLink update=":form:AttView" oncomplete="PF('AttView').show()"   action="#{kyclist.getDocList(kycbean)}"  value="View"/>
+                    
+                </p:column>
+            </p:dataTable>
+          <p:dialog header="Comments" widgetVar="Comments"  resizable="true" width="600" height="600">
+                <p:outputPanel id="Comments" style="text-align:center;">
+                    <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="1">
+                            <h:graphicImage value="/img/qlogo.png" />
+
+                        </h:panelGrid>
+                    </p:panel>
+                    <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="2" cellpadding="5">
+
+                            <h:outputLabel value="Process Reference Number :"></h:outputLabel>
+                            <h:outputText value="#{kyclist.viewData.qd_proc_ref_no}" />
+                             <h:outputLabel value="Comments If any ?:"></h:outputLabel>
+                              <textarea id="comments" name="addcomments" rows="4" cols="50" />
+                        </h:panelGrid>
+                         <h:commandButton value="Add"  action="#{kyclist.AddComments(kyclist.viewData)}"/>
+                        
+                    </p:panel>
+                    <p:panel header="Comments List" style="margin-bottom:20px">
+                    <p:dataTable var="commList" value="#{kyclist.commList}">
+                       
+                         <p:column headerText="User Name">
+                             <h:outputText value="#{commList.qd_comm_user}" />
+                        </p:column>
+                        <p:column headerText="Date">
+                            <h:outputText value="#{commList.qd_comm_date}" />
+                        </p:column>
+
+                        <p:column headerText="Comments">
+                            <h:outputText value="#{commList.qd_comments}" />
+                        </p:column>
+
+                    </p:dataTable>
+                     </p:panel>
+                    <p:panel header="Process Logs" style="margin-bottom:20px">
+                        <p:dataTable var="processLogs" value="#{kyclist.viewProcessLogs}">
+                       
+                         <p:column headerText="User Name">
+                             <h:outputText value="#{processLogs.log_user}" />
+                        </p:column>
+                        <p:column headerText="Status">
+                            <h:outputText value="#{processLogs.kyc_wf_status}" />
+                        </p:column>
+
+                        <p:column headerText="Date">
+                            <h:outputText value="#{processLogs.log_date}" />
+                        </p:column>
+
+                    </p:dataTable>
+                     </p:panel>
+                </p:outputPanel>
+               
+            </p:dialog>
+            
+            <p:dialog header="Attached Document" widgetVar="AttView"  resizable="true" width="600" height="600">
+                <p:outputPanel id="AttView" style="text-align:center;">
+                    <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="1">
+                            <h:graphicImage value="/img/qlogo.png" />
+
+                        </h:panelGrid>
+                    </p:panel>
+                    <p:panel  style="margin-bottom:20px">
+                        <h:panelGrid columns="2" cellpadding="5">
+
+                            <h:outputLabel value="Process Reference Number :"></h:outputLabel>
+                            <h:outputText value="#{kyclist.viewData.qd_proc_ref_no}" />
+                        </h:panelGrid>  
+                    </p:panel>
+               <p:panel style="margin-bottom:20px">
+                    <p:dataTable var="docList" value="#{kyclist.docList}">
+                       
+                         <p:column headerText="Document Name">
+                             <h:outputText value="#{docList.qd_doc_name}" />
+                        </p:column>
+                        
+                       <p:column headerText="View">
+                         
+                           <h:commandButton  action="#{kyclist.downloadFile(docList.qd_doc_path)}" value="Open" /> 
+                        </p:column>
+                        
+                    </p:dataTable>
+                     </p:panel>
+                </p:outputPanel>
+               
+            </p:dialog>
+
+        </h:form>
+
+    </h:body>
+</html>

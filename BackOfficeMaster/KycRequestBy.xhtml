@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+   <h:head>
+    <title>Report  Results</title>
+     <h:outputStylesheet library="css" name="styles.css" />
+        <link type="text/css" rel="stylesheet" 
+              href="/JavaServerFaces/faces/javax.faces.resource/table-style.css?ln=css" />
+        <style type="text/css">
+            .ui-datatable .ui-datatable-header {
+                text-align: right !important;
+            }
+
+            .ui-button-text-only .ui-button-text {
+                padding: 0.3em 0.4em;
+            }
+
+            .ui-selectcheckboxmenu-panel .ui-selectcheckboxmenu-header .ui-chkbox {
+                visibility: hidden;
+            }
+
+            .ui-filter-column .ui-column-customfilter .custom-filter {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .year-spinner input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .value {
+                font-weight: bold;
+            }
+        </style>
+</h:head>
+
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+ <p:growl id="mainmsgs" />
+        <h:form id="form"> 
+              <p:panel header="Request By List" style="font-size:12px;">
+                  <h:panelGrid columns="2">
+            <h:outputLabel value="Request By Name  " for="txt_rs"  ></h:outputLabel>
+            <h:inputText id="txt_rs" value="#{KycRequestBy.qd_req_by_name}" required="true" label="Please Enter Result" />
+           
+                       
+               <h:outputLabel></h:outputLabel>
+                <h:commandButton  value="Add New" action="#{KycRequestBy.AddNew}" class="btn btn-primary"/>
+                  </h:panelGrid>
+              </p:panel>
+        </h:form>
+       <h:form id="form1"> 
+            <p:dataTable var="KycRequestBy"  value="#{KycRequestBy.kycRequestByList}" widgetVar="KycRequestBy"
+                         emptyMessage="No Request By Results found with given criteria" style="font-size:12px;">
+                <f:facet name="header">
+                    <p:outputPanel>
+                        
+                        <h:outputText value="Search all fields:" />
+                        <p:inputText id="globalFilter" onkeyup="PF('KycRequestBy').filter()" style="width:150px" placeholder="Enter keyword"/>
+                    </p:outputPanel>
+
+                </f:facet>
+               
+                <p:column style="width:80px" filterBy="#{KycRequestBy.qd_req_by_name}" headerText="Requested By"  filterMatchMode="contains">
+                    <h:outputText value="#{KycRequestBy.qd_req_by_name}" />
+                </p:column>
+                        
+                
+                  <p:column style="width:32px;text-align: center">
+              <p:commandLink   value="Delete" action="#{KycRequestBy.deleteRequestBy(KycRequestBy)}" />
+                </p:column>
+                   
+            </p:dataTable>
+         
+        </h:form>
+    </h:body>
+</html>
+

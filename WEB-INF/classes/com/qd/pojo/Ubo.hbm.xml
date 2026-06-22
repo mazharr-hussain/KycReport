@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.Ubo" table="Ubo"  optimistic-lock="version">
+        <id name="qd_ubo_id" type="int">
+            <column name="qd_ubo_id" />
+            <generator class="increment" />
+        </id>
+        <property name="qd_proc_ref_no" type="string">
+            <column name="qd_proc_ref_no" />
+        </property>
+            
+        <property name="ubo_nationality" type="string">
+            <column name="ubo_nationality" />
+        </property>
+        <property name="ubo_dob" type="string">
+            <column name="ubo_dob" />
+        </property>
+        <property name="ubo_idno" type="string">
+            <column name="ubo_idno" />
+        </property>
+            <property name="ubo_results" type="string">
+                <column name="ubo_results" />
+            </property>
+            
+            <property name="ubo_oth_scn_proc" type="string">
+                <column name="ubo_oth_scn_proc" />
+            </property>
+            <property name="ubo_source" type="string">
+                <column name="ubo_source" />
+            </property>
+              <property name="ubo_name" type="string">
+                <column name="ubo_name" />
+              </property>
+         <property name="ubo_type" type="string">
+            <column name="ubo_type" />
+           </property>
+           
+            <property name="ubo_id_exp_date" type="string">
+            <column name="ubo_id_exp_date" />
+           </property>
+    </class>
+</hibernate-mapping>

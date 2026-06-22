@@ -1,0 +1,127 @@
+﻿
+.modalBackground
+{
+    background-color:Gray;
+    filter:alpha(opacity=50);
+    opacity:0.9;
+}
+.cal_Theme1 .ajax__calendar_container   {  
+    z-index:1;
+    background-color: #A3978B;   
+    border:solid 1px #cccccc;  
+    width:180px;
+}  
+  
+.cal_Theme1 .ajax__calendar_header  {  
+    background-color: #ffffff;   
+    margin-bottom: 4px;  
+}  
+  
+.cal_Theme1 .ajax__calendar_title,  
+.cal_Theme1 .ajax__calendar_next,  
+.cal_Theme1 .ajax__calendar_prev    {  
+    color: #004080;   
+    padding-top: 3px;  
+}  
+  
+.cal_Theme1 .ajax__calendar_body    {  
+    background-color: #e9e9e9;   
+    border: solid 1px #cccccc;  
+    
+}  
+  
+.cal_Theme1 .ajax__calendar_dayname {  
+    text-align:center;   
+    font-weight:bold;   
+    margin-bottom: 4px;   
+    margin-top: 2px;  
+}  
+  
+.cal_Theme1 .ajax__calendar_day {  
+    text-align:center;  
+}  
+  
+.cal_Theme1 .ajax__calendar_hover .ajax__calendar_day,  
+.cal_Theme1 .ajax__calendar_hover .ajax__calendar_month,  
+.cal_Theme1 .ajax__calendar_hover .ajax__calendar_year,  
+.cal_Theme1 .ajax__calendar_active  {  
+    color: #004080;   
+    font-weight: bold;   
+    background-color: #ffffff;  
+}  
+  
+.cal_Theme1 .ajax__calendar_today   {  
+    font-weight:bold;  
+}  
+  
+  .completionListElement 
+{  
+    visibility : hidden; 
+    margin : 0px! important; 
+    background-color : inherit; 
+    color : black; 
+    border : solid 1px #daca96; 
+    cursor : pointer; 
+    text-align : left; 
+    list-style-type :none; 
+    font-family : Verdana; 
+    font-size: 11px; 
+    padding : 0; 
+      z-index:1;
+} 
+.listItem 
+{ 
+    width:300px;
+    background-color: white; 
+    padding : 1px; 
+    z-index:1;
+}      
+.highlightedListItem 
+{  width:300px;
+    background-color: #c3ebf9; 
+    padding : 1px; 
+}
+.cal_Theme1 .ajax__calendar_other,  
+.cal_Theme1 .ajax__calendar_hover .ajax__calendar_today,  
+.cal_Theme1 .ajax__calendar_hover .ajax__calendar_title {  
+    color: #bbbbbb;  
+} 
+
+ .iLboICBC 
+{
+     color:black;  
+            background-color:#e9e9e9;   border-color: #a29060;
+            font-family:Verdana;  
+            font-size:14px;  
+            font-style:normal; 
+            width:150px;
+            height:300px;
+            
+
+
+}
+  .ratingStar
+    {
+        font-size: 0pt;
+        width: 12px;
+        height: 12px;
+        cursor: pointer;
+        background-repeat: no-repeat;
+            display: block;
+    }
+
+.filledRatingStar
+{
+    background:url(../images/star.png);
+}
+
+.emptyRatingStar
+{
+    background:url(../images/emtystar.png);
+}
+
+.savedRatingStar
+{
+    /*change this to your image name*/
+    background:url(../images/red_star.png);
+}

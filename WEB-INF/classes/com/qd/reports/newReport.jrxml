@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report name" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="14540dc8-f902-45b5-98e9-93f04762aeb3">
+	<property name="ireport.zoom" value="1.0245201830476058"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="74" splitType="Stretch">
+			<image>
+				<reportElement x="210" y="0" width="70" height="50" uuid="41a03747-7a1e-4713-a465-6f659867ec65"/>
+				<imageExpression><![CDATA["D:\\Mallik\\Kyc\\qdlogo.jpg"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="118" y="54" width="367" height="20" forecolor="#0000CC" uuid="16368395-8733-4777-8c65-9ca4b3e7ccc1"/>
+				<textElement>
+					<font fontName="Verdana" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Risk Management & Internal Compliance Department]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="483" splitType="Stretch">
+			<line>
+				<reportElement x="77" y="-1" width="454" height="1" forecolor="#006666" uuid="33c0c067-3f4d-4fb9-b859-115125b9cc27"/>
+			</line>
+			<staticText>
+				<reportElement x="5" y="10" width="113" height="20" uuid="e818f5df-53e7-4e08-a9b4-13e08a1204f9"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Business Counterparty: ]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="49" width="530" height="1" uuid="b9b4d0b0-e839-4783-a6cc-e82a3244520d"/>
+			</line>
+			<staticText>
+				<reportElement x="6" y="63" width="93" height="15" uuid="c59e0d0e-3232-4d61-b75d-e274ba79afa8"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[KYC Report Status: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="89" width="58" height="15" uuid="0e9b41e0-085a-477e-b788-88ccc0428c56"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Risk Level: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="114" width="113" height="16" uuid="68abaa49-4edb-41a7-b841-d1b34abc554e"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Report Conclusions:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="4" y="235" width="551" height="1" uuid="a3a74a7f-6998-482c-888a-4b4c9b2345c5"/>
+			</line>
+			<staticText>
+				<reportElement x="5" y="251" width="131" height="20" uuid="65833add-e51f-49c1-b33e-60f2d14ba614"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Process reference number: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="281" width="44" height="14" uuid="7b0a0c15-5772-4b7f-aa8c-45ba6ea37d82"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Subject :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="306" width="131" height="20" uuid="b218052b-763c-431b-89bc-189a4917cc0a"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Counterparty designation:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="336" width="94" height="15" uuid="742da653-64f4-470a-9c39-e9a39fe14494"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Request made by: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="364" width="72" height="14" uuid="4667782c-8b11-4387-a8d2-c3de41e489ab"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Request date : ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="398" width="93" height="20" uuid="fa95daf5-fc0b-4dca-8449-bdd488d64fe4"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Due Diligence type: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="429" width="114" height="20" uuid="f5a35559-e5bd-48c4-be50-45671abf1c24"/>
+				<textElement>
+					<font fontName="Calibri" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Due Diligence made by: ]]></text>
+			</staticText>
+			<line>
+				<reportElement x="5" y="390" width="550" height="1" uuid="4e0f943d-a929-4ac2-b6bc-0b9649545614"/>
+			</line>
+			<line>
+				<reportElement x="5" y="461" width="550" height="1" uuid="cbb4e5c9-0cb2-4d36-86a7-13598fecb369"/>
+			</line>
+			<textField>
+				<reportElement x="131" y="10" width="100" height="20" uuid="521ceaab-b4b8-4d39-8cc3-6e2c06d97764"/>
+				<textFieldExpression><![CDATA[$F{field}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="54" splitType="Stretch">
+			<textField>
+				<reportElement x="425" y="5" width="80" height="20" uuid="09c99536-f40a-4670-a659-39a6c6c30f31"/>
+				<textElement textAlignment="Right">
+					<font fontName="Calibri"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="505" y="5" width="40" height="20" uuid="a570d7d8-5a23-4f09-bdc7-b41aa63c1492"/>
+				<textElement>
+					<font fontName="Calibri"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="5" width="77" height="20" uuid="198ed9fb-66e4-4923-8f49-5052531eee14"/>
+				<textElement>
+					<font fontName="Calibri"/>
+				</textElement>
+				<text><![CDATA[KYC Due Diligence]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="231" y="5" width="59" height="20" uuid="f030fe34-1df4-467a-ad51-b5a9ccaefc85"/>
+				<textElement>
+					<font fontName="Calibri"/>
+				</textElement>
+				<text><![CDATA[Compliance]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="34" width="167" height="20" forecolor="#FF0000" uuid="9910b03d-13e4-4aa4-8acc-c3c945f84c0e"/>
+				<textElement>
+					<font fontName="Calibri" size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[(Confidential & For Internal Use Only)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="5" y="6" width="550" height="1" uuid="de9ea993-121b-4cb5-ac07-a0b79ecc0cfa"/>
+			</line>
+		</band>
+	</pageFooter>
+</jasperReport>

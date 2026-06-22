@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+
+
+
+    <h:head>
+        <title>Risk Management Internal Compliance Department Form</title>
+
+
+    </h:head>
+    <h:body>
+
+        <h:outputStylesheet library="css" name="QDstyle.css" />
+        <h:outputStylesheet library="css" name="QDbootstrap.css" />
+        <script>
+
+            $(document).ready(function () {
+                $(".datepicker").datepicker({
+                    dateFormat: 'dd/mm/yy',
+                    changeMonth: true,
+                    changeYear: true,
+                    yearRange: "1900:2040"
+                });
+            });
+        </script>
+
+        <h:form style="font-size:12px;">
+
+            <p:growl id="mainmsgs" />
+
+            
+                        <p:panel header="Edit Participant Form">
+                            <h:panelGrid columns="2" >
+
+                                                 
+                            
+                          <h:outputLabel value="Type *" for="txt_type1" ></h:outputLabel>
+                          <h:selectOneMenu id="txt_type1" value="#{Ubo.ubo_type}" required="true" style="width:125px">
+                        <f:selectItem itemLabel="UBO" itemValue="UBO" />
+                        <f:selectItem itemLabel="Authorized Signatories" itemValue="Authorized Signatories" />
+                       
+                    </h:selectOneMenu>
+                                <h:outputLabel value="Name : *" for="txt_uboname1"></h:outputLabel>
+                                <h:inputText id="txt_uboname1" value="#{Ubo.ubo_name}" required="true"/>
+
+                                <h:outputLabel value="Nationality : *" for="ubo_nationality1"></h:outputLabel>
+                               
+                                 <p:selectOneMenu id="ubo_nationality1" value="#{Ubo.ubo_nationality}"  filter="true" filterMatchMode="startsWith" required="true">
+                    
+                    <f:selectItems  value="#{SearchPattern.countries}" />
+                </p:selectOneMenu>
+
+                                <h:outputLabel value="Date Of Birth : *" for="ubo_dob1"></h:outputLabel>
+                                <h:inputText id="ubo_dob1" value="#{Ubo.ubo_dob}" styleClass="datepicker" required="true"/>
+
+                                <h:outputLabel value="National ID / Passport Number : *" for="txt_uboid1"></h:outputLabel>
+                                <h:inputText id="txt_uboid1" value="#{Ubo.ubo_idno}" required="true"/>
+                                
+                                 <h:outputLabel value="ID Expiry Date: *" for="txt_idexpdt1"></h:outputLabel>
+                                 <h:inputText id="txt_idexpdt1" value="#{Ubo.ubo_id_exp_date}" styleClass="datepicker"/>
+                                
+                                <h:outputLabel value="Results : *" for="txt_uboresults1"></h:outputLabel>
+                               
+                                 <h:selectOneMenu id="txt_uboresults1" value="#{Ubo.ubo_results}" required="true">
+                            
+                    <f:selectItems  value="#{SearchPattern.reportResult}" />
+                    </h:selectOneMenu>
+                                
+
+                                <h:outputLabel value="Conclusion :" for="txt_ubootjprc1"></h:outputLabel>
+                                <h:inputText id="txt_ubootjprc1" value="#{Ubo.ubo_oth_scn_proc}"  />
+
+                                <h:outputLabel value="Source :" for="txt_ubosource1"></h:outputLabel>
+                                <h:inputText id="txt_ubosource1" value="#{Ubo.ubo_source}" />
+
+                              
+                                <h:commandButton value="Delete" action="#{SearchPattern.deleteUbo(Ubo)}" />
+                            </h:panelGrid>
+                        </p:panel>
+                  
+           
+        </h:form>
+
+
+
+
+
+
+
+    </h:body>
+</html>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="com.qd.pojo.KycReportStatusMaster" table="KycReportStatusMaster"  optimistic-lock="version">
+        <id name="reportStatusID" type="int">
+            <column name="reportStatusID" />
+            <generator class="increment" />
+        </id>
+       
+         <property name="qd_kyc_report_status" type="string">
+            <column name="qd_kyc_report_status" />
+        </property>
+      
+       <property name="report_color" type="string">
+            <column name="report_color" />
+        </property>
+        
+    </class>
+</hibernate-mapping>

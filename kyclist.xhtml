@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core">
+
+<h:head>
+	<title>KYC List</title>
+	<h:outputStylesheet library="css" name="styles.css" />
+</h:head>
+
+<h:body>
+
+	<h:outputStylesheet library="css" name="QDstyle.css" />
+	<h:outputStylesheet library="css" name="QDbootstrap.css" />
+		<h:form>
+	<fieldset class="row1">
+				<legend>KYC List </legend>
+				<p>
+					<h:outputLabel for="procNo">Process reference number:</h:outputLabel>
+					<h:inputText value="#{kyclist.procNo}" id="procNo"></h:inputText>
+					<h:commandButton value="Search"
+						action="#{kyclist.searchKyc}" class="button"/>
+	</p></fieldset>
+		<h:dataTable value="#{kyclist.kycbean}" var="kycbean" styleClass = "employeeTable"
+            headerClass = "employeeTableHeader"
+            rowClasses = "employeeTableOddRow,employeeTableEvenRow" border="1">
+
+			<h:column>
+				<f:facet name="header">Process reference number</f:facet>    				
+               #{kycbean.qd_proc_ref_no}
+            </h:column>
+
+
+			<h:column>
+				<f:facet name="header">Request Made By</f:facet>
+               #{kycbean.qd_request_made_by}
+            </h:column>
+
+			<h:column>
+				<f:facet name="header">Subject</f:facet>
+               #{kycbean.qd_subject}
+            </h:column>
+		</h:dataTable>
+	</h:form>
+
+</h:body>
+</html>
+
