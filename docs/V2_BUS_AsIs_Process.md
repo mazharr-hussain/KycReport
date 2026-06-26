@@ -12,9 +12,78 @@
 
 ## Overview
 
-Today, the KYC process at Qatari Diar is a **mixed manual and semi-digital process**. The KYC management system handles the formal approval steps, but everything before and after — receiving requests, validating documents, storing files, communicating with requestors, and reporting on results — is managed through email, Excel spreadsheets, and individual judgment.
+Today, the KYC process at Qatari Diar is a **mostly manual process**. The existing **KYC Report Application** (a JSF-based web system) is used only at the end: the officer enters the completed report data and the system manages the approval workflow and record storage. Everything before that — receiving requests, collecting documents, conducting due diligence, and compiling the full report — is done entirely outside the system through email, Excel, WorldCheck, and personal judgment. The system never sees the work; it only sees the finished output.
 
 This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.
+
+```mermaid
+flowchart LR
+    subgraph OUTSIDE["Outside KYC Report Application — Manual Process"]
+        P0[Phase 0\nExcel Calculator]
+        P1[Phase 1\nDocument Collection\nvia Email]
+        P2[Phase 2\nWork Assignment]
+        P3[Phase 3\nWorldCheck\nDue Diligence]
+    end
+
+    subgraph INSIDE["Inside KYC Report Application"]
+        P4[Phase 4\nEntity Record\nCreation]
+        P5[Phase 5\nKYC Report\nCreation]
+        P6[Phase 6\nLevel 1 Approval]
+        P7[Phase 7\nLevel 2 Approval]
+    end
+
+    OUTSIDE --> INSIDE
+
+    style OUTSIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style INSIDE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+```
+
+!!! warning "Key Point"
+    The process only enters the KYC Report Application once all manual work is complete — documents validated, due diligence researched, entity data ready. Everything before that point is invisible to the system.
+
+---
+
+## Complete As-Is Process — One Page
+
+```mermaid
+flowchart TD
+    START([Business Department]) --> P0
+
+    subgraph MANUAL["Manual / Email — Outside KYC Report Application"]
+        P0[Phase 0\nKYC Necessity Check\nExcel Calculator]
+        P0 -->|Not Required| WAIVER([Waiver saved locally\nNo further action])
+        P0 -->|Required| P1[Phase 1\nDocument Collection\n& Validation]
+        P1 --> P2[Phase 2\nWork Assignment\nby Manager]
+        P2 --> P3[Phase 3\nDue Diligence\nWorldCheck]
+        P3 --> P3B[Report Preparation\nOfficer compiles full report\nmanually from research notes]
+    end
+
+    subgraph SYSTEM["Inside KYC Report Application — Data Entry & Approval"]
+        P4[Phase 4\nEntity Record\nData Entry]
+        P4 --> P5[Phase 5\nKYC Report\nData Entry & Submit]
+        P5 --> P6[Phase 6\nLevel 1\nApproval]
+        P6 -->|Low Risk| DONE
+        P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2\nApproval]
+        P7 --> DONE([Completed\nManual email to requestor])
+    end
+
+    MANUAL --> P4
+
+    style MANUAL fill:#FFF8E1,stroke:#F9A825,color:#5D4037
+    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P0 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P1 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P3 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P3B fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P5 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+```
 
 ---
 
@@ -42,25 +111,21 @@ Before the compliance team is even involved, the requesting department runs a ch
 
 Based on the answers, the Excel says either **"KYC Required"** or **"KYC Not Required"**.
 
+```mermaid
+flowchart TD
+    EXCEL([Department fills in\nExcel Risk Calculator]) --> Q{KYC Required?}
+    Q -->|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
+    Q -->|NO| LOCAL[Excel output saved locally\nas evidence\nNo document collection required]
+
+    style DOCS fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style LOCAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style EXCEL fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
 ```
-Department fills in Excel Calculator
-            │
-     ┌──────▼──────┐
-     │KYC Required?│
-     └──────┬──────┘
-            │
-     ┌──────┴──────┐
-     ▼             ▼
-   YES             NO
-     │             │
-     │         Documents saved
-     │         to local folder,
-     │         moved to QDocs
-     │         later (manually)
-     ▼
-Department gathers documents
-and sends email to compliance mailbox
-```
+
+!!! warning "What goes wrong here"
+    - No formal evidence record when KYC is not required — just files on someone's laptop
+    - The Excel can be manually changed — output depends on the person filling it in
+    - Requests arrive in different formats from different departments — no standard
 
 **What goes wrong here:**
 - Different departments send requests in completely different formats — there is no standard
@@ -83,20 +148,18 @@ For a **company**: The officer needs an official document that shows — clearly
 
 What the officer is always looking for is: *"Can I trace the ownership all the way to a real person?"*
 
-```
-Documents received
-       │
-  Sufficient? ──NO──► Request more documents by email
-       │                     ↑
-      YES              Department replies
-       │                     │
-       ▼              ──────►┘ (loop until complete)
-  Documents saved to
-  local folder on workstation
-       │
-       ▼
-  Signal to manager (verbally or email):
-  "Ready for assignment"
+```mermaid
+flowchart TD
+    RECV([Documents Received\nvia Email]) --> CHECK{Sufficient?}
+    CHECK -->|NO| REQ[Request more documents\nby email to department]
+    REQ --> REPLY[Department replies\nby email]
+    REPLY --> CHECK
+    CHECK -->|YES| SAVE[Save documents to\nlocal folder on workstation]
+    SAVE --> SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
+
+    style RECV fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style SAVE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style REQ fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
 ```
 
 **What goes wrong here:**
@@ -113,8 +176,9 @@ Documents received
 The manager looks at who is available (not on leave, not overloaded) and assigns the case to a compliance officer. This is done verbally or by email — there is no assignment record in the system.
 
 **What goes wrong here:**
-- If the Level 2 Approver is unavailable, a substitute must be manually activated by phone — there is no system to handle this
-- There is no workload view to see how many active cases each officer has
+- Assignment happens outside the system — there is no record of when or to whom a case was assigned
+- The manager has no workload view; they must ask each officer individually how many active cases they have
+- If the manager is absent, there is no way for the team to know how work should be prioritised or distributed
 
 ---
 
@@ -131,24 +195,23 @@ For each entity and each significant individual (UBO), the officer:
 4. Notes whether the entity or person is a PEP (Politically Exposed Person) — for example, a state-owned company is connected to the government, which counts as a PEP link
 5. Looks at shareholders and connected entities
 
-```
-Open WorldCheck in browser
-       │
-  Search entity / person
-       │
-  Review matches:
-  ├── Direct match? Genuine or false positive?
-  ├── PEP connection?
-  ├── Adverse findings?
-  └── Check shareholders
-       │
-  Apply risk-based judgement:
-  "How deep do I need to go?"
-  ├── Microsoft Qatar → stop at Qatar entity level
-  └── Complex unknown structure → go deeper, but only where risk justifies it
-       │
-  Note findings manually
-  (memory / personal document)
+```mermaid
+flowchart TD
+    WC([Open WorldCheck\nin browser]) --> SEARCH[Search entity / person by name]
+    SEARCH --> MATCH{Review matches}
+    MATCH --> M1[Direct match?\nGenuine or false positive?]
+    MATCH --> M2[PEP connection?]
+    MATCH --> M3[Adverse findings?]
+    MATCH --> M4[Check shareholders]
+    M1 & M2 & M3 & M4 --> JUDGE[Apply risk-based judgement:\nHow deep do I need to go?]
+    JUDGE --> EX1[Simple case e.g. Microsoft Qatar\n→ Stop at Qatar entity level]
+    JUDGE --> EX2[Complex unknown structure\n→ Go deeper where risk justifies it]
+    EX1 & EX2 --> NOTE[Note findings manually\nin memory or personal document]
+    NOTE --> SYSTEM[Enter findings later\ninto KYC system free-text field]
+
+    style WC fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style NOTE fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style SYSTEM fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 **What goes wrong here:**
@@ -179,25 +242,19 @@ Next, the officer creates the formal KYC report in the system. This involves ent
 
 One particular pain point: the **final conclusion**. Around 95% of the time, the conclusion follows a standard template. But those templates are stored in Word documents on shared drives, not in the system. The officer opens Word, copies the relevant template, pastes it into the system, and adjusts it.
 
-```
-Create new KYC report in system
-       │
-  Link to entity (no auto-population)
-  Re-enter: counterparty name, type, risk level, etc.
-       │
-  Enter classification:
-  ├── Simplified / AdHoc / Enhanced
-  ├── Who requested it and when
-  └── Risk level: Low / Medium / High
-       │
-  Write conclusion:
-  └── Open Word → copy template → paste → adjust
-       │
-  Upload documents from local folder
-       │
-  Choose action:
-  ├── [Save Draft] → stays in my queue
-  └── [Submit for Approval] → goes to approver
+```mermaid
+flowchart TD
+    NEW([Create new KYC report\nin system]) --> LINK[Link to entity\nno auto-population\nre-enter all fields manually]
+    LINK --> CLASS[Enter classification:\nSimplified / AdHoc / Enhanced\nWho requested it and when\nRisk level: Low / Medium / High]
+    CLASS --> CONC[Write conclusion:\nOpen Word document\nCopy template\nPaste into system\nAdjust manually]
+    CONC --> UPLOAD[Upload documents\nfrom local folder on workstation]
+    UPLOAD --> ACTION{Choose action}
+    ACTION -->|Save Draft| DRAFT[Stays in officer's queue\nfor later]
+    ACTION -->|Submit for Approval| APPROVER[Goes to approver's queue]
+
+    style NEW fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style CONC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style APPROVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
 ```
 
 **What goes wrong here:**
@@ -211,15 +268,39 @@ Create new KYC report in system
 
 **Who does this:** Level 1 Approver (currently Latifa)
 
-The approver sees the new report in their queue. They review the full report, read the conclusion, check the documents, and then decide:
+**Where this happens:** Inside the **KYC Report Application** (the existing JSF system). The approver logs into the application and sees the submitted report in their approval queue.
 
-- **Approve** — satisfied with the work
-- **Request For Information** — something is unclear; sends the report back with a comment for the officer to address
-- **Reject** — the report cannot be approved for a stated reason
+The approver reviews the full report, reads the conclusion, checks the attached documents, and then acts directly in the application:
 
-**Approval routing by risk:**
-- **Low risk** → Level 1 approval is the final approval
-- **Medium or High risk** → Level 1 approval passes it to Level 2
+- **Approve** — satisfied with the work; status moves to Approved (L1)
+- **Request For Information (RFI)** — something is unclear; sends the report back to the officer with a comment recorded in the application
+- **Reject** — the report is closed with a stated reason recorded in the application
+
+**Approval routing by risk (handled by the application):**
+- **Low risk** → Level 1 approval is the final approval — report status moves to Final Approved
+- **Medium or High risk** → report automatically routes to Level 2 queue
+
+```mermaid
+flowchart TD
+    QUEUE([Report appears in\nL1 Approver's queue\nin KYC Report Application]) --> REVIEW[Approver reviews report\nconclusion + documents\nin the application]
+    REVIEW --> DECISION{Decision}
+    DECISION -->|Approve| RISK{Risk Level?}
+    DECISION -->|RFI| BACK[Report returned to officer\nwith comment — in application]
+    DECISION -->|Reject| REJECT([Report closed\nReason recorded in application])
+
+    RISK -->|Low Risk| FINAL([Final Approved\nin application])
+    RISK -->|Medium / High Risk| L2([Routes to L2 queue\nin application])
+
+    style QUEUE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style L2 fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+```
+
+**What goes wrong here:**
+- If the Level 1 Approver is unavailable (on leave, travel), a substitute must be manually arranged by phone or email — the system has no delegation mechanism
+- There is no way in the system to see how many reports are waiting for approval at any given time
 
 ---
 
@@ -227,9 +308,27 @@ The approver sees the new report in their queue. They review the full report, re
 
 **Who does this:** Level 2 Approver / Head of Compliance (Carlos)
 
-Same process as Level 1 — full review, then Approve / RFI / Reject.
+**Where this happens:** Inside the **KYC Report Application** — the report appears in Carlos's queue after L1 approval.
 
-Once approved at Level 2, the report is finalised.
+Same actions as Level 1 — full review inside the application, then Approve / RFI / Reject. Once approved at Level 2, the report status is set to Final Approved in the application.
+
+```mermaid
+flowchart TD
+    L2Q([Report appears in\nL2 Approver's queue\nin KYC Report Application]) --> REVIEW2[Approver reviews report\nin the application]
+    REVIEW2 --> DECISION2{Decision}
+    DECISION2 -->|Approve| FINAL2([Final Approved\nin application])
+    DECISION2 -->|RFI| BACK2[Report returned to officer\nwith comment — in application]
+    DECISION2 -->|Reject| REJECT2([Report closed\nReason recorded in application])
+
+    style L2Q fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL2 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+```
+
+**What goes wrong here:**
+- If the Level 2 Approver (Carlos) is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism
+- There is no mandatory checkpoint for Suspicious Activity Reports (SARs) — the question of whether a SAR should be filed is not formally built into the approval step
 
 **What should happen but doesn't:**  
 The requesting department should automatically receive the completed report and a notification that the KYC is done. Currently, this does not happen — someone on the compliance team has to remember to email them.

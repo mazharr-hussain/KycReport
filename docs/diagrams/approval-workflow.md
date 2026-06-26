@@ -2,6 +2,15 @@
 
 The complete workflow for a KYC report from creation through to final approval.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/approval-workflow.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Approval Workflow](drawio/approval-workflow.drawio)
+
 ---
 
 ## State Machine
@@ -79,10 +88,10 @@ flowchart LR
     SAR -->|SAR Identified| SAR_PROC([SAR Process])
     SAR -->|RFI or Reject| OFFICER
 
-    style FINAL_LOW fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style SAR_PROC fill:#B71C1C,color:#fff,stroke:#7F0000
-    style OFFICER fill:#E65100,color:#fff,stroke:#BF360C
+    style FINAL_LOW fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style SAR_PROC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style OFFICER fill:#FFF3E0,color:#BF360C,stroke:#E65100
 ```
 
 ---
@@ -105,9 +114,9 @@ flowchart TD
     ROUTE_DEPUTY --> QUEUE
     ALERT --> MANUAL[Manual Assignment\nRequired]
 
-    style PRIMARY fill:#1565C0,color:#fff,stroke:#0D47A1
-    style ROUTE_DEPUTY fill:#6A1B9A,color:#fff,stroke:#4A148C
-    style ALERT fill:#B71C1C,color:#fff,stroke:#7F0000
+    style PRIMARY fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style ROUTE_DEPUTY fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style ALERT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
 ```
 
 ---

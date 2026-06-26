@@ -2,6 +2,15 @@
 
 The complete redesigned KYC process across all 8 phases, aligned to FATF 40 Recommendations, Basel KYC Guidelines, and EU 6AMLD.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/best-practice-e2e.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Best Practice End-to-End Process](drawio/best-practice-e2e.drawio)
+
 ---
 
 ## High-Level Process Map
@@ -24,15 +33,15 @@ flowchart TD
 
     FINAL([Phase 8\nCompletion\nPDF + Notification + Review Date])
 
-    style P0 fill:#1565C0,color:#fff
-    style P1 fill:#1565C0,color:#fff
-    style P2 fill:#6A1B9A,color:#fff
-    style P3 fill:#6A1B9A,color:#fff
-    style P4 fill:#E65100,color:#fff
-    style P5 fill:#E65100,color:#fff
-    style P6 fill:#2E7D32,color:#fff
-    style P7 fill:#2E7D32,color:#fff
-    style FINAL fill:#F57F17,color:#fff
+    style P0 fill:#E8EAF6,color:#1A237E
+    style P1 fill:#E8EAF6,color:#1A237E
+    style P2 fill:#F3E5F5,color:#4A148C
+    style P3 fill:#F3E5F5,color:#4A148C
+    style P4 fill:#FFF3E0,color:#BF360C
+    style P5 fill:#FFF3E0,color:#BF360C
+    style P6 fill:#E8F5E9,color:#1B5E20
+    style P7 fill:#E8F5E9,color:#1B5E20
+    style FINAL fill:#E3F2FD,color:#0D47A1
 ```
 
 ---
@@ -49,8 +58,8 @@ flowchart LR
     RULES -->|Not Required| WAIVER[Waiver Record\n+ Evidence]
     RULES -->|Required| CASE[Case Created\nINTAKE-YYYY-NNNNNN]
 
-    style WAIVER fill:#2E7D32,color:#fff
-    style CASE fill:#1565C0,color:#fff
+    style WAIVER fill:#E8F5E9,color:#1B5E20
+    style CASE fill:#E8EAF6,color:#1A237E
 ```
 
 ### Phase 1 — Document Validation
@@ -63,7 +72,7 @@ flowchart LR
     CO -->|All complete| KPI[KPI Clock Starts\ndocs_complete_date]
     KPI --> DUP[Duplicate Check\nJaro-Winkler]
 
-    style KPI fill:#6A1B9A,color:#fff
+    style KPI fill:#F3E5F5,color:#4A148C
 ```
 
 ### Phase 2 — Risk Pre-Assessment
@@ -94,7 +103,7 @@ flowchart LR
     ESCALATE -->|No| CONTINUE([Phase 4])
     EDD --> CONTINUE
 
-    style EDD fill:#B71C1C,color:#fff
+    style EDD fill:#FFEBEE,color:#7F0000
 ```
 
 ### Phases 4 & 5 — Entity & Report Creation
@@ -134,10 +143,10 @@ flowchart TD
 
     L2_APPROVE --> FINAL
 
-    style FINAL fill:#2E7D32,color:#fff
-    style REJECT fill:#B71C1C,color:#fff
-    style SAR_PROC fill:#B71C1C,color:#fff
-    style OFFICER fill:#E65100,color:#fff
+    style FINAL fill:#E8F5E9,color:#1B5E20
+    style REJECT fill:#FFEBEE,color:#7F0000
+    style SAR_PROC fill:#FFEBEE,color:#7F0000
+    style OFFICER fill:#FFF3E0,color:#BF360C
 ```
 
 ### Phase 8 — Completion & Ongoing Monitoring
@@ -154,8 +163,8 @@ flowchart LR
     MONITOR --> D0[On review date:\nNotify Manager if not renewed]
     MONITOR --> SLA_BREACH[Daily:\nFlag SLA breaches to Manager]
 
-    style FINAL fill:#2E7D32,color:#fff
-    style SEAL fill:#6A1B9A,color:#fff
+    style FINAL fill:#E8F5E9,color:#1B5E20
+    style SEAL fill:#F3E5F5,color:#4A148C
 ```
 
 ---

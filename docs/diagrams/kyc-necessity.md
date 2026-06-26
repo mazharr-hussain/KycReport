@@ -4,9 +4,18 @@ This diagram shows the rules engine that determines whether a full KYC report is
 
 !!! info "This replaces the Excel calculator used in the current process."
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Click **Extras → Edit Diagram** or open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/kyc-necessity.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![KYC Necessity Decision](drawio/kyc-necessity.drawio)
+
 ---
 
-## Decision Flow
+## Detail
 
 ```mermaid
 flowchart TD
@@ -51,9 +60,9 @@ flowchart TD
     REQUIRED([✅ KYC REQUIRED\nCreate Case\nAssign Reference Number])
     NOT_REQUIRED([📋 KYC NOT REQUIRED\nCreate Waiver Record\nStore Documents as Evidence])
 
-    style REQUIRED fill:#1565C0,color:#fff,stroke:#0D47A1
-    style NOT_REQUIRED fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style START fill:#F57F17,color:#fff,stroke:#E65100
+    style REQUIRED fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style NOT_REQUIRED fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
 ```
 
 ---

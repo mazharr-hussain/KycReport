@@ -53,6 +53,7 @@ plugins:
   - search:
       lang: en
   - glightbox
+  - drawio
 
 markdown_extensions:
   - admonition

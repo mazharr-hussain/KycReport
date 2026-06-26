@@ -2,6 +2,15 @@
 
 The technical architecture of the target KYC system built on Oracle APEX with Oracle Fusion HCM integration.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/apex-architecture.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![APEX System Architecture](drawio/apex-architecture.drawio)
+
 ---
 
 ## System Architecture Overview
@@ -116,8 +125,8 @@ flowchart TD
 
     DEACT --> LOG[Write to sync log\ntimestamp + count]
 
-    style SCHED fill:#6A1B9A,color:#fff
-    style DEACT fill:#B71C1C,color:#fff
+    style SCHED fill:#F3E5F5,color:#4A148C
+    style DEACT fill:#FFEBEE,color:#7F0000
 ```
 
 ---
@@ -135,8 +144,8 @@ flowchart LR
     ROLE -->|APPROVER_L2| L2_VIEW[WHERE status IN\nAPPROVED_L1, PENDING_L2]
     ROLE -->|ADMIN| ALL[No filter\nSee all records]
 
-    style VPD fill:#6A1B9A,color:#fff
-    style ALL fill:#2E7D32,color:#fff
+    style VPD fill:#F3E5F5,color:#4A148C
+    style ALL fill:#E8F5E9,color:#1B5E20
 ```
 
 ---

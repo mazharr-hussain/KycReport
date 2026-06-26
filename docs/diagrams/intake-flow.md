@@ -2,6 +2,15 @@
 
 Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC process.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/intake-flow.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Intake & Document Validation Flow](drawio/intake-flow.drawio)
+
 ---
 
 ## Phase 0 — Structured Digital Intake
@@ -29,9 +38,9 @@ flowchart TD
     UPLOAD --> SUBMIT[Submit]
     SUBMIT --> CASE[System Creates Case\nINTAKE-YYYY-NNNNNN\nNotify Compliance Team]
 
-    style DEPT fill:#F57F17,color:#fff,stroke:#E65100
-    style WAIVER fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style CASE fill:#1565C0,color:#fff,stroke:#0D47A1
+    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style CASE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 ---
@@ -77,10 +86,10 @@ flowchart TD
     CREATE_ENTITY([Proceed to Phase 2\nRisk Pre-Assessment])
     LINK([Proceed to Phase 2\nRisk Pre-Assessment])
 
-    style CASE fill:#F57F17,color:#fff,stroke:#E65100
-    style KPI_START fill:#6A1B9A,color:#fff,stroke:#4A148C
-    style CREATE_ENTITY fill:#1565C0,color:#fff,stroke:#0D47A1
-    style LINK fill:#1565C0,color:#fff,stroke:#0D47A1
+    style CASE fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style KPI_START fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style CREATE_ENTITY fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style LINK fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 ---
