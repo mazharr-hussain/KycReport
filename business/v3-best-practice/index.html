@@ -1280,6 +1280,43 @@
 <li><strong>Keep It Current</strong> — KYCs reviewed regularly, not just once</li>
 </ol>
 <hr>
+<h2 id="complete-to-be-process-one-page">Complete To-Be Process — One Page<a class="headerlink" href="#complete-to-be-process-one-page" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    START([Business Department]) --&gt; P0
+
+    subgraph PORTAL["Self-Service Portal — Business Department"]
+        P0[Phase 0\nStructured Digital Intake\nWeb Form + Rules Engine]
+        P0 --&gt;|Not Required| WAIVER([Waiver Record Created\nDocuments stored automatically])
+        P0 --&gt;|Required| P1[Phase 1\nDocument Upload\nvia Portal]
+    end
+
+    subgraph SYSTEM["Oracle APEX — KYC Management System"]
+        P1B[Phase 1\nDocument Validation\nCompliance Officer\nSystem checklist + SLA clock starts]
+        P1B --&gt; P2[Phase 2\nRisk Pre-Assessment\nSystem suggests risk level\nOfficer confirms or overrides]
+        P2 --&gt; P3[Phase 3\nDue Diligence\nStructured screening record\nper entity and UBO]
+        P3 --&gt; P4[Phase 4 &amp; 5\nEntity + KYC Report\nAuto-populated from intake\nNo re-entry]
+        P4 --&gt; P6[Phase 6\nLevel 1 Approval\nWith automatic delegation]
+        P6 --&gt;|Low Risk| DONE
+        P6 --&gt;|Medium / High Risk| P7[Phase 7\nLevel 2 / MLRO Approval\nMandatory SAR gate]
+        P7 --&gt; DONE([Phase 8\nCompletion\nPDF generated\nRequestor notified automatically\nReview date set])
+    end
+
+    P1 --&gt; P1B
+
+    style PORTAL fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20
+    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P0 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P1 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P1B fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P2 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P3 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB</code></pre>
+<hr>
 <h2 id="the-improved-process-phase-by-phase">The Improved Process: Phase by Phase<a class="headerlink" href="#the-improved-process-phase-by-phase" title="Permanent link">¶</a></h2>
 <hr>
 <h3 id="phase-0-standardised-digital-intake">Phase 0: Standardised Digital Intake<a class="headerlink" href="#phase-0-standardised-digital-intake" title="Permanent link">¶</a></h3>
