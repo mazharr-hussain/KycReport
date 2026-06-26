@@ -46,10 +46,10 @@ Based on the answers, the Excel says either **"KYC Required"** or **"KYC Not Req
 flowchart TD
     EXCEL([Department fills in\nExcel Risk Calculator]) --> Q{KYC Required?}
     Q -->|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
-    Q -->|NO| LOCAL[Documents saved to\nlocal folder\nmoved to QDocs later — manually]
+    Q -->|NO| LOCAL[Excel output saved locally\nas evidence\nNo document collection required]
 
     style DOCS fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style LOCAL fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style LOCAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
     style EXCEL fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
 ```
 
@@ -198,15 +198,35 @@ flowchart TD
 
 **Who does this:** Level 1 Approver (currently Latifa)
 
-The approver sees the new report in their queue. They review the full report, read the conclusion, check the documents, and then decide:
+**Where this happens:** Inside the **KYC Report Application** (the existing JSF system). The approver logs into the application and sees the submitted report in their approval queue.
 
-- **Approve** — satisfied with the work
-- **Request For Information** — something is unclear; sends the report back with a comment for the officer to address
-- **Reject** — the report cannot be approved for a stated reason
+The approver reviews the full report, reads the conclusion, checks the attached documents, and then acts directly in the application:
 
-**Approval routing by risk:**
-- **Low risk** → Level 1 approval is the final approval
-- **Medium or High risk** → Level 1 approval passes it to Level 2
+- **Approve** — satisfied with the work; status moves to Approved (L1)
+- **Request For Information (RFI)** — something is unclear; sends the report back to the officer with a comment recorded in the application
+- **Reject** — the report is closed with a stated reason recorded in the application
+
+**Approval routing by risk (handled by the application):**
+- **Low risk** → Level 1 approval is the final approval — report status moves to Final Approved
+- **Medium or High risk** → report automatically routes to Level 2 queue
+
+```mermaid
+flowchart TD
+    QUEUE([Report appears in\nL1 Approver's queue\nin KYC Report Application]) --> REVIEW[Approver reviews report\nconclusion + documents\nin the application]
+    REVIEW --> DECISION{Decision}
+    DECISION -->|Approve| RISK{Risk Level?}
+    DECISION -->|RFI| BACK[Report returned to officer\nwith comment — in application]
+    DECISION -->|Reject| REJECT([Report closed\nReason recorded in application])
+
+    RISK -->|Low Risk| FINAL([Final Approved\nin application])
+    RISK -->|Medium / High Risk| L2([Routes to L2 queue\nin application])
+
+    style QUEUE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style L2 fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+```
 
 ---
 
@@ -214,9 +234,23 @@ The approver sees the new report in their queue. They review the full report, re
 
 **Who does this:** Level 2 Approver / Head of Compliance (Carlos)
 
-Same process as Level 1 — full review, then Approve / RFI / Reject.
+**Where this happens:** Inside the **KYC Report Application** — the report appears in Carlos's queue after L1 approval.
 
-Once approved at Level 2, the report is finalised.
+Same actions as Level 1 — full review inside the application, then Approve / RFI / Reject. Once approved at Level 2, the report status is set to Final Approved in the application.
+
+```mermaid
+flowchart TD
+    L2Q([Report appears in\nL2 Approver's queue\nin KYC Report Application]) --> REVIEW2[Approver reviews report\nin the application]
+    REVIEW2 --> DECISION2{Decision}
+    DECISION2 -->|Approve| FINAL2([Final Approved\nin application])
+    DECISION2 -->|RFI| BACK2[Report returned to officer\nwith comment — in application]
+    DECISION2 -->|Reject| REJECT2([Report closed\nReason recorded in application])
+
+    style L2Q fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL2 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+```
 
 **What should happen but doesn't:**  
 The requesting department should automatically receive the completed report and a notification that the KYC is done. Currently, this does not happen — someone on the compliance team has to remember to email them.
