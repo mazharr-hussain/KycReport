@@ -12,9 +12,34 @@
 
 ## Overview
 
-Today, the KYC process at Qatari Diar is a **mixed manual and semi-digital process**. The KYC management system handles the formal approval steps, but everything before and after — receiving requests, validating documents, storing files, communicating with requestors, and reporting on results — is managed through email, Excel spreadsheets, and individual judgment.
+Today, the KYC process at Qatari Diar is a **mixed manual and semi-digital process**. The existing **KYC Report Application** (a JSF-based web system) handles only the final steps: creating the formal KYC report, submitting it, and running the approval workflow. Everything that happens before that — receiving requests, collecting and validating documents, conducting due diligence on external platforms, and all communication with the requesting department — takes place entirely outside the system, managed through email, Excel spreadsheets, local file folders, and individual judgment.
 
 This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.
+
+```mermaid
+flowchart LR
+    subgraph OUTSIDE["Outside KYC Report Application — Manual Process"]
+        P0[Phase 0\nExcel Calculator]
+        P1[Phase 1\nDocument Collection\nvia Email]
+        P2[Phase 2\nWork Assignment]
+        P3[Phase 3\nWorldCheck\nDue Diligence]
+    end
+
+    subgraph INSIDE["Inside KYC Report Application"]
+        P4[Phase 4\nEntity Record\nCreation]
+        P5[Phase 5\nKYC Report\nCreation]
+        P6[Phase 6\nLevel 1 Approval]
+        P7[Phase 7\nLevel 2 Approval]
+    end
+
+    OUTSIDE --> INSIDE
+
+    style OUTSIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style INSIDE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+```
+
+!!! warning "Key Point"
+    The process only enters the KYC Report Application once all manual work is complete — documents validated, due diligence researched, entity data ready. Everything before that point is invisible to the system.
 
 ---
 
@@ -107,8 +132,9 @@ flowchart TD
 The manager looks at who is available (not on leave, not overloaded) and assigns the case to a compliance officer. This is done verbally or by email — there is no assignment record in the system.
 
 **What goes wrong here:**
-- If the Level 2 Approver is unavailable, a substitute must be manually activated by phone — there is no system to handle this
-- There is no workload view to see how many active cases each officer has
+- Assignment happens outside the system — there is no record of when or to whom a case was assigned
+- The manager has no workload view; they must ask each officer individually how many active cases they have
+- If the manager is absent, there is no way for the team to know how work should be prioritised or distributed
 
 ---
 
@@ -228,6 +254,10 @@ flowchart TD
     style L2 fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
 ```
 
+**What goes wrong here:**
+- If the Level 1 Approver is unavailable (on leave, travel), a substitute must be manually arranged by phone or email — the system has no delegation mechanism
+- There is no way in the system to see how many reports are waiting for approval at any given time
+
 ---
 
 ## Phase 7: Level 2 Approval (Medium/High Risk Only)
@@ -251,6 +281,10 @@ flowchart TD
     style REJECT2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
     style BACK2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
 ```
+
+**What goes wrong here:**
+- If the Level 2 Approver (Carlos) is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism
+- There is no mandatory checkpoint for Suspicious Activity Reports (SARs) — the question of whether a SAR should be filed is not formally built into the approval step
 
 **What should happen but doesn't:**  
 The requesting department should automatically receive the completed report and a notification that the KYC is done. Currently, this does not happen — someone on the compliance team has to remember to email them.
