@@ -47,43 +47,33 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    START([Business Department\nidentifies new counterparty]) --> P0
+    START([Business Department]) --> P0
 
-    subgraph MANUAL["— Outside KYC Report Application — Manual / Email —"]
-        P0["📋 Phase 0 — KYC Necessity Check\nDepartment fills in Excel Risk Calculator\nResult: KYC Required or Not Required"]
-
-        P0 -->|KYC Not Required| WAIVER["📁 Waiver\nExcel output saved locally as evidence\nNo further action — no system record"]
-        P0 -->|KYC Required| P0B["📧 Department gathers documents\nand emails them to compliance mailbox\nwith Excel attached"]
-
-        P0B --> P1["📥 Phase 1 — Document Collection & Validation\nCompliance Officer reviews email\nChecks documents are sufficient\nChases missing items by email\nSaves documents to local workstation folder"]
-
-        P1 --> P2["👤 Phase 2 — Work Assignment\nCompliance Manager assigns case\nto available officer\nby verbal instruction or email\nNo system record of assignment"]
-
-        P2 --> P3["🔍 Phase 3 — Due Diligence Research\nOfficer opens WorldCheck in browser\nSearches entity + each UBO manually\nChecks for PEP links, adverse media\nNotes findings in memory or personal doc"]
+    subgraph MANUAL["Manual / Email — Outside KYC Report Application"]
+        P0[Phase 0\nKYC Necessity Check\nExcel Calculator]
+        P0 -->|Not Required| WAIVER([Waiver saved locally\nNo further action])
+        P0 -->|Required| P1[Phase 1\nDocument Collection\n& Validation]
+        P1 --> P2[Phase 2\nWork Assignment\nby Manager]
+        P2 --> P3[Phase 3\nDue Diligence\nWorldCheck]
     end
 
-    subgraph SYSTEM["— Inside KYC Report Application —"]
-        P4["🏢 Phase 4 — Entity Record Creation\nOfficer logs into KYC Report Application\nCreates Entity record manually\nAdds UBOs and authorised signatories\nEnters screening results into free-text field"]
-
-        P5["📝 Phase 5 — KYC Report Creation\nOfficer creates formal KYC Report\nRe-enters fields already in entity record\nCopies conclusion template from Word\nUploads documents from local workstation\nSubmits report for approval"]
-
-        P5 --> P6["✅ Phase 6 — Level 1 Approval\nApprover reviews report in their queue\nApprove → moves to final or L2 based on risk\nRFI → returns to officer with comment\nReject → closed with reason"]
-
-        P6 -->|Low Risk — Final| DONE
-        P6 -->|Medium or High Risk| P7["✅ Phase 7 — Level 2 Approval\nHead of Compliance reviews report\nApprove / RFI / Reject\nNo mandatory SAR checkpoint\nNo deputy if approver is absent"]
-
-        P7 --> DONE["📨 Phase 8 — Completion\nReport status = Final Approved in system\nCompliance team manually emails requestor\nNo automatic notification\nNo review date set\nNo periodic monitoring"]
+    subgraph SYSTEM["Inside KYC Report Application"]
+        P4[Phase 4\nEntity Record\nCreation]
+        P4 --> P5[Phase 5\nKYC Report\nCreation]
+        P5 --> P6[Phase 6\nLevel 1\nApproval]
+        P6 -->|Low Risk| DONE
+        P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2\nApproval]
+        P7 --> DONE([Completed\nManual email to requestor])
     end
 
     MANUAL --> P4
 
     style MANUAL fill:#FFF8E1,stroke:#F9A825,color:#5D4037
     style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
-    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
     style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
     style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
     style P0 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P0B fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P1 fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P3 fill:#FFF3E0,color:#BF360C,stroke:#E65100
