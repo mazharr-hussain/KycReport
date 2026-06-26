@@ -48,9 +48,9 @@ flowchart TD
     Q -->|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
     Q -->|NO| LOCAL[Documents saved to\nlocal folder\nmoved to QDocs later — manually]
 
-    style DOCS fill:#1565C0,color:#fff,stroke:#0D47A1
-    style LOCAL fill:#37474F,color:#fff,stroke:#263238
-    style EXCEL fill:#6A1B9A,color:#fff,stroke:#4A148C
+    style DOCS fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style LOCAL fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style EXCEL fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
 ```
 
 !!! warning "What goes wrong here"
@@ -88,9 +88,9 @@ flowchart TD
     CHECK -->|YES| SAVE[Save documents to\nlocal folder on workstation]
     SAVE --> SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
 
-    style RECV fill:#37474F,color:#fff,stroke:#263238
-    style SAVE fill:#1565C0,color:#fff,stroke:#0D47A1
-    style REQ fill:#B71C1C,color:#fff,stroke:#7F0000
+    style RECV fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style SAVE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style REQ fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
 ```
 
 **What goes wrong here:**
@@ -139,9 +139,9 @@ flowchart TD
     EX1 & EX2 --> NOTE[Note findings manually\nin memory or personal document]
     NOTE --> SYSTEM[Enter findings later\ninto KYC system free-text field]
 
-    style WC fill:#6A1B9A,color:#fff,stroke:#4A148C
-    style NOTE fill:#B71C1C,color:#fff,stroke:#7F0000
-    style SYSTEM fill:#1565C0,color:#fff,stroke:#0D47A1
+    style WC fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style NOTE fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style SYSTEM fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 **What goes wrong here:**
@@ -182,9 +182,9 @@ flowchart TD
     ACTION -->|Save Draft| DRAFT[Stays in officer's queue\nfor later]
     ACTION -->|Submit for Approval| APPROVER[Goes to approver's queue]
 
-    style NEW fill:#1565C0,color:#fff,stroke:#0D47A1
-    style CONC fill:#B71C1C,color:#fff,stroke:#7F0000
-    style APPROVER fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style NEW fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style CONC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style APPROVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
 ```
 
 **What goes wrong here:**

@@ -29,9 +29,9 @@ flowchart TD
     UPLOAD --> SUBMIT[Submit]
     SUBMIT --> CASE[System Creates Case\nINTAKE-YYYY-NNNNNN\nNotify Compliance Team]
 
-    style DEPT fill:#37474F,color:#fff,stroke:#263238
-    style WAIVER fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style CASE fill:#1565C0,color:#fff,stroke:#0D47A1
+    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style CASE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 ---
@@ -77,10 +77,10 @@ flowchart TD
     CREATE_ENTITY([Proceed to Phase 2\nRisk Pre-Assessment])
     LINK([Proceed to Phase 2\nRisk Pre-Assessment])
 
-    style CASE fill:#37474F,color:#fff,stroke:#263238
-    style KPI_START fill:#6A1B9A,color:#fff,stroke:#4A148C
-    style CREATE_ENTITY fill:#1565C0,color:#fff,stroke:#0D47A1
-    style LINK fill:#1565C0,color:#fff,stroke:#0D47A1
+    style CASE fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style KPI_START fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style CREATE_ENTITY fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style LINK fill:#E8EAF6,color:#1A237E,stroke:#3949AB
 ```
 
 ---

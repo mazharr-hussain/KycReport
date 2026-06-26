@@ -51,9 +51,9 @@ flowchart TD
     REQUIRED([✅ KYC REQUIRED\nCreate Case\nAssign Reference Number])
     NOT_REQUIRED([📋 KYC NOT REQUIRED\nCreate Waiver Record\nStore Documents as Evidence])
 
-    style REQUIRED fill:#1565C0,color:#fff,stroke:#0D47A1
-    style NOT_REQUIRED fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style START fill:#37474F,color:#fff,stroke:#263238
+    style REQUIRED fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style NOT_REQUIRED fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
 ```
 
 ---

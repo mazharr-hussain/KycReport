@@ -79,10 +79,10 @@ flowchart LR
     SAR -->|SAR Identified| SAR_PROC([SAR Process])
     SAR -->|RFI or Reject| OFFICER
 
-    style FINAL_LOW fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style SAR_PROC fill:#B71C1C,color:#fff,stroke:#7F0000
-    style OFFICER fill:#BF360C,color:#fff,stroke:#8D2400
+    style FINAL_LOW fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style SAR_PROC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style OFFICER fill:#FFF3E0,color:#BF360C,stroke:#E65100
 ```
 
 ---
@@ -105,9 +105,9 @@ flowchart TD
     ROUTE_DEPUTY --> QUEUE
     ALERT --> MANUAL[Manual Assignment\nRequired]
 
-    style PRIMARY fill:#1565C0,color:#fff,stroke:#0D47A1
-    style ROUTE_DEPUTY fill:#6A1B9A,color:#fff,stroke:#4A148C
-    style ALERT fill:#B71C1C,color:#fff,stroke:#7F0000
+    style PRIMARY fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style ROUTE_DEPUTY fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style ALERT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
 ```
 
 ---

@@ -58,7 +58,7 @@ graph TB
     style USERS fill:#F3E5F5,stroke:#7B1FA2
     style APEX fill:#E3F2FD,stroke:#1565C0
     style DB fill:#E8F5E9,stroke:#2E7D32
-    style FUSION fill:#FFF3E0,stroke:#263238
+    style FUSION fill:#FFF3E0,stroke:#E65100
     style EXTERNAL fill:#FFEBEE,stroke:#B71C1C
 ```
 
@@ -116,8 +116,8 @@ flowchart TD
 
     DEACT --> LOG[Write to sync log\ntimestamp + count]
 
-    style SCHED fill:#6A1B9A,color:#fff
-    style DEACT fill:#B71C1C,color:#fff
+    style SCHED fill:#F3E5F5,color:#4A148C
+    style DEACT fill:#FFEBEE,color:#7F0000
 ```
 
 ---
@@ -135,8 +135,8 @@ flowchart LR
     ROLE -->|APPROVER_L2| L2_VIEW[WHERE status IN\nAPPROVED_L1, PENDING_L2]
     ROLE -->|ADMIN| ALL[No filter\nSee all records]
 
-    style VPD fill:#6A1B9A,color:#fff
-    style ALL fill:#2E7D32,color:#fff
+    style VPD fill:#F3E5F5,color:#4A148C
+    style ALL fill:#E8F5E9,color:#1B5E20
 ```
 
 ---
