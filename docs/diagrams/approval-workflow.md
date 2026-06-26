@@ -82,7 +82,7 @@ flowchart LR
     style FINAL_LOW fill:#2E7D32,color:#fff,stroke:#1B5E20
     style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
     style SAR_PROC fill:#B71C1C,color:#fff,stroke:#7F0000
-    style OFFICER fill:#E65100,color:#fff,stroke:#BF360C
+    style OFFICER fill:#BF360C,color:#fff,stroke:#8D2400
 ```
 
 ---

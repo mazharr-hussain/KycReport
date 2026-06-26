@@ -83,7 +83,7 @@ flowchart TD
     style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
     style REJ1 fill:#B71C1C,color:#fff,stroke:#7F0000
     style REJ2 fill:#B71C1C,color:#fff,stroke:#7F0000
-    style RFI fill:#E65100,color:#fff,stroke:#BF360C
+    style RFI fill:#BF360C,color:#fff,stroke:#8D2400
 ```
 
 **Important rule:** A report cannot be approved by the same person who created it. Low-risk reports require one approval signature. Medium and high-risk reports require two separate approvals.

@@ -49,7 +49,7 @@ flowchart TD
     Q -->|NO| LOCAL[Documents saved to\nlocal folder\nmoved to QDocs later — manually]
 
     style DOCS fill:#1565C0,color:#fff,stroke:#0D47A1
-    style LOCAL fill:#F57F17,color:#fff,stroke:#E65100
+    style LOCAL fill:#37474F,color:#fff,stroke:#263238
     style EXCEL fill:#6A1B9A,color:#fff,stroke:#4A148C
 ```
 
@@ -88,7 +88,7 @@ flowchart TD
     CHECK -->|YES| SAVE[Save documents to\nlocal folder on workstation]
     SAVE --> SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
 
-    style RECV fill:#F57F17,color:#fff,stroke:#E65100
+    style RECV fill:#37474F,color:#fff,stroke:#263238
     style SAVE fill:#1565C0,color:#fff,stroke:#0D47A1
     style REQ fill:#B71C1C,color:#fff,stroke:#7F0000
 ```

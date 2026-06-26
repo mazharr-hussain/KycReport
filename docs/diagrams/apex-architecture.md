@@ -58,7 +58,7 @@ graph TB
     style USERS fill:#F3E5F5,stroke:#7B1FA2
     style APEX fill:#E3F2FD,stroke:#1565C0
     style DB fill:#E8F5E9,stroke:#2E7D32
-    style FUSION fill:#FFF3E0,stroke:#E65100
+    style FUSION fill:#FFF3E0,stroke:#263238
     style EXTERNAL fill:#FFEBEE,stroke:#B71C1C
 ```
 

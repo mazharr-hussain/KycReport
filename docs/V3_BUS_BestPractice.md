@@ -57,7 +57,7 @@ flowchart TD
 
     style WAIVER fill:#2E7D32,color:#fff,stroke:#1B5E20
     style CASE fill:#1565C0,color:#fff,stroke:#0D47A1
-    style DEPT fill:#F57F17,color:#fff,stroke:#E65100
+    style DEPT fill:#37474F,color:#fff,stroke:#263238
 ```
 
 **What this fixes:**
@@ -82,7 +82,7 @@ flowchart TD
 
     style KPI fill:#6A1B9A,color:#fff,stroke:#4A148C
     style CONFIRM fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style REQ fill:#E65100,color:#fff,stroke:#BF360C
+    style REQ fill:#BF360C,color:#fff,stroke:#8D2400
 ```
 
 **The KPI start point** is the moment the compliance team confirms they have everything they need. Turnaround time is measured from here — not from the first email the department sent — because the compliance team cannot be held accountable for the department's delay in providing documents.
@@ -108,7 +108,7 @@ flowchart LR
     OFFICER -->|No| OVERRIDE[Override risk level\nDocument reason — mandatory]
 
     style SUGGEST fill:#1565C0,color:#fff,stroke:#0D47A1
-    style OVERRIDE fill:#E65100,color:#fff,stroke:#BF360C
+    style OVERRIDE fill:#BF360C,color:#fff,stroke:#8D2400
     style CONFIRM fill:#2E7D32,color:#fff,stroke:#1B5E20
 ```
 
@@ -260,8 +260,8 @@ flowchart TD
 
     style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
     style SAR fill:#B71C1C,color:#fff,stroke:#7F0000
-    style OFFICER fill:#E65100,color:#fff,stroke:#BF360C
-    style DEPT fill:#F57F17,color:#fff,stroke:#E65100
+    style OFFICER fill:#BF360C,color:#fff,stroke:#8D2400
+    style DEPT fill:#37474F,color:#fff,stroke:#263238
 ```
 
 ---

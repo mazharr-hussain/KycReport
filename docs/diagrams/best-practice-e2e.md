@@ -28,11 +28,11 @@ flowchart TD
     style P1 fill:#1565C0,color:#fff
     style P2 fill:#6A1B9A,color:#fff
     style P3 fill:#6A1B9A,color:#fff
-    style P4 fill:#E65100,color:#fff
-    style P5 fill:#E65100,color:#fff
+    style P4 fill:#BF360C,color:#fff
+    style P5 fill:#BF360C,color:#fff
     style P6 fill:#2E7D32,color:#fff
     style P7 fill:#2E7D32,color:#fff
-    style FINAL fill:#F57F17,color:#fff
+    style FINAL fill:#37474F,color:#fff
 ```
 
 ---
@@ -137,7 +137,7 @@ flowchart TD
     style FINAL fill:#2E7D32,color:#fff
     style REJECT fill:#B71C1C,color:#fff
     style SAR_PROC fill:#B71C1C,color:#fff
-    style OFFICER fill:#E65100,color:#fff
+    style OFFICER fill:#BF360C,color:#fff
 ```
 
 ### Phase 8 — Completion & Ongoing Monitoring

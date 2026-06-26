@@ -53,7 +53,7 @@ flowchart TD
 
     style REQUIRED fill:#1565C0,color:#fff,stroke:#0D47A1
     style NOT_REQUIRED fill:#2E7D32,color:#fff,stroke:#1B5E20
-    style START fill:#F57F17,color:#fff,stroke:#E65100
+    style START fill:#37474F,color:#fff,stroke:#263238
 ```
 
 ---
