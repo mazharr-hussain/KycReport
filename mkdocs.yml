@@ -1,0 +1,106 @@
+site_name: QD KYC System — Documentation
+site_description: Knowledge base for the Qatari Diar KYC Management System — all versions, all audiences
+site_author: Qatari Diar — Compliance & IT
+site_url: https://mazharr-hussain.github.io/KycReport/
+
+repo_name: mazharr-hussain/KycReport
+repo_url: https://github.com/mazharr-hussain/KycReport
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mazharr-hussain/KycReport
+
+plugins:
+  - search:
+      lang: en
+  - glightbox
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Business Guides:
+    - Overview: business/index.md
+    - V1 — Current System: business/v1-current-system.md
+    - V2 — As-Is Process: business/v2-asis-process.md
+    - V3 — Best Practice Process: business/v3-best-practice.md
+    - V4 — Oracle APEX User Guide: business/v4-apex-userguide.md
+  - Technical Specifications:
+    - Overview: technical/index.md
+    - V1 — Current System Spec: technical/v1-current-system-spec.md
+    - V2 — As-Is Requirements: technical/v2-asis-requirements.md
+    - V3 — Best Practice Spec: technical/v3-best-practice-spec.md
+    - V4 — Oracle APEX Spec: technical/v4-apex-spec.md
+  - Compliance:
+    - Overview: compliance/index.md
+    - Gap Analysis — FATF / Basel / 6AMLD: compliance/gap-analysis.md
+  - Process Diagrams:
+    - Overview: diagrams/index.md
+    - KYC Necessity Decision: diagrams/kyc-necessity.md
+    - Intake & Document Validation: diagrams/intake-flow.md
+    - Approval Workflow: diagrams/approval-workflow.md
+    - Best Practice End-to-End: diagrams/best-practice-e2e.md
+    - APEX System Architecture: diagrams/apex-architecture.md
