@@ -4,9 +4,18 @@ This diagram shows the rules engine that determines whether a full KYC report is
 
 !!! info "This replaces the Excel calculator used in the current process."
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Click **Extras → Edit Diagram** or open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/kyc-necessity.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![KYC Necessity Decision](drawio/kyc-necessity.drawio)
+
 ---
 
-## Decision Flow
+## Detail
 
 ```mermaid
 flowchart TD

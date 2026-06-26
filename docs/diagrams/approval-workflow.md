@@ -2,6 +2,15 @@
 
 The complete workflow for a KYC report from creation through to final approval.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/approval-workflow.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Approval Workflow](drawio/approval-workflow.drawio)
+
 ---
 
 ## State Machine

@@ -2,3 +2,4 @@ mkdocs>=1.5.3
 mkdocs-material>=9.5.0
 mkdocs-glightbox>=0.3.7
 pymdown-extensions>=10.7
+mkdocs-drawio>=1.16.2

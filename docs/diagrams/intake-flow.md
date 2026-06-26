@@ -2,6 +2,15 @@
 
 Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC process.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/intake-flow.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Intake & Document Validation Flow](drawio/intake-flow.drawio)
+
 ---
 
 ## Phase 0 — Structured Digital Intake

@@ -2,6 +2,15 @@
 
 The complete redesigned KYC process across all 8 phases, aligned to FATF 40 Recommendations, Basel KYC Guidelines, and EU 6AMLD.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/best-practice-e2e.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![Best Practice End-to-End Process](drawio/best-practice-e2e.drawio)
+
 ---
 
 ## High-Level Process Map

@@ -2,6 +2,15 @@
 
 The technical architecture of the target KYC system built on Oracle APEX with Oracle Fusion HCM integration.
 
+!!! tip "How to edit this diagram"
+    1. Go to [diagrams.net](https://app.diagrams.net)
+    2. Open via **File → Open from → GitHub**
+    3. Navigate to `docs/diagrams/drawio/apex-architecture.drawio`
+    4. Edit visually and save — it commits directly to GitHub
+    5. Netlify rebuilds and this page updates automatically
+
+![APEX System Architecture](drawio/apex-architecture.drawio)
+
 ---
 
 ## System Architecture Overview
