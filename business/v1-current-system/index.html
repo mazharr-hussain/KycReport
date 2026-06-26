@@ -1317,34 +1317,25 @@
 - Supporting documents</p>
 <h3 id="3-routes-reports-through-an-approval-process">3. Routes Reports Through an Approval Process<a class="headerlink" href="#3-routes-reports-through-an-approval-process" title="Permanent link">¶</a></h3>
 <p>Once a compliance officer completes a report, it goes through a formal approval process before it is finalised.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Compliance Officer
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  creates report
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>       │
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>       ▼
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  Submits for approval
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>       │
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>       ▼
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>Level 1 Approver reviews
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>       │
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  ┌────┴────────┬─────────────┐
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  ▼             ▼             ▼
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>Approve      Request       Reject
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>(low risk)   more info     (closed)
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  │             │
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  │     Officer responds
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  │     and resubmits
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  │             │
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  └─────────────┘
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>       │
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  (medium/high risk only)
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>       ▼
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>Level 2 Approver reviews
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>       │
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>  ┌────┴────────┬─────────────┐
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  ▼             ▼             ▼
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>Final         Request       Reject
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>Approval      more info     (closed)
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    CO([Compliance Officer\nCreates Report]) --&gt; SUBMIT[Submits for Approval]
+    SUBMIT --&gt; L1[Level 1 Approver\nReviews]
+    L1 --&gt; A1{Decision}
+    A1 --&gt;|Approve — Low Risk| FINAL([✅ Final Approval])
+    A1 --&gt;|Request More Info| RFI[Report returned\nto Officer with comment]
+    A1 --&gt;|Reject| REJ1([❌ Closed])
+    RFI --&gt; RESUBMIT[Officer responds\nand resubmits]
+    RESUBMIT --&gt; L1
+    A1 --&gt;|Approve — Medium/High Risk| L2[Level 2 Approver\nReviews]
+    L2 --&gt; A2{Decision}
+    A2 --&gt;|Final Approve| FINAL
+    A2 --&gt;|Request More Info| RFI
+    A2 --&gt;|Reject| REJ2([❌ Closed])
+
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJ1 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style REJ2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style RFI fill:#FFF3E0,color:#BF360C,stroke:#E65100</code></pre>
 <p><strong>Important rule:</strong> A report cannot be approved by the same person who created it. Low-risk reports require one approval signature. Medium and high-risk reports require two separate approvals.</p>
 <h3 id="4-tracks-everything-with-a-full-audit-trail">4. Tracks Everything with a Full Audit Trail<a class="headerlink" href="#4-tracks-everything-with-a-full-audit-trail" title="Permanent link">¶</a></h3>
 <p>Every action taken — every submission, approval, rejection, or request for information — is permanently recorded with the date, time, and the name of the person who took the action. This audit trail cannot be edited or deleted.</p>

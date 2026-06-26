@@ -1221,24 +1221,19 @@
 <h3 id="phase-0-standardised-digital-intake">Phase 0: Standardised Digital Intake<a class="headerlink" href="#phase-0-standardised-digital-intake" title="Permanent link">¶</a></h3>
 <p><strong>What changes:</strong> Business departments no longer send emails in any format they like. Instead, they complete a <strong>structured digital intake form</strong> in the system.</p>
 <p><strong>How it works:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Business department opens the KYC Request Portal
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  │
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  Fills in structured form:
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  ├── Their name and department (auto-filled from company HR system)
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  ├── Counterparty name, type, and country
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  ├── Nature of the relationship (from a managed dropdown)
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  ├── Financial involvement (current / proposed / none)
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  └── Related party declaration (yes/no + details if yes)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  │
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  System automatically calculates:
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  ├── [KYC Not Required] → waiver record created and saved as evidence
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  └── [KYC Required] → case created with unique reference number
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  │
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  Department uploads required documents
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  (checklist shown based on entity type and country)
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  │
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  Submits → compliance team notified automatically
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    DEPT([Business Department\nOpens KYC Request Portal]) --&gt; AUTOFILL[Name &amp; department\nauto-filled from Oracle Fusion HCM]
+    AUTOFILL --&gt; FORM[Fills in structured form:\nCounterparty name, type, country\nRelationship type\nFinancial involvement\nRelated party declaration]
+    FORM --&gt; RULES{System Rules Engine\nCalculates automatically}
+    RULES --&gt;|KYC Not Required| WAIVER[Waiver record created\nDocuments stored as evidence\nConfirmation sent to dept]
+    RULES --&gt;|KYC Required| CHECKLIST[System shows document checklist\nbased on entity type and country]
+    CHECKLIST --&gt; UPLOAD[Department uploads documents\ndirectly in portal — no email]
+    UPLOAD --&gt; SUBMIT[Submit]
+    SUBMIT --&gt; CASE[Case created: INTAKE-YYYY-NNNNNN\nCompliance team notified automatically]
+
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style CASE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0</code></pre>
 <p><strong>What this fixes:</strong>
 - Every request is in the same format, regardless of which department sends it
 - When KYC is not required, there is a permanent evidence record — not just a forgotten email
@@ -1246,33 +1241,36 @@
 <hr>
 <h3 id="phase-1-document-validation-system-assisted">Phase 1: Document Validation — System-Assisted<a class="headerlink" href="#phase-1-document-validation-system-assisted" title="Permanent link">¶</a></h3>
 <p><strong>What changes:</strong> The compliance team uses a structured checklist rather than relying on experience and memory. The system tracks how many rounds of document requests happen.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Compliance officer reviews submitted documents
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  │
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  Documents meet checklist?
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ├── No → structured request sent to department
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  │          deadline set, reminder sent automatically
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  │          department uploads via portal (not email)
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>  │          all rounds tracked with timestamps
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>  │
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>  └── Yes → compliance officer marks: "Documents Complete"
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>             System records this date — this is the KPI start point
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    REVIEW([Compliance Officer\nReviews Submitted Documents]) --&gt; CHECK{Documents meet\nchecklist?}
+    CHECK --&gt;|No — Missing or unclear| REQ[Send structured request to department\nSelect document type\nSet deadline\nSystem sends notification automatically]
+    REQ --&gt; UPLOAD[Department uploads via portal\nnot by email\nAll rounds tracked with timestamps]
+    UPLOAD --&gt; CHECK
+    CHECK --&gt;|Yes — All complete| CONFIRM[Officer marks:\nDocuments Complete ✅]
+    CONFIRM --&gt; KPI[System records docs_complete_date\n🕐 KPI Clock Starts Here]
+
+    style KPI fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style CONFIRM fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REQ fill:#FFF3E0,color:#BF360C,stroke:#E65100</code></pre>
 <p><strong>The KPI start point</strong> is the moment the compliance team confirms they have everything they need. Turnaround time is measured from here — not from the first email the department sent — because the compliance team cannot be held accountable for the department's delay in providing documents.</p>
 <p><strong>Duplicate check:</strong><br>
 When the officer is about to create an entity, the system automatically searches for similar names. If the same company was screened before, the officer is shown the previous record and can choose to link to it, rather than creating a duplicate.</p>
 <hr>
 <h3 id="phase-2-risk-pre-assessment">Phase 2: Risk Pre-Assessment<a class="headerlink" href="#phase-2-risk-pre-assessment" title="Permanent link">¶</a></h3>
 <p><strong>What is new:</strong> Before the compliance officer begins their research, the system shows them a <strong>risk indicator panel</strong> — a summary of automated risk signals computed from the data already provided.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>System pre-computes:
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── Geographic risk — is the entity's country on the FATF high-risk list?
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── Entity type risk — is it state-owned? (= PEP-linked = elevated risk)
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>├── Structure risk — multiple ownership layers? (= more scrutiny needed)
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>└── Historical flags — any prior adverse findings for this entity?
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>System suggests: LOW / MEDIUM / HIGH
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>Officer can override — but must document why
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart LR
+    SYS([System Pre-Computes\nRisk Signals]) --&gt; G[🌍 Geographic Risk\nFATF country tier]
+    SYS --&gt; E[🏢 Entity Type Risk\nState-owned = PEP-linked]
+    SYS --&gt; S[🔗 Structure Risk\nMultiple ownership layers]
+    SYS --&gt; H[⚠️ Historical Flags\nPrior adverse findings]
+    G &amp; E &amp; S &amp; H --&gt; SUGGEST[System Suggests\nLOW / MEDIUM / HIGH]
+    SUGGEST --&gt; OFFICER{Officer\nAgrees?}
+    OFFICER --&gt;|Yes| CONFIRM[Confirm risk level\nand proceed]
+    OFFICER --&gt;|No| OVERRIDE[Override risk level\nDocument reason — mandatory]
+
+    style SUGGEST fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style OVERRIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style CONFIRM fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32</code></pre>
 <p>This does not replace the officer's judgment — it gives them a structured starting point and ensures that obvious risk factors are never overlooked.</p>
 <p><strong>Risk determines the path:</strong>
 - <strong>Low risk</strong> → Simplified Due Diligence (one approval required)
@@ -1411,50 +1409,35 @@ Every report shows a traffic-light indicator: how many days have elapsed versus 
 - Overdue cases</p>
 <hr>
 <h2 id="the-improved-approval-process">The Improved Approval Process<a class="headerlink" href="#the-improved-approval-process" title="Permanent link">¶</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Requesting Department
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ↓ Structured digital form
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Case Created Automatically
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  ↓ System notification
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Document Validation (Compliance Officer)
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  ↓ All rounds tracked
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  ↓ KPI clock starts when docs confirmed
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>Work Assignment (System auto-assigns or Manager assigns)
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  ↓
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>Risk Pre-Assessment (System flags, Officer confirms)
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  ↓
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>Due Diligence (WorldCheck — manual research)
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  ↓ Structured results recorded in system
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>Entity Record Created (with duplicate check)
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>  ↓
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>KYC Report Created (auto-populated from entity)
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>  ↓ SLA indicator visible
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>Submitted for Approval
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>  ↓ Active approver identified (delegation applied)
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>          LOW RISK                   MEDIUM/HIGH RISK
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>             │                              │
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>             ▼                              ▼
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>       L1 Approver                    L1 Approver
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>       Reviews                        Reviews
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    ┌────┴────────┐               ┌────┴────────┐
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>    ▼             ▼               ▼             ▼
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a> Approve        RFI/Reject     Approve        RFI/Reject
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    │                              │
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    ▼                              ▼
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>FINAL APPROVED               L2 Approver / MLRO
-</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>    │                        SAR Gate (mandatory)
-</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>    │                          ┌────┴────────┐
-</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>    │                          ▼             ▼
-</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>    │                       Approve        RFI/Reject/SAR
-</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>    │                          │
-</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>    └──────────────────────────┘
-</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>                               │
-</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>                               ▼
-</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>                        FINAL APPROVED
-</span><span id="__span-3-41"><a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>                        Auto PDF generated
-</span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>                        Requestor notified
-</span><span id="__span-3-43"><a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>                        Review date set
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    DEPT([Requesting Department\nStructured digital form]) --&gt; CASE[Case Created Automatically\nSystem notification to compliance]
+    CASE --&gt; DOCVAL[Document Validation\nAll rounds tracked\nKPI clock starts when docs confirmed]
+    DOCVAL --&gt; ASSIGN[Work Assignment\nSystem auto-assigns or Manager assigns]
+    ASSIGN --&gt; RISK[Risk Pre-Assessment\nSystem flags — Officer confirms]
+    RISK --&gt; DD[Due Diligence — WorldCheck\nStructured results recorded in system]
+    DD --&gt; ENTITY[Entity Record Created\nwith duplicate check]
+    ENTITY --&gt; REPORT[KYC Report Created\nauto-populated from entity\nSLA indicator visible]
+    REPORT --&gt; SUBMIT[Submitted for Approval\nActive approver identified\ndelegation applied]
+    SUBMIT --&gt; RISKSPLIT{Risk Level?}
+
+    RISKSPLIT --&gt;|Low Risk| L1_LOW[L1 Approver Reviews]
+    RISKSPLIT --&gt;|Medium or High Risk| L1_HIGH[L1 Approver Reviews]
+
+    L1_LOW --&gt;|Approve| FINAL([✅ FINAL APPROVED\nAuto PDF generated\nRequestor notified\nReview date set])
+    L1_LOW --&gt;|RFI or Reject| OFFICER[Back to Officer]
+    OFFICER --&gt; SUBMIT
+
+    L1_HIGH --&gt;|Approve| L2[L2 Approver / MLRO\nSAR Gate — mandatory]
+    L1_HIGH --&gt;|RFI or Reject| OFFICER
+
+    L2 --&gt;|SAR = No, Approve| FINAL
+    L2 --&gt;|SAR = Yes| SAR([⚠️ SAR Process\nApproval paused\nHead of Compliance alerted])
+    L2 --&gt;|RFI or Reject| OFFICER
+
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style SAR fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style OFFICER fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0</code></pre>
 <hr>
 <h2 id="what-changes-for-each-person">What Changes for Each Person<a class="headerlink" href="#what-changes-for-each-person" title="Permanent link">¶</a></h2>
 <h3 id="for-requesting-departments">For Requesting Departments<a class="headerlink" href="#for-requesting-departments" title="Permanent link">¶</a></h3>

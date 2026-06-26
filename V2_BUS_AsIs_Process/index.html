@@ -1200,8 +1200,70 @@
 </blockquote>
 <hr>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>Today, the KYC process at Qatari Diar is a <strong>mixed manual and semi-digital process</strong>. The KYC management system handles the formal approval steps, but everything before and after — receiving requests, validating documents, storing files, communicating with requestors, and reporting on results — is managed through email, Excel spreadsheets, and individual judgment.</p>
+<p>Today, the KYC process at Qatari Diar is a <strong>mostly manual process</strong>. The existing <strong>KYC Report Application</strong> (a JSF-based web system) is used only at the end: the officer enters the completed report data and the system manages the approval workflow and record storage. Everything before that — receiving requests, collecting documents, conducting due diligence, and compiling the full report — is done entirely outside the system through email, Excel, WorldCheck, and personal judgment. The system never sees the work; it only sees the finished output.</p>
 <p>This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph OUTSIDE["Outside KYC Report Application — Manual Process"]
+        P0[Phase 0\nExcel Calculator]
+        P1[Phase 1\nDocument Collection\nvia Email]
+        P2[Phase 2\nWork Assignment]
+        P3[Phase 3\nWorldCheck\nDue Diligence]
+    end
+
+    subgraph INSIDE["Inside KYC Report Application"]
+        P4[Phase 4\nEntity Record\nCreation]
+        P5[Phase 5\nKYC Report\nCreation]
+        P6[Phase 6\nLevel 1 Approval]
+        P7[Phase 7\nLevel 2 Approval]
+    end
+
+    OUTSIDE --&gt; INSIDE
+
+    style OUTSIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style INSIDE fill:#E8EAF6,color:#1A237E,stroke:#3949AB</code></pre>
+<div class="admonition warning">
+<p class="admonition-title">Key Point</p>
+<p>The process only enters the KYC Report Application once all manual work is complete — documents validated, due diligence researched, entity data ready. Everything before that point is invisible to the system.</p>
+</div>
+<hr>
+<h2 id="complete-as-is-process-one-page">Complete As-Is Process — One Page<a class="headerlink" href="#complete-as-is-process-one-page" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    START([Business Department]) --&gt; P0
+
+    subgraph MANUAL["Manual / Email — Outside KYC Report Application"]
+        P0[Phase 0\nKYC Necessity Check\nExcel Calculator]
+        P0 --&gt;|Not Required| WAIVER([Waiver saved locally\nNo further action])
+        P0 --&gt;|Required| P1[Phase 1\nDocument Collection\n&amp; Validation]
+        P1 --&gt; P2[Phase 2\nWork Assignment\nby Manager]
+        P2 --&gt; P3[Phase 3\nDue Diligence\nWorldCheck]
+        P3 --&gt; P3B[Report Preparation\nOfficer compiles full report\nmanually from research notes]
+    end
+
+    subgraph SYSTEM["Inside KYC Report Application — Data Entry &amp; Approval"]
+        P4[Phase 4\nEntity Record\nData Entry]
+        P4 --&gt; P5[Phase 5\nKYC Report\nData Entry &amp; Submit]
+        P5 --&gt; P6[Phase 6\nLevel 1\nApproval]
+        P6 --&gt;|Low Risk| DONE
+        P6 --&gt;|Medium / High Risk| P7[Phase 7\nLevel 2\nApproval]
+        P7 --&gt; DONE([Completed\nManual email to requestor])
+    end
+
+    MANUAL --&gt; P4
+
+    style MANUAL fill:#FFF8E1,stroke:#F9A825,color:#5D4037
+    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P0 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P1 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P3 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P3B fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P5 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB</code></pre>
 <hr>
 <h2 id="who-is-involved">Who Is Involved<a class="headerlink" href="#who-is-involved" title="Permanent link">¶</a></h2>
 <table>
@@ -1242,24 +1304,22 @@
 <li>Are there any known connections to related parties?</li>
 </ul>
 <p>Based on the answers, the Excel says either <strong>"KYC Required"</strong> or <strong>"KYC Not Required"</strong>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Department fills in Excel Calculator
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>            │
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>     ┌──────▼──────┐
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>     │KYC Required?│
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>     └──────┬──────┘
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>     ┌──────┴──────┐
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>     ▼             ▼
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>   YES             NO
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>     │             │
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>     │         Documents saved
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>     │         to local folder,
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>     │         moved to QDocs
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>     │         later (manually)
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>     ▼
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>Department gathers documents
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>and sends email to compliance mailbox
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    EXCEL([Department fills in\nExcel Risk Calculator]) --&gt; Q{KYC Required?}
+    Q --&gt;|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
+    Q --&gt;|NO| LOCAL[Excel output saved locally\nas evidence\nNo document collection required]
+
+    style DOCS fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style LOCAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style EXCEL fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A</code></pre>
+<div class="admonition warning">
+<p class="admonition-title">What goes wrong here</p>
+<ul>
+<li>No formal evidence record when KYC is not required — just files on someone's laptop</li>
+<li>The Excel can be manually changed — output depends on the person filling it in</li>
+<li>Requests arrive in different formats from different departments — no standard</li>
+</ul>
+</div>
 <p><strong>What goes wrong here:</strong>
 - Different departments send requests in completely different formats — there is no standard
 - When KYC is not required, the supporting documents are saved locally but there is no formal evidence record that the check was done
@@ -1272,20 +1332,17 @@
 <p>For an <strong>individual person</strong>: A government-issued photo ID (Qatar ID or passport) is generally enough.</p>
 <p>For a <strong>company</strong>: The officer needs an official document that shows — clearly and completely — who owns the company and who controls it. In Qatar, a Commercial Registration (CR) usually does this. In other countries (Egypt, UK, Tajikistan), different documents serve this purpose — so there is no single fixed checklist.</p>
 <p>What the officer is always looking for is: <em>"Can I trace the ownership all the way to a real person?"</em></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Documents received
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>       │
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  Sufficient? ──NO──► Request more documents by email
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>       │                     ↑
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>      YES              Department replies
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>       │                     │
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>       ▼              ──────►┘ (loop until complete)
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>  Documents saved to
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>  local folder on workstation
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>       │
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>       ▼
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>  Signal to manager (verbally or email):
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>  "Ready for assignment"
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    RECV([Documents Received\nvia Email]) --&gt; CHECK{Sufficient?}
+    CHECK --&gt;|NO| REQ[Request more documents\nby email to department]
+    REQ --&gt; REPLY[Department replies\nby email]
+    REPLY --&gt; CHECK
+    CHECK --&gt;|YES| SAVE[Save documents to\nlocal folder on workstation]
+    SAVE --&gt; SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
+
+    style RECV fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style SAVE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style REQ fill:#FFEBEE,color:#7F0000,stroke:#B71C1C</code></pre>
 <p><strong>What goes wrong here:</strong>
 - Everything is tracked in email threads — there is no system record of how many rounds of back-and-forth happened
 - Documents are saved to the officer's local workstation. At the end of the day, they must be manually moved to a QDocs folder — but there is no check for whether a folder for that entity already exists, and no standard naming convention
@@ -1295,8 +1352,9 @@
 <p><strong>Who does this:</strong> Compliance Manager</p>
 <p>The manager looks at who is available (not on leave, not overloaded) and assigns the case to a compliance officer. This is done verbally or by email — there is no assignment record in the system.</p>
 <p><strong>What goes wrong here:</strong>
-- If the Level 2 Approver is unavailable, a substitute must be manually activated by phone — there is no system to handle this
-- There is no workload view to see how many active cases each officer has</p>
+- Assignment happens outside the system — there is no record of when or to whom a case was assigned
+- The manager has no workload view; they must ask each officer individually how many active cases they have
+- If the manager is absent, there is no way for the team to know how work should be prioritised or distributed</p>
 <hr>
 <h2 id="phase-3-conducting-the-due-diligence-worldcheck">Phase 3: Conducting the Due Diligence (WorldCheck)<a class="headerlink" href="#phase-3-conducting-the-due-diligence-worldcheck" title="Permanent link">¶</a></h2>
 <p><strong>Who does this:</strong> Compliance Officer</p>
@@ -1307,24 +1365,22 @@
 3. Determines whether a match is genuine or a false positive
 4. Notes whether the entity or person is a PEP (Politically Exposed Person) — for example, a state-owned company is connected to the government, which counts as a PEP link
 5. Looks at shareholders and connected entities</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Open WorldCheck in browser
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>       │
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  Search entity / person
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       │
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  Review matches:
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  ├── Direct match? Genuine or false positive?
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  ├── PEP connection?
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  ├── Adverse findings?
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  └── Check shareholders
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>       │
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  Apply risk-based judgement:
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  "How deep do I need to go?"
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  ├── Microsoft Qatar → stop at Qatar entity level
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  └── Complex unknown structure → go deeper, but only where risk justifies it
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>       │
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  Note findings manually
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  (memory / personal document)
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    WC([Open WorldCheck\nin browser]) --&gt; SEARCH[Search entity / person by name]
+    SEARCH --&gt; MATCH{Review matches}
+    MATCH --&gt; M1[Direct match?\nGenuine or false positive?]
+    MATCH --&gt; M2[PEP connection?]
+    MATCH --&gt; M3[Adverse findings?]
+    MATCH --&gt; M4[Check shareholders]
+    M1 &amp; M2 &amp; M3 &amp; M4 --&gt; JUDGE[Apply risk-based judgement:\nHow deep do I need to go?]
+    JUDGE --&gt; EX1[Simple case e.g. Microsoft Qatar\n→ Stop at Qatar entity level]
+    JUDGE --&gt; EX2[Complex unknown structure\n→ Go deeper where risk justifies it]
+    EX1 &amp; EX2 --&gt; NOTE[Note findings manually\nin memory or personal document]
+    NOTE --&gt; SYSTEM[Enter findings later\ninto KYC system free-text field]
+
+    style WC fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
+    style NOTE fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style SYSTEM fill:#E8EAF6,color:#1A237E,stroke:#3949AB</code></pre>
 <p><strong>What goes wrong here:</strong>
 - There is no structured way to record what was found — it goes into a free-text field in the system later
 - There is no record of <em>when</em> the screening was done or <em>which databases</em> were checked
@@ -1342,25 +1398,18 @@
 <p><strong>Who does this:</strong> Compliance Officer</p>
 <p>Next, the officer creates the formal KYC report in the system. This involves entering many fields that could theoretically be pre-filled from the entity record — but the system requires re-entering them from scratch.</p>
 <p>One particular pain point: the <strong>final conclusion</strong>. Around 95% of the time, the conclusion follows a standard template. But those templates are stored in Word documents on shared drives, not in the system. The officer opens Word, copies the relevant template, pastes it into the system, and adjusts it.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Create new KYC report in system
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>       │
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  Link to entity (no auto-population)
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  Re-enter: counterparty name, type, risk level, etc.
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>       │
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  Enter classification:
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  ├── Simplified / AdHoc / Enhanced
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  ├── Who requested it and when
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  └── Risk level: Low / Medium / High
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>       │
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  Write conclusion:
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  └── Open Word → copy template → paste → adjust
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>       │
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  Upload documents from local folder
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>       │
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>  Choose action:
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>  ├── [Save Draft] → stays in my queue
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>  └── [Submit for Approval] → goes to approver
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    NEW([Create new KYC report\nin system]) --&gt; LINK[Link to entity\nno auto-population\nre-enter all fields manually]
+    LINK --&gt; CLASS[Enter classification:\nSimplified / AdHoc / Enhanced\nWho requested it and when\nRisk level: Low / Medium / High]
+    CLASS --&gt; CONC[Write conclusion:\nOpen Word document\nCopy template\nPaste into system\nAdjust manually]
+    CONC --&gt; UPLOAD[Upload documents\nfrom local folder on workstation]
+    UPLOAD --&gt; ACTION{Choose action}
+    ACTION --&gt;|Save Draft| DRAFT[Stays in officer's queue\nfor later]
+    ACTION --&gt;|Submit for Approval| APPROVER[Goes to approver's queue]
+
+    style NEW fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style CONC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style APPROVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32</code></pre>
 <p><strong>What goes wrong here:</strong>
 - The request date field has no validation — an officer under pressure might inadvertently enter a wrong year and not notice
 - The system does not warn when the entered date does not match the actual chronology of events
@@ -1368,20 +1417,53 @@
 <hr>
 <h2 id="phase-6-level-1-approval">Phase 6: Level 1 Approval<a class="headerlink" href="#phase-6-level-1-approval" title="Permanent link">¶</a></h2>
 <p><strong>Who does this:</strong> Level 1 Approver (currently Latifa)</p>
-<p>The approver sees the new report in their queue. They review the full report, read the conclusion, check the documents, and then decide:</p>
+<p><strong>Where this happens:</strong> Inside the <strong>KYC Report Application</strong> (the existing JSF system). The approver logs into the application and sees the submitted report in their approval queue.</p>
+<p>The approver reviews the full report, reads the conclusion, checks the attached documents, and then acts directly in the application:</p>
 <ul>
-<li><strong>Approve</strong> — satisfied with the work</li>
-<li><strong>Request For Information</strong> — something is unclear; sends the report back with a comment for the officer to address</li>
-<li><strong>Reject</strong> — the report cannot be approved for a stated reason</li>
+<li><strong>Approve</strong> — satisfied with the work; status moves to Approved (L1)</li>
+<li><strong>Request For Information (RFI)</strong> — something is unclear; sends the report back to the officer with a comment recorded in the application</li>
+<li><strong>Reject</strong> — the report is closed with a stated reason recorded in the application</li>
 </ul>
-<p><strong>Approval routing by risk:</strong>
-- <strong>Low risk</strong> → Level 1 approval is the final approval
-- <strong>Medium or High risk</strong> → Level 1 approval passes it to Level 2</p>
+<p><strong>Approval routing by risk (handled by the application):</strong>
+- <strong>Low risk</strong> → Level 1 approval is the final approval — report status moves to Final Approved
+- <strong>Medium or High risk</strong> → report automatically routes to Level 2 queue</p>
+<pre class="mermaid"><code>flowchart TD
+    QUEUE([Report appears in\nL1 Approver's queue\nin KYC Report Application]) --&gt; REVIEW[Approver reviews report\nconclusion + documents\nin the application]
+    REVIEW --&gt; DECISION{Decision}
+    DECISION --&gt;|Approve| RISK{Risk Level?}
+    DECISION --&gt;|RFI| BACK[Report returned to officer\nwith comment — in application]
+    DECISION --&gt;|Reject| REJECT([Report closed\nReason recorded in application])
+
+    RISK --&gt;|Low Risk| FINAL([Final Approved\nin application])
+    RISK --&gt;|Medium / High Risk| L2([Routes to L2 queue\nin application])
+
+    style QUEUE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style L2 fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A</code></pre>
+<p><strong>What goes wrong here:</strong>
+- If the Level 1 Approver is unavailable (on leave, travel), a substitute must be manually arranged by phone or email — the system has no delegation mechanism
+- There is no way in the system to see how many reports are waiting for approval at any given time</p>
 <hr>
 <h2 id="phase-7-level-2-approval-mediumhigh-risk-only">Phase 7: Level 2 Approval (Medium/High Risk Only)<a class="headerlink" href="#phase-7-level-2-approval-mediumhigh-risk-only" title="Permanent link">¶</a></h2>
 <p><strong>Who does this:</strong> Level 2 Approver / Head of Compliance (Carlos)</p>
-<p>Same process as Level 1 — full review, then Approve / RFI / Reject.</p>
-<p>Once approved at Level 2, the report is finalised.</p>
+<p><strong>Where this happens:</strong> Inside the <strong>KYC Report Application</strong> — the report appears in Carlos's queue after L1 approval.</p>
+<p>Same actions as Level 1 — full review inside the application, then Approve / RFI / Reject. Once approved at Level 2, the report status is set to Final Approved in the application.</p>
+<pre class="mermaid"><code>flowchart TD
+    L2Q([Report appears in\nL2 Approver's queue\nin KYC Report Application]) --&gt; REVIEW2[Approver reviews report\nin the application]
+    REVIEW2 --&gt; DECISION2{Decision}
+    DECISION2 --&gt;|Approve| FINAL2([Final Approved\nin application])
+    DECISION2 --&gt;|RFI| BACK2[Report returned to officer\nwith comment — in application]
+    DECISION2 --&gt;|Reject| REJECT2([Report closed\nReason recorded in application])
+
+    style L2Q fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style FINAL2 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style REJECT2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
+    style BACK2 fill:#FFF3E0,color:#BF360C,stroke:#E65100</code></pre>
+<p><strong>What goes wrong here:</strong>
+- If the Level 2 Approver (Carlos) is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism
+- There is no mandatory checkpoint for Suspicious Activity Reports (SARs) — the question of whether a SAR should be filed is not formally built into the approval step</p>
 <p><strong>What should happen but doesn't:</strong><br>
 The requesting department should automatically receive the completed report and a notification that the KYC is done. Currently, this does not happen — someone on the compliance team has to remember to email them.</p>
 <hr>
