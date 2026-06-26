@@ -42,25 +42,21 @@ Before the compliance team is even involved, the requesting department runs a ch
 
 Based on the answers, the Excel says either **"KYC Required"** or **"KYC Not Required"**.
 
+```mermaid
+flowchart TD
+    EXCEL([Department fills in\nExcel Risk Calculator]) --> Q{KYC Required?}
+    Q -->|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
+    Q -->|NO| LOCAL[Documents saved to\nlocal folder\nmoved to QDocs later — manually]
+
+    style DOCS fill:#1565C0,color:#fff,stroke:#0D47A1
+    style LOCAL fill:#F57F17,color:#fff,stroke:#E65100
+    style EXCEL fill:#6A1B9A,color:#fff,stroke:#4A148C
 ```
-Department fills in Excel Calculator
-            │
-     ┌──────▼──────┐
-     │KYC Required?│
-     └──────┬──────┘
-            │
-     ┌──────┴──────┐
-     ▼             ▼
-   YES             NO
-     │             │
-     │         Documents saved
-     │         to local folder,
-     │         moved to QDocs
-     │         later (manually)
-     ▼
-Department gathers documents
-and sends email to compliance mailbox
-```
+
+!!! warning "What goes wrong here"
+    - No formal evidence record when KYC is not required — just files on someone's laptop
+    - The Excel can be manually changed — output depends on the person filling it in
+    - Requests arrive in different formats from different departments — no standard
 
 **What goes wrong here:**
 - Different departments send requests in completely different formats — there is no standard
@@ -83,20 +79,18 @@ For a **company**: The officer needs an official document that shows — clearly
 
 What the officer is always looking for is: *"Can I trace the ownership all the way to a real person?"*
 
-```
-Documents received
-       │
-  Sufficient? ──NO──► Request more documents by email
-       │                     ↑
-      YES              Department replies
-       │                     │
-       ▼              ──────►┘ (loop until complete)
-  Documents saved to
-  local folder on workstation
-       │
-       ▼
-  Signal to manager (verbally or email):
-  "Ready for assignment"
+```mermaid
+flowchart TD
+    RECV([Documents Received\nvia Email]) --> CHECK{Sufficient?}
+    CHECK -->|NO| REQ[Request more documents\nby email to department]
+    REQ --> REPLY[Department replies\nby email]
+    REPLY --> CHECK
+    CHECK -->|YES| SAVE[Save documents to\nlocal folder on workstation]
+    SAVE --> SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
+
+    style RECV fill:#F57F17,color:#fff,stroke:#E65100
+    style SAVE fill:#1565C0,color:#fff,stroke:#0D47A1
+    style REQ fill:#B71C1C,color:#fff,stroke:#7F0000
 ```
 
 **What goes wrong here:**
@@ -131,24 +125,23 @@ For each entity and each significant individual (UBO), the officer:
 4. Notes whether the entity or person is a PEP (Politically Exposed Person) — for example, a state-owned company is connected to the government, which counts as a PEP link
 5. Looks at shareholders and connected entities
 
-```
-Open WorldCheck in browser
-       │
-  Search entity / person
-       │
-  Review matches:
-  ├── Direct match? Genuine or false positive?
-  ├── PEP connection?
-  ├── Adverse findings?
-  └── Check shareholders
-       │
-  Apply risk-based judgement:
-  "How deep do I need to go?"
-  ├── Microsoft Qatar → stop at Qatar entity level
-  └── Complex unknown structure → go deeper, but only where risk justifies it
-       │
-  Note findings manually
-  (memory / personal document)
+```mermaid
+flowchart TD
+    WC([Open WorldCheck\nin browser]) --> SEARCH[Search entity / person by name]
+    SEARCH --> MATCH{Review matches}
+    MATCH --> M1[Direct match?\nGenuine or false positive?]
+    MATCH --> M2[PEP connection?]
+    MATCH --> M3[Adverse findings?]
+    MATCH --> M4[Check shareholders]
+    M1 & M2 & M3 & M4 --> JUDGE[Apply risk-based judgement:\nHow deep do I need to go?]
+    JUDGE --> EX1[Simple case e.g. Microsoft Qatar\n→ Stop at Qatar entity level]
+    JUDGE --> EX2[Complex unknown structure\n→ Go deeper where risk justifies it]
+    EX1 & EX2 --> NOTE[Note findings manually\nin memory or personal document]
+    NOTE --> SYSTEM[Enter findings later\ninto KYC system free-text field]
+
+    style WC fill:#6A1B9A,color:#fff,stroke:#4A148C
+    style NOTE fill:#B71C1C,color:#fff,stroke:#7F0000
+    style SYSTEM fill:#1565C0,color:#fff,stroke:#0D47A1
 ```
 
 **What goes wrong here:**
@@ -179,25 +172,19 @@ Next, the officer creates the formal KYC report in the system. This involves ent
 
 One particular pain point: the **final conclusion**. Around 95% of the time, the conclusion follows a standard template. But those templates are stored in Word documents on shared drives, not in the system. The officer opens Word, copies the relevant template, pastes it into the system, and adjusts it.
 
-```
-Create new KYC report in system
-       │
-  Link to entity (no auto-population)
-  Re-enter: counterparty name, type, risk level, etc.
-       │
-  Enter classification:
-  ├── Simplified / AdHoc / Enhanced
-  ├── Who requested it and when
-  └── Risk level: Low / Medium / High
-       │
-  Write conclusion:
-  └── Open Word → copy template → paste → adjust
-       │
-  Upload documents from local folder
-       │
-  Choose action:
-  ├── [Save Draft] → stays in my queue
-  └── [Submit for Approval] → goes to approver
+```mermaid
+flowchart TD
+    NEW([Create new KYC report\nin system]) --> LINK[Link to entity\nno auto-population\nre-enter all fields manually]
+    LINK --> CLASS[Enter classification:\nSimplified / AdHoc / Enhanced\nWho requested it and when\nRisk level: Low / Medium / High]
+    CLASS --> CONC[Write conclusion:\nOpen Word document\nCopy template\nPaste into system\nAdjust manually]
+    CONC --> UPLOAD[Upload documents\nfrom local folder on workstation]
+    UPLOAD --> ACTION{Choose action}
+    ACTION -->|Save Draft| DRAFT[Stays in officer's queue\nfor later]
+    ACTION -->|Submit for Approval| APPROVER[Goes to approver's queue]
+
+    style NEW fill:#1565C0,color:#fff,stroke:#0D47A1
+    style CONC fill:#B71C1C,color:#fff,stroke:#7F0000
+    style APPROVER fill:#2E7D32,color:#fff,stroke:#1B5E20
 ```
 
 **What goes wrong here:**

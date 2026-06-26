@@ -64,34 +64,26 @@ Each report includes:
 
 Once a compliance officer completes a report, it goes through a formal approval process before it is finalised.
 
-```
-Compliance Officer
-  creates report
-       │
-       ▼
-  Submits for approval
-       │
-       ▼
-Level 1 Approver reviews
-       │
-  ┌────┴────────┬─────────────┐
-  ▼             ▼             ▼
-Approve      Request       Reject
-(low risk)   more info     (closed)
-  │             │
-  │     Officer responds
-  │     and resubmits
-  │             │
-  └─────────────┘
-       │
-  (medium/high risk only)
-       ▼
-Level 2 Approver reviews
-       │
-  ┌────┴────────┬─────────────┐
-  ▼             ▼             ▼
-Final         Request       Reject
-Approval      more info     (closed)
+```mermaid
+flowchart TD
+    CO([Compliance Officer\nCreates Report]) --> SUBMIT[Submits for Approval]
+    SUBMIT --> L1[Level 1 Approver\nReviews]
+    L1 --> A1{Decision}
+    A1 -->|Approve — Low Risk| FINAL([✅ Final Approval])
+    A1 -->|Request More Info| RFI[Report returned\nto Officer with comment]
+    A1 -->|Reject| REJ1([❌ Closed])
+    RFI --> RESUBMIT[Officer responds\nand resubmits]
+    RESUBMIT --> L1
+    A1 -->|Approve — Medium/High Risk| L2[Level 2 Approver\nReviews]
+    L2 --> A2{Decision}
+    A2 -->|Final Approve| FINAL
+    A2 -->|Request More Info| RFI
+    A2 -->|Reject| REJ2([❌ Closed])
+
+    style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style REJ1 fill:#B71C1C,color:#fff,stroke:#7F0000
+    style REJ2 fill:#B71C1C,color:#fff,stroke:#7F0000
+    style RFI fill:#E65100,color:#fff,stroke:#BF360C
 ```
 
 **Important rule:** A report cannot be approved by the same person who created it. Low-risk reports require one approval signature. Medium and high-risk reports require two separate approvals.

@@ -44,24 +44,20 @@ Every step in this process is designed around seven core compliance principles:
 
 **How it works:**
 
-```
-Business department opens the KYC Request Portal
-  │
-  Fills in structured form:
-  ├── Their name and department (auto-filled from company HR system)
-  ├── Counterparty name, type, and country
-  ├── Nature of the relationship (from a managed dropdown)
-  ├── Financial involvement (current / proposed / none)
-  └── Related party declaration (yes/no + details if yes)
-  │
-  System automatically calculates:
-  ├── [KYC Not Required] → waiver record created and saved as evidence
-  └── [KYC Required] → case created with unique reference number
-  │
-  Department uploads required documents
-  (checklist shown based on entity type and country)
-  │
-  Submits → compliance team notified automatically
+```mermaid
+flowchart TD
+    DEPT([Business Department\nOpens KYC Request Portal]) --> AUTOFILL[Name & department\nauto-filled from Oracle Fusion HCM]
+    AUTOFILL --> FORM[Fills in structured form:\nCounterparty name, type, country\nRelationship type\nFinancial involvement\nRelated party declaration]
+    FORM --> RULES{System Rules Engine\nCalculates automatically}
+    RULES -->|KYC Not Required| WAIVER[Waiver record created\nDocuments stored as evidence\nConfirmation sent to dept]
+    RULES -->|KYC Required| CHECKLIST[System shows document checklist\nbased on entity type and country]
+    CHECKLIST --> UPLOAD[Department uploads documents\ndirectly in portal — no email]
+    UPLOAD --> SUBMIT[Submit]
+    SUBMIT --> CASE[Case created: INTAKE-YYYY-NNNNNN\nCompliance team notified automatically]
+
+    style WAIVER fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style CASE fill:#1565C0,color:#fff,stroke:#0D47A1
+    style DEPT fill:#F57F17,color:#fff,stroke:#E65100
 ```
 
 **What this fixes:**
@@ -75,17 +71,18 @@ Business department opens the KYC Request Portal
 
 **What changes:** The compliance team uses a structured checklist rather than relying on experience and memory. The system tracks how many rounds of document requests happen.
 
-```
-Compliance officer reviews submitted documents
-  │
-  Documents meet checklist?
-  ├── No → structured request sent to department
-  │          deadline set, reminder sent automatically
-  │          department uploads via portal (not email)
-  │          all rounds tracked with timestamps
-  │
-  └── Yes → compliance officer marks: "Documents Complete"
-             System records this date — this is the KPI start point
+```mermaid
+flowchart TD
+    REVIEW([Compliance Officer\nReviews Submitted Documents]) --> CHECK{Documents meet\nchecklist?}
+    CHECK -->|No — Missing or unclear| REQ[Send structured request to department\nSelect document type\nSet deadline\nSystem sends notification automatically]
+    REQ --> UPLOAD[Department uploads via portal\nnot by email\nAll rounds tracked with timestamps]
+    UPLOAD --> CHECK
+    CHECK -->|Yes — All complete| CONFIRM[Officer marks:\nDocuments Complete ✅]
+    CONFIRM --> KPI[System records docs_complete_date\n🕐 KPI Clock Starts Here]
+
+    style KPI fill:#6A1B9A,color:#fff,stroke:#4A148C
+    style CONFIRM fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style REQ fill:#E65100,color:#fff,stroke:#BF360C
 ```
 
 **The KPI start point** is the moment the compliance team confirms they have everything they need. Turnaround time is measured from here — not from the first email the department sent — because the compliance team cannot be held accountable for the department's delay in providing documents.
@@ -99,16 +96,20 @@ When the officer is about to create an entity, the system automatically searches
 
 **What is new:** Before the compliance officer begins their research, the system shows them a **risk indicator panel** — a summary of automated risk signals computed from the data already provided.
 
-```
-System pre-computes:
-├── Geographic risk — is the entity's country on the FATF high-risk list?
-├── Entity type risk — is it state-owned? (= PEP-linked = elevated risk)
-├── Structure risk — multiple ownership layers? (= more scrutiny needed)
-└── Historical flags — any prior adverse findings for this entity?
+```mermaid
+flowchart LR
+    SYS([System Pre-Computes\nRisk Signals]) --> G[🌍 Geographic Risk\nFATF country tier]
+    SYS --> E[🏢 Entity Type Risk\nState-owned = PEP-linked]
+    SYS --> S[🔗 Structure Risk\nMultiple ownership layers]
+    SYS --> H[⚠️ Historical Flags\nPrior adverse findings]
+    G & E & S & H --> SUGGEST[System Suggests\nLOW / MEDIUM / HIGH]
+    SUGGEST --> OFFICER{Officer\nAgrees?}
+    OFFICER -->|Yes| CONFIRM[Confirm risk level\nand proceed]
+    OFFICER -->|No| OVERRIDE[Override risk level\nDocument reason — mandatory]
 
-System suggests: LOW / MEDIUM / HIGH
-
-Officer can override — but must document why
+    style SUGGEST fill:#1565C0,color:#fff,stroke:#0D47A1
+    style OVERRIDE fill:#E65100,color:#fff,stroke:#BF360C
+    style CONFIRM fill:#2E7D32,color:#fff,stroke:#1B5E20
 ```
 
 This does not replace the officer's judgment — it gives them a structured starting point and ensures that obvious risk factors are never overlooked.
@@ -231,50 +232,36 @@ The dashboard shows in real time:
 
 ## The Improved Approval Process
 
-```
-Requesting Department
-  ↓ Structured digital form
-Case Created Automatically
-  ↓ System notification
-Document Validation (Compliance Officer)
-  ↓ All rounds tracked
-  ↓ KPI clock starts when docs confirmed
-Work Assignment (System auto-assigns or Manager assigns)
-  ↓
-Risk Pre-Assessment (System flags, Officer confirms)
-  ↓
-Due Diligence (WorldCheck — manual research)
-  ↓ Structured results recorded in system
-Entity Record Created (with duplicate check)
-  ↓
-KYC Report Created (auto-populated from entity)
-  ↓ SLA indicator visible
-Submitted for Approval
-  ↓ Active approver identified (delegation applied)
+```mermaid
+flowchart TD
+    DEPT([Requesting Department\nStructured digital form]) --> CASE[Case Created Automatically\nSystem notification to compliance]
+    CASE --> DOCVAL[Document Validation\nAll rounds tracked\nKPI clock starts when docs confirmed]
+    DOCVAL --> ASSIGN[Work Assignment\nSystem auto-assigns or Manager assigns]
+    ASSIGN --> RISK[Risk Pre-Assessment\nSystem flags — Officer confirms]
+    RISK --> DD[Due Diligence — WorldCheck\nStructured results recorded in system]
+    DD --> ENTITY[Entity Record Created\nwith duplicate check]
+    ENTITY --> REPORT[KYC Report Created\nauto-populated from entity\nSLA indicator visible]
+    REPORT --> SUBMIT[Submitted for Approval\nActive approver identified\ndelegation applied]
+    SUBMIT --> RISKSPLIT{Risk Level?}
 
-          LOW RISK                   MEDIUM/HIGH RISK
-             │                              │
-             ▼                              ▼
-       L1 Approver                    L1 Approver
-       Reviews                        Reviews
-    ┌────┴────────┐               ┌────┴────────┐
-    ▼             ▼               ▼             ▼
- Approve        RFI/Reject     Approve        RFI/Reject
-    │                              │
-    ▼                              ▼
-FINAL APPROVED               L2 Approver / MLRO
-    │                        SAR Gate (mandatory)
-    │                          ┌────┴────────┐
-    │                          ▼             ▼
-    │                       Approve        RFI/Reject/SAR
-    │                          │
-    └──────────────────────────┘
-                               │
-                               ▼
-                        FINAL APPROVED
-                        Auto PDF generated
-                        Requestor notified
-                        Review date set
+    RISKSPLIT -->|Low Risk| L1_LOW[L1 Approver Reviews]
+    RISKSPLIT -->|Medium or High Risk| L1_HIGH[L1 Approver Reviews]
+
+    L1_LOW -->|Approve| FINAL([✅ FINAL APPROVED\nAuto PDF generated\nRequestor notified\nReview date set])
+    L1_LOW -->|RFI or Reject| OFFICER[Back to Officer]
+    OFFICER --> SUBMIT
+
+    L1_HIGH -->|Approve| L2[L2 Approver / MLRO\nSAR Gate — mandatory]
+    L1_HIGH -->|RFI or Reject| OFFICER
+
+    L2 -->|SAR = No, Approve| FINAL
+    L2 -->|SAR = Yes| SAR([⚠️ SAR Process\nApproval paused\nHead of Compliance alerted])
+    L2 -->|RFI or Reject| OFFICER
+
+    style FINAL fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style SAR fill:#B71C1C,color:#fff,stroke:#7F0000
+    style OFFICER fill:#E65100,color:#fff,stroke:#BF360C
+    style DEPT fill:#F57F17,color:#fff,stroke:#E65100
 ```
 
 ---
