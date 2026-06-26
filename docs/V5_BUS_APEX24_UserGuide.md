@@ -23,7 +23,7 @@ Version 5 of the KYC Management System moves the platform to **Oracle APEX 24.2*
 | Document storage | Database attachment (BLOB) | OCI Object Storage — no file size constraints, faster download |
 | Mobile / tablet | Limited | Full Progressive Web App (PWA) — install on your phone like an app |
 | AI features | None | None — AI features are planned for Version 6 |
-| Database | Oracle Database 19c | Oracle Database 23ai on ATP |
+| Database | Oracle Database 19c / 21c | Oracle Database 23ai on ATP |
 
 !!! note
     The KYC process steps — intake, entity creation, report writing, approval, and closure — are unchanged. If you are familiar with Version 4, you will find Version 5 immediately recognisable.

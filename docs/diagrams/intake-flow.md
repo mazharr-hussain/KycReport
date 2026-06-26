@@ -73,7 +73,7 @@ flowchart TD
 
     KPI_START --> DUP_CHECK
 
-    DUP_CHECK[System runs Duplicate Check\nJaro-Winkler fuzzy match\nagainst existing entities]
+    DUP_CHECK[System runs Duplicate Check\nV3–V5: Jaro-Winkler fuzzy match\nV6: AI Vector Search cosine similarity]
 
     DUP_CHECK --> DUP{Match\nFound?}
     DUP -->|Similar name found| SHOW_MATCH[Show Officer\nExisting Record]

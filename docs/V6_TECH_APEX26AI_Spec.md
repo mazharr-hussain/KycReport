@@ -558,12 +558,23 @@ CREATE OR REPLACE PACKAGE BODY QD_KYC_DOC_AI AS
     l_doc_type      VARCHAR2(100);
     l_confidence    NUMBER;
     l_kyc_doc_type  VARCHAR2(100);
+    l_bucket        VARCHAR2(200);
+    l_object_name   VARCHAR2(500);
   BEGIN
-    -- Retrieve document BLOB from Object Storage pre-authenticated URL or inline
-    SELECT doc_content
-    INTO   l_doc_content
+    -- V5/V6: documents are in OCI Object Storage — no BLOB column in QD_KYC_DOCUMENTS
+    SELECT bucket_name, object_name
+    INTO   l_bucket, l_object_name
     FROM   QD_KYC_DOCUMENTS
     WHERE  document_id = p_document_id;
+
+    -- Retrieve document content from OCI Object Storage
+    l_doc_content := DBMS_CLOUD.GET_OBJECT(
+      credential_name => 'OCI_NATIVE_CRED',
+      object_uri      => 'https://objectstorage.' || :OCI_REGION
+                         || '.oraclecloud.com/n/' || :OCI_NAMESPACE
+                         || '/b/' || l_bucket
+                         || '/o/' || UTL_URL.ESCAPE(l_object_name)
+    );
 
     -- Base64-encode for inline submission
     l_doc_b64 := UTL_RAW.CAST_TO_VARCHAR2(
@@ -790,15 +801,19 @@ CREATE OR REPLACE PACKAGE BODY QD_KYC_AI_RISK AS
            risk_level            = ai_risk_suggestion
     WHERE  report_id = p_report_id;
 
-    UPDATE QD_KYC_AI_AUDIT
-    SET    accepted_flag   = 'Y',
-           action_user_id  = p_user_id
-    WHERE  report_id   = p_report_id
-    AND    ai_feature  = 'RISK_SCORING'
-    AND    audit_id    = (
-      SELECT MAX(audit_id) FROM QD_KYC_AI_AUDIT
-      WHERE  report_id = p_report_id AND ai_feature = 'RISK_SCORING'
-    );
+    -- QD_KYC_AI_AUDIT is immutable (INSERT-only). Record acceptance as a new audit row.
+    INSERT INTO QD_KYC_AI_AUDIT (
+      report_id, ai_feature, model_id, prompt_hash,
+      ai_response, accepted_flag, action_user_id
+    )
+    SELECT report_id, 'RISK_SCORING_ACCEPT', model_id, prompt_hash,
+           'Officer accepted AI suggestion: ' || ai_risk_suggestion,
+           'Y', p_user_id
+    FROM   QD_KYC_AI_AUDIT
+    WHERE  report_id  = p_report_id
+    AND    ai_feature = 'RISK_SCORING'
+    AND    audit_id   = (SELECT MAX(audit_id) FROM QD_KYC_AI_AUDIT
+                         WHERE report_id = p_report_id AND ai_feature = 'RISK_SCORING');
     COMMIT;
   END ACCEPT_SUGGESTION;
 
@@ -819,16 +834,19 @@ CREATE OR REPLACE PACKAGE BODY QD_KYC_AI_RISK AS
            ai_risk_override_reason = p_override_reason
     WHERE  report_id = p_report_id;
 
-    UPDATE QD_KYC_AI_AUDIT
-    SET    accepted_flag   = 'N',
-           override_reason = p_override_reason,
-           action_user_id  = p_user_id
-    WHERE  report_id   = p_report_id
-    AND    ai_feature  = 'RISK_SCORING'
-    AND    audit_id    = (
-      SELECT MAX(audit_id) FROM QD_KYC_AI_AUDIT
-      WHERE  report_id = p_report_id AND ai_feature = 'RISK_SCORING'
-    );
+    -- QD_KYC_AI_AUDIT is immutable (INSERT-only). Record override as a new audit row.
+    INSERT INTO QD_KYC_AI_AUDIT (
+      report_id, ai_feature, model_id, prompt_hash,
+      ai_response, accepted_flag, override_reason, action_user_id
+    )
+    SELECT report_id, 'RISK_SCORING_OVERRIDE', model_id, prompt_hash,
+           'Officer overrode AI suggestion. Original: ' || ai_risk_suggestion,
+           'N', p_override_reason, p_user_id
+    FROM   QD_KYC_AI_AUDIT
+    WHERE  report_id  = p_report_id
+    AND    ai_feature = 'RISK_SCORING'
+    AND    audit_id   = (SELECT MAX(audit_id) FROM QD_KYC_AI_AUDIT
+                         WHERE report_id = p_report_id AND ai_feature = 'RISK_SCORING');
     COMMIT;
   END OVERRIDE_SUGGESTION;
 
@@ -1038,7 +1056,28 @@ END trg_ai_audit_immutable;
 
 ---
 
-## 11. Acceptance Test Checklist
+## 11. APEX Workflow — V6 Changes
+
+The APEX Workflow definition in V6 is structurally identical to V5 (Section 7 of the V5 specification). No new workflow activities are added in V6.
+
+### 11.1 SAR Outcome Handling
+
+The SAR_REVIEW activity (Activity 8 in V5) operates as follows — unchanged from the corrected V5 definition:
+
+| SAR Outcome | System Action |
+|---|---|
+| `SAR_DISMISSED` | Return to `L2_APPROVAL` — approval proceeds normally |
+| `SAR_FILED` | Set `report_status = 'SAR_PROCESS'`; notify Head of Compliance and System Administrator; suspend workflow |
+
+A SAR flag **pauses** the KYC approval — the report is not rejected. The case remains open in `SAR_PROCESS` status while the SAR is handled through a separate process outside the KYC system. Once the SAR process concludes, the compliance administrator manually returns the case to L2 approval or closes it.
+
+### 11.2 AI Task Type (Future)
+
+APEX 26 introduces an **AI Task** type in the Workflow Builder, allowing AI-generated outputs (risk scores, conclusion drafts) to be created as named workflow activities rather than invoked from page processes. This is available as a future enhancement; V6 invokes all AI packages from APEX page processes (see Sections 7 and 8). Migration to AI Task types does not require schema changes.
+
+---
+
+## 12. Acceptance Test Checklist
 
 The following tests are specific to V6 AI features. All V5 acceptance tests remain applicable.
 

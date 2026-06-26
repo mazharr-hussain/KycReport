@@ -2,8 +2,9 @@
 # Oracle APEX KYC System
 
 **Document Type:** Business User Guide  
+**Version:** V4  
 **Audience:** All system users — Requestors, Contributors, Approvers, Administrators  
-**Platform:** Oracle APEX — accessible from any web browser  
+**Platform:** Oracle APEX 23.2 — accessible from any web browser  
 **Login:** Your existing Oracle Fusion / company network credentials  
 
 ---
@@ -126,7 +127,7 @@ After running WorldCheck (or your screening tool), come back to the system and c
 Click **New KYC Report** and select the entity you just created. The system pre-fills everything it already knows from the entity record and the intake form — you will not be re-typing data you already entered.
 
 **What you fill in:**
-- KYC Type (Simplified / AdHoc / Enhanced)
+- KYC Type (Simplified / Ad Hoc / Enhanced)
 - Risk Level — the system suggests one based on the entity's country and screening results. If you disagree, you can change it, but you must note why.
 - Conclusion — select a template from the dropdown, and the standard text appears in the conclusion field, ready for you to personalise
 - Next Steps

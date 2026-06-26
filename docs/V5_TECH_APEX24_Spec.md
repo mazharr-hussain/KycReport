@@ -16,7 +16,7 @@
 | APEX Version | 23.2 | 24.2 (latest stable) |
 | Oracle Database | 19c / 21c on-premises | 23ai — Autonomous Transaction Processing (ATP) |
 | Identity Provider | Oracle IDCS | OCI IAM Domain |
-| Workflow Engine | Custom PL/SQL (`QD_KYC_WORKFLOW`) | Native APEX Workflow Builder |
+| Workflow Engine | Native APEX Workflow Builder (23.2) | Native APEX Workflow Builder (24.2) — enhanced task management and delegation APIs |
 | Document Storage | BLOB columns / QDocs hybrid | OCI Object Storage via `DBMS_CLOUD` |
 | Secret Storage | APEX Web Credentials (plain store) | OCI Vault (secret versioning, rotation) |
 | ORDS | Separately installed and configured | Pre-installed on ATP — no setup required |
@@ -511,18 +511,17 @@ EXEC DBMS_RLS.ADD_POLICY('QD_KYC','QD_KYC_REPORT','KYC_REPORT_POLICY',
 
 ### 7.1 Overview — Native APEX Workflow Engine
 
-APEX 24.2 includes a fully native Workflow Engine. The V4 custom PL/SQL orchestration package (`QD_KYC_WORKFLOW.LAUNCH`, state machine logic) is replaced by a declarative workflow definition created in **APEX Workflow Builder** (App Builder → Shared Components → Workflows).
+APEX Workflow Builder was introduced in APEX 23.2 (V4) and is carried forward in APEX 24.2 (V5) with enhanced task management and delegation APIs. V5 uses the same declarative workflow definition approach as V4 but benefits from the improved Human Task delegation framework and the tighter ATP/OCI IAM integration.
 
 Key differences from V4:
 
-| Aspect | V4 Custom PL/SQL | V5 APEX Workflow Builder |
+| Aspect | V4 (APEX 23.2) | V5 (APEX 24.2) |
 |---|---|---|
-| Workflow definition | PL/SQL procedures, status updates in `QD_KYC_REPORT` | Declarative activities configured in Workflow Builder UI |
-| Starting a workflow | `QD_KYC_WORKFLOW.LAUNCH(p_intake_id)` | `APEX_WORKFLOW.START_WORKFLOW(...)` |
-| Completing a task | Direct `UPDATE QD_KYC_REPORT` + manual routing | `APEX_WORKFLOW.COMPLETE_ACTIVITY(...)` |
-| Workflow state | `report_status` column + `QD_KYC_PROCESS_LOG` | APEX internal workflow tables + `QD_KYC_PROCESS_LOG` (compliance copy) |
-| Workflow history | Custom `QD_KYC_PROCESS_LOG` queries | Built-in APEX Workflow History view + `QD_KYC_PROCESS_LOG` |
-| Human tasks | APEX Interactive Report page + manual status update | Native Human Task activity with APEX Task Manager integration |
+| Workflow definition | Declarative Workflow Builder | Declarative Workflow Builder (same approach) |
+| Starting a workflow | `APEX_WORKFLOW.START_WORKFLOW(...)` | `APEX_WORKFLOW.START_WORKFLOW(...)` (unchanged) |
+| Human task delegation | Basic deputy configuration | Enhanced delegation API with OCI IAM group-based routing |
+| Task inbox | APEX Task Manager (23.2) | APEX Task Manager (24.2) — improved mobile layout |
+| Workflow state | APEX workflow tables + `QD_KYC_PROCESS_LOG` | APEX workflow tables + `QD_KYC_PROCESS_LOG` (unchanged) |
 
 `QD_KYC_PROCESS_LOG` is retained in V5 as the **compliance audit trail**. It is written to at each workflow transition by Script Tasks, independent of the APEX workflow state tables.
 
@@ -651,9 +650,13 @@ Potential Owner:  ROLE:MLRO
 Due Days:         5
 Task Subject:     'SAR Review required — KYC Report ' || :REPORT_ID
 Outcomes:         SAR_FILED | SAR_DISMISSED
-On SAR_DISMISSED: Return to L2_APPROVAL
-On SAR_FILED:     Script Task → record SAR outcome; close workflow as REJECTED
+On SAR_DISMISSED: Return to L2_APPROVAL (approval proceeds normally)
+On SAR_FILED:     Script Task → record SAR outcome; set report_status='SAR_PROCESS';
+                  notify Head of Compliance and System Administrator;
+                  suspend workflow (report remains open, not rejected)
 ```
+
+> **Design note:** A SAR flag pauses the KYC approval — it does not close the case as rejected. The KYC report remains in `SAR_PROCESS` status while the SAR is handled through a separate process. Once the SAR process concludes, the compliance administrator manually returns the case to L2 approval or closes it based on the outcome of the SAR review.
 
 ### 7.4 Starting a Workflow from Page Process
 
@@ -698,8 +701,10 @@ CREATE OR REPLACE PACKAGE QD_KYC_WORKFLOW_UTILS AS
   -- generates PDF; uploads to OCI Object Storage via QD_KYC_DOCS.UPLOAD_TO_OCI;
   -- sends KYC_COMPLETE notification; seals report; writes process log.
 
-  -- Called by SAR_REVIEW Script Task on SAR_FILED outcome
+  -- Called by L1/L2 Script Task on REJECTED outcome
   PROCEDURE COMPLETE_REJECTED(p_report_id IN NUMBER, p_reason IN VARCHAR2);
+  -- Called by SAR_REVIEW Script Task on SAR_FILED outcome
+  PROCEDURE FLAG_SAR_PROCESS(p_report_id IN NUMBER);
 END;
 /
 ```

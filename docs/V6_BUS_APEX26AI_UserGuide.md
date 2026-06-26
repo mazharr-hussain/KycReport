@@ -160,11 +160,32 @@ Review the explanation. Then take one of the following actions:
 !!! note "The AI suggestion is a starting point"
     The pre-assessment is based on structured data already in the system. You may have information from documents, external searches, or professional judgement that the AI does not have. Always review the full entity profile before confirming a risk level.
 
-### 6.3 Phase 3 and Phase 4 — Screening and Enhanced Due Diligence
+### 6.3 Phase 3 — Screening and Due Diligence
 
-No AI features are introduced in Phases 3 or 4 in this release. Screening results are returned from the external screening provider as in V5. Enhanced due diligence checklists and PEP review steps are unchanged.
+No AI features are introduced in Phase 3 in this release. The screening process follows the same steps as in V5:
 
-### 6.4 Phase 5 — Report Finalisation
+1. Run the entity and all UBOs through your screening tool (WorldCheck or equivalent)
+2. Return to the system and open the **Screening** tab on the entity record
+3. Complete the structured screening fields:
+   - Date screened and database used
+   - Reference number from the screening tool
+   - Match status: No Match / Potential Match / Confirmed Match / False Positive
+   - PEP flag and adverse media flag
+   - Findings narrative and, if applicable, your false-positive resolution note
+4. Repeat for each UBO
+
+> **Escalation rule:** If you record a Confirmed Match or PEP = Yes, the system automatically upgrades the case to Enhanced Due Diligence, regardless of the initially selected risk level.
+
+### 6.4 Phase 4 — Enhanced Due Diligence
+
+When a case is classified as Enhanced (either initially or after escalation from Phase 3), two additional mandatory fields appear in the entity record:
+
+- **Source of Funds** — where does the counterparty's money come from?
+- **Source of Wealth** — how did they accumulate their assets?
+
+These fields cannot be left blank on an Enhanced case. There are no AI features in Phase 4 in this release; your own research and professional judgement are the source of this information.
+
+### 6.5 Phase 5 — Report Finalisation
 
 **AI Conclusion Drafting**
 
@@ -179,7 +200,7 @@ Edit the conclusion as needed. You are not required to retain any part of the AI
 
 Do not submit the AI draft unedited. It will not contain case-specific detail that only you hold, and an unedited draft does not constitute a professional assessment.
 
-### 6.5 Natural Language Search
+### 6.6 Natural Language Search
 
 The global search bar at the top of every screen accepts plain English queries. Examples:
 
@@ -189,7 +210,7 @@ The global search bar at the top of every screen accepts plain English queries. 
 
 The system interprets the query and returns a filtered results list. You can refine results using the standard filter controls once the results are returned. Natural language search does not replace the structured Advanced Search — both remain available.
 
-### 6.6 APEX AI Assistant
+### 6.7 APEX AI Assistant
 
 The AI Assistant is accessible via the help panel icon at the bottom-right of the screen. It can answer questions about the KYC process and system operation. Examples:
 
@@ -230,9 +251,9 @@ AI flags are informational. They do not prevent approval. If you are satisfied w
 
 Review actions are unchanged from V5:
 
-- **Approve** — Case moves to the approved register.
-- **Return to Officer** — Case is returned with your comments for revision.
-- **Escalate to Level 2 / MLRO** — Case is forwarded for enhanced review.
+- **Approve** — For low-risk cases this is the final approval. For medium or high-risk cases the system automatically routes to Level 2 / MLRO — no manual escalation action is needed.
+- **Return to Officer (RFI)** — Case is returned with your comments for revision.
+- **Reject** — Case is closed with a mandatory reason recorded.
 
 ---
 
