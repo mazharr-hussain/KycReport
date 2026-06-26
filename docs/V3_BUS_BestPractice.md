@@ -34,6 +34,48 @@ Every step in this process is designed around seven core compliance principles:
 
 ---
 
+## Complete To-Be Process — One Page
+
+```mermaid
+flowchart TD
+    START([Business Department]) --> P0
+
+    subgraph PORTAL["Self-Service Portal — Business Department"]
+        P0[Phase 0\nStructured Digital Intake\nWeb Form + Rules Engine]
+        P0 -->|Not Required| WAIVER([Waiver Record Created\nDocuments stored automatically])
+        P0 -->|Required| P1[Phase 1\nDocument Upload\nvia Portal]
+    end
+
+    subgraph SYSTEM["Oracle APEX — KYC Management System"]
+        P1B[Phase 1\nDocument Validation\nCompliance Officer\nSystem checklist + SLA clock starts]
+        P1B --> P2[Phase 2\nRisk Pre-Assessment\nSystem suggests risk level\nOfficer confirms or overrides]
+        P2 --> P3[Phase 3\nDue Diligence\nStructured screening record\nper entity and UBO]
+        P3 --> P4[Phase 4 & 5\nEntity + KYC Report\nAuto-populated from intake\nNo re-entry]
+        P4 --> P6[Phase 6\nLevel 1 Approval\nWith automatic delegation]
+        P6 -->|Low Risk| DONE
+        P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2 / MLRO Approval\nMandatory SAR gate]
+        P7 --> DONE([Phase 8\nCompletion\nPDF generated\nRequestor notified automatically\nReview date set])
+    end
+
+    P1 --> P1B
+
+    style PORTAL fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20
+    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
+    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
+    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P0 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P1 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
+    style P1B fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P2 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P3 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
+```
+
+---
+
 ## The Improved Process: Phase by Phase
 
 ---
