@@ -12,7 +12,7 @@
 
 ## Overview
 
-Today, the KYC process at Qatari Diar is a **mixed manual and semi-digital process**. The existing **KYC Report Application** (a JSF-based web system) handles only the final steps: creating the formal KYC report, submitting it, and running the approval workflow. Everything that happens before that — receiving requests, collecting and validating documents, conducting due diligence on external platforms, and all communication with the requesting department — takes place entirely outside the system, managed through email, Excel spreadsheets, local file folders, and individual judgment.
+Today, the KYC process at Qatari Diar is a **mostly manual process**. The existing **KYC Report Application** (a JSF-based web system) is used only at the end: the officer enters the completed report data and the system manages the approval workflow and record storage. Everything before that — receiving requests, collecting documents, conducting due diligence, and compiling the full report — is done entirely outside the system through email, Excel, WorldCheck, and personal judgment. The system never sees the work; it only sees the finished output.
 
 This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.
 
@@ -55,11 +55,12 @@ flowchart TD
         P0 -->|Required| P1[Phase 1\nDocument Collection\n& Validation]
         P1 --> P2[Phase 2\nWork Assignment\nby Manager]
         P2 --> P3[Phase 3\nDue Diligence\nWorldCheck]
+        P3 --> P3B[Report Preparation\nOfficer compiles full report\nmanually from research notes]
     end
 
-    subgraph SYSTEM["Inside KYC Report Application"]
-        P4[Phase 4\nEntity Record\nCreation]
-        P4 --> P5[Phase 5\nKYC Report\nCreation]
+    subgraph SYSTEM["Inside KYC Report Application — Data Entry & Approval"]
+        P4[Phase 4\nEntity Record\nData Entry]
+        P4 --> P5[Phase 5\nKYC Report\nData Entry & Submit]
         P5 --> P6[Phase 6\nLevel 1\nApproval]
         P6 -->|Low Risk| DONE
         P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2\nApproval]
@@ -77,6 +78,7 @@ flowchart TD
     style P1 fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P3 fill:#FFF3E0,color:#BF360C,stroke:#E65100
+    style P3B fill:#FFF3E0,color:#BF360C,stroke:#E65100
     style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
     style P5 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
     style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
