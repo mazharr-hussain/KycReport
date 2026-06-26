@@ -1,0 +1,2519 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Knowledge base for the Qatari Diar KYC Management System — all versions, all audiences">
+      
+      
+        <meta name="author" content="Qatari Diar — Compliance &amp; IT">
+      
+      
+        <link rel="canonical" href="https://mazharr-hussain.github.io/KycReport/technical/v1-current-system-spec/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../v2-asis-requirements/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>V1 — Current System Spec - QD KYC System — Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v1-current-system-technical-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="QD KYC System — Documentation" class="md-header__button md-logo" aria-label="QD KYC System — Documentation" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QD KYC System — Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              V1 — Current System Spec
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mazharr-hussain/KycReport" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    mazharr-hussain/KycReport
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../business/" class="md-tabs__link">
+          
+  
+  
+  Business Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Technical Specifications
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../compliance/" class="md-tabs__link">
+          
+  
+  
+  Compliance
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../diagrams/" class="md-tabs__link">
+          
+  
+  
+  Process Diagrams
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="QD KYC System — Documentation" class="md-nav__button md-logo" aria-label="QD KYC System — Documentation" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    QD KYC System — Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mazharr-hussain/KycReport" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    mazharr-hussain/KycReport
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2">
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Business Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Business Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../business/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../business/v1-current-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V1 — Current System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../business/v2-asis-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2 — As-Is Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../business/v3-best-practice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V3 — Best Practice Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../business/v4-apex-userguide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V4 — Oracle APEX User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Specifications
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technical Specifications
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V1 — Current System Spec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v2-asis-requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2 — As-Is Requirements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v3-best-practice-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V3 — Best Practice Spec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v4-apex-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V4 — Oracle APEX Spec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4">
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compliance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Compliance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compliance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compliance/gap-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gap Analysis — FATF / Basel / 6AMLD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5">
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Diagrams
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Process Diagrams
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/kyc-necessity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KYC Necessity Decision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/intake-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intake &amp; Document Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/approval-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approval Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/best-practice-e2e/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Best Practice End-to-End
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diagrams/apex-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    APEX System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation">
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Technical Specifications
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="v1-current-system-technical-specification">V1 — Current System Technical Specification<a class="headerlink" href="#v1-current-system-technical-specification" title="Permanent link">¶</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Security Defects — Immediate Action Required</p>
+<p><strong>TD-01:</strong> Passwords stored in plain text in the <code>Login</code> table.<br>
+<strong>TD-02:</strong> SMTP password stored in plain text in <code>KycConfig.properties</code>.</p>
+<p>These must be remediated before deploying any replacement system.</p>
+</div>
+<h1 id="version-1-technical-specification">Version 1 — Technical Specification<a class="headerlink" href="#version-1-technical-specification" title="Permanent link">¶</a></h1>
+<h1 id="current-jsfhibernate-kyc-system">Current JSF/Hibernate KYC System<a class="headerlink" href="#current-jsfhibernate-kyc-system" title="Permanent link">¶</a></h1>
+<p><strong>Document Type:</strong> Technical Specification<br>
+<strong>Audience:</strong> Developers, IT Team, System Administrators<br>
+<strong>Platform:</strong> Java EE / JSF 2.2 / Hibernate 3.0 / MS SQL Server<br>
+<strong>Status:</strong> Live Production — No Source Code Available  </p>
+<hr>
+<h2 id="1-system-architecture">1. System Architecture<a class="headerlink" href="#1-system-architecture" title="Permanent link">¶</a></h2>
+<h3 id="11-technology-stack">1.1 Technology Stack<a class="headerlink" href="#11-technology-stack" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web Framework</td>
+<td>JavaServer Faces (JSF)</td>
+<td>2.2</td>
+</tr>
+<tr>
+<td>View Technology</td>
+<td>Facelets (XHTML templates)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>UI Components</td>
+<td>PrimeFaces</td>
+<td>—</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>Hibernate</td>
+<td>3.0</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Microsoft SQL Server</td>
+<td>—</td>
+</tr>
+<tr>
+<td>CSS Framework</td>
+<td>Bootstrap (QDbootstrap.css — custom)</td>
+<td>Custom</td>
+</tr>
+<tr>
+<td>Icons</td>
+<td>Font Awesome</td>
+<td>—</td>
+</tr>
+<tr>
+<td>JavaScript</td>
+<td>jQuery</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Application Server</td>
+<td>JBoss / Tomcat</td>
+<td>Java EE 3.0 compatible</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>SMTP (relay.qataridiar.com:25)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PDF Generation</td>
+<td>iText / PDFRenderer</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-deployment">1.2 Deployment<a class="headerlink" href="#12-deployment" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Application Server: JBoss / Tomcat
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── /KycReport.war
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        ├── WEB-INF/
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        │     ├── web.xml              (servlet config, session timeout: 30 min)
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        │     ├── faces-config.xml     (JSF navigation, managed bean registry)
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        │     ├── jboss-web.xml        (JBoss container config)
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        │     └── classes/
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        │           ├── hibernate.cfg.xml
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        │           ├── KycConfig.properties
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        │           └── com/qd/          (compiled Java classes)
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        └── *.xhtml, resources/, img/
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>Database: Microsoft SQL Server
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  Host: QDHQSQL25\DB01
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  Port: 53120
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  Database: QDKYC
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  Driver: com.microsoft.sqlserver.jdbc.SQLServerDriver
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>File Storage:
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  Documents:  /u01/documents/support/
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  Reports:    /u01/documents/reports/
+</span></code></pre></div>
+<h3 id="13-package-structure">1.3 Package Structure<a class="headerlink" href="#13-package-structure" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>com.qd/
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── pojo/          Entity classes (14) + Hibernate .hbm.xml mapping files
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>├── dao/           DatabaseOperations — single DAO class (all CRUD)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>├── utlils/        Services: EmailUtil, HtmlEmailSender, SendEmail,
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>│                  HibernateUtils, ReportsUtils, ChartView,
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│                  EntityConverter, EntityExtract, MenuView,
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>│                  PrintController (PDF), DocumentUtils
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>├── reports/       Report generation classes
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>└── entity/        Entity-specific business logic
+</span></code></pre></div>
+<hr>
+<h2 id="2-database-schema">2. Database Schema<a class="headerlink" href="#2-database-schema" title="Permanent link">¶</a></h2>
+<h3 id="21-connection-configuration-hibernatecfgxml">2.1 Connection Configuration (hibernate.cfg.xml)<a class="headerlink" href="#21-connection-configuration-hibernatecfgxml" title="Permanent link">¶</a></h3>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">&lt;property</span><span class="w"> </span><span class="na">name=</span><span class="s">"connection.url"</span><span class="nt">&gt;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>jdbc:sqlserver://QDHQSQL25\DB01:53120;databaseName=QDKYC
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">&lt;/property&gt;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nt">&lt;property</span><span class="w"> </span><span class="na">name=</span><span class="s">"connection.driver_class"</span><span class="nt">&gt;</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span>com.microsoft.sqlserver.jdbc.SQLServerDriver
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nt">&lt;/property&gt;</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nt">&lt;property</span><span class="w"> </span><span class="na">name=</span><span class="s">"dialect"</span><span class="nt">&gt;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span>org.hibernate.dialect.SQLServerDialect
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nt">&lt;/property&gt;</span>
+</span></code></pre></div>
+<h3 id="22-full-table-definitions">2.2 Full Table Definitions<a class="headerlink" href="#22-full-table-definitions" title="Permanent link">¶</a></h3>
+<h4 id="table-kyc-primary-kyc-records">Table: Kyc (Primary KYC Records)<a class="headerlink" href="#table-kyc-primary-kyc-records" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_proc_ref_no</code></td>
+<td>VARCHAR</td>
+<td>PK</td>
+<td>Process reference number</td>
+</tr>
+<tr>
+<td><code>qd_business_counter_catg</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Business counterparty category</td>
+</tr>
+<tr>
+<td><code>qd_business_counter_type</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Legal Person / Natural Person</td>
+</tr>
+<tr>
+<td><code>qd_subject</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>AdHoc KYC / Simplified KYC / Enhanced KYC</td>
+</tr>
+<tr>
+<td><code>qd_final_conclusion</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Conclusion text (free text)</td>
+</tr>
+<tr>
+<td><code>qd_req_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Request date (string — no validation)</td>
+</tr>
+<tr>
+<td><code>qd_count_designation</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Counterparty designation name</td>
+</tr>
+<tr>
+<td><code>qd_request_made_by</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Who requested the KYC</td>
+</tr>
+<tr>
+<td><code>qd_due_dig_type</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Due diligence type</td>
+</tr>
+<tr>
+<td><code>qd_due_dig_made_by</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Officer who performed DD</td>
+</tr>
+<tr>
+<td><code>qd_initial_req_msg</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Initial request message</td>
+</tr>
+<tr>
+<td><code>qd_kyc_report_status</code></td>
+<td>VARCHAR</td>
+<td>FK</td>
+<td>→ KycReportStatusMaster</td>
+</tr>
+<tr>
+<td><code>qd_risk_level</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Low / Medium / High</td>
+</tr>
+<tr>
+<td><code>qd_seq_id</code></td>
+<td>INTEGER</td>
+<td></td>
+<td>Sequence ID</td>
+</tr>
+<tr>
+<td><code>qd_kyc_wf_status</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Workflow status string</td>
+</tr>
+<tr>
+<td><code>qd_kyc_next_step</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Next steps text</td>
+</tr>
+<tr>
+<td><code>qd_is_draft</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Y / N</td>
+</tr>
+<tr>
+<td><code>qd_is_approve</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Y / N</td>
+</tr>
+<tr>
+<td><code>wf_level</code></td>
+<td>INTEGER</td>
+<td></td>
+<td>1 = L1, 2 = L2</td>
+</tr>
+<tr>
+<td><code>qd_ent_ref</code></td>
+<td>INTEGER</td>
+<td>FK</td>
+<td>→ EntityReference</td>
+</tr>
+<tr>
+<td><code>qd_last_actioned_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Last action date (string)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-kycsp-search-pattern-entity">Table: KycSP (Search Pattern / Entity)<a class="headerlink" href="#table-kycsp-search-pattern-entity" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_sp_id</code></td>
+<td>INTEGER</td>
+<td>PK</td>
+<td>Entity identifier</td>
+</tr>
+<tr>
+<td><code>qd_proc_ref_no</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Related KYC reference</td>
+</tr>
+<tr>
+<td><code>spName</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Entity name</td>
+</tr>
+<tr>
+<td><code>spCountryLoc</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Country location</td>
+</tr>
+<tr>
+<td><code>spResults</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Screening results (free text)</td>
+</tr>
+<tr>
+<td><code>spConclusion</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Conclusion (free text)</td>
+</tr>
+<tr>
+<td><code>qd_sp_head_quarters</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>HQ address (free text)</td>
+</tr>
+<tr>
+<td><code>qd_active</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Y / N</td>
+</tr>
+<tr>
+<td><code>qd_sp_status</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Entity status</td>
+</tr>
+<tr>
+<td><code>qd_is_edit</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Edit flag</td>
+</tr>
+<tr>
+<td><code>qd_is_update</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Update flag</td>
+</tr>
+<tr>
+<td><code>qd_is_used</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Used flag</td>
+</tr>
+<tr>
+<td><code>qd_version</code></td>
+<td>INTEGER</td>
+<td></td>
+<td>Version number</td>
+</tr>
+<tr>
+<td><code>qd_chronic_id</code></td>
+<td>INTEGER</td>
+<td></td>
+<td>Groups all versions</td>
+</tr>
+<tr>
+<td><code>qd_version_no</code></td>
+<td>INTEGER</td>
+<td></td>
+<td>Version sequence</td>
+</tr>
+<tr>
+<td><code>qd_sp_nature</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Natural Person / Legal Person</td>
+</tr>
+<tr>
+<td><code>qd_person_id</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>ID / Passport number</td>
+</tr>
+<tr>
+<td><code>qd_legal_reg_no</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Company registration number</td>
+</tr>
+<tr>
+<td><code>qd_natural_person_dob</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>DOB (string — no validation)</td>
+</tr>
+<tr>
+<td><code>qd_natural_person_nationality</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Nationality</td>
+</tr>
+<tr>
+<td><code>qd_risk_level</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Low / Medium / High</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-ubo-ultimate-beneficial-owners">Table: Ubo (Ultimate Beneficial Owners)<a class="headerlink" href="#table-ubo-ultimate-beneficial-owners" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_ubo_id</code></td>
+<td>INTEGER</td>
+<td>PK</td>
+<td>UBO record ID</td>
+</tr>
+<tr>
+<td><code>qd_proc_ref_no</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Related KYC reference</td>
+</tr>
+<tr>
+<td><code>ubo_nationality</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Nationality</td>
+</tr>
+<tr>
+<td><code>ubo_dob</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Date of birth (string)</td>
+</tr>
+<tr>
+<td><code>ubo_idno</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>ID / Passport number</td>
+</tr>
+<tr>
+<td><code>ubo_results</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Screening results (free text)</td>
+</tr>
+<tr>
+<td><code>ubo_oth_scn_proc</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Conclusion / other notes</td>
+</tr>
+<tr>
+<td><code>ubo_source</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Information source</td>
+</tr>
+<tr>
+<td><code>ubo_name</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>UBO / signatory name</td>
+</tr>
+<tr>
+<td><code>ubo_type</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>UBO / Authorized Signatories</td>
+</tr>
+<tr>
+<td><code>ubo_id_exp_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>ID expiry (string)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-login-users">Table: Login (Users)<a class="headerlink" href="#table-login-users" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>userId</code></td>
+<td>VARCHAR</td>
+<td>PK</td>
+<td>Login username</td>
+</tr>
+<tr>
+<td><code>userPass</code></td>
+<td>VARCHAR</td>
+<td>NOT NULL</td>
+<td>Password (<strong>⚠ plain text — critical security issue</strong>)</td>
+</tr>
+<tr>
+<td><code>first_name</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>First name</td>
+</tr>
+<tr>
+<td><code>last_name</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Last name</td>
+</tr>
+<tr>
+<td><code>mobile</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Mobile number</td>
+</tr>
+<tr>
+<td><code>role</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Primary role</td>
+</tr>
+<tr>
+<td><code>role1</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Secondary role</td>
+</tr>
+<tr>
+<td><code>role2</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Tertiary role</td>
+</tr>
+<tr>
+<td><code>email_id</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Email address for notifications</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-kycdocuments">Table: KycDocuments<a class="headerlink" href="#table-kycdocuments" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_doc_id</code></td>
+<td>INTEGER</td>
+<td>PK</td>
+<td>Document ID</td>
+</tr>
+<tr>
+<td><code>qd_proc_ref_id</code></td>
+<td>VARCHAR</td>
+<td>FK</td>
+<td>→ Kyc.qd_proc_ref_no</td>
+</tr>
+<tr>
+<td><code>qd_doc_name</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>File name</td>
+</tr>
+<tr>
+<td><code>qd_doc_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Upload date (string)</td>
+</tr>
+<tr>
+<td><code>qd_doc_path</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>File system path</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-processlog-immutable-audit-trail">Table: ProcessLog (Immutable Audit Trail)<a class="headerlink" href="#table-processlog-immutable-audit-trail" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_kyc_log_id</code></td>
+<td>INTEGER</td>
+<td>PK</td>
+<td>Log entry ID</td>
+</tr>
+<tr>
+<td><code>qd_proc_ref_no</code></td>
+<td>VARCHAR</td>
+<td>FK</td>
+<td>→ Kyc.qd_proc_ref_no</td>
+</tr>
+<tr>
+<td><code>kyc_wf_status</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Status at time of action</td>
+</tr>
+<tr>
+<td><code>log_user</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>User who acted</td>
+</tr>
+<tr>
+<td><code>kyc_comments</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Free-text notes</td>
+</tr>
+<tr>
+<td><code>log_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Timestamp (string)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="table-kycwfcomments">Table: KycWfComments<a class="headerlink" href="#table-kycwfcomments" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qd_comm_id</code></td>
+<td>INTEGER</td>
+<td>PK</td>
+<td>Comment ID</td>
+</tr>
+<tr>
+<td><code>qd_proc_ref_no</code></td>
+<td>VARCHAR</td>
+<td>FK</td>
+<td>→ Kyc</td>
+</tr>
+<tr>
+<td><code>qd_comments</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Comment text</td>
+</tr>
+<tr>
+<td><code>qd_comm_user</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>User who commented</td>
+</tr>
+<tr>
+<td><code>qd_comm_date</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Comment date (string)</td>
+</tr>
+<tr>
+<td><code>qd_comm_wf_status</code></td>
+<td>VARCHAR</td>
+<td></td>
+<td>Workflow status at time</td>
+</tr>
+</tbody>
+</table>
+<h4 id="remaining-tables-reference-data">Remaining Tables (Reference Data)<a class="headerlink" href="#remaining-tables-reference-data" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>PK</th>
+<th>Key Columns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KycReportStatusMaster</code></td>
+<td>reportStatusID</td>
+<td>qd_kyc_report_status, report_color</td>
+</tr>
+<tr>
+<td><code>KycResults</code></td>
+<td>qd_result_id</td>
+<td>qd_results, result_color</td>
+</tr>
+<tr>
+<td><code>KycRequestBy</code></td>
+<td>qd_req_by_id</td>
+<td>qd_req_by_name</td>
+</tr>
+<tr>
+<td><code>Business_Counterparty_Category</code></td>
+<td>qd_bcp_id</td>
+<td>qd_bcp_name</td>
+</tr>
+<tr>
+<td><code>EntityReference</code></td>
+<td>qd_er_id</td>
+<td>qd_proc_ref_no, qd_sp_id</td>
+</tr>
+<tr>
+<td><code>SPReference</code></td>
+<td>qd_sp_id</td>
+<td>er_ref_no, er_rel_ref_no</td>
+</tr>
+<tr>
+<td><code>Countries</code></td>
+<td>country_name</td>
+<td>country_region</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-managed-beans-controllers">3. Managed Beans (Controllers)<a class="headerlink" href="#3-managed-beans-controllers" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Bean Name</th>
+<th>Scope</th>
+<th>Responsibilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Login</code></td>
+<td>Session</td>
+<td>Authentication, session state, role routing</td>
+</tr>
+<tr>
+<td><code>Kyc</code></td>
+<td>Request</td>
+<td>KYC create/edit/submit, document upload</td>
+</tr>
+<tr>
+<td><code>kyclist</code></td>
+<td>View</td>
+<td>KYC search, list population, approval actions</td>
+</tr>
+<tr>
+<td><code>SearchPattern</code></td>
+<td>Request</td>
+<td>Entity create/edit/search, UBO management</td>
+</tr>
+<tr>
+<td><code>MenuView</code></td>
+<td>Session</td>
+<td>Role-based navigation menu rendering</td>
+</tr>
+<tr>
+<td><code>PrintController</code></td>
+<td>Request</td>
+<td>PDF generation, watermark application</td>
+</tr>
+<tr>
+<td><code>ChartView</code></td>
+<td>View</td>
+<td>Dashboard chart data</td>
+</tr>
+<tr>
+<td><code>ReportsUtils</code></td>
+<td>Request</td>
+<td>Report query and data preparation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4-navigation-faces-configxml-outcomes">4. Navigation (faces-config.xml Outcomes)<a class="headerlink" href="#4-navigation-faces-configxml-outcomes" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>From Page</th>
+<th>Outcome String</th>
+<th>Destination</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>login.xhtml</td>
+<td>contributor</td>
+<td>master.xhtml</td>
+</tr>
+<tr>
+<td>login.xhtml</td>
+<td>approver</td>
+<td>apmaster.xhtml</td>
+</tr>
+<tr>
+<td>login.xhtml</td>
+<td>rfi</td>
+<td>rfimaster.xhtml</td>
+</tr>
+<tr>
+<td>login.xhtml</td>
+<td>invalid</td>
+<td>invalidPage.xhtml</td>
+</tr>
+<tr>
+<td>landing.xhtml</td>
+<td>saveKyc</td>
+<td>output.xhtml</td>
+</tr>
+<tr>
+<td>landing.xhtml</td>
+<td>submitKyc</td>
+<td>output.xhtml</td>
+</tr>
+<tr>
+<td>apmaster.xhtml</td>
+<td>kycApprove</td>
+<td>apmaster.xhtml</td>
+</tr>
+<tr>
+<td>apmaster.xhtml</td>
+<td>kycReject</td>
+<td>apmaster.xhtml</td>
+</tr>
+<tr>
+<td>master.xhtml</td>
+<td>editKyc</td>
+<td>editKycMaster.xhtml</td>
+</tr>
+<tr>
+<td>entity/*</td>
+<td>saveEntity</td>
+<td>master.xhtml</td>
+</tr>
+<tr>
+<td>entity/*</td>
+<td>uboData</td>
+<td>entity/editUboMaster.xhtml</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-configuration-files">5. Configuration Files<a class="headerlink" href="#5-configuration-files" title="Permanent link">¶</a></h2>
+<h3 id="kycconfigproperties">KycConfig.properties<a class="headerlink" href="#kycconfigproperties" title="Permanent link">¶</a></h3>
+<div class="language-properties highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="na">KYC_Support_File_Path</span><span class="o">=</span><span class="s">/u01/documents/support/</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">KYC_Report_File_Path</span><span class="o">=</span><span class="s">/u01/documents/reports/</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="na">KYC_Server_Address</span><span class="o">=</span><span class="s">http://qdhqkyc:8080</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="na">smtp_host</span><span class="o">=</span><span class="s">relay.qataridiar.com</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="na">smtp_port</span><span class="o">=</span><span class="s">25</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="na">smtp_sender_email</span><span class="o">=</span><span class="s">kycreport@qataridiar.com</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="na">smtp_sender_password</span><span class="o">=</span><span class="s">KxYrKe45UkM$</span>
+</span></code></pre></div>
+<blockquote>
+<p><strong>⚠ Security:</strong> SMTP password stored in plain text. Rotate immediately and use encrypted credential storage.</p>
+</blockquote>
+<h3 id="webxml-key-settings">web.xml Key Settings<a class="headerlink" href="#webxml-key-settings" title="Permanent link">¶</a></h3>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">&lt;session-config&gt;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&lt;session-timeout&gt;</span>30<span class="nt">&lt;/session-timeout&gt;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nt">&lt;/session-config&gt;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nt">&lt;welcome-file-list&gt;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&lt;welcome-file&gt;</span>login.xhtml<span class="nt">&lt;/welcome-file&gt;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nt">&lt;/welcome-file-list&gt;</span>
+</span></code></pre></div>
+<hr>
+<h2 id="6-xhtml-page-inventory-66-templates">6. XHTML Page Inventory (66 templates)<a class="headerlink" href="#6-xhtml-page-inventory-66-templates" title="Permanent link">¶</a></h2>
+<h3 id="root-level-kyc-workflow">Root Level (KYC Workflow)<a class="headerlink" href="#root-level-kyc-workflow" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>login.xhtml</td>
+<td>Authentication form</td>
+</tr>
+<tr>
+<td>landing.xhtml</td>
+<td>KYC creation form</td>
+</tr>
+<tr>
+<td>index.xhtml / index_1.xhtml</td>
+<td>KYC creation variants</td>
+</tr>
+<tr>
+<td>master.xhtml</td>
+<td>KYC search and list</td>
+</tr>
+<tr>
+<td>search.xhtml</td>
+<td>Advanced search</td>
+</tr>
+<tr>
+<td>editKycMaster.xhtml / editKyc.xhtml</td>
+<td>KYC edit</td>
+</tr>
+<tr>
+<td>apmaster.xhtml</td>
+<td>Level 1 approval queue</td>
+</tr>
+<tr>
+<td>appsearch.xhtml</td>
+<td>Approval search</td>
+</tr>
+<tr>
+<td>rfimaster.xhtml</td>
+<td>Level 2 / RFI queue</td>
+</tr>
+<tr>
+<td>rfisearch.xhtml</td>
+<td>RFI search</td>
+</tr>
+<tr>
+<td>kyclist.xhtml</td>
+<td>KYC list view</td>
+</tr>
+<tr>
+<td>kycoutput.xhtml</td>
+<td>Post-creation output</td>
+</tr>
+<tr>
+<td>output.xhtml / outputPage.xhtml</td>
+<td>Post-submit output</td>
+</tr>
+<tr>
+<td>Print.xhtml</td>
+<td>PDF print view</td>
+</tr>
+<tr>
+<td>commonLayout.xhtml</td>
+<td>Master page template</td>
+</tr>
+<tr>
+<td>appCommonLayout.xhtml</td>
+<td>Approver layout</td>
+</tr>
+<tr>
+<td>rfiCommonLayout.xhtml</td>
+<td>RFI/L2 layout</td>
+</tr>
+<tr>
+<td>loginlayout.xhtml</td>
+<td>Login layout</td>
+</tr>
+<tr>
+<td>commonHeader.xhtml / commonFooter.xhtml</td>
+<td>Shared header/footer</td>
+</tr>
+<tr>
+<td>appCommonHeader.xhtml / rfiCommonHeader.xhtml</td>
+<td>Role-specific headers</td>
+</tr>
+<tr>
+<td>level2CommonHeader.xhtml</td>
+<td>L2 header</td>
+</tr>
+<tr>
+<td>usrcntl.xhtml</td>
+<td>User control panel</td>
+</tr>
+</tbody>
+</table>
+<h3 id="entity-16-files-entity-ubo-management">/entity/ (16 files — Entity &amp; UBO Management)<a class="headerlink" href="#entity-16-files-entity-ubo-management" title="Permanent link">¶</a></h3>
+<p>entityMaster, editEntityMaster, entityUpdateMaster, entitySearchMaster, entityVersionMaster, entityVersionSearchMaster, editUboMaster + supporting pages</p>
+<h3 id="backofficemaster-8-files-reference-data-admin">/BackOfficeMaster/ (8 files — Reference Data Admin)<a class="headerlink" href="#backofficemaster-8-files-reference-data-admin" title="Permanent link">¶</a></h3>
+<p>KycReportStatusMaster, KycResultsMaster, KycRequestByMaster, Business_Counterparty_CategoryMaster</p>
+<h3 id="um-6-files-user-management">/um/ (6 files — User Management)<a class="headerlink" href="#um-6-files-user-management" title="Permanent link">¶</a></h3>
+<p>userManagementMaster, userCreateMaster, userEditMaster</p>
+<h3 id="charts-2-files-reports-2-files">/charts/ (2 files), /reports/ (2 files)<a class="headerlink" href="#charts-2-files-reports-2-files" title="Permanent link">¶</a></h3>
+<hr>
+<h2 id="7-known-technical-defects">7. Known Technical Defects<a class="headerlink" href="#7-known-technical-defects" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Defect</th>
+<th>Risk Level</th>
+<th>Recommended Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TD-01</td>
+<td>Passwords stored in plain text in Login table</td>
+<td><strong>Critical</strong></td>
+<td>Implement BCrypt hashing immediately</td>
+</tr>
+<tr>
+<td>TD-02</td>
+<td>SMTP password in plain text in properties file</td>
+<td><strong>Critical</strong></td>
+<td>Move to encrypted credential store</td>
+</tr>
+<tr>
+<td>TD-03</td>
+<td>Date fields stored as VARCHAR — no type validation</td>
+<td>High</td>
+<td>Migrate to proper DATE type with constraints</td>
+</tr>
+<tr>
+<td>TD-04</td>
+<td>No source code available for the application</td>
+<td><strong>Critical</strong></td>
+<td>Source code must be located or system rebuilt</td>
+</tr>
+<tr>
+<td>TD-05</td>
+<td>Single DAO class handles all DB operations</td>
+<td>Medium</td>
+<td>Acceptable for current scale; refactor if extending</td>
+</tr>
+<tr>
+<td>TD-06</td>
+<td>Hibernate 3.0 — end of life</td>
+<td>Medium</td>
+<td>Upgrade to Hibernate 5+ if extending</td>
+</tr>
+<tr>
+<td>TD-07</td>
+<td>No input sanitisation visible in compiled code</td>
+<td>High</td>
+<td>Audit all form inputs for injection risk</td>
+</tr>
+<tr>
+<td>TD-08</td>
+<td>Session fixation not explicitly handled</td>
+<td>Medium</td>
+<td>Ensure session regeneration on login</td>
+</tr>
+<tr>
+<td>TD-09</td>
+<td>No duplicate entity detection</td>
+<td>High</td>
+<td>Add uniqueness check in <code>DatabaseOperations</code></td>
+</tr>
+<tr>
+<td>TD-10</td>
+<td>Approved record can be filtered but not truly locked</td>
+<td>Low</td>
+<td>Add <code>is_locked</code> flag; prevent edits post-approval</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="8-email-service">8. Email Service<a class="headerlink" href="#8-email-service" title="Permanent link">¶</a></h2>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Three email utility classes detected in com.qd.utlils:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1">// EmailUtil         — plain text email</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1">// HtmlEmailSender   — HTML email</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1">// SendEmail         — dispatch wrapper</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1">// SMTP Configuration (from KycConfig.properties):</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">smtp_host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">relay</span><span class="p">.</span><span class="na">qataridiar</span><span class="p">.</span><span class="na">com</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">smtp_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">smtp_sender_email</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kycreport</span><span class="nd">@qataridiar.com</span>
+</span></code></pre></div>
+<p>Emails are triggered at:
+- KYC submission (notify approver)
+- Approval/rejection (notify contributor)
+- RFI issued/responded (notify relevant party)</p>
+<hr>
+<h2 id="9-pdf-generation">9. PDF Generation<a class="headerlink" href="#9-pdf-generation" title="Permanent link">¶</a></h2>
+<p><code>PrintController</code> managed bean:
+- Renders full KYC report to PDF
+- Applies <strong>Draft watermark</strong> when <code>qd_kyc_wf_status != 'APPROVED'</code>
+- Applies header/footer via page event classes in <code>com.qd.utlils</code>
+- Output saved to <code>/u01/documents/reports/</code> and served as HTTP download</p>
+<hr>
+<h2 id="10-security-assessment-summary">10. Security Assessment Summary<a class="headerlink" href="#10-security-assessment-summary" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Current State</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication</td>
+<td>Username/password form</td>
+<td>Acceptable; add MFA for approvers</td>
+</tr>
+<tr>
+<td>Password storage</td>
+<td>Plain text</td>
+<td><strong>Immediate fix required: BCrypt</strong></td>
+</tr>
+<tr>
+<td>Session management</td>
+<td>30-min timeout</td>
+<td>Acceptable</td>
+</tr>
+<tr>
+<td>CSRF</td>
+<td>JSF ViewState provides basic protection</td>
+<td>Verify <code>STATE_SAVING_METHOD</code> config</td>
+</tr>
+<tr>
+<td>SQL injection</td>
+<td>Hibernate ORM provides parameterised queries</td>
+<td>Audit any native SQL in DatabaseOperations</td>
+</tr>
+<tr>
+<td>Authorisation</td>
+<td>Role checked via session attribute</td>
+<td>Acceptable pattern; add server-side checks</td>
+</tr>
+<tr>
+<td>Audit log</td>
+<td>ProcessLog insert-only</td>
+<td>Good — maintain this constraint</td>
+</tr>
+<tr>
+<td>Document access</td>
+<td>File path served directly</td>
+<td>Risk: path traversal possible. Serve via controlled servlet</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden="">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Overview
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../v2-asis-requirements/" class="md-footer__link md-footer__link--next" aria-label="Next: V2 — As-Is Requirements">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                V2 — As-Is Requirements
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/mazharr-hussain/KycReport" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

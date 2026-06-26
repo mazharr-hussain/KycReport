@@ -1,0 +1,101 @@
+<mxfile host="app.diagrams.net" modified="2026-06-26" version="21.0.0">
+  <diagram id="apex-architecture" name="APEX System Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="title" value="Oracle APEX KYC System — Architecture Overview" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <!-- Users Lane -->
+        <mxCell id="users_bg" value="Users — Any Web Browser" style="swimlane;startSize=40;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="u1" value="Requestor&#xa;Business Dept" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=11;" vertex="1" parent="users_bg">
+          <mxGeometry x="40" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u2" value="Compliance Officer&#xa;Contributor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=11;" vertex="1" parent="users_bg">
+          <mxGeometry x="240" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u3" value="L1 Approver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=11;" vertex="1" parent="users_bg">
+          <mxGeometry x="440" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u4" value="L2 Approver&#xa;MLRO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=11;" vertex="1" parent="users_bg">
+          <mxGeometry x="640" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u5" value="Administrator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontSize=11;" vertex="1" parent="users_bg">
+          <mxGeometry x="840" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <!-- APEX Lane -->
+        <mxCell id="apex_bg" value="Oracle APEX — Application Server" style="swimlane;startSize=40;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="1360" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="apex_app" value="APEX Application 100&#xa;KYC Management System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="apex_bg">
+          <mxGeometry x="40" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apex_auth" value="IDCS SSO&#xa;Authentication Scheme" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="apex_bg">
+          <mxGeometry x="280" y="50" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apex_vpd" value="Virtual Private Database&#xa;Row-Level Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="apex_bg">
+          <mxGeometry x="500" y="50" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apex_wf" value="APEX Workflow Engine&#xa;QD_KYC_WORKFLOW" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="apex_bg">
+          <mxGeometry x="720" y="50" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apex_mail" value="APEX_MAIL&#xa;Email Notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#1565C0;fontSize=11;" vertex="1" parent="apex_bg">
+          <mxGeometry x="940" y="50" width="180" height="60" as="geometry" />
+        </mxCell>
+        <!-- DB Lane -->
+        <mxCell id="db_bg" value="Oracle Database 19c / 21c" style="swimlane;startSize=40;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="1360" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="db_schema" value="QD_KYC Schema&#xa;Tables + Views" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="db_bg">
+          <mxGeometry x="40" y="40" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="db_triggers" value="Audit Triggers&#xa;Immutable ProcessLog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="db_bg">
+          <mxGeometry x="240" y="55" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db_scheduler" value="DBMS_SCHEDULER&#xa;Nightly Sync + Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="db_bg">
+          <mxGeometry x="460" y="55" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db_packages" value="PL/SQL Packages&#xa;QD_KYC_WORKFLOW&#xa;QD_KYC_UTILS&#xa;QD_KYC_NOTIFICATIONS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="db_bg">
+          <mxGeometry x="700" y="40" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="db_vrls" value="DBMS_RLS (VPD)&#xa;QD_KYC_SECURITY&#xa;Row-Level Policy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="db_bg">
+          <mxGeometry x="940" y="55" width="200" height="60" as="geometry" />
+        </mxCell>
+        <!-- Fusion Lane -->
+        <mxCell id="fusion_bg" value="Oracle Fusion HCM Cloud" style="swimlane;startSize=40;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="680" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="fusion_api" value="HCM REST API&#xa;/hcm/v4/workers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="fusion_bg">
+          <mxGeometry x="40" y="50" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fusion_idcs" value="Oracle IDCS&#xa;Identity Cloud Service&#xa;SSO Authentication" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCC80;strokeColor=#E65100;fontSize=11;" vertex="1" parent="fusion_bg">
+          <mxGeometry x="280" y="50" width="200" height="50" as="geometry" />
+        </mxCell>
+        <!-- External -->
+        <mxCell id="ext_bg" value="External — Manual Process" style="swimlane;startSize=40;fillColor=#FFEBEE;strokeColor=#B71C1C;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="620" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="worldcheck" value="WorldCheck (Refinitiv)&#xa;Manual Screening&#xa;Results recorded in system" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EF9A9A;strokeColor=#B71C1C;fontSize=11;" vertex="1" parent="ext_bg">
+          <mxGeometry x="40" y="50" width="260" height="50" as="geometry" />
+        </mxCell>
+        <!-- Connections -->
+        <mxCell id="conn1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" source="users_bg" target="apex_app" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="conn2" value="SSO Token" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="apex_auth" target="fusion_idcs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="conn3" value="Nightly Sync" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="db_scheduler" target="fusion_api" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="conn4" value="VPD" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="apex_vpd" target="db_schema" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
