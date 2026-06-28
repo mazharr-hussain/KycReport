@@ -3,7 +3,8 @@
 
 **Document Type:** Business Process Guide  
 **Audience:** Compliance Team, Management, Internal Auditors, Regulators  
-**Standards:** FATF 40 Recommendations | Basel KYC | EU 6AMLD | ISO 31000  
+**Standards:** FATF 40 Recommendations | Basel KYC | EU 6AMLD (as benchmark) | ISO 31000  
+**Note on EU 6AMLD:** The Sixth Anti-Money Laundering Directive is an EU instrument. It is referenced here as an international best-practice benchmark, not as a binding regulatory obligation. Qatari Diar applies these standards where they represent the current global compliance standard and where they govern relationships with European counterparties or subsidiaries.  
 **Status:** Target operating model — design for next-generation system  
 
 ---
@@ -252,7 +253,7 @@ This gate ensures that the compliance head consciously considers their SAR oblig
 - The system automatically generates the completed KYC report as a PDF
 - The requesting department receives an email with the report attached — no manual follow-up needed
 - The record is sealed (read-only)
-- A next review date is set automatically based on risk level
+- A next review date is set automatically based on risk level: **12 months** for High risk, **24 months** for Medium risk, **36 months** for Low risk
 
 **Ongoing monitoring:**
 - **60 days before** a KYC is due for review: compliance officer notified

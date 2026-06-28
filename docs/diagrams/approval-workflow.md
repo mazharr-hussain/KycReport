@@ -32,12 +32,12 @@ stateDiagram-v2
     APPROVED_L1 --> FINAL_APPROVED : Low-risk report\n(L1 approval is final)
     APPROVED_L1 --> PENDING_L2 : Medium or High-risk\nroutes to L2 / MLRO
 
-    PENDING_L2 --> SAR_GATE : Before any decision\nSAR question is mandatory
+    PENDING_L2 --> PENDING_L2 : SAR question answered\n(mandatory before any action)
 
-    SAR_GATE --> FINAL_APPROVED : SAR = No\nL2 Approves
-    SAR_GATE --> SAR_PROCESS : SAR = Yes\nApproval paused
-    SAR_GATE --> REJECTED : L2 Rejects
-    SAR_GATE --> RFI : L2 requests\nmore information
+    PENDING_L2 --> FINAL_APPROVED : SAR = No\nL2 Approves
+    PENDING_L2 --> SAR_PROCESS : SAR = Yes\nApproval paused
+    PENDING_L2 --> REJECTED : L2 Rejects
+    PENDING_L2 --> RFI : L2 requests\nmore information
 
     SAR_PROCESS --> [*] : SAR process\nruns separately
 
@@ -53,8 +53,8 @@ stateDiagram-v2
         - Other
     end note
 
-    note right of SAR_GATE
-        Mandatory question at L2:
+    note right of PENDING_L2
+        Mandatory SAR question before any action:
         "Does any information warrant
         a Suspicious Activity Report?"
     end note

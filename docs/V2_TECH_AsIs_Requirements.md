@@ -180,9 +180,10 @@ States: DRAFT → SUBMITTED → PENDING_L1 → [APPROVED_L1 | REJECTED | RFI]
 
 Transitions:
   Contributor:   DRAFT → SUBMITTED (submit action)
-  L1 Approver:   SUBMITTED → APPROVED_L1 (approve)
-                 SUBMITTED → REJECTED (reject)
-                 SUBMITTED → RFI (request info)
+  System:        SUBMITTED → PENDING_L1 (auto-route to active L1 approver on submit)
+  L1 Approver:   PENDING_L1 → APPROVED_L1 (approve)
+                 PENDING_L1 → REJECTED (reject)
+                 PENDING_L1 → RFI (request info)
   Contributor:   RFI → SUBMITTED (respond and resubmit)
   L2 Approver:   APPROVED_L1 → FINAL_APPROVED (approve)
                  APPROVED_L1 → REJECTED (reject)
@@ -205,6 +206,7 @@ Transitions:
 | GAP-08 | Conclusion templates not in system | Manual copy-paste from Word |
 | GAP-09 | No approver delegation mechanism | Workflow bottlenecks |
 | GAP-10 | No completion notification to requestor | Manual follow-up required |
+| GAP-10b | No rejection notification to requestor | Requestor unaware KYC was rejected; may resubmit without understanding reason |
 | GAP-11 | No live KPI dashboard | Manual Excel exports only |
 | GAP-12 | No periodic review scheduling | Overdue KYCs not flagged |
 | GAP-13 | Password storage insecure | Security risk |

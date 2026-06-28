@@ -1,6 +1,11 @@
 # Oracle APEX System Architecture
 
-The technical architecture of the target KYC system built on Oracle APEX with Oracle Fusion HCM integration.
+!!! warning "Version Scope — V4"
+    This architecture diagram covers **Version 4 — Oracle APEX 23.2 on Oracle Database 19c/21c with Oracle IDCS SSO**.
+    V5 (APEX 24 on ATP 23ai, OCI IAM) and V6 (APEX 26 AI) introduce different infrastructure components.
+    See `V5_TECH_APEX24_Spec.md` and `V6_TECH_APEX26AI_Spec.md` for updated architecture details.
+
+The technical architecture of the V4 KYC system built on Oracle APEX 23.2 with Oracle Fusion HCM integration.
 
 !!! tip "How to edit this diagram"
     1. Go to [diagrams.net](https://app.diagrams.net)

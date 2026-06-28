@@ -123,14 +123,9 @@ flowchart TD
 ```
 
 !!! warning "What goes wrong here"
-    - No formal evidence record when KYC is not required — just files on someone's laptop
-    - The Excel can be manually changed — output depends on the person filling it in
-    - Requests arrive in different formats from different departments — no standard
-
-**What goes wrong here:**
-- Different departments send requests in completely different formats — there is no standard
-- When KYC is not required, the supporting documents are saved locally but there is no formal evidence record that the check was done
-- The Excel can be changed manually, so the output depends on the honesty and judgment of the person filling it in
+    - Different departments send requests in completely different formats — there is no standard
+    - When KYC is not required, the Excel output is saved locally but there is no formal evidence record that the check was done
+    - The Excel can be changed manually, so the output depends on the honesty and judgment of the person filling it in
 
 ---
 

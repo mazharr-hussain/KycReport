@@ -162,7 +162,7 @@ Being transparent about current limitations helps set expectations:
 | No digital intake from requesting departments — requests arrive by email | Inconsistent formats, no tracking |
 | Passwords are not strongly secured | Security risk that should be addressed |
 
-These limitations are addressed in **Version 3 (Best Practice)** and **Version 4 (APEX Implementation)**.
+These limitations are addressed progressively in **Version 3** (Best Practice design), **Version 4** (APEX 23.2 implementation), **Version 5** (cloud migration on APEX 24 / ATP), and **Version 6** (AI-assisted features on APEX 26).
 
 ---
 

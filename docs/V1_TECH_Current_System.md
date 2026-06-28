@@ -249,7 +249,7 @@ KYC_Server_Address=http://qdhqkyc:8080
 smtp_host=relay.qataridiar.com
 smtp_port=25
 smtp_sender_email=kycreport@qataridiar.com
-smtp_sender_password=KxYrKe45UkM$
+smtp_sender_password=<REDACTED — rotate immediately>
 ```
 > **⚠ Security:** SMTP password stored in plain text. Rotate immediately and use encrypted credential storage.
 
