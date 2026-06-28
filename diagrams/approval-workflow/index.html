@@ -288,6 +288,30 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../business/v5-apex24-userguide/">
+<span class="md-ellipsis">
+    
+  
+    V5 — APEX 24 User Guide
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../business/v6-apex26ai-userguide/">
+<span class="md-ellipsis">
+    
+  
+    V6 — APEX 26 AI User Guide
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -368,6 +392,30 @@
     
   
     V4 — Oracle APEX Spec
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../technical/v5-apex24-spec/">
+<span class="md-ellipsis">
+    
+  
+    V5 — APEX 24 on ATP Spec
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../technical/v6-apex26ai-spec/">
+<span class="md-ellipsis">
+    
+  
+    V6 — APEX 26 AI on ATP Spec
   
 
     
@@ -687,12 +735,12 @@
     APPROVED_L1 --&gt; FINAL_APPROVED : Low-risk report\n(L1 approval is final)
     APPROVED_L1 --&gt; PENDING_L2 : Medium or High-risk\nroutes to L2 / MLRO
 
-    PENDING_L2 --&gt; SAR_GATE : Before any decision\nSAR question is mandatory
+    PENDING_L2 --&gt; PENDING_L2 : SAR question answered\n(mandatory before any action)
 
-    SAR_GATE --&gt; FINAL_APPROVED : SAR = No\nL2 Approves
-    SAR_GATE --&gt; SAR_PROCESS : SAR = Yes\nApproval paused
-    SAR_GATE --&gt; REJECTED : L2 Rejects
-    SAR_GATE --&gt; RFI : L2 requests\nmore information
+    PENDING_L2 --&gt; FINAL_APPROVED : SAR = No\nL2 Approves
+    PENDING_L2 --&gt; SAR_PROCESS : SAR = Yes\nApproval paused
+    PENDING_L2 --&gt; REJECTED : L2 Rejects
+    PENDING_L2 --&gt; RFI : L2 requests\nmore information
 
     SAR_PROCESS --&gt; [*] : SAR process\nruns separately
 
@@ -708,8 +756,8 @@
         - Other
     end note
 
-    note right of SAR_GATE
-        Mandatory question at L2:
+    note right of PENDING_L2
+        Mandatory SAR question before any action:
         "Does any information warrant
         a Suspicious Activity Report?"
     end note</code></pre>
