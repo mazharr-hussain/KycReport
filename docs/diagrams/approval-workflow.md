@@ -11,6 +11,11 @@ The complete workflow for a KYC report from creation through to final approval.
 
 ![Approval Workflow](drawio/approval-workflow.drawio)
 
+
+---
+
+> **Note:** The image above (draw.io) is the single source of truth for this diagram — edit it visually, not the Mermaid below. The Mermaid sections that follow are a supplementary text-based detail view (per-phase breakdowns, state tables) kept for readability and diffability in pull requests; they are not independently editable diagrams and should be updated to match the draw.io file if it changes structurally.
+
 ---
 
 ## State Machine

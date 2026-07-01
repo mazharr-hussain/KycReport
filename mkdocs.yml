@@ -54,6 +54,20 @@ plugins:
       lang: en
   - glightbox
   - drawio
+  - print-site:
+      add_to_navigation: true
+      print_page_title: 'Print / Export All Pages'
+      add_print_site_banner: true
+      add_table_of_contents: true
+      toc_title: 'Table of Contents'
+      toc_depth: 3
+      add_full_urls: false
+      enumerate_headings: true
+      enumerate_figures: true
+      include_css: true
+      enabled: true
+      exclude:
+        - index.md
 
 markdown_extensions:
   - admonition
