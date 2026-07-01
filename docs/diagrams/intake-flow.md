@@ -11,6 +11,11 @@ Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC pro
 
 ![Intake & Document Validation Flow](drawio/intake-flow.drawio)
 
+
+---
+
+> **Note:** The image above (draw.io) is the single source of truth for this diagram — edit it visually, not the Mermaid below. The Mermaid sections that follow are a supplementary text-based detail view (per-phase breakdowns, state tables) kept for readability and diffability in pull requests; they are not independently editable diagrams and should be updated to match the draw.io file if it changes structurally.
+
 ---
 
 ## Phase 0 — Structured Digital Intake

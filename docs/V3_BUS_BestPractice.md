@@ -81,6 +81,9 @@ When the officer is about to create an entity, the system automatically searches
 
 **What is new:** Before the compliance officer begins their research, the system shows them a **risk indicator panel** — a summary of automated risk signals computed from the data already provided.
 
+!!! note "Why this diagram is Mermaid, not draw.io"
+    Unlike the diagrams above, this one has no corresponding entry under `docs/diagrams/` — it depicts a single self-contained decision inside Phase 2 only, not a multi-phase flow reused elsewhere. Kept as inline Mermaid to avoid creating a one-off draw.io file with no other consumer.
+
 ```mermaid
 flowchart LR
     SYS([System Pre-Computes\nRisk Signals]) --> G[🌍 Geographic Risk\nFATF country tier]
