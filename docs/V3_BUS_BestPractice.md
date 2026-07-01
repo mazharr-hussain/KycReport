@@ -37,43 +37,10 @@ Every step in this process is designed around seven core compliance principles:
 
 ## Complete To-Be Process — One Page
 
-```mermaid
-flowchart TD
-    START([Business Department]) --> P0
+!!! tip "Single source of truth"
+    This diagram is maintained in draw.io. Edit it visually at [diagrams.net](https://app.diagrams.net) → **File → Open from → GitHub** → `docs/diagrams/drawio/best-practice-e2e.drawio` — changes render here automatically. See the [detailed diagram breakdown](../diagrams/best-practice-e2e.md) for phase-by-phase views.
 
-    subgraph PORTAL["Self-Service Portal — Business Department"]
-        P0[Phase 0\nStructured Digital Intake\nWeb Form + Rules Engine]
-        P0 -->|Not Required| WAIVER([Waiver Record Created\nDocuments stored automatically])
-        P0 -->|Required| P1[Phase 1\nDocument Upload\nvia Portal]
-    end
-
-    subgraph SYSTEM["Oracle APEX — KYC Management System"]
-        P1B[Phase 1\nDocument Validation\nCompliance Officer\nSystem checklist + SLA clock starts]
-        P1B --> P2[Phase 2\nRisk Pre-Assessment\nSystem suggests risk level\nOfficer confirms or overrides]
-        P2 --> P3[Phase 3\nDue Diligence\nStructured screening record\nper entity and UBO]
-        P3 --> P4[Phase 4 & 5\nEntity + KYC Report\nAuto-populated from intake\nNo re-entry]
-        P4 --> P6[Phase 6\nLevel 1 Approval\nWith automatic delegation]
-        P6 -->|Low Risk| DONE
-        P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2 / MLRO Approval\nMandatory SAR gate]
-        P7 --> DONE([Phase 8\nCompletion\nPDF generated\nRequestor notified automatically\nReview date set])
-    end
-
-    P1 --> P1B
-
-    style PORTAL fill:#E8F5E9,stroke:#2E7D32,color:#1B5E20
-    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
-    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
-    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style P0 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style P1 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style P1B fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P2 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P3 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-```
+![Best Practice End-to-End Process](../diagrams/drawio/best-practice-e2e.drawio)
 
 ---
 
@@ -87,21 +54,10 @@ flowchart TD
 
 **How it works:**
 
-```mermaid
-flowchart TD
-    DEPT([Business Department\nOpens KYC Request Portal]) --> AUTOFILL[Name & department\nauto-filled from Oracle Fusion HCM]
-    AUTOFILL --> FORM[Fills in structured form:\nCounterparty name, type, country\nRelationship type\nFinancial involvement\nRelated party declaration]
-    FORM --> RULES{System Rules Engine\nCalculates automatically}
-    RULES -->|KYC Not Required| WAIVER[Waiver record created\nDocuments stored as evidence\nConfirmation sent to dept]
-    RULES -->|KYC Required| CHECKLIST[System shows document checklist\nbased on entity type and country]
-    CHECKLIST --> UPLOAD[Department uploads documents\ndirectly in portal — no email]
-    UPLOAD --> SUBMIT[Submit]
-    SUBMIT --> CASE[Case created: INTAKE-YYYY-NNNNNN\nCompliance team notified automatically]
+!!! tip "Single source of truth"
+    See the [Intake & Document Validation diagram](../diagrams/intake-flow.md) — maintained in draw.io, edited visually at diagrams.net, renders automatically here and there.
 
-    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style CASE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
-```
+![Intake & Document Validation Flow](../diagrams/drawio/intake-flow.drawio)
 
 **What this fixes:**
 - Every request is in the same format, regardless of which department sends it
@@ -112,21 +68,7 @@ flowchart TD
 
 ### Phase 1: Document Validation — System-Assisted
 
-**What changes:** The compliance team uses a structured checklist rather than relying on experience and memory. The system tracks how many rounds of document requests happen.
-
-```mermaid
-flowchart TD
-    REVIEW([Compliance Officer\nReviews Submitted Documents]) --> CHECK{Documents meet\nchecklist?}
-    CHECK -->|No — Missing or unclear| REQ[Send structured request to department\nSelect document type\nSet deadline\nSystem sends notification automatically]
-    REQ --> UPLOAD[Department uploads via portal\nnot by email\nAll rounds tracked with timestamps]
-    UPLOAD --> CHECK
-    CHECK -->|Yes — All complete| CONFIRM[Officer marks:\nDocuments Complete ✅]
-    CONFIRM --> KPI[System records docs_complete_date\n🕐 KPI Clock Starts Here]
-
-    style KPI fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
-    style CONFIRM fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style REQ fill:#FFF3E0,color:#BF360C,stroke:#E65100
-```
+**What changes:** The compliance team uses a structured checklist rather than relying on experience and memory. The system tracks how many rounds of document requests happen. See the diagram above — the same intake-flow diagram covers both Phase 0 (intake) and Phase 1 (document validation).
 
 **The KPI start point** is the moment the compliance team confirms they have everything they need. Turnaround time is measured from here — not from the first email the department sent — because the compliance team cannot be held accountable for the department's delay in providing documents.
 
@@ -158,9 +100,11 @@ flowchart LR
 This does not replace the officer's judgment — it gives them a structured starting point and ensures that obvious risk factors are never overlooked.
 
 **Risk determines the path:**
-- **Low risk** → Simplified Due Diligence (one approval required)
-- **Medium risk** → Standard KYC (two approvals required)
-- **High risk** → Enhanced Due Diligence (two approvals + mandatory additional fields)
+- **Low risk** → Simplified KYC (one approval required)
+- **Medium risk** → AdHoc KYC (two approvals required)
+- **High risk** → Enhanced KYC (two approvals + mandatory additional fields)
+
+> **KYC Type naming:** The system uses three KYC types — **Simplified**, **AdHoc**, and **Enhanced** — consistently across all versions of this documentation (V2 through V6). These map directly to Low/Medium/High risk respectively, though a Confirmed Match or PEP flag can force Enhanced regardless of the initial risk level (see Phase 3).
 
 ---
 
@@ -183,7 +127,7 @@ Instead of a free-text box, the officer completes structured fields for each ent
 
 **Why this matters:** If a regulator asks "when did you last screen ABC Company, and what did you find?", the answer is in the record — not in someone's email archive.
 
-**Escalation rule:** If a confirmed match or PEP flag is recorded, the system automatically activates Enhanced Due Diligence requirements, regardless of what was initially selected.
+**Escalation rule:** If a confirmed match or PEP flag is recorded, the system automatically activates Enhanced Due Diligence requirements, regardless of what was initially selected. This overrides the risk level shown in Phase 2 — a case that was pre-assessed as Low risk is force-upgraded to Enhanced KYC type and therefore always routes through both Level 1 and Level 2 / MLRO approval. A Confirmed Match or PEP flag can never result in a single-approval, Level-1-only outcome.
 
 ---
 
@@ -212,8 +156,10 @@ Every report shows a traffic-light indicator: how many days have elapsed versus 
 | KYC Type | Target Completion |
 |---|---|
 | Simplified | 5 business days |
-| Standard | 10 business days |
+| AdHoc | 10 business days |
 | Enhanced | 20 business days |
+
+> **Note on these targets:** The day-counts above are proposed operational targets for the To-Be system, pending formal sign-off from Compliance management. The current As-Is process has no turnaround-time tracking (see V2, Phase 8), so no historical baseline exists to derive these from — they should be validated against actual case data once the system is live and revised if needed.
 
 ---
 
@@ -235,6 +181,8 @@ For **RFI**, the approver selects a category (Missing Document / Unclear Conclus
 
 ### Phase 7: Level 2 / MLRO Approval — With SAR Gate
 
+> **Role note:** "Level 2 Approver," "MLRO" (Money Laundering Reporting Officer), and "Head of Compliance" refer to the same person in this process — the senior compliance role that performs the final approval and holds SAR-filing responsibility. This document uses these terms interchangeably; the system role is `APPROVER_L2`.
+
 **What is new:** Before the Level 2 Approver makes their decision, the system asks one additional question:
 
 > *"Based on your review of this report, is there any information that may require a Suspicious Activity Report (SAR)?"*
@@ -253,7 +201,11 @@ This gate ensures that the compliance head consciously considers their SAR oblig
 - The system automatically generates the completed KYC report as a PDF
 - The requesting department receives an email with the report attached — no manual follow-up needed
 - The record is sealed (read-only)
-- A next review date is set automatically based on risk level: **12 months** for High risk, **24 months** for Medium risk, **36 months** for Low risk
+- A next review date is set automatically based on risk level: **12 months** for High risk, **24 months** for Medium risk, **36 months** for Low risk (proposed periodic review intervals, aligned with general risk-based monitoring practice under FATF Recommendation 1; pending formal management sign-off)
+
+**On rejection (at either Level 1 or Level 2):**
+- The requesting department is notified automatically by email, with the stated rejection reason included
+- This directly closes GAP-10b from the As-Is process (V2), where a rejected KYC was never actively communicated back to the requestor
 
 **Ongoing monitoring:**
 - **60 days before** a KYC is due for review: compliance officer notified
@@ -275,37 +227,10 @@ The dashboard shows in real time:
 
 ## The Improved Approval Process
 
-```mermaid
-flowchart TD
-    DEPT([Requesting Department\nStructured digital form]) --> CASE[Case Created Automatically\nSystem notification to compliance]
-    CASE --> DOCVAL[Document Validation\nAll rounds tracked\nKPI clock starts when docs confirmed]
-    DOCVAL --> ASSIGN[Work Assignment\nSystem auto-assigns or Manager assigns]
-    ASSIGN --> RISK[Risk Pre-Assessment\nSystem flags — Officer confirms]
-    RISK --> DD[Due Diligence — WorldCheck\nStructured results recorded in system]
-    DD --> ENTITY[Entity Record Created\nwith duplicate check]
-    ENTITY --> REPORT[KYC Report Created\nauto-populated from entity\nSLA indicator visible]
-    REPORT --> SUBMIT[Submitted for Approval\nActive approver identified\ndelegation applied]
-    SUBMIT --> RISKSPLIT{Risk Level?}
+!!! tip "Single source of truth"
+    Full state machine, routing rules, and delegation logic are maintained in the [Approval Workflow diagram](../diagrams/approval-workflow.md) (draw.io). The upstream steps (intake through report creation) are shown in the [Best Practice End-to-End diagram](../diagrams/best-practice-e2e.md) above.
 
-    RISKSPLIT -->|Low Risk| L1_LOW[L1 Approver Reviews]
-    RISKSPLIT -->|Medium or High Risk| L1_HIGH[L1 Approver Reviews]
-
-    L1_LOW -->|Approve| FINAL([✅ FINAL APPROVED\nAuto PDF generated\nRequestor notified\nReview date set])
-    L1_LOW -->|RFI or Reject| OFFICER[Back to Officer]
-    OFFICER --> SUBMIT
-
-    L1_HIGH -->|Approve| L2[L2 Approver / MLRO\nSAR Gate — mandatory]
-    L1_HIGH -->|RFI or Reject| OFFICER
-
-    L2 -->|SAR = No, Approve| FINAL
-    L2 -->|SAR = Yes| SAR([⚠️ SAR Process\nApproval paused\nHead of Compliance alerted])
-    L2 -->|RFI or Reject| OFFICER
-
-    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style SAR fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style OFFICER fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style DEPT fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
-```
+![Approval Workflow](../diagrams/drawio/approval-workflow.drawio)
 
 ---
 

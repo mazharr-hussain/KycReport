@@ -94,6 +94,7 @@ flowchart TD
 | **Business Department** (e.g., Procurement, Sales, Egypt office) | Identifies the need, runs initial check, submits documents | Excel Risk Calculator, Email |
 | **Compliance Officer** (Hessa, Latifa, and others) | Validates documents, conducts research, creates reports | WorldCheck, KYC System, Local folders, Email |
 | **Compliance Manager / Head** (Carlos) | Assigns work, manages pipeline, approves reports | Email, KYC System, Excel |
+| **System Administrator** | Manages user accounts and reference data inside the KYC Report Application only — has no role in the manual intake, document collection, or due diligence work upstream | KYC System |
 
 ---
 
@@ -274,6 +275,8 @@ The approver reviews the full report, reads the conclusion, checks the attached 
 **Approval routing by risk (handled by the application):**
 - **Low risk** → Level 1 approval is the final approval — report status moves to Final Approved
 - **Medium or High risk** → report automatically routes to Level 2 queue
+
+> **Four-eyes control — already enforced today:** The application blocks a user from approving a report they created themselves (contributor and approver must be different accounts). This one control does work reliably in the current system; it is not one of the gaps this document raises.
 
 ```mermaid
 flowchart TD
