@@ -118,6 +118,7 @@ nav:
     - Gap Analysis — FATF / Basel / 6AMLD: compliance/gap-analysis.md
   - Process Diagrams:
     - Overview: diagrams/index.md
+    - As-Is Process (Current): diagrams/asis-process.md
     - KYC Necessity Decision: diagrams/kyc-necessity.md
     - Intake & Document Validation: diagrams/intake-flow.md
     - Approval Workflow: diagrams/approval-workflow.md

@@ -16,27 +16,10 @@ Today, the KYC process at Qatari Diar is a **mostly manual process**. The existi
 
 This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.
 
-```mermaid
-flowchart LR
-    subgraph OUTSIDE["Outside KYC Report Application — Manual Process"]
-        P0[Phase 0\nExcel Calculator]
-        P1[Phase 1\nDocument Collection\nvia Email]
-        P2[Phase 2\nWork Assignment]
-        P3[Phase 3\nWorldCheck\nDue Diligence]
-    end
+!!! tip "Single source of truth"
+    Maintained in draw.io. See the [As-Is Process diagram page](../diagrams/asis-process.md) for all 9 pages, or edit directly at `docs/diagrams/drawio/asis-process.drawio`.
 
-    subgraph INSIDE["Inside KYC Report Application"]
-        P4[Phase 4\nEntity Record\nCreation]
-        P5[Phase 5\nKYC Report\nCreation]
-        P6[Phase 6\nLevel 1 Approval]
-        P7[Phase 7\nLevel 2 Approval]
-    end
-
-    OUTSIDE --> INSIDE
-
-    style OUTSIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style INSIDE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-```
+![System Boundary](../diagrams/drawio/asis-process.drawio)
 
 !!! warning "Key Point"
     The process only enters the KYC Report Application once all manual work is complete — documents validated, due diligence researched, entity data ready. Everything before that point is invisible to the system.
@@ -45,45 +28,7 @@ flowchart LR
 
 ## Complete As-Is Process — One Page
 
-```mermaid
-flowchart TD
-    START([Business Department]) --> P0
-
-    subgraph MANUAL["Manual / Email — Outside KYC Report Application"]
-        P0[Phase 0\nKYC Necessity Check\nExcel Calculator]
-        P0 -->|Not Required| WAIVER([Waiver saved locally\nNo further action])
-        P0 -->|Required| P1[Phase 1\nDocument Collection\n& Validation]
-        P1 --> P2[Phase 2\nWork Assignment\nby Manager]
-        P2 --> P3[Phase 3\nDue Diligence\nWorldCheck]
-        P3 --> P3B[Report Preparation\nOfficer compiles full report\nmanually from research notes]
-    end
-
-    subgraph SYSTEM["Inside KYC Report Application — Data Entry & Approval"]
-        P4[Phase 4\nEntity Record\nData Entry]
-        P4 --> P5[Phase 5\nKYC Report\nData Entry & Submit]
-        P5 --> P6[Phase 6\nLevel 1\nApproval]
-        P6 -->|Low Risk| DONE
-        P6 -->|Medium / High Risk| P7[Phase 7\nLevel 2\nApproval]
-        P7 --> DONE([Completed\nManual email to requestor])
-    end
-
-    MANUAL --> P4
-
-    style MANUAL fill:#FFF8E1,stroke:#F9A825,color:#5D4037
-    style SYSTEM fill:#E8EAF6,stroke:#3949AB,color:#1A237E
-    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
-    style WAIVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style DONE fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style P0 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P1 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P3 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P3B fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style P4 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P5 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P6 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style P7 fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-```
+![Complete As-Is Process](../diagrams/drawio/asis-process.drawio)
 
 ---
 
@@ -112,16 +57,7 @@ Before the compliance team is even involved, the requesting department runs a ch
 
 Based on the answers, the Excel says either **"KYC Required"** or **"KYC Not Required"**.
 
-```mermaid
-flowchart TD
-    EXCEL([Department fills in\nExcel Risk Calculator]) --> Q{KYC Required?}
-    Q -->|YES| DOCS[Department gathers documents\nand sends email to\ncompliance mailbox]
-    Q -->|NO| LOCAL[Excel output saved locally\nas evidence\nNo document collection required]
-
-    style DOCS fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style LOCAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style EXCEL fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
-```
+![Phase 0 Decision](../diagrams/drawio/asis-process.drawio)
 
 !!! warning "What goes wrong here"
     - Different departments send requests in completely different formats — there is no standard
@@ -144,19 +80,7 @@ For a **company**: The officer needs an official document that shows — clearly
 
 What the officer is always looking for is: *"Can I trace the ownership all the way to a real person?"*
 
-```mermaid
-flowchart TD
-    RECV([Documents Received\nvia Email]) --> CHECK{Sufficient?}
-    CHECK -->|NO| REQ[Request more documents\nby email to department]
-    REQ --> REPLY[Department replies\nby email]
-    REPLY --> CHECK
-    CHECK -->|YES| SAVE[Save documents to\nlocal folder on workstation]
-    SAVE --> SIGNAL[Signal to manager\nverbally or by email:\n'Ready for assignment']
-
-    style RECV fill:#E3F2FD,color:#0D47A1,stroke:#1565C0
-    style SAVE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style REQ fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-```
+![Phase 1 Doc Validation](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
 - Everything is tracked in email threads — there is no system record of how many rounds of back-and-forth happened
@@ -191,24 +115,7 @@ For each entity and each significant individual (UBO), the officer:
 4. Notes whether the entity or person is a PEP (Politically Exposed Person) — for example, a state-owned company is connected to the government, which counts as a PEP link
 5. Looks at shareholders and connected entities
 
-```mermaid
-flowchart TD
-    WC([Open WorldCheck\nin browser]) --> SEARCH[Search entity / person by name]
-    SEARCH --> MATCH{Review matches}
-    MATCH --> M1[Direct match?\nGenuine or false positive?]
-    MATCH --> M2[PEP connection?]
-    MATCH --> M3[Adverse findings?]
-    MATCH --> M4[Check shareholders]
-    M1 & M2 & M3 & M4 --> JUDGE[Apply risk-based judgement:\nHow deep do I need to go?]
-    JUDGE --> EX1[Simple case e.g. Microsoft Qatar\n→ Stop at Qatar entity level]
-    JUDGE --> EX2[Complex unknown structure\n→ Go deeper where risk justifies it]
-    EX1 & EX2 --> NOTE[Note findings manually\nin memory or personal document]
-    NOTE --> SYSTEM[Enter findings later\ninto KYC system free-text field]
-
-    style WC fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
-    style NOTE fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style SYSTEM fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-```
+![Phase 3 WorldCheck](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
 - There is no structured way to record what was found — it goes into a free-text field in the system later
@@ -238,20 +145,7 @@ Next, the officer creates the formal KYC report in the system. This involves ent
 
 One particular pain point: the **final conclusion**. Around 95% of the time, the conclusion follows a standard template. But those templates are stored in Word documents on shared drives, not in the system. The officer opens Word, copies the relevant template, pastes it into the system, and adjusts it.
 
-```mermaid
-flowchart TD
-    NEW([Create new KYC report\nin system]) --> LINK[Link to entity\nno auto-population\nre-enter all fields manually]
-    LINK --> CLASS[Enter classification:\nSimplified / AdHoc / Enhanced\nWho requested it and when\nRisk level: Low / Medium / High]
-    CLASS --> CONC[Write conclusion:\nOpen Word document\nCopy template\nPaste into system\nAdjust manually]
-    CONC --> UPLOAD[Upload documents\nfrom local folder on workstation]
-    UPLOAD --> ACTION{Choose action}
-    ACTION -->|Save Draft| DRAFT[Stays in officer's queue\nfor later]
-    ACTION -->|Submit for Approval| APPROVER[Goes to approver's queue]
-
-    style NEW fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style CONC fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style APPROVER fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-```
+![Phase 5 Report Creation](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
 - The request date field has no validation — an officer under pressure might inadvertently enter a wrong year and not notice
@@ -278,23 +172,7 @@ The approver reviews the full report, reads the conclusion, checks the attached 
 
 > **Four-eyes control — already enforced today:** The application blocks a user from approving a report they created themselves (contributor and approver must be different accounts). This one control does work reliably in the current system; it is not one of the gaps this document raises.
 
-```mermaid
-flowchart TD
-    QUEUE([Report appears in\nL1 Approver's queue\nin KYC Report Application]) --> REVIEW[Approver reviews report\nconclusion + documents\nin the application]
-    REVIEW --> DECISION{Decision}
-    DECISION -->|Approve| RISK{Risk Level?}
-    DECISION -->|RFI| BACK[Report returned to officer\nwith comment — in application]
-    DECISION -->|Reject| REJECT([Report closed\nReason recorded in application])
-
-    RISK -->|Low Risk| FINAL([Final Approved\nin application])
-    RISK -->|Medium / High Risk| L2([Routes to L2 queue\nin application])
-
-    style QUEUE fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style REJECT fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style BACK fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style L2 fill:#F3E5F5,color:#4A148C,stroke:#6A1B9A
-```
+![Phase 6 L1 Approval](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
 - If the Level 1 Approver is unavailable (on leave, travel), a substitute must be manually arranged by phone or email — the system has no delegation mechanism
@@ -310,19 +188,7 @@ flowchart TD
 
 Same actions as Level 1 — full review inside the application, then Approve / RFI / Reject. Once approved at Level 2, the report status is set to Final Approved in the application.
 
-```mermaid
-flowchart TD
-    L2Q([Report appears in\nL2 Approver's queue\nin KYC Report Application]) --> REVIEW2[Approver reviews report\nin the application]
-    REVIEW2 --> DECISION2{Decision}
-    DECISION2 -->|Approve| FINAL2([Final Approved\nin application])
-    DECISION2 -->|RFI| BACK2[Report returned to officer\nwith comment — in application]
-    DECISION2 -->|Reject| REJECT2([Report closed\nReason recorded in application])
-
-    style L2Q fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style FINAL2 fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style REJECT2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style BACK2 fill:#FFF3E0,color:#BF360C,stroke:#E65100
-```
+![Phase 7 L2 Approval](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
 - If the Level 2 Approver (Carlos) is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism

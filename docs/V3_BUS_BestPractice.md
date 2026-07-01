@@ -81,24 +81,7 @@ When the officer is about to create an entity, the system automatically searches
 
 **What is new:** Before the compliance officer begins their research, the system shows them a **risk indicator panel** — a summary of automated risk signals computed from the data already provided.
 
-!!! note "Why this diagram is Mermaid, not draw.io"
-    Unlike the diagrams above, this one has no corresponding entry under `docs/diagrams/` — it depicts a single self-contained decision inside Phase 2 only, not a multi-phase flow reused elsewhere. Kept as inline Mermaid to avoid creating a one-off draw.io file with no other consumer.
-
-```mermaid
-flowchart LR
-    SYS([System Pre-Computes\nRisk Signals]) --> G[🌍 Geographic Risk\nFATF country tier]
-    SYS --> E[🏢 Entity Type Risk\nState-owned = PEP-linked]
-    SYS --> S[🔗 Structure Risk\nMultiple ownership layers]
-    SYS --> H[⚠️ Historical Flags\nPrior adverse findings]
-    G & E & S & H --> SUGGEST[System Suggests\nLOW / MEDIUM / HIGH]
-    SUGGEST --> OFFICER{Officer\nAgrees?}
-    OFFICER -->|Yes| CONFIRM[Confirm risk level\nand proceed]
-    OFFICER -->|No| OVERRIDE[Override risk level\nDocument reason — mandatory]
-
-    style SUGGEST fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style OVERRIDE fill:#FFF3E0,color:#BF360C,stroke:#E65100
-    style CONFIRM fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-```
+![Phase 2 Risk Panel](../diagrams/drawio/best-practice-e2e.drawio)
 
 This does not replace the officer's judgment — it gives them a structured starting point and ensures that obvious risk factors are never overlooked.
 
