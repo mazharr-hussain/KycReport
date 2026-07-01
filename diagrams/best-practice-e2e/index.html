@@ -15,6 +15,8 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../../css/print-site.css" rel="stylesheet"/>
+<link href="../../css/print-site-material.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
 <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
@@ -164,6 +166,17 @@
   Process Diagrams
 
         </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../print_page/">
+        
+  
+  
+    
+  
+  Print / Export All Pages
+
+      </a>
 </li>
 </ul>
 </div>
@@ -687,6 +700,18 @@
 </ul>
 </nav>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../print_page/">
+<span class="md-ellipsis">
+    
+  
+    Print / Export All Pages
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </div>
@@ -833,6 +858,10 @@
 </ol>
 </div>
 <p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../drawio/best-practice-e2e.drawio"><div class="mxgraph" data-mxgraph='{"toolbar-position": "bottom", "toolbar-nohide": "0", "tooltips": "1", "border": 5, "resize": "1", "edit": "_blank", "lightbox": "1", "toolbar": "pages tags zoom layers lightbox", "xml": "&lt;mxfile host=\"app.diagrams.net\" modified=\"2026-06-26\" version=\"21.0.0\"&gt;&lt;diagram id=\"best-practice-e2e\" name=\"Best Practice End-to-End Process\"&gt;\n    &lt;mxGraphModel dx=\"1422\" dy=\"762\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"1169\" pageHeight=\"1654\" math=\"0\" shadow=\"0\"&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\"0\"/&gt;\n        &lt;mxCell id=\"1\" parent=\"0\"/&gt;\n        &lt;!-- Title --&gt;\n        &lt;mxCell id=\"title\" value=\"Best Practice KYC Process \u2014 End to End\" style=\"text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"150\" y=\"20\" width=\"700\" height=\"40\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 0 --&gt;\n        &lt;mxCell id=\"p0\" value=\"Phase 0 \u2014 Structured Digital Intake&amp;#10;Business dept completes structured form&amp;#10;System determines KYC Required / Not Required\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"80\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 1 --&gt;\n        &lt;mxCell id=\"p1\" value=\"Phase 1 \u2014 Document Validation&amp;#10;Compliance officer reviews against checklist&amp;#10;KPI clock starts when docs confirmed complete\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"200\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 2 --&gt;\n        &lt;mxCell id=\"p2\" value=\"Phase 2 \u2014 Risk Pre-Assessment&amp;#10;System computes geographic, entity type, structure risk&amp;#10;Suggests LOW / MEDIUM / HIGH \u2014 officer confirms or overrides\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#6A1B9A;strokeColor=#4A148C;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"320\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 3 --&gt;\n        &lt;mxCell id=\"p3\" value=\"Phase 3 \u2014 Due Diligence Research&amp;#10;Manual WorldCheck screening&amp;#10;Structured results recorded per entity + per UBO\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#6A1B9A;strokeColor=#4A148C;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"440\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 4 --&gt;\n        &lt;mxCell id=\"p4\" value=\"Phase 4 \u2014 Entity Record Creation&amp;#10;Auto-populated from intake form&amp;#10;Duplicate check \u2014 Jaro-Winkler fuzzy matching\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"560\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 5 --&gt;\n        &lt;mxCell id=\"p5\" value=\"Phase 5 \u2014 KYC Report Creation&amp;#10;Auto-populated from entity record&amp;#10;Conclusion templates | SLA indicator\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"680\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 6 --&gt;\n        &lt;mxCell id=\"p6\" value=\"Phase 6 \u2014 Level 1 Approval&amp;#10;Approve / RFI / Reject&amp;#10;Delegation pre-configured\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"800\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Risk split --&gt;\n        &lt;mxCell id=\"risk_split\" value=\"Risk Level?\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"390\" y=\"920\" width=\"220\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 7 --&gt;\n        &lt;mxCell id=\"p7\" value=\"Phase 7 \u2014 Level 2 / MLRO Approval&amp;#10;SAR Gate (mandatory)&amp;#10;Approve / RFI / Reject / SAR\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"1060\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Phase 8 --&gt;\n        &lt;mxCell id=\"p8\" value=\"Phase 8 \u2014 Completion&amp;#10;Auto PDF | Notify requestor | Seal record&amp;#10;Set next review date | Ongoing monitoring alerts\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#F57F17;strokeColor=#E65100;fontColor=#ffffff;fontSize=12;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"300\" y=\"1200\" width=\"400\" height=\"70\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Connections --&gt;\n        &lt;mxCell id=\"e01\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p0\" target=\"p1\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e12\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p1\" target=\"p2\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e23\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p2\" target=\"p3\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e34\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p3\" target=\"p4\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e45\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p4\" target=\"p5\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e56\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p5\" target=\"p6\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e67\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p6\" target=\"risk_split\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_low\" value=\"Low Risk\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"risk_split\" target=\"p8\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"&gt;\n            &lt;Array as=\"points\"&gt;\n              &lt;mxPoint x=\"780\" y=\"960\"/&gt;\n              &lt;mxPoint x=\"780\" y=\"1235\"/&gt;\n            &lt;/Array&gt;\n          &lt;/mxGeometry&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_high\" value=\"Medium/High Risk\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"risk_split\" target=\"p7\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e78\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"p7\" target=\"p8\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &lt;/diagram&gt;\n&lt;/mxfile&gt;"}' style="max-width:100%;border:1px solid transparent;"></div></a></p>
+<hr/>
+<blockquote>
+<p><strong>Note:</strong> The image above (draw.io) is the single source of truth for this diagram — edit it visually, not the Mermaid below. The Mermaid sections that follow are a supplementary text-based detail view (per-phase breakdowns, state tables) kept for readability and diffability in pull requests; they are not independently editable diagrams and should be updated to match the draw.io file if it changes structurally.</p>
+</blockquote>
 <hr/>
 <h2 id="high-level-process-map">High-Level Process Map<a class="headerlink" href="#high-level-process-map" title="Permanent link">¶</a></h2>
 <pre class="mermaid"><code>flowchart TD
@@ -1055,6 +1084,7 @@
 </div>
 <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
 <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script src="../../js/print-site.js"></script>
 <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
 document$.subscribe(()=>{ lightbox.reload(); });
 </script><script src="https://viewer.diagrams.net/js/viewer-static.min.js"></script></body></html>

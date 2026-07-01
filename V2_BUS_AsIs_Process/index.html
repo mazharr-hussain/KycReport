@@ -48,6 +48,10 @@
       
     
     
+      <link rel="stylesheet" href="../css/print-site.css">
+    
+      <link rel="stylesheet" href="../css/print-site-material.css">
+    
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
@@ -315,6 +319,25 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../print_page/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Print / Export All Pages
+
+      </a>
+    </li>
   
 
       
@@ -1255,6 +1278,33 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../print_page/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Print / Export All Pages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1402,6 +1452,11 @@
 <td>Assigns work, manages pipeline, approves reports</td>
 <td>Email, KYC System, Excel</td>
 </tr>
+<tr>
+<td><strong>System Administrator</strong></td>
+<td>Manages user accounts and reference data inside the KYC Report Application only — has no role in the manual intake, document collection, or due diligence work upstream</td>
+<td>KYC System</td>
+</tr>
 </tbody>
 </table>
 <hr>
@@ -1535,6 +1590,9 @@
 <p><strong>Approval routing by risk (handled by the application):</strong>
 - <strong>Low risk</strong> → Level 1 approval is the final approval — report status moves to Final Approved
 - <strong>Medium or High risk</strong> → report automatically routes to Level 2 queue</p>
+<blockquote>
+<p><strong>Four-eyes control — already enforced today:</strong> The application blocks a user from approving a report they created themselves (contributor and approver must be different accounts). This one control does work reliably in the current system; it is not one of the gaps this document raises.</p>
+</blockquote>
 <pre class="mermaid"><code>flowchart TD
     QUEUE([Report appears in\nL1 Approver's queue\nin KYC Report Application]) --&gt; REVIEW[Approver reviews report\nconclusion + documents\nin the application]
     REVIEW --&gt; DECISION{Decision}
@@ -1773,6 +1831,8 @@ The requesting department should automatically receive the completed report and 
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../js/print-site.js"></script>
       
     
   
