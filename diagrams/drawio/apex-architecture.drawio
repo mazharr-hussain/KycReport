@@ -98,4 +98,184 @@
       </root>
     </mxGraphModel>
   </diagram>
+  <diagram id="apex-auth" name="Authentication Flow">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1440" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Authentication &amp; User Provisioning Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nav" value="User navigates to KYC URL" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="redirect" value="APEX redirects to IDCS SSO login" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="creds" value="User enters Fusion credentials" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="token" value="IDCS returns OAuth token + attributes" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger" value="POST_AUTHENTICATION trigger looks up QD_KYC_USERS" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="exists" value="User exists in local cache?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="820" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="return_role" value="Return role + permissions" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="1270" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rest" value="REST call to Fusion /hcm/v4/workers/{personId}" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="insert" value="Insert QD_KYC_USERS, map job code to KYC role" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="1120" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="home" value="Show personalised home page" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="1120" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="nav" target="redirect" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="redirect" target="creds" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="creds" target="token" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="token" target="trigger" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="trigger" target="exists" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="exists" target="return_role" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="No — first login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="exists" target="rest" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="rest" target="insert" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="insert" target="return_role" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="return_role" target="home" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="apex-sync" name="Nightly Sync Process">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1140" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Nightly Sync Process" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sched" value="DBMS_SCHEDULER runs nightly at 02:00" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="fetch" value="Fetch active workers from Fusion HCM REST API" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="loop" value="For each employee" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="exists" value="Exists in QD_KYC_USERS?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="520" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="UPDATE record if changed" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="670" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="insert" value="INSERT new user, map job_code to kyc_role" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="670" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="deact" value="Deactivate users not in Fusion response" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="log" value="Write to sync log (timestamp + count)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sched" target="fetch" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="fetch" target="loop" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="loop" target="exists" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="exists" target="update" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="exists" target="insert" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="update" target="deact" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="insert" target="deact" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="deact" target="log" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="apex-vpd" name="Security Model VPD">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1230" pageHeight="690" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Security Model — VPD Row-Level Security" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="query" value="Any SELECT on QD_KYC_REPORT" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vpd" value="VPD Policy QD_KYC_SECURITY.REPORT_POLICY" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="role" value="User Role from APP_KYC_ROLE" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="370" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="own" value="CONTRIBUTOR: created_by = user OR RFI owner = user" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="520" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="APPROVER_L1: status IN (PENDING_L1, APPROVED_L1)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="520" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="APPROVER_L2: status IN (APPROVED_L1, PENDING_L2)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="520" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="all" value="ADMIN: no filter, sees all records" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="910" y="520" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="query" target="vpd" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="vpd" target="role" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="CONTRIBUTOR" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="role" target="own" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="APPROVER_L1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="role" target="l1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="APPROVER_L2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="role" target="l2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="ADMIN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="role" target="all" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>

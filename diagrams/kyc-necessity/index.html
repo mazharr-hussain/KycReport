@@ -5,7 +5,7 @@
 <meta content="Knowledge base for the Qatari Diar KYC Management System — all versions, all audiences" name="description"/>
 <meta content="Qatari Diar — Compliance &amp; IT" name="author"/>
 <link href="https://mazharr-hussain.github.io/KycReport/diagrams/kyc-necessity/" rel="canonical"/>
-<link href="../" rel="prev"/>
+<link href="../asis-process/" rel="prev"/>
 <link href="../intake-flow/" rel="next"/>
 <link href="../../assets/favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
@@ -523,6 +523,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../asis-process/">
+<span class="md-ellipsis">
+    
+  
+    As-Is Process (Current)
+  
+
+    
+  </span>
+</a>
+</li>
 <li class="md-nav__item md-nav__item--active">
 <input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
 <label class="md-nav__link md-nav__link--active" for="__toc">
@@ -552,15 +564,6 @@
       Table of contents
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#detail">
-<span class="md-ellipsis">
-      
-        Detail
-      
-    </span>
-</a>
-</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#ownership-categories">
 <span class="md-ellipsis">
@@ -660,15 +663,6 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#detail">
-<span class="md-ellipsis">
-      
-        Detail
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
 <a class="md-nav__link" href="#ownership-categories">
 <span class="md-ellipsis">
       
@@ -727,57 +721,6 @@
 </ol>
 </div>
 <p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../drawio/kyc-necessity.drawio"><div class="mxgraph" data-mxgraph='{"toolbar-position": "bottom", "toolbar-nohide": "0", "tooltips": "1", "border": 5, "resize": "1", "edit": "_blank", "lightbox": "1", "toolbar": "pages tags zoom layers lightbox", "xml": "&lt;mxfile host=\"app.diagrams.net\" modified=\"2026-06-26\" version=\"21.0.0\"&gt;&lt;diagram id=\"kyc-necessity\" name=\"KYC Necessity Decision\"&gt;\n    &lt;mxGraphModel dx=\"1422\" dy=\"762\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"1169\" pageHeight=\"827\" math=\"0\" shadow=\"0\"&gt;\n      &lt;root&gt;\n        &lt;mxCell id=\"0\"/&gt;\n        &lt;mxCell id=\"1\" parent=\"0\"/&gt;\n        &lt;!-- Title --&gt;\n        &lt;mxCell id=\"title\" value=\"KYC Necessity Decision \u2014 Rules Engine\" style=\"text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"200\" y=\"20\" width=\"600\" height=\"40\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Start --&gt;\n        &lt;mxCell id=\"start\" value=\"Business Department&amp;#10;Submits Request\" style=\"ellipse;whiteSpace=wrap;html=1;fillColor=#F57F17;strokeColor=#E65100;fontColor=#ffffff;fontSize=12;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"430\" y=\"80\" width=\"200\" height=\"60\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Q1 Entity Type --&gt;\n        &lt;mxCell id=\"q1\" value=\"Entity Type?\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"430\" y=\"180\" width=\"200\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e1\" edge=\"1\" source=\"start\" target=\"q1\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Individual branch --&gt;\n        &lt;mxCell id=\"q2ind\" value=\"Ownership Category\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"180\" y=\"320\" width=\"200\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e2a\" value=\"Individual\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q1\" target=\"q2ind\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Legal Entity branch --&gt;\n        &lt;mxCell id=\"q2le\" value=\"Ownership Category\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"680\" y=\"320\" width=\"200\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e2b\" value=\"Company\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q1\" target=\"q2le\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Qatari National --&gt;\n        &lt;mxCell id=\"q3a\" value=\"Financial&amp;#10;Involvement?\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"60\" y=\"460\" width=\"160\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e3a\" value=\"Qatari National\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2ind\" target=\"q3a\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Non-Qatari Person \u2192 always required --&gt;\n        &lt;mxCell id=\"e3b\" value=\"Non-Qatari\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2ind\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Financial Yes \u2192 Required --&gt;\n        &lt;mxCell id=\"e4a\" value=\"Yes\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q3a\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Financial No \u2192 Related Party check --&gt;\n        &lt;mxCell id=\"q4a\" value=\"Related&amp;#10;Party?\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"60\" y=\"600\" width=\"160\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e4b\" value=\"No\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q3a\" target=\"q4a\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e5a\" value=\"Yes\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q4a\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e5b\" value=\"No\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q4a\" target=\"not_required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Legal Entity categories --&gt;\n        &lt;mxCell id=\"e_qle_full\" value=\"Fully Qatari\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2le\" target=\"q3c\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_qle_maj\" value=\"Qatar Majority\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2le\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_qle_min\" value=\"Qatar Minority\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2le\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_foreign\" value=\"Foreign Entity\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q2le\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Fully Qatari LE check --&gt;\n        &lt;mxCell id=\"q3c\" value=\"Financial&amp;#10;Involvement?\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"780\" y=\"460\" width=\"160\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_q3c_no\" value=\"No\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q3c\" target=\"not_required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"e_q3c_yes\" value=\"Yes\" style=\"edgeStyle=orthogonalEdgeStyle;\" edge=\"1\" source=\"q3c\" target=\"required\" parent=\"1\"&gt;\n          &lt;mxGeometry relative=\"1\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;!-- Outcomes --&gt;\n        &lt;mxCell id=\"required\" value=\"\u2705 KYC REQUIRED&amp;#10;Create Case&amp;#10;INTAKE-YYYY-NNNNNN\" style=\"ellipse;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"380\" y=\"620\" width=\"240\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n        &lt;mxCell id=\"not_required\" value=\"\ud83d\udccb KYC NOT REQUIRED&amp;#10;Create Waiver Record&amp;#10;Store Documents as Evidence\" style=\"ellipse;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;fontStyle=1;\" vertex=\"1\" parent=\"1\"&gt;\n          &lt;mxGeometry x=\"700\" y=\"620\" width=\"260\" height=\"80\" as=\"geometry\"/&gt;\n        &lt;/mxCell&gt;\n      &lt;/root&gt;\n    &lt;/mxGraphModel&gt;\n  &lt;/diagram&gt;\n&lt;/mxfile&gt;"}' style="max-width:100%;border:1px solid transparent;"></div></a></p>
-<hr/>
-<blockquote>
-<p><strong>Note:</strong> The image above (draw.io) is the single source of truth for this diagram — edit it visually, not the Mermaid below. The Mermaid sections that follow are a supplementary text-based detail view (per-phase breakdowns, state tables) kept for readability and diffability in pull requests; they are not independently editable diagrams and should be updated to match the draw.io file if it changes structurally.</p>
-</blockquote>
-<hr/>
-<h2 id="detail">Detail<a class="headerlink" href="#detail" title="Permanent link">¶</a></h2>
-<pre class="mermaid"><code>flowchart TD
-    START([Business Department\nSubmits Request]) --&gt; Q1
-
-    Q1{Entity Type?}
-    Q1 --&gt;|Individual| Q2_IND
-    Q1 --&gt;|Company / Legal Entity| Q2_LE
-
-    Q2_IND{Ownership Category}
-    Q2_IND --&gt;|Qatari National Person| Q3A
-    Q2_IND --&gt;|Non-Qatari Person| Q3B
-
-    Q2_LE{Ownership Category}
-    Q2_LE --&gt;|Fully Qatari Legal Entity| Q3C
-    Q2_LE --&gt;|Qatar Majority Owned| Q3D
-    Q2_LE --&gt;|Qatar Minority Owned| Q3E
-    Q2_LE --&gt;|Foreign / Non-Qatari Entity| Q3F
-
-    Q3A{Financial\nInvolvement?}
-    Q3A --&gt;|Yes| REQUIRED
-    Q3A --&gt;|No| Q4A
-
-    Q4A{Related\nParty?}
-    Q4A --&gt;|Yes| REQUIRED
-    Q4A --&gt;|No| NOT_REQUIRED
-
-    Q3B{Any Involvement?} --&gt; REQUIRED
-
-    Q3C{Financial\nInvolvement?}
-    Q3C --&gt;|No| NOT_REQUIRED
-    Q3C --&gt;|Yes| Q5C
-
-    Q5C{Related\nParty?}
-    Q5C --&gt;|No| NOT_REQUIRED
-    Q5C --&gt;|Yes| REQUIRED
-
-    Q3D --&gt; REQUIRED
-    Q3E --&gt; REQUIRED
-    Q3F --&gt; REQUIRED
-
-    REQUIRED([✅ KYC REQUIRED\nCreate Case\nAssign Reference Number])
-    NOT_REQUIRED([📋 KYC NOT REQUIRED\nCreate Waiver Record\nStore Documents as Evidence])
-
-    style REQUIRED fill:#E8EAF6,color:#1A237E,stroke:#3949AB
-    style NOT_REQUIRED fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style START fill:#E3F2FD,color:#0D47A1,stroke:#1565C0</code></pre>
 <hr/>
 <h2 id="ownership-categories">Ownership Categories<a class="headerlink" href="#ownership-categories" title="Permanent link">¶</a></h2>
 <table>
@@ -859,7 +802,7 @@
 </main>
 <footer class="md-footer">
 <nav aria-label="Footer" class="md-footer__inner md-grid">
-<a aria-label="Previous: Overview" class="md-footer__link md-footer__link--prev" href="../">
+<a aria-label="Previous: As-Is Process (Current)" class="md-footer__link md-footer__link--prev" href="../asis-process/">
 <div class="md-footer__button md-icon">
 <svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
 </div>
@@ -868,7 +811,7 @@
                 Previous
               </span>
 <div class="md-ellipsis">
-                Overview
+                As-Is Process (Current)
               </div>
 </div>
 </a>
