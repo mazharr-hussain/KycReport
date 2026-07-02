@@ -1,87 +1,70 @@
 <mxfile host="app.diagrams.net" modified="2026-06-26" version="21.0.0">
   <diagram id="best-practice-e2e" name="Best Practice End-to-End Process">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="600" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <!-- Title -->
         <mxCell id="title" value="Best Practice KYC Process — End to End" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="150" y="20" width="700" height="40" as="geometry" />
+          <mxGeometry x="450" y="10" width="600" height="40" as="geometry" />
         </mxCell>
-        <!-- Phase 0 -->
         <mxCell id="p0" value="Phase 0 — Structured Digital Intake&#xa;Business dept completes structured form&#xa;System determines KYC Required / Not Required" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="80" width="400" height="70" as="geometry" />
+          <mxGeometry x="1080" y="90" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 1 -->
         <mxCell id="p1" value="Phase 1 — Document Validation&#xa;Compliance officer reviews against checklist&#xa;KPI clock starts when docs confirmed complete" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="200" width="400" height="70" as="geometry" />
+          <mxGeometry x="1080" y="220" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 2 -->
         <mxCell id="p2" value="Phase 2 — Risk Pre-Assessment&#xa;System computes geographic, entity type, structure risk&#xa;Suggests LOW / MEDIUM / HIGH — officer confirms or overrides" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6A1B9A;strokeColor=#4A148C;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="320" width="400" height="70" as="geometry" />
+          <mxGeometry x="1080" y="350" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 3 -->
         <mxCell id="p3" value="Phase 3 — Due Diligence Research&#xa;Manual WorldCheck screening&#xa;Structured results recorded per entity + per UBO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6A1B9A;strokeColor=#4A148C;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="440" width="400" height="70" as="geometry" />
+          <mxGeometry x="670" y="350" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 4 -->
         <mxCell id="p4" value="Phase 4 — Entity Record Creation&#xa;Auto-populated from intake form&#xa;Duplicate check — Jaro-Winkler fuzzy matching" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="560" width="400" height="70" as="geometry" />
+          <mxGeometry x="670" y="220" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 5 -->
         <mxCell id="p5" value="Phase 5 — KYC Report Creation&#xa;Auto-populated from entity record&#xa;Conclusion templates | SLA indicator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="680" width="400" height="70" as="geometry" />
+          <mxGeometry x="670" y="90" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 6 -->
         <mxCell id="p6" value="Phase 6 — Level 1 Approval&#xa;Approve / RFI / Reject&#xa;Delegation pre-configured" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="800" width="400" height="70" as="geometry" />
+          <mxGeometry x="260" y="90" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Risk split -->
-        <mxCell id="risk_split" value="Risk Level?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="390" y="920" width="220" height="80" as="geometry" />
+        <mxCell id="risk_split" value="Risk Level?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="220" width="240" height="90" as="geometry" />
         </mxCell>
-        <!-- Phase 7 -->
         <mxCell id="p7" value="Phase 7 — Level 2 / MLRO Approval&#xa;SAR Gate (mandatory)&#xa;Approve / RFI / Reject / SAR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="1060" width="400" height="70" as="geometry" />
+          <mxGeometry x="260" y="350" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Phase 8 -->
         <mxCell id="p8" value="Phase 8 — Completion&#xa;Auto PDF | Notify requestor | Seal record&#xa;Set next review date | Ongoing monitoring alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F57F17;strokeColor=#E65100;fontColor=#ffffff;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="1200" width="400" height="70" as="geometry" />
+          <mxGeometry x="30" y="480" width="360" height="80" as="geometry" />
         </mxCell>
-        <!-- Connections -->
-        <mxCell id="e01" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p0" target="p1" parent="1">
+        <mxCell id="e01" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p0" target="p1" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p1" target="p2" parent="1">
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p1" target="p2" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p2" target="p3" parent="1">
+        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="p2" target="p3" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e34" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p3" target="p4" parent="1">
+        <mxCell id="e34" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="p3" target="p4" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e45" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p4" target="p5" parent="1">
+        <mxCell id="e45" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="p4" target="p5" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e56" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p5" target="p6" parent="1">
+        <mxCell id="e56" value="Enters Approval Workflow" style="edgeStyle=orthogonalEdgeStyle;fontStyle=1;strokeColor=#2E7D32;strokeWidth=2;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="p5" target="p6" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e67" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p6" target="risk_split" parent="1">
+        <mxCell id="e67" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p6" target="risk_split" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_low" value="Low Risk" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="risk_split" target="p8" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="780" y="960" />
-              <mxPoint x="780" y="1235" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e_high" value="Medium/High Risk" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="risk_split" target="p7" parent="1">
+        <mxCell id="e_low" value="Low Risk" style="edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" source="risk_split" target="p8" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e78" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="p7" target="p8" parent="1">
+        <mxCell id="e_high" value="Medium/High Risk" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="risk_split" target="p7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e78" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="p7" target="p8" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -217,118 +200,118 @@
     </mxGraphModel>
   </diagram>
   <diagram id="bpe-p3" name="Phase 3 Detail">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="810" pageHeight="990" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="460" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 3 — Due Diligence Research" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="55" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="275" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="start" value="Risk Confirmed" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="screen" value="Manual Screening (WorldCheck)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="record" value="Record Structured Results per Entity + UBO" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="escalate" value="Confirmed Match or PEP?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="90" as="geometry" />
+          <mxGeometry x="400" y="335" width="260" height="90" as="geometry" />
         </mxCell>
         <mxCell id="edd" value="Auto-escalate to Enhanced DD" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+          <mxGeometry x="400" y="200" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="continue" value="Proceed to Phase 4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+          <mxGeometry x="80" y="90" width="260" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="start" target="screen" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="start" target="screen" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="screen" target="record" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="screen" target="record" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="record" target="escalate" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="record" target="escalate" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="escalate" target="edd" parent="1">
+        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="escalate" target="edd" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="escalate" target="continue" parent="1">
+        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.3;entryX=1;entryY=0.5;" edge="1" source="escalate" target="continue" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="edd" target="continue" parent="1">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="edd" target="continue" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram id="bpe-p45" name="Phase 4-5 Detail">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1440" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1450" pageHeight="460" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phases 4 &amp; 5 — Entity &amp; Report Creation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="425" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="start" value="Screening Complete" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="1130" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="entity" value="Create Entity Record (auto-populated)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+          <mxGeometry x="1130" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="ubo" value="Add UBOs &amp; Authorised Signatories" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="1130" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="report" value="Create KYC Report (auto-populated)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="760" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="type" value="KYC Type?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="90" as="geometry" />
+          <mxGeometry x="760" y="220" width="280" height="90" as="geometry" />
         </mxCell>
         <mxCell id="simple" value="Standard Fields" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="820" width="220" height="70" as="geometry" />
+          <mxGeometry x="600" y="350" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="eddf" value="+ Source of Funds/Wealth (mandatory)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="820" width="220" height="70" as="geometry" />
+          <mxGeometry x="850" y="350" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="template" value="Select Conclusion Template" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+          <mxGeometry x="280" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="sla" value="SLA Indicator Shown" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1120" width="220" height="70" as="geometry" />
+          <mxGeometry x="280" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="submit" value="Submit for Approval" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1270" width="220" height="70" as="geometry" />
+          <mxGeometry x="280" y="90" width="280" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="start" target="entity" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="start" target="entity" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="entity" target="ubo" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="entity" target="ubo" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="ubo" target="report" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="ubo" target="report" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="report" target="type" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="report" target="type" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="Simplified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="type" target="simple" parent="1">
+        <mxCell id="e4" value="Simplified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" source="type" target="simple" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" value="Enhanced" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="type" target="eddf" parent="1">
+        <mxCell id="e5" value="Enhanced" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.7;exitY=1;entryX=0.5;entryY=0;" edge="1" source="type" target="eddf" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="simple" target="template" parent="1">
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.3;" edge="1" source="simple" target="template" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="eddf" target="template" parent="1">
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.7;" edge="1" source="eddf" target="template" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="template" target="sla" parent="1">
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="template" target="sla" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sla" target="submit" parent="1">
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="sla" target="submit" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -412,62 +395,62 @@
     </mxGraphModel>
   </diagram>
   <diagram id="bpe-p8" name="Phase 8 Detail">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1090" pageHeight="1140" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="480" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 8 — Completion &amp; Ongoing Monitoring" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="195" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="350" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="final" value="Final Approved" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="1000" y="90" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="pdf" value="Auto-generate PDF" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+          <mxGeometry x="1000" y="220" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="notify" value="Email Requestor with Report" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="1000" y="350" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="seal" value="Seal Record (Read-only)" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="620" y="350" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="reviewdate" value="Set Next Review Date by Risk Level" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+          <mxGeometry x="620" y="220" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="monitor" value="Ongoing Monitoring — Scheduled Alerts" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+          <mxGeometry x="620" y="90" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="d60" value="60 days before: Notify Officer" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="210" y="970" width="220" height="70" as="geometry" />
+          <mxGeometry x="40" y="90" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="d0" value="On review date: Notify Manager" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+          <mxGeometry x="40" y="200" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="slab" value="Daily: Flag SLA breaches" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="770" y="970" width="220" height="70" as="geometry" />
+          <mxGeometry x="40" y="310" width="220" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="final" target="pdf" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="final" target="pdf" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="pdf" target="notify" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="pdf" target="notify" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="notify" target="seal" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="notify" target="seal" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="seal" target="reviewdate" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="seal" target="reviewdate" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="reviewdate" target="monitor" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="reviewdate" target="monitor" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="monitor" target="d60" parent="1">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.2;entryX=1;entryY=0.5;" edge="1" source="monitor" target="d60" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="monitor" target="d0" parent="1">
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="monitor" target="d0" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="monitor" target="slab" parent="1">
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.8;entryX=1;entryY=0.5;" edge="1" source="monitor" target="slab" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
