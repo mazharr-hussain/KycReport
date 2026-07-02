@@ -57,7 +57,7 @@ Every step in this process is designed around seven core compliance principles:
 !!! tip "Single source of truth"
     See the [Intake & Document Validation diagram](../diagrams/intake-flow.md) — maintained in draw.io, edited visually at diagrams.net, renders automatically here and there.
 
-![Intake & Document Validation Flow](../diagrams/drawio/intake-flow.drawio)
+![Intake and Document Validation](../diagrams/drawio/intake-flow.drawio)
 
 **What this fixes:**
 - Every request is in the same format, regardless of which department sends it
@@ -216,7 +216,7 @@ The dashboard shows in real time:
 !!! tip "Single source of truth"
     Full state machine, routing rules, and delegation logic are maintained in the [Approval Workflow diagram](../diagrams/approval-workflow.md) (draw.io). The upstream steps (intake through report creation) are shown in the [Best Practice End-to-End diagram](../diagrams/best-practice-e2e.md) above.
 
-![Approval Workflow](../diagrams/drawio/approval-workflow.drawio)
+![Approval Workflow State Machine](../diagrams/drawio/approval-workflow.drawio)
 
 ---
 

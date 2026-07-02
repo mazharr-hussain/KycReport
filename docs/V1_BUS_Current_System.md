@@ -67,7 +67,7 @@ Once a compliance officer completes a report, it goes through a formal approval 
 !!! tip "Single source of truth"
     Maintained in draw.io — see [As-Is Process diagrams](../diagrams/asis-process.md), page 9 "V1 Approval Workflow (Legacy)".
 
-![V1 Approval Workflow](../diagrams/drawio/asis-process.drawio)
+![V1 Approval Workflow (Legacy)](../diagrams/drawio/asis-process.drawio)
 
 **Important rule:** A report cannot be approved by the same person who created it. Low-risk reports require one approval signature. Medium and high-risk reports require two separate approvals.
 

@@ -9,7 +9,7 @@ The current (As-Is) KYC process as described in [V2 — As-Is Process](../busine
     4. Edit visually and save — it commits directly to GitHub
     5. Netlify rebuilds and this page updates automatically
 
-![As-Is Process](drawio/asis-process.drawio)
+![System Boundary](drawio/asis-process.drawio)
 
 ## Pages in this file
 

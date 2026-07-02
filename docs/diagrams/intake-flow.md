@@ -9,7 +9,7 @@ Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC pro
     4. Edit visually and save — it commits directly to GitHub
     5. Netlify rebuilds and this page updates automatically
 
-![Intake & Document Validation Flow](drawio/intake-flow.drawio)
+![Intake and Document Validation](drawio/intake-flow.drawio)
 
 > **Version note:** The diagram shows Jaro-Winkler fuzzy matching for duplicate detection (V3–V5). In V6, this step is performed by AI Vector Search (cosine similarity) instead — see [V6 Technical Spec](../V6_TECH_APEX26AI_Spec.md) Section 4.
 
