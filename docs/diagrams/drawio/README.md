@@ -24,10 +24,13 @@ When you update a diagram, export it as **SVG** (File → Export As → SVG) and
 
 ## Files in This Folder
 
-| File | Diagram |
-|---|---|
-| `kyc-necessity.drawio` | KYC necessity decision tree |
-| `intake-flow.drawio` | Intake and document validation |
-| `approval-workflow.drawio` | Full approval state machine |
-| `best-practice-e2e.drawio` | Best practice end-to-end process |
-| `apex-architecture.drawio` | APEX system architecture |
+| File | Pages | Diagram |
+|---|---|---|
+| `kyc-necessity.drawio` | 1 | KYC necessity decision tree (To-Be) |
+| `intake-flow.drawio` | 1 | Intake and document validation (To-Be) |
+| `approval-workflow.drawio` | 3 | Approval state machine, routing rules, delegation (To-Be) |
+| `best-practice-e2e.drawio` | 8 | High-level map + per-phase detail, Phases 0–8 (To-Be) |
+| `apex-architecture.drawio` | 4 | V4 architecture overview, auth flow, nightly sync, VPD security |
+| `asis-process.drawio` | 9 | System boundary, one-page overview, and per-phase detail for the current manual process (As-Is) |
+
+Files with more than 1 page use the page selector in the diagram viewer toolbar (top-right of the embedded diagram) to switch pages.

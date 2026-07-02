@@ -54,7 +54,7 @@ A KYC report is the formal compliance document that records everything the team 
 Each report includes:
 - Which company or person was investigated
 - What type of relationship QD plans to have with them
-- What level of due diligence was applied (Simplified, Standard, or Enhanced)
+- What level of due diligence was applied (Simplified, AdHoc, or Enhanced)
 - What the screening found
 - The compliance officer's conclusion and recommendation
 - The assessed risk level (Low, Medium, or High)
@@ -64,27 +64,10 @@ Each report includes:
 
 Once a compliance officer completes a report, it goes through a formal approval process before it is finalised.
 
-```mermaid
-flowchart TD
-    CO([Compliance Officer\nCreates Report]) --> SUBMIT[Submits for Approval]
-    SUBMIT --> L1[Level 1 Approver\nReviews]
-    L1 --> A1{Decision}
-    A1 -->|Approve — Low Risk| FINAL([✅ Final Approval])
-    A1 -->|Request More Info| RFI[Report returned\nto Officer with comment]
-    A1 -->|Reject| REJ1([❌ Closed])
-    RFI --> RESUBMIT[Officer responds\nand resubmits]
-    RESUBMIT --> L1
-    A1 -->|Approve — Medium/High Risk| L2[Level 2 Approver\nReviews]
-    L2 --> A2{Decision}
-    A2 -->|Final Approve| FINAL
-    A2 -->|Request More Info| RFI
-    A2 -->|Reject| REJ2([❌ Closed])
+!!! tip "Single source of truth"
+    Maintained in draw.io — see [As-Is Process diagrams](../diagrams/asis-process.md), page 9 "V1 Approval Workflow (Legacy)".
 
-    style FINAL fill:#E8F5E9,color:#1B5E20,stroke:#2E7D32
-    style REJ1 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style REJ2 fill:#FFEBEE,color:#7F0000,stroke:#B71C1C
-    style RFI fill:#FFF3E0,color:#BF360C,stroke:#E65100
-```
+![V1 Approval Workflow (Legacy)](../diagrams/drawio/asis-process.drawio)
 
 **Important rule:** A report cannot be approved by the same person who created it. Low-risk reports require one approval signature. Medium and high-risk reports require two separate approvals.
 
