@@ -115,41 +115,41 @@
     </mxGraphModel>
   </diagram>
   <diagram id="bpe-p1" name="Phase 1 Detail">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="690" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="420" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 1 — Document Validation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="275" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="case" value="New Case" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="60" y="90" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="co" value="Compliance Officer Reviews Checklist" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="520" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="rfq" value="Structured Document Request + Deadline" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="400" y="90" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="kpi" value="KPI Clock Starts (docs_complete_date)" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="90" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rfq" value="Structured Document Request + Deadline" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="270" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="dup" value="Duplicate Check (Jaro-Winkler)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="270" width="260" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="case" target="co" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="case" target="co" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" value="Missing docs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="co" target="rfq" parent="1">
+        <mxCell id="e1" value="Missing docs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="co" target="rfq" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="Uploaded via portal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="rfq" target="co" parent="1">
+        <mxCell id="e2" value="Uploaded via portal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3;exitY=0;entryX=0.3;entryY=1;" edge="1" source="rfq" target="co" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="All complete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="co" target="kpi" parent="1">
+        <mxCell id="e3" value="All complete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="co" target="kpi" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="kpi" target="dup" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="kpi" target="dup" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -247,42 +247,42 @@
     </mxGraphModel>
   </diagram>
   <diagram id="bpe-p45" name="Phase 4-5 Detail">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1450" pageHeight="460" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1250" pageHeight="460" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phases 4 &amp; 5 — Entity &amp; Report Creation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="425" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="325" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="start" value="Screening Complete" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="1130" y="90" width="280" height="70" as="geometry" />
+          <mxGeometry x="910" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="entity" value="Create Entity Record (auto-populated)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="1130" y="220" width="280" height="70" as="geometry" />
+          <mxGeometry x="910" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="ubo" value="Add UBOs &amp; Authorised Signatories" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="1130" y="350" width="280" height="70" as="geometry" />
+          <mxGeometry x="910" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="report" value="Create KYC Report (auto-populated)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="760" y="90" width="280" height="70" as="geometry" />
+          <mxGeometry x="540" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="type" value="KYC Type?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="760" y="220" width="280" height="90" as="geometry" />
+          <mxGeometry x="540" y="220" width="280" height="90" as="geometry" />
         </mxCell>
         <mxCell id="simple" value="Standard Fields" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="600" y="350" width="220" height="70" as="geometry" />
+          <mxGeometry x="380" y="350" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="eddf" value="+ Source of Funds/Wealth (mandatory)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="850" y="350" width="220" height="70" as="geometry" />
+          <mxGeometry x="630" y="350" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="template" value="Select Conclusion Template" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="350" width="280" height="70" as="geometry" />
+          <mxGeometry x="60" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="sla" value="SLA Indicator Shown" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="220" width="280" height="70" as="geometry" />
+          <mxGeometry x="60" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="submit" value="Submit for Approval" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="90" width="280" height="70" as="geometry" />
+          <mxGeometry x="60" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="start" target="entity" parent="1">
           <mxGeometry relative="1" as="geometry" />
@@ -305,8 +305,13 @@
         <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.3;" edge="1" source="simple" target="template" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.7;" edge="1" source="eddf" target="template" parent="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="e7" value="Enhanced fields joins" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" source="eddf" target="template" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="330" />
+              <mxPoint x="200" y="330" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="template" target="sla" parent="1">
           <mxGeometry relative="1" as="geometry" />
