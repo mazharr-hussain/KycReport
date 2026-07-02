@@ -11,8 +11,6 @@ Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC pro
 
 ![Intake and Document Validation](drawio/intake-flow.drawio)
 
-> **Version note:** The diagram shows Jaro-Winkler fuzzy matching for duplicate detection (V3–V5). In V6, this step is performed by AI Vector Search (cosine similarity) instead — see [V6 Technical Spec](../V6_TECH_APEX26AI_Spec.md) Section 4.
-
 ---
 
 ## KPI Note
