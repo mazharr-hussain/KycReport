@@ -1,138 +1,155 @@
 <mxfile host="app.diagrams.net" modified="2026-07-01" version="21.0.0">
   <diagram id="asis-boundary" name="System Boundary">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="810" pageHeight="1290" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="650" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="System Boundary — What&#x27;s Inside vs Outside the KYC Report Application" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="55" y="10" width="600" height="40" as="geometry" />
+        <mxCell id="title" value="System Boundary — What's Inside vs Outside the KYC Report Application" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="800" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="p0" value="Phase 0 — Excel Calculator (OUTSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+        <mxCell id="grp_inside" value="INSIDE — KYC Report Application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3949AB;dashed=1;verticalAlign=top;align=left;spacingLeft=16;spacingTop=10;fontSize=13;fontStyle=1;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="80" y="90" width="500" height="520" as="geometry" />
         </mxCell>
-        <mxCell id="p1" value="Phase 1 — Document Collection via Email (OUTSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+        <mxCell id="grp_outside" value="OUTSIDE — Manual Process" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#E65100;dashed=1;verticalAlign=top;align=left;spacingLeft=16;spacingTop=10;fontSize=13;fontStyle=1;fontColor=#BF360C;" vertex="1" parent="1">
+          <mxGeometry x="620" y="90" width="500" height="520" as="geometry" />
         </mxCell>
-        <mxCell id="p2" value="Phase 2 — Work Assignment (OUTSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+        <mxCell id="p0" value="Phase 0&#xa;Excel Calculator" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="140" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p3" value="Phase 3 — WorldCheck Due Diligence (OUTSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+        <mxCell id="p1" value="Phase 1&#xa;Document Collection via Email" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="260" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p4" value="Phase 4 — Entity Record Creation (INSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+        <mxCell id="p2" value="Phase 2&#xa;Work Assignment" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="380" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p5" value="Phase 5 — KYC Report Creation (INSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+        <mxCell id="p3" value="Phase 3&#xa;WorldCheck Due Diligence" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="500" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p6" value="Phase 6 — Level 1 Approval (INSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+        <mxCell id="p4" value="Phase 4&#xa;Entity Record Creation" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="500" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p7" value="Phase 7 — Level 2 Approval (INSIDE)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1120" width="220" height="70" as="geometry" />
+        <mxCell id="p5" value="Phase 5&#xa;KYC Report Creation" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="380" width="380" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p0" target="p1" parent="1">
+        <mxCell id="p6" value="Phase 6&#xa;Level 1 Approval" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="260" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p7" value="Phase 7&#xa;Level 2 Approval" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="140" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#E65100;" edge="1" source="p0" target="p1" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p1" target="p2" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#E65100;" edge="1" source="p1" target="p2" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p2" target="p3" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#E65100;" edge="1" source="p2" target="p3" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="Enters KYC Report Application" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p3" target="p4" parent="1">
+        <mxCell id="e3" value="Enters KYC Report Application" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#3949AB;strokeWidth=2;" edge="1" source="p3" target="p4" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p4" target="p5" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#3949AB;" edge="1" source="p4" target="p5" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p5" target="p6" parent="1">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#3949AB;" edge="1" source="p5" target="p6" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p6" target="p7" parent="1">
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#3949AB;" edge="1" source="p6" target="p7" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram id="asis-onepage" name="Complete As-Is Process">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1740" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="780" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Complete As-Is Process — One Page" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="450" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="grp_inside" value="INSIDE — KYC Report Application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3949AB;dashed=1;verticalAlign=top;align=left;spacingLeft=16;spacingTop=10;fontSize=13;fontStyle=1;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="140" y="170" width="400" height="580" as="geometry" />
+        </mxCell>
+        <mxCell id="grp_outside" value="OUTSIDE — Manual / Email" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#E65100;dashed=1;verticalAlign=top;align=left;spacingLeft=16;spacingTop=10;fontSize=13;fontStyle=1;fontColor=#BF360C;" vertex="1" parent="1">
+          <mxGeometry x="860" y="170" width="400" height="580" as="geometry" />
         </mxCell>
         <mxCell id="start" value="Business Department" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="1280" y="90" width="180" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p0" value="Phase 0 — KYC Necessity Check (Excel Calculator)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+        <mxCell id="p0" value="Phase 0&#xa;KYC Necessity Check (Excel Calculator)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="210" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="waiver" value="Waiver saved locally, no further action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="370" width="220" height="70" as="geometry" />
+        <mxCell id="waiver" value="Waiver saved locally&#xa;No further action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="210" width="180" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p1" value="Phase 1 — Document Collection &amp; Validation" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="370" width="220" height="70" as="geometry" />
+        <mxCell id="p1" value="Phase 1&#xa;Document Collection &amp; Validation" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="310" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p2" value="Phase 2 — Work Assignment by Manager" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+        <mxCell id="p2" value="Phase 2&#xa;Work Assignment by Manager" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="410" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p3" value="Phase 3 — Due Diligence (WorldCheck)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+        <mxCell id="p3" value="Phase 3&#xa;Due Diligence (WorldCheck)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="510" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p3b" value="Report Preparation — Officer compiles report manually" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+        <mxCell id="p3b" value="Report Preparation&#xa;Officer compiles report manually" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="610" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p4" value="Phase 4 — Entity Record Data Entry (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="970" width="220" height="70" as="geometry" />
+        <mxCell id="p4" value="Phase 4&#xa;Entity Record Data Entry (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="610" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p5" value="Phase 5 — KYC Report Data Entry &amp; Submit (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1120" width="220" height="70" as="geometry" />
+        <mxCell id="p5" value="Phase 5&#xa;KYC Report Data Entry &amp; Submit (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="490" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p6" value="Phase 6 — Level 1 Approval (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1270" width="220" height="70" as="geometry" />
+        <mxCell id="p6" value="Phase 6&#xa;Level 1 Approval (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="370" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p7" value="Phase 7 — Level 2 Approval (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1420" width="220" height="70" as="geometry" />
+        <mxCell id="p7" value="Phase 7&#xa;Level 2 Approval (in system)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="250" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="done" value="Completed — manual email to requestor" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1570" width="220" height="70" as="geometry" />
+        <mxCell id="done" value="Completed&#xa;Manual email to requestor" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="90" width="180" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="start" target="p0" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="start" target="p0" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" value="Not Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p0" target="waiver" parent="1">
+        <mxCell id="e1" value="Not Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="p0" target="waiver" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p0" target="p1" parent="1">
+        <mxCell id="e2" value="Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p0" target="p1" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p1" target="p2" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p1" target="p2" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p2" target="p3" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p2" target="p3" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p3" target="p3b" parent="1">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="p3" target="p3b" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p3b" target="p4" parent="1">
+        <mxCell id="e6" value="Enters KYC Report Application" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#3949AB;strokeWidth=2;" edge="1" source="p3b" target="p4" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p4" target="p5" parent="1">
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="p4" target="p5" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p5" target="p6" parent="1">
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="p5" target="p6" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e9" value="Low Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p6" target="done" parent="1">
+        <mxCell id="e9" value="Low Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="p6" target="done" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="295" />
+              <mxPoint x="60" y="125" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" value="Medium/High Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="p6" target="p7" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e10" value="Medium/High Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p6" target="p7" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="p7" target="done" parent="1">
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" source="p7" target="done" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -171,147 +188,147 @@
     </mxGraphModel>
   </diagram>
   <diagram id="asis-p1" name="Phase 1 Doc Validation">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="840" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="420" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 1 — Receiving and Validating Documents" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="275" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="recv" value="Documents Received via Email" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="60" y="90" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="check" value="Sufficient?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="req" value="Request more documents by email to department" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="370" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="reply" value="Department replies by email" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="400" y="80" width="220" height="90" as="geometry" />
         </mxCell>
         <mxCell id="save" value="Save documents to local folder on workstation" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="90" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="req" value="Request more documents by email to department" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="270" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="reply" value="Department replies by email" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="260" height="70" as="geometry" />
         </mxCell>
         <mxCell id="signal" value="Signal to manager verbally or by email: Ready for assignment" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="270" width="260" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="recv" target="check" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" source="recv" target="check" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" value="NO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="check" target="req" parent="1">
+        <mxCell id="e1" value="NO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="check" target="req" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="req" target="reply" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="req" target="reply" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="reply" target="check" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.3;entryX=0;entryY=0.7;" edge="1" source="reply" target="check" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="YES" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="check" target="save" parent="1">
+        <mxCell id="e4" value="YES" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="check" target="save" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="save" target="signal" parent="1">
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="save" target="signal" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram id="asis-p3" name="Phase 3 WorldCheck">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="810" pageHeight="990" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="500" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 3 — Conducting Due Diligence (WorldCheck)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="55" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="120" y="10" width="760" height="40" as="geometry" />
         </mxCell>
         <mxCell id="wc" value="Open WorldCheck in browser" style="rect;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#4A148C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="120" y="90" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="search" value="Search entity/person by name" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+          <mxGeometry x="120" y="240" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="match" value="Review matches (direct match, PEP, adverse findings, shareholders)" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="120" y="390" width="240" height="90" as="geometry" />
         </mxCell>
         <mxCell id="judge" value="Apply risk-based judgement: how deep to go?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="90" as="geometry" />
+          <mxGeometry x="600" y="390" width="240" height="90" as="geometry" />
         </mxCell>
         <mxCell id="note" value="Note findings manually in memory or personal document" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+          <mxGeometry x="600" y="240" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="system" value="Enter findings later into KYC system free-text field" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="70" as="geometry" />
+          <mxGeometry x="600" y="90" width="240" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="wc" target="search" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="wc" target="search" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="search" target="match" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="search" target="match" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="match" target="judge" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="match" target="judge" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="judge" target="note" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="judge" target="note" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="note" target="system" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="note" target="system" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram id="asis-p5" name="Phase 5 Report Creation">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1140" math="0" shadow="0">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="520" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="title" value="Phase 5 — Creating the KYC Report" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="125" y="10" width="600" height="40" as="geometry" />
+          <mxGeometry x="275" y="10" width="600" height="40" as="geometry" />
         </mxCell>
         <mxCell id="new" value="Create new KYC report in system" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="90" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="link" value="Link to entity — no auto-population, re-enter all fields manually" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="class" value="Enter classification: Simplified/AdHoc/Enhanced, risk level" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="370" width="220" height="70" as="geometry" />
+          <mxGeometry x="780" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="conc" value="Write conclusion: open Word doc, copy template, paste, adjust" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="70" as="geometry" />
+          <mxGeometry x="420" y="350" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="upload" value="Upload documents from local folder on workstation" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="670" width="220" height="70" as="geometry" />
+          <mxGeometry x="420" y="220" width="280" height="70" as="geometry" />
         </mxCell>
         <mxCell id="action" value="Choose action" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="220" height="90" as="geometry" />
+          <mxGeometry x="440" y="80" width="240" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="draft" value="Stays in officer&#x27;s queue for later" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="970" width="220" height="70" as="geometry" />
+        <mxCell id="draft" value="Stays in officer's queue for later" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="280" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="approver" value="Goes to approver&#x27;s queue" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="970" width="220" height="70" as="geometry" />
+        <mxCell id="approver" value="Goes to approver's queue" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="280" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="new" target="link" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="new" target="link" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="link" target="class" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="link" target="class" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="class" target="conc" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="class" target="conc" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="conc" target="upload" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="conc" target="upload" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="upload" target="action" parent="1">
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="upload" target="action" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" value="Save Draft" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="action" target="draft" parent="1">
+        <mxCell id="e5" value="Save Draft" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="action" target="draft" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" value="Submit for Approval" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="action" target="approver" parent="1">
+        <mxCell id="e6" value="Submit for Approval" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0;exitY=1;entryX=1;entryY=0.5;" edge="1" source="action" target="approver" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -412,89 +429,6 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e4" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="decision" target="reject" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-  <diagram id="v1-approval" name="V1 Approval Workflow (Legacy)">
-    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1230" pageHeight="1140" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="title" value="V1 Current System — Approval Workflow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="265" y="10" width="600" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="co" value="Compliance Officer Creates Report" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="70" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="submit" value="Submits for Approval" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="220" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="l1" value="Level 1 Approver Reviews" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="70" y="970" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="a1" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="220" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="final" value="Final Approval" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="970" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="rfi" value="Report returned to Officer with comment" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="970" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="rej1" value="Closed (L1 Reject)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="670" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="resubmit" value="Officer responds and resubmits" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="820" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="l2" value="Level 2 Approver Reviews" style="rect;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontColor=#1A237E;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="670" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="a2" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="630" y="820" width="220" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="rej2" value="Closed (L2 Reject)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontColor=#7F0000;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="910" y="970" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="co" target="submit" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="submit" target="l1" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l1" target="a1" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e3" value="Approve — Low Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a1" target="final" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e4" value="Request More Info" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a1" target="rfi" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e5" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a1" target="rej1" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="rfi" target="resubmit" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="resubmit" target="l1" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e8" value="Approve — Med/High Risk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a1" target="l2" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l2" target="a2" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e10" value="Final Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a2" target="final" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e11" value="Request More Info" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a2" target="rfi" parent="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e12" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="a2" target="rej2" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

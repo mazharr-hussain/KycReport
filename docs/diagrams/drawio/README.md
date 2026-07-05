@@ -26,11 +26,11 @@ When you update a diagram, export it as **SVG** (File → Export As → SVG) and
 
 | File | Pages | Diagram |
 |---|---|---|
-| `kyc-necessity.drawio` | 1 | KYC necessity decision tree (To-Be) |
 | `intake-flow.drawio` | 1 | Intake and document validation (To-Be) |
 | `approval-workflow.drawio` | 3 | Approval state machine, routing rules, delegation (To-Be) |
-| `best-practice-e2e.drawio` | 8 | High-level map + per-phase detail, Phases 0–8 (To-Be) |
-| `apex-architecture.drawio` | 4 | V4 architecture overview, auth flow, nightly sync, VPD security |
-| `asis-process.drawio` | 9 | System boundary, one-page overview, and per-phase detail for the current manual process (As-Is) |
+| `best-practice-e2e.drawio` | 9 | High-level map + per-phase detail, Phases 0–8, plus risk panel (To-Be) |
+| `asis-process.drawio` | 8 | System boundary, one-page overview, and per-phase detail for the current manual process (As-Is) |
+
+This is a business-only, As-Is/To-Be branch — `kyc-necessity.drawio` and `apex-architecture.drawio` (V4-specific) were removed from this scope. They still exist on `main`.
 
 Files with more than 1 page use the page selector in the diagram viewer toolbar (top-right of the embedded diagram) to switch pages.
