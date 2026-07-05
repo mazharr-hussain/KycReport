@@ -1,0 +1,97 @@
+<mxfile host="app.diagrams.net" modified="2026-06-26" version="21.0.0">
+  <diagram id="kyc-necessity" name="KYC Necessity Decision">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="title" value="KYC Necessity Decision — Rules Engine" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        <!-- Start -->
+        <mxCell id="start" value="Business Department&#xa;Submits Request" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F57F17;strokeColor=#E65100;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="80" width="200" height="60" as="geometry" />
+        </mxCell>
+        <!-- Q1 Entity Type -->
+        <mxCell id="q1" value="Entity Type?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="180" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" source="start" target="q1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Individual branch -->
+        <mxCell id="q2ind" value="Ownership Category" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e2a" value="Individual" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q1" target="q2ind" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Legal Entity branch -->
+        <mxCell id="q2le" value="Ownership Category" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e2b" value="Company" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q1" target="q2le" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Qatari National -->
+        <mxCell id="q3a" value="Financial&#xa;Involvement?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e3a" value="Qatari National" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2ind" target="q3a" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Non-Qatari Person → always required -->
+        <mxCell id="e3b" value="Non-Qatari" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2ind" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Financial Yes → Required -->
+        <mxCell id="e4a" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q3a" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Financial No → Related Party check -->
+        <mxCell id="q4a" value="Related&#xa;Party?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e4b" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q3a" target="q4a" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5a" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q4a" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5b" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q4a" target="not_required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Legal Entity categories -->
+        <mxCell id="e_qle_full" value="Fully Qatari" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2le" target="q3c" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_qle_maj" value="Qatar Majority" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2le" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_qle_min" value="Qatar Minority" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2le" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_foreign" value="Foreign Entity" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q2le" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Fully Qatari LE check -->
+        <mxCell id="q3c" value="Financial&#xa;Involvement?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="460" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q3c_no" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q3c" target="not_required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q3c_yes" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="q3c" target="required" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Outcomes -->
+        <mxCell id="required" value="✅ KYC REQUIRED&#xa;Create Case&#xa;INTAKE-YYYY-NNNNNN" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="620" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="not_required" value="📋 KYC NOT REQUIRED&#xa;Create Waiver Record&#xa;Store Documents as Evidence" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2E7D32;strokeColor=#1B5E20;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="620" width="260" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

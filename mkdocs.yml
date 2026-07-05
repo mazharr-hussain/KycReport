@@ -1,5 +1,5 @@
-site_name: QD KYC System — As-Is / To-Be Business Review
-site_description: Business-only documentation for the Qatari Diar KYC Management System — As-Is (V2) and To-Be (V3) processes, for business sign-off ahead of technical development
+site_name: QD KYC System — Documentation
+site_description: Knowledge base for the Qatari Diar KYC Management System — all versions, all audiences
 site_author: Qatari Diar — Compliance & IT
 site_url: https://mazharr-hussain.github.io/KycReport/
 
@@ -99,11 +99,28 @@ nav:
   - Home: index.md
   - Business Guides:
     - Overview: business/index.md
+    - V1 — Current System: business/v1-current-system.md
     - V2 — As-Is Process: business/v2-asis-process.md
     - V3 — Best Practice Process: business/v3-best-practice.md
+    - V4 — Oracle APEX User Guide: business/v4-apex-userguide.md
+    - V5 — APEX 24 User Guide: business/v5-apex24-userguide.md
+    - V6 — APEX 26 AI User Guide: business/v6-apex26ai-userguide.md
+  - Technical Specifications:
+    - Overview: technical/index.md
+    - V1 — Current System Spec: technical/v1-current-system-spec.md
+    - V2 — As-Is Requirements: technical/v2-asis-requirements.md
+    - V3 — Best Practice Spec: technical/v3-best-practice-spec.md
+    - V4 — Oracle APEX Spec: technical/v4-apex-spec.md
+    - V5 — APEX 24 on ATP Spec: technical/v5-apex24-spec.md
+    - V6 — APEX 26 AI on ATP Spec: technical/v6-apex26ai-spec.md
+  - Compliance:
+    - Overview: compliance/index.md
+    - Gap Analysis — FATF / Basel / 6AMLD: compliance/gap-analysis.md
   - Process Diagrams:
     - Overview: diagrams/index.md
     - As-Is Process (Current): diagrams/asis-process.md
+    - KYC Necessity Decision: diagrams/kyc-necessity.md
     - Intake & Document Validation: diagrams/intake-flow.md
     - Approval Workflow: diagrams/approval-workflow.md
     - Best Practice End-to-End: diagrams/best-practice-e2e.md
+    - APEX System Architecture: diagrams/apex-architecture.md

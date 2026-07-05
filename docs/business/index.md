@@ -1,18 +1,18 @@
 # Business Guides
 
-These guides are written for all staff who use or oversee the KYC system — no technical knowledge required. This site is scoped to As-Is / To-Be process review only.
+These guides are written for all staff who use or oversee the KYC system — no technical knowledge required.
 
 | Guide | Audience | Purpose |
 |---|---|---|
+| [V1 — Current System Overview](v1-current-system.md) | All users | Understand what the current system does and its limitations |
 | [V2 — As-Is Process](v2-asis-process.md) | Compliance, Management | How the KYC process works today, step by step |
 | [V3 — Best Practice Process](v3-best-practice.md) | Compliance, Management | How the process should work per FATF/Basel standards |
+| [V4 — Oracle APEX User Guide](v4-apex-userguide.md) | All roles | How to use the new Oracle APEX system |
 
 ---
 
 !!! tip "Not sure where to start?"
 
-    Start with [V2 — As-Is Process](v2-asis-process.md) to understand today's process and its known problems, then [V3 — Best Practice](v3-best-practice.md) to see the target redesign and confirm it addresses those problems.
+    If you are a **compliance officer or approver**, start with [V3 — Best Practice](v3-best-practice.md) to understand the target process, then [V4 — APEX User Guide](v4-apex-userguide.md) to see how it is implemented.
 
-!!! note "Technical documentation is out of scope here"
-
-    Once the As-Is and To-Be business process in this site is reviewed and confirmed, technical/development documentation for the target system (Oracle APEX platform specs, data models, developer guides) will be brought into a separate scope.
+    If you are in **management**, the [V3 Best Practice Guide](v3-best-practice.md) shows what changes and why it matters.

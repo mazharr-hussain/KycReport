@@ -1,6 +1,6 @@
 # Process Diagrams
 
-All KYC process flows are maintained as **draw.io files** — one authoritative source per flow, editable visually at [diagrams.net](https://app.diagrams.net), rendering automatically everywhere it's referenced. This site is scoped to As-Is (V2) and To-Be (V3) diagrams only.
+All KYC process flows are maintained as **draw.io files** — one authoritative source per flow, editable visually at [diagrams.net](https://app.diagrams.net), rendering automatically everywhere it's referenced.
 
 !!! tip "How to edit any diagram"
     1. Go to [diagrams.net](https://app.diagrams.net)
@@ -18,14 +18,22 @@ All KYC process flows are maintained as **draw.io files** — one authoritative 
 
 | File | Pages | Diagram Set |
 |---|---|---|
-| [`intake-flow.drawio`](drawio/intake-flow.drawio) | 1 | Intake & Document Validation (To-Be) |
+| [`kyc-necessity.drawio`](drawio/kyc-necessity.drawio) | 1 | KYC Necessity Decision |
+| [`intake-flow.drawio`](drawio/intake-flow.drawio) | 1 | Intake & Document Validation |
 | [`approval-workflow.drawio`](drawio/approval-workflow.drawio) | 3 | Approval Workflow (To-Be) |
 | [`best-practice-e2e.drawio`](drawio/best-practice-e2e.drawio) | 9 | Best Practice End-to-End (To-Be) |
-| [`asis-process.drawio`](drawio/asis-process.drawio) | 8 | As-Is Process (Current) |
+| [`apex-architecture.drawio`](drawio/apex-architecture.drawio) | 4 | APEX System Architecture (V4) |
+| [`asis-process.drawio`](drawio/asis-process.drawio) | 9 | As-Is Process (Current) |
 
 ---
 
 ## Page-Level Map — Name, Purpose, Used In
+
+### `kyc-necessity.drawio`
+
+| Page Name | Purpose | Used In |
+|---|---|---|
+| KYC Necessity Decision | Rules engine — when is a full KYC required vs. a waiver | [Diagram page](kyc-necessity.md) |
 
 ### `intake-flow.drawio`
 
@@ -55,6 +63,15 @@ All KYC process flows are maintained as **draw.io files** — one authoritative 
 | Phase 8 Detail | Completion & ongoing monitoring detail | [Diagram page](best-practice-e2e.md) *(toolbar only)* |
 | Phase 2 Risk Panel | Risk indicator panel — system signals, officer confirm/override | [V3 Best Practice — Phase 2](../V3_BUS_BestPractice.md) |
 
+### `apex-architecture.drawio`
+
+| Page Name | Purpose | Used In |
+|---|---|---|
+| APEX System Architecture | V4 architecture overview — APEX, Fusion HCM, Oracle DB | [Diagram page](apex-architecture.md) |
+| Authentication Flow | IDCS SSO login and user provisioning sequence | [Diagram page](apex-architecture.md) *(toolbar only)* |
+| Nightly Sync Process | DBMS_SCHEDULER Fusion HCM employee sync | [Diagram page](apex-architecture.md) *(toolbar only)* |
+| Security Model VPD | Row-level security policy by role | [Diagram page](apex-architecture.md) *(toolbar only)* |
+
 ### `asis-process.drawio`
 
 | Page Name | Purpose | Used In |
@@ -67,14 +84,12 @@ All KYC process flows are maintained as **draw.io files** — one authoritative 
 | Phase 5 Report Creation | Manual report drafting in-system (current) | [V2 As-Is — Phase 5](../V2_BUS_AsIs_Process.md) |
 | Phase 6 L1 Approval | Level 1 approval, current process | [V2 As-Is — Phase 6](../V2_BUS_AsIs_Process.md) |
 | Phase 7 L2 Approval | Level 2 approval, current process | [V2 As-Is — Phase 7](../V2_BUS_AsIs_Process.md) |
+| V1 Approval Workflow (Legacy) | Combined L1+L2 view used in the V1 Current System overview | [V1 Current System](../V1_BUS_Current_System.md) |
 
 ---
 
-## Removed From This Scope
+## Not Diagram-Sourced (Out of Scope)
 
-This is a business-only, As-Is/To-Be branch. The following were removed (they still exist on `main`):
-
-- V1, V4, V5, V6 business guides and all technical specifications
-- `apex-architecture.drawio` (V4-specific architecture) and `kyc-necessity.drawio` (was only referenced from removed V1/other pages — not used by V2/V3)
-- The "V1 Approval Workflow (Legacy)" page that lived in `asis-process.drawio`, since it was only referenced by the now-removed V1 document
-- `index.md`'s Mermaid version-history timeline — was documentation roadmap, not a process flow, and referenced removed versions
+| Location | Why it's not in draw.io |
+|---|---|
+| `index.md` — "Version Overview" Mermaid timeline | Documentation roadmap of doc versions, not a KYC business process flow |
