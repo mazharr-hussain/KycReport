@@ -99,16 +99,16 @@
         <mxCell id="e0" value="Structured form" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="dept" target="portal" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="portal" target="fusion" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="portal" target="fusion" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="portal" target="rules" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="portal" target="rules" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="Not Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="rules" target="waiver" parent="1">
+        <mxCell id="e3" value="Not Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.0;exitY=0.5;entryX=1.0;entryY=0.5;" edge="1" source="rules" target="waiver" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="rules" target="case" parent="1">
+        <mxCell id="e4" value="Required" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="rules" target="case" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -190,10 +190,10 @@
         <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="suggest" target="co" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="co" target="proceed" parent="1">
+        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="co" target="proceed" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="co" target="override" parent="1">
+        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="co" target="override" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -366,34 +366,34 @@
         <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="delegate" target="l1" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l1" target="riskcheck" parent="1">
+        <mxCell id="e2" value="Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.75;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="l1" target="riskcheck" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="RFI" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l1" target="officer" parent="1">
+        <mxCell id="e3" value="RFI" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.25;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="l1" target="officer" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l1" target="reject" parent="1">
+        <mxCell id="e4" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="l1" target="reject" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" value="Low" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="riskcheck" target="final" parent="1">
+        <mxCell id="e5" value="Low" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="riskcheck" target="final" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e6" value="Medium/High" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="riskcheck" target="l2" parent="1">
+        <mxCell id="e6" value="Medium/High" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="riskcheck" target="l2" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="l2" target="sarq" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" value="No SAR" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sarq" target="final" parent="1">
+        <mxCell id="e8" value="No SAR" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="sarq" target="final" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e9" value="SAR Identified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sarq" target="sarproc" parent="1">
+        <mxCell id="e9" value="SAR Identified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1.0;exitY=0.5;entryX=0.0;entryY=0.5;" edge="1" source="sarq" target="sarproc" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e10" value="RFI" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sarq" target="officer" parent="1">
+        <mxCell id="e10" value="RFI" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.0;exitY=0.5;entryX=1.0;entryY=0.5;" edge="1" source="sarq" target="officer" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e11" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sarq" target="reject" parent="1">
+        <mxCell id="e11" value="Reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="sarq" target="reject" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -496,16 +496,16 @@
         <mxCell id="override" value="Override risk level, document reason (mandatory)" style="rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#BF360C;fontSize=12;fontStyle=1;rounded=1;" vertex="1" parent="1">
           <mxGeometry x="630" y="670" width="220" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sys" target="geo" parent="1">
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.0;exitY=0.5;entryX=1.0;entryY=0.5;" edge="1" source="sys" target="geo" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sys" target="type" parent="1">
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="sys" target="type" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sys" target="struct" parent="1">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="sys" target="struct" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="sys" target="hist" parent="1">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1.0;exitY=0.5;entryX=0.0;entryY=0.5;" edge="1" source="sys" target="hist" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="geo" target="suggest" parent="1">
@@ -523,10 +523,10 @@
         <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="suggest" target="officer" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="officer" target="confirm" parent="1">
+        <mxCell id="e9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.3333333333333333;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="officer" target="confirm" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e10" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" source="officer" target="override" parent="1">
+        <mxCell id="e10" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.6666666666666666;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="officer" target="override" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
