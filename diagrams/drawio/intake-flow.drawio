@@ -79,10 +79,10 @@
         <mxCell id="ec1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1" target="c_check" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ec2" value="Missing" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_check" target="c2" parent="lane_co">
+        <mxCell id="ec2" value="Missing" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="c_check" target="c2" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ec3" value="Complete" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_check" target="c3" parent="lane_co">
+        <mxCell id="ec3" value="Complete" style="edgeStyle=orthogonalEdgeStyle;exitX=1.0;exitY=0.5;entryX=0.0;entryY=0.5;" edge="1" source="c_check" target="c3" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="ec4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2" target="c_dept_upload" parent="lane_co">
@@ -94,10 +94,10 @@
         <mxCell id="ec6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c3" target="c_dup" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ec7" value="Match Found" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_dup" target="c_match" parent="lane_co">
+        <mxCell id="ec7" value="Match Found" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1.0;entryX=0.5;entryY=0.0;" edge="1" source="c_dup" target="c_match" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ec8" value="No Match" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_dup" target="c_proceed" parent="lane_co">
+        <mxCell id="ec8" value="No Match" style="edgeStyle=orthogonalEdgeStyle;exitX=1.0;exitY=0.5;entryX=0.0;entryY=0.5;" edge="1" source="c_dup" target="c_proceed" parent="lane_co">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="ec9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_match" target="c_proceed" parent="lane_co">
