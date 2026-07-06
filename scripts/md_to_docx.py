@@ -9,23 +9,32 @@ concept of native Word shapes), then this script re-opens the resulting
 .docx and swaps a placeholder paragraph per diagram for the real shape
 drawing, built by scripts/drawio_to_word_shapes.py.
 """
-import re, sys, os, subprocess, glob
-import docx
+import re, sys, os, subprocess, glob, tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from drawio_to_word_shapes import render_drawio_pages
+from drawio_to_vsdx import render_drawio_to_vsdx_files, safe_name
+import render_drawio
+from embed_vsdx_ole import embed_diagrams
 
 PLACEHOLDER_PREFIX = "■DIAGRAM■"
 
-def safe_name(name):
-    return re.sub(r'[^a-zA-Z0-9]+', '_', name).strip('_')
-
-def build_page_index(drawio_dir):
-    """page-name-key -> (drawio_path, page_name, drawing_factory)."""
+def build_page_index(drawio_dir, work_dir):
+    """page-name-key -> {vsdx_path, png_path}. Renders both a .vsdx (for the
+    editable OLE object) and a .png (as the static preview shown until it's
+    double-clicked) for every page of every .drawio file in drawio_dir."""
+    vsdx_dir = os.path.join(work_dir, "vsdx")
+    png_dir = os.path.join(work_dir, "png")
+    os.makedirs(vsdx_dir, exist_ok=True)
+    os.makedirs(png_dir, exist_ok=True)
     idx = {}
     for path in glob.glob(os.path.join(drawio_dir, "*.drawio")):
-        for name, drawing, pw, ph in render_drawio_pages(path):
-            idx[safe_name(name)] = dict(path=path, name=name, drawing=drawing, pw=pw, ph=ph)
+        vsdx_paths = render_drawio_to_vsdx_files(path, vsdx_dir)
+        render_drawio.main(path, png_dir)
+        for key, vsdx_path in vsdx_paths.items():
+            png_path = os.path.join(png_dir, key + ".png")
+            if not os.path.isfile(png_path):
+                continue
+            idx[key] = dict(vsdx_path=vsdx_path, png_path=png_path)
     return idx
 
 def convert_admonitions(md):
@@ -85,52 +94,33 @@ def strip_mkdocs_only_syntax(md):
     md = re.sub(r'\{\.[\w-]+(\s+[\w-]+="[^"]*")*\}', '', md)
     return md
 
-def inject_native_shapes(docx_path, page_index):
-    doc = docx.Document(docx_path)
-    pattern = re.compile(re.escape(PLACEHOLDER_PREFIX) + r'(\w+)' + re.escape(PLACEHOLDER_PREFIX))
-    replaced, unmatched = 0, []
-    for p in list(doc.paragraphs):
-        m = pattern.search(p.text)
-        if not m:
-            continue
-        key = m.group(1)
-        entry = page_index.get(key)
-        if not entry:
-            unmatched.append(key)
-            continue
-        for r in list(p.runs):
-            r._element.getparent().remove(r._element)
-        p._p.append(entry['drawing'])
-        replaced += 1
-    doc.save(docx_path)
-    return replaced, unmatched
-
 def main(md_path, drawio_dir, out_docx, title):
     md = open(md_path).read()
-    page_index = build_page_index(drawio_dir)
-    md = convert_admonitions(md)
-    md = strip_mkdocs_only_syntax(md)
-    md, missing = substitute_images(md, page_index)
-    if missing:
-        print("WARNING: no diagram page found for:", missing)
+    with tempfile.TemporaryDirectory(prefix="md_to_docx_") as work_dir:
+        page_index = build_page_index(drawio_dir, work_dir)
+        md = convert_admonitions(md)
+        md = strip_mkdocs_only_syntax(md)
+        md, missing = substitute_images(md, page_index)
+        if missing:
+            print("WARNING: no diagram page found for:", missing)
 
-    tmp_md = out_docx + ".tmp.md"
-    with open(tmp_md, "w") as f:
-        f.write(f"% {title}\n\n")
-        f.write(md)
+        tmp_md = out_docx + ".tmp.md"
+        with open(tmp_md, "w") as f:
+            f.write(f"% {title}\n\n")
+            f.write(md)
 
-    subprocess.run([
-        "pandoc", tmp_md,
-        "-o", out_docx,
-        "--from", "markdown+pipe_tables+grid_tables",
-        "--toc", "--toc-depth=2",
-    ], check=True)
-    os.remove(tmp_md)
+        subprocess.run([
+            "pandoc", tmp_md,
+            "-o", out_docx,
+            "--from", "markdown+pipe_tables+grid_tables",
+            "--toc", "--toc-depth=2",
+        ], check=True)
+        os.remove(tmp_md)
 
-    replaced, unmatched = inject_native_shapes(out_docx, page_index)
+        embedded, unmatched = embed_diagrams(out_docx, PLACEHOLDER_PREFIX, page_index)
     if unmatched:
         print("WARNING: placeholder found but no matching page for:", unmatched)
-    print(f"wrote {out_docx} ({replaced} native diagrams embedded)")
+    print(f"wrote {out_docx} ({embedded} editable Visio diagrams embedded as OLE objects)")
 
 if __name__ == "__main__":
     main(*sys.argv[1:5])
