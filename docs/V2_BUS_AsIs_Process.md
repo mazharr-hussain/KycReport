@@ -16,9 +16,6 @@ Today, the KYC process at Qatari Diar is a **mostly manual process**. The existi
 
 This creates real risks: inconsistency between departments, reliance on personal memory, difficulty onboarding new staff, and no reliable way to answer basic management questions like "how many KYC reports did we complete this quarter?" without first requesting a data export.
 
-!!! tip "Single source of truth"
-    Maintained in draw.io. See the [As-Is Process diagram page](../diagrams/asis-process.md) for all 9 pages, or edit directly at `docs/diagrams/drawio/asis-process.drawio`.
-
 ![System Boundary](../diagrams/drawio/asis-process.drawio)
 
 !!! warning "Key Point"
@@ -37,8 +34,8 @@ This creates real risks: inconsistency between departments, reliance on personal
 | Person | Role | Tools Used |
 |---|---|---|
 | **Business Department** (e.g., Procurement, Sales, Egypt office) | Identifies the need, runs initial check, submits documents | Excel Risk Calculator, Email |
-| **Compliance Officer** (Hessa, Latifa, and others) | Validates documents, conducts research, creates reports | WorldCheck, KYC System, Local folders, Email |
-| **Compliance Manager / Head** (Carlos) | Assigns work, manages pipeline, approves reports | Email, KYC System, Excel |
+| **Compliance Officer** | Validates documents, conducts research, creates reports | WorldCheck, KYC System, Local folders, Email |
+| **Compliance Manager / Head** | Assigns work, manages pipeline, approves reports | Email, KYC System, Excel |
 | **System Administrator** | Manages user accounts and reference data inside the KYC Report Application only — has no role in the manual intake, document collection, or due diligence work upstream | KYC System |
 
 ---
@@ -85,7 +82,7 @@ What the officer is always looking for is: *"Can I trace the ownership all the w
 **What goes wrong here:**
 - Everything is tracked in email threads — there is no system record of how many rounds of back-and-forth happened
 - Documents are saved to the officer's local workstation. At the end of the day, they must be manually moved to a QDocs folder — but there is no check for whether a folder for that entity already exists, and no standard naming convention
-- New staff (e.g., Hessa) have no way to know if a report has been done before for the same entity. Institutional knowledge lives only in people's memories
+- New staff have no way to know if a report has been done before for the same entity. Institutional knowledge lives only in people's memories
 
 ---
 
@@ -156,7 +153,7 @@ One particular pain point: the **final conclusion**. Around 95% of the time, the
 
 ## Phase 6: Level 1 Approval
 
-**Who does this:** Level 1 Approver (currently Latifa)
+**Who does this:** Level 1 Approver
 
 **Where this happens:** Inside the **KYC Report Application** (the existing JSF system). The approver logs into the application and sees the submitted report in their approval queue.
 
@@ -182,16 +179,16 @@ The approver reviews the full report, reads the conclusion, checks the attached 
 
 ## Phase 7: Level 2 Approval (Medium/High Risk Only)
 
-**Who does this:** Level 2 Approver / Head of Compliance (Carlos)
+**Who does this:** Level 2 Approver / Head of Compliance
 
-**Where this happens:** Inside the **KYC Report Application** — the report appears in Carlos's queue after L1 approval.
+**Where this happens:** Inside the **KYC Report Application** — the report appears in the Head of Compliance's queue after L1 approval.
 
 Same actions as Level 1 — full review inside the application, then Approve / RFI / Reject. Once approved at Level 2, the report status is set to Final Approved in the application.
 
 ![Phase 7 L2 Approval](../diagrams/drawio/asis-process.drawio)
 
 **What goes wrong here:**
-- If the Level 2 Approver (Carlos) is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism
+- If the Level 2 Approver is unavailable, a substitute must be manually activated by phone — the system has no delegation or deputy mechanism
 - There is no mandatory checkpoint for Suspicious Activity Reports (SARs) — the question of whether a SAR should be filed is not formally built into the approval step
 
 **What should happen but doesn't:**  
@@ -208,7 +205,7 @@ There is no live dashboard. When management needs to know:
 - How long is our average turnaround time?
 - Which cases are overdue?
 
-The answer is always: *"Madi, send me an export."* A data extract is requested, downloaded to Excel, and manually analysed.
+The answer is always the same: a manual data export is requested, downloaded to Excel, and analysed by hand.
 
 Additionally, there is no system to flag when a previously approved KYC is due for periodic review. This is managed — imperfectly — by memory and the manager's judgment.
 

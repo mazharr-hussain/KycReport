@@ -37,9 +37,6 @@ Every step in this process is designed around seven core compliance principles:
 
 ## Complete To-Be Process — One Page
 
-!!! tip "Single source of truth"
-    This diagram is maintained in draw.io. Edit it visually at [diagrams.net](https://app.diagrams.net) → **File → Open from → GitHub** → `docs/diagrams/drawio/best-practice-e2e.drawio` — changes render here automatically. See the [detailed diagram breakdown](../diagrams/best-practice-e2e.md) for phase-by-phase views.
-
 ![Best Practice End-to-End Process](../diagrams/drawio/best-practice-e2e.drawio)
 
 ---
@@ -53,9 +50,6 @@ Every step in this process is designed around seven core compliance principles:
 **What changes:** Business departments no longer send emails in any format they like. Instead, they complete a **structured digital intake form** in the system.
 
 **How it works:**
-
-!!! tip "Single source of truth"
-    See the [Intake & Document Validation diagram](../diagrams/intake-flow.md) — maintained in draw.io, edited visually at diagrams.net, renders automatically here and there.
 
 ![Intake and Document Validation](../diagrams/drawio/intake-flow.drawio)
 
@@ -198,7 +192,7 @@ This gate ensures that the compliance head consciously considers their SAR oblig
 - **On the review date** (if not yet renewed): manager notified
 - **SLA breaches** on open reports: flagged to manager daily
 
-**Live KPI Dashboard — replaces "Madi, send me an export":**
+**Live KPI Dashboard — replaces manual data exports:**
 
 The dashboard shows in real time:
 - Total KYCs completed this month / quarter / year
@@ -212,9 +206,6 @@ The dashboard shows in real time:
 ---
 
 ## The Improved Approval Process
-
-!!! tip "Single source of truth"
-    Full state machine, routing rules, and delegation logic are maintained in the [Approval Workflow diagram](../diagrams/approval-workflow.md) (draw.io). The upstream steps (intake through report creation) are shown in the [Best Practice End-to-End diagram](../diagrams/best-practice-e2e.md) above.
 
 ![Approval Workflow State Machine](../diagrams/drawio/approval-workflow.drawio)
 
