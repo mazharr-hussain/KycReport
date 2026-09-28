@@ -6434,9 +6434,6 @@ supportingObject (
                     l_name  varchar2(240);
                     l_email varchar2(320);
                 begin
-                    if sys_context('APEX$SESSION', 'APP_USER') is null then
-                        return;   -- SQLcl install: install.sql handles the administrator
-                    end if;
                     l_user := sys_context('APEX$SESSION', 'APP_USER');
                     begin
                         execute immediate q'[
@@ -6449,7 +6446,17 @@ supportingObject (
                             null;
                     end;
                     xxfnd_util_pkg.set_install_mode(true);
-                    xxfnd_security_pkg.bootstrap_admin(l_user, l_name, l_email);
+                    if l_user is not null then
+                        xxfnd_security_pkg.bootstrap_admin(l_user, l_name, l_email);
+                    else
+                        -- Installed without an APEX session (e.g. SQLcl apex import): the workspace
+                        -- administrators performing the install become the first SYSTEM_ADMINs.
+                        for a in (select user_name, trim(first_name || ' ' || last_name) full_name, email
+                                    from apex_workspace_apex_users
+                                   where is_admin = 'Yes' and nvl(account_locked, 'No') = 'No') loop
+                            xxfnd_security_pkg.bootstrap_admin(a.user_name, a.full_name, a.email);
+                        end loop;
+                    end if;
                     xxfnd_util_pkg.set_install_mode(false);
                     commit;
                 end;
@@ -11185,9 +11192,6 @@ supportingObject (
                     l_name  varchar2(240);
                     l_email varchar2(320);
                 begin
-                    if sys_context('APEX$SESSION', 'APP_USER') is null then
-                        return;   -- SQLcl install: install.sql handles the administrator
-                    end if;
                     l_user := sys_context('APEX$SESSION', 'APP_USER');
                     begin
                         execute immediate q'[
@@ -11200,7 +11204,17 @@ supportingObject (
                             null;
                     end;
                     xxfnd_util_pkg.set_install_mode(true);
-                    xxfnd_security_pkg.bootstrap_admin(l_user, l_name, l_email);
+                    if l_user is not null then
+                        xxfnd_security_pkg.bootstrap_admin(l_user, l_name, l_email);
+                    else
+                        -- Installed without an APEX session (e.g. SQLcl apex import): the workspace
+                        -- administrators performing the install become the first SYSTEM_ADMINs.
+                        for a in (select user_name, trim(first_name || ' ' || last_name) full_name, email
+                                    from apex_workspace_apex_users
+                                   where is_admin = 'Yes' and nvl(account_locked, 'No') = 'No') loop
+                            xxfnd_security_pkg.bootstrap_admin(a.user_name, a.full_name, a.email);
+                        end loop;
+                    end if;
                     xxfnd_util_pkg.set_install_mode(false);
                     commit;
                 end;

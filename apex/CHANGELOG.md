@@ -1,32 +1,49 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Source: `KYC-Compliance-Platform-APEXlang_5.zip` → Corrected: `KYC-Compliance-Platform-APEXlang_7.zip`
-(same APEXlang folder structure, APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_8.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Source of truth: the APEXlang tree in `apex/src` (the zip is built from it; each chunk is one commit).
 
-Validated offline with SQLcl 26.2.2 `apex validate`: **Validation successful, 0 warnings**
-(the original gave 2 `FILE_IGNORED` warnings).
+## How each release is verified
+
+| Layer | Tool | Result for release 8 |
+|---|---|---|
+| Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
+| Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links …) | 2,386 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 20 scripts run; 0 invalid objects; 0 compile errors; seed data + first administrator present |
+| Browser | `apex/tests/smoke.py` (Playwright, ORDS 26.2.3): login, 37 pages, and the detail/grid page behind each list | 0 APEX errors (only the by-design "Compliance team" denial for a user without that role) |
+| Save test | `apex/tests/save21.py`: create a Party with flexfields | "Changes saved." |
+
+The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
+(`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
+the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 8 – Chunk 0: runtime-breaking defects
 
 | # | File | Component | Before | After | Reason |
 |---|------|-----------|--------|-------|--------|
-| 1 | `shared-components/app-settings.apx` → `application.apx` | App settings `MAIL_FROM`, `FUSION_BASE_URL`, `FUSION_CREDENTIAL_STATIC_ID` | Defined in `shared-components/app-settings.apx`, which the 26.1 compiler ignores (`FILE_IGNORED`) – the settings were never imported | The 3 `appSetting` blocks appended unchanged to `application.apx`; `app-settings.apx` removed | App settings are children of the application and must be declared in `application.apx`. Without them `apex_app_setting.get_value` fails in the RFI e-mail, the mailer job and the HCM sync job |
-| 2 | `shared-components/text-messages.apx` → `shared-components/messages.apx` | 11 text messages (`DELETE_MSG`, `XXFND_DFF_*`) | File ignored by the compiler (`FILE_IGNORED`) – messages never imported | File renamed; content unchanged | 26.1 expects text messages in `shared-components/messages.apx`. Without them delete confirmations and flexfield errors show message keys |
-| 3 | `supporting-objects/supporting-objects.apx` | Install script **05 Core packages – part 1 of 2** and **09 Views** (same change in the matching upgrade scripts) | View `XXFND_USER_ROLES_V` created in script 09, but package body `XXFND_SECURITY_PKG` (script 05) queries it → body created with compilation errors (ORA-00942) and the supporting-objects install reports failure | View definition (unchanged) moved into script 05 immediately before `create or replace package body xxfnd_security_pkg`; removed from script 09 | Dependency order: the view only depends on tables from script 01. Static dependency check now finds no object used before it is created (install and upgrade) |
+| 9 | `pages/p00102…`, `p00104…`, `p00135…`, `p00143…`, `p00153…`, `p00162…` | Page attribute Reload on Submit | `reloadOnSubmit: always` | `reloadOnSubmit: onlyForSuccess` | Required by APEX for pages with an editable interactive grid (`APEXDEV.IG.RELOAD_ON_SUBMIT_EDITABLE`) |
+| 10 | `pages/p00021…`, `p00022…`, `p00023…`, `p00090…`, `p00091…` | Hidden items `Pn_DFF_JSON`, `Pn_DFF_CONTEXT` | value-protected (default) | `settings { valueProtected: false }` | `xxfnd-dff.js` writes them in the browser before submit; protected values caused "Session state protection violation" on every save. Values are still re-validated on the server by `XXFND_DFF_PKG.VALIDATE` |
+| 11 | `pages/p00021…`, `p00031…`, `p00091…` | Attachment download links | hand-written `f?p=…:1:…:APPLICATION_PROCESS=DOWNLOAD_DOCUMENT:::G_DOCUMENT_ID:#DOCUMENT_ID#` | `apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT', p_items => 'G_DOCUMENT_ID', …)` in the region SQL as hidden column `DOWNLOAD_URL`, link `#DOWNLOAD_URL#` | Page 1 requires argument checksums; the hand-written link carried none |
+| 12 | `pages/p00042-workflow-item.apx` | Process `admin-action` (suspend / resume / move / cancel) | no authorization | `authorizationScheme: @administration-rights` | Any KYC user could submit `RESUME` etc.; the package does not check roles |
+| 13 | `supporting-objects/supporting-objects.apx` (install + upgrade script 18) | First-administrator bootstrap | returned immediately when there is no APEX session ("install.sql handles the administrator") | uses the APEX session user when present, otherwise makes every unlocked workspace administrator `SYSTEM_ADMIN` | A single SQLcl `apex import` has no APEX session, so no administrator was created and nobody could use the app |
 
-| 4 | `supporting-objects/supporting-objects.apx` | Script **14 Attachments** – `XXFND_ATTACH_PKG` body, `ADD_FILE` and `ADD_TEXT` | `values (…, next_seq(p_entity_name, p_pk1_value))` | `l_seq := next_seq(…);` before the insert, `values (…, l_seq)` | `NEXT_SEQ` is private to the body; private functions cannot be called inside SQL (PLS-00231). Body was created invalid |
-| 5 | same file | Script **15 Workflow** – `XXFND_WF_PKG` body, `ADMIN_NOTE` and `REASSIGN_ACTIVITY` | `norm(null)` inside `insert … values` / `update … set` | `l_user varchar2(255) := norm(null);` declared, SQL uses `l_user` | Same PLS-00231 (private function `NORM` in SQL) |
-| 6 | same file | Script **15 Workflow** – `XXFND_WF_PKG.SEND_QUEUED` exception handler | `update … error_message = substr(sqlerrm, 1, 4000)` | `l_error := substr(sqlerrm, 1, 4000);` then `error_message = l_error` | `SQLERRM` is PL/SQL only; inside SQL it raises ORA-00904 |
-| 7 | same file | Script **03** index `XXFND_DF_CONTEXTS_U1` (+ one-off repair block at the start of upgrade script 05) | `(descriptive_flexfield_code, case when global_flag = 'Y' then 1 end)` | `(case when global_flag = 'Y' then descriptive_flexfield_code end)` | Intended "one GLOBAL context per flexfield", but every non-global context keyed `(code, NULL)`, so a second context failed with ORA-00001 in seed script 18. That aborted the whole seed block (roles included), which then made `bootstrap_admin` fail with ORA-02291 on `XXFND_USER_ROLES_FK2`. The upgrade block drops and recreates the index only if the old definition is present |
+## Release 7 – install fixes (earlier)
 
-| 8 | same file | Scripts **01, 02, 04** – partial unique indexes `XXFND_USER_ROLES_U1`, `XXFND_WF_PROCESSES_U1`, `XXFND_WF_ACTIVITIES_U2`, `XXFND_WF_ITEMS_U1`, `XXCMP_PARTY_CONTACTS_U1` | e.g. `(item_type, process_code, version_number, case when start_flag = 'Y' then 1 end)` | e.g. `(case when start_flag = 'Y' then item_type end, case when start_flag = 'Y' then process_code end, case when start_flag = 'Y' then version_number end)` | Same defect as #7: rows outside the condition shared the key `(…, NULL)`, so a process version could have only one non-start activity (ORA-00001 on `XXFND_WF_ACTIVITIES_U2` in seed script 18, again rolling back the roles → ORA-02291), a record could never run a second workflow, etc. The rule for rows inside the condition is unchanged. The upgrade repair block (start of upgrade script 05) now rebuilds all six indexes when they still have the old definition |
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 1 | `shared-components/app-settings.apx` → `application.apx` | App settings `MAIL_FROM`, `FUSION_BASE_URL`, `FUSION_CREDENTIAL_STATIC_ID` | in a file the 26.1 compiler ignores | appended to `application.apx` | settings were never imported |
+| 2 | `shared-components/text-messages.apx` → `messages.apx` | 11 text messages | file ignored | file renamed | messages were never imported |
+| 3 | supporting objects, scripts 05 / 09 | view `XXFND_USER_ROLES_V` | created after the package body that uses it | created just before it | dependency order |
+| 4 | script 14 | `XXFND_ATTACH_PKG` | private `NEXT_SEQ` called in SQL (PLS-00231) | computed into `l_seq` first | package compiled invalid |
+| 5 | script 15 | `XXFND_WF_PKG` | private `NORM` called in SQL (PLS-00231) | `l_user` variable | package compiled invalid |
+| 6 | script 15 | `XXFND_WF_PKG.SEND_QUEUED` | `SQLERRM` in SQL (ORA-00904) | `l_error` variable | package compiled invalid |
+| 7 | script 03 | index `XXFND_DF_CONTEXTS_U1` | `(code, case … then 1 end)` | `(case … then code end)` | blocked a second flexfield context (ORA-00001 in seed) |
+| 8 | scripts 01, 02, 04 | indexes `XXFND_USER_ROLES_U1`, `XXFND_WF_PROCESSES_U1`, `XXFND_WF_ACTIVITIES_U2`, `XXFND_WF_ITEMS_U1`, `XXCMP_PARTY_CONTACTS_U1` | same pattern as #7 | every key column inside the CASE | same ORA-00001 class; upgrade script 05 repairs existing indexes |
 
-Fixes 4–6 are applied to both the install and the upgrade copy of the scripts.
-
-No component was renamed and no IDs were changed. Everything else is byte-for-byte identical to the original.
+No component was renamed and no IDs were changed.
 
 ## One-step import (application + all database objects)
-
-The export already contains every table, package, view, seed row and scheduler job as Supporting Objects.
-They install during `apex import` **only** when auto-install is switched on in the same session.
 
 One-time prerequisite (a privilege grant cannot be performed by any application import), run as a DBA:
 
@@ -37,27 +54,23 @@ grant execute on sys.dbms_crypto to <PARSING_SCHEMA>;
 Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
 
 ```sql
--- 1. Offline check of the file
-apex validate -input KYC-Compliance-Platform-APEXlang_7.zip
+apex validate -input KYC-Compliance-Platform-APEXlang_8.zip
 
--- 2. Install supporting objects as part of the import
 begin
     apex_application_install.set_auto_install_sup_obj(p_auto_install_sup_obj => true);
 end;
 /
 
--- 3. Import (add -id <n> to choose the application ID)
-apex import -input KYC-Compliance-Platform-APEXlang_7.zip -workspace XXCUS
+apex import -input KYC-Compliance-Platform-APEXlang_8.zip -workspace XXCUS   -- add -id <n> for a fixed app id
 
--- 4. Verify
-select object_type, object_name from user_objects
- where status = 'INVALID' and (object_name like 'XXFND%' or object_name like 'XXCMP%');
+select object_type, object_name from user_objects where status = 'INVALID';
 select job_name, enabled, state from user_scheduler_jobs where job_name like 'XXFND%';
 ```
 
-**Re-importing over the failed install:** import with the same application ID (`-id <current id>`).
-Because `XXFND_LOOKUP_TYPES` already exists, APEX runs the *upgrade* scripts: they repair the index,
-recreate all packages and re-run the (merge-based) seed data, keeping existing tables.
+The workspace administrators who run the import become the first `SYSTEM_ADMIN` users.
 
-After import, fill in the Application Settings `MAIL_FROM`, `FUSION_BASE_URL` and `FUSION_CREDENTIAL_STATIC_ID`
-(Shared Components → Application Settings).
+**Re-importing over an existing install:** use the same application ID (`-id <current id>`). Because
+`XXFND_LOOKUP_TYPES` already exists, APEX runs the *upgrade* scripts: they repair the indexes, recreate all
+packages and re-run the merge-based seed data, keeping existing tables.
+
+After import, fill in the Application Settings `MAIL_FROM`, `FUSION_BASE_URL` and `FUSION_CREDENTIAL_STATIC_ID`.
