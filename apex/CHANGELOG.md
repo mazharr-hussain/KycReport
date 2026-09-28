@@ -1,6 +1,6 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Source: `KYC-Compliance-Platform-APEXlang_5.zip` → Corrected: `KYC-Compliance-Platform-APEXlang_6.zip`
+Source: `KYC-Compliance-Platform-APEXlang_5.zip` → Corrected: `KYC-Compliance-Platform-APEXlang_7.zip`
 (same APEXlang folder structure, APEX 26.1, `mmdVersion 26.1.0+3102`).
 
 Validated offline with SQLcl 26.2.2 `apex validate`: **Validation successful, 0 warnings**
@@ -16,6 +16,8 @@ Validated offline with SQLcl 26.2.2 `apex validate`: **Validation successful, 0 
 | 5 | same file | Script **15 Workflow** – `XXFND_WF_PKG` body, `ADMIN_NOTE` and `REASSIGN_ACTIVITY` | `norm(null)` inside `insert … values` / `update … set` | `l_user varchar2(255) := norm(null);` declared, SQL uses `l_user` | Same PLS-00231 (private function `NORM` in SQL) |
 | 6 | same file | Script **15 Workflow** – `XXFND_WF_PKG.SEND_QUEUED` exception handler | `update … error_message = substr(sqlerrm, 1, 4000)` | `l_error := substr(sqlerrm, 1, 4000);` then `error_message = l_error` | `SQLERRM` is PL/SQL only; inside SQL it raises ORA-00904 |
 | 7 | same file | Script **03** index `XXFND_DF_CONTEXTS_U1` (+ one-off repair block at the start of upgrade script 05) | `(descriptive_flexfield_code, case when global_flag = 'Y' then 1 end)` | `(case when global_flag = 'Y' then descriptive_flexfield_code end)` | Intended "one GLOBAL context per flexfield", but every non-global context keyed `(code, NULL)`, so a second context failed with ORA-00001 in seed script 18. That aborted the whole seed block (roles included), which then made `bootstrap_admin` fail with ORA-02291 on `XXFND_USER_ROLES_FK2`. The upgrade block drops and recreates the index only if the old definition is present |
+
+| 8 | same file | Scripts **01, 02, 04** – partial unique indexes `XXFND_USER_ROLES_U1`, `XXFND_WF_PROCESSES_U1`, `XXFND_WF_ACTIVITIES_U2`, `XXFND_WF_ITEMS_U1`, `XXCMP_PARTY_CONTACTS_U1` | e.g. `(item_type, process_code, version_number, case when start_flag = 'Y' then 1 end)` | e.g. `(case when start_flag = 'Y' then item_type end, case when start_flag = 'Y' then process_code end, case when start_flag = 'Y' then version_number end)` | Same defect as #7: rows outside the condition shared the key `(…, NULL)`, so a process version could have only one non-start activity (ORA-00001 on `XXFND_WF_ACTIVITIES_U2` in seed script 18, again rolling back the roles → ORA-02291), a record could never run a second workflow, etc. The rule for rows inside the condition is unchanged. The upgrade repair block (start of upgrade script 05) now rebuilds all six indexes when they still have the old definition |
 
 Fixes 4–6 are applied to both the install and the upgrade copy of the scripts.
 
@@ -36,7 +38,7 @@ Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
 
 ```sql
 -- 1. Offline check of the file
-apex validate -input KYC-Compliance-Platform-APEXlang_6.zip
+apex validate -input KYC-Compliance-Platform-APEXlang_7.zip
 
 -- 2. Install supporting objects as part of the import
 begin
@@ -45,7 +47,7 @@ end;
 /
 
 -- 3. Import (add -id <n> to choose the application ID)
-apex import -input KYC-Compliance-Platform-APEXlang_6.zip -workspace XXCUS
+apex import -input KYC-Compliance-Platform-APEXlang_7.zip -workspace XXCUS
 
 -- 4. Verify
 select object_type, object_name from user_objects
