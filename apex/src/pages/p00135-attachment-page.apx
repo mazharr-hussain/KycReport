@@ -13,7 +13,7 @@ page 135 (
         formAutoComplete: false
     }
     advanced {
-        reloadOnSubmit: always
+        reloadOnSubmit: onlyForSuccess
     }
     help {
         helpText: Register a page, its attachment regions, the entity each region shows and the user's rights. No categories listed means every category is offered.

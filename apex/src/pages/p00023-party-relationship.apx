@@ -382,6 +382,9 @@ page 23 (
         sessionState {
             dataType: clob
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: unrestricted
         }
@@ -399,6 +402,9 @@ page 23 (
             sequence: 901
             region: @form
             slot: regionBody
+        }
+        settings {
+            valueProtected: false
         }
         security {
             sessionStateProtection: unrestricted

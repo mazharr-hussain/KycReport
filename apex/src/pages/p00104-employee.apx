@@ -13,7 +13,7 @@ page 104 (
         formAutoComplete: false
     }
     advanced {
-        reloadOnSubmit: always
+        reloadOnSubmit: onlyForSuccess
     }
     help {
         helpText: Fusion-sourced people are read-only except for access; local people are fully editable.

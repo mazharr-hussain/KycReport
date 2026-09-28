@@ -13,7 +13,7 @@ page 162 (
         formAutoComplete: false
     }
     advanced {
-        reloadOnSubmit: always
+        reloadOnSubmit: onlyForSuccess
     }
     help {
         helpText: Scoring changes need a second person's approval. Only approved answers are used; each case keeps the points it was scored with.

@@ -13,7 +13,7 @@ page 153 (
         formAutoComplete: false
     }
     advanced {
-        reloadOnSubmit: always
+        reloadOnSubmit: onlyForSuccess
     }
     help {
         helpText:

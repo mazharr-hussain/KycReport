@@ -867,6 +867,9 @@ page 42 (
             type: requestIsContainedInValue
             value: SUSPEND,RESUME,MOVE,CANCEL_ITEM
         }
+        security {
+            authorizationScheme: @administration-rights
+        }
     )
 
     dynamicAction refresh-after-action (

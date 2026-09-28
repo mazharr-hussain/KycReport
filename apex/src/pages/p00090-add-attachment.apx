@@ -397,6 +397,9 @@ page 90 (
         sessionState {
             dataType: clob
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: unrestricted
         }
@@ -414,6 +417,9 @@ page 90 (
             sequence: 901
             region: @attach
             slot: regionBody
+        }
+        settings {
+            valueProtected: false
         }
         security {
             sessionStateProtection: unrestricted

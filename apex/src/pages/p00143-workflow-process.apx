@@ -13,7 +13,7 @@ page 143 (
         formAutoComplete: false
     }
     advanced {
-        reloadOnSubmit: always
+        reloadOnSubmit: onlyForSuccess
     }
     help {
         helpText: Steps, the transitions between them, and KYC-specific step controls for one process version. Save the steps before adding transitions that use them.

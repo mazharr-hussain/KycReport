@@ -382,6 +382,8 @@ page 91 (
                 select v.document_id,
                        v.version_number,
                        v.file_name,
+                       apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                         p_items => 'G_DOCUMENT_ID', p_values => to_char(v.document_id)) as download_url,
                        round(v.file_size_bytes / 1024) as size_kb,
                        v.created_by,
                        v.creation_date
@@ -453,8 +455,15 @@ page 91 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="f?p=&APP_ID.:1:&SESSION.:APPLICATION_PROCESS=DOWNLOAD_DOCUMENT:::G_DOCUMENT_ID:#DOCUMENT_ID#">#FILE_NAME#</a>
+                    <a href="#DOWNLOAD_URL#">#FILE_NAME#</a>
                     ```
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 35
             }
         )
 
@@ -534,6 +543,9 @@ page 91 (
         sessionState {
             dataType: clob
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: unrestricted
         }
@@ -551,6 +563,9 @@ page 91 (
             sequence: 901
             region: @details
             slot: regionBody
+        }
+        settings {
+            valueProtected: false
         }
         security {
             sessionStateProtection: unrestricted

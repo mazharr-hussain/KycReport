@@ -601,6 +601,9 @@ page 21 (
         sessionState {
             dataType: clob
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: unrestricted
         }
@@ -618,6 +621,9 @@ page 21 (
             sequence: 901
             region: @party
             slot: regionBody
+        }
+        settings {
+            valueProtected: false
         }
         security {
             sessionStateProtection: unrestricted
@@ -1366,6 +1372,9 @@ page 21 (
                             when a.datatype_code = 'WEB_PAGE' then 'Open link' end as open_label,
                        case when a.datatype_code = 'WEB_PAGE' then a.url end as url,
                        a.datatype_code,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id)) end as download_url,
                        a.created_by,
                        a.creation_date
                   from xxfnd_attached_documents_v a
@@ -1538,7 +1547,7 @@ page 21 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="f?p=&APP_ID.:1:&SESSION.:APPLICATION_PROCESS=DOWNLOAD_DOCUMENT:::G_DOCUMENT_ID:#DOCUMENT_ID#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
+                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="#DOWNLOAD_URL#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
                     ```
             }
         )
@@ -1547,6 +1556,13 @@ page 21 (
             type: hidden
             layout {
                 sequence: 120
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 125
             }
         )
 
