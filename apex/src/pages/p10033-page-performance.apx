@@ -1,0 +1,168 @@
+page 10033 (
+    name: Page Performance
+    alias: PAGE-PERFORMANCE
+    title: Page Performance
+    pageGroup: @features
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    config {
+        buildOption: @feature-activity-reporting
+    }
+    help {
+        helpText: Average and slowest render time per page in the last 30 days.
+    }
+
+    region breadcrumb (
+        name: Page Performance
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Page Performance
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select l.page_id,
+                       l.page_name,
+                       count(*) as page_views,
+                       round(avg(l.elapsed_time), 3) as avg_seconds,
+                       round(max(l.elapsed_time), 3) as max_seconds
+                  from apex_workspace_activity_log l
+                 where l.application_id = :APP_ID
+                   and l.view_date > sysdate - 30
+                 group by l.page_id, l.page_name
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Page Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_VIEWS (
+            type: plainText
+            heading {
+                heading: Views
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column AVG_SECONDS (
+            type: plainText
+            heading {
+                heading: Average Seconds
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            appearance {
+                formatMask: 999G990D000
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column MAX_SECONDS (
+            type: plainText
+            heading {
+                heading: Slowest Seconds
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            appearance {
+                formatMask: 999G990D000
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+)

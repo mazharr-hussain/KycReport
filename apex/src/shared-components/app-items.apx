@@ -1,0 +1,12 @@
+appItem G_DOCUMENT_ID (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Document to download; set from the URL by attachment links. DOWNLOAD_DOCUMENT checks the user may see it.
+            ```
+    }
+)

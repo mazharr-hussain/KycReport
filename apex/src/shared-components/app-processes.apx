@@ -1,0 +1,42 @@
+appProcess DOWNLOAD_DOCUMENT (
+    name: DOWNLOAD_DOCUMENT
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            declare
+                l_allowed pls_integer;
+            begin
+                if xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN') then
+                    l_allowed := 1;
+                else
+                    -- Requesters: only documents on requests for information addressed to them.
+                    select count(*)
+                      into l_allowed
+                      from xxfnd_documents d
+                      join xxfnd_attached_documents ad
+                        on ad.document_id in (select x.document_id from xxfnd_documents x
+                                               where nvl(x.base_document_id, x.document_id)
+                                                   = nvl(d.base_document_id, d.document_id))
+                      join xxcmp_rfis r
+                        on ad.entity_name = 'XXCMP_RFIS'
+                       and r.rfi_id = to_number(ad.pk1_value)
+                     where d.document_id = :G_DOCUMENT_ID
+                       and upper(r.recipient_user_name) = :APP_USER;
+                end if;
+                if l_allowed = 0 then
+                    raise_application_error(-20330, 'You are not allowed to open this document.');
+                end if;
+                xxfnd_attach_pkg.download(:G_DOCUMENT_ID);
+            end;
+            ```
+    }
+    execution {
+        sequence: 10
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @kyc-user
+    }
+)

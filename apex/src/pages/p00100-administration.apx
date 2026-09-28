@@ -1,0 +1,58 @@
+page 100 (
+    name: Administration
+    alias: ADMINISTRATION
+    title: Administration
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @admin-area
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Everything an administrator configures. What you see depends on your role.
+    }
+
+    region breadcrumb (
+        name: Administration
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region admin-list (
+        name: Setup
+        type: list
+        source {
+            list: @admin-menu
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        componentAppearance {
+            listTemplate: @/media-list
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: admin-list
+        }
+    )
+
+)

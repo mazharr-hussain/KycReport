@@ -1,0 +1,323 @@
+page 103 (
+    name: Employees and Access
+    alias: EMPLOYEES-AND-ACCESS
+    title: Employees and Access
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            People come from Oracle Fusion HCM (nightly sync) or are created here when not in Fusion. Access is granted by assigning roles.
+            ```
+    }
+
+    region breadcrumb (
+        name: Employees and Access
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Employees and Access
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 104, p_items => 'P104_EMPLOYEE_ID', p_values => to_char(q.employee_id), p_clear_cache => '104') as open_url
+                  from (
+
+                            select e.employee_id,
+                                   e.user_name,
+                                   e.full_name,
+                                   e.email_address,
+                                   xxfnd_util_pkg.lookup_meaning('EMPLOYEE_SOURCE', e.source_type) as source_type,
+                                   e.department_name,
+                                   e.job_title,
+                                   (select listagg(r.role_name, ', ') within group (order by r.role_name)
+                                      from xxfnd_user_roles_v r
+                                      join xxfnd_roles r2 on r2.role_code = r.role_code
+                                     where r.employee_id = e.employee_id and r.active_flag = 'Y') as roles,
+                                   e.enabled_flag,
+                                   e.last_sync_date
+                              from xxfnd_employees e
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column EMPLOYEE_ID (
+            type: hidden
+            heading {
+                heading: Employee Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column USER_NAME (
+            type: plainText
+            heading {
+                heading: User Name
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#USER_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FULL_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_TYPE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DEPARTMENT_NAME (
+            type: plainText
+            heading {
+                heading: Department
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column JOB_TITLE (
+            type: plainText
+            heading {
+                heading: Job
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROLES (
+            type: plainText
+            heading {
+                heading: Roles
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_SYNC_DATE (
+            type: plainText
+            heading {
+                heading: Last Synced
+            }
+            layout {
+                sequence: 100
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Local Employee
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 104
+                clearCache: 104
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    button sync (
+        buttonName: SYNC
+        label: Sync from Fusion Now
+        layout {
+            sequence: 20
+            region: @report
+            slot: RIGHT_OF_IR_SEARCH_BAR
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-refresh
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process run-sync (
+        name: Start Fusion sync
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                dbms_scheduler.run_job('XXFND_HCM_SYNC', use_current_session => false);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Fusion HCM sync started. Refresh in a minute.
+        }
+        serverSideCondition {
+            whenButtonPressed: @sync
+        }
+    )
+
+)

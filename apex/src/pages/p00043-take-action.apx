@@ -1,0 +1,230 @@
+page 43 (
+    name: Take Action
+    alias: TAKE-ACTION
+    title: Take Action
+    pageGroup: @workflow
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @kyc-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Record your decision on the current workflow step.
+    }
+
+    region action (
+        name: Take Action
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: action
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P43_WF_ITEM_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @action
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P43_ACTIVITY_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @action
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P43_RESULT_CODE (
+        type: radioGroup
+        label {
+            label: Decision
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(xxfnd_util_pkg.lookup_meaning('WF_RESULT', column_value), column_value) as display_value,
+                       column_value as return_value
+                  from table(xxfnd_wf_pkg.available_results(to_number(:P43_WF_ITEM_ID)))
+                ```
+        }
+        layout {
+            sequence: 10
+            region: @action
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Choose the decision.
+        }
+    )
+
+    pageItem P43_NOTES (
+        type: textarea
+        label {
+            label: Notes
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @action
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        validation {
+            maxLength: 4000
+        }
+        help {
+            helpText: Enter the notes.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button submit (
+        buttonName: SUBMIT
+        label: Submit
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process complete (
+        name: Complete step
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_wf_pkg.complete_activity(
+                    p_wf_item_id           => :P43_WF_ITEM_ID,
+                    p_result_code          => :P43_RESULT_CODE,
+                    p_notes                => :P43_NOTES,
+                    p_expected_activity_id => :P43_ACTIVITY_ID);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Step completed.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT
+        }
+    )
+
+)

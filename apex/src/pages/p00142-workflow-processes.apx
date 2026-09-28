@@ -1,0 +1,248 @@
+page 142 (
+    name: Workflow Processes
+    alias: WORKFLOW-PROCESSES
+    title: Workflow Processes
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Versioned process definitions. Running items stay on the version they started with.
+    }
+
+    region breadcrumb (
+        name: Workflow Processes
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Workflow Processes
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 143, p_items => 'P143_ROWID', p_values => to_char(q.row_id), p_clear_cache => '143') as open_url
+                  from (
+
+                            select rowidtochar(p.rowid) as row_id, p.item_type, p.process_code, p.version_number, p.process_name,
+                                   p.active_flag,
+                                   (select count(*) from xxfnd_wf_activities a
+                                     where a.item_type = p.item_type and a.process_code = p.process_code
+                                       and a.version_number = p.version_number) as activities,
+                                   (select count(*) from xxfnd_wf_items i
+                                     where i.item_type = p.item_type and i.process_code = p.process_code
+                                       and i.version_number = p.version_number and i.item_status in ('ACTIVE','SUSPENDED')) as running
+                              from xxfnd_wf_processes p
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column ROW_ID (
+            type: hidden
+            heading {
+                heading: Row Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+        )
+
+        column ITEM_TYPE (
+            type: plainText
+            heading {
+                heading: Item Type
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#ITEM_TYPE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PROCESS_CODE (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PROCESS_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACTIVITIES (
+            type: plainText
+            heading {
+                heading: Steps
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column RUNNING (
+            type: plainText
+            heading {
+                heading: Running Items
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Process Version
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 143
+                clearCache: 143
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+)

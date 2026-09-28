@@ -1,0 +1,283 @@
+page 41 (
+    name: Workflow Monitor
+    alias: WORKFLOW-MONITOR
+    title: Workflow Monitor
+    pageGroup: @workflow
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Every workflow item. Open one to see its history, or to suspend, resume, cancel or move it.
+    }
+
+    region breadcrumb (
+        name: Workflow Monitor
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Workflow Monitor
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 42, p_items => 'P42_WF_ITEM_ID', p_values => to_char(q.wf_item_id), p_clear_cache => '42') as open_url
+                  from (
+
+                            select i.wf_item_id,
+                                   i.item_type_name,
+                                   i.process_code,
+                                   i.version_number,
+                                   i.entity_name,
+                                   i.pk1_value,
+                                   xxfnd_util_pkg.lookup_meaning('WF_ITEM_STATUS', i.item_status) as item_status,
+                                   i.current_activity_name,
+                                   i.performer_role_code,
+                                   i.started_date,
+                                   i.completed_date,
+                                   i.last_transition_date
+                              from xxfnd_wf_items_v i
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column WF_ITEM_ID (
+            type: hidden
+            heading {
+                heading: Wf Item Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column ITEM_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#ITEM_TYPE_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PROCESS_CODE (
+            type: plainText
+            heading {
+                heading: Process Code
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ENTITY_NAME (
+            type: plainText
+            heading {
+                heading: Record Type
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PK1_VALUE (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ITEM_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CURRENT_ACTIVITY_NAME (
+            type: plainText
+            heading {
+                heading: Current Step
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PERFORMER_ROLE_CODE (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STARTED_DATE (
+            type: plainText
+            heading {
+                heading: Started
+            }
+            layout {
+                sequence: 100
+            }
+            appearance {
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column COMPLETED_DATE (
+            type: plainText
+            heading {
+                heading: Completed
+            }
+            layout {
+                sequence: 110
+            }
+            appearance {
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column LAST_TRANSITION_DATE (
+            type: plainText
+            heading {
+                heading: Last Movement
+            }
+            layout {
+                sequence: 120
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+)

@@ -1,0 +1,954 @@
+page 31 (
+    name: Request for Information
+    alias: REQUEST-FOR-INFORMATION
+    title: Request for Information
+    pageGroup: @rfi
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @kyc-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText: The recipient answers here; the Compliance team reviews the answer and closes the request.
+    }
+
+    region breadcrumb (
+        name: Request for Information
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region rfi (
+        name: Request
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_RFIS
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: rfi
+        }
+    )
+
+    pageItem P31_RFI_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @rfi
+            slot: regionBody
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P31_RFI_NUMBER (
+        type: displayOnly
+        label {
+            label: RFI
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_NUMBER
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_ENTITY_NAME (
+        type: displayOnly
+        label {
+            label: Record Type
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: ENTITY_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_PK1_VALUE (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: PK1_VALUE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_RFI_CATEGORY (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-category
+        }
+        layout {
+            sequence: 40
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_CATEGORY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the category.
+        }
+    )
+
+    pageItem P31_RECIPIENT_TYPE (
+        type: selectList
+        label {
+            label: Recipient Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-recipient-type
+        }
+        layout {
+            sequence: 50
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RECIPIENT_TYPE
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the recipient Type.
+        }
+    )
+
+    pageItem P31_RECIPIENT_USER_NAME (
+        type: displayOnly
+        label {
+            label: Recipient
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RECIPIENT_USER_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_DESCRIPTION (
+        type: displayOnly
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_DUE_DATE (
+        type: displayOnly
+        label {
+            label: Due Date
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: DUE_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P31_RFI_STATUS (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-status
+        }
+        layout {
+            sequence: 90
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_STATUS
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the status.
+        }
+    )
+
+    pageItem P31_RESPONSE_TEXT (
+        type: textarea
+        label {
+            label: Response
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 6
+        }
+        source {
+            formRegion: @rfi
+            column: RESPONSE_TEXT
+            dataType: varchar2
+        }
+        sessionState {
+            dataType: clob
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING'))
+                ```
+        }
+        help {
+            helpText: Enter the response.
+        }
+    )
+
+    pageItem P31_RESPONDED_DATE (
+        type: displayOnly
+        label {
+            label: Responded On
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RESPONDED_DATE
+            dataType: timestamp
+        }
+    )
+
+    pageItem P31_RESOLUTION_NOTES (
+        type: textarea
+        label {
+            label: Resolution Notes
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @rfi
+            column: RESOLUTION_NOTES
+            dataType: varchar2
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE')
+                ```
+        }
+        help {
+            helpText: Enter the resolution Notes.
+        }
+    )
+
+    pageItem P31_NEW_STATUS (
+        type: selectList
+        label {
+            label: Set Status
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values_vl
+                 where lookup_type = 'RFI_STATUS'
+                   and lookup_code in ('RESOLVED','REJECTED_RETURNED','CANCELLED','ON_HOLD_INVESTIGATION')
+                   and active_flag = 'Y'
+                 order by display_sequence
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 130
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+        help {
+            helpText: Choose the set Status.
+        }
+    )
+
+    button back (
+        buttonName: BACK
+        label: Back
+        layout {
+            sequence: 10
+            region: @rfi
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 30
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button respond (
+        buttonName: RESPOND
+        label: Send Response
+        layout {
+            sequence: 20
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                ```
+        }
+    )
+
+    button resolve (
+        buttonName: RESOLVE
+        label: Update Status
+        layout {
+            sequence: 30
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    region rfi_attachments (
+        name: Attachments
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id,
+                       a.document_id,
+                       a.title,
+                       a.category_name,
+                       xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', a.datatype_code) as datatype,
+                       a.version_number,
+                       a.document_date,
+                       a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       xxfnd_util_pkg.lookup_meaning('UPLOAD_STATUS', a.upload_status) as upload_status,
+                       case when a.datatype_code = 'FILE' then 'Download'
+                            when a.datatype_code = 'WEB_PAGE' then 'Open link' end as open_label,
+                       case when a.datatype_code = 'WEB_PAGE' then a.url end as url,
+                       a.datatype_code,
+                       a.created_by,
+                       a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_RFIS'
+                   and a.pk1_value   = :P31_RFI_ID
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: P31_RFI_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rfi_attachments
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No attachments yet.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_RFI_ID
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TITLE (
+            type: link
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    page: 91
+                    items: {
+                        P91_ATTACHED_DOCUMENT_ID: #ATTACHED_DOCUMENT_ID#
+                        P91_SOURCE_PAGE: 31
+                        P91_SOURCE_REGION: rfi_attachments
+                    }
+                    clearCache: 91
+                }
+                linkText: #TITLE#
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DATATYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Issued
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 80
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="u-danger-text">#EXPIRED#</span>
+                    ```
+            }
+        )
+
+        column UPLOAD_STATUS (
+            type: plainText
+            heading {
+                heading: Storage
+            }
+            layout {
+                sequence: 100
+            }
+        )
+
+        column OPEN_LABEL (
+            type: plainText
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 110
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="f?p=&APP_ID.:1:&SESSION.:APPLICATION_PROCESS=DOWNLOAD_DOCUMENT:::G_DOCUMENT_ID:#DOCUMENT_ID#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
+                    ```
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column DATATYPE_CODE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 140
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 150
+            }
+            appearance {
+            }
+        )
+
+    )
+
+    button rfi_attachments-add (
+        buttonName: RFI_ATTACHMENTS_ADD
+        label: Add Attachment
+        layout {
+            sequence: 10
+            region: @rfi_attachments
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-paperclip
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 90
+                items: {
+                    P90_ENTITY_NAME: XXCMP_RFIS
+                    P90_PK1_VALUE: &P31_RFI_ID.
+                    P90_SOURCE_PAGE: 31
+                    P90_SOURCE_REGION: rfi_attachments
+                }
+                clearCache: 90
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 31, 'rfi_attachments', 'XXCMP_RFIS', 'INSERT') = 'Y' and :P31_RFI_ID is not null
+                ```
+        }
+    )
+
+    dynamicAction refresh-rfi_attachments (
+        name: Refresh rfi_attachments
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @rfi_attachments
+        }
+
+        action refresh-rfi_attachments-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rfi_attachments
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation VAL_RESPONSE_GIVEN (
+        name: Response entered
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P31_RESPONSE_TEXT is null then 'Enter your response.' end;
+                ```
+        }
+        error {
+            associatedItem: @P31_RESPONSE_TEXT
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    validation VAL_STATUS_GIVEN (
+        name: Status chosen
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P31_NEW_STATUS is null then 'Choose the new status.' end;
+                ```
+        }
+        error {
+            associatedItem: @P31_NEW_STATUS
+        }
+        serverSideCondition {
+            whenButtonPressed: @resolve
+        }
+    )
+
+    process initialize-rfi (
+        name: Initialize rfi
+        type: formInitialization
+        formRegion: @rfi
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process respond-rfi (
+        name: Send response
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_kyc_pkg.respond(:P31_RFI_ID, :P31_RESPONSE_TEXT);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Response sent to the Compliance team.
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process resolve-rfi (
+        name: Update status
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_kyc_pkg.resolve(:P31_RFI_ID, :P31_NEW_STATUS, :P31_RESOLUTION_NOTES);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Status updated.
+        }
+        serverSideCondition {
+            whenButtonPressed: @resolve
+        }
+    )
+
+)

@@ -1,0 +1,228 @@
+page 170 (
+    name: Configuration Change Approvals
+    alias: CONFIGURATION-CHANGE-APPROVALS
+    title: Configuration Change Approvals
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @config-approver
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Changes waiting for a second person. You cannot approve a change you made yourself.
+    }
+
+    region breadcrumb (
+        name: Configuration Change Approvals
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Configuration Change Approvals
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 172, p_items => 'P172_TABLE_NAME,P172_PK_VALUE', p_values => to_char(q.table_name) || ',' || to_char(q.pk_value), p_clear_cache => '172') as open_url
+                  from (
+
+                            select a.table_name || '|' || a.pk_value as row_key,
+                                   a.table_name, a.pk_value, a.change_type, a.change_summary, a.submitted_by, a.submitted_date
+                              from xxfnd_pending_approvals_v a
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column ROW_KEY (
+            type: hidden
+            heading {
+                heading: Row Key
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+        )
+
+        column TABLE_NAME (
+            type: hidden
+            heading {
+                heading: Table Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PK_VALUE (
+            type: hidden
+            heading {
+                heading: Pk Value
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CHANGE_TYPE (
+            type: plainText
+            heading {
+                heading: Change
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#CHANGE_TYPE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CHANGE_SUMMARY (
+            type: plainText
+            heading {
+                heading: Summary
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBMITTED_BY (
+            type: plainText
+            heading {
+                heading: Changed By
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBMITTED_DATE (
+            type: plainText
+            heading {
+                heading: Changed
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

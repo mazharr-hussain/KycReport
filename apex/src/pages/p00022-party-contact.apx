@@ -1,0 +1,541 @@
+page 22 (
+    name: Party Contact
+    alias: PARTY-CONTACT
+    title: Party Contact
+    pageGroup: @parties
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @compliance-staff
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: A way to reach the party.
+    }
+
+    region form (
+        name: Party Contact
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_PARTY_CONTACTS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P22_PARTY_CONTACT_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_CONTACT_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P22_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P22_CONTACT_TYPE (
+        type: selectList
+        label {
+            label: Contact Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-contact-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CONTACT_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the contact Type.
+        }
+    )
+
+    pageItem P22_CONTACT_VALUE (
+        type: textField
+        label {
+            label: Contact
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 500
+        }
+        source {
+            formRegion: @form
+            column: CONTACT_VALUE
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the contact.
+        }
+    )
+
+    pageItem P22_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: CONTACT_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the contact Name.
+        }
+    )
+
+    pageItem P22_PRIMARY_FLAG (
+        type: switch
+        label {
+            label: Primary
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: PRIMARY_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: N
+        }
+        help {
+            helpText: One primary contact per type. Requests for information to an external party use the primary email.
+        }
+    )
+
+    pageItem P22_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    region dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.render(
+                           p_table_name   => 'XXCMP_PARTY_CONTACTS',
+                           p_pk_value     => :P22_PARTY_CONTACT_ID,
+                           p_context_code => :P22_DFF_CONTEXT);
+                ```
+            pageItemsToSubmit: [
+                P22_PARTY_CONTACT_ID
+                P22_DFF_CONTEXT
+            ]
+        }
+        layout {
+            sequence: 50
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: dff
+        }
+    )
+
+    dynamicAction bind-dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        comments {
+            comments: P22_DFF_JSON and P22_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
+        }
+
+        action bind-dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    xxfndDff.bind('dff', 'P22_DFF_JSON', 'P22_DFF_CONTEXT');
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    pageItem P22_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @form
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    pageItem P22_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    validation VAL_P22_DFF (
+        name: Validate additional information
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.validate('XXCMP_PARTY_CONTACTS', :P22_DFF_JSON, :P22_DFF_CONTEXT, :P22_PARTY_CONTACT_ID);
+                ```
+        }
+        error {
+            associatedItem: @P22_DFF_CONTEXT
+        }
+    )
+
+    process p22-dff-save (
+        name: Save Additional Information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_dff_pkg.save('XXCMP_PARTY_CONTACTS', :P22_PARTY_CONTACT_ID, :P22_DFF_JSON, :P22_DFF_CONTEXT);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P22_PARTY_CONTACT_ID
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P22_PARTY_CONTACT_ID
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P22_PARTY_CONTACT_ID
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+)

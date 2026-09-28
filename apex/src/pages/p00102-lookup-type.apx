@@ -1,0 +1,838 @@
+page 102 (
+    name: Lookup Type
+    alias: LOOKUP-TYPE
+    title: Lookup Type
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText: Lookup values and their Arabic meanings. System-level types cannot be changed; extensible types accept new values only.
+    }
+
+    region breadcrumb (
+        name: Lookup Type
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region form (
+        name: Lookup Type
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_LOOKUP_TYPES
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    pageItem P102_LOOKUP_TYPE (
+        type: textField
+        label {
+            label: Lookup Type
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: LOOKUP_TYPE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P102_SAVED = 'Y'
+                ```
+        }
+        help {
+            helpText: Enter the lookup Type.
+        }
+    )
+
+    pageItem P102_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P102_SAVED
+                  from XXFND_LOOKUP_TYPES
+                 where LOOKUP_TYPE = :P102_LOOKUP_TYPE;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P102_MEANING (
+        type: textField
+        label {
+            label: Meaning
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: MEANING
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the meaning.
+        }
+    )
+
+    pageItem P102_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the description.
+        }
+    )
+
+    pageItem P102_APPLICATION_CODE (
+        type: textField
+        label {
+            label: Application Code
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_CODE
+            dataType: varchar2
+        }
+        help {
+            inlineHelpText: Leave empty to share with every application.
+        }
+    )
+
+    pageItem P102_CUSTOMIZATION_LEVEL (
+        type: selectList
+        label {
+            label: Customization Level
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-customization-level
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CUSTOMIZATION_LEVEL
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: U
+        }
+        help {
+            helpText: Choose the customization Level.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @form
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 101
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 20
+            region: @form
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P102_SAVED, 'N') = 'N'
+                ```
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @form
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P102_SAVED
+        }
+    )
+
+    region values (
+        name: Values
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select v.lookup_type, v.lookup_code, v.meaning, v.description, v.tag,
+                       v.parent_lookup_type, v.parent_lookup_code, v.display_sequence,
+                       v.enabled_flag, v.start_date_active, v.end_date_active
+                  from xxfnd_lookup_values v
+                 where v.lookup_type = :P102_LOOKUP_TYPE
+                ```
+            pageItemsToSubmit: P102_LOOKUP_TYPE
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: values
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P102_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column LOOKUP_TYPE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_TYPE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P102_LOOKUP_TYPE
+            }
+        )
+
+        column LOOKUP_CODE (
+            type: textField
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column MEANING (
+            type: textField
+            heading {
+                heading: Meaning
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: MEANING
+                dataType: varchar2
+            }
+        )
+
+        column DESCRIPTION (
+            type: textField
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+        )
+
+        column TAG (
+            type: textField
+            heading {
+                heading: Tag
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 150
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TAG
+                dataType: varchar2
+            }
+        )
+
+        column PARENT_LOOKUP_TYPE (
+            type: selectList
+            heading {
+                heading: Parent Type
+            }
+            layout {
+                sequence: 70
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-lookup-types
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PARENT_LOOKUP_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column PARENT_LOOKUP_CODE (
+            type: textField
+            heading {
+                heading: Parent Code
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PARENT_LOOKUP_CODE
+                dataType: varchar2
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+        column START_DATE_ACTIVE (
+            type: datePicker
+            heading {
+                heading: From
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: START_DATE_ACTIVE
+                dataType: date
+            }
+        )
+
+        column END_DATE_ACTIVE (
+            type: datePicker
+            heading {
+                heading: To
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: END_DATE_ACTIVE
+                dataType: date
+            }
+        )
+
+    )
+
+    region translations (
+        name: Arabic Translations
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.lookup_type, t.lookup_code, t.language_code, t.meaning, t.description
+                  from xxfnd_lookup_values_tl t
+                 where t.lookup_type = :P102_LOOKUP_TYPE
+                   and t.language_code = 'ar'
+                ```
+            pageItemsToSubmit: P102_LOOKUP_TYPE
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: translations
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P102_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column LOOKUP_TYPE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_TYPE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P102_LOOKUP_TYPE
+            }
+        )
+
+        column LOOKUP_CODE (
+            type: selectList
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select lookup_code || ' - ' || meaning as display_value, lookup_code as return_value
+                      from xxfnd_lookup_values where lookup_type = :P102_LOOKUP_TYPE order by display_sequence
+                    ```
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column LANGUAGE_CODE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LANGUAGE_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: static
+                staticValue: ar
+            }
+        )
+
+        column MEANING (
+            type: textField
+            heading {
+                heading: Meaning - Arabic
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: MEANING
+                dataType: varchar2
+            }
+        )
+
+        column DESCRIPTION (
+            type: textField
+            heading {
+                heading: Description - Arabic
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process save-values (
+        name: Save values
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @values
+        execution {
+            sequence: 20
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+    process save-translations (
+        name: Save translations
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @translations
+        execution {
+            sequence: 30
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+)

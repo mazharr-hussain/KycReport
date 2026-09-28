@@ -1,0 +1,897 @@
+page 42 (
+    name: Workflow Item
+    alias: WORKFLOW-ITEM
+    title: Workflow Item
+    pageGroup: @workflow
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @kyc-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText:
+            ```
+            One workflow item: where it is, who acted, and which notifications were sent.
+            ```
+    }
+
+    region breadcrumb (
+        name: Workflow Item
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region item (
+        name: Workflow Item
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: item
+        }
+    )
+
+    pageItem P42_WF_ITEM_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @item
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P42_ITEM_TYPE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @item
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P42_CURRENT_ACTIVITY_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @item
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P42_STATUS_CODE (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @item
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P42_PROCESS (
+        type: displayOnly
+        label {
+            label: Process
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P42_RECORD (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P42_STATUS (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P42_CURRENT_STEP (
+        type: displayOnly
+        label {
+            label: Current Step
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P42_CANNOT_ACT (
+        type: displayOnly
+        label {
+            label: Why You Cannot Act
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P42_CANNOT_ACT
+        }
+    )
+
+    pageItem P42_ADMIN_REASON (
+        type: textarea
+        label {
+            label: Reason for Administrator Action
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                ```
+        }
+        help {
+            helpText: Enter the reason for Administrator Action.
+        }
+    )
+
+    pageItem P42_MOVE_TO (
+        type: selectList
+        label {
+            label: Move To Step
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.activity_name as display_value, a.activity_code as return_value
+                  from xxfnd_wf_items i
+                  join xxfnd_wf_activities a
+                    on a.item_type = i.item_type and a.process_code = i.process_code
+                   and a.version_number = i.version_number
+                 where i.wf_item_id = to_number(:P42_WF_ITEM_ID)
+                 order by a.display_sequence
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 70
+            region: @item
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                ```
+        }
+        help {
+            helpText: Choose the move To Step.
+        }
+    )
+
+    button take-action (
+        buttonName: TAKE_ACTION
+        label: Take Action
+        layout {
+            sequence: 10
+            region: @item
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 43
+                items: {
+                    P43_WF_ITEM_ID: &P42_WF_ITEM_ID.
+                    P43_ACTIVITY_ID: &P42_CURRENT_ACTIVITY_ID.
+                }
+                clearCache: 43
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_wf_pkg.can_act(:P42_WF_ITEM_ID) = 'Y' and :P42_ITEM_TYPE <> 'RFI'
+                ```
+        }
+    )
+
+    button open-rfi (
+        buttonName: OPEN_RFI
+        label: Open Request for Information
+        layout {
+            sequence: 15
+            region: @item
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 31
+                items: {
+                    P31_RFI_ID: &P42_RECORD.
+                }
+                clearCache: 31
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P42_ITEM_TYPE = 'RFI'
+                ```
+        }
+    )
+
+    button suspend (
+        buttonName: SUSPEND
+        label: Suspend
+        layout {
+            sequence: 20
+            region: @item
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P42_STATUS_CODE = 'ACTIVE'
+                ```
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    button resume (
+        buttonName: RESUME
+        label: Resume
+        layout {
+            sequence: 30
+            region: @item
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P42_STATUS_CODE = 'SUSPENDED'
+                ```
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    button move (
+        buttonName: MOVE
+        label: Move
+        layout {
+            sequence: 40
+            region: @item
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P42_STATUS_CODE in ('ACTIVE','SUSPENDED')
+                ```
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    button cancel-item (
+        buttonName: CANCEL_ITEM
+        label: Cancel Item
+        layout {
+            sequence: 50
+            region: @item
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Cancel this workflow item?
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P42_STATUS_CODE in ('ACTIVE','SUSPENDED')
+                ```
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    region history (
+        name: History
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.activity_name,
+                       xxfnd_util_pkg.lookup_meaning('WF_ACTIVITY_TYPE', a.activity_type) as activity_type,
+                       nvl(xxfnd_util_pkg.lookup_meaning('WF_RESULT', h.result_code), h.result_code) as result,
+                       h.actioned_by,
+                       h.on_behalf_of,
+                       h.notes,
+                       h.entered_date,
+                       h.exited_date
+                  from xxfnd_wf_activity_history h
+                  join xxfnd_wf_activities a on a.activity_id = h.activity_id
+                 where h.wf_item_id = to_number(:P42_WF_ITEM_ID)
+                 order by h.activity_history_id desc
+                ```
+            pageItemsToSubmit: P42_WF_ITEM_ID
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: history
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column ACTIVITY_NAME (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ACTIVITY_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ACTIONED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ON_BEHALF_OF (
+            type: plainText
+            heading {
+                heading: On Behalf Of
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column NOTES (
+            type: plainText
+            heading {
+                heading: Notes
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column ENTERED_DATE (
+            type: plainText
+            heading {
+                heading: Entered
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+            }
+        )
+
+        column EXITED_DATE (
+            type: plainText
+            heading {
+                heading: Completed
+            }
+            layout {
+                sequence: 80
+            }
+            appearance {
+            }
+        )
+
+    )
+
+    region notifications (
+        name: Notifications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select n.recipient_user_name,
+                       n.original_recipient,
+                       n.subject,
+                       xxfnd_util_pkg.lookup_meaning('NOTIFICATION_STATUS', n.status_code) as status,
+                       n.queued_date,
+                       n.sent_date,
+                       n.error_message
+                  from xxfnd_wf_notifications n
+                 where n.wf_item_id = to_number(:P42_WF_ITEM_ID)
+                 order by n.notification_id desc
+                ```
+            pageItemsToSubmit: P42_WF_ITEM_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: notifications
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No notifications.
+        }
+
+        column RECIPIENT_USER_NAME (
+            type: plainText
+            heading {
+                heading: Recipient
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ORIGINAL_RECIPIENT (
+            type: plainText
+            heading {
+                heading: Delegated From
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Subject
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column QUEUED_DATE (
+            type: plainText
+            heading {
+                heading: Queued
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+            }
+        )
+
+        column SENT_DATE (
+            type: plainText
+            heading {
+                heading: Sent
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+            }
+        )
+
+        column ERROR_MESSAGE (
+            type: plainText
+            heading {
+                heading: Error
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    process load-item (
+        name: Load item
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                for i in (select v.*, w.current_activity_id,
+                                 xxfnd_util_pkg.lookup_meaning('WF_ITEM_STATUS', v.item_status) as status_meaning
+                            from xxfnd_wf_items_v v
+                            join xxfnd_wf_items w on w.wf_item_id = v.wf_item_id
+                           where v.wf_item_id = :P42_WF_ITEM_ID)
+                loop
+                    :P42_ITEM_TYPE           := i.item_type;
+                    :P42_CURRENT_ACTIVITY_ID := i.current_activity_id;
+                    :P42_PROCESS             := i.item_type_name || ' / ' || i.process_code || ' v' || i.version_number;
+                    :P42_RECORD              := i.pk1_value;
+                    :P42_STATUS              := i.status_meaning;
+                    :P42_STATUS_CODE         := i.item_status;
+                    :P42_CURRENT_STEP        := i.current_activity_name;
+                    :P42_CANNOT_ACT          := case when i.current_activity_type in ('TASK','APPROVAL')
+                                                      then xxfnd_wf_pkg.cannot_act_reason(i.wf_item_id) end;
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    validation VAL_REASON_SUSPEND (
+        name: Reason entered for suspend
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P42_ADMIN_REASON is null then 'Enter a reason.' end;
+                ```
+        }
+        error {
+            associatedItem: @P42_ADMIN_REASON
+        }
+        serverSideCondition {
+            whenButtonPressed: @suspend
+        }
+    )
+
+    validation VAL_REASON_MOVE (
+        name: Reason entered for move
+        execution {
+            sequence: 11
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P42_ADMIN_REASON is null then 'Enter a reason.' end;
+                ```
+        }
+        error {
+            associatedItem: @P42_ADMIN_REASON
+        }
+        serverSideCondition {
+            whenButtonPressed: @move
+        }
+    )
+
+    validation VAL_REASON_CANCEL_ITEM (
+        name: Reason entered for cancel-item
+        execution {
+            sequence: 12
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P42_ADMIN_REASON is null then 'Enter a reason.' end;
+                ```
+        }
+        error {
+            associatedItem: @P42_ADMIN_REASON
+        }
+        serverSideCondition {
+            whenButtonPressed: @cancel-item
+        }
+    )
+
+    process admin-action (
+        name: Administrator action
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                case :REQUEST
+                    when 'SUSPEND'     then xxfnd_wf_pkg.suspend_item(:P42_WF_ITEM_ID, :P42_ADMIN_REASON);
+                    when 'RESUME'      then xxfnd_wf_pkg.resume_item(:P42_WF_ITEM_ID);
+                    when 'MOVE'        then xxfnd_wf_pkg.reassign_activity(:P42_WF_ITEM_ID, :P42_MOVE_TO, :P42_ADMIN_REASON);
+                    when 'CANCEL_ITEM' then xxfnd_wf_pkg.cancel_item(:P42_WF_ITEM_ID, :P42_ADMIN_REASON);
+                end case;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Workflow item updated.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUSPEND,RESUME,MOVE,CANCEL_ITEM
+        }
+    )
+
+    dynamicAction refresh-after-action (
+        name: Refresh history
+        execution {
+            sequence: 50
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @item
+        }
+
+        action refresh-after-action-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @history
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

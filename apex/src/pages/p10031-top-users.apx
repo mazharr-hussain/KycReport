@@ -1,0 +1,149 @@
+page 10031 (
+    name: Top Users
+    alias: TOP-USERS
+    title: Top Users
+    pageGroup: @features
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    config {
+        buildOption: @feature-activity-reporting
+    }
+    help {
+        helpText: Most active users in the last 30 days.
+    }
+
+    region breadcrumb (
+        name: Top Users
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Top Users
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select l.apex_user,
+                       count(*) as page_views,
+                       count(distinct l.apex_session_id) as sessions,
+                       max(l.view_date) as last_seen
+                  from apex_workspace_activity_log l
+                 where l.application_id = :APP_ID
+                   and l.view_date > sysdate - 30
+                 group by l.apex_user
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APEX_USER (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_VIEWS (
+            type: plainText
+            heading {
+                heading: Page Views
+            }
+            layout {
+                sequence: 20
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column SESSIONS (
+            type: plainText
+            heading {
+                heading: Sessions
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column LAST_SEEN (
+            type: plainText
+            heading {
+                heading: Last Seen
+            }
+            layout {
+                sequence: 40
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+    )
+
+)

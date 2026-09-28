@@ -1,0 +1,461 @@
+page 172 (
+    name: Review Change
+    alias: REVIEW-CHANGE
+    title: Review Change
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        width: 800
+        chained: false
+    }
+    security {
+        authorizationScheme: @config-approver
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Approve or reject one configuration change.
+    }
+
+    region review (
+        name: Review Change
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: review
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P172_TABLE_NAME (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @review
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P172_PK_VALUE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @review
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P172_CHANGE_TYPE (
+        type: displayOnly
+        label {
+            label: Change
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select change_type from xxfnd_pending_approvals_v
+                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                ```
+            used: always
+        }
+    )
+
+    pageItem P172_CHANGE_SUMMARY (
+        type: displayOnly
+        label {
+            label: Summary
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select change_summary from xxfnd_pending_approvals_v
+                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                ```
+            used: always
+        }
+    )
+
+    pageItem P172_SUBMITTED_BY (
+        type: displayOnly
+        label {
+            label: Changed By
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select submitted_by from xxfnd_pending_approvals_v
+                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                ```
+            used: always
+        }
+    )
+
+    pageItem P172_REASON (
+        type: textarea
+        label {
+            label: Rejection Reason
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Enter the rejection Reason.
+        }
+    )
+
+    region trail (
+        name: What Changed
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.changed_date, a.changed_by, a.column_name, a.old_value, a.new_value, a.change_reason
+                  from xxfnd_audit_log a
+                 where a.table_name = :P172_TABLE_NAME
+                   and a.pk_value   = :P172_PK_VALUE
+                 order by a.audit_log_id desc
+                ```
+            pageItemsToSubmit: [
+                P172_TABLE_NAME
+                P172_PK_VALUE
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: trail
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column CHANGED_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 10
+            }
+            appearance {
+            }
+        )
+
+        column CHANGED_BY (
+            type: plainText
+            heading {
+                heading: Who
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Field
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OLD_VALUE (
+            type: plainText
+            heading {
+                heading: Old
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column NEW_VALUE (
+            type: plainText
+            heading {
+                heading: New
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CHANGE_REASON (
+            type: plainText
+            heading {
+                heading: Reason
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button reject (
+        buttonName: REJECT
+        label: Reject
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button approve (
+        buttonName: APPROVE
+        label: Approve
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation VAL_REASON_NEEDED (
+        name: Reason for rejection
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P172_REASON is null then 'Enter why the change is rejected.' end;
+                ```
+        }
+        error {
+            associatedItem: @P172_REASON
+        }
+        serverSideCondition {
+            whenButtonPressed: @reject
+        }
+    )
+
+    process approve-change (
+        name: Approve change
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_approval_pkg.approve(:P172_TABLE_NAME, :P172_PK_VALUE);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Change approved.
+        }
+        serverSideCondition {
+            whenButtonPressed: @approve
+        }
+    )
+
+    process reject-change (
+        name: Reject change
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_approval_pkg.reject(:P172_TABLE_NAME, :P172_PK_VALUE, :P172_REASON);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: afterSubmit
+        }
+        successMessage {
+            successMessage: Change rejected.
+        }
+        serverSideCondition {
+            whenButtonPressed: @reject
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: afterSubmit
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,REJECT
+        }
+    )
+
+)

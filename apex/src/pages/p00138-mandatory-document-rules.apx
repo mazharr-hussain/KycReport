@@ -1,0 +1,296 @@
+page 138 (
+    name: Mandatory Document Rules
+    alias: MANDATORY-DOCUMENT-RULES
+    title: Mandatory Document Rules
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @rules-admin
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Configurable checklist of required documents by jurisdiction and entity type. Only approved rules are applied.
+    }
+
+    region breadcrumb (
+        name: Mandatory Document Rules
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Mandatory Document Rules
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 139, p_items => 'P139_ATTACHMENT_RULE_ID', p_values => to_char(q.attachment_rule_id), p_clear_cache => '139') as open_url
+                  from (
+
+                            select r.attachment_rule_id, r.entity_name, c.category_name,
+                                   nvl(xxfnd_util_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'Any') as jurisdiction,
+                                   nvl(xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', r.entity_type), 'Any') as entity_type,
+                                   r.mandatory_flag, r.priority, r.enabled_flag,
+                                   xxfnd_util_pkg.lookup_meaning('APPROVAL_STATUS', r.approval_status) as approval_status,
+                                   r.approved_by
+                              from xxcmp_attachment_rules r
+                              join xxfnd_document_categories_vl c on c.category_code = r.category_code
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column ATTACHMENT_RULE_ID (
+            type: hidden
+            heading {
+                heading: Attachment Rule Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column ENTITY_NAME (
+            type: plainText
+            heading {
+                heading: Entity
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#ENTITY_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Document
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column JURISDICTION (
+            type: plainText
+            heading {
+                heading: Jurisdiction
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENTITY_TYPE (
+            type: plainText
+            heading {
+                heading: Entity Type
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MANDATORY_FLAG (
+            type: plainText
+            heading {
+                heading: Mandatory
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: plainText
+            heading {
+                heading: Approval
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Rule
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 139
+                clearCache: 139
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @rules-admin
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

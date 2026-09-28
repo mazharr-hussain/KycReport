@@ -1,0 +1,217 @@
+page 101 (
+    name: Lookups
+    alias: LOOKUPS
+    title: Lookups
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Lookup types are shared by every application unless an application code is set.
+    }
+
+    region breadcrumb (
+        name: Lookups
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Lookups
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 102, p_items => 'P102_LOOKUP_TYPE', p_values => to_char(q.lookup_type), p_clear_cache => '102') as open_url
+                  from (
+
+                            select t.lookup_type,
+                                   t.meaning,
+                                   t.description,
+                                   nvl(t.application_code, 'Shared') as application_code,
+                                   xxfnd_util_pkg.lookup_meaning('CUSTOMIZATION_LEVEL', t.customization_level) as customization_level,
+                                   (select count(*) from xxfnd_lookup_values v where v.lookup_type = t.lookup_type) as value_count
+                              from xxfnd_lookup_types t
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column LOOKUP_TYPE (
+            type: plainText
+            heading {
+                heading: Lookup Type
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#LOOKUP_TYPE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MEANING (
+            type: plainText
+            heading {
+                heading: Meaning
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CUSTOMIZATION_LEVEL (
+            type: plainText
+            heading {
+                heading: Customization
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VALUE_COUNT (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Lookup Type
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 102
+                clearCache: 102
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+)

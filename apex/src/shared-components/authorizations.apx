@@ -1,0 +1,118 @@
+authorization kyc-user (
+    name: KYC User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to the KYC Compliance Platform. Ask an administrator to grant you a role.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization compliance-staff (
+    name: Compliance Staff
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE');
+            ```
+    }
+    error {
+        errorMessage: This page is for the Compliance team.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization rules-admin (
+    name: KYC Rules Administrator
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: Only Compliance Managers, the Head of Compliance and System Administrators maintain KYC rules.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization config-approver (
+    name: Configuration Approver
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to approve configuration changes.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization audit-viewer (
+    name: Audit Viewer
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to view the audit log.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization administration-rights (
+    name: Administration Rights
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_role('SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: Insufficient privileges, user is not a System Administrator.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+
+authorization admin-area (
+    name: Administration Area
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to Administration.
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)

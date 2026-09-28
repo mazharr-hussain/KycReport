@@ -1,0 +1,23 @@
+pageGroup parties (
+    name: Parties
+)
+
+pageGroup rfi (
+    name: Requests for Information
+)
+
+pageGroup workflow (
+    name: Workflow
+)
+
+pageGroup attachments (
+    name: Attachments
+)
+
+pageGroup administration (
+    name: Administration
+)
+
+pageGroup features (
+    name: Application Features
+)

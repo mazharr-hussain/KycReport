@@ -1,0 +1,225 @@
+page 111 (
+    name: Audit Log
+    alias: AUDIT-LOG
+    title: Audit Log
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @audit-viewer
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Append-only history of configuration changes.
+    }
+
+    region breadcrumb (
+        name: Audit Log
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Audit Log
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.audit_log_id,
+                       a.changed_date,
+                       a.changed_by,
+                       a.table_name,
+                       a.pk_value,
+                       decode(a.action_code, 'I', 'Created', 'U', 'Changed', 'D', 'Deleted') as action,
+                       a.column_name,
+                       a.old_value,
+                       a.new_value,
+                       a.change_reason
+                  from xxfnd_audit_log a
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column AUDIT_LOG_ID (
+            type: hidden
+            heading {
+                heading: Audit Log Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column CHANGED_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 20
+            }
+            appearance {
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column CHANGED_BY (
+            type: plainText
+            heading {
+                heading: Who
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PK_VALUE (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Field
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OLD_VALUE (
+            type: plainText
+            heading {
+                heading: Old Value
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEW_VALUE (
+            type: plainText
+            heading {
+                heading: New Value
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CHANGE_REASON (
+            type: plainText
+            heading {
+                heading: Reason
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+)
