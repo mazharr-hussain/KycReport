@@ -1,10 +1,11 @@
 import sys,re,time
 from playwright.sync_api import sync_playwright
 alias,app,name=sys.argv[1],sys.argv[2],sys.argv[3]
+user=sys.argv[4] if len(sys.argv)>4 else 'ADMIN'
 with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args=['--no-sandbox'])
     pg=b.new_page()
-    pg.goto(f'http://localhost:8080/ords/r/xxcus/{alias}/login'); pg.fill('#P9999_USERNAME','ADMIN'); pg.fill('#P9999_PASSWORD','KycTest#2026'); pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
+    pg.goto(f'http://localhost:8080/ords/r/xxcus/{alias}/login'); pg.fill('#P9999_USERNAME',user); pg.fill('#P9999_PASSWORD','KycTest#2026'); pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
     s=re.search(r'session=(\d+)',pg.url).group(1)
     pg.goto(f'http://localhost:8080/ords/f?p={app}:21:{s}'); pg.wait_for_load_state('networkidle')
     pg.select_option('#P21_PARTY_TYPE','ORGANIZATION'); pg.wait_for_load_state('networkidle'); time.sleep(1)

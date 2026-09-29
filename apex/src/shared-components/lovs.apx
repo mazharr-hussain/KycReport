@@ -813,6 +813,27 @@ lov lov-roles (
     }
 )
 
+lov lov-privileges (
+    name: PRIVILEGES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select f.feature_name || ' - ' || initcap(p.action_code) as display_value,
+                   p.privilege_code as return_value
+              from xxfnd_privileges p
+              join xxfnd_features f on f.feature_code = p.feature_code
+             where f.enabled_flag = 'Y'
+             order by f.display_sequence, decode(p.action_code, 'VIEW', 1, 'CREATE', 2, 3)
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
 lov lov-categories (
     name: DOCUMENT CATEGORIES
     source {

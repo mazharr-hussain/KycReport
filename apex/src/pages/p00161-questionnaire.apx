@@ -581,7 +581,7 @@ page 161 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.

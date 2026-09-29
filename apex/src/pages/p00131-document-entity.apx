@@ -542,7 +542,7 @@ page 131 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -561,7 +561,7 @@ page 131 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -586,7 +586,7 @@ page 131 (
         }
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

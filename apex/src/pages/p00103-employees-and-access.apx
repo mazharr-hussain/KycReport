@@ -313,7 +313,7 @@ page 103 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Fusion HCM sync started. Refresh in a minute.

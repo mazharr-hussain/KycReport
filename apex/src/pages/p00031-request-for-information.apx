@@ -929,7 +929,7 @@ page 31 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Response sent to the Compliance team.
@@ -951,7 +951,7 @@ page 31 (
         }
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Status updated.

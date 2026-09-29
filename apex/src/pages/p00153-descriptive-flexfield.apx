@@ -1233,7 +1233,7 @@ page 153 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -1270,7 +1270,7 @@ page 153 (
         }
         execution {
             sequence: 15
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1287,7 +1287,7 @@ page 153 (
         editableRegion: @contexts
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1304,7 +1304,7 @@ page 153 (
         editableRegion: @segments
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1327,7 +1327,7 @@ page 153 (
         }
         execution {
             sequence: 40
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Reporting view regenerated.

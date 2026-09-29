@@ -954,7 +954,7 @@ page 135 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -974,7 +974,7 @@ page 135 (
         editableRegion: @blocks
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -991,7 +991,7 @@ page 135 (
         editableRegion: @block-entities
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1008,7 +1008,7 @@ page 135 (
         editableRegion: @usages
         execution {
             sequence: 40
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

@@ -419,7 +419,7 @@ page 172 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Change approved.
@@ -444,7 +444,7 @@ page 172 (
         }
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Change rejected.
@@ -462,7 +462,7 @@ page 172 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

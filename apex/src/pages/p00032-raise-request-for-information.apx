@@ -467,7 +467,7 @@ page 32 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Request for information sent.
@@ -485,7 +485,7 @@ page 32 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

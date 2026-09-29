@@ -284,6 +284,34 @@ page 106 (
         }
     )
 
+    pageItem P106_PRIVILEGES (
+        type: shuttle
+        label {
+            label: Privileges
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-privileges
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: What holders of this role may do, per feature. View opens the feature, Create adds records, Manage changes them.
+        }
+    )
+
     button cancel (
         buttonName: CANCEL
         label: Cancel
@@ -424,7 +452,7 @@ page 106 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -438,12 +466,55 @@ page 106 (
         }
     )
 
+    process load-privileges (
+        name: Load privileges
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P106_PRIVILEGES := xxfnd_privilege_pkg.role_privilege_list(:P106_ROLE_CODE);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_ROLE_CODE
+        }
+    )
+
+    process save-privileges (
+        name: Save privileges
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_privilege_pkg.set_role_privileges(:P106_ROLE_CODE, :P106_PRIVILEGES);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
     process close-dialog (
         name: Close Dialog
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

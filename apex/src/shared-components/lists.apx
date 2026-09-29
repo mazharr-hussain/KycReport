@@ -239,811 +239,115 @@ list navigation-menu (
         }
     )
 
-    entry approvals (
-        label: Change Approvals
-        icon {
-            imageIconCssClasses: fa-check-circle
-        }
-        layout {
-            sequence: 91
-            parentEntry: @administration
-        }
-        link {
-            target: {
-                page: 170
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(170, 'VIEW')
-                ```
-        }
-    )
-
-    entry wf-monitor (
-        label: Workflow Monitor
-        icon {
-            imageIconCssClasses: fa-sitemap
-        }
-        layout {
-            sequence: 92
-            parentEntry: @administration
-        }
-        link {
-            target: {
-                page: 41
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(41, 'VIEW')
-                ```
-        }
-    )
-
-    entry setup (
-        label: Setup
-        icon {
-            imageIconCssClasses: fa-sliders
-        }
-        layout {
-            sequence: 93
-            parentEntry: @administration
-        }
-        link {
-            target: {
-                page: 100
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_any_admin_privilege
-                ```
-        }
-    )
-
 )
 
-list admin-menu (
-    name: Administration Menu
+list admin-basic-setup (
+    name: Administration - Basic Setup
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
+            select null                                  as lvl,
+                   feature_name                          as label,
+                   apex_page.get_url(p_page => home_page_id) as target,
+                   'NO'                                  as is_current,
+                   icon_css                              as image,
+                   null                                  as image_attribute,
+                   null                                  as image_alt,
+                   description                           as a01
+              from xxfnd_admin_menu_v
+             where feature_group = 'BASIC_SETUP'
+             order by display_sequence
+            ```
+    }
+)
 
-    entry approvals (
-        label: Configuration Change Approvals
-        icon {
-            imageIconCssClasses: fa-check-circle
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 170
-            }
-        }
-        userDefinedAttributes {
-            1: Second-person approval of scoring, mandatory-document and integration changes.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(170, 'VIEW')
-                ```
-        }
-    )
+list admin-workflow-integration (
+    name: Administration - Workflow and Integration
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
+            select null                                  as lvl,
+                   feature_name                          as label,
+                   apex_page.get_url(p_page => home_page_id) as target,
+                   'NO'                                  as is_current,
+                   icon_css                              as image,
+                   null                                  as image_attribute,
+                   null                                  as image_alt,
+                   description                           as a01
+              from xxfnd_admin_menu_v
+             where feature_group = 'WORKFLOW_INTEGRATION'
+             order by display_sequence
+            ```
+    }
+)
 
-    entry wf-monitor (
-        label: Workflow Monitor
-        icon {
-            imageIconCssClasses: fa-sitemap
-        }
-        layout {
-            sequence: 20
-        }
-        link {
-            target: {
-                page: 41
-            }
-        }
-        userDefinedAttributes {
-            1: Every workflow item; suspend, resume, cancel or move.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(41, 'VIEW')
-                ```
-        }
-    )
+list admin-security (
+    name: Administration - Security
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
+            select null                                  as lvl,
+                   feature_name                          as label,
+                   apex_page.get_url(p_page => home_page_id) as target,
+                   'NO'                                  as is_current,
+                   icon_css                              as image,
+                   null                                  as image_attribute,
+                   null                                  as image_alt,
+                   description                           as a01
+              from xxfnd_admin_menu_v
+             where feature_group = 'SECURITY'
+             order by display_sequence
+            ```
+    }
+)
 
-    entry lookups (
-        label: Lookups
-        icon {
-            imageIconCssClasses: fa-list
-        }
-        layout {
-            sequence: 30
-        }
-        link {
-            target: {
-                page: 101
-            }
-        }
-        userDefinedAttributes {
-            1: Codes and translated meanings used across the platform.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(101, 'VIEW')
-                ```
-        }
-    )
+list admin-application (
+    name: Administration - Application
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
+            select null                                  as lvl,
+                   feature_name                          as label,
+                   apex_page.get_url(p_page => home_page_id) as target,
+                   'NO'                                  as is_current,
+                   icon_css                              as image,
+                   null                                  as image_attribute,
+                   null                                  as image_alt,
+                   description                           as a01
+              from xxfnd_admin_menu_v
+             where feature_group = 'APPLICATION'
+             order by display_sequence
+            ```
+    }
+)
 
-    entry employees (
-        label: Employees and Access
-        icon {
-            imageIconCssClasses: fa-users
-        }
-        layout {
-            sequence: 40
-        }
-        link {
-            target: {
-                page: 103
-            }
-        }
-        userDefinedAttributes {
-            1: People from Fusion HCM or created locally, and their roles.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(103, 'VIEW')
-                ```
-        }
-    )
-
-    entry roles (
-        label: Roles
-        icon {
-            imageIconCssClasses: fa-shield
-        }
-        layout {
-            sequence: 50
-        }
-        link {
-            target: {
-                page: 105
-            }
-        }
-        userDefinedAttributes {
-            1: Application roles.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(105, 'VIEW')
-                ```
-        }
-    )
-
-    entry sod (
-        label: Segregation of Duties
-        icon {
-            imageIconCssClasses: fa-balance-scale
-        }
-        layout {
-            sequence: 60
-        }
-        link {
-            target: {
-                page: 107
-            }
-        }
-        userDefinedAttributes {
-            1: Role pairs one person may not both exercise.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(107, 'VIEW')
-                ```
-        }
-    )
-
-    entry delegations (
-        label: Delegations
-        icon {
-            imageIconCssClasses: fa-exchange
-        }
-        layout {
-            sequence: 70
-        }
-        link {
-            target: {
-                page: 114
-            }
-        }
-        userDefinedAttributes {
-            1: Vacation rules for workflow notifications.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(114, 'VIEW')
-                ```
-        }
-    )
-
-    entry templates (
-        label: Notification Templates
-        icon {
-            imageIconCssClasses: fa-envelope
-        }
-        layout {
-            sequence: 80
-        }
-        link {
-            target: {
-                page: 109
-            }
-        }
-        userDefinedAttributes {
-            1: Wording of every email.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(109, 'VIEW')
-                ```
-        }
-    )
-
-    entry audit (
-        label: Audit Log
-        icon {
-            imageIconCssClasses: fa-history
-        }
-        layout {
-            sequence: 90
-        }
-        link {
-            target: {
-                page: 111
-            }
-        }
-        userDefinedAttributes {
-            1: Who changed which setting, when and why.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(111, 'VIEW')
-                ```
-        }
-    )
-
-    entry retention (
-        label: Retention Policies
-        icon {
-            imageIconCssClasses: fa-archive
-        }
-        layout {
-            sequence: 100
-        }
-        link {
-            target: {
-                page: 112
-            }
-        }
-        userDefinedAttributes {
-            1: How long records are kept.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(112, 'VIEW')
-                ```
-        }
-    )
-
-    entry endpoints (
-        label: Integration Endpoints
-        icon {
-            imageIconCssClasses: fa-plug
-        }
-        layout {
-            sequence: 110
-        }
-        link {
-            target: {
-                page: 120
-            }
-        }
-        userDefinedAttributes {
-            1: External systems and their web credentials.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(120, 'VIEW')
-                ```
-        }
-    )
-
-    entry purposes (
-        label: Integration Purposes
-        icon {
-            imageIconCssClasses: fa-random
-        }
-        layout {
-            sequence: 120
-        }
-        link {
-            target: {
-                page: 122
-            }
-        }
-        userDefinedAttributes {
-            1: Which endpoint serves which business purpose.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(122, 'VIEW')
-                ```
-        }
-    )
-
-    entry transmissions (
-        label: Transmission Log
-        icon {
-            imageIconCssClasses: fa-exchange
-        }
-        layout {
-            sequence: 130
-        }
-        link {
-            target: {
-                page: 124
-            }
-        }
-        userDefinedAttributes {
-            1: Every outbound call and its result.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(124, 'VIEW')
-                ```
-        }
-    )
-
-    entry doc-entities (
-        label: Document Entities
-        icon {
-            imageIconCssClasses: fa-cubes
-        }
-        layout {
-            sequence: 140
-        }
-        link {
-            target: {
-                page: 130
-            }
-        }
-        userDefinedAttributes {
-            1: Records that can carry attachments.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(130, 'VIEW')
-                ```
-        }
-    )
-
-    entry doc-categories (
-        label: Document Categories
-        icon {
-            imageIconCssClasses: fa-folder
-        }
-        layout {
-            sequence: 150
-        }
-        link {
-            target: {
-                page: 132
-            }
-        }
-        userDefinedAttributes {
-            1: Kinds of documents, expiry and recency rules.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(132, 'VIEW')
-                ```
-        }
-    )
-
-    entry attach-functions (
-        label: Attachment Pages
-        icon {
-            imageIconCssClasses: fa-paperclip
-        }
-        layout {
-            sequence: 160
-        }
-        link {
-            target: {
-                page: 134
-            }
-        }
-        userDefinedAttributes {
-            1: Pages and regions that show attachments.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(134, 'VIEW')
-                ```
-        }
-    )
-
-    entry storage (
-        label: Document Storage
-        icon {
-            imageIconCssClasses: fa-cloud-upload
-        }
-        layout {
-            sequence: 170
-        }
-        link {
-            target: {
-                page: 136
-            }
-        }
-        userDefinedAttributes {
-            1: UCM or SharePoint location for files.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(136, 'VIEW')
-                ```
-        }
-    )
-
-    entry doc-rules (
-        label: Mandatory Document Rules
-        icon {
-            imageIconCssClasses: fa-file-check
-        }
-        layout {
-            sequence: 180
-        }
-        link {
-            target: {
-                page: 138
-            }
-        }
-        userDefinedAttributes {
-            1: Required documents by jurisdiction and entity type.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(138, 'VIEW')
-                ```
-        }
-    )
-
-    entry item-types (
-        label: Workflow Item Types
-        icon {
-            imageIconCssClasses: fa-tags
-        }
-        layout {
-            sequence: 190
-        }
-        link {
-            target: {
-                page: 140
-            }
-        }
-        userDefinedAttributes {
-            1: What a workflow runs against.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(140, 'VIEW')
-                ```
-        }
-    )
-
-    entry processes (
-        label: Workflow Processes
-        icon {
-            imageIconCssClasses: fa-share-alt
-        }
-        layout {
-            sequence: 200
-        }
-        link {
-            target: {
-                page: 142
-            }
-        }
-        userDefinedAttributes {
-            1: Versioned process definitions.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(142, 'VIEW')
-                ```
-        }
-    )
-
-    entry value-sets (
-        label: Value Sets
-        icon {
-            imageIconCssClasses: fa-list-ul
-        }
-        layout {
-            sequence: 210
-        }
-        link {
-            target: {
-                page: 150
-            }
-        }
-        userDefinedAttributes {
-            1: Validation for additional-information fields.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(150, 'VIEW')
-                ```
-        }
-    )
-
-    entry flexfields (
-        label: Descriptive Flexfields
-        icon {
-            imageIconCssClasses: fa-plus-square
-        }
-        layout {
-            sequence: 220
-        }
-        link {
-            target: {
-                page: 152
-            }
-        }
-        userDefinedAttributes {
-            1: Additional information fields per table.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(152, 'VIEW')
-                ```
-        }
-    )
-
-    entry questionnaires (
-        label: Questionnaires
-        icon {
-            imageIconCssClasses: fa-question
-        }
-        layout {
-            sequence: 230
-        }
-        link {
-            target: {
-                page: 160
-            }
-        }
-        userDefinedAttributes {
-            1: Intake and investigation questions and scoring.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(160, 'VIEW')
-                ```
-        }
-    )
-
-    entry conclusions (
-        label: Conclusion Templates
-        icon {
-            imageIconCssClasses: fa-file-text
-        }
-        layout {
-            sequence: 240
-        }
-        link {
-            target: {
-                page: 163
-            }
-        }
-        userDefinedAttributes {
-            1: Pre-filled report conclusions by risk tier.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(163, 'VIEW')
-                ```
-        }
-    )
-
-    entry approval-matrix (
-        label: Approval Matrix
-        icon {
-            imageIconCssClasses: fa-check-square
-        }
-        layout {
-            sequence: 250
-        }
-        link {
-            target: {
-                page: 165
-            }
-        }
-        userDefinedAttributes {
-            1: Approval levels by risk tier.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(165, 'VIEW')
-                ```
-        }
-    )
-
-    entry features (
-        label: Feature Configuration
-        icon {
-            imageIconCssClasses: fa-toggle-on
-        }
-        layout {
-            sequence: 260
-        }
-        link {
-            target: {
-                page: 10020
-            }
-        }
-        userDefinedAttributes {
-            1: Switch optional application features on or off.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(10020, 'VIEW')
-                ```
-        }
-    )
-
-    entry activity (
-        label: Activity Reports
-        icon {
-            imageIconCssClasses: fa-bar-chart
-        }
-        layout {
-            sequence: 270
-        }
-        link {
-            target: {
-                page: 10030
-            }
-        }
-        userDefinedAttributes {
-            1: Page views, users, errors and performance.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(10030, 'VIEW')
-                ```
-        }
-    )
-
-    entry feedback-admin (
-        label: Manage Feedback
-        icon {
-            imageIconCssClasses: fa-comment
-        }
-        layout {
-            sequence: 280
-        }
-        link {
-            target: {
-                page: 10051
-            }
-        }
-        userDefinedAttributes {
-            1: Feedback submitted by users.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(10051, 'VIEW')
-                ```
-        }
-    )
-
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   apex_page.get_url(p_page => fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
 )
 
 list activity-menu (

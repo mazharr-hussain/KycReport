@@ -803,7 +803,7 @@ page 162 (
         }
         execution {
             sequence: 1
-            point: afterSubmit
+            point: processing
         }
     )
 
@@ -813,7 +813,7 @@ page 162 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -833,7 +833,7 @@ page 162 (
         editableRegion: @answers
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -860,7 +860,7 @@ page 162 (
         }
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Answer changes submitted for approval.

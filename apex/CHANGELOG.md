@@ -1,24 +1,42 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_10.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_11.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
 Source of truth: the APEXlang tree in `apex/src` (the zip is built from it; each chunk is one commit).
 
 ## How each release is verified
 
-| Layer | Tool | Result for release 10 |
+| Layer | Tool | Result for release 11 |
 |---|---|---|
 | Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
 | Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
-| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links …) | 2,386 checks, 0 FAIL |
-| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 23 scripts run; 0 invalid objects; releases R09 + R10 recorded; seed data + first administrator present |
-| Upgrade | install release 9, add data, `apex import -id 101` release 10 | data kept, R10 recorded once, VPD policies attached, 0 invalid |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 2,660 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 24 scripts run; 364 objects, 0 invalid; releases R09–R11 recorded; seed data + first administrator present |
+| Upgrade | release 9 → 10 and 10 → 11 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid |
 | Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
-| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 37 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1 and REQ1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
-| Save test | `apex/tests/save21.py`: create a Party with flexfields | "Changes saved." |
+| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 40 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1 and REQ1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
+| Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
 
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 11 – Chunk 3: admin console (one entry per feature, tabs, security screens)
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 28 | `pages/p00100-administration.apx`, `shared-components/lists.apx` | Administration console | one static list of 26 entries, conditions per entry | 4 groups (Basic Setup; Workflow and Integration; Security; Application), each a dynamic Media List over view `XXFND_ADMIN_MENU_V` | One entry per feature, grouped; an entry shows when the user holds VIEW on the feature – no page change needed when access changes |
+| 29 | `pages/p00000-global-page.apx`, list `feature-tabs` | Feature tabs | – | one Tabs region on the global page, driven by `XXFND_FEATURE_PAGES.TAB_LABEL` | The list pages of a feature (e.g. Attachments: Categories, Mandatory Documents, Storage, Registration, Attachment Pages) are tabs of one screen |
+| 30 | `shared-components/lists.apx` | Navigation menu | Administration → Change Approvals, Workflow Monitor, Setup | Administration (single entry) | Everything admin is reached from the console |
+| 31 | new `pages/p00180-data-security.apx`, `p00181-data-security-rule.apx` | Data Security (Security group) | rules only in SQL | list + drawer: role, table, rule (All rows / Own records / Column in list), column (cascading LOV), values; validations; applies the VPD policy to a table on its first rule | Rule 2: maintained in the application |
+| 32 | new `pages/p00182-privileges.apx` | Roles and Privileges → Privileges tab | – | every privilege and the roles holding it | Overview for administrators and auditors |
+| 33 | `pages/p00106-role.apx`, `lovs.apx` (`lov-privileges`) | Role form | no privileges | shuttle "Privileges" (feature – View/Create/Manage), loaded and saved with `XXFND_PRIVILEGE_PKG.ROLE_PRIVILEGE_LIST` / `SET_ROLE_PRIVILEGES` | Grant and revoke privileges per role |
+| 34 | new `pages/p10022-application-settings.apx`, `p10023-application-setting.apx` | Application Settings → Settings tab | settings editable only in the App Builder | list + drawer using `APEX_APP_SETTING.SET_VALUE` (values survive upgrades) | Rule 2 |
+| 35 | 99 page processes in 37 existing pages | Execution point | `point: afterSubmit` (= *On Submit – Before Computations and Validations*) | `point: processing` | **Defect:** every save ran before the validations, so no validation could stop bad data (found when the Data Security validation was bypassed and the raw ORA-02290 appeared). New rule g11 in `rules.py` guards it |
+| 36 | `supporting-objects.apx` script 09b | `XXFND_PRIVILEGE_PKG` | – | `ROLE_PRIVILEGE_LIST`, `SET_ROLE_PRIVILEGES` | used by #33 |
+| 37 | new install + upgrade script `18c Admin console` (install seq 187, upgrade seq 147) | Data | – | columns `XXFND_FEATURES.HOME_PAGE_ID`, `ICON_CSS`, `XXFND_FEATURE_PAGES.TAB_LABEL`, `TAB_SEQUENCE`; view `XXFND_ADMIN_MENU_V`; unique index `XXFND_DATA_SECURITY_RULES_U1`; landing pages, icons, descriptions, 23 tabs, new page mappings (only filling empty values); records `R11` | Idempotent chunk script |
+
+Not in this release: the **Alert Rules** entry appears with Chunk 6 (monitoring); **Configuration Change Approvals**
+stays in Basic Setup until Chunk 4 replaces it with APEX approval tasks in My Tasks.
 
 ## Release 10 – Chunk 2: security framework (privileges + data security)
 
@@ -110,14 +128,14 @@ grant execute on sys.dbms_rls    to <PARSING_SCHEMA>;   -- release 10+: row-leve
 Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
 
 ```sql
-apex validate -input KYC-Compliance-Platform-APEXlang_10.zip
+apex validate -input KYC-Compliance-Platform-APEXlang_11.zip
 
 begin
     apex_application_install.set_auto_install_sup_obj(p_auto_install_sup_obj => true);
 end;
 /
 
-apex import -input KYC-Compliance-Platform-APEXlang_10.zip -workspace XXCUS   -- add -id <n> for a fixed app id
+apex import -input KYC-Compliance-Platform-APEXlang_11.zip -workspace XXCUS   -- add -id <n> for a fixed app id
 
 select object_type, object_name from user_objects where status = 'INVALID';
 select job_name, enabled, state from user_scheduler_jobs where job_name like 'XXFND%';

@@ -206,7 +206,7 @@ page 10050 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Thank you for your feedback.
@@ -221,7 +221,7 @@ page 10050 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

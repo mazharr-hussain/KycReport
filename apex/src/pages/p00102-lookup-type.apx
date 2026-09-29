@@ -802,7 +802,7 @@ page 102 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -822,7 +822,7 @@ page 102 (
         editableRegion: @values
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -839,7 +839,7 @@ page 102 (
         editableRegion: @translations
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

@@ -1736,7 +1736,7 @@ page 21 (
         }
         execution {
             sequence: 40
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1763,7 +1763,7 @@ page 21 (
         formRegion: @party
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.

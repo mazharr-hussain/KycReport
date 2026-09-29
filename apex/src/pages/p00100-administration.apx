@@ -13,7 +13,7 @@ page 100 (
         formAutoComplete: false
     }
     help {
-        helpText: Everything an administrator configures. What you see depends on your role.
+        helpText: One entry per feature, grouped. You see the features your roles grant you; the pages of a feature are tabs inside it.
     }
 
     region breadcrumb (
@@ -36,22 +36,123 @@ page 100 (
         }
     )
 
-    region admin-list (
-        name: Setup
+    region basic-setup (
+        name: Basic Setup
         type: list
         source {
-            list: @admin-menu
+            list: @admin-basic-setup
         }
         layout {
             sequence: 20
             slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
         }
         componentAppearance {
             listTemplate: @/media-list
             templateOptions: #DEFAULT#
         }
         advanced {
-            htmlDomId: admin-list
+            htmlDomId: admin-basic-setup
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxfnd_admin_menu_v where feature_group = 'BASIC_SETUP'
+                ```
+        }
+    )
+
+    region workflow-integration (
+        name: Workflow and Integration
+        type: list
+        source {
+            list: @admin-workflow-integration
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/media-list
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: admin-workflow-integration
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxfnd_admin_menu_v where feature_group = 'WORKFLOW_INTEGRATION'
+                ```
+        }
+    )
+
+    region security (
+        name: Security
+        type: list
+        source {
+            list: @admin-security
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/media-list
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: admin-security
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxfnd_admin_menu_v where feature_group = 'SECURITY'
+                ```
+        }
+    )
+
+    region application (
+        name: Application
+        type: list
+        source {
+            list: @admin-application
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/media-list
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: admin-application
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxfnd_admin_menu_v where feature_group = 'APPLICATION'
+                ```
         }
     )
 

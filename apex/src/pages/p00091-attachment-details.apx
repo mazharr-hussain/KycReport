@@ -759,7 +759,7 @@ page 91 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Attachment updated.
@@ -799,7 +799,7 @@ page 91 (
         }
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -819,7 +819,7 @@ page 91 (
         }
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Attachment removed.
@@ -834,7 +834,7 @@ page 91 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

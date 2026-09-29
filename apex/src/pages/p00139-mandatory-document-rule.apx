@@ -384,7 +384,7 @@ page 139 (
         }
         execution {
             sequence: 1
-            point: afterSubmit
+            point: processing
         }
     )
 
@@ -528,7 +528,7 @@ page 139 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -547,7 +547,7 @@ page 139 (
         type: closeDialog
         execution {
             sequence: 90
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -596,7 +596,7 @@ page 139 (
         }
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Submitted for approval.
@@ -614,7 +614,7 @@ page 139 (
         type: closeDialog
         execution {
             sequence: 95
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

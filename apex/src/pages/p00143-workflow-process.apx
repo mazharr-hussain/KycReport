@@ -1027,7 +1027,7 @@ page 143 (
         formRegion: @form
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: Changes saved.
@@ -1047,7 +1047,7 @@ page 143 (
         editableRegion: @activities
         execution {
             sequence: 20
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1064,7 +1064,7 @@ page 143 (
         editableRegion: @transitions
         execution {
             sequence: 30
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1081,7 +1081,7 @@ page 143 (
         editableRegion: @controls
         execution {
             sequence: 40
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1104,7 +1104,7 @@ page 143 (
         }
         execution {
             sequence: 50
-            point: afterSubmit
+            point: processing
         }
         successMessage {
             successMessage: This version is now active.

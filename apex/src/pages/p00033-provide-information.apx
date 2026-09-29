@@ -217,7 +217,7 @@ page 33 (
         }
         execution {
             sequence: 10
-            point: afterSubmit
+            point: processing
         }
         serverSideCondition {
             whenButtonPressed: @submit

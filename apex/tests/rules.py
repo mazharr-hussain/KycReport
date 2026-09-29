@@ -135,7 +135,7 @@ for pid,p in sorted(pages.items()):
             add('c',pid,f"form {rn} primary key item",loc(r),f"pk={pk or '-'}",'PASS' if pk else 'FAIL')
             arp=[x.name for x in procs if x.get('type')=='formAutoRowProcessing' and ref(x.get('formRegion'))==rn]
             ini=[x.name for x in procs if x.get('type')=='formInitialization' and ref(x.get('formRegion'))==rn]
-            custom=[x.name for x in procs if x.get('type')=='executeCode' and x.get('execution.point')=='afterSubmit']
+            custom=[x.name for x in procs if x.get('type')=='executeCode' and x.get('execution.point') in ('afterSubmit','processing')]
             add('c',pid,f"form {rn} Automatic Row Processing",loc(r),f"arp={arp or '-'}"+('' if arp else f"; saved by custom processes {custom}"),'PASS' if arp else ('INFO' if custom else 'FAIL'))
             add('c',pid,f"form {rn} Form Initialization",loc(r),f"init={ini or '-'}",'PASS' if ini else 'FAIL')
     # rule d references
@@ -305,6 +305,13 @@ for r in R:
             sc=select_cols(q); pg=c
             while pg.parent: pg=pg.parent
             add('g5',pg.name,f"{c.kind} {c.name} inline LOV columns",loc(c,'lov.sqlQuery'),f"{sc}",'PASS' if sc and len(sc)==2 else ('UNVERIFIED' if sc is None else 'FAIL'))
+# g11: page processes run at Processing (after validations); APEXlang 'afterSubmit' = before computations and validations
+for pid,p in sorted(pages.items()):
+    for c in p.kids('process'):
+        pt=c.get('execution.point')
+        if pt in ('afterSubmit','processing'):
+            ok = pt=='processing' or c.get('type') in ('clearSessionState',)
+            add('g11',pid,f"process {c.name} execution point",loc(c,'execution.point'),pt,'PASS' if ok else 'FAIL')
 json.dump(rows,open(sys.argv[3],'w'))
 from collections import Counter
 print(Counter((r[0],r[5].split()[0]) for r in rows))
