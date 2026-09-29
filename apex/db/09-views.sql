@@ -153,27 +153,6 @@ select s.descriptive_flexfield_code,
    and t.segment_code = s.segment_code
    and t.language_code = xxfnd_util_pkg.current_lang;
 
-create or replace view xxfnd_wf_items_v as
-select i.wf_item_id,
-       i.item_type,
-       it.item_type_name,
-       i.process_code,
-       i.version_number,
-       i.entity_name,
-       i.pk1_value,
-       i.item_status,
-       a.activity_code        current_activity_code,
-       a.activity_name        current_activity_name,
-       a.activity_type        current_activity_type,
-       a.performer_role_code,
-       i.started_date,
-       i.completed_date,
-       (select max(h.entered_date) from xxfnd_wf_activity_history h
-         where h.wf_item_id = i.wf_item_id)           last_transition_date
-  from xxfnd_wf_items i
-  join xxfnd_wf_item_types it on it.item_type = i.item_type
-  join xxfnd_wf_activities a  on a.activity_id = i.current_activity_id;
-
 create or replace view xxfnd_pending_approvals_v as
 select 'XXCMP_ANSWER_OPTIONS'                       table_name,
        'Risk scoring answer'                        change_type,
@@ -212,3 +191,40 @@ select 'XXFND_INTEGRATION_PURPOSES',
   from xxfnd_integration_purposes p
  where p.approval_status = 'PENDING_APPROVAL';
 comment on table xxfnd_pending_approvals_v is 'Config Change Approvals queue: every maker-checker change waiting for a second person.';
+
+-- One approval unit per CONFIG_CHANGE task. DETAIL_PK = '<TABLE>:<KEY>' is the task's detail key;
+-- all pending answer options of one question are approved together ('XXCMP_QUESTIONS:<question id>').
+create or replace view xxfnd_config_changes_v as
+select 'XXCMP_QUESTIONS:' || q.question_id                                   detail_pk,
+       'Risk scoring answers'                                                 change_type,
+       q.questionnaire_code || ' / ' || substr(q.question_text, 1, 200)       change_title,
+       listagg(nvl(ao.answer_label, ao.lookup_code) || ': ' || ao.risk_points || ' points'
+                 || case when ao.critical_flag = 'Y' then ', critical' end
+                 || case when ao.waiver_qualifying_flag = 'Y' then ', waiver' end, '; ')
+         within group (order by ao.display_sequence)                          change_summary,
+       max(ao.last_updated_by)                                                submitted_by,
+       max(ao.last_update_date)                                               submitted_date
+  from xxcmp_answer_options ao
+  join xxcmp_questions q on q.question_id = ao.question_id
+ where ao.approval_status = 'PENDING_APPROVAL'
+ group by q.question_id, q.questionnaire_code, q.question_text
+union all
+select 'XXCMP_ATTACHMENT_RULES:' || r.attachment_rule_id,
+       'Mandatory document rule',
+       r.entity_name || ' / ' || r.category_code,
+       nvl(r.jurisdiction, 'any jurisdiction') || ' / ' || nvl(r.entity_type, 'any entity type')
+         || ' / ' || case r.mandatory_flag when 'Y' then 'mandatory' else 'optional' end,
+       r.last_updated_by,
+       r.last_update_date
+  from xxcmp_attachment_rules r
+ where r.approval_status = 'PENDING_APPROVAL'
+union all
+select 'XXFND_INTEGRATION_PURPOSES:' || p.purpose_code,
+       'Integration purpose',
+       p.purpose_name,
+       p.capture_method || ' / ' || nvl(p.endpoint_code, 'no endpoint'),
+       p.last_updated_by,
+       p.last_update_date
+  from xxfnd_integration_purposes p
+ where p.approval_status = 'PENDING_APPROVAL';
+comment on table xxfnd_config_changes_v is 'Maker-checker changes waiting for approval, one row per CONFIG_CHANGE approval task (DETAIL_PK).';

@@ -286,6 +286,18 @@ create or replace package body xxfnd_vpd_pkg as
         return l_out;
     end quoted_list;
 
+    -- Users who delegate to p_user today (Workflow Setup > Delegations), comma-separated.
+    function delegators(p_user in varchar2) return varchar2 is
+        l_list varchar2(4000);
+    begin
+        select listagg(distinct upper(delegator_user_name), ',') within group (order by 1)
+          into l_list
+          from xxfnd_wf_delegations
+         where upper(delegate_user_name) = p_user
+           and trunc(sysdate) between start_date and end_date;
+        return l_list;
+    end delegators;
+
     function policy(p_schema in varchar2, p_object in varchar2) return varchar2 is
         l_user      varchar2(255) := upper(sys_context('APEX$SESSION', 'APP_USER'));
         l_predicate varchar2(32767);
@@ -305,8 +317,9 @@ create or replace package body xxfnd_vpd_pkg as
             end if;
             l_part := case r.rule_type
                         when 'OWN_RECORDS' then
-                            'upper(' || dbms_assert.simple_sql_name(r.column_name) || ') = '
-                            || dbms_assert.enquote_literal(replace(l_user, '''', ''''''))
+                            -- the user's own rows, and those of anyone currently delegating to the user
+                            'upper(' || dbms_assert.simple_sql_name(r.column_name) || ') in ('
+                            || quoted_list(l_user || nvl2(delegators(l_user), ',' || delegators(l_user), null)) || ')'
                         when 'COLUMN_IN_LIST' then
                             dbms_assert.simple_sql_name(r.column_name) || ' in (' || quoted_list(r.value_list) || ')'
                       end;

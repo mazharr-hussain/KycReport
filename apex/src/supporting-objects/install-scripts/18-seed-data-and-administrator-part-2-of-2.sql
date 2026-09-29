@@ -3,15 +3,11 @@
 --------------------------------------------------------------------------------
 declare
     -- Variables must precede the local subprograms.
-    l_act_start  number;
-    l_act_wait   number;
-    l_act_review number;
-    l_act_end    number;
 
     procedure role(p_code in varchar2, p_name in varchar2, p_desc in varchar2, p_sensitive in varchar2 default 'N') is
     begin
         merge into xxfnd_roles t using (select p_code role_code from dual) s on (t.role_code = s.role_code)
-         when matched then update set t.role_name = p_name, t.description = p_desc, t.view_sensitive_flag = p_sensitive
+         -- insert only: administrators maintain roles on the Roles and Privileges screen
          when not matched then insert (role_code, application_code, role_name, description, view_sensitive_flag)
                                values (p_code, 'KYC', p_name, p_desc, p_sensitive);
     end role;
@@ -21,8 +17,7 @@ declare
     begin
         merge into xxfnd_value_sets t using (select p_code value_set_code from dual) s
            on (t.value_set_code = s.value_set_code)
-         when matched then update set t.value_set_name = p_name, t.validation_type = p_validation,
-                                      t.format_type = p_format, t.maximum_size = p_size, t.lookup_type = p_lookup
+         -- insert only: administrators maintain value sets on the Flexfields screen
          when not matched then insert (value_set_code, value_set_name, validation_type, format_type, maximum_size, lookup_type)
                                values (p_code, p_name, p_validation, p_format, p_size, p_lookup);
     end vset;
@@ -32,8 +27,7 @@ declare
     begin
         merge into xxfnd_df_flexfields t using (select p_code descriptive_flexfield_code from dual) s
            on (t.descriptive_flexfield_code = s.descriptive_flexfield_code)
-         when matched then update set t.context_reference_column = p_reference,
-                                      t.context_user_selectable_flag = p_selectable
+         -- insert only: administrators maintain flexfields on the Flexfields screen
          when not matched then insert (descriptive_flexfield_code, application_code, table_name, pk_column_name,
                                        context_reference_column, context_user_selectable_flag)
                                values (p_code, case when p_table like 'XXCMP%' then 'KYC' end, p_table, p_pk,
@@ -41,7 +35,6 @@ declare
         merge into xxfnd_df_flexfields_tl t
         using (select p_code descriptive_flexfield_code, 'en' language_code from dual) s
            on (t.descriptive_flexfield_code = s.descriptive_flexfield_code and t.language_code = s.language_code)
-         when matched then update set t.flexfield_name = p_name
          when not matched then insert (descriptive_flexfield_code, language_code, flexfield_name)
                                values (p_code, 'en', p_name);
         -- Every DFF has a protected GLOBAL context.
@@ -72,7 +65,6 @@ declare
         merge into xxfnd_document_entities_tl t
         using (select p_name entity_name, 'en' language_code from dual) s
            on (t.entity_name = s.entity_name and t.language_code = s.language_code)
-         when matched then update set t.user_entity_name = p_user_name
          when not matched then insert (entity_name, language_code, user_entity_name) values (p_name, 'en', p_user_name);
     end entity;
 
@@ -81,8 +73,7 @@ declare
     begin
         merge into xxfnd_document_categories t using (select p_code category_code from dual) s
            on (t.category_code = s.category_code)
-         when matched then update set t.category_name = p_name, t.default_datatype_code = p_datatype,
-                                      t.has_expiry_flag = p_expiry, t.max_age_days = p_max_age
+         -- insert only: administrators maintain categories on the Attachments screen
          when not matched then insert (category_code, application_code, category_name, default_datatype_code,
                                        has_expiry_flag, max_age_days)
                                values (p_code, 'KYC', p_name, p_datatype, p_expiry, p_max_age);
@@ -90,7 +81,6 @@ declare
             merge into xxfnd_document_categories_tl t
             using (select p_code category_code, 'ar' language_code from dual) s
                on (t.category_code = s.category_code and t.language_code = s.language_code)
-             when matched then update set t.category_name = p_ar
              when not matched then insert (category_code, language_code, category_name) values (p_code, 'ar', p_ar);
         end if;
     end category;
@@ -99,39 +89,10 @@ declare
     begin
         merge into xxfnd_notification_templates t using (select p_code template_code from dual) s
            on (t.template_code = s.template_code)
-         when matched then update set t.subject = p_subject, t.body_html = p_body
+         -- insert only: after install the wording belongs to the administrators
          when not matched then insert (template_code, application_code, subject, body_html)
                                values (p_code, 'KYC', p_subject, p_body);
     end template;
-
-    function activity(p_code in varchar2, p_name in varchar2, p_type in varchar2, p_role in varchar2,
-                      p_template in varchar2, p_start in varchar2 default 'N', p_end in varchar2 default 'N',
-                      p_seq in number) return number is
-        l_id number;
-    begin
-        merge into xxfnd_wf_activities t
-        using (select 'RFI' item_type, 'RFI_PROCESS' process_code, 1 version_number, p_code activity_code from dual) s
-           on (t.item_type = s.item_type and t.process_code = s.process_code
-               and t.version_number = s.version_number and t.activity_code = s.activity_code)
-         when matched then update set t.activity_name = p_name, t.activity_type = p_type,
-                                      t.performer_role_code = p_role, t.notification_template_code = p_template
-         when not matched then insert (item_type, process_code, version_number, activity_code, activity_name,
-                                       activity_type, performer_role_code, notification_template_code,
-                                       start_flag, end_flag, display_sequence)
-                               values ('RFI', 'RFI_PROCESS', 1, p_code, p_name, p_type, p_role, p_template,
-                                       p_start, p_end, p_seq);
-        select activity_id into l_id from xxfnd_wf_activities
-         where item_type = 'RFI' and process_code = 'RFI_PROCESS' and version_number = 1 and activity_code = p_code;
-        return l_id;
-    end activity;
-
-    procedure transition(p_from in number, p_result in varchar2, p_to in number) is
-    begin
-        merge into xxfnd_wf_transitions t using (select p_from from_activity_id, p_result result_code from dual) s
-           on (t.from_activity_id = s.from_activity_id and t.result_code = s.result_code)
-         when matched then update set t.to_activity_id = p_to
-         when not matched then insert (from_activity_id, result_code, to_activity_id) values (p_from, p_result, p_to);
-    end transition;
 
 begin
     xxfnd_util_pkg.set_install_mode(true);
@@ -155,9 +116,14 @@ begin
     ----------------------------------------------------------------------------
     -- Notification templates
     ----------------------------------------------------------------------------
-    template('WF_TASK_ASSIGNED', 'Action needed: #ACTIVITY_NAME# (#PK1_VALUE#)',
-        '<p>A workflow step is waiting for you.</p><p><b>Step:</b> #ACTIVITY_NAME#<br><b>Record:</b> #ENTITY_NAME# #PK1_VALUE#'
-        || '<br><b>Due:</b> #DUE_DATE#</p><p>Open the KYC Compliance Platform worklist to act on it.</p>');
+    template('TASK_ASSIGNED', 'Action needed: #TASK_SUBJECT#',
+        '<p>A task is waiting for you in the KYC Compliance Platform.</p><p><b>#TASK_SUBJECT#</b>'
+        || '<br><b>Due:</b> #DUE_DATE#</p><p><a href="#TASK_URL#">Open My Tasks</a></p>');
+    template('TASK_REMINDER', 'Reminder: #TASK_SUBJECT#',
+        '<p>This task is due on #DUE_DATE# and is still open.</p><p><b>#TASK_SUBJECT#</b></p><p><a href="#TASK_URL#">Open My Tasks</a></p>');
+    template('TASK_ESCALATED', 'Overdue task escalated: #TASK_SUBJECT#',
+        '<p>This task was due on #DUE_DATE# and is still open. It is escalated to you.</p>'
+        || '<p><b>#TASK_SUBJECT#</b><br><b>Assigned to:</b> #ASSIGNEES#</p><p><a href="#TASK_URL#">Open the Workflow Monitor</a></p>');
     template('RFI_RAISED_INTERNAL', 'Information requested: #RFI_NUMBER#',
         '<p>The Compliance team needs more information for #RFI_NUMBER#.</p><p>#DESCRIPTION#</p>'
         || '<p>Please reply by #DUE_DATE# from the KYC Compliance Platform.</p>');
@@ -267,34 +233,6 @@ begin
        on (t.purpose_code = s.code)
      when not matched then insert (purpose_code, application_code, purpose_name, endpoint_code, capture_method, approval_status)
                            values (s.code, 'KYC', s.name, s.ep, s.cm, 'APPROVED');
-
-    ----------------------------------------------------------------------------
-    -- Workflow: item types and the RFI process
-    ----------------------------------------------------------------------------
-    merge into xxfnd_wf_item_types t
-    using (select 'KYC_CASE' it, 'KYC Case' nm, 'XXCMP_REQUESTS' en from dual
-           union all select 'RFI', 'Request for Information', 'XXCMP_RFIS' from dual) s
-       on (t.item_type = s.it)
-     when not matched then insert (item_type, application_code, item_type_name, entity_name)
-                           values (s.it, 'KYC', s.nm, s.en);
-
-    merge into xxfnd_wf_processes t
-    using (select 'RFI' it, 'RFI_PROCESS' pc, 1 v from dual) s
-       on (t.item_type = s.it and t.process_code = s.pc and t.version_number = s.v)
-     when not matched then insert (item_type, process_code, version_number, process_name, active_flag)
-                           values ('RFI', 'RFI_PROCESS', 1, 'Request for Information', 'N');
-
-    l_act_start  := activity('START',           'Start',                    'START', null, null, 'Y', 'N', 10);
-    l_act_wait   := activity('AWAIT_RESPONSE',  'Awaiting response',        'WAIT',  null, null, 'N', 'N', 20);
-    l_act_review := activity('REVIEW_RESPONSE', 'Review response',          'TASK',  'COMPLIANCE_OFFICER', 'RFI_RESPONDED', 'N', 'N', 30);
-    l_act_end    := activity('END',             'End',                      'END',   null, null, 'N', 'Y', 40);
-    transition(l_act_start,  'DEFAULT',   l_act_wait);
-    transition(l_act_wait,   'RESPONDED', l_act_review);
-    transition(l_act_wait,   'CANCELLED', l_act_end);
-    transition(l_act_review, 'RESOLVED',  l_act_end);
-    transition(l_act_review, 'MORE_INFO', l_act_wait);
-    transition(l_act_review, 'REJECTED',  l_act_end);
-    xxfnd_wf_pkg.activate_version('RFI', 'RFI_PROCESS', 1);
 
     ----------------------------------------------------------------------------
     -- KYC rules engine headers (questions and answers are maintained on screen)

@@ -144,17 +144,17 @@ page 115 (
         }
     )
 
-    pageItem P115_ITEM_TYPE (
+    pageItem P115_TASK_DEFINITION (
         type: selectList
         label {
-            label: Process
+            label: Tasks
             alignment: left
         }
         lov {
             type: sharedComponent
-            lov: @lov-item-types
+            lov: @lov-task-definitions
             displayNullValue: true
-            nullDisplayValue: - All processes -
+            nullDisplayValue: - All tasks -
         }
         layout {
             sequence: 30
@@ -168,11 +168,11 @@ page 115 (
         }
         source {
             formRegion: @form
-            column: ITEM_TYPE
+            column: TASK_DEFINITION
             dataType: varchar2
         }
         help {
-            helpText: Choose the process.
+            helpText: Which tasks the delegate also receives while the delegation is active. Leave empty for all tasks.
         }
     )
 

@@ -69,17 +69,17 @@ page 1 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select i.wf_item_id,
-                       i.item_type_name,
-                       i.current_activity_name,
-                       i.entity_name,
-                       i.pk1_value,
-                       i.last_transition_date
-                  from xxfnd_wf_items_v i
-                 where i.item_status = 'ACTIVE'
-                   and i.current_activity_type in ('TASK','APPROVAL')
-                   and xxfnd_wf_pkg.can_act(i.wf_item_id) = 'Y'
-                 order by i.last_transition_date
+                select task_id,
+                       subject,
+                       task_def_name,
+                       details_link_target,
+                       due_on,
+                       created_on
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'MY_TASKS',
+                                   p_application_id => :APP_ID ) )
+                 where state_code in ('UNASSIGNED','ASSIGNED')
+                 order by due_on nulls last, created_on
                 ```
         }
         layout {
@@ -112,64 +112,60 @@ page 1 (
             whenNoDataFound: Nothing is waiting for you.
         }
 
-        column WF_ITEM_ID (
+        column TASK_ID (
             type: hidden
             layout {
                 sequence: 10
             }
         )
 
-        column ITEM_TYPE_NAME (
+        column SUBJECT (
             type: plainText
             heading {
-                heading: Process
+                heading: Task
             }
             layout {
                 sequence: 20
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#DETAILS_LINK_TARGET#">#SUBJECT#</a>
+                    ```
+            }
         )
 
-        column CURRENT_ACTIVITY_NAME (
-            type: link
+        column TASK_DEF_NAME (
+            type: plainText
             heading {
-                heading: Step
+                heading: Type
             }
             layout {
                 sequence: 30
             }
-            link {
-                target: {
-                    page: 42
-                    items: {
-                        P42_WF_ITEM_ID: #WF_ITEM_ID#
-                    }
-                    clearCache: 42
-                }
-                linkText: #CURRENT_ACTIVITY_NAME#
-            }
         )
 
-        column ENTITY_NAME (
-            type: plainText
-            heading {
-                heading: Record Type
-            }
+        column DETAILS_LINK_TARGET (
+            type: hidden
             layout {
                 sequence: 40
             }
         )
 
-        column PK1_VALUE (
+        column DUE_ON (
             type: plainText
             heading {
-                heading: Record
+                heading: Due
             }
             layout {
                 sequence: 50
             }
+            appearance {
+                formatMask: SINCE
+            }
         )
 
-        column LAST_TRANSITION_DATE (
+        column CREATED_ON (
             type: plainText
             heading {
                 heading: Waiting Since

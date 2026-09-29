@@ -92,7 +92,7 @@ breadcrumb breadcrumb (
     )
 
     entry worklist (
-        name: My Worklist
+        name: My Tasks
         pageNumber: 40
         execution {
             sequence: 70
@@ -124,7 +124,7 @@ breadcrumb breadcrumb (
     )
 
     entry wf-item (
-        name: Workflow Item
+        name: Task Details
         pageNumber: 42
         execution {
             sequence: 90
@@ -459,54 +459,6 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry item-types (
-        name: Workflow Item Types
-        pageNumber: 140
-        execution {
-            sequence: 300
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 140
-            }
-        }
-    )
-
-    entry processes (
-        name: Workflow Processes
-        pageNumber: 142
-        execution {
-            sequence: 310
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 142
-            }
-        }
-    )
-
-    entry process (
-        name: Workflow Process
-        pageNumber: 143
-        execution {
-            sequence: 320
-        }
-        appearance {
-            parentEntry: @processes
-        }
-        link {
-            target: {
-                page: 143
-            }
-        }
-    )
-
     entry value-sets (
         name: Value Sets
         pageNumber: 150
@@ -631,22 +583,6 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 165
-            }
-        }
-    )
-
-    entry approvals (
-        name: Configuration Change Approvals
-        pageNumber: 170
-        execution {
-            sequence: 410
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 170
             }
         }
     )
@@ -807,6 +743,54 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 10022
+            }
+        }
+    )
+
+    entry workflows (
+        name: Workflows
+        pageNumber: 44
+        execution {
+            sequence: 112
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 44
+            }
+        }
+    )
+
+    entry deadlines (
+        name: Deadlines and Escalation
+        pageNumber: 145
+        execution {
+            sequence: 262
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 145
+            }
+        }
+    )
+
+    entry process-catalogue (
+        name: Process Catalogue
+        pageNumber: 147
+        execution {
+            sequence: 264
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 147
             }
         }
     )

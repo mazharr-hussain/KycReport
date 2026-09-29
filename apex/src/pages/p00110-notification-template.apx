@@ -211,7 +211,7 @@ page 110 (
         source {
             formRegion: @form
             column: BODY_HTML
-            dataType: varchar2
+            dataType: clob
         }
         sessionState {
             dataType: clob

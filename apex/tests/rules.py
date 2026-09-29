@@ -3,9 +3,10 @@ sys.path.insert(0,os.path.dirname(__file__)); import apxparse as A
 ROOT=sys.argv[1]; SCHEMA=json.load(open(sys.argv[2]))
 cols={k:set(v) for k,v in SCHEMA.items()}
 R=A.load(ROOT)
-_ddl=open(os.path.join(ROOT,'supporting-objects/supporting-objects.apx')).read()
+import glob as _g
+_ddl=''.join(open(p).read() for p in sorted(_g.glob(os.path.join(ROOT,'supporting-objects/install-scripts/*.sql'))))
 IDENT={}
-for m in re.finditer(r'create table (\w+) \((.*?)\n\s*\)\s*;',_ddl,re.S|re.I):
+for m in re.finditer(r'create table (?:if not exists )?(\w+) \((.*?)\n\s*\)\s*;',_ddl,re.S|re.I):
     for mm in re.finditer(r'^\s*(\w+)\s+number\s+generated[^,\n]*identity',m.group(2),re.M|re.I):
         IDENT.setdefault(m.group(1).lower(),set()).add(mm.group(1).lower())
 def walk(c):
@@ -312,6 +313,14 @@ for pid,p in sorted(pages.items()):
         if pt in ('afterSubmit','processing'):
             ok = pt=='processing' or c.get('type') in ('clearSessionState',)
             add('g11',pid,f"process {c.name} execution point",loc(c,'execution.point'),pt,'PASS' if ok else 'FAIL')
+# g12: page item source data type must match its session state data type (CLOB items)
+for pid,p in sorted(pages.items()):
+    for c in p.kids('pageItem'):
+        ss=c.get('sessionState.dataType')
+        if ss:
+            sd=c.get('source.dataType')
+            add('g12',pid,f"item {c.name} source/session state data types",loc(c,'sessionState.dataType'),f"source={sd} session={ss}",
+                'PASS' if (sd or ss)==ss else 'FAIL')
 json.dump(rows,open(sys.argv[3],'w'))
 from collections import Counter
 print(Counter((r[0],r[5].split()[0]) for r in rows))

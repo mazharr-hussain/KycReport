@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 BASE='http://localhost:8080/ords/r/xxcus/kyc'
 APP=sys.argv[1] if len(sys.argv)>1 else '101'
 USER=sys.argv[3] if len(sys.argv)>3 else 'ADMIN'
-direct=[1,20,30,40,41,100,101,103,105,107,109,111,112,114,120,122,124,130,132,134,136,138,140,142,150,152,160,163,165,170,10010,10020,10030,10031,10032,10033,10051,180,182,10022]
+direct=[1,20,30,40,41,44,100,101,103,105,107,109,111,112,114,120,122,124,130,132,134,136,138,145,147,150,152,160,163,165,10010,10020,10030,10031,10032,10033,10051,180,182,10022]
 res=[]
 DENY=re.compile(r'You do not have access to|You are not allowed to|Access denied by|Insufficient privileges',re.I)
 ERR=re.compile(r'Contact your application administrator|For an Editable|APEXDEV\.[A-Z_.]+|ORA-\d{5}|Session state protection violation|An unexpected (internal )?error|Technical Info|Error processing|not found|checksum',re.I)

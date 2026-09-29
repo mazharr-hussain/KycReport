@@ -46,9 +46,9 @@ page 114 (
                   from (
 
                             select d.delegation_id, d.delegator_user_name, d.delegate_user_name,
-                                   nvl(t.item_type_name, 'All processes') as item_type, d.start_date, d.end_date, d.reason
+                                   nvl(t.name, 'All tasks') as task_definition, d.start_date, d.end_date, d.reason
                               from xxfnd_wf_delegations d
-                              left join xxfnd_wf_item_types t on t.item_type = d.item_type
+                              left join apex_appl_taskdefs t on t.static_id = d.task_definition and t.application_id = :APP_ID
                 ) q
                 ```
         }
@@ -128,10 +128,10 @@ page 114 (
             }
         )
 
-        column ITEM_TYPE (
+        column TASK_DEFINITION (
             type: plainText
             heading {
-                heading: Process
+                heading: Tasks
             }
             layout {
                 sequence: 40

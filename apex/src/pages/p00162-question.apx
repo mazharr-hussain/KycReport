@@ -851,11 +851,8 @@ page 162 (
             language: plsql
             plsqlCode:
                 ```plsql
-                for r in (select answer_option_id from xxcmp_answer_options
-                           where question_id = :P162_QUESTION_ID and approval_status in ('DRAFT','REJECTED'))
-                loop
-                    xxfnd_approval_pkg.submit('XXCMP_ANSWER_OPTIONS', to_char(r.answer_option_id));
-                end loop;
+                -- All draft or rejected answers of this question become one approval task.
+                xxfnd_config_approval_pkg.request('XXCMP_QUESTIONS', :P162_QUESTION_ID);
                 ```
         }
         execution {

@@ -160,20 +160,20 @@ upgradeScript 18c-admin-console (
     }
 )
 
+upgradeScript 18d-workflow-platform (
+    execution {
+        sequence: 148
+    }
+    script {
+        contentFile: 18d-workflow-platform.sql
+    }
+)
+
 upgradeScript 19-reporting-views-and-recompile (
     execution {
         sequence: 150
     }
     script {
         contentFile: 19-reporting-views-and-recompile.sql
-    }
-)
-
-upgradeScript 20-scheduler-jobs (
-    execution {
-        sequence: 160
-    }
-    script {
-        contentFile: 20-scheduler-jobs.sql
     }
 )

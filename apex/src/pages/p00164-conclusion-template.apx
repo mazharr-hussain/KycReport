@@ -188,7 +188,7 @@ page 164 (
         source {
             formRegion: @form
             column: TEMPLATE_TEXT
-            dataType: varchar2
+            dataType: clob
         }
         sessionState {
             dataType: clob

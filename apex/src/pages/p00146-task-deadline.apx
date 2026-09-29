@@ -1,7 +1,7 @@
-page 141 (
-    name: Workflow Item Type
-    alias: WORKFLOW-ITEM-TYPE
-    title: Workflow Item Type
+page 146 (
+    name: Task Deadline
+    alias: TASK-DEADLINE
+    title: Task Deadline
     pageGroup: @administration
     appearance {
         pageMode: modalDialog
@@ -22,17 +22,17 @@ page 141 (
     help {
         helpText:
             ```
-            What a workflow runs against (EBS item type).
+            Due date, reminder and escalation for one kind of task. Applies to tasks created from now on.
             ```
     }
 
     region form (
-        name: Workflow Item Type
+        name: Task Deadline
         type: form
         source {
             location: localDatabase
             type: tableView
-            tableName: XXFND_WF_ITEM_TYPES
+            tableName: XXFND_TASK_SETTINGS
         }
         layout {
             sequence: 10
@@ -63,81 +63,17 @@ page 141 (
         }
     )
 
-    pageItem P141_ITEM_TYPE (
-        type: textField
+    pageItem P146_TASK_DEFINITION (
+        type: selectList
         label {
-            label: Item Type
+            label: Task
             alignment: left
         }
-        layout {
-            sequence: 1
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-            maxLength: 30
-        }
-        source {
-            formRegion: @form
-            column: ITEM_TYPE
-            dataType: varchar2
-            primaryKey: true
-        }
-        readOnly {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P141_SAVED = 'Y'
-                ```
-        }
-        help {
-            inlineHelpText: Upper case, no spaces. Cannot be changed once saved.
-        }
-    )
-
-    pageItem P141_SAVED (
-        type: hidden
-        layout {
-            sequence: 2
-            region: @form
-            slot: regionBody
-        }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
-        }
-    )
-
-    process set-saved (
-        name: Detect existing record
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                select case when count(*) > 0 then 'Y' end
-                  into :P141_SAVED
-                  from XXFND_WF_ITEM_TYPES
-                 where ITEM_TYPE = :P141_ITEM_TYPE;
-                ```
-        }
-        execution {
-            sequence: 20
-            point: beforeHeader
-        }
-    )
-
-    pageItem P141_ITEM_TYPE_NAME (
-        type: textField
-        label {
-            label: Name
-            alignment: left
+        lov {
+            type: sharedComponent
+            lov: @lov-task-definitions
+            displayNullValue: true
+            nullDisplayValue: - Select -
         }
         layout {
             sequence: 10
@@ -151,22 +87,29 @@ page 141 (
         }
         validation {
             valueRequired: true
-            maxLength: 240
         }
         source {
             formRegion: @form
-            column: ITEM_TYPE_NAME
+            column: TASK_DEFINITION
             dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxfnd_task_settings where task_definition = :P146_TASK_DEFINITION
+                ```
         }
         help {
-            helpText: Enter the name.
+            helpText: The APEX task definition.
         }
     )
 
-    pageItem P141_APPLICATION_CODE (
-        type: textField
+    pageItem P146_DUE_DAYS (
+        type: numberField
         label {
-            label: Application Code
+            label: Due (days)
             alignment: left
         }
         layout {
@@ -179,34 +122,21 @@ page 141 (
             template: @/optional-floating
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 30
-        }
         source {
             formRegion: @form
-            column: APPLICATION_CODE
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: KYC
+            column: DUE_DAYS
+            dataType: number
         }
         help {
-            helpText: Enter the application Code.
+            helpText: Days from creation until the task is due. Empty = no due date.
         }
     )
 
-    pageItem P141_ENTITY_NAME (
-        type: selectList
+    pageItem P146_REMINDER_DAYS_BEFORE (
+        type: numberField
         label {
-            label: Entity
+            label: Reminder (days before due)
             alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-entities
-            displayNullValue: true
-            nullDisplayValue: - Select -
         }
         layout {
             sequence: 30
@@ -215,30 +145,89 @@ page 141 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
         }
         source {
             formRegion: @form
-            column: ENTITY_NAME
-            dataType: varchar2
+            column: REMINDER_DAYS_BEFORE
+            dataType: number
         }
         help {
-            helpText: Choose the entity.
+            helpText: Days before the due date when the owners are reminded. Empty = no reminder.
         }
     )
 
-    pageItem P141_DESCRIPTION (
+    pageItem P146_ESCALATION_ROLE_CODE (
+        type: selectList
+        label {
+            label: Escalate To
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-roles
+            displayNullValue: true
+            nullDisplayValue: - No escalation -
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ESCALATION_ROLE_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: Role whose members are told when the task is overdue.
+        }
+    )
+
+    pageItem P146_NOTIFY_ON_CREATE_FLAG (
+        type: switch
+        label {
+            label: E-mail on Creation
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: NOTIFY_ON_CREATE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: E-mail the potential owners when a task is created.
+        }
+    )
+
+    pageItem P146_DESCRIPTION (
         type: textarea
         label {
             label: Description
             alignment: left
         }
         layout {
-            sequence: 40
+            sequence: 60
             region: @form
             slot: regionBody
             alignment: left
@@ -255,9 +244,6 @@ page 141 (
             formRegion: @form
             column: DESCRIPTION
             dataType: varchar2
-        }
-        help {
-            helpText: Enter the description.
         }
     )
 
@@ -298,7 +284,7 @@ page 141 (
         }
         serverSideCondition {
             type: itemIsNull
-            item: P141_SAVED
+            item: P146_TASK_DEFINITION
         }
         security {
             authorizationScheme: @page-create
@@ -325,7 +311,7 @@ page 141 (
         }
         serverSideCondition {
             type: itemIsNotNull
-            item: P141_SAVED
+            item: P146_TASK_DEFINITION
         }
         security {
             authorizationScheme: @page-manage
@@ -357,7 +343,7 @@ page 141 (
         }
         serverSideCondition {
             type: itemIsNotNull
-            item: P141_SAVED
+            item: P146_TASK_DEFINITION
         }
         security {
             authorizationScheme: @page-manage

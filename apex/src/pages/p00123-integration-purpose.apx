@@ -547,7 +547,7 @@ page 123 (
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_approval_pkg.submit('XXFND_INTEGRATION_PURPOSES', :P123_PURPOSE_CODE);
+                xxfnd_config_approval_pkg.request('XXFND_INTEGRATION_PURPOSES', :P123_PURPOSE_CODE);
                 ```
         }
         execution {

@@ -63,6 +63,18 @@ page 31 (
         }
     )
 
+    pageItem P31_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @rfi
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P31_RFI_ID (
         type: hidden
         layout {
@@ -356,7 +368,7 @@ page 31 (
         source {
             formRegion: @rfi
             column: RESPONSE_TEXT
-            dataType: varchar2
+            dataType: clob
         }
         sessionState {
             dataType: clob
@@ -904,6 +916,34 @@ page 31 (
         }
         serverSideCondition {
             whenButtonPressed: @resolve
+        }
+    )
+
+    process open-from-task (
+        name: Open from task
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- Opened from My Tasks (RFI_RESPONSE / RFI_REVIEW): the task's record, only if
+                -- the user may see the task.
+                select to_number(detail_pk)
+                  into :P31_RFI_ID
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'SINGLE_TASK',
+                                   p_task_id        => :P31_TASK_ID,
+                                   p_application_id => :APP_ID ) )
+                 where task_def_static_id in ('RFI_RESPONSE','RFI_REVIEW');
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_TASK_ID
         }
     )
 

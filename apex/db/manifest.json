@@ -135,9 +135,9 @@
   "upgrade_sequence": 150
  },
  {
-  "name": "20 Scheduler jobs",
-  "file": "20-scheduler-jobs.sql",
-  "install_sequence": 200,
-  "upgrade_sequence": 160
+  "name": "18d Workflow platform",
+  "file": "18d-workflow-platform.sql",
+  "install_sequence": 188,
+  "upgrade_sequence": 148
  }
 ]

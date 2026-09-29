@@ -21,7 +21,7 @@ page 172 (
         formAutoComplete: false
     }
     help {
-        helpText: Approve or reject one configuration change.
+        helpText: Approve or reject a configuration change. You cannot approve a change you made yourself.
     }
 
     region review (
@@ -53,7 +53,7 @@ page 172 (
         }
     )
 
-    pageItem P172_TABLE_NAME (
+    pageItem P172_TASK_ID (
         type: hidden
         layout {
             sequence: 1
@@ -65,15 +65,41 @@ page 172 (
         }
     )
 
-    pageItem P172_PK_VALUE (
+    pageItem P172_DETAIL_PK (
         type: hidden
         layout {
             sequence: 2
             region: @review
             slot: regionBody
         }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
+    )
+
+    pageItem P172_TASK_STATE (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select state || nvl2(outcome, ' - ' || outcome, null) from apex_tasks where task_id = :P172_TASK_ID
+                ```
+            used: always
         }
     )
 
@@ -100,8 +126,36 @@ page 172 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select change_type from xxfnd_pending_approvals_v
-                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                select change_type from xxfnd_config_changes_v where detail_pk = :P172_DETAIL_PK
+                ```
+            used: always
+        }
+    )
+
+    pageItem P172_CHANGE_TITLE (
+        type: displayOnly
+        label {
+            label: Item
+            alignment: left
+        }
+        layout {
+            sequence: 15
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select change_title from xxfnd_config_changes_v where detail_pk = :P172_DETAIL_PK
                 ```
             used: always
         }
@@ -130,8 +184,7 @@ page 172 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select change_summary from xxfnd_pending_approvals_v
-                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                select change_summary from xxfnd_config_changes_v where detail_pk = :P172_DETAIL_PK
                 ```
             used: always
         }
@@ -160,8 +213,7 @@ page 172 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select submitted_by from xxfnd_pending_approvals_v
-                 where table_name = :P172_TABLE_NAME and pk_value = :P172_PK_VALUE
+                select submitted_by from xxfnd_config_changes_v where detail_pk = :P172_DETAIL_PK
                 ```
             used: always
         }
@@ -192,6 +244,37 @@ page 172 (
         }
     )
 
+    region not-pending (
+        name: No Longer Pending
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>This change is no longer waiting for approval (it was withdrawn or already decided). A workflow administrator can cancel the task in the Workflow Monitor.</p>
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: contentBody
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--warning
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'N'
+                and apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_cancel)
+                ```
+        }
+    )
+
     region trail (
         name: What Changed
         type: classicReport
@@ -202,14 +285,15 @@ page 172 (
                 ```sql
                 select a.changed_date, a.changed_by, a.column_name, a.old_value, a.new_value, a.change_reason
                   from xxfnd_audit_log a
-                 where a.table_name = :P172_TABLE_NAME
-                   and a.pk_value   = :P172_PK_VALUE
+                 where (a.table_name = substr(:P172_DETAIL_PK, 1, instr(:P172_DETAIL_PK, ':') - 1)
+                        and a.pk_value = substr(:P172_DETAIL_PK, instr(:P172_DETAIL_PK, ':') + 1))
+                    or (:P172_DETAIL_PK like 'XXCMP_QUESTIONS:%'
+                        and a.table_name = 'XXCMP_ANSWER_OPTIONS'
+                        and a.pk_value in (select to_char(o.answer_option_id) from xxcmp_answer_options o
+                                            where o.question_id = to_number(substr(:P172_DETAIL_PK, instr(:P172_DETAIL_PK, ':') + 1))))
                  order by a.audit_log_id desc
                 ```
-            pageItemsToSubmit: [
-                P172_TABLE_NAME
-                P172_PK_VALUE
-            ]
+            pageItemsToSubmit: P172_DETAIL_PK
         }
         layout {
             sequence: 20
@@ -338,8 +422,14 @@ page 172 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
         }
-        security {
-            authorizationScheme: @page-manage
+        serverSideCondition {
+            type: expression
+            plsqlExpression:
+                ```plsql
+                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
+                and (apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_reject)
+                     or apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
         }
     )
 
@@ -360,8 +450,14 @@ page 172 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
         }
-        security {
-            authorizationScheme: @page-manage
+        serverSideCondition {
+            type: expression
+            plsqlExpression:
+                ```plsql
+                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
+                and (apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
         }
     )
 
@@ -407,39 +503,56 @@ page 172 (
         }
     )
 
-    process approve-change (
-        name: Approve change
+    process load-task (
+        name: Load task
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_approval_pkg.approve(:P172_TABLE_NAME, :P172_PK_VALUE);
+                -- only a CONFIG_CHANGE task the user may see
+                select max(detail_pk) into :P172_DETAIL_PK
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'SINGLE_TASK',
+                                   p_task_id        => :P172_TASK_ID,
+                                   p_application_id => :APP_ID ) )
+                 where task_def_static_id = 'CONFIG_CHANGE';
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
+    process add-reason (
+        name: Record the rejection reason
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.add_task_comment(p_task_id => :P172_TASK_ID, p_text => :P172_REASON);
                 ```
         }
         execution {
             sequence: 10
             point: processing
         }
-        successMessage {
-            successMessage: Change approved.
-        }
         serverSideCondition {
-            whenButtonPressed: @approve
-        }
-        security {
-            authorizationScheme: @page-submit
+            whenButtonPressed: @reject
         }
     )
 
-    process reject-change (
-        name: Reject change
+    process approve-task (
+        name: Approve
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_approval_pkg.reject(:P172_TABLE_NAME, :P172_PK_VALUE, :P172_REASON);
+                -- claims the task first when it is still unassigned
+                apex_human_task.approve_task(p_task_id => :P172_TASK_ID, p_autoclaim => true);
                 ```
         }
         execution {
@@ -447,13 +560,38 @@ page 172 (
             point: processing
         }
         successMessage {
+            successMessage: Change approved.
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        serverSideCondition {
+            whenButtonPressed: @approve
+        }
+    )
+
+    process reject-task (
+        name: Reject
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.reject_task(p_task_id => :P172_TASK_ID, p_autoclaim => true);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
             successMessage: Change rejected.
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
         }
         serverSideCondition {
             whenButtonPressed: @reject
-        }
-        security {
-            authorizationScheme: @page-submit
         }
     )
 

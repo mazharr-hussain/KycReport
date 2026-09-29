@@ -87,7 +87,7 @@ begin
 
     -- Current pages -> features
     pages('HOME',             '1,10010,10050,90,91');
-    pages('MY_TASKS',         '30,31,40,42,43');
+    pages('MY_TASKS',         '30,31,40,42');
     pages('PARTIES',          '20,21,22,23');
     pages('CASES',            '32');
     pages('LOOKUPS',          '101,102');
@@ -96,7 +96,7 @@ begin
     pages('ATTACHMENTS',      '130,131,132,133,134,135,136,137,138,139');
     pages('NOTIFICATIONS',    '109,110');
     pages('RETENTION',        '112,113');
-    pages('WORKFLOW_SETUP',   '114,115,140,141,142,143,165');
+    pages('WORKFLOW_SETUP',   '114,115,165');
     pages('WORKFLOW_MONITOR', '41');
     pages('INTEGRATIONS',     '120,121,122,123,124,125');
     pages('USERS_ACCESS',     '103,104');
@@ -104,7 +104,6 @@ begin
     pages('AUDIT_LOG',        '111');
     pages('APP_SETTINGS',     '10020,10021');
     pages('USAGE_FEEDBACK',   '10030,10031,10032,10033,10051,10052');
-    pages('CHANGE_APPROVALS', '170,172');
 
     -- Grants that reproduce the previous role-based access
     grant_priv(c_all,   'HOME.VIEW,MY_TASKS.VIEW');

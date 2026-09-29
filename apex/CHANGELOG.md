@@ -1,24 +1,59 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_11.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
-Source of truth: the APEXlang tree in `apex/src` (the zip is built from it; each chunk is one commit).
+Current release: **`KYC-Compliance-Platform-APEXlang_12.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Source of truth: the APEXlang tree in `apex/src` and the database scripts in `apex/db` (one `.sql` file per script,
+order in `apex/db/manifest.json`). `python3 apex/tools/build.py --release N` generates the supporting-object
+components from `apex/db` and writes the zip. Each chunk is one commit.
 
 ## How each release is verified
 
-| Layer | Tool | Result for release 11 |
+| Layer | Tool | Result for release 12 |
 |---|---|---|
 | Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
 | Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
-| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 2,660 checks, 0 FAIL |
-| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 24 scripts run; 364 objects, 0 invalid; releases R09–R11 recorded; seed data + first administrator present |
-| Upgrade | release 9 → 10 and 10 → 11 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 2,684 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 24 scripts run; 329 objects, 0 invalid; releases R09–R12 recorded; seed data + first administrator present |
+| Upgrade | release 9 → 10, 10 → 11 and 11 → 12 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; the former workflow engine removed |
 | Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
+| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass (release 12 section) |
 | Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 40 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1 and REQ1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
 | Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
 
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 12 – Chunk 4: native APEX workflow platform
+
+The custom workflow engine (`XXFND_WF_*` tables, `XXFND_WF_PKG`, its screens, mailer job) is replaced by native
+**APEX Task Definitions** and the **Unified Task List**; the Fusion HCM job becomes an **APEX Automation**.
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 38 | `apex/db/*.sql`, `apex/tools/build.py`, `supporting-objects/install-scripts.apx`, `upgrade-scripts.apx` | Supporting objects | one 12,700-line `supporting-objects.apx` with every script twice | one `.sql` file per script + manifest; generated `contentFile` components | Reviewable chunk deployments (rule 5); identical install result verified |
+| 39 | new `shared-components/task-definitions/CONFIG-CHANGE.apx` | Approval task **Configuration Change Approval** | queue page 170 + custom approve/reject | APEX approval task per change (all pending answers of one question = one change); participants = holders of *Configuration Change Approver – Manage*; the maker cannot claim it; actions apply or reject the change | Rule 1 (OOTB); "Config Change Approvals" replaced by approval tasks in My Tasks |
+| 40 | new `RFI-RESPONSE.apx`, `RFI-REVIEW.apx` | Action tasks | custom RFI process (await response → review) | RFI_RESPONSE for the internal recipient; RFI_REVIEW for Compliance when an answer arrives (also from the emailed link) | OOTB tasks; RFIs appear in My Tasks |
+| 41 | `pages/p00040-my-tasks.apx`, `p00042-task-details.apx`, `p00041-workflow-monitor.apx`, `p00044-workflows.apx`, `p00045-workflow-details.apx` | My Tasks, Task Details, Workflow Monitor (Tasks / Workflows tabs), Workflow Details (diagram) | custom worklist / item / monitor pages 40–43 | APEX Unified Task List and workflow console pages, adapted from Oracle's *Sample Workflow Approvals* (APEX 26.1) | Rule 1 |
+| 42 | `pages/p00172-review-change.apx` | Review Change | table/key parameters, custom approve | details page of the approval task: change, audit trail, rejection reason (task comment), Approve/Reject with claim | same |
+| 43 | new `pages/p00145…`, `p00146…`, `p00147…`; `p00114/115` | Workflow Setup tabs: Approval Matrix, Delegations, **Deadlines and Escalation**, **Process Catalogue** | item types / processes designer (140–143) | due days, reminder and escalation role per task definition; read-only list of workflows and task definitions; delegations per task definition | Process shape by developers, parameters by admins |
+| 44 | new `shared-components/automations/task-deadlines.apx`, `fusion-hcm-sync.apx` | Automations | DBMS_SCHEDULER jobs `XXFND_WF_MAILER`, `XXFND_HCM_SYNC` | daily reminders/escalations; nightly Fusion HCM sync | Rule 1; no manual job set-up |
+| 45 | `apex/db/15-workflow.sql` | `XXFND_TASK_PKG`, `XXFND_NOTIFY_PKG`, `XXFND_CONFIG_APPROVAL_PKG`, `XXFND_TASK_SETTINGS`, `XXFND_TASK_ALERTS` | `XXFND_WF_PKG` | participants by role or privilege, due dates, **task vacation rule procedure** over `XXFND_WF_DELEGATIONS`, e-mail from the admin templates, deadlines; retires the old engine idempotently | |
+| 46 | `apex/db/16-kyc-rules.sql` | `XXCMP_KYC_PKG` RFI API | custom workflow items | creates/completes/cancels the RFI tasks | |
+| 47 | `apex/db/09b-security-framework-objects.sql` | Data security `OWN_RECORDS` | the user's rows | the user's rows and those of anyone currently delegating to the user | A delegate must see what they cover |
+| 48 | `apex/db/05…`, `18d-workflow-platform.sql` | `XXFND_SECURITY_PKG.SOD_CONFLICT`, seed | read the engine's history | engine-neutral (roles the user already acted under); pages, tabs, default deadlines; records `R12` | |
+| 49 | `apex/db/17…`, `18…` | Seed data | every upgrade overwrote lookups, roles, templates, categories and flexfields | system (S) lookups only; everything an administrator maintains is insert-only | **Defect:** an upgrade silently undid administrators' changes (rule 2) |
+| 50 | `pages/p00031…`, `p00110…`, `p00151…`, `p00164…` | CLOB items | source `varchar2`, session state `clob` | source `clob` | **Defect:** page 31 failed to render once an RFI had a response ("Session State data type CLOB is not allowed"). New rule g12 in `rules.py` |
+
+Removed pages: 43, 140–143, 170. Removed: `XXFND_WF_ITEM_TYPES`, `_PROCESSES`, `_ACTIVITIES`, `_TRANSITIONS`,
+`_ITEMS`, `_ACTIVITY_HISTORY`, `_NOTIFICATIONS`, `XXCMP_WF_ACTIVITY_CONTROLS`, `XXFND_WF_PKG`, `XXFND_WF_ITEMS_V`,
+lookups `WF_*`. Kept: `XXFND_WF_DELEGATIONS` (column `ITEM_TYPE` renamed `TASK_DEFINITION`).
+
+Verified (`workflow_test.sql`, `tasks_ui.py`): an RFI to a requester creates a task only they see and e-mails them;
+answering completes it and gives Compliance a review task; resolving completes that; cancelling cancels its tasks;
+an active delegation offers the task to the delegate, who can also see the RFI; a configuration change creates an
+approval task the maker cannot claim; another approver approves it on page 172 and the rule becomes APPROVED;
+reminders go out once. Found while testing and fixed: APEX re-reads a task's source row on every operation, so the
+task source queries always return one row (otherwise a withdrawn change could not even be cancelled).
 
 ## Release 11 – Chunk 3: admin console (one entry per feature, tabs, security screens)
 
@@ -128,14 +163,14 @@ grant execute on sys.dbms_rls    to <PARSING_SCHEMA>;   -- release 10+: row-leve
 Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
 
 ```sql
-apex validate -input KYC-Compliance-Platform-APEXlang_11.zip
+apex validate -input KYC-Compliance-Platform-APEXlang_12.zip
 
 begin
     apex_application_install.set_auto_install_sup_obj(p_auto_install_sup_obj => true);
 end;
 /
 
-apex import -input KYC-Compliance-Platform-APEXlang_11.zip -workspace XXCUS   -- add -id <n> for a fixed app id
+apex import -input KYC-Compliance-Platform-APEXlang_12.zip -workspace XXCUS   -- add -id <n> for a fixed app id
 
 select object_type, object_name from user_objects where status = 'INVALID';
 select job_name, enabled, state from user_scheduler_jobs where job_name like 'XXFND%';

@@ -14,9 +14,6 @@ declare
     end fix;
 begin
     fix('XXFND_USER_ROLES_U1', 'xxfnd_user_roles (case when end_date_active is null then employee_id end, case when end_date_active is null then role_code end)');
-    fix('XXFND_WF_PROCESSES_U1', 'xxfnd_wf_processes (case when active_flag = ''Y'' then item_type end, case when active_flag = ''Y'' then process_code end)');
-    fix('XXFND_WF_ACTIVITIES_U2', 'xxfnd_wf_activities (case when start_flag = ''Y'' then item_type end, case when start_flag = ''Y'' then process_code end, case when start_flag = ''Y'' then version_number end)');
-    fix('XXFND_WF_ITEMS_U1', 'xxfnd_wf_items (case when item_status in (''ACTIVE'',''SUSPENDED'') then entity_name end, case when item_status in (''ACTIVE'',''SUSPENDED'') then pk1_value end, case when item_status in (''ACTIVE'',''SUSPENDED'') then item_type end)');
     fix('XXFND_DF_CONTEXTS_U1', 'xxfnd_df_contexts (case when global_flag = ''Y'' then descriptive_flexfield_code end)');
     fix('XXCMP_PARTY_CONTACTS_U1', 'xxcmp_party_contacts (case when primary_flag = ''Y'' then party_id end, case when primary_flag = ''Y'' then contact_type end)');
 end;
@@ -319,11 +316,10 @@ create or replace package body xxfnd_audit_pkg as
             'XXFND_INTEGRATION_ENDPOINTS','XXFND_INTEGRATION_PURPOSES',
             'XXFND_DOCUMENT_ENTITIES','XXFND_DOCUMENT_CATEGORIES','XXFND_ATTACHMENT_FUNCTIONS',
             'XXFND_ATTACHMENT_BLOCKS','XXFND_ATTACHMENT_BLK_ENTITIES','XXFND_DOC_CATEGORY_USAGES',
-            'XXFND_STORAGE_CONFIG','XXFND_WF_ITEM_TYPES','XXFND_WF_PROCESSES','XXFND_WF_ACTIVITIES',
-            'XXFND_WF_TRANSITIONS','XXFND_WF_DELEGATIONS',
+            'XXFND_STORAGE_CONFIG','XXFND_WF_DELEGATIONS',
             'XXFND_VALUE_SETS','XXFND_DF_FLEXFIELDS','XXFND_DF_CONTEXTS','XXFND_DF_SEGMENTS',
             'XXCMP_QUESTIONNAIRES','XXCMP_QUESTIONS','XXCMP_ANSWER_OPTIONS','XXCMP_CONCLUSION_TEMPLATES',
-            'XXCMP_APPROVAL_MATRIX','XXCMP_ATTACHMENT_RULES','XXCMP_WF_ACTIVITY_CONTROLS');
+            'XXCMP_APPROVAL_MATRIX','XXCMP_ATTACHMENT_RULES');
     begin
         for i in 1 .. l_tables.count loop
             create_audit_trigger(l_tables(i));
@@ -350,12 +346,12 @@ create or replace package xxfnd_security_pkg authid definer as
                              p_user_name  in varchar2 default null) return varchar2;
     function can_view_sensitive(p_user_name in varchar2 default null) return boolean;
 
-    -- Four-eyes: true when the user already acted on this workflow item under a
-    -- role that the SOD rules forbid combining with p_role_code (SAME_RECORD),
-    -- or permanently holds a GLOBAL-conflicting role.
-    function sod_conflict(p_wf_item_id in number,
-                          p_role_code  in varchar2,
-                          p_user_name  in varchar2 default null) return boolean;
+    -- Four-eyes: true when acting under p_role_code would combine, on the same record,
+    -- with a role the user already acted under there (p_prior_roles, SAME_RECORD rules),
+    -- or when the user permanently holds a GLOBAL-conflicting role.
+    function sod_conflict(p_role_code   in varchar2,
+                          p_prior_roles in apex_t_varchar2 default null,
+                          p_user_name   in varchar2 default null) return boolean;
 
     -- Upserts one Fusion worker (JSON object from the HCM publicWorkers resource).
     procedure upsert_fusion_worker(p_worker in json_object_t);
@@ -472,27 +468,24 @@ create or replace package body xxfnd_security_pkg as
         return l_count > 0;
     end can_view_sensitive;
 
-    function sod_conflict(p_wf_item_id in number,
-                          p_role_code  in varchar2,
-                          p_user_name  in varchar2 default null) return boolean is
+    function sod_conflict(p_role_code   in varchar2,
+                          p_prior_roles in apex_t_varchar2 default null,
+                          p_user_name   in varchar2 default null) return boolean is
         l_count pls_integer;
         l_user  varchar2(255) := norm_user(p_user_name);
     begin
-        -- Same record: the user already acted on this item under a conflicting role.
-        select count(*)
-          into l_count
-          from xxfnd_wf_activity_history h
-          join xxfnd_wf_activities a on a.activity_id = h.activity_id
-          join xxfnd_sod_rules s
-            on s.enabled_flag = 'Y'
-           and s.conflict_scope = 'SAME_RECORD'
-           and ((s.role_code_1 = p_role_code and s.role_code_2 = a.performer_role_code) or
-                (s.role_code_2 = p_role_code and s.role_code_1 = a.performer_role_code))
-         where h.wf_item_id = p_wf_item_id
-           and l_user in (upper(h.actioned_by), upper(h.on_behalf_of))
-           and h.result_code is not null;
-        if l_count > 0 then
-            return true;
+        -- Same record: the user already acted on this record under a conflicting role.
+        if p_prior_roles is not null and p_prior_roles.count > 0 then
+            select count(*)
+              into l_count
+              from xxfnd_sod_rules s
+             where s.enabled_flag = 'Y'
+               and s.conflict_scope = 'SAME_RECORD'
+               and ((s.role_code_1 = p_role_code and s.role_code_2 in (select column_value from table(p_prior_roles))) or
+                    (s.role_code_2 = p_role_code and s.role_code_1 in (select column_value from table(p_prior_roles))));
+            if l_count > 0 then
+                return true;
+            end if;
         end if;
 
         -- Global: the user holds a role that may never be combined with p_role_code.

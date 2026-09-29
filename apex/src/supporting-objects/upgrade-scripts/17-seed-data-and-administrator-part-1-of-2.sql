@@ -19,8 +19,10 @@ declare
     begin
         merge into xxfnd_lookup_types t
         using (select p_type lookup_type from dual) s on (t.lookup_type = s.lookup_type)
+         -- system lookups (S) belong to the application; E/U lookups to the administrators
          when matched then update set t.meaning = p_meaning, t.customization_level = p_level,
                                       t.application_code = p_app, t.description = p_desc
+                           where t.customization_level = 'S'
          when not matched then insert (lookup_type, meaning, customization_level, application_code, description)
                                values (p_type, p_meaning, p_level, p_app, p_desc);
     end lt;
@@ -34,6 +36,7 @@ declare
            on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code)
          when matched then update set t.meaning = p_meaning, t.display_sequence = p_seq, t.tag = p_tag,
                                       t.parent_lookup_type = p_parent_type, t.parent_lookup_code = p_parent_code
+                           where t.lookup_type in (select lookup_type from xxfnd_lookup_types where customization_level = 'S')
          when not matched then insert (lookup_type, lookup_code, meaning, display_sequence, tag,
                                        parent_lookup_type, parent_lookup_code)
                                values (p_type, p_code, p_meaning, p_seq, p_tag, p_parent_type, p_parent_code);
@@ -42,6 +45,7 @@ declare
             using (select p_type lookup_type, p_code lookup_code, 'ar' language_code from dual) s
                on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code and t.language_code = s.language_code)
              when matched then update set t.meaning = p_ar
+                               where t.lookup_type in (select lookup_type from xxfnd_lookup_types where customization_level = 'S')
              when not matched then insert (lookup_type, lookup_code, language_code, meaning)
                                    values (p_type, p_code, 'ar', p_ar);
         end if;
@@ -143,16 +147,8 @@ begin
     lt('DOC_CHECK_STATUS', 'Automated Document Check Status');
     lvs('DOC_CHECK_STATUS', 'NOT_CHECKED=Not checked|PASSED=Passed|FLAGGED=Flagged');
 
-    lt('WF_ACTIVITY_TYPE', 'Workflow Activity Types');
-    lvs('WF_ACTIVITY_TYPE', 'START=Start|TASK=Task|APPROVAL=Approval|NOTIFICATION=Notification (FYI)|WAIT=Wait|END=End');
 
-    lt('WF_RESULT', 'Workflow Result Codes', 'E');
-    lvs('WF_RESULT', 'DEFAULT=Default|SUBMITTED=Submitted|APPROVED=Approved|REJECTED=Rejected|RETURNED=Returned'
-        || '|COMPLETED=Completed|RESPONDED=Responded|MORE_INFO=More information needed|RESOLVED=Resolved'
-        || '|TIMEOUT=Timed out|CANCELLED=Cancelled');
 
-    lt('WF_ITEM_STATUS', 'Workflow Item Status');
-    lvs('WF_ITEM_STATUS', 'ACTIVE=Active|SUSPENDED=Suspended|COMPLETE=Complete|CANCELLED=Cancelled');
 
     lt('NOTIFICATION_STATUS', 'Notification Status');
     lvs('NOTIFICATION_STATUS', 'QUEUED=Queued|SENT=Sent|FAILED=Failed|RESPONDED=Responded|EXPIRED=Expired|CANCELLED=Cancelled');

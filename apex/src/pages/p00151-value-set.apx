@@ -495,7 +495,7 @@ page 151 (
         source {
             formRegion: @form
             column: TABLE_QUERY
-            dataType: varchar2
+            dataType: clob
         }
         sessionState {
             dataType: clob

@@ -1,147 +1,133 @@
 --------------------------------------------------------------------------------
--- 08_xxfnd_wf_pkg.sql
--- Workflow engine runtime (0.2). One generic engine; each business process
--- (KYC case, RFI, ...) is a separate item type + process definition, as in
--- EBS Workflow / Fusion BPM. The engine knows nothing about KYC.
---
---   Activity types
---     START         entry point; advances immediately on result DEFAULT
---     NOTIFICATION  queues an FYI email to the performer role, then advances on DEFAULT
---     TASK/APPROVAL waits for a person holding PERFORMER_ROLE_CODE (or their delegate)
---     WAIT          waits for the application to call COMPLETE_ACTIVITY (e.g. RFI answered)
---     END           completes the item
---   A WAIT/TASK/APPROVAL with TIMEOUT_HOURS moves on result TIMEOUT when a
---   TIMEOUT transition exists (job XXFND_WF_MAILER checks).
---
---   Notifications are only queued here; XXFND_WF_PKG.SEND_QUEUED (scheduler
---   job, every 5 minutes) sends them, so a mail outage never blocks a save.
+-- 15_workflow.sql  (release R12)
+-- Processes and tasks run on native APEX Workflow and Task Definitions
+-- (APEX_WORKFLOW, APEX_HUMAN_TASK); My Tasks is the APEX Unified Task List.
+-- This script holds only what APEX leaves to the application:
+--   XXFND_TASK_SETTINGS       deadlines and escalation per task definition (admin screen)
+--   XXFND_TASK_ALERTS         reminders/escalations already sent (sent once)
+--   XXFND_NOTIFY_PKG          e-mail from the admin-maintained notification templates
+--   XXFND_TASK_PKG            participants, due dates, vacation rule, notifications, deadlines
+--   XXFND_CONFIG_APPROVAL_PKG maker-checker changes as CONFIG_CHANGE approval tasks
+-- It also retires the former custom workflow engine (idempotent; nothing to do
+-- on a new install). Safe to run on install and on every upgrade.
 --------------------------------------------------------------------------------
 
-create or replace package xxfnd_wf_pkg authid definer as
-
-    c_default constant varchar2(30) := 'DEFAULT';
-    c_timeout constant varchar2(30) := 'TIMEOUT';
-
-    -- Starts the active version of a process for one business record.
-    -- P_TOKENS_JSON adds #TOKEN# values for the notification templates.
-    function start_item(p_item_type    in varchar2,
-                        p_process_code in varchar2,
-                        p_entity_name  in varchar2,
-                        p_pk1_value    in varchar2,
-                        p_tokens_json  in clob default null) return number;
-
-    -- Records the current user's decision and moves the item on.
-    -- P_EXPECTED_ACTIVITY_ID guards against acting from a stale screen.
-    procedure complete_activity(p_wf_item_id           in number,
-                                p_result_code          in varchar2,
-                                p_notes                in varchar2 default null,
-                                p_expected_activity_id in number   default null,
-                                p_tokens_json          in clob     default null);
-
-    -- Y/N for button conditions: may the current user act on the item now?
-    function can_act(p_wf_item_id in number, p_user_name in varchar2 default null) return varchar2;
-    -- Reason the user may not act, or null.
-    function cannot_act_reason(p_wf_item_id in number, p_user_name in varchar2 default null) return varchar2;
-
-    -- Result codes available from the item's current activity (for a select list).
-    function available_results(p_wf_item_id in number) return apex_t_varchar2;
-
-    -- Current active item for a record, or null.
-    function active_item(p_entity_name in varchar2, p_pk1_value in varchar2,
-                         p_item_type in varchar2 default null) return number;
-
-    -- Makes one process version the active one (the others are deactivated first,
-    -- so the one-active-version index is never violated). Running items stay on
-    -- the version they started on.
-    procedure activate_version(p_item_type in varchar2, p_process_code in varchar2, p_version_number in number);
-
-    -- Administrator actions (Workflow Monitor).
-    procedure suspend_item(p_wf_item_id in number, p_reason in varchar2);
-    procedure resume_item (p_wf_item_id in number);
-    procedure cancel_item (p_wf_item_id in number, p_reason in varchar2);
-    -- Moves a stuck item to another activity of the same process version.
-    procedure reassign_activity(p_wf_item_id in number, p_activity_code in varchar2, p_reason in varchar2);
-
-    -- Scheduler job: timeouts, then send queued notifications through APEX_MAIL.
-    procedure send_queued(p_workspace in varchar2, p_app_alias in varchar2, p_max_rows in pls_integer default 500);
-    procedure process_timeouts;
-
-end xxfnd_wf_pkg;
+--------------------------------------------------------------------------------
+-- Retire the former custom engine (XXFND_WF_* tables, package, view, mailer job)
+--------------------------------------------------------------------------------
+declare
+    procedure run(p_sql in varchar2) is
+    begin
+        execute immediate p_sql;
+    end run;
+    function exists_(p_sql in varchar2) return boolean is
+        l_count pls_integer;
+    begin
+        execute immediate p_sql into l_count;
+        return l_count > 0;
+    end exists_;
+begin
+    for j in (select job_name from user_scheduler_jobs where job_name in ('XXFND_WF_MAILER','XXFND_HCM_SYNC')) loop
+        dbms_scheduler.drop_job(j.job_name, force => true);   -- replaced by APEX Automations
+    end loop;
+    run('drop package if exists xxfnd_wf_pkg');
+    run('drop view if exists xxfnd_wf_items_v');
+    if exists_(q'[select count(*) from user_constraints where constraint_name = 'XXCMP_RFIS_FK2']') then
+        run('alter table xxcmp_rfis drop constraint xxcmp_rfis_fk2');
+    end if;
+    if exists_(q'[select count(*) from user_constraints where constraint_name = 'XXFND_WF_DELEGATIONS_FK1']') then
+        run('alter table xxfnd_wf_delegations drop constraint xxfnd_wf_delegations_fk1');
+    end if;
+    if exists_(q'[select count(*) from user_tab_columns where table_name = 'XXFND_WF_DELEGATIONS' and column_name = 'ITEM_TYPE']') then
+        run('alter table xxfnd_wf_delegations rename column item_type to task_definition');
+        run('alter table xxfnd_wf_delegations modify (task_definition varchar2(255))');
+        xxfnd_audit_pkg.create_audit_trigger('XXFND_WF_DELEGATIONS');   -- its column list changed
+    end if;
+    -- Item types of the former engine mean nothing to APEX task definitions.
+    run(q'[update xxfnd_wf_delegations set task_definition = null where task_definition in ('RFI','KYC_CASE')]');
+    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'RESPONSE_TASK_ID', 'number');
+    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'REVIEW_TASK_ID', 'number');
+    if exists_(q'[select count(*) from user_tab_columns where table_name = 'XXCMP_RFIS' and column_name = 'WF_ITEM_ID']') then
+        run('alter table xxcmp_rfis drop column wf_item_id');
+    end if;
+    for t in (select column_value table_name
+                from table(apex_t_varchar2('XXCMP_WF_ACTIVITY_CONTROLS','XXFND_WF_NOTIFICATIONS','XXFND_WF_ACTIVITY_HISTORY',
+                                           'XXFND_WF_ITEMS','XXFND_WF_TRANSITIONS','XXFND_WF_ACTIVITIES',
+                                           'XXFND_WF_PROCESSES','XXFND_WF_ITEM_TYPES'))) loop
+        run('drop table if exists ' || t.table_name || ' cascade constraints purge');
+    end loop;
+    delete from xxfnd_lookup_values_tl where lookup_type in ('WF_ACTIVITY_TYPE','WF_RESULT','WF_ITEM_STATUS');
+    delete from xxfnd_lookup_values    where lookup_type in ('WF_ACTIVITY_TYPE','WF_RESULT','WF_ITEM_STATUS');
+    delete from xxfnd_lookup_types     where lookup_type in ('WF_ACTIVITY_TYPE','WF_RESULT','WF_ITEM_STATUS');
+    delete from xxfnd_notification_templates_tl where template_code = 'WF_TASK_ASSIGNED';
+    delete from xxfnd_notification_templates    where template_code = 'WF_TASK_ASSIGNED';
+    commit;
+end;
 /
 
-create or replace package body xxfnd_wf_pkg as
+--------------------------------------------------------------------------------
+-- Deadlines and escalation (Workflow Setup > Deadlines and Escalation)
+--------------------------------------------------------------------------------
+create table if not exists xxfnd_task_settings (
+    task_definition        varchar2(255)  not null,
+    due_days               number,
+    reminder_days_before   number,
+    escalation_role_code   varchar2(30),
+    notify_on_create_flag  varchar2(1)    default 'Y' not null,
+    description            varchar2(1000),
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxfnd_task_settings_pk primary key (task_definition),
+    constraint xxfnd_task_settings_fk1 foreign key (escalation_role_code) references xxfnd_roles (role_code),
+    constraint xxfnd_task_settings_ck1 check (due_days > 0),
+    constraint xxfnd_task_settings_ck2 check (reminder_days_before >= 0),
+    constraint xxfnd_task_settings_ck3 check (notify_on_create_flag in ('Y','N'))
+);
+comment on table xxfnd_task_settings is 'Per APEX task definition (static ID): due date in days from creation, reminder before it, role that receives overdue tasks, e-mail on creation.';
 
-    ----------------------------------------------------------------------------
-    -- helpers
-    ----------------------------------------------------------------------------
-    function norm(p_user in varchar2) return varchar2 is
-    begin
-        return upper(nvl(p_user, xxfnd_util_pkg.current_user));
-    end norm;
+create table if not exists xxfnd_task_alerts (
+    task_id                number         not null,
+    alert_type             varchar2(30)   not null,
+    sent_date              timestamp      default systimestamp not null,
+    constraint xxfnd_task_alerts_pk primary key (task_id, alert_type),
+    constraint xxfnd_task_alerts_ck1 check (alert_type in ('REMINDER','ESCALATION'))
+);
+comment on table xxfnd_task_alerts is 'Deadline reminders and escalations already sent, so each goes out once per task.';
 
-    function get_activity(p_activity_id in number) return xxfnd_wf_activities%rowtype is
-        l_act xxfnd_wf_activities%rowtype;
-    begin
-        select * into l_act from xxfnd_wf_activities where activity_id = p_activity_id;
-        return l_act;
-    end get_activity;
+begin
+    xxfnd_util_pkg.create_who_trigger('XXFND_TASK_SETTINGS');
+    xxfnd_audit_pkg.create_audit_trigger('XXFND_TASK_SETTINGS');
+    xxfnd_audit_pkg.create_audit_trigger('XXFND_WF_DELEGATIONS');
+end;
+/
 
-    function get_item(p_wf_item_id in number, p_lock in boolean default false) return xxfnd_wf_items%rowtype is
-        l_item xxfnd_wf_items%rowtype;
-    begin
-        if p_lock then
-            select * into l_item from xxfnd_wf_items where wf_item_id = p_wf_item_id for update;
-        else
-            select * into l_item from xxfnd_wf_items where wf_item_id = p_wf_item_id;
-        end if;
-        return l_item;
-    exception
-        when no_data_found then
-            raise_application_error(-20400, 'Workflow item ' || p_wf_item_id || ' does not exist.');
-    end get_item;
+--------------------------------------------------------------------------------
+-- Notifications
+--------------------------------------------------------------------------------
+create or replace package xxfnd_notify_pkg authid definer as
+    -- Sends notification template P_TEMPLATE_CODE (in the user's language when translated)
+    -- to P_TO, replacing #TOKEN# placeholders from the JSON object P_TOKENS.
+    -- Does nothing when the template is disabled or the MAIL_FROM application setting is empty.
+    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null);
+    -- Same, once per application user (comma-separated user names) that has an e-mail address.
+    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null);
+end xxfnd_notify_pkg;
+/
 
-    -- Person the user is acting for: themselves when they hold the role, else a
-    -- delegator (active vacation rule) who holds it. Null when neither.
-    function acting_for(p_role_code in varchar2, p_item_type in varchar2, p_user in varchar2) return varchar2 is
-        l_delegator varchar2(255);
-    begin
-        if p_role_code is null or xxfnd_security_pkg.has_role(p_role_code, p_user) then
-            return p_user;
-        end if;
-        select min(d.delegator_user_name)
-          into l_delegator
-          from xxfnd_wf_delegations d
-         where upper(d.delegate_user_name) = p_user
-           and (d.item_type is null or d.item_type = p_item_type)
-           and trunc(sysdate) between d.start_date and d.end_date
-           and xxfnd_security_pkg.has_role_yn(p_role_code, d.delegator_user_name) = 'Y';
-        return upper(l_delegator);
-    end acting_for;
+create or replace package body xxfnd_notify_pkg as
 
-    function standard_tokens(p_item in xxfnd_wf_items%rowtype, p_act in xxfnd_wf_activities%rowtype,
-                             p_extra in clob) return clob is
-        l_obj json_object_t := case when p_extra is null then json_object_t() else json_object_t.parse(p_extra) end;
-    begin
-        l_obj.put('WF_ITEM_ID',    p_item.wf_item_id);
-        l_obj.put('ITEM_TYPE',     p_item.item_type);
-        l_obj.put('ENTITY_NAME',   p_item.entity_name);
-        l_obj.put('PK1_VALUE',     p_item.pk1_value);
-        l_obj.put('ACTIVITY_NAME', p_act.activity_name);
-        l_obj.put('DUE_DATE', case when p_act.timeout_hours is not null
-                                   then to_char(systimestamp + numtodsinterval(p_act.timeout_hours, 'HOUR'),
-                                                'DD-Mon-YYYY HH24:MI') end);
-        return l_obj.to_clob;
-    end standard_tokens;
-
-    -- Queue one notification per holder of the performer role, redirected to
-    -- the active delegate where a vacation rule exists.
-    procedure queue_notifications(p_item in xxfnd_wf_items%rowtype, p_act in xxfnd_wf_activities%rowtype,
-                                  p_tokens in clob) is
-        l_subject varchar2(500);
+    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null) is
+        l_from    varchar2(320) := apex_app_setting.get_value('MAIL_FROM');
+        l_subject varchar2(4000);
         l_body    clob;
-        l_tokens  clob;
+        l_mail_id number;
     begin
-        if p_act.notification_template_code is null or p_act.performer_role_code is null then
+        if p_to is null or l_from is null then
             return;
         end if;
         begin
@@ -149,398 +135,386 @@ create or replace package body xxfnd_wf_pkg as
               into l_subject, l_body
               from xxfnd_notification_templates n
               left join xxfnd_notification_templates_tl t
-                on t.template_code = n.template_code
-               and t.language_code = 'en'
-             where n.template_code = p_act.notification_template_code
+                on t.template_code = n.template_code and t.language_code = xxfnd_util_pkg.current_lang
+             where n.template_code = p_template_code
                and n.enabled_flag = 'Y';
         exception
             when no_data_found then
-                return;   -- template disabled: the task still appears in the worklist
+                return;
         end;
-        l_tokens  := standard_tokens(p_item, p_act, p_tokens);
-        l_subject := dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1);
-        l_body    := xxfnd_util_pkg.replace_tokens(l_body, l_tokens);
+        if p_tokens is not null then
+            l_subject := dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, p_tokens), 4000, 1);
+            l_body    := xxfnd_util_pkg.replace_tokens(l_body, p_tokens);
+        end if;
+        l_mail_id := apex_mail.send(
+                         p_to        => p_to,
+                         p_from      => l_from,
+                         p_subj      => substr(l_subject, 1, 500),
+                         p_body      => regexp_replace(l_body, '<[^>]+>', ''),
+                         p_body_html => l_body);
+    end send;
 
-        for r in (select v.user_name,
-                         (select upper(min(d.delegate_user_name))
+    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null) is
+    begin
+        for u in (select distinct e.email_address
+                    from xxfnd_employees e
+                   where e.user_name in (select upper(trim(column_value)) from table(apex_string.split(p_user_names, ',')))
+                     and e.enabled_flag = 'Y'
+                     and e.email_address is not null) loop
+            send(p_template_code, u.email_address, p_tokens);
+        end loop;
+    end send_to_users;
+
+end xxfnd_notify_pkg;
+/
+
+--------------------------------------------------------------------------------
+-- Task helpers
+--------------------------------------------------------------------------------
+create or replace package xxfnd_task_pkg authid definer as
+
+    -- Empty parameter list for CREATE_TASK.
+    c_no_parameters apex_human_task.t_task_parameters;
+
+    -- Task participants: comma-separated user names (task definition participant expressions).
+    function users_in_role(p_role_code in varchar2, p_exclude in varchar2 default null) return varchar2;
+    function users_with_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                  p_exclude in varchar2 default null) return varchar2;
+    -- Business administrators of every task: holders of WORKFLOW_MONITOR.MANAGE.
+    function business_admins return varchar2;
+
+    -- Due date from XXFND_TASK_SETTINGS (null = no deadline).
+    function due_date(p_task_definition in varchar2) return timestamp with time zone;
+
+    -- Creates a task of the current application with the configured due date.
+    function create_task(p_task_definition in varchar2,
+                         p_detail_pk       in varchar2,
+                         p_subject         in varchar2 default null,
+                         p_parameters      in apex_human_task.t_task_parameters default c_no_parameters) return number;
+
+    -- Completes the open tasks of a definition for a record that the current user may complete.
+    procedure complete_open(p_task_definition in varchar2, p_detail_pk in varchar2, p_outcome in varchar2 default null);
+    -- Cancels the open tasks of a definition for a record (initiator or business administrator).
+    procedure cancel_open(p_task_definition in varchar2, p_detail_pk in varchar2);
+
+    -- Most recent comment on a task (e.g. the reason given when rejecting).
+    function last_comment(p_task_id in number) return varchar2;
+
+    -- Task vacation rule procedure (set on every task definition): while a delegation in
+    -- XXFND_WF_DELEGATIONS is active, the delegate is offered the delegator's tasks too.
+    procedure vacation_rule(p_param  in  apex_human_task.t_vacation_rule_input,
+                            p_result out apex_human_task.t_vacation_rule_result);
+
+    -- Task definition action "on create": e-mails the potential owners (template TASK_ASSIGNED)
+    -- unless NOTIFY_ON_CREATE_FLAG is N for the task definition.
+    procedure notify_created(p_task_id in number);
+
+    -- Daily Automation: reminder REMINDER_DAYS_BEFORE the due date (to the owners) and
+    -- escalation once overdue (to the escalation role). Each is sent once per task.
+    procedure process_deadlines;
+
+end xxfnd_task_pkg;
+/
+
+create or replace package body xxfnd_task_pkg as
+
+    function users_in_role(p_role_code in varchar2, p_exclude in varchar2 default null) return varchar2 is
+        l_list varchar2(32767);
+    begin
+        select listagg(distinct ur.user_name, ',') within group (order by ur.user_name)
+          into l_list
+          from xxfnd_user_roles_v ur
+         where ur.role_code = upper(p_role_code)
+           and ur.active_flag = 'Y'
+           and ur.user_name <> upper(nvl(p_exclude, '#'));
+        return l_list;
+    end users_in_role;
+
+    function users_with_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                  p_exclude in varchar2 default null) return varchar2 is
+        l_list varchar2(32767);
+    begin
+        select listagg(distinct ur.user_name, ',') within group (order by ur.user_name)
+          into l_list
+          from xxfnd_user_roles_v ur
+          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+         where rp.privilege_code = upper(p_feature_code) || '.' || upper(p_action)
+           and ur.active_flag = 'Y'
+           and ur.user_name <> upper(nvl(p_exclude, '#'));
+        return l_list;
+    end users_with_privilege;
+
+    function business_admins return varchar2 is
+    begin
+        return users_with_privilege('WORKFLOW_MONITOR', 'MANAGE');
+    end business_admins;
+
+    function due_date(p_task_definition in varchar2) return timestamp with time zone is
+        l_days number;
+    begin
+        select max(due_days) into l_days from xxfnd_task_settings where task_definition = p_task_definition;
+        return case when l_days is not null then systimestamp + numtodsinterval(l_days, 'DAY') end;
+    end due_date;
+
+    function create_task(p_task_definition in varchar2,
+                         p_detail_pk       in varchar2,
+                         p_subject         in varchar2 default null,
+                         p_parameters      in apex_human_task.t_task_parameters default c_no_parameters) return number is
+    begin
+        return apex_human_task.create_task(
+                   p_application_id     => v('APP_ID'),
+                   p_task_def_static_id => p_task_definition,
+                   p_subject            => p_subject,
+                   p_parameters         => p_parameters,
+                   p_detail_pk          => p_detail_pk,
+                   p_due_date           => due_date(p_task_definition));
+    end create_task;
+
+    procedure complete_open(p_task_definition in varchar2, p_detail_pk in varchar2, p_outcome in varchar2 default null) is
+    begin
+        for t in (select task_id from apex_tasks
+                   where task_def_static_id = p_task_definition
+                     and detail_pk = p_detail_pk
+                     and state_code in ('UNASSIGNED','ASSIGNED')
+                     and application_id = v('APP_ID')) loop
+            -- An unassigned task (several potential owners) is claimed and completed in one go.
+            if apex_human_task.is_allowed(p_task_id => t.task_id, p_operation => apex_human_task.c_task_op_complete)
+               or apex_human_task.is_allowed(p_task_id => t.task_id, p_operation => apex_human_task.c_task_op_claim) then
+                apex_human_task.complete_task(p_task_id => t.task_id, p_outcome => p_outcome, p_autoclaim => true);
+            end if;
+        end loop;
+    end complete_open;
+
+    procedure cancel_open(p_task_definition in varchar2, p_detail_pk in varchar2) is
+    begin
+        for t in (select task_id from apex_tasks
+                   where task_def_static_id = p_task_definition
+                     and detail_pk = p_detail_pk
+                     and state_code in ('UNASSIGNED','ASSIGNED','INFO_REQUESTED')
+                     and application_id = v('APP_ID')) loop
+            if apex_human_task.is_allowed(p_task_id => t.task_id, p_operation => apex_human_task.c_task_op_cancel) then
+                apex_human_task.cancel_task(p_task_id => t.task_id);
+            end if;
+        end loop;
+    end cancel_open;
+
+    function last_comment(p_task_id in number) return varchar2 is
+        l_text varchar2(4000);
+    begin
+        select max(substr(text, 1, 4000)) keep (dense_rank last order by created_on)
+          into l_text
+          from apex_task_comments
+         where task_id = p_task_id;
+        return l_text;
+    end last_comment;
+
+    procedure vacation_rule(p_param  in  apex_human_task.t_vacation_rule_input,
+                            p_result out apex_human_task.t_vacation_rule_result) is
+        l_idx pls_integer := 0;
+    begin
+        for i in 1 .. p_param.original_participants.count loop
+            if p_param.original_participants(i).type = apex_human_task.c_task_potential_owner
+               and p_param.original_participants(i).identity = apex_human_task.c_task_identity_type_user then
+                for d in (select d.delegate_user_name, d.reason
                             from xxfnd_wf_delegations d
-                           where upper(d.delegator_user_name) = v.user_name
-                             and (d.item_type is null or d.item_type = p_item.item_type)
-                             and trunc(sysdate) between d.start_date and d.end_date) delegate_user
-                    from xxfnd_user_roles_v v
-                   where v.role_code = p_act.performer_role_code
-                     and v.active_flag = 'Y')
-        loop
-            insert into xxfnd_wf_notifications (wf_item_id, activity_id, recipient_user_name, original_recipient,
-                                                template_code, status_code, subject, body_html, due_date)
-            values (p_item.wf_item_id, p_act.activity_id, nvl(r.delegate_user, r.user_name),
-                    case when r.delegate_user is not null then r.user_name end,
-                    p_act.notification_template_code, 'QUEUED', l_subject, l_body,
-                    case when p_act.timeout_hours is not null
-                         then systimestamp + numtodsinterval(p_act.timeout_hours, 'HOUR') end);
-        end loop;
-    end queue_notifications;
-
-    procedure enter_activity(p_item in out nocopy xxfnd_wf_items%rowtype, p_activity_id in number,
-                             p_tokens in clob);
-
-    -- Moves along the transition for p_result, then keeps going through
-    -- automatic activities (START, NOTIFICATION, END).
-    procedure transition(p_item in out nocopy xxfnd_wf_items%rowtype, p_result in varchar2, p_tokens in clob) is
-        l_next number;
-    begin
-        begin
-            select to_activity_id into l_next
-              from xxfnd_wf_transitions
-             where from_activity_id = p_item.current_activity_id
-               and result_code = p_result;
-        exception
-            when no_data_found then
-                raise_application_error(-20401, 'The process has no path for result ' || p_result
-                    || ' from activity ' || get_activity(p_item.current_activity_id).activity_code || '.');
-        end;
-        enter_activity(p_item, l_next, p_tokens);
-    end transition;
-
-    procedure enter_activity(p_item in out nocopy xxfnd_wf_items%rowtype, p_activity_id in number,
-                             p_tokens in clob) is
-        l_act xxfnd_wf_activities%rowtype := get_activity(p_activity_id);
-    begin
-        p_item.current_activity_id := p_activity_id;
-        update xxfnd_wf_items set current_activity_id = p_activity_id where wf_item_id = p_item.wf_item_id;
-        insert into xxfnd_wf_activity_history (wf_item_id, activity_id) values (p_item.wf_item_id, p_activity_id);
-
-        case l_act.activity_type
-            when 'END' then
-                update xxfnd_wf_activity_history
-                   set exited_date = systimestamp, result_code = c_default, actioned_by = 'SYSTEM'
-                 where wf_item_id = p_item.wf_item_id and activity_id = p_activity_id and exited_date is null;
-                update xxfnd_wf_items
-                   set item_status = 'COMPLETE', completed_date = systimestamp
-                 where wf_item_id = p_item.wf_item_id;
-                p_item.item_status := 'COMPLETE';
-            when 'NOTIFICATION' then
-                queue_notifications(p_item, l_act, p_tokens);
-                update xxfnd_wf_activity_history
-                   set exited_date = systimestamp, result_code = c_default, actioned_by = 'SYSTEM'
-                 where wf_item_id = p_item.wf_item_id and activity_id = p_activity_id and exited_date is null;
-                transition(p_item, c_default, p_tokens);
-            when 'START' then
-                update xxfnd_wf_activity_history
-                   set exited_date = systimestamp, result_code = c_default, actioned_by = 'SYSTEM'
-                 where wf_item_id = p_item.wf_item_id and activity_id = p_activity_id and exited_date is null;
-                transition(p_item, c_default, p_tokens);
-            else  -- TASK, APPROVAL, WAIT: stop here and tell the performers
-                queue_notifications(p_item, l_act, p_tokens);
-        end case;
-    end enter_activity;
-
-    ----------------------------------------------------------------------------
-    -- public
-    ----------------------------------------------------------------------------
-    function start_item(p_item_type    in varchar2,
-                        p_process_code in varchar2,
-                        p_entity_name  in varchar2,
-                        p_pk1_value    in varchar2,
-                        p_tokens_json  in clob default null) return number is
-        l_version number;
-        l_start   number;
-        l_item    xxfnd_wf_items%rowtype;
-    begin
-        begin
-            select version_number into l_version
-              from xxfnd_wf_processes
-             where item_type = p_item_type and process_code = p_process_code and active_flag = 'Y';
-            select activity_id into l_start
-              from xxfnd_wf_activities
-             where item_type = p_item_type and process_code = p_process_code
-               and version_number = l_version and start_flag = 'Y';
-        exception
-            when no_data_found then
-                raise_application_error(-20402, 'Process ' || p_item_type || '/' || p_process_code
-                    || ' has no active version with a start activity.');
-        end;
-
-        insert into xxfnd_wf_items (item_type, process_code, version_number, entity_name, pk1_value,
-                                    current_activity_id, item_status)
-        values (p_item_type, p_process_code, l_version, p_entity_name, p_pk1_value, l_start, 'ACTIVE')
-        returning wf_item_id into l_item.wf_item_id;
-        l_item := get_item(l_item.wf_item_id);
-
-        enter_activity(l_item, l_start, p_tokens_json);
-        return l_item.wf_item_id;
-    exception
-        when dup_val_on_index then
-            raise_application_error(-20403, 'This record already has an active ' || p_item_type || ' workflow.');
-    end start_item;
-
-    function cannot_act_reason(p_wf_item_id in number, p_user_name in varchar2 default null) return varchar2 is
-        l_item xxfnd_wf_items%rowtype := get_item(p_wf_item_id);
-        l_act  xxfnd_wf_activities%rowtype := get_activity(l_item.current_activity_id);
-        l_user varchar2(255) := norm(p_user_name);
-        l_for  varchar2(255);
-    begin
-        if l_item.item_status <> 'ACTIVE' then
-            return 'This item is ' || lower(l_item.item_status) || '.';
-        end if;
-        if l_act.activity_type not in ('TASK','APPROVAL','WAIT') then
-            return 'The current step does not take a decision.';
-        end if;
-        l_for := acting_for(l_act.performer_role_code, l_item.item_type, l_user);
-        if l_for is null then
-            return 'You do not hold the role for this step.';
-        end if;
-        if l_act.performer_role_code is not null
-           and (xxfnd_security_pkg.sod_conflict(p_wf_item_id, l_act.performer_role_code, l_user)
-                or (l_for <> l_user and xxfnd_security_pkg.sod_conflict(p_wf_item_id, l_act.performer_role_code, l_for))) then
-            return 'Segregation of duties: you already acted on this item in a conflicting role.';
-        end if;
-        return null;
-    end cannot_act_reason;
-
-    function can_act(p_wf_item_id in number, p_user_name in varchar2 default null) return varchar2 is
-    begin
-        return case when cannot_act_reason(p_wf_item_id, p_user_name) is null then 'Y' else 'N' end;
-    end can_act;
-
-    function available_results(p_wf_item_id in number) return apex_t_varchar2 is
-        l_results apex_t_varchar2;
-    begin
-        select t.result_code bulk collect into l_results
-          from xxfnd_wf_items i
-          join xxfnd_wf_transitions t on t.from_activity_id = i.current_activity_id
-         where i.wf_item_id = p_wf_item_id
-           and t.result_code <> c_timeout
-         order by t.result_code;
-        return l_results;
-    end available_results;
-
-    procedure complete_activity(p_wf_item_id           in number,
-                                p_result_code          in varchar2,
-                                p_notes                in varchar2 default null,
-                                p_expected_activity_id in number   default null,
-                                p_tokens_json          in clob     default null) is
-        l_item   xxfnd_wf_items%rowtype := get_item(p_wf_item_id, p_lock => true);
-        l_act    xxfnd_wf_activities%rowtype := get_activity(l_item.current_activity_id);
-        l_user   varchar2(255) := norm(null);
-        l_for    varchar2(255);
-        l_reason varchar2(4000);
-    begin
-        if p_expected_activity_id is not null and p_expected_activity_id <> l_item.current_activity_id then
-            raise_application_error(-20404, 'Someone else has already moved this item on. Refresh the page.');
-        end if;
-        -- WAIT steps may be completed by the system (e.g. an RFI answered by an external party).
-        if not (l_act.activity_type = 'WAIT' and l_act.performer_role_code is null) then
-            l_reason := cannot_act_reason(p_wf_item_id, l_user);
-            if l_reason is not null then
-                raise_application_error(-20405, l_reason);
+                           where d.delegator_user_name = upper(p_param.original_participants(i).value)
+                             and trunc(sysdate) between d.start_date and d.end_date
+                             and (d.task_definition is null or d.task_definition = p_param.task_def_static_id)) loop
+                    l_idx := l_idx + 1;
+                    p_result.participant_changes(l_idx) :=
+                        apex_human_task.t_task_participant_change(
+                            apex_human_task.t_task_participant(apex_human_task.c_task_potential_owner,
+                                                               apex_human_task.c_task_identity_type_user,
+                                                               p_param.original_participants(i).value),
+                            apex_human_task.t_task_participant(apex_human_task.c_task_potential_owner,
+                                                               apex_human_task.c_task_identity_type_user,
+                                                               d.delegate_user_name),
+                            nvl(d.reason, d.delegate_user_name || ' covering for ' || p_param.original_participants(i).value));
+                end loop;
             end if;
-        end if;
-        l_for := acting_for(l_act.performer_role_code, l_item.item_type, l_user);
-
-        update xxfnd_wf_activity_history
-           set exited_date  = systimestamp,
-               result_code  = p_result_code,
-               actioned_by  = l_user,
-               on_behalf_of = case when l_for <> l_user then l_for end,
-               notes        = p_notes
-         where wf_item_id = p_wf_item_id
-           and activity_id = l_item.current_activity_id
-           and exited_date is null;
-
-        update xxfnd_wf_notifications
-           set status_code    = case when recipient_user_name = l_user then 'RESPONDED' else 'CANCELLED' end,
-               responded_date = case when recipient_user_name = l_user then systimestamp end
-         where wf_item_id = p_wf_item_id
-           and activity_id = l_item.current_activity_id
-           and status_code in ('QUEUED','SENT');
-
-        transition(l_item, p_result_code, p_tokens_json);
-    end complete_activity;
-
-    function active_item(p_entity_name in varchar2, p_pk1_value in varchar2,
-                         p_item_type in varchar2 default null) return number is
-        l_id number;
-    begin
-        select max(wf_item_id) into l_id
-          from xxfnd_wf_items
-         where entity_name = p_entity_name and pk1_value = p_pk1_value
-           and (p_item_type is null or item_type = p_item_type)
-           and item_status in ('ACTIVE','SUSPENDED');
-        return l_id;
-    end active_item;
-
-    procedure activate_version(p_item_type in varchar2, p_process_code in varchar2, p_version_number in number) is
-        l_starts pls_integer;
-    begin
-        select count(*) into l_starts
-          from xxfnd_wf_activities
-         where item_type = p_item_type and process_code = p_process_code
-           and version_number = p_version_number and start_flag = 'Y';
-        if l_starts = 0 then
-            raise_application_error(-20410, 'This version has no start activity.');
-        end if;
-        update xxfnd_wf_processes set active_flag = 'N'
-         where item_type = p_item_type and process_code = p_process_code
-           and version_number <> p_version_number and active_flag = 'Y';
-        update xxfnd_wf_processes set active_flag = 'Y'
-         where item_type = p_item_type and process_code = p_process_code and version_number = p_version_number;
-    end activate_version;
-
-    procedure admin_note(p_wf_item_id in number, p_activity_id in number, p_note in varchar2) is
-        l_user varchar2(255) := norm(null);   -- NORM is private: not callable inside SQL (PLS-00231)
-    begin
-        insert into xxfnd_wf_activity_history (wf_item_id, activity_id, actioned_by, result_code, notes, exited_date)
-        values (p_wf_item_id, p_activity_id, l_user, 'ADMIN', p_note, systimestamp);
-    end admin_note;
-
-    procedure suspend_item(p_wf_item_id in number, p_reason in varchar2) is
-        l_item xxfnd_wf_items%rowtype := get_item(p_wf_item_id, true);
-    begin
-        if l_item.item_status <> 'ACTIVE' then
-            raise_application_error(-20406, 'Only an active item can be suspended.');
-        end if;
-        update xxfnd_wf_items set item_status = 'SUSPENDED' where wf_item_id = p_wf_item_id;
-        admin_note(p_wf_item_id, l_item.current_activity_id, 'Suspended: ' || p_reason);
-    end suspend_item;
-
-    procedure resume_item(p_wf_item_id in number) is
-        l_item xxfnd_wf_items%rowtype := get_item(p_wf_item_id, true);
-    begin
-        if l_item.item_status <> 'SUSPENDED' then
-            raise_application_error(-20407, 'Only a suspended item can be resumed.');
-        end if;
-        update xxfnd_wf_items set item_status = 'ACTIVE' where wf_item_id = p_wf_item_id;
-        admin_note(p_wf_item_id, l_item.current_activity_id, 'Resumed');
-    end resume_item;
-
-    procedure cancel_item(p_wf_item_id in number, p_reason in varchar2) is
-        l_item xxfnd_wf_items%rowtype := get_item(p_wf_item_id, true);
-    begin
-        if l_item.item_status not in ('ACTIVE','SUSPENDED') then
-            raise_application_error(-20408, 'This item is already closed.');
-        end if;
-        if p_reason is null then
-            raise_application_error(-20409, 'Enter a reason for cancelling.');
-        end if;
-        update xxfnd_wf_items set item_status = 'CANCELLED', completed_date = systimestamp
-         where wf_item_id = p_wf_item_id;
-        update xxfnd_wf_activity_history set exited_date = systimestamp, result_code = 'CANCELLED'
-         where wf_item_id = p_wf_item_id and exited_date is null;
-        update xxfnd_wf_notifications set status_code = 'CANCELLED'
-         where wf_item_id = p_wf_item_id and status_code in ('QUEUED','SENT');
-        admin_note(p_wf_item_id, l_item.current_activity_id, 'Cancelled: ' || p_reason);
-    end cancel_item;
-
-    procedure reassign_activity(p_wf_item_id in number, p_activity_code in varchar2, p_reason in varchar2) is
-        l_item   xxfnd_wf_items%rowtype := get_item(p_wf_item_id, true);
-        l_target number;
-        l_user   varchar2(255) := norm(null);   -- NORM is private: not callable inside SQL (PLS-00231)
-    begin
-        if p_reason is null then
-            raise_application_error(-20409, 'Enter a reason for moving this item.');
-        end if;
-        select activity_id into l_target
-          from xxfnd_wf_activities
-         where item_type = l_item.item_type and process_code = l_item.process_code
-           and version_number = l_item.version_number and activity_code = p_activity_code;
-        update xxfnd_wf_activity_history set exited_date = systimestamp, result_code = 'ADMIN_MOVED',
-                                             actioned_by = l_user, notes = p_reason
-         where wf_item_id = p_wf_item_id and exited_date is null;
-        update xxfnd_wf_notifications set status_code = 'CANCELLED'
-         where wf_item_id = p_wf_item_id and status_code in ('QUEUED','SENT');
-        enter_activity(l_item, l_target, null);
-    end reassign_activity;
-
-    procedure process_timeouts is
-    begin
-        for r in (select i.wf_item_id
-                    from xxfnd_wf_items i
-                    join xxfnd_wf_activities a on a.activity_id = i.current_activity_id
-                    join xxfnd_wf_activity_history h
-                      on h.wf_item_id = i.wf_item_id and h.activity_id = i.current_activity_id and h.exited_date is null
-                   where i.item_status = 'ACTIVE'
-                     and a.timeout_hours is not null
-                     and h.entered_date + numtodsinterval(a.timeout_hours, 'HOUR') < systimestamp
-                     and exists (select 1 from xxfnd_wf_transitions t
-                                  where t.from_activity_id = a.activity_id and t.result_code = c_timeout))
-        loop
-            declare
-                l_item xxfnd_wf_items%rowtype;
-            begin
-                l_item := get_item(r.wf_item_id, true);
-                update xxfnd_wf_activity_history
-                   set exited_date = systimestamp, result_code = c_timeout, actioned_by = 'SYSTEM'
-                 where wf_item_id = r.wf_item_id and exited_date is null;
-                update xxfnd_wf_notifications set status_code = 'EXPIRED'
-                 where wf_item_id = r.wf_item_id and activity_id = l_item.current_activity_id
-                   and status_code in ('QUEUED','SENT');
-                transition(l_item, c_timeout, null);
-                commit;
-            exception
-                when others then
-                    rollback;   -- one broken item must not stop the others
-            end;
         end loop;
-    end process_timeouts;
+        p_result.has_participant_changes := l_idx > 0;
+    end vacation_rule;
 
-    procedure send_queued(p_workspace in varchar2, p_app_alias in varchar2, p_max_rows in pls_integer default 500) is
-        l_app_id number;
-        l_from   varchar2(320);
-        l_email  varchar2(320);
-        l_sent   pls_integer := 0;
-        l_error  varchar2(4000);
+    function task_tokens(p_task_id in number) return clob is
+        l_json      json_object_t := json_object_t();
+        l_url       varchar2(4000);
+        l_assignees varchar2(4000);
     begin
-        process_timeouts;
-
-        -- APEX_MAIL needs an APEX session; the application's settings supply the sender.
-        select application_id into l_app_id
-          from apex_applications
-         where workspace = upper(p_workspace) and upper(alias) = upper(p_app_alias)
-           and application_id = (select max(application_id) from apex_applications
-                                  where workspace = upper(p_workspace) and upper(alias) = upper(p_app_alias));
-        apex_session.create_session(p_app_id => l_app_id, p_page_id => 1, p_username => 'XXFND_WF_MAILER');
-        l_from := apex_app_setting.get_value('MAIL_FROM');
-        if l_from is null then
-            apex_session.delete_session;   -- not configured yet: leave notifications queued
-            return;
-        end if;
-
-        for n in (select notification_id, recipient_user_name, subject, body_html
-                    from xxfnd_wf_notifications
-                   where status_code = 'QUEUED'
-                   order by queued_date
-                   fetch first p_max_rows rows only)
-        loop
-            begin
-                select email_address into l_email
-                  from xxfnd_employees
-                 where user_name = n.recipient_user_name and enabled_flag = 'Y';
-                apex_mail.send(p_to => l_email, p_from => l_from, p_subj => n.subject,
-                               p_body => apex_escape.striphtml(n.body_html), p_body_html => n.body_html);
-                update xxfnd_wf_notifications set status_code = 'SENT', sent_date = systimestamp, error_message = null
-                 where notification_id = n.notification_id;
-                l_sent := l_sent + 1;
-            exception
-                when others then
-                    l_error := substr(sqlerrm, 1, 4000);   -- SQLERRM cannot be used inside SQL (ORA-00904)
-                    update xxfnd_wf_notifications set status_code = 'FAILED', error_message = l_error
-                     where notification_id = n.notification_id;
-            end;
+        for t in (select subject, due_on from apex_tasks where task_id = p_task_id) loop
+            l_json.put('TASK_SUBJECT', apex_escape.html(t.subject));
+            l_json.put('DUE_DATE', nvl(to_char(t.due_on, 'DD-Mon-YYYY HH24:MI'), 'no due date'));
         end loop;
-        commit;
-        if l_sent > 0 then
-            apex_mail.push_queue;
+        begin
+            l_url := apex_page.get_url(p_page => 40, p_plain_url => true);
+        exception
+            when others then
+                l_url := null;   -- no APEX session (e.g. called from SQL*Plus)
+        end;
+        l_json.put('TASK_URL', l_url);
+        select listagg(participant, ', ') within group (order by participant)
+          into l_assignees
+          from apex_task_participants
+         where task_id = p_task_id and participant_type = 'POTENTIAL_OWNER';
+        l_json.put('ASSIGNEES', apex_escape.html(nvl(l_assignees, '-')));
+        return l_json.to_clob;
+    end task_tokens;
+
+    function potential_owners(p_task_id in number) return varchar2 is
+        l_list varchar2(32767);
+    begin
+        select listagg(distinct participant, ',') within group (order by participant)
+          into l_list
+          from apex_task_participants
+         where task_id = p_task_id
+           and participant_type = 'POTENTIAL_OWNER'
+           and identity_type = 'USER';
+        return l_list;
+    end potential_owners;
+
+    procedure notify_created(p_task_id in number) is
+        l_flag varchar2(1);
+    begin
+        select nvl(max(s.notify_on_create_flag), 'Y')
+          into l_flag
+          from apex_tasks t
+          left join xxfnd_task_settings s on s.task_definition = t.task_def_static_id
+         where t.task_id = p_task_id;
+        if l_flag = 'Y' then
+            xxfnd_notify_pkg.send_to_users('TASK_ASSIGNED', potential_owners(p_task_id), task_tokens(p_task_id));
         end if;
-        apex_session.delete_session;
-    exception
-        when others then
-            rollback;
-            if apex_application.g_instance is not null then
-                apex_session.delete_session;
+    end notify_created;
+
+    procedure process_deadlines is
+    begin
+        -- Reminders to the owners before the due date.
+        for t in (select k.task_id, k.actual_owner
+                    from apex_tasks k
+                    join xxfnd_task_settings s on s.task_definition = k.task_def_static_id
+                   where k.application_id = v('APP_ID')
+                     and k.state_code in ('UNASSIGNED','ASSIGNED')
+                     and s.reminder_days_before is not null
+                     and k.due_on is not null
+                     and systimestamp >= k.due_on - numtodsinterval(s.reminder_days_before, 'DAY')
+                     and systimestamp < k.due_on
+                     and not exists (select 1 from xxfnd_task_alerts a where a.task_id = k.task_id and a.alert_type = 'REMINDER')) loop
+            xxfnd_notify_pkg.send_to_users('TASK_REMINDER', nvl(t.actual_owner, potential_owners(t.task_id)), task_tokens(t.task_id));
+            insert into xxfnd_task_alerts (task_id, alert_type) values (t.task_id, 'REMINDER');
+        end loop;
+        -- Escalation of overdue tasks to the escalation role.
+        for t in (select k.task_id, s.escalation_role_code
+                    from apex_tasks k
+                    join xxfnd_task_settings s on s.task_definition = k.task_def_static_id
+                   where k.application_id = v('APP_ID')
+                     and k.state_code in ('UNASSIGNED','ASSIGNED')
+                     and s.escalation_role_code is not null
+                     and k.due_on < systimestamp
+                     and not exists (select 1 from xxfnd_task_alerts a where a.task_id = k.task_id and a.alert_type = 'ESCALATION')) loop
+            xxfnd_notify_pkg.send_to_users('TASK_ESCALATED', users_in_role(t.escalation_role_code), task_tokens(t.task_id));
+            insert into xxfnd_task_alerts (task_id, alert_type) values (t.task_id, 'ESCALATION');
+        end loop;
+        -- Forget alerts of tasks that no longer exist.
+        delete from xxfnd_task_alerts a where not exists (select 1 from apex_tasks k where k.task_id = a.task_id);
+    end process_deadlines;
+
+end xxfnd_task_pkg;
+/
+
+--------------------------------------------------------------------------------
+-- Configuration changes (maker-checker) as APEX approval tasks
+--------------------------------------------------------------------------------
+create or replace package xxfnd_config_approval_pkg authid definer as
+    -- Submits a change for approval and creates its CONFIG_CHANGE approval task (one open
+    -- task per change). P_TABLE_NAME/P_KEY: XXCMP_ATTACHMENT_RULES / rule id,
+    -- XXFND_INTEGRATION_PURPOSES / purpose code, or XXCMP_QUESTIONS / question id for all
+    -- draft or rejected answer options of that question.
+    procedure request(p_table_name in varchar2, p_key in varchar2);
+    -- Task actions (the approver's session): apply or reject every row of the change.
+    procedure approve(p_detail_pk in varchar2);
+    procedure reject(p_detail_pk in varchar2, p_reason in varchar2);
+    -- Y while the change behind a task is still waiting for approval.
+    function is_pending(p_detail_pk in varchar2) return varchar2;
+end xxfnd_config_approval_pkg;
+/
+
+create or replace package body xxfnd_config_approval_pkg as
+
+    procedure rows_of(p_detail_pk in varchar2, p_table out varchar2, p_keys out apex_t_varchar2) is
+        l_table varchar2(128) := substr(p_detail_pk, 1, instr(p_detail_pk, ':') - 1);
+        l_key   varchar2(150) := substr(p_detail_pk, instr(p_detail_pk, ':') + 1);
+    begin
+        if l_table = 'XXCMP_QUESTIONS' then
+            p_table := 'XXCMP_ANSWER_OPTIONS';
+            select to_char(answer_option_id) bulk collect into p_keys
+              from xxcmp_answer_options
+             where question_id = to_number(l_key) and approval_status = 'PENDING_APPROVAL';
+        else
+            p_table := l_table;
+            p_keys  := apex_t_varchar2(l_key);
+        end if;
+    end rows_of;
+
+    procedure request(p_table_name in varchar2, p_key in varchar2) is
+        l_detail_pk varchar2(200) := upper(p_table_name) || ':' || p_key;
+        l_title     varchar2(4000);
+        l_type      varchar2(100);
+        l_task_id   number;
+        l_open      pls_integer;
+    begin
+        if upper(p_table_name) = 'XXCMP_QUESTIONS' then
+            for r in (select answer_option_id from xxcmp_answer_options
+                       where question_id = to_number(p_key) and approval_status in ('DRAFT','REJECTED')) loop
+                xxfnd_approval_pkg.submit('XXCMP_ANSWER_OPTIONS', to_char(r.answer_option_id));
+            end loop;
+        else
+            xxfnd_approval_pkg.submit(upper(p_table_name), p_key);
+        end if;
+        select count(*) into l_open
+          from apex_tasks
+         where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = l_detail_pk
+           and state_code in ('UNASSIGNED','ASSIGNED','INFO_REQUESTED');
+        if l_open = 0 then
+            select max(change_type), max(change_title) into l_type, l_title
+              from xxfnd_config_changes_v where detail_pk = l_detail_pk;
+            if l_type is null then
+                raise_application_error(-20125, 'There is nothing to approve for ' || l_detail_pk || '.');
             end if;
-            raise;
-    end send_queued;
+            l_task_id := xxfnd_task_pkg.create_task(
+                             p_task_definition => 'CONFIG_CHANGE',
+                             p_detail_pk       => l_detail_pk,
+                             p_subject         => substr(l_type || ': ' || l_title, 1, 1000));
+        end if;
+    end request;
 
-end xxfnd_wf_pkg;
+    procedure approve(p_detail_pk in varchar2) is
+        l_table varchar2(128);
+        l_keys  apex_t_varchar2;
+    begin
+        if is_pending(p_detail_pk) = 'N' then
+            raise_application_error(-20126, 'This change is no longer waiting for approval. Ask a workflow administrator to cancel the task.');
+        end if;
+        rows_of(p_detail_pk, l_table, l_keys);
+        for i in 1 .. l_keys.count loop
+            xxfnd_approval_pkg.approve(l_table, l_keys(i));
+        end loop;
+    end approve;
+
+    procedure reject(p_detail_pk in varchar2, p_reason in varchar2) is
+        l_table varchar2(128);
+        l_keys  apex_t_varchar2;
+    begin
+        rows_of(p_detail_pk, l_table, l_keys);
+        for i in 1 .. l_keys.count loop
+            xxfnd_approval_pkg.reject(l_table, l_keys(i), nvl(p_reason, 'Rejected by the approver.'));
+        end loop;
+    end reject;
+
+    function is_pending(p_detail_pk in varchar2) return varchar2 is
+        l_count pls_integer;
+    begin
+        select count(*) into l_count from xxfnd_config_changes_v where detail_pk = p_detail_pk;
+        return case when l_count > 0 then 'Y' else 'N' end;
+    end is_pending;
+
+end xxfnd_config_approval_pkg;
 /

@@ -148,7 +148,7 @@ list navigation-menu (
     )
 
     entry worklist (
-        label: My Worklist
+        label: My Tasks
         icon {
             imageIconCssClasses: fa-inbox
         }

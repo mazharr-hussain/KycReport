@@ -156,9 +156,11 @@ create or replace package xxcmp_kyc_pkg authid definer as
                          p_due_date            in date,
                          p_recipient_user_name in varchar2 default null,
                          p_party_contact_id    in number   default null,
-                         p_wf_item_id          in number   default null,
                          p_rfi_id              out number,
                          p_token               out varchar2);
+
+    -- Participant of the RFI_RESPONSE task: the internal recipient.
+    function rfi_recipient(p_rfi_id in number) return varchar2;
 
     -- Response from the requesting department (signed-in user).
     procedure respond(p_rfi_id in number, p_response_text in clob);
@@ -278,11 +280,10 @@ create or replace package body xxcmp_kyc_pkg as
                          p_due_date            in date,
                          p_recipient_user_name in varchar2 default null,
                          p_party_contact_id    in number   default null,
-                         p_wf_item_id          in number   default null,
                          p_rfi_id              out number,
                          p_token               out varchar2) is
-        l_hash varchar2(128);
-        l_item number;
+        l_hash    varchar2(128);
+        l_task_id number;
     begin
         xxfnd_util_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
         if p_due_date is not null and p_due_date < trunc(sysdate) then
@@ -292,40 +293,38 @@ create or replace package body xxcmp_kyc_pkg as
             p_token := lower(rawtohex(dbms_crypto.randombytes(32)));
             l_hash  := hash_token(p_token);
         end if;
-        insert into xxcmp_rfis (entity_name, pk1_value, wf_item_id, recipient_type, recipient_user_name,
+        insert into xxcmp_rfis (entity_name, pk1_value, recipient_type, recipient_user_name,
                                 recipient_party_contact_id, rfi_category, description, continue_other_work_flag,
                                 rfi_status, due_date, response_token_hash, token_expiry_date)
-        values (p_entity_name, p_pk1_value, p_wf_item_id, p_recipient_type, upper(p_recipient_user_name),
+        values (p_entity_name, p_pk1_value, p_recipient_type, upper(p_recipient_user_name),
                 p_party_contact_id, p_rfi_category, p_description, p_continue_other_work,
                 case when p_continue_other_work = 'Y' then 'WAITING_FOR_INFORMATION' else 'ON_HOLD_PENDING' end,
                 p_due_date, l_hash,
                 case when l_hash is not null
                      then cast(nvl(p_due_date, trunc(sysdate) + 14) + 1 as timestamp) end)
         returning rfi_id into p_rfi_id;
-        -- Each RFI runs its own RFI workflow item (await response -> officer review).
-        l_item := xxfnd_wf_pkg.start_item('RFI', 'RFI_PROCESS', 'XXCMP_RFIS', to_char(p_rfi_id));
+        -- An internal recipient answers through an APEX action task in My Tasks; an external
+        -- party answers through the emailed link (no task: it has no application account).
+        if p_recipient_type = 'REQUESTING_DEPARTMENT' then
+            l_task_id := xxfnd_task_pkg.create_task('RFI_RESPONSE', to_char(p_rfi_id));
+            update xxcmp_rfis set response_task_id = l_task_id where rfi_id = p_rfi_id;
+        end if;
     end create_rfi;
 
-    -- Moves the RFI's workflow item when it is at the given step.
-    procedure advance(p_rfi_id in number, p_at_activity in varchar2, p_result in varchar2, p_notes in varchar2 default null) is
-        l_item   number := xxfnd_wf_pkg.active_item('XXCMP_RFIS', to_char(p_rfi_id), 'RFI');
-        l_code   varchar2(30);
-        l_number varchar2(30);
-        l_tokens json_object_t;
+    function rfi_recipient(p_rfi_id in number) return varchar2 is
+        l_user xxcmp_rfis.recipient_user_name%type;
     begin
-        if l_item is null then
-            return;
-        end if;
-        select a.activity_code into l_code
-          from xxfnd_wf_items i join xxfnd_wf_activities a on a.activity_id = i.current_activity_id
-         where i.wf_item_id = l_item;
-        if l_code = p_at_activity then
-            select rfi_number into l_number from xxcmp_rfis where rfi_id = p_rfi_id;
-            l_tokens := json_object_t();
-            l_tokens.put('RFI_NUMBER', l_number);
-            xxfnd_wf_pkg.complete_activity(l_item, p_result, p_notes, p_tokens_json => l_tokens.to_clob);
-        end if;
-    end advance;
+        select recipient_user_name into l_user from xxcmp_rfis where rfi_id = p_rfi_id;
+        return l_user;
+    end rfi_recipient;
+
+    -- A response has arrived: the Compliance team reviews it (RFI_REVIEW action task).
+    procedure start_review(p_rfi_id in number) is
+        l_task_id number;
+    begin
+        l_task_id := xxfnd_task_pkg.create_task('RFI_REVIEW', to_char(p_rfi_id));
+        update xxcmp_rfis set review_task_id = l_task_id where rfi_id = p_rfi_id;
+    end start_review;
 
     procedure respond(p_rfi_id in number, p_response_text in clob) is
         l_rfi xxcmp_rfis%rowtype;
@@ -340,7 +339,9 @@ create or replace package body xxcmp_kyc_pkg as
         end if;
         update xxcmp_rfis set response_text = p_response_text, responded_date = systimestamp
          where rfi_id = p_rfi_id;
-        advance(p_rfi_id, 'AWAIT_RESPONSE', 'RESPONDED');
+        xxfnd_task_pkg.complete_open('RFI_RESPONSE', to_char(p_rfi_id));
+        xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));   -- a newer answer replaces the older one
+        start_review(p_rfi_id);
     end respond;
 
     function respond_by_token(p_token in varchar2, p_response_text in clob) return number is
@@ -367,7 +368,7 @@ create or replace package body xxcmp_kyc_pkg as
            set response_text = p_response_text, responded_date = systimestamp,
                response_token_hash = null, token_expiry_date = null
          where rfi_id = l_rfi.rfi_id;
-        advance(l_rfi.rfi_id, 'AWAIT_RESPONSE', 'RESPONDED');
+        start_review(l_rfi.rfi_id);
         xxfnd_vpd_pkg.end_trusted;
         return l_rfi.rfi_id;
     exception
@@ -392,15 +393,10 @@ create or replace package body xxcmp_kyc_pkg as
             raise_application_error(-20507, 'Request for information ' || p_rfi_id || ' does not exist.');
         end if;
         if p_status in ('RESOLVED','REJECTED_RETURNED') then
-            advance(p_rfi_id, 'REVIEW_RESPONSE', case p_status when 'RESOLVED' then 'RESOLVED' else 'REJECTED' end, p_notes);
+            xxfnd_task_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
         elsif p_status = 'CANCELLED' then
-            declare
-                l_item number := xxfnd_wf_pkg.active_item('XXCMP_RFIS', to_char(p_rfi_id), 'RFI');
-            begin
-                if l_item is not null then
-                    xxfnd_wf_pkg.cancel_item(l_item, nvl(p_notes, 'RFI cancelled'));
-                end if;
-            end;
+            xxfnd_task_pkg.cancel_open('RFI_RESPONSE', to_char(p_rfi_id));
+            xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));
         end if;
     end resolve;
 
