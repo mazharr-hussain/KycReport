@@ -1,0 +1,215 @@
+installScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+)
+
+installScript 01-common-tables-xxfnd-part-1-of-3 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 01-common-tables-xxfnd-part-1-of-3.sql
+    }
+)
+
+installScript 02-common-tables-xxfnd-part-2-of-3 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 02-common-tables-xxfnd-part-2-of-3.sql
+    }
+)
+
+installScript 03-common-tables-xxfnd-part-3-of-3 (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 03-common-tables-xxfnd-part-3-of-3.sql
+    }
+)
+
+installScript 04-kyc-tables-xxcmp (
+    execution {
+        sequence: 40
+    }
+    script {
+        contentFile: 04-kyc-tables-xxcmp.sql
+    }
+)
+
+installScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2.sql
+    }
+)
+
+installScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+)
+
+installScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+)
+
+installScript 08-row-rules (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+)
+
+installScript 09-views (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+)
+
+installScript 09b-security-framework-objects (
+    execution {
+        sequence: 95
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+)
+
+installScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+)
+
+installScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+)
+
+installScript 12-flexfield-setup (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+)
+
+installScript 13-document-store (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+)
+
+installScript 14-attachments (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+)
+
+installScript 15-workflow (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+)
+
+installScript 16-kyc-rules (
+    execution {
+        sequence: 160
+    }
+    script {
+        contentFile: 16-kyc-rules.sql
+    }
+)
+
+installScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 170
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+)
+
+installScript 18-seed-data-and-administrator-part-2-of-2 (
+    execution {
+        sequence: 180
+    }
+    script {
+        contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
+    }
+)
+
+installScript 18b-security-framework-seed (
+    execution {
+        sequence: 185
+    }
+    script {
+        contentFile: 18b-security-framework-seed.sql
+    }
+)
+
+installScript 18c-admin-console (
+    execution {
+        sequence: 187
+    }
+    script {
+        contentFile: 18c-admin-console.sql
+    }
+)
+
+installScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 190
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+)
+
+installScript 20-scheduler-jobs (
+    execution {
+        sequence: 200
+    }
+    script {
+        contentFile: 20-scheduler-jobs.sql
+    }
+)
