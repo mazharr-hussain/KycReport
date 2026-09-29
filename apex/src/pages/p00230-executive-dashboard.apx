@@ -1,0 +1,579 @@
+page 230 (
+    name: Executive Dashboard
+    alias: EXECUTIVE-DASHBOARD
+    title: Executive Dashboard
+    pageGroup: @monitoring
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Where KYC stands: open requests and cases, SLA and review backlog, decisions, and the risk profile of approved parties.
+            ```
+    }
+
+    region breadcrumb (
+        name: Executive Dashboard
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region key_figures (
+        name: Key Figures
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select (select count(*) from xxcmp_requests where request_status in ('SUBMITTED','IN_PROGRESS')) as open_requests,
+                       (select count(*) from xxcmp_cases where case_status in ('INVESTIGATION','PENDING_APPROVAL')) as open_cases,
+                       (select count(*) from xxcmp_cases where case_status = 'INVESTIGATION' and sla_due_date < trunc(sysdate)) as past_sla,
+                       (select count(*) from xxcmp_watchlist_v where review_status in ('DUE','IN_REVIEW')) as reviews_due,
+                       (select count(*) from xxcmp_watchlist_v where review_status = 'OVERDUE') as reviews_overdue,
+                       (select count(*) from xxcmp_alerts where alert_status = 'OPEN') as open_alerts,
+                       (select count(*) from xxcmp_cases where case_status = 'APPROVED' and closed_date >= trunc(sysdate) - 30) as approved_30d,
+                       nvl((select round(avg(cast(closed_date as date) - cast(creation_date as date)), 1) from xxcmp_cases
+                             where closed_date >= trunc(sysdate) - 90), 0) as avg_days_to_decision
+                  from dual
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: key_figures
+        }
+        componentAppearance {
+            template: @/badge-list
+            templateOptions: [
+                #DEFAULT#
+                t-BadgeList--large
+                t-BadgeList--flex
+            ]
+        }
+        pagination {
+            type: rowRangesXToYNoPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column OPEN_REQUESTS (
+            type: plainText
+            heading {
+                heading: Open Requests
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column OPEN_CASES (
+            type: plainText
+            heading {
+                heading: Open Cases
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column PAST_SLA (
+            type: plainText
+            heading {
+                heading: Cases Past SLA
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column REVIEWS_DUE (
+            type: plainText
+            heading {
+                heading: Reviews Due
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column REVIEWS_OVERDUE (
+            type: plainText
+            heading {
+                heading: Reviews Overdue
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column OPEN_ALERTS (
+            type: plainText
+            heading {
+                heading: Open Alerts
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column APPROVED_30D (
+            type: plainText
+            heading {
+                heading: Approved (30 days)
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column AVG_DAYS_TO_DECISION (
+            type: plainText
+            heading {
+                heading: Avg. Days to Decision (90 days)
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+    )
+
+    region cases_by_status (
+        name: Cases by Status
+        type: chart
+        layout {
+            sequence: 20
+            slot: BODY
+            startNewRow: true
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: cases_by_status
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: false
+        }
+        messages {
+            whenNoDataFound: No data.
+        }
+
+        series cases_by_status-series (
+            name: Cases by Status
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select xxfnd_util_pkg.lookup_meaning('CASE_STATUS', case_status) as status, count(*) as cases
+                      from xxcmp_cases group by case_status order by count(*) desc
+                    ```
+            }
+            columnMapping {
+                label: STATUS
+                value: CASES
+            }
+            link {
+                type: redirectThisApp
+                target: {
+                    page: 210
+                }
+            }
+        )
+
+        axis x (
+            name: x
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+        axis y (
+            name: y
+            title: Cases
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+    )
+
+    region risk_profile (
+        name: Approved Parties by Risk
+        type: chart
+        layout {
+            sequence: 30
+            slot: BODY
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: risk_profile
+        }
+        chart {
+            type: donut
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: true
+        }
+        messages {
+            whenNoDataFound: No data.
+        }
+
+        series risk_profile-series (
+            name: Approved Parties by Risk
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select nvl(xxfnd_util_pkg.lookup_meaning('RISK_TIER', risk_tier), 'Not rated') as risk, count(*) as parties
+                      from xxcmp_watchlist_v group by risk_tier order by count(*) desc
+                    ```
+            }
+            columnMapping {
+                label: RISK
+                value: PARTIES
+            }
+            link {
+                type: redirectThisApp
+                target: {
+                    page: 220
+                }
+            }
+        )
+
+    )
+
+    region requests_by_month (
+        name: Requests per Month
+        type: chart
+        layout {
+            sequence: 40
+            slot: BODY
+            startNewRow: true
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: requests_by_month
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: false
+        }
+        messages {
+            whenNoDataFound: No data.
+        }
+
+        series requests_by_month-series (
+            name: Requests per Month
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select to_char(trunc(creation_date, 'MM'), 'Mon YYYY') as month, count(*) as requests
+                      from xxcmp_requests
+                     where creation_date >= add_months(trunc(sysdate, 'MM'), -11)
+                     group by trunc(creation_date, 'MM') order by trunc(creation_date, 'MM')
+                    ```
+            }
+            columnMapping {
+                label: MONTH
+                value: REQUESTS
+            }
+            link {
+                type: redirectThisApp
+                target: {
+                    page: 200
+                }
+            }
+        )
+
+        axis x (
+            name: x
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+        axis y (
+            name: y
+            title: Requests
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+    )
+
+    region intake_outcomes (
+        name: Intake Outcomes
+        type: chart
+        layout {
+            sequence: 50
+            slot: BODY
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: intake_outcomes
+        }
+        chart {
+            type: pie
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: true
+        }
+        messages {
+            whenNoDataFound: No data.
+        }
+
+        series intake_outcomes-series (
+            name: Intake Outcomes
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select nvl(xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome), 'Not evaluated') as outcome, count(*) as requests
+                      from xxcmp_requests where request_status <> 'DRAFT'
+                     group by intake_outcome order by count(*) desc
+                    ```
+            }
+            columnMapping {
+                label: OUTCOME
+                value: REQUESTS
+            }
+        )
+
+    )
+
+    region reviews_ahead (
+        name: Reviews in the Next 12 Months
+        type: chart
+        layout {
+            sequence: 60
+            slot: BODY
+            startNewRow: true
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: reviews_ahead
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: false
+        }
+        messages {
+            whenNoDataFound: No data.
+        }
+
+        series reviews_ahead-series (
+            name: Reviews in the Next 12 Months
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select to_char(trunc(next_review_date, 'MM'), 'Mon YYYY') as month, count(*) as reviews
+                      from xxcmp_watchlist_v
+                     where next_review_date < add_months(trunc(sysdate, 'MM'), 12)
+                     group by trunc(next_review_date, 'MM') order by trunc(next_review_date, 'MM')
+                    ```
+            }
+            columnMapping {
+                label: MONTH
+                value: REVIEWS
+            }
+            link {
+                type: redirectThisApp
+                target: {
+                    page: 220
+                }
+            }
+        )
+
+        axis x (
+            name: x
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+        axis y (
+            name: y
+            title: Reviews
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+    )
+
+    region alerts_by_type (
+        name: Open Alerts by Type
+        type: chart
+        layout {
+            sequence: 70
+            slot: BODY
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: alerts_by_type
+        }
+        chartAppearance {
+            orientation: horizontal
+        }
+        chartLayout {
+            height: 320
+        }
+        legend {
+            show: false
+        }
+        messages {
+            whenNoDataFound: No open alerts.
+        }
+
+        series alerts_by_type-series (
+            name: Open Alerts by Type
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select xxfnd_util_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type, count(*) as alerts
+                      from xxcmp_alerts a join xxcmp_alert_rules r on r.alert_rule_id = a.alert_rule_id
+                     where a.alert_status = 'OPEN'
+                     group by r.alert_type order by count(*) desc
+                    ```
+            }
+            columnMapping {
+                label: ALERT_TYPE
+                value: ALERTS
+            }
+            link {
+                type: redirectThisApp
+                target: {
+                    page: 221
+                }
+            }
+        )
+
+        axis x (
+            name: x
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+        axis y (
+            name: y
+            majorTicks {
+                show: auto
+            }
+            minorTicks {
+                show: false
+            }
+        )
+
+    )
+
+)

@@ -1,0 +1,350 @@
+page 221 (
+    name: Alerts
+    alias: ALERTS
+    title: Alerts
+    pageGroup: @monitoring
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Alerts raised by the monitoring rules (Administration > Alert Rules). Handle an alert to acknowledge it or to start an early review; alerts close by themselves when a review starts or the subject moves on.
+            ```
+    }
+
+    region breadcrumb (
+        name: Alerts
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Alerts
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       case when q.case_id is not null then
+                            apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '211')
+                       end as open_url,
+                       case when q.status_code <> 'CLOSED' and xxfnd_privilege_pkg.has_privilege_yn('MONITORING', 'MANAGE') = 'Y' then
+                            apex_page.get_url(p_page => 222, p_items => 'P222_CASE_ID,P222_ALERT_ID',
+                                              p_values => to_char(q.case_id) || ',' || to_char(q.alert_id), p_clear_cache => '222')
+                       end as handle_url,
+                       case when q.status_code <> 'CLOSED' and xxfnd_privilege_pkg.has_privilege_yn('MONITORING', 'MANAGE') = 'Y' then
+                            'Handle'
+                       end as action
+                  from (
+                        select a.alert_id,
+                               a.case_id,
+                               a.creation_date as raised,
+                               xxfnd_util_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type,
+                               r.rule_name,
+                               p.party_name,
+                               a.alert_message,
+                               a.due_date,
+                               a.alert_status as status_code,
+                               xxfnd_util_pkg.lookup_meaning('ALERT_STATUS', a.alert_status) as alert_status,
+                               a.acknowledged_by,
+                               q.request_number as review_request
+                          from xxcmp_alerts a
+                          join xxcmp_alert_rules r on r.alert_rule_id = a.alert_rule_id
+                          left join xxcmp_parties p on p.party_id = a.party_id
+                          left join xxcmp_requests q on q.request_id = a.review_request_id
+                       ) q
+                 order by decode(q.status_code, 'OPEN', 1, 'ACKNOWLEDGED', 2, 3), q.raised desc
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column ALERT_ID (
+            type: hidden
+            heading {
+                heading: Alert Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column CASE_ID (
+            type: hidden
+            heading {
+                heading: Case Id
+            }
+            layout {
+                sequence: 15
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column RAISED (
+            type: plainText
+            heading {
+                heading: Raised
+            }
+            layout {
+                sequence: 20
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column ALERT_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#PARTY_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ALERT_MESSAGE (
+            type: plainText
+            heading {
+                heading: Alert
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DUE_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column ALERT_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACKNOWLEDGED_BY (
+            type: plainText
+            heading {
+                heading: Acknowledged By
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REVIEW_REQUEST (
+            type: plainText
+            heading {
+                heading: Review Request
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RULE_NAME (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 110
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#HANDLE_URL#">#ACTION#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_CODE (
+            type: hidden
+            heading {
+                heading: Status Code
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HANDLE_URL (
+            type: hidden
+            heading {
+                heading: Handle Url
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

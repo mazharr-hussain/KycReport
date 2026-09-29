@@ -169,6 +169,15 @@ installScript 16b-kyc-requests-and-cases (
     }
 )
 
+installScript 16c-monitoring (
+    execution {
+        sequence: 166
+    }
+    script {
+        contentFile: 16c-monitoring.sql
+    }
+)
+
 installScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 170
@@ -223,11 +232,29 @@ installScript 18e-kyc-requests-and-cases-seed (
     }
 )
 
+installScript 18f-monitoring-and-dashboard-seed (
+    execution {
+        sequence: 191
+    }
+    script {
+        contentFile: 18f-monitoring.sql
+    }
+)
+
 installScript 19-reporting-views-and-recompile (
     execution {
-        sequence: 190
+        sequence: 195
     }
     script {
         contentFile: 19-reporting-views-and-recompile.sql
+    }
+)
+
+installScript 19b-enable-automations (
+    execution {
+        sequence: 196
+    }
+    script {
+        contentFile: 19b-enable-automations.sql
     }
 )

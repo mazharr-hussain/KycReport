@@ -239,6 +239,52 @@ list navigation-menu (
         }
     )
 
+    entry monitoring (
+        label: Monitoring Watchlist
+        icon {
+            imageIconCssClasses: fa-eye
+        }
+        layout {
+            sequence: 40
+        }
+        link {
+            target: {
+                page: 220
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(220, 'VIEW')
+                ```
+        }
+    )
+
+    entry dashboard (
+        label: Executive Dashboard
+        icon {
+            imageIconCssClasses: fa-area-chart
+        }
+        layout {
+            sequence: 50
+        }
+        link {
+            target: {
+                page: 230
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(230, 'VIEW')
+                ```
+        }
+    )
+
     entry administration (
         label: Administration
         icon {

@@ -922,4 +922,68 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry watchlist (
+        name: Monitoring Watchlist
+        pageNumber: 220
+        execution {
+            sequence: 320
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 220
+            }
+        }
+    )
+
+    entry alerts (
+        name: Alerts
+        pageNumber: 221
+        execution {
+            sequence: 321
+        }
+        appearance {
+            parentEntry: @watchlist
+        }
+        link {
+            target: {
+                page: 221
+            }
+        }
+    )
+
+    entry alert-rules (
+        name: Alert Rules
+        pageNumber: 225
+        execution {
+            sequence: 322
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 225
+            }
+        }
+    )
+
+    entry dashboard (
+        name: Executive Dashboard
+        pageNumber: 230
+        execution {
+            sequence: 330
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 230
+            }
+        }
+    )
 )

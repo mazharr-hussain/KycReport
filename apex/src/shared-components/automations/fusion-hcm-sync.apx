@@ -2,6 +2,7 @@ automation fusion-hcm-sync (
     name: Fusion HCM sync
     execution {
         scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=2;BYMINUTE=0
+        scheduleStatus: active
         actionsInitiatedOn: always
     }
     comments {

@@ -1,28 +1,48 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_13.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_14.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
 Source of truth: the APEXlang tree in `apex/src` and the database scripts in `apex/db` (one `.sql` file per script,
 order in `apex/db/manifest.json`). `python3 apex/tools/build.py --release N` generates the supporting-object
 components from `apex/db` and writes the zip. Each chunk is one commit.
 
 ## How each release is verified
 
-| Layer | Tool | Result for release 13 |
+| Layer | Tool | Result for release 14 |
 |---|---|---|
 | Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
 | Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
-| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,282 checks, 0 FAIL |
-| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 26 scripts run; 362 objects, 0 invalid; releases R09–R13 recorded; seed data + first administrator present |
-| Upgrade | release 9 → 10, 10 → 11, 11 → 12 and 12 → 13 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 362 objects as a clean install |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,413 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 29 scripts run; 377 objects, 0 invalid; releases R09–R14 recorded; the 3 automations active; seed data + first administrator present |
+| Upgrade | release 9 → 10 → 11 → 12 → 13 → 14 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 377 objects as a clean install |
 | Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
-| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
-| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer | 17/17 pass |
-| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 43 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1, REQ1, REQ2, MGR1 and HOC1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
+| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `monitoring_test.sql` (20 checks), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
+| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer. `monitoring_ui.py`: watchlist → reassessment drawer, Alert Rules form, alert acknowledgement, dashboard charts | 17/17 and 14/14 pass |
+| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 47 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1, REQ1, REQ2, MGR1 and HOC1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
 | Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
 
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 14 – Chunk 6: monitoring, alert rules, periodic reviews, executive dashboard
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 62 | `apex/db/16c-monitoring.sql` | `XXCMP_ALERT_RULES`, `XXCMP_ALERTS`, `XXCMP_WATCHLIST_V`, `XXCMP_MONITOR_PKG` | – | watchlist of approved parties (latest approved case, next review, status CURRENT / DUE / IN_REVIEW / OVERDUE, open review, open alerts); daily run starts periodic reviews within the lead days and evaluates the alert rules (review due, review overdue, investigation past SLA, party document expiring, adverse screening after approval); one alert per rule and subject; e-mail to the rule's role; expired documents and adverse screenings can start an early review by themselves; early reassessment with a reason; acknowledgement | Agreed feature list: Monitoring Watchlist, Trigger Early Reassessment, periodic review |
+| 63 | new `shared-components/automations/kyc-monitoring.apx` | APEX Automation *KYC monitoring* (daily 06:30) | – | `xxcmp_monitor_pkg.run_daily` | Rule 1 (OOTB scheduling) |
+| 64 | new pages 220, 221, 222 | **Monitoring Watchlist** and **Alerts** (tabs), **Reassessment** drawer | – | Reassess / Handle only with *Monitoring – Manage*; the drawer says why a party cannot be reassessed (review already running) | |
+| 65 | new pages 225, 226 | **Alert Rules** (console: Workflow & Integration) | – | rules maintained by administrators; a review can only be started by the rule types where it applies | Rule 2 (from the application console) |
+| 66 | new page 230 | **Executive Dashboard** | – | key figures (badge list) and six charts: cases by status, approved parties by risk, requests per month, intake outcomes, reviews ahead, open alerts by type; each chart opens its list | |
+| 67 | `apex/db/18f-monitoring.sql` | Seed | – | lookups, five starter alert rules (insert only), e-mail template `KYC_ALERT`, pages → features, tabs, console entry, grants (staff: Monitoring View/Manage; managers and Head of Compliance: Dashboard); records `R14` | |
+| 68 | `apex/db/19b-enable-automations.sql`; `automations/*.apx` | Automations | every automation imported **Disabled** (also R12's task deadlines and Fusion HCM sync) | enabled by `apex_automation.enable` as the last install and upgrade step; `scheduleStatus: active` in the source | **Defect:** reminders, escalations and the HCM sync never ran after an import |
+| 69 | `apex/tools/pagekit.py` (new), `pages_chunk6.py` | Generators | page helpers inside the Chunk 5 generator | shared page kit (+ chart and key-figure patterns); Chunk 5 output unchanged byte for byte | Rule 4 |
+
+Verified (`monitoring_test.sql`, `monitoring_ui.py`): review status moves CURRENT → DUE → OVERDUE with the date; the rules raise
+each alert once; acknowledging records who; the periodic run starts one review per due party (PERIODIC_REVIEW / SCHEDULED,
+linked to the approved case), closes its alerts and never a second one while a review runs; the review goes to Compliance
+like any request; an early reassessment needs a reason and is refused while a review runs; a confirmed sanctions hit after
+approval raises an alert and starts an event-driven review. The automation runs successfully through APEX
+(`apex_automation.execute`, log status *Successful*).
 
 ## Release 13 – Chunk 5: KYC Requests and Cases (native workflows)
 

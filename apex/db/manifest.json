@@ -131,8 +131,8 @@
  {
   "name": "19 Reporting views and recompile",
   "file": "19-reporting-views-and-recompile.sql",
-  "install_sequence": 190,
-  "upgrade_sequence": 150
+  "install_sequence": 195,
+  "upgrade_sequence": 155
  },
  {
   "name": "18d Workflow platform",
@@ -151,5 +151,23 @@
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,
   "upgrade_sequence": 149
+ },
+ {
+  "name": "16c Monitoring",
+  "file": "16c-monitoring.sql",
+  "install_sequence": 166,
+  "upgrade_sequence": 126
+ },
+ {
+  "name": "18f Monitoring and dashboard - seed",
+  "file": "18f-monitoring.sql",
+  "install_sequence": 191,
+  "upgrade_sequence": 151
+ },
+ {
+  "name": "19b Enable automations",
+  "file": "19b-enable-automations.sql",
+  "install_sequence": 196,
+  "upgrade_sequence": 156
  }
 ]

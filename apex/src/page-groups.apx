@@ -6,6 +6,10 @@ pageGroup kyc (
     name: KYC Requests and Cases
 )
 
+pageGroup monitoring (
+    name: Monitoring and Dashboard
+)
+
 pageGroup rfi (
     name: Requests for Information
 )

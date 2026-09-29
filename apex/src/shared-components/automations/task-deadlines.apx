@@ -2,6 +2,7 @@ automation task-deadlines (
     name: Task deadlines
     execution {
         scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=7;BYMINUTE=0
+        scheduleStatus: active
         actionsInitiatedOn: always
     }
     comments {
