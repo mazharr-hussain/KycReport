@@ -121,6 +121,7 @@ page 201 (
                  where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
                  order by display_sequence, meaning
                 ```
+            displayNullValue: false
         }
         layout {
             sequence: 10
@@ -182,14 +183,14 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/required-floating
             templateOptions: #DEFAULT#
         }
         validation {
             maxLength: 100
         }
         help {
-            helpText: Organisations: commercial registration or company number.
+            helpText: Commercial registration or company number.
         }
     )
 
@@ -218,18 +219,66 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/required-floating
             templateOptions: #DEFAULT#
         }
         help {
-            helpText: Organisations: legal form.
+            helpText: Legal form of the organisation.
+        }
+    )
+
+    pageItem P201_DATE_OF_BIRTH (
+        type: datePicker
+        label {
+            label: Date of Birth
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P201_NATIONALITY (
+        type: selectList
+        label {
+            label: Nationality
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 47
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
         }
     )
 
     pageItem P201_JURISDICTION (
         type: selectList
         label {
-            label: Jurisdiction
+            label: Country
             alignment: left
         }
         lov {
@@ -258,61 +307,7 @@ page 201 (
             valueRequired: true
         }
         help {
-            helpText: Country of incorporation, or of residence for an individual.
-        }
-    )
-
-    pageItem P201_DATE_OF_BIRTH (
-        type: datePicker
-        label {
-            label: Date of Birth
-            alignment: left
-        }
-        layout {
-            sequence: 60
-            region: @counterparty
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: Individuals only.
-        }
-    )
-
-    pageItem P201_NATIONALITY (
-        type: selectList
-        label {
-            label: Nationality
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 70
-            region: @counterparty
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: Individuals only.
+            helpText: Country of incorporation for an organisation, country of residence for an individual.
         }
     )
 
@@ -442,6 +437,201 @@ page 201 (
         }
     )
 
+    dynamicAction fields-by-type (
+        name: Fields for the counterparty type
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P201_PARTY_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P201_PARTY_TYPE
+            value: ORGANIZATION
+        }
+
+        action fields-by-type-org-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action fields-by-type-person-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P201_DATE_OF_BIRTH,P201_NATIONALITY
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action fields-by-type-org-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE
+            }
+            execution {
+                sequence: 30
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+        action fields-by-type-person-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P201_DATE_OF_BIRTH,P201_NATIONALITY
+            }
+            execution {
+                sequence: 40
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    validation required-1 (
+        name: Enter the registration number of the organisation.
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null then
+                    return 'Enter the registration number of the organisation.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_REGISTRATION_NUMBER
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation required-2 (
+        name: Choose the entity type of the organisation.
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null then
+                    return 'Choose the entity type of the organisation.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_ENTITY_TYPE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation required-3 (
+        name: Enter the date of birth.
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null then
+                    return 'Enter the date of birth.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_DATE_OF_BIRTH
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation required-4 (
+        name: The date of birth cannot be in the future.
+        execution {
+            sequence: 40
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate) then
+                    return 'The date of birth cannot be in the future.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_DATE_OF_BIRTH
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation required-5 (
+        name: Choose the nationality.
+        execution {
+            sequence: 50
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null then
+                    return 'Choose the nationality.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_NATIONALITY
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
     process save-request (
         name: Save counterparty
         type: executeCode
@@ -449,26 +639,24 @@ page 201 (
             language: plsql
             plsqlCode:
                 ```plsql
-                if :P201_REQUEST_ID is null then
-                    :P201_REQUEST_ID := xxcmp_request_pkg.create_request(
+                declare
+                    l_request_id number := to_number(:P201_REQUEST_ID);
+                begin
+                    -- one rule set for the page and the database: fields that do not apply to the type are cleared,
+                    -- a change of type replaces the questionnaire
+                    xxcmp_request_pkg.save_counterparty(
+                        p_request_id            => l_request_id,
                         p_party_type            => :P201_PARTY_TYPE,
                         p_party_name            => :P201_PARTY_NAME,
                         p_registration_number   => :P201_REGISTRATION_NUMBER,
-                        p_jurisdiction          => :P201_JURISDICTION,
                         p_entity_type           => :P201_ENTITY_TYPE,
+                        p_jurisdiction          => :P201_JURISDICTION,
                         p_date_of_birth         => to_date(:P201_DATE_OF_BIRTH),
                         p_nationality           => :P201_NATIONALITY,
                         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
                         p_justification         => :P201_JUSTIFICATION);
-                else
-                    update xxcmp_requests
-                       set party_type = :P201_PARTY_TYPE, party_name = :P201_PARTY_NAME,
-                           registration_number = :P201_REGISTRATION_NUMBER, entity_type = :P201_ENTITY_TYPE,
-                           jurisdiction = :P201_JURISDICTION, date_of_birth = to_date(:P201_DATE_OF_BIRTH),
-                           nationality = :P201_NATIONALITY, requesting_department = :P201_REQUESTING_DEPARTMENT,
-                           justification = :P201_JUSTIFICATION
-                     where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';
-                end if;
+                    :P201_REQUEST_ID := l_request_id;
+                end;
                 ```
         }
         execution {

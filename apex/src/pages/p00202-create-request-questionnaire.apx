@@ -7,6 +7,26 @@ page 202 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            kycQuestionnaire.bind('answers', 'P202_ANSWERS');
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .kyc-section { margin-bottom: 1.5rem; }
+            .kyc-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 .75rem;
+                                 padding-bottom: .25rem; border-bottom: 1px solid var(--ut-component-border-color, #ddd); }
+            .kyc-q { border: 0; margin: 0 0 1rem; padding: 0; }
+            .kyc-q-text { font-weight: 500; margin-bottom: .4rem; padding: 0; }
+            .kyc-q-required { color: var(--ut-palette-danger, #c00); }
+            .kyc-q-options { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+            .kyc-q-option { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; }
+            .kyc-q-input { width: 100%; max-width: 40rem; }
+            ```
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -90,25 +110,38 @@ page 202 (
         }
     )
 
+    pageItem P202_ANSWERS (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by kycQuestionnaire (kyc-app.js). XXCMP_REQUEST_PKG.ANSWERS_ERROR / SAVE_ANSWERS re-check every question and option on the server.
+                ```
+        }
+    )
+
     region answers (
         name: Questionnaire
-        type: interactiveGrid
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select a.answer_id,
-                       a.question_id,
-                       (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id) as display_sequence,
-                       (select q.section_name from xxcmp_questions q where q.question_id = a.question_id) as section_name,
-                       (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question_text,
-                       (select case q.required_flag when 'Y' then 'Required' end from xxcmp_questions q where q.question_id = a.question_id) as required,
-                       a.answer_option_id,
-                       a.answer_text
-                  from xxcmp_request_answers a
-                 where a.request_id = :P202_REQUEST_ID
-                   and a.respondent_type = 'REQUESTER'
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.questionnaire_html(:P202_REQUEST_ID);
                 ```
             pageItemsToSubmit: P202_REQUEST_ID
         }
@@ -123,210 +156,6 @@ page 202 (
         advanced {
             htmlDomId: answers
         }
-        edit {
-            enabled: true
-            allowedOperations: [
-                update
-            ]
-        }
-        pagination {
-            type: page
-            showTotalCount: true
-        }
-        messages {
-            whenNoDataFound: This questionnaire has no questions.
-        }
-        toolbar {
-            controls: [
-                searchField
-            ]
-        }
-
-        savedReport PRIMARY (
-            visibility: primary
-            view {
-                default: grid
-            }
-
-            displayColumn (
-                column: @SECTION_NAME
-                layout {
-                    sequence: 1
-                }
-            )
-
-            displayColumn (
-                column: @QUESTION_TEXT
-                layout {
-                    sequence: 2
-                }
-            )
-
-            displayColumn (
-                column: @REQUIRED
-                layout {
-                    sequence: 3
-                }
-            )
-
-            displayColumn (
-                column: @ANSWER_OPTION_ID
-                layout {
-                    sequence: 4
-                }
-            )
-
-            displayColumn (
-                column: @ANSWER_TEXT
-                layout {
-                    sequence: 5
-                }
-            )
-        )
-
-        column APEX$ROW_SELECTOR (
-            type: rowSelector
-            layout {
-                sequence: 5
-            }
-        )
-
-        column ANSWER_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_ID
-                dataType: number
-                primaryKey: true
-            }
-        )
-
-        column QUESTION_ID (
-            type: hidden
-            layout {
-                sequence: 20
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: QUESTION_ID
-                dataType: number
-            }
-        )
-
-        column DISPLAY_SEQUENCE (
-            type: hidden
-            layout {
-                sequence: 30
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: DISPLAY_SEQUENCE
-                dataType: number
-                queryOnly: true
-            }
-        )
-
-        column SECTION_NAME (
-            type: displayOnly
-            heading {
-                heading: Section
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: SECTION_NAME
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column QUESTION_TEXT (
-            type: displayOnly
-            heading {
-                heading: Question
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: QUESTION_TEXT
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column REQUIRED (
-            type: displayOnly
-            heading {
-                heading: Required
-            }
-            layout {
-                sequence: 60
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: REQUIRED
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column ANSWER_OPTION_ID (
-            type: selectList
-            heading {
-                heading: Answer
-            }
-            layout {
-                sequence: 70
-            }
-            lov {
-                type: sqlQuery
-                sqlQuery:
-                    ```sql
-                    select answer_label as display_value, answer_option_id as return_value
-                      from xxcmp_answer_options
-                     where question_id = :QUESTION_ID
-                       and approval_status = 'APPROVED'
-                       and enabled_flag = 'Y'
-                     order by display_sequence
-                    ```
-                displayNullValue: true
-                nullDisplayValue: - Select -
-            }
-            cascadingLov {
-                parentColumns: QUESTION_ID
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_OPTION_ID
-                dataType: number
-            }
-        )
-
-        column ANSWER_TEXT (
-            type: textField
-            heading {
-                heading: Comment / Free-text Answer
-            }
-            layout {
-                sequence: 80
-            }
-            validation {
-                maxLength: 4000
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_TEXT
-                dataType: varchar2
-            }
-        )
-
     )
 
     button previous (
@@ -342,15 +171,9 @@ page 202 (
             templateOptions: #DEFAULT#
         }
         behavior {
-            action: redirectThisApp
-            target: {
-                page: 201
-                items: {
-                    P201_REQUEST_ID: &P202_REQUEST_ID.
-                }
-                clearCache: 201
-            }
+            action: submitPage
             warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
         }
     )
 
@@ -376,16 +199,45 @@ page 202 (
         }
     )
 
+    validation required-answers (
+        name: Required questions answered
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.answers_error(:P202_REQUEST_ID, :P202_ANSWERS);
+                ```
+        }
+        error {
+            associatedItem: @P202_ANSWERS
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
     process save-answers (
         name: Save answers
-        type: interactiveGridAutoRowProcessing
-        editableRegion: @answers
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.save_answers(:P202_REQUEST_ID, :P202_ANSWERS);
+                ```
+        }
         execution {
             sequence: 10
             point: processing
         }
         serverSideCondition {
-            whenButtonPressed: @next
+            type: requestIsContainedInValue
+            value: NEXT,PREVIOUS
         }
         security {
             authorizationScheme: @page-create
@@ -393,9 +245,28 @@ page 202 (
     )
 
     branch (
-        name: To review
+        name: Back to counterparty
         execution {
             sequence: 10
+        }
+        behavior {
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P202_REQUEST_ID.
+                }
+                clearCache: 201
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @previous
+        }
+    )
+
+    branch (
+        name: To review
+        execution {
+            sequence: 20
         }
         behavior {
             target: {

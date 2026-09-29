@@ -174,6 +174,17 @@ begin
     entity('XXCMP_CASES', 'Case', 'CASE_ID');
 
     starter_questions;
+    -- Sections for the starter questions (only where an administrator has not set one).
+    for q in (select column_value v from table(apex_t_varchar2(
+                  'CORPORATE|10|Listing and Status', 'CORPORATE|20|Geographic Risk', 'CORPORATE|30|Business Activity',
+                  'CORPORATE|40|Ownership and Control', 'CORPORATE|50|Business Activity',
+                  'INDIVIDUAL|10|Relationship', 'INDIVIDUAL|20|Geographic Risk', 'INDIVIDUAL|30|Politically Exposed Persons'))) loop
+        update xxcmp_questions
+           set section_name = regexp_substr(q.v, '[^|]+', 1, 3)
+         where questionnaire_code = regexp_substr(q.v, '[^|]+', 1, 1)
+           and display_sequence   = to_number(regexp_substr(q.v, '[^|]+', 1, 2))
+           and section_name is null;
+    end loop;
 
     -- KYC Requests: list, wizard (3 steps), request; Cases: workbench, case, decision, screening, UBO, document verification, new case, compliance report.
     for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 205))) loop

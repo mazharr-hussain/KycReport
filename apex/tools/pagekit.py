@@ -109,7 +109,8 @@ def static_region(rid, name, seq, slot='BODY', template='standard', html=None, c
 
 
 def pitem(p, name, kind, label, seq, region, required=False, lov=None, help_text=None, max_len=None,
-          default=None, height=None, protect=False, sql=None, send=True, ro=None, condition=None):
+          default=None, height=None, protect=False, sql=None, send=True, ro=None, condition=None,
+          mark_required=False):
     """A page item that is not bound to a form region."""
     iname = f'P{p}_{name}'
     if kind == 'hidden':
@@ -142,6 +143,8 @@ def pitem(p, name, kind, label, seq, region, required=False, lov=None, help_text
             body = f'            type: sqlQuery\n            sqlQuery:\n                ```sql\n{ind(v, 16)}\n                ```'
         if nul:
             body += f'\n            displayNullValue: true\n            nullDisplayValue: {nul}'
+        else:
+            body += '\n            displayNullValue: false'   # APEX's default is Yes: radio groups get an empty choice
         parts.append(f'        lov {{\n{body}\n        }}\n')
     hgt = f'\n            height: {height}' if height else ''
     parts.append(f'''        layout {{
@@ -151,7 +154,7 @@ def pitem(p, name, kind, label, seq, region, required=False, lov=None, help_text
             alignment: left
         }}
         appearance {{
-            template: @/{'required' if required else 'optional'}-floating
+            template: @/{'required' if required or mark_required else 'optional'}-floating
             templateOptions: #DEFAULT#{hgt}
         }}
 ''')

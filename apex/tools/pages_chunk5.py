@@ -64,16 +64,15 @@ t += pitem(p, 'PARTY_TYPE', 'radioGroup', 'Counterparty Type', 10, 'counterparty
            help_text='An organisation (company, trust, government entity) or an individual.')
 t += pitem(p, 'PARTY_NAME', 'textField', 'Name', 20, 'counterparty', required=True, max_len=360,
            help_text='Legal name of the organisation, or full name of the individual.')
-t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 30, 'counterparty', max_len=100,
-           help_text='Organisations: commercial registration or company number.')
-t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 40, 'counterparty', lov=lookup_lov('ENTITY_TYPE'),
-           help_text='Organisations: legal form.')
-t += pitem(p, 'JURISDICTION', 'selectList', 'Jurisdiction', 50, 'counterparty', required=True, lov=lookup_lov('JURISDICTION'),
-           help_text='Country of incorporation, or of residence for an individual.')
-t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 60, 'counterparty',
-           help_text='Individuals only.')
-t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 70, 'counterparty', lov=lookup_lov('JURISDICTION'),
-           help_text='Individuals only.')
+ORG_ITEMS, PERSON_ITEMS = 'P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE', 'P201_DATE_OF_BIRTH,P201_NATIONALITY'
+t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 30, 'counterparty', max_len=100, mark_required=True,
+           help_text='Commercial registration or company number.')
+t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 40, 'counterparty', lov=lookup_lov('ENTITY_TYPE'), mark_required=True,
+           help_text='Legal form of the organisation.')
+t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 45, 'counterparty', mark_required=True)
+t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 47, 'counterparty', lov=lookup_lov('JURISDICTION'), mark_required=True)
+t += pitem(p, 'JURISDICTION', 'selectList', 'Country', 50, 'counterparty', required=True, lov=lookup_lov('JURISDICTION'),
+           help_text='Country of incorporation for an organisation, country of residence for an individual.')
 t += pitem(p, 'REQUESTING_DEPARTMENT', 'selectList', 'Requesting Department', 80, 'counterparty', required=True,
            lov=lookup_lov('REQUESTING_DEPARTMENT'))
 t += pitem(p, 'JUSTIFICATION', 'textarea', 'Business Purpose', 90, 'counterparty', max_len=4000, height=3,
@@ -88,26 +87,108 @@ t += process('load-request', 'Load draft', '''select party_type, party_name, reg
   from xxcmp_requests
  where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';''', 10, point='beforeHeader',
                  condition='type: itemIsNotNull\nitem: P201_REQUEST_ID')
-t += process('save-request', 'Save counterparty', '''if :P201_REQUEST_ID is null then
-    :P201_REQUEST_ID := xxcmp_request_pkg.create_request(
+t += f'''    dynamicAction fields-by-type (
+        name: Fields for the counterparty type
+        execution {{
+            sequence: 10
+        }}
+        when {{
+            event: change
+            selectionType: items
+            items: P201_PARTY_TYPE
+        }}
+        clientSideCondition {{
+            type: item=value
+            item: P201_PARTY_TYPE
+            value: ORGANIZATION
+        }}
+
+        action fields-by-type-org-show (
+            action: show
+            affectedElements {{
+                selectionType: items
+                items: {ORG_ITEMS}
+            }}
+            execution {{
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }}
+        )
+
+        action fields-by-type-person-hide (
+            action: hide
+            affectedElements {{
+                selectionType: items
+                items: {PERSON_ITEMS}
+            }}
+            execution {{
+                sequence: 20
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }}
+        )
+
+        action fields-by-type-org-hide (
+            action: hide
+            affectedElements {{
+                selectionType: items
+                items: {ORG_ITEMS}
+            }}
+            execution {{
+                sequence: 30
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }}
+        )
+
+        action fields-by-type-person-show (
+            action: show
+            affectedElements {{
+                selectionType: items
+                items: {PERSON_ITEMS}
+            }}
+            execution {{
+                sequence: 40
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }}
+        )
+
+    )
+
+'''
+for i, (fld, check, msg) in enumerate([
+        ('REGISTRATION_NUMBER', "if :P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null then",
+         'Enter the registration number of the organisation.'),
+        ('ENTITY_TYPE', "if :P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null then",
+         'Choose the entity type of the organisation.'),
+        ('DATE_OF_BIRTH', "if :P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null then",
+         'Enter the date of birth.'),
+        ('DATE_OF_BIRTH', "if :P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate) then",
+         'The date of birth cannot be in the future.'),
+        ('NATIONALITY', "if :P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null then",
+         'Choose the nationality.')]):
+    t += fn_validation(f'required-{i + 1}', msg, f"{check}\n    return '{msg}';\nend if;\nreturn null;",
+                       f'P201_{fld}', (i + 1) * 10, requests='NEXT')
+t += process('save-request', 'Save counterparty', '''declare
+    l_request_id number := to_number(:P201_REQUEST_ID);
+begin
+    -- one rule set for the page and the database: fields that do not apply to the type are cleared,
+    -- a change of type replaces the questionnaire
+    xxcmp_request_pkg.save_counterparty(
+        p_request_id            => l_request_id,
         p_party_type            => :P201_PARTY_TYPE,
         p_party_name            => :P201_PARTY_NAME,
         p_registration_number   => :P201_REGISTRATION_NUMBER,
-        p_jurisdiction          => :P201_JURISDICTION,
         p_entity_type           => :P201_ENTITY_TYPE,
+        p_jurisdiction          => :P201_JURISDICTION,
         p_date_of_birth         => to_date(:P201_DATE_OF_BIRTH),
         p_nationality           => :P201_NATIONALITY,
         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
         p_justification         => :P201_JUSTIFICATION);
-else
-    update xxcmp_requests
-       set party_type = :P201_PARTY_TYPE, party_name = :P201_PARTY_NAME,
-           registration_number = :P201_REGISTRATION_NUMBER, entity_type = :P201_ENTITY_TYPE,
-           jurisdiction = :P201_JURISDICTION, date_of_birth = to_date(:P201_DATE_OF_BIRTH),
-           nationality = :P201_NATIONALITY, requesting_department = :P201_REQUESTING_DEPARTMENT,
-           justification = :P201_JUSTIFICATION
-     where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';
-end if;''', 10, button_='next', auth='page-create')
+    :P201_REQUEST_ID := l_request_id;
+end;''', 10, button_='next', auth='page-create')
 t += branch('To questionnaire', 202, {'P202_REQUEST_ID': '&P201_REQUEST_ID.'}, button_='next')
 t += ')\n'
 write('p00201-create-request.apx', t)
@@ -116,29 +197,66 @@ write('p00201-create-request.apx', t)
 p = 202
 t = page_header(p, 'Create Request - Questionnaire', 'CREATE-REQUEST-QUESTIONNAIRE', 'kyc',
                 'Step 2 of 3: answer every question. The answers decide whether a KYC review is needed.')
+# page-level look of the questionnaire form and the binding of its answers (kyc-app.js)
+t = t.replace('''    security {
+        authorizationScheme: @page-view''', '''    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            kycQuestionnaire.bind('answers', 'P202_ANSWERS');
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .kyc-section { margin-bottom: 1.5rem; }
+            .kyc-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 .75rem;
+                                 padding-bottom: .25rem; border-bottom: 1px solid var(--ut-component-border-color, #ddd); }
+            .kyc-q { border: 0; margin: 0 0 1rem; padding: 0; }
+            .kyc-q-text { font-weight: 500; margin-bottom: .4rem; padding: 0; }
+            .kyc-q-required { color: var(--ut-palette-danger, #c00); }
+            .kyc-q-options { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+            .kyc-q-option { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; }
+            .kyc-q-input { width: 100%; max-width: 40rem; }
+            ```
+    }
+    security {
+        authorizationScheme: @page-view''', 1)
 t += breadcrumb_region('Create Request') + '\n'
 t += wizard_region()
 t += static_region('buttons', 'Buttons', 90, template='buttons-container')
 t += pitem(p, 'REQUEST_ID', 'hidden', None, 1, 'buttons', protect=True)
-t += '''    region answers (
+t += '''    pageItem P202_ANSWERS (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by kycQuestionnaire (kyc-app.js). XXCMP_REQUEST_PKG.ANSWERS_ERROR / SAVE_ANSWERS re-check every question and option on the server.
+                ```
+        }
+    )
+
+    region answers (
         name: Questionnaire
-        type: interactiveGrid
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select a.answer_id,
-                       a.question_id,
-                       (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id) as display_sequence,
-                       (select q.section_name from xxcmp_questions q where q.question_id = a.question_id) as section_name,
-                       (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question_text,
-                       (select case q.required_flag when 'Y' then 'Required' end from xxcmp_questions q where q.question_id = a.question_id) as required,
-                       a.answer_option_id,
-                       a.answer_text
-                  from xxcmp_request_answers a
-                 where a.request_id = :P202_REQUEST_ID
-                   and a.respondent_type = 'REQUESTER'
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.questionnaire_html(:P202_REQUEST_ID);
                 ```
             pageItemsToSubmit: P202_REQUEST_ID
         }
@@ -153,199 +271,19 @@ t += '''    region answers (
         advanced {
             htmlDomId: answers
         }
-        edit {
-            enabled: true
-            allowedOperations: [
-                update
-            ]
-        }
-        pagination {
-            type: page
-            showTotalCount: true
-        }
-        messages {
-            whenNoDataFound: This questionnaire has no questions.
-        }
-        toolbar {
-            controls: [
-                searchField
-            ]
-        }
-
-        savedReport PRIMARY (
-            visibility: primary
-            view {
-                default: grid
-            }
-        )
-
-        column APEX$ROW_SELECTOR (
-            type: rowSelector
-            layout {
-                sequence: 5
-            }
-        )
-
-        column ANSWER_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_ID
-                dataType: number
-                primaryKey: true
-            }
-        )
-
-        column QUESTION_ID (
-            type: hidden
-            layout {
-                sequence: 20
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: QUESTION_ID
-                dataType: number
-            }
-        )
-
-        column DISPLAY_SEQUENCE (
-            type: hidden
-            layout {
-                sequence: 30
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: DISPLAY_SEQUENCE
-                dataType: number
-                queryOnly: true
-            }
-        )
-
-        column SECTION_NAME (
-            type: displayOnly
-            heading {
-                heading: Section
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: SECTION_NAME
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column QUESTION_TEXT (
-            type: displayOnly
-            heading {
-                heading: Question
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: QUESTION_TEXT
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column REQUIRED (
-            type: displayOnly
-            heading {
-                heading: Required
-            }
-            layout {
-                sequence: 60
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: REQUIRED
-                dataType: varchar2
-                queryOnly: true
-            }
-        )
-
-        column ANSWER_OPTION_ID (
-            type: selectList
-            heading {
-                heading: Answer
-            }
-            layout {
-                sequence: 70
-            }
-            lov {
-                type: sqlQuery
-                sqlQuery:
-                    ```sql
-                    select answer_label as display_value, answer_option_id as return_value
-                      from xxcmp_answer_options
-                     where question_id = :QUESTION_ID
-                       and approval_status = 'APPROVED'
-                       and enabled_flag = 'Y'
-                     order by display_sequence
-                    ```
-                displayNullValue: true
-                nullDisplayValue: - Select -
-            }
-            cascadingLov {
-                parentColumns: QUESTION_ID
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_OPTION_ID
-                dataType: number
-            }
-        )
-
-        column ANSWER_TEXT (
-            type: textField
-            heading {
-                heading: Comment / Free-text Answer
-            }
-            layout {
-                sequence: 80
-            }
-            validation {
-                maxLength: 4000
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: ANSWER_TEXT
-                dataType: varchar2
-            }
-        )
-
     )
 
 '''
-t += button('previous', 'PREVIOUS', 'Previous', 10, 'buttons', 'PREVIOUS', action='redirectThisApp',
-            target='page: 201\nitems: {\n    P201_REQUEST_ID: &P202_REQUEST_ID.\n}\nclearCache: 201', validations=False)
+t += button('previous', 'PREVIOUS', 'Previous', 10, 'buttons', 'PREVIOUS', validations=False)
 t += button('next', 'NEXT', 'Next', 20, 'buttons', 'NEXT', hot=True, auth='page-create')
-t += '''    process save-answers (
-        name: Save answers
-        type: interactiveGridAutoRowProcessing
-        editableRegion: @answers
-        execution {
-            sequence: 10
-            point: processing
-        }
-        serverSideCondition {
-            whenButtonPressed: @next
-        }
-        security {
-            authorizationScheme: @page-create
-        }
-    )
-
-'''
-t += branch('To review', 203, {'P203_REQUEST_ID': '&P202_REQUEST_ID.'}, button_='next')
+t += fn_validation('required-answers', 'Required questions answered',
+                   'return xxcmp_request_pkg.answers_error(:P202_REQUEST_ID, :P202_ANSWERS);',
+                   'P202_ANSWERS', 10, requests='NEXT')
+t += process('save-answers', 'Save answers',
+             'xxcmp_request_pkg.save_answers(:P202_REQUEST_ID, :P202_ANSWERS);', 10,
+             requests='NEXT,PREVIOUS', auth='page-create')
+t += branch('Back to counterparty', 201, {'P201_REQUEST_ID': '&P202_REQUEST_ID.'}, seq=10, button_='previous')
+t += branch('To review', 203, {'P203_REQUEST_ID': '&P202_REQUEST_ID.'}, seq=20, button_='next')
 t += ')\n'
 write('p00202-create-request-questionnaire.apx', t)
 
