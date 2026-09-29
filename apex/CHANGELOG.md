@@ -1,6 +1,6 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_8.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_9.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
 Source of truth: the APEXlang tree in `apex/src` (the zip is built from it; each chunk is one commit).
 
 ## How each release is verified
@@ -17,6 +17,18 @@ Source of truth: the APEXlang tree in `apex/src` (the zip is built from it; each
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 9 – Chunk 1: deployment framework (supporting objects)
+
+Decision: database objects stay in the APEX supporting objects (one `apex import`). To deploy chunk by chunk:
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 14 | `supporting-objects/supporting-objects.apx` | New install **and** upgrade script `00 Deployment framework` (sequence 5, runs first) | – | table `XXFND_SCHEMA_RELEASES`; package `XXFND_DDL_PKG` (`release_applied`, `mark_release`, `add_column`); records release `R09` | Every later chunk adds one idempotent upgrade script that checks `release_applied`, applies DDL with `create … if not exists` / `add_column`, and records itself with `mark_release`, so a re-import applies only what is new |
+
+Verified live: fresh install (338 objects, 0 invalid, R09 recorded); upgrade over an existing install twice
+(data kept – a party and role assignments survived; R09 recorded once); on Oracle 26ai `CREATE … IF NOT EXISTS`
+and `DROP … IF EXISTS` work, `ALTER TABLE … ADD IF NOT EXISTS (column)` does not – hence `XXFND_DDL_PKG.ADD_COLUMN`.
 
 ## Release 8 – Chunk 0: runtime-breaking defects
 
@@ -54,14 +66,14 @@ grant execute on sys.dbms_crypto to <PARSING_SCHEMA>;
 Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
 
 ```sql
-apex validate -input KYC-Compliance-Platform-APEXlang_8.zip
+apex validate -input KYC-Compliance-Platform-APEXlang_9.zip
 
 begin
     apex_application_install.set_auto_install_sup_obj(p_auto_install_sup_obj => true);
 end;
 /
 
-apex import -input KYC-Compliance-Platform-APEXlang_8.zip -workspace XXCUS   -- add -id <n> for a fixed app id
+apex import -input KYC-Compliance-Platform-APEXlang_9.zip -workspace XXCUS   -- add -id <n> for a fixed app id
 
 select object_type, object_name from user_objects where status = 'INVALID';
 select job_name, enabled, state from user_scheduler_jobs where job_name like 'XXFND%';
