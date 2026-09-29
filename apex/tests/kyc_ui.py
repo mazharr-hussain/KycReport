@@ -88,7 +88,14 @@ def open_task(pg, s, page_item, task):
     for attempt in range(4):
         goto(pg, s, 40)
         if subject:
-            pg.locator('input[type=search]').first.fill(subject[0].split(' - ')[0])
+            # the task list keeps earlier search terms (chips) in the session: remove them first
+            search = pg.locator('input[type=search]').first
+            search.click()
+            for _ in range(6):
+                pg.keyboard.press('Backspace')
+            pg.wait_for_load_state('networkidle')
+            pg.wait_for_timeout(1500)
+            search.fill(subject[0].split(' - ')[0])
             pg.keyboard.press('Enter')
             pg.wait_for_load_state('networkidle')
             pg.wait_for_timeout(2500)
