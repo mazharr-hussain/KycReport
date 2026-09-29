@@ -680,24 +680,26 @@ page 21 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select p.party_id,
-                       p.party_number,
-                       p.party_name,
-                       p.registration_number,
-                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
-                       case when p.registration_number is not null
-                             and upper(replace(p.registration_number, ' ')) = upper(replace(:P21_REGISTRATION_NUMBER, ' '))
-                            then 'Same registration number'
-                            else round(xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME)) || '% name match'
+                -- name similarity computed once per party (inline view), not three times
+                select m.party_id,
+                       m.party_number,
+                       m.party_name,
+                       m.registration_number,
+                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
+                       case when m.same_registration = 'Y' then 'Same registration number'
+                            else round(m.similarity) || '% name match'
                        end as match_reason
-                  from xxcmp_parties p
-                 where p.party_id <> nvl(to_number(:P21_PARTY_ID), -1)
-                   and p.party_type = :P21_PARTY_TYPE
-                   and :P21_PARTY_NAME is not null
-                   and (   (p.registration_number is not null
-                            and upper(replace(p.registration_number, ' ')) = upper(replace(:P21_REGISTRATION_NUMBER, ' ')))
-                        or xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME) >= 85)
-                 order by xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME) desc
+                  from (select p.party_id, p.party_number, p.party_name, p.registration_number, p.jurisdiction,
+                               case when p.registration_number is not null
+                                     and upper(replace(p.registration_number, ' ')) = upper(replace(:P21_REGISTRATION_NUMBER, ' '))
+                                    then 'Y' else 'N' end as same_registration,
+                               xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME) as similarity
+                          from xxcmp_parties p
+                         where p.party_id <> nvl(to_number(:P21_PARTY_ID), -1)
+                           and p.party_type = :P21_PARTY_TYPE
+                           and :P21_PARTY_NAME is not null) m
+                 where m.same_registration = 'Y' or m.similarity >= 85
+                 order by m.similarity desc
                  fetch first 10 rows only
                 ```
             pageItemsToSubmit: [

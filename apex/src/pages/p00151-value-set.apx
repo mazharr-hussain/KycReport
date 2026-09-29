@@ -632,6 +632,31 @@ page 151 (
 
     )
 
+    validation table-query-safe (
+        name: Value set query is a safe query
+        execution {
+            sequence: 60
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P151_VALIDATION_TYPE <> 'TABLE' then
+                    return null;
+                end if;
+                return xxfnd_dff_pkg.admin_sql_error(:P151_TABLE_QUERY, 'VALUE_SET');
+                ```
+        }
+        error {
+            associatedItem: @P151_TABLE_QUERY
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
     process initialize-form (
         name: Initialize form
         type: formInitialization

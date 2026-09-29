@@ -184,9 +184,71 @@ create or replace package body xxfnd_dff_pkg as
         return resolve_context(l_ff, row_values(l_ff, p_pk_value), p_context_code, p_reference_value);
     end derive_context;
 
+    function admin_sql_error(p_sql in clob, p_kind in varchar2, p_parse in varchar2 default 'Y') return varchar2 is
+        l_sql    varchar2(32767);
+        l_plain  varchar2(32767);
+        l_cursor integer;
+        l_cols   dbms_sql.desc_tab2;
+        l_count  integer;
+    begin
+        if p_sql is null then
+            return null;
+        end if;
+        if dbms_lob.getlength(p_sql) > 32000 then
+            return 'The query is too long.';
+        end if;
+        l_sql := trim(dbms_lob.substr(p_sql, 32000, 1));
+        -- look at the statement's shape without its comments and quoted text
+        l_plain := regexp_replace(l_sql, '/\*.*?\*/', ' ', 1, 0, 'n');
+        l_plain := regexp_replace(l_plain, '--[^' || chr(10) || ']*', ' ');
+        l_plain := regexp_replace(l_plain, q'['[^']*']', q'['']');
+        if not regexp_like(l_plain, '^\s*(select|with)\s', 'i') then
+            return 'The SQL must be a query starting with SELECT or WITH.';
+        end if;
+        if instr(l_plain, ';') > 0 then
+            return 'Enter one query without a semicolon.';
+        end if;
+        if regexp_like(l_plain, '@[a-z]', 'i') then
+            return 'Database links are not allowed.';
+        end if;
+        if regexp_like(regexp_replace(l_plain, ':context_code([^a-z0-9_$#]|$)', ' \1', 1, 0, 'i'), ':[a-z_]', 'i') then
+            return 'The only bind variable allowed is :CONTEXT_CODE.';
+        end if;
+        if nvl(p_parse, 'Y') = 'Y' then
+            l_cursor := dbms_sql.open_cursor;
+            begin
+                if upper(p_kind) = 'VALUE_SET' then
+                    -- also proves the RETURN_VALUE and DISPLAY_VALUE columns exist
+                    dbms_sql.parse(l_cursor, 'select to_char(return_value), to_char(display_value) from (' || l_sql || ')',
+                                   dbms_sql.native);
+                else
+                    dbms_sql.parse(l_cursor, l_sql, dbms_sql.native);
+                    dbms_sql.describe_columns2(l_cursor, l_count, l_cols);
+                    if l_count <> 1 then
+                        dbms_sql.close_cursor(l_cursor);
+                        return 'The default query must return exactly one column.';
+                    end if;
+                end if;
+                dbms_sql.close_cursor(l_cursor);
+            exception
+                when others then
+                    if dbms_sql.is_open(l_cursor) then
+                        dbms_sql.close_cursor(l_cursor);
+                    end if;
+                    return 'The query does not run: ' || regexp_replace(sqlerrm, '^ORA-[0-9]+: ', '')
+                           || case when upper(p_kind) = 'VALUE_SET'
+                                   then ' (it must return columns RETURN_VALUE and DISPLAY_VALUE)' end;
+            end;
+        end if;
+        return null;
+    end admin_sql_error;
+
     function run_single_value(p_sql in varchar2, p_context_code in varchar2) return varchar2 is
         l_value varchar2(4000);
     begin
+        if admin_sql_error(p_sql, 'DEFAULT', 'N') is not null then
+            return null;   -- not an acceptable query: no default
+        end if;
         if instr(upper(p_sql), ':CONTEXT_CODE') > 0 then
             execute immediate p_sql into l_value using p_context_code;
         else
@@ -212,7 +274,7 @@ create or replace package body xxfnd_dff_pkg as
                  where lookup_type = l_vs.lookup_type
                    and active_flag = 'Y'
                  order by display_sequence, meaning;
-        elsif l_vs.validation_type = 'TABLE' then
+        elsif l_vs.validation_type = 'TABLE' and admin_sql_error(l_vs.table_query, 'VALUE_SET', 'N') is null then
             l_sql := 'select to_char(return_value) return_value, to_char(display_value) display_value,'
                   || ' cast(null as varchar2(150)) parent_value from (' || l_vs.table_query || ')';
             if instr(upper(l_vs.table_query), ':CONTEXT_CODE') > 0 then
@@ -445,6 +507,9 @@ create or replace package body xxfnd_dff_pkg as
                and (p_parent_value is null or parent_lookup_code = p_parent_value);
         elsif p_seg.validation_type = 'TABLE' then
             select table_query into l_query from xxfnd_value_sets where value_set_code = p_seg.value_set_code;
+            if admin_sql_error(l_query, 'VALUE_SET', 'N') is not null then
+                raise_application_error(-20411, 'Value set ' || p_seg.value_set_code || ' has a query that is not allowed.');
+            end if;
             l_sql := 'select count(*) from (' || l_query || ') where to_char(return_value) = :v';
             if instr(upper(l_query), ':CONTEXT_CODE') > 0 then
                 execute immediate l_sql into l_count using p_context, p_value;

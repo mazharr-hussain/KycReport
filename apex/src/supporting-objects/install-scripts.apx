@@ -241,6 +241,15 @@ installScript 18f-monitoring-and-dashboard-seed (
     }
 )
 
+installScript 18g-release-15-marker (
+    execution {
+        sequence: 192
+    }
+    script {
+        contentFile: 18g-release-15.sql
+    }
+)
+
 installScript 19-reporting-views-and-recompile (
     execution {
         sequence: 195

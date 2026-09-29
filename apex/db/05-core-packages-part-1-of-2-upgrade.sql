@@ -87,7 +87,10 @@ create or replace package body xxfnd_util_pkg as
         return nvl(regexp_substr(l_lang, '^[a-z]+'), 'en');
     end current_lang;
 
-    function lookup_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2 is
+    -- Result-cached per type, code and language: report queries call LOOKUP_MEANING for every row and column.
+    -- Oracle invalidates the cache when XXFND_LOOKUP_VALUES(_TL) change.
+    function cached_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2, p_lang in varchar2)
+        return varchar2 result_cache is
         l_meaning xxfnd_lookup_values.meaning%type;
     begin
         if p_lookup_code is null then
@@ -99,13 +102,22 @@ create or replace package body xxfnd_util_pkg as
           left join xxfnd_lookup_values_tl t
             on t.lookup_type = v.lookup_type
            and t.lookup_code = v.lookup_code
-           and t.language_code = current_lang
+           and t.language_code = p_lang
          where v.lookup_type = p_lookup_type
            and v.lookup_code = p_lookup_code;
         return l_meaning;
     exception
         when no_data_found then
             return p_lookup_code;
+    end cached_meaning;
+
+    function lookup_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2 is
+        pragma udf;
+    begin
+        if p_lookup_code is null then
+            return null;
+        end if;
+        return cached_meaning(p_lookup_type, p_lookup_code, current_lang);
     end lookup_meaning;
 
     function is_valid_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2) return boolean is

@@ -61,6 +61,13 @@ create or replace package xxfnd_dff_pkg authid definer as
                    p_context_code    in varchar2 default null,
                    p_reference_value in varchar2 default null);
 
+    -- SQL typed in by administrators (a TABLE value set's query, a segment's SQL default) runs with the
+    -- schema's rights, so it must be a query: SELECT or WITH, one statement, :CONTEXT_CODE as the only bind.
+    -- P_KIND = VALUE_SET (columns RETURN_VALUE and DISPLAY_VALUE) or DEFAULT (one value).
+    -- P_PARSE = Y also parses it (setup screens, on save); the runtime re-checks without parsing.
+    -- Returns the problem, or null when the SQL is acceptable.
+    function admin_sql_error(p_sql in clob, p_kind in varchar2, p_parse in varchar2 default 'Y') return varchar2;
+
     -- Values for a segment's list: RETURN_VALUE, DISPLAY_VALUE, PARENT_VALUE.
     -- Also used by the setup screens to preview a value set.
     function value_list(p_value_set_code in varchar2,

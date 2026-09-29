@@ -205,6 +205,15 @@ upgradeScript 18f-monitoring-and-dashboard-seed (
     }
 )
 
+upgradeScript 18g-release-15-marker (
+    execution {
+        sequence: 152
+    }
+    script {
+        contentFile: 18g-release-15.sql
+    }
+)
+
 upgradeScript 19-reporting-views-and-recompile (
     execution {
         sequence: 155

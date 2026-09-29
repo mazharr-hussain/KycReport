@@ -172,6 +172,35 @@ page 33 (
         }
     )
 
+    pageItem P33_UPLOAD_RULES (
+        type: displayOnly
+        label {
+            label: Accepted Files
+            alignment: left
+        }
+        layout {
+            sequence: 21
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_attach_pkg.upload_rules_text(33, 'RFI_RESPONSE') from dual
+                ```
+            used: always
+        }
+    )
+
     button submit (
         buttonName: SUBMIT
         label: Submit Response
@@ -208,7 +237,8 @@ page 33 (
                             p_entity_name    => 'XXCMP_RFIS',
                             p_pk1_value      => to_char(l_rfi_id),
                             p_category_code  => 'RFI_RESPONSE',
-                            p_temp_file_name => :P33_FILE);
+                            p_temp_file_name => :P33_FILE,
+                            p_page_id        => 33);
                     end if;
                     :P33_DONE  := 'Y';
                     :P33_TOKEN := null;

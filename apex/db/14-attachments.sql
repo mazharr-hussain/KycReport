@@ -7,6 +7,21 @@
 -- store. This package owns the attachment rules: categories, expiry and
 -- recency, versions, permissions per page region, soft delete.
 --------------------------------------------------------------------------------
+-- Upload limits (R15): per document category and per attachment page; the application default is in the
+-- application settings ATTACH_MAX_FILE_SIZE_MB and ATTACH_ALLOWED_FILE_TYPES.
+begin
+    for t in (select column_value table_name from table(apex_t_varchar2('XXFND_DOCUMENT_CATEGORIES', 'XXFND_ATTACHMENT_FUNCTIONS'))) loop
+        xxfnd_ddl_pkg.add_column(t.table_name, 'MAX_FILE_SIZE_MB',   'number');
+        xxfnd_ddl_pkg.add_column(t.table_name, 'ALLOWED_FILE_TYPES', 'varchar2(500)');
+        xxfnd_audit_pkg.create_audit_trigger(t.table_name);   -- audit the new columns too
+    end loop;
+end;
+/
+comment on column xxfnd_document_categories.max_file_size_mb is 'Largest file accepted for this category (MB); overrides the page and the application default.';
+comment on column xxfnd_document_categories.allowed_file_types is 'File extensions accepted for this category, comma-separated (e.g. pdf,jpg); * = any; overrides the page and the application default.';
+comment on column xxfnd_attachment_functions.max_file_size_mb is 'Largest file accepted on this page (MB) unless the category says otherwise; overrides the application default.';
+comment on column xxfnd_attachment_functions.allowed_file_types is 'File extensions accepted on this page unless the category says otherwise; overrides the application default.';
+
 create or replace package xxfnd_attach_pkg authid definer as
 
     -- Most specific enabled storage row: entity+category, entity, category, default.
@@ -38,7 +53,8 @@ create or replace package xxfnd_attach_pkg authid definer as
                       p_pk2_value      in varchar2 default null,
                       p_pk3_value      in varchar2 default null,
                       p_pk4_value      in varchar2 default null,
-                      p_pk5_value      in varchar2 default null) return number;
+                      p_pk5_value      in varchar2 default null,
+                      p_page_id        in number   default null) return number;
 
     -- Short/long text (DATATYPE SHORT_TEXT or LONG_TEXT) or web page link (WEB_PAGE).
     function add_text(p_entity_name   in varchar2,
@@ -59,7 +75,15 @@ create or replace package xxfnd_attach_pkg authid definer as
     procedure add_version(p_attached_document_id in number,
                           p_temp_file_name       in varchar2,
                           p_document_date        in date default null,
-                          p_expiry_date          in date default null);
+                          p_expiry_date          in date default null,
+                          p_page_id              in number   default null);
+
+    -- Upload limits: the category's value, else the attachment page's (P_PAGE_ID = the page that shows the
+    -- attachments), else the application setting. Types: lower-case extensions, comma-separated; * = any.
+    function max_file_size_mb(p_page_id in number, p_category_code in varchar2) return number;
+    function allowed_file_types(p_page_id in number, p_category_code in varchar2) return varchar2;
+    -- "PDF, JPG, PNG up to 10 MB" for the upload item's help text.
+    function upload_rules_text(p_page_id in number, p_category_code in varchar2) return varchar2;
 
     procedure update_details(p_attached_document_id in number,
                              p_title                in varchar2,
@@ -85,6 +109,10 @@ end xxfnd_attach_pkg;
 /
 
 create or replace package body xxfnd_attach_pkg as
+
+    -- application defaults when the ATTACH_* application settings are empty
+    c_default_size_mb constant number        := 10;
+    c_default_types   constant varchar2(200) := 'pdf,jpg,jpeg,png,tif,tiff,doc,docx,xls,xlsx,msg,eml';
 
     subtype t_stored is xxfnd_attach_store_pkg.t_stored;
 
@@ -219,6 +247,82 @@ create or replace package body xxfnd_attach_pkg as
     end check_entity;
 
     ----------------------------------------------------------------------------
+    -- upload limits: category, else attachment page, else application setting
+    ----------------------------------------------------------------------------
+
+    -- ' .PDF, Jpg ' -> 'pdf,jpg'
+    function normalise_types(p_types in varchar2) return varchar2 is
+    begin
+        return nullif(trim(both ',' from regexp_replace(lower(regexp_replace(p_types, '[[:space:].]', '')), ',+', ',')), '');
+    end normalise_types;
+
+    function app_setting(p_name in varchar2) return varchar2 is
+    begin
+        return apex_app_setting.get_value(p_name);
+    exception
+        when others then
+            return null;   -- no APEX session (scripts, jobs outside APEX)
+    end app_setting;
+
+    procedure page_limits(p_page_id in number, p_size out number, p_types out varchar2) is
+    begin
+        select max(case when f.max_file_size_mb > 0 then f.max_file_size_mb end), max(f.allowed_file_types)
+          into p_size, p_types
+          from xxfnd_attachment_functions f
+         where f.apex_app_alias = nvl(v('APP_ALIAS'), 'KYC')
+           and f.apex_page_id   = p_page_id
+           and f.enabled_flag   = 'Y';
+    end page_limits;
+
+    function max_file_size_mb(p_page_id in number, p_category_code in varchar2) return number is
+        l_cat   number;
+        l_page  number;
+        l_types varchar2(500);
+    begin
+        select max(case when max_file_size_mb > 0 then max_file_size_mb end) into l_cat
+          from xxfnd_document_categories where category_code = p_category_code;
+        page_limits(p_page_id, l_page, l_types);
+        return coalesce(l_cat, l_page,
+                        to_number(app_setting('ATTACH_MAX_FILE_SIZE_MB') default null on conversion error),
+                        c_default_size_mb);
+    end max_file_size_mb;
+
+    function allowed_file_types(p_page_id in number, p_category_code in varchar2) return varchar2 is
+        l_cat   varchar2(500);
+        l_size  number;
+        l_page  varchar2(500);
+    begin
+        select max(allowed_file_types) into l_cat from xxfnd_document_categories where category_code = p_category_code;
+        page_limits(p_page_id, l_size, l_page);
+        return coalesce(normalise_types(l_cat), normalise_types(l_page),
+                        normalise_types(app_setting('ATTACH_ALLOWED_FILE_TYPES')), c_default_types);
+    end allowed_file_types;
+
+    function upload_rules_text(p_page_id in number, p_category_code in varchar2) return varchar2 is
+        l_types varchar2(500) := allowed_file_types(p_page_id, p_category_code);
+    begin
+        return case when l_types = '*' then 'Any file type' else upper(replace(l_types, ',', ', ')) end
+               || ' up to ' || max_file_size_mb(p_page_id, p_category_code) || ' MB';
+    end upload_rules_text;
+
+    procedure check_upload(p_page_id in number, p_category in varchar2, p_filename in varchar2, p_blob in blob) is
+        l_max   number        := max_file_size_mb(p_page_id, p_category);
+        l_types varchar2(500) := allowed_file_types(p_page_id, p_category);
+        l_ext   varchar2(100) := lower(regexp_substr(p_filename, '\.([^.]+)$', 1, 1, null, 1));
+        l_bytes number        := dbms_lob.getlength(p_blob);
+    begin
+        if l_bytes > l_max * 1024 * 1024 then
+            raise_application_error(-20321, 'The file is ' || round(l_bytes / 1024 / 1024, 1)
+                || ' MB; the limit for this document is ' || l_max || ' MB.');
+        end if;
+        if l_types <> '*' and (l_ext is null
+                               or instr(',' || l_types || ',', ',' || l_ext || ',') = 0) then
+            raise_application_error(-20322, 'Files of type ' || nvl(upper(l_ext), '(none)')
+                || ' are not accepted here. Accepted: ' || upper(replace(l_types, ',', ', ')) || '.');
+        end if;
+    end check_upload;
+
+    ----------------------------------------------------------------------------
     -- store a file for a document row
     ----------------------------------------------------------------------------
     function store_file(p_cfg in xxfnd_storage_config%rowtype, p_entity in varchar2,
@@ -274,7 +378,8 @@ create or replace package body xxfnd_attach_pkg as
                       p_pk2_value      in varchar2 default null,
                       p_pk3_value      in varchar2 default null,
                       p_pk4_value      in varchar2 default null,
-                      p_pk5_value      in varchar2 default null) return number is
+                      p_pk5_value      in varchar2 default null,
+                      p_page_id        in number   default null) return number is
         l_cfg      xxfnd_storage_config%rowtype;
         l_blob     blob;
         l_filename varchar2(400);
@@ -287,6 +392,7 @@ create or replace package body xxfnd_attach_pkg as
         check_entity(p_entity_name);
         check_category_rules(p_category_code, p_document_date, p_expiry_date);
         get_temp_file(p_temp_file_name, l_blob, l_filename, l_mime);
+        check_upload(p_page_id, p_category_code, l_filename, l_blob);
         l_cfg := resolve_storage(p_entity_name, p_category_code);
 
         l_stored := store_file(l_cfg, p_entity_name, p_pk1_value, p_pk2_value, p_pk3_value, p_pk4_value,
@@ -362,7 +468,8 @@ create or replace package body xxfnd_attach_pkg as
     procedure add_version(p_attached_document_id in number,
                           p_temp_file_name       in varchar2,
                           p_document_date        in date default null,
-                          p_expiry_date          in date default null) is
+                          p_expiry_date          in date default null,
+                          p_page_id              in number   default null) is
         l_ad       xxfnd_attached_documents%rowtype;
         l_old      xxfnd_documents%rowtype;
         l_cfg      xxfnd_storage_config%rowtype;
@@ -383,6 +490,7 @@ create or replace package body xxfnd_attach_pkg as
         end if;
         check_category_rules(l_ad.category_code, p_document_date, p_expiry_date);
         get_temp_file(p_temp_file_name, l_blob, l_filename, l_mime);
+        check_upload(p_page_id, l_ad.category_code, l_filename, l_blob);
 
         -- Same store as the first version so the external history stays together.
         select * into l_cfg from xxfnd_storage_config where storage_config_id = l_old.storage_config_id;

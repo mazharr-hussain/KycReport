@@ -262,6 +262,58 @@ page 135 (
         }
     )
 
+    pageItem P135_MAX_FILE_SIZE_MB (
+        type: numberField
+        label {
+            label: Maximum File Size (MB)
+            alignment: left
+        }
+        layout {
+            sequence: 51
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: MAX_FILE_SIZE_MB
+            dataType: number
+        }
+        help {
+            helpText: Largest file accepted for this page. Empty = use the application setting (a category setting wins over this).
+        }
+    )
+
+    pageItem P135_ALLOWED_FILE_TYPES (
+        type: textField
+        label {
+            label: Allowed File Types
+            alignment: left
+        }
+        layout {
+            sequence: 52
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ALLOWED_FILE_TYPES
+            dataType: varchar2
+        }
+        help {
+            helpText: File extensions accepted for this page, separated by commas (e.g. pdf, jpg, png); * = any type. Empty = use the application setting (a category setting wins over this).
+        }
+    )
+
     pageItem P135_ENABLED_FLAG (
         type: switch
         label {
@@ -1058,6 +1110,35 @@ page 135 (
             }
         )
 
+    )
+
+    validation upload-limits (
+        name: Upload limits
+        execution {
+            sequence: 50
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P135_MAX_FILE_SIZE_MB is not null and to_number(:P135_MAX_FILE_SIZE_MB) <= 0 then
+                    return 'The maximum file size must be more than 0 MB.';
+                end if;
+                if :P135_ALLOWED_FILE_TYPES is not null
+                   and not regexp_like(:P135_ALLOWED_FILE_TYPES, '^ *(\*|\.?[A-Za-z0-9]+( *, *\.?[A-Za-z0-9]+)*) *$') then
+                    return 'List the file extensions separated by commas, e.g. pdf, jpg, png (or * for any type).';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P135_ALLOWED_FILE_TYPES
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
     )
 
     process initialize-form (

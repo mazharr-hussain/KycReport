@@ -12,7 +12,7 @@ authorization kyc-user (
         errorMessage: You do not have access to the KYC Compliance Platform. Ask an administrator to grant you a role.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
@@ -102,7 +102,7 @@ authorization workflow-administer (
         errorMessage: You are not allowed to administer workflow items.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
@@ -120,6 +120,6 @@ authorization admin-area (
         errorMessage: You do not have access to Administration.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )

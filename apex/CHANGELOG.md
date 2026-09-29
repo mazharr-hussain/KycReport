@@ -1,28 +1,45 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_14.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_15.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
 Source of truth: the APEXlang tree in `apex/src` and the database scripts in `apex/db` (one `.sql` file per script,
 order in `apex/db/manifest.json`). `python3 apex/tools/build.py --release N` generates the supporting-object
 components from `apex/db` and writes the zip. Each chunk is one commit.
 
 ## How each release is verified
 
-| Layer | Tool | Result for release 14 |
+| Layer | Tool | Result for release 15 |
 |---|---|---|
 | Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
 | Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
-| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,413 checks, 0 FAIL |
-| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 29 scripts run; 377 objects, 0 invalid; releases R09–R14 recorded; the 3 automations active; seed data + first administrator present |
-| Upgrade | release 9 → 10 → 11 → 12 → 13 → 14 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 377 objects as a clean install |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,448 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 30 scripts run; 378 objects, 0 invalid; releases R09–R15 recorded; the 3 automations active; seed data + first administrator present |
+| Upgrade | release 9 → 10 → … → 14 → 15 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 378 objects as a clean install |
 | Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
-| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `monitoring_test.sql` (20 checks), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
-| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer. `monitoring_ui.py`: watchlist → reassessment drawer, Alert Rules form, alert acknowledgement, dashboard charts | 17/17 and 14/14 pass |
+| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `monitoring_test.sql` (20 checks), `upload_limits_test.sql` (6 checks), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
+| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer. `monitoring_ui.py`: watchlist → reassessment drawer, Alert Rules form, alert acknowledgement, dashboard charts | 17/17 and 14/14 pass; `upload_limits_ui.py` 4/4 |
 | Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 47 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1, REQ1, REQ2, MGR1 and HOC1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
 | Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
 
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 15 – upload limits and the remaining review findings
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 70 | `application.apx`; `apex/db/14-attachments.sql`; pages 133, 135; pages 33, 90, 91 | **Upload limits** | any file type and size, also on the public RFI page | application settings `ATTACH_MAX_FILE_SIZE_MB` (10) and `ATTACH_ALLOWED_FILE_TYPES` (pdf, jpg, jpeg, png, tif, tiff, doc, docx, xls, xlsx, msg, eml); an attachment page (135) can override them, a document category (133) overrides both; checked on the server in `ADD_FILE` / `ADD_VERSION`; the upload shows the accepted files and updates them with the category | Review findings 6/7 and 13 (your request: application default, override by screen and category) |
+| 71 | pages 90, 91 | Attachment processes | add, save details, additional information and remove relied on the button only | each also requires `BLOCK_PERMISSION` for its action, and on page 91 that the document belongs to the entity shown | Review finding 5/6 (a crafted request could bypass the hidden button) |
+| 72 | `shared-components/authorizations.apx` | *KYC User*, *Workflow – Administer*, *Administration Area* | evaluated once per session | every page view | Review finding 7/8: a revoked role or disabled user lost access only at the next login |
+| 73 | `apex/db/05…` | `XXFND_UTIL_PKG.LOOKUP_MEANING` | one query per row and column in ~40 reports | result cache per type, code and language (invalidated by Oracle when lookups change); about 8 µs per call measured over 200,000 rows | Review finding 8/9, fixed once for every screen |
+| 74 | `apex/db/10…`, `11…`; pages 151, 153 | Flexfield administrator SQL | value-set queries and SQL defaults ran as typed | `XXFND_DFF_PKG.ADMIN_SQL_ERROR`: SELECT/WITH only, one statement, no database links, `:CONTEXT_CODE` the only bind; parsed on save (value sets must return RETURN_VALUE and DISPLAY_VALUE; defaults one column); the runtime refuses SQL that fails the checks | Review finding 10 |
+| 75 | page 21 region *Possible Existing Matches* | Query | name similarity computed three times per party | once (inline view) | Review finding 11 |
+| 76 | `apex/db/16-kyc-rules.sql` | Index `XXCMP_RFIS_N2` on `upper(recipient_user_name)` | – | used by requesters' data security, their downloads and the home page | Review finding 12 |
+| 77 | `apex/db/18g-release-15.sql` | Release marker | – | records `R15` | |
+
+Already resolved by earlier chunks: the page 30 role check per row (page rebuilt), the scheduler job sessions (jobs replaced by
+APEX Automations), the page 170 link (page removed), `DOWNLOAD_DOCUMENT`'s `to_number` (release 13). Left as is:
+`compatibilityMode 24.2` (information only; changing it needs a full regression in 26.1 mode).
 
 ## Release 14 – Chunk 6: monitoring, alert rules, periodic reviews, executive dashboard
 

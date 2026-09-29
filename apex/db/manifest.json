@@ -169,5 +169,11 @@
   "file": "19b-enable-automations.sql",
   "install_sequence": 196,
   "upgrade_sequence": 156
+ },
+ {
+  "name": "18g Release 15 marker",
+  "file": "18g-release-15.sql",
+  "install_sequence": 192,
+  "upgrade_sequence": 152
  }
 ]

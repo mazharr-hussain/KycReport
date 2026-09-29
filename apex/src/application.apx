@@ -92,6 +92,32 @@ appSetting MAIL_FROM (
     }
 )
 
+appSetting ATTACH_MAX_FILE_SIZE_MB (
+    value {
+        staticValue: 10
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Largest attachment accepted, in MB, unless the document category or the attachment page sets its own.
+            ```
+    }
+)
+
+appSetting ATTACH_ALLOWED_FILE_TYPES (
+    value {
+        staticValue: pdf,jpg,jpeg,png,tif,tiff,doc,docx,xls,xlsx,msg,eml
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            File extensions accepted as attachments (comma-separated; * = any) unless the document category or the attachment page sets its own.
+            ```
+    }
+)
+
 appSetting FUSION_BASE_URL (
     value {
         onUpgradeKeepValue: true

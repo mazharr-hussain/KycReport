@@ -1359,6 +1359,32 @@ page 153 (
 
     )
 
+    validation segment-default-sql-safe (
+        name: SQL default is a safe query
+        execution {
+            sequence: 60
+        }
+        validation {
+            editableRegion: @segments
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :DEFAULT_TYPE <> 'SQL' or :APEX$ROW_STATUS = 'D' then
+                    return null;
+                end if;
+                return xxfnd_dff_pkg.admin_sql_error(:DEFAULT_VALUE, 'DEFAULT');
+                ```
+        }
+        error {
+            associatedColumn: @DEFAULT_VALUE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
     process initialize-form (
         name: Initialize form
         type: formInitialization

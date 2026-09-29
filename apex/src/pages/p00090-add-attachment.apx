@@ -214,6 +214,35 @@ page 90 (
         }
     )
 
+    pageItem P90_UPLOAD_RULES (
+        type: displayOnly
+        label {
+            label: Accepted Files
+            alignment: left
+        }
+        layout {
+            sequence: 31
+            region: @attach
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_attach_pkg.upload_rules_text(to_number(:P90_SOURCE_PAGE), :P90_CATEGORY_CODE) from dual
+                ```
+            used: always
+        }
+    )
+
     pageItem P90_URL (
         type: textField
         label {
@@ -515,6 +544,27 @@ page 90 (
             }
         )
 
+
+        action upload-rules-set (
+            action: setValue
+            settings {
+                type: sqlQuery
+                itemsToSubmit: P90_CATEGORY_CODE,P90_SOURCE_PAGE
+                sqlQuery:
+                    ```sql
+                    select xxfnd_attach_pkg.upload_rules_text(to_number(:P90_SOURCE_PAGE), :P90_CATEGORY_CODE) from dual
+                    ```
+            }
+            affectedElements {
+                selectionType: items
+                items: P90_UPLOAD_RULES
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
     )
 
     dynamicAction show-file (
@@ -537,7 +587,7 @@ page 90 (
             action: show
             affectedElements {
                 selectionType: items
-                items: P90_FILE
+                items: P90_FILE,P90_UPLOAD_RULES
             }
             execution {
                 sequence: 10
@@ -550,7 +600,7 @@ page 90 (
             action: hide
             affectedElements {
                 selectionType: items
-                items: P90_FILE
+                items: P90_FILE,P90_UPLOAD_RULES
             }
             execution {
                 sequence: 20
@@ -771,7 +821,8 @@ page 90 (
                         p_title          => :P90_TITLE,
                         p_description    => :P90_DESCRIPTION,
                         p_document_date  => to_date(:P90_DOCUMENT_DATE),
-                        p_expiry_date    => to_date(:P90_EXPIRY_DATE));
+                        p_expiry_date    => to_date(:P90_EXPIRY_DATE),
+                        p_page_id        => to_number(:P90_SOURCE_PAGE));
                 else
                     :P90_ATTACHED_DOCUMENT_ID := xxfnd_attach_pkg.add_text(
                         p_entity_name   => :P90_ENTITY_NAME,
@@ -794,6 +845,12 @@ page 90 (
         }
         serverSideCondition {
             whenButtonPressed: @add
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P90_SOURCE_PAGE), :P90_SOURCE_REGION, :P90_ENTITY_NAME, 'INSERT') = 'Y'
+                ```
         }
     )
 
@@ -830,8 +887,13 @@ page 90 (
             point: processing
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: ADD
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('ADD')
+                and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P90_SOURCE_PAGE), :P90_SOURCE_REGION, :P90_ENTITY_NAME, 'INSERT') = 'Y'
+                ```
         }
     )
 

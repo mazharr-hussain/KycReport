@@ -371,6 +371,43 @@ page 91 (
         }
     )
 
+    pageItem P91_UPLOAD_RULES (
+        type: displayOnly
+        label {
+            label: Accepted Files
+            alignment: left
+        }
+        layout {
+            sequence: 81
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_attach_pkg.upload_rules_text(to_number(:P91_SOURCE_PAGE), :P91_CATEGORY_CODE) from dual
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P91_DATATYPE_CODE = 'FILE' and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                ```
+        }
+    )
+
     region versions (
         name: Versions
         type: classicReport
@@ -753,7 +790,8 @@ page 91 (
                         p_attached_document_id => :P91_ATTACHED_DOCUMENT_ID,
                         p_temp_file_name       => :P91_NEW_FILE,
                         p_document_date        => to_date(:P91_DOCUMENT_DATE),
-                        p_expiry_date          => to_date(:P91_EXPIRY_DATE));
+                        p_expiry_date          => to_date(:P91_EXPIRY_DATE),
+                        p_page_id              => to_number(:P91_SOURCE_PAGE));
                 end if;
                 ```
         }
@@ -766,6 +804,14 @@ page 91 (
         }
         serverSideCondition {
             whenButtonPressed: @save
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
         }
     )
 
@@ -802,8 +848,15 @@ page 91 (
             point: processing
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('SAVE')
+                and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
         }
     )
 
@@ -826,6 +879,14 @@ page 91 (
         }
         serverSideCondition {
             whenButtonPressed: @remove
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'DELETE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
         }
     )
 
