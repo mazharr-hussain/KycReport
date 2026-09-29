@@ -15,7 +15,7 @@ page 91 (
         chained: false
     }
     security {
-        authorizationScheme: @kyc-user
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

@@ -8,7 +8,7 @@ page 165 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @rules-admin
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -215,6 +215,9 @@ page 165 (
         execution {
             sequence: 10
             point: afterSubmit
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

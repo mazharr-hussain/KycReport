@@ -8,7 +8,7 @@ page 152 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -224,7 +224,7 @@ page 152 (
             warnOnUnsavedChanges: doNotCheck
         }
         security {
-            authorizationScheme: @administration-rights
+            authorizationScheme: @page-create
         }
     )
 

@@ -7,7 +7,7 @@ page 1 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @kyc-user
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

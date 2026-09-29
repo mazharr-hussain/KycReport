@@ -15,7 +15,7 @@ page 115 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -303,6 +303,9 @@ page 115 (
             type: itemIsNull
             item: P115_DELEGATION_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -326,6 +329,9 @@ page 115 (
         serverSideCondition {
             type: itemIsNotNull
             item: P115_DELEGATION_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -355,6 +361,9 @@ page 115 (
         serverSideCondition {
             type: itemIsNotNull
             item: P115_DELEGATION_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -403,6 +412,9 @@ page 115 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

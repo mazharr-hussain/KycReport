@@ -16,7 +16,7 @@ page 125 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

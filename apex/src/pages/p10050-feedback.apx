@@ -12,7 +12,7 @@ page 10050 (
         chained: false
     }
     security {
-        authorizationScheme: @kyc-user
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

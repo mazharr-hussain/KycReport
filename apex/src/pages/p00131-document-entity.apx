@@ -15,7 +15,7 @@ page 131 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -441,6 +441,9 @@ page 131 (
             type: itemIsNull
             item: P131_SAVED
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -464,6 +467,9 @@ page 131 (
         serverSideCondition {
             type: itemIsNotNull
             item: P131_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -493,6 +499,9 @@ page 131 (
         serverSideCondition {
             type: itemIsNotNull
             item: P131_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -542,6 +551,9 @@ page 131 (
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process close-dialog (
@@ -579,6 +591,9 @@ page 131 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

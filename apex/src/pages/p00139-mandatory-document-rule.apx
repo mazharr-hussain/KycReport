@@ -15,7 +15,7 @@ page 139 (
         chained: false
     }
     security {
-        authorizationScheme: @rules-admin
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -427,6 +427,9 @@ page 139 (
             type: itemIsNull
             item: P139_ATTACHMENT_RULE_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -450,6 +453,9 @@ page 139 (
         serverSideCondition {
             type: itemIsNotNull
             item: P139_ATTACHMENT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -479,6 +485,9 @@ page 139 (
         serverSideCondition {
             type: itemIsNotNull
             item: P139_ATTACHMENT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -528,6 +537,9 @@ page 139 (
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process close-dialog (
@@ -567,6 +579,9 @@ page 139 (
                 :P139_APPROVAL_STATUS in ('DRAFT','REJECTED')
                 ```
         }
+        security {
+            authorizationScheme: @page-manage
+        }
     )
 
     process submit-for-approval (
@@ -588,6 +603,9 @@ page 139 (
         }
         serverSideCondition {
             whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

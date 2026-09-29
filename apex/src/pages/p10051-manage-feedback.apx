@@ -8,7 +8,7 @@ page 10051 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

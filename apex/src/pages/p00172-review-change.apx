@@ -16,7 +16,7 @@ page 172 (
         chained: false
     }
     security {
-        authorizationScheme: @config-approver
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -338,6 +338,9 @@ page 172 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
         }
+        security {
+            authorizationScheme: @page-manage
+        }
     )
 
     button approve (
@@ -356,6 +359,9 @@ page 172 (
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -421,6 +427,9 @@ page 172 (
         serverSideCondition {
             whenButtonPressed: @approve
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process reject-change (
@@ -442,6 +451,9 @@ page 172 (
         }
         serverSideCondition {
             whenButtonPressed: @reject
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

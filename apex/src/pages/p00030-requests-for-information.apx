@@ -8,7 +8,7 @@ page 30 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @kyc-user
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -62,9 +62,7 @@ page 30 (
                            r.responded_date,
                            r.created_by,
                            r.creation_date
-                      from xxcmp_rfis r
-                     where xxfnd_security_pkg.has_any_role_yn('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE') = 'Y'
-                        or upper(r.recipient_user_name) = :APP_USER
+                      from xxcmp_rfis r   -- rows filtered by data security (XXFND_VPD_PKG)
                 ) q
                 ```
         }

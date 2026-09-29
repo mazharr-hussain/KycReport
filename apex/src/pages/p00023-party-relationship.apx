@@ -15,7 +15,7 @@ page 23 (
         chained: false
     }
     security {
-        authorizationScheme: @compliance-staff
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -453,6 +453,9 @@ page 23 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     button cancel (
@@ -494,6 +497,9 @@ page 23 (
             type: itemIsNull
             item: P23_PARTY_RELATIONSHIP_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -517,6 +523,9 @@ page 23 (
         serverSideCondition {
             type: itemIsNotNull
             item: P23_PARTY_RELATIONSHIP_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -546,6 +555,9 @@ page 23 (
         serverSideCondition {
             type: itemIsNotNull
             item: P23_PARTY_RELATIONSHIP_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -594,6 +606,9 @@ page 23 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

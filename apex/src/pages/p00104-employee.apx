@@ -8,7 +8,7 @@ page 104 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -460,6 +460,9 @@ page 104 (
             type: itemIsNull
             item: P104_EMPLOYEE_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -483,6 +486,9 @@ page 104 (
         serverSideCondition {
             type: itemIsNotNull
             item: P104_EMPLOYEE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -692,6 +698,9 @@ page 104 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-roles (
@@ -705,6 +714,9 @@ page 104 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

@@ -8,7 +8,7 @@ page 31 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @kyc-user
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -430,7 +430,7 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                not xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE')
+                not xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
                 ```
         }
         help {
@@ -473,7 +473,7 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
                 ```
         }
         help {
@@ -551,7 +551,7 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
                 ```
         }
     )

@@ -8,7 +8,8 @@ appProcess DOWNLOAD_DOCUMENT (
             declare
                 l_allowed pls_integer;
             begin
-                if xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN') then
+                if xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                   or xxfnd_privilege_pkg.has_privilege('ATTACHMENTS', 'VIEW') then
                     l_allowed := 1;
                 else
                     -- Requesters: only documents on requests for information addressed to them.

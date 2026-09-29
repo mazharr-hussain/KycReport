@@ -165,7 +165,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(40, 'VIEW')
                 ```
         }
     )
@@ -188,7 +188,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE')
+                xxfnd_privilege_pkg.has_page_privilege(20, 'VIEW')
                 ```
         }
     )
@@ -211,7 +211,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(30, 'VIEW')
                 ```
         }
     )
@@ -234,7 +234,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_any_admin_privilege
                 ```
         }
     )
@@ -258,7 +258,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(170, 'VIEW')
                 ```
         }
     )
@@ -282,7 +282,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(41, 'VIEW')
                 ```
         }
     )
@@ -306,7 +306,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_any_admin_privilege
                 ```
         }
     )
@@ -337,7 +337,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(170, 'VIEW')
                 ```
         }
     )
@@ -363,7 +363,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(41, 'VIEW')
                 ```
         }
     )
@@ -389,7 +389,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(101, 'VIEW')
                 ```
         }
     )
@@ -415,7 +415,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(103, 'VIEW')
                 ```
         }
     )
@@ -441,7 +441,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(105, 'VIEW')
                 ```
         }
     )
@@ -467,7 +467,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(107, 'VIEW')
                 ```
         }
     )
@@ -493,7 +493,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(114, 'VIEW')
                 ```
         }
     )
@@ -519,7 +519,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(109, 'VIEW')
                 ```
         }
     )
@@ -545,7 +545,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(111, 'VIEW')
                 ```
         }
     )
@@ -571,7 +571,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(112, 'VIEW')
                 ```
         }
     )
@@ -597,7 +597,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(120, 'VIEW')
                 ```
         }
     )
@@ -623,7 +623,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(122, 'VIEW')
                 ```
         }
     )
@@ -649,7 +649,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(124, 'VIEW')
                 ```
         }
     )
@@ -675,7 +675,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(130, 'VIEW')
                 ```
         }
     )
@@ -701,7 +701,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(132, 'VIEW')
                 ```
         }
     )
@@ -727,7 +727,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(134, 'VIEW')
                 ```
         }
     )
@@ -753,7 +753,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(136, 'VIEW')
                 ```
         }
     )
@@ -779,7 +779,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(138, 'VIEW')
                 ```
         }
     )
@@ -805,7 +805,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(140, 'VIEW')
                 ```
         }
     )
@@ -831,7 +831,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(142, 'VIEW')
                 ```
         }
     )
@@ -857,7 +857,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(150, 'VIEW')
                 ```
         }
     )
@@ -883,7 +883,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(152, 'VIEW')
                 ```
         }
     )
@@ -909,7 +909,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(160, 'VIEW')
                 ```
         }
     )
@@ -935,7 +935,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(163, 'VIEW')
                 ```
         }
     )
@@ -961,7 +961,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(165, 'VIEW')
                 ```
         }
     )
@@ -987,7 +987,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(10020, 'VIEW')
                 ```
         }
     )
@@ -1013,7 +1013,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(10030, 'VIEW')
                 ```
         }
     )
@@ -1039,7 +1039,7 @@ list admin-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_security_pkg.has_role('SYSTEM_ADMIN')
+                xxfnd_privilege_pkg.has_page_privilege(10051, 'VIEW')
                 ```
         }
     )

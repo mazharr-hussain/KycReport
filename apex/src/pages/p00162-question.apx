@@ -8,7 +8,7 @@ page 162 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @rules-admin
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -414,6 +414,9 @@ page 162 (
             type: itemIsNull
             item: P162_QUESTION_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -437,6 +440,9 @@ page 162 (
         serverSideCondition {
             type: itemIsNotNull
             item: P162_QUESTION_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -463,6 +469,9 @@ page 162 (
                 select 1 from xxcmp_answer_options
                  where question_id = :P162_QUESTION_ID and approval_status in ('DRAFT','REJECTED')
                 ```
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -813,6 +822,9 @@ page 162 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-answers (
@@ -826,6 +838,9 @@ page 162 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 
@@ -852,6 +867,9 @@ page 162 (
         }
         serverSideCondition {
             whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

@@ -15,7 +15,7 @@ page 10021 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -172,6 +172,9 @@ page 10021 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
         }
+        security {
+            authorizationScheme: @page-manage
+        }
     )
 
     dynamicAction cancel-dialog (
@@ -217,6 +220,9 @@ page 10021 (
         }
         serverSideCondition {
             whenButtonPressed: @save
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

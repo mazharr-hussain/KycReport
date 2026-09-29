@@ -15,7 +15,7 @@ page 133 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -445,6 +445,9 @@ page 133 (
             type: itemIsNull
             item: P133_SAVED
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -468,6 +471,9 @@ page 133 (
         serverSideCondition {
             type: itemIsNotNull
             item: P133_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -497,6 +503,9 @@ page 133 (
         serverSideCondition {
             type: itemIsNotNull
             item: P133_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -545,6 +554,9 @@ page 133 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

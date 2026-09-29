@@ -8,7 +8,7 @@ page 103 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -275,7 +275,7 @@ page 103 (
             warnOnUnsavedChanges: doNotCheck
         }
         security {
-            authorizationScheme: @administration-rights
+            authorizationScheme: @page-create
         }
     )
 
@@ -295,6 +295,9 @@ page 103 (
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -317,6 +320,9 @@ page 103 (
         }
         serverSideCondition {
             whenButtonPressed: @sync
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

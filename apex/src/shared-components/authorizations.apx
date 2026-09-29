@@ -4,7 +4,8 @@ authorization kyc-user (
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            -- Application-level check: the user holds at least one privilege through an active role.
+            return xxfnd_privilege_pkg.has_any_privilege;
             ```
     }
     error {
@@ -15,85 +16,90 @@ authorization kyc-user (
     }
 )
 
-authorization compliance-staff (
-    name: Compliance Staff
+authorization page-view (
+    name: Page - View
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE');
+            -- Generic page access: VIEW on the feature this page is mapped to (XXFND_FEATURE_PAGES).
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'VIEW');
             ```
     }
     error {
-        errorMessage: This page is for the Compliance team.
+        errorMessage: You do not have access to this page.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
-authorization rules-admin (
-    name: KYC Rules Administrator
+authorization page-create (
+    name: Page - Create
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            -- Create buttons: CREATE on the feature of the current page.
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'CREATE');
             ```
     }
     error {
-        errorMessage: Only Compliance Managers, the Head of Compliance and System Administrators maintain KYC rules.
+        errorMessage: You are not allowed to create records here.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
-authorization config-approver (
-    name: Configuration Approver
+authorization page-manage (
+    name: Page - Manage
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            -- Save, delete and other change buttons: MANAGE on the feature of the current page.
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'MANAGE');
             ```
     }
     error {
-        errorMessage: You are not allowed to approve configuration changes.
+        errorMessage: You are not allowed to change records here.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
-authorization audit-viewer (
-    name: Audit Viewer
+authorization page-submit (
+    name: Page - Submit
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            -- Processes that change data: request CREATE needs CREATE, any other request needs MANAGE.
+            return xxfnd_privilege_pkg.has_page_request_privilege(:APP_PAGE_ID, :REQUEST);
             ```
     }
     error {
-        errorMessage: You are not allowed to view the audit log.
+        errorMessage: You are not allowed to perform this action.
     }
     advanced {
-        evaluationType: perSession
+        evaluationType: perPageView
     }
 )
 
-authorization administration-rights (
-    name: Administration Rights
+authorization workflow-administer (
+    name: Workflow - Administer
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_role('SYSTEM_ADMIN');
+            -- Suspend, resume, move and cancel workflow items.
+            return xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE');
             ```
     }
     error {
-        errorMessage: Insufficient privileges, user is not a System Administrator.
+        errorMessage: You are not allowed to administer workflow items.
     }
     advanced {
         evaluationType: perSession
@@ -106,7 +112,8 @@ authorization admin-area (
     settings {
         plsqlFunctionBody:
             ```plsql
-            return xxfnd_security_pkg.has_any_role('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN');
+            -- The Administration console opens for anyone holding a privilege on an admin feature.
+            return xxfnd_privilege_pkg.has_any_admin_privilege;
             ```
     }
     error {

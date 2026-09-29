@@ -8,7 +8,7 @@ page 21 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @compliance-staff
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -502,6 +502,9 @@ page 21 (
             type: itemIsNull
             item: P21_PARTY_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -525,6 +528,9 @@ page 21 (
         serverSideCondition {
             type: itemIsNotNull
             item: P21_PARTY_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -556,6 +562,9 @@ page 21 (
         serverSideCondition {
             type: itemIsNotNull
             item: P21_PARTY_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -1113,6 +1122,9 @@ page 21 (
             }
             warnOnUnsavedChanges: doNotCheck
         }
+        security {
+            authorizationScheme: @page-manage
+        }
     )
 
     dynamicAction refresh-contacts (
@@ -1322,6 +1334,9 @@ page 21 (
                 clearCache: 23
             }
             warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -1727,6 +1742,9 @@ page 21 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process initialize-party (
@@ -1753,6 +1771,9 @@ page 21 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

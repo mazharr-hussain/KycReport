@@ -8,7 +8,7 @@ page 135 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -339,6 +339,9 @@ page 135 (
                 nvl(:P135_SAVED, 'N') = 'N'
                 ```
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -362,6 +365,9 @@ page 135 (
         serverSideCondition {
             type: itemIsNotNull
             item: P135_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -957,6 +963,9 @@ page 135 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-blocks (
@@ -970,6 +979,9 @@ page 135 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 
@@ -985,6 +997,9 @@ page 135 (
             type: requestIsContainedInValue
             value: SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-usages (
@@ -998,6 +1013,9 @@ page 135 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

@@ -15,7 +15,7 @@ page 123 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -383,6 +383,9 @@ page 123 (
             type: itemIsNull
             item: P123_SAVED
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -406,6 +409,9 @@ page 123 (
         serverSideCondition {
             type: itemIsNotNull
             item: P123_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -435,6 +441,9 @@ page 123 (
         serverSideCondition {
             type: itemIsNotNull
             item: P123_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -484,6 +493,9 @@ page 123 (
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process close-dialog (
@@ -523,6 +535,9 @@ page 123 (
                 :P123_APPROVAL_STATUS in ('DRAFT','REJECTED')
                 ```
         }
+        security {
+            authorizationScheme: @page-manage
+        }
     )
 
     process submit-for-approval (
@@ -544,6 +559,9 @@ page 123 (
         }
         serverSideCondition {
             whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

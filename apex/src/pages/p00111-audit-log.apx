@@ -8,7 +8,7 @@ page 111 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @audit-viewer
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }

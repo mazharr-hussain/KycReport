@@ -8,7 +8,7 @@ page 153 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -495,6 +495,9 @@ page 153 (
                 nvl(:P153_SAVED, 'N') = 'N'
                 ```
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -518,6 +521,9 @@ page 153 (
         serverSideCondition {
             type: itemIsNotNull
             item: P153_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -545,6 +551,9 @@ page 153 (
         serverSideCondition {
             type: itemIsNotNull
             item: P153_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -1233,6 +1242,9 @@ page 153 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-name (
@@ -1264,6 +1276,9 @@ page 153 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-contexts (
@@ -1278,6 +1293,9 @@ page 153 (
             type: requestIsContainedInValue
             value: SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-segments (
@@ -1291,6 +1309,9 @@ page 153 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 
@@ -1313,6 +1334,9 @@ page 153 (
         }
         serverSideCondition {
             whenButtonPressed: @gen-view
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

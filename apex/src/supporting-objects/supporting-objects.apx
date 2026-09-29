@@ -100,6 +100,36 @@ supportingObject (
         }
     )
 
+    validation (
+        name: DBMS_RLS granted
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- Row-level data security (XXFND_VPD_PKG) attaches its policies with DBMS_RLS.
+                declare
+                    l_type pls_integer;
+                begin
+                    execute immediate 'begin :t := dbms_rls.dynamic; end;' using out l_type;
+                    return true;
+                exception
+                    when others then
+                        return false;
+                end;
+                ```
+        }
+        error {
+            errorMessage:
+                ```
+                Ask the database administrator to run: grant execute on dbms_rls to <parsing schema>
+                ```
+        }
+    )
+
     installScript (
         name: 00 Deployment framework
         execution {
@@ -2986,6 +3016,334 @@ supportingObject (
     )
 
     installScript (
+        name: 09b Security framework - objects
+        execution {
+            sequence: 95
+        }
+        script {
+            content:
+                ```
+                --------------------------------------------------------------------------------
+                -- C02 Security framework (release R10)
+                -- Features -> privileges (VIEW / CREATE / MANAGE) -> roles, maintained in the
+                -- application. Pages map to features, so rebuilding a screen only changes the
+                -- mapping. Row-level data security: typed rules enforced by one generic VPD
+                -- policy. Idempotent: safe on install and on every upgrade.
+                --------------------------------------------------------------------------------
+                create table if not exists xxfnd_features (
+                    feature_code           varchar2(30)   not null,
+                    feature_name           varchar2(240)  not null,
+                    feature_group          varchar2(30)   not null,
+                    display_sequence       number         default 100 not null,
+                    admin_flag             varchar2(1)    default 'N' not null,
+                    enabled_flag           varchar2(1)    default 'Y' not null,
+                    description            varchar2(1000),
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_features_pk primary key (feature_code),
+                    constraint xxfnd_features_ck1 check (admin_flag in ('Y','N')),
+                    constraint xxfnd_features_ck2 check (enabled_flag in ('Y','N'))
+                );
+                comment on table xxfnd_features is 'Application features (one menu entry each). Privileges are granted per feature and action.';
+
+                create table if not exists xxfnd_privileges (
+                    privilege_code         varchar2(61)   not null,
+                    feature_code           varchar2(30)   not null,
+                    action_code            varchar2(20)   not null,
+                    privilege_name         varchar2(240)  not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_privileges_pk primary key (privilege_code),
+                    constraint xxfnd_privileges_uk1 unique (feature_code, action_code),
+                    constraint xxfnd_privileges_fk1 foreign key (feature_code) references xxfnd_features (feature_code),
+                    constraint xxfnd_privileges_ck1 check (action_code in ('VIEW','CREATE','MANAGE')),
+                    constraint xxfnd_privileges_ck2 check (privilege_code = feature_code || '.' || action_code)
+                );
+                comment on table xxfnd_privileges is 'VIEW = open and read; CREATE = new records; MANAGE = change existing records (edit, delete, actions).';
+
+                create table if not exists xxfnd_feature_pages (
+                    app_alias              varchar2(255)  not null,
+                    page_id                number         not null,
+                    feature_code           varchar2(30)   not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_feature_pages_pk primary key (app_alias, page_id),
+                    constraint xxfnd_feature_pages_fk1 foreign key (feature_code) references xxfnd_features (feature_code)
+                );
+                comment on table xxfnd_feature_pages is 'Which feature an APEX page belongs to. Page authorization checks the privilege of this feature.';
+
+                create table if not exists xxfnd_role_privileges (
+                    role_code              varchar2(30)   not null,
+                    privilege_code         varchar2(61)   not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_role_privileges_pk primary key (role_code, privilege_code),
+                    constraint xxfnd_role_privileges_fk1 foreign key (role_code) references xxfnd_roles (role_code) on delete cascade,
+                    constraint xxfnd_role_privileges_fk2 foreign key (privilege_code) references xxfnd_privileges (privilege_code) on delete cascade
+                );
+                comment on table xxfnd_role_privileges is 'Privileges granted to a role. Maintained on the Roles and Privileges screen.';
+
+                create table if not exists xxfnd_data_security_rules (
+                    rule_id                number generated by default on null as identity,
+                    role_code              varchar2(30)   not null,
+                    table_name             varchar2(128)  not null,
+                    rule_type              varchar2(20)   not null,
+                    column_name            varchar2(128),
+                    value_list             varchar2(4000),
+                    enabled_flag           varchar2(1)    default 'Y' not null,
+                    description            varchar2(1000),
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_data_security_rules_pk primary key (rule_id),
+                    constraint xxfnd_data_security_rules_fk1 foreign key (role_code) references xxfnd_roles (role_code) on delete cascade,
+                    constraint xxfnd_data_security_rules_ck1 check (rule_type in ('ALL_ROWS','OWN_RECORDS','COLUMN_IN_LIST')),
+                    constraint xxfnd_data_security_rules_ck2 check (
+                        (rule_type = 'ALL_ROWS'       and column_name is null     and value_list is null) or
+                        (rule_type = 'OWN_RECORDS'    and column_name is not null and value_list is null) or
+                        (rule_type = 'COLUMN_IN_LIST' and column_name is not null and value_list is not null)),
+                    constraint xxfnd_data_security_rules_ck3 check (enabled_flag in ('Y','N'))
+                );
+                comment on table xxfnd_data_security_rules is 'Row access per role and table. A user sees the union of the rows allowed by the enabled rules of their active roles; no rule = no rows (enforced by XXFND_VPD_PKG).';
+                comment on column xxfnd_data_security_rules.value_list is 'COLUMN_IN_LIST: comma-separated values, e.g. AE,SA.';
+
+                begin
+                    for t in (select table_name from user_tables
+                               where table_name in ('XXFND_FEATURES','XXFND_PRIVILEGES','XXFND_FEATURE_PAGES',
+                                                    'XXFND_ROLE_PRIVILEGES','XXFND_DATA_SECURITY_RULES')) loop
+                        xxfnd_util_pkg.create_who_trigger(t.table_name);
+                    end loop;
+                    -- Security configuration is audited like every other setup table.
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_ROLE_PRIVILEGES');
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_DATA_SECURITY_RULES');
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_FEATURE_PAGES');
+                end;
+                /
+
+                --------------------------------------------------------------------------------
+                -- Privilege API
+                --------------------------------------------------------------------------------
+                create or replace package xxfnd_privilege_pkg authid definer as
+                    -- Current (or given) user holds FEATURE.ACTION through an active role.
+                    function has_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                           p_user_name in varchar2 default null) return boolean;
+                    function has_privilege_yn(p_feature_code in varchar2, p_action in varchar2,
+                                              p_user_name in varchar2 default null) return varchar2;
+                    -- Privilege on the feature an APEX page belongs to. Unmapped page = no access.
+                    function has_page_privilege(p_page_id in number, p_action in varchar2,
+                                                p_app_alias in varchar2 default null) return boolean;
+                    -- For DML processes: request CREATE needs CREATE, any other request needs MANAGE.
+                    function has_page_request_privilege(p_page_id in number, p_request in varchar2,
+                                                        p_app_alias in varchar2 default null) return boolean;
+                    -- True when the user holds at least one privilege (application-level check).
+                    function has_any_privilege(p_user_name in varchar2 default null) return boolean;
+                    -- True when the user holds a privilege on any admin feature (Admin Console).
+                    function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean;
+                end xxfnd_privilege_pkg;
+                /
+
+                create or replace package body xxfnd_privilege_pkg as
+
+                    function norm_user(p_user_name in varchar2) return varchar2 is
+                    begin
+                        return upper(nvl(p_user_name, xxfnd_util_pkg.current_user));
+                    end norm_user;
+
+                    function has_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                           p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);   -- private function: not callable inside SQL
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                          join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                          join xxfnd_features f         on f.feature_code = p.feature_code
+                         where ur.user_name   = l_user
+                           and ur.active_flag = 'Y'
+                           and f.enabled_flag = 'Y'
+                           and p.feature_code = upper(p_feature_code)
+                           and p.action_code  = upper(p_action)
+                           and rownum = 1;
+                        return l_count > 0;
+                    end has_privilege;
+
+                    function has_privilege_yn(p_feature_code in varchar2, p_action in varchar2,
+                                              p_user_name in varchar2 default null) return varchar2 is
+                    begin
+                        return case when has_privilege(p_feature_code, p_action, p_user_name) then 'Y' else 'N' end;
+                    end has_privilege_yn;
+
+                    function page_feature(p_page_id in number, p_app_alias in varchar2) return varchar2 is
+                        l_feature xxfnd_feature_pages.feature_code%type;
+                    begin
+                        select max(feature_code) into l_feature
+                          from xxfnd_feature_pages
+                         where upper(app_alias) = upper(nvl(p_app_alias, v('APP_ALIAS')))
+                           and page_id = p_page_id;
+                        return l_feature;
+                    end page_feature;
+
+                    function has_page_privilege(p_page_id in number, p_action in varchar2,
+                                                p_app_alias in varchar2 default null) return boolean is
+                        l_feature xxfnd_feature_pages.feature_code%type := page_feature(p_page_id, p_app_alias);
+                    begin
+                        return l_feature is not null and has_privilege(l_feature, p_action);
+                    end has_page_privilege;
+
+                    function has_page_request_privilege(p_page_id in number, p_request in varchar2,
+                                                        p_app_alias in varchar2 default null) return boolean is
+                    begin
+                        return has_page_privilege(p_page_id,
+                                                  case when upper(p_request) = 'CREATE' then 'CREATE' else 'MANAGE' end,
+                                                  p_app_alias);
+                    end has_page_request_privilege;
+
+                    function has_any_privilege(p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                         where ur.user_name = l_user and ur.active_flag = 'Y' and rownum = 1;
+                        return l_count > 0;
+                    end has_any_privilege;
+
+                    function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                          join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                          join xxfnd_features f         on f.feature_code = p.feature_code
+                         where ur.user_name = l_user and ur.active_flag = 'Y'
+                           and f.admin_flag = 'Y' and f.enabled_flag = 'Y' and rownum = 1;
+                        return l_count > 0;
+                    end has_any_admin_privilege;
+
+                end xxfnd_privilege_pkg;
+                /
+
+                --------------------------------------------------------------------------------
+                -- Row-level data security (Virtual Private Database)
+                --------------------------------------------------------------------------------
+                create or replace package xxfnd_vpd_pkg authid definer as
+                    -- DBMS_RLS policy function for every table that has data security rules.
+                    function policy(p_schema in varchar2, p_object in varchar2) return varchar2;
+                    -- Attach the policy to every table referenced by a rule (idempotent).
+                    procedure apply_policies;
+                    -- Narrow bypass for server code that has already authorised the caller
+                    -- (e.g. a validated RFI response token). Always paired with end_trusted.
+                    procedure begin_trusted;
+                    procedure end_trusted;
+                end xxfnd_vpd_pkg;
+                /
+
+                create or replace package body xxfnd_vpd_pkg as
+                    g_trusted pls_integer := 0;
+                    c_policy  constant varchar2(30) := 'XXFND_DATA_SECURITY';
+
+                    procedure begin_trusted is begin g_trusted := g_trusted + 1; end begin_trusted;
+                    procedure end_trusted   is begin g_trusted := greatest(g_trusted - 1, 0); end end_trusted;
+
+                    function quoted_list(p_values in varchar2) return varchar2 is
+                        l_out varchar2(32767);
+                    begin
+                        for v in (select trim(column_value) val from table(apex_string.split(p_values, ','))
+                                   where trim(column_value) is not null) loop
+                            l_out := l_out || case when l_out is not null then ',' end
+                                           || dbms_assert.enquote_literal(replace(v.val, '''', ''''''));
+                        end loop;
+                        return l_out;
+                    end quoted_list;
+
+                    function policy(p_schema in varchar2, p_object in varchar2) return varchar2 is
+                        l_user      varchar2(255) := upper(sys_context('APEX$SESSION', 'APP_USER'));
+                        l_predicate varchar2(32767);
+                        l_part      varchar2(4000);
+                    begin
+                        -- Install scripts, scheduler jobs and developer sessions run without an APEX user.
+                        if l_user is null or g_trusted > 0 then
+                            return null;
+                        end if;
+                        for r in (select distinct d.rule_type, d.column_name, d.value_list
+                                    from xxfnd_data_security_rules d
+                                    join xxfnd_user_roles_v ur on ur.role_code = d.role_code
+                                   where ur.user_name = l_user and ur.active_flag = 'Y'
+                                     and d.enabled_flag = 'Y' and d.table_name = upper(p_object)) loop
+                            if r.rule_type = 'ALL_ROWS' then
+                                return null;
+                            end if;
+                            l_part := case r.rule_type
+                                        when 'OWN_RECORDS' then
+                                            'upper(' || dbms_assert.simple_sql_name(r.column_name) || ') = '
+                                            || dbms_assert.enquote_literal(replace(l_user, '''', ''''''))
+                                        when 'COLUMN_IN_LIST' then
+                                            dbms_assert.simple_sql_name(r.column_name) || ' in (' || quoted_list(r.value_list) || ')'
+                                      end;
+                            if l_part is not null then
+                                l_predicate := l_predicate || case when l_predicate is not null then ' or ' end || '(' || l_part || ')';
+                            end if;
+                        end loop;
+                        -- No rule for this user and table: deny.
+                        return nvl(l_predicate, '1 = 0');
+                    end policy;
+
+                    procedure apply_policies is
+                        l_count pls_integer;
+                    begin
+                        for t in (select distinct d.table_name from xxfnd_data_security_rules d
+                                    join user_tables u on u.table_name = d.table_name) loop
+                            select count(*) into l_count from user_policies
+                             where object_name = t.table_name and policy_name = c_policy;
+                            if l_count = 0 then
+                                dbms_rls.add_policy(
+                                    object_schema   => sys_context('USERENV', 'CURRENT_SCHEMA'),
+                                    object_name     => t.table_name,
+                                    policy_name     => c_policy,
+                                    function_schema => sys_context('USERENV', 'CURRENT_SCHEMA'),
+                                    policy_function => 'XXFND_VPD_PKG.POLICY',
+                                    statement_types => 'SELECT,INSERT,UPDATE,DELETE',
+                                    update_check    => true,
+                                    policy_type     => dbms_rls.dynamic);
+                            end if;
+                        end loop;
+                    end apply_policies;
+
+                end xxfnd_vpd_pkg;
+                /
+                ```
+        }
+    )
+
+    installScript (
         name: 10 Flexfield runtime - part 1 of 2
         execution {
             sequence: 100
@@ -5832,6 +6190,9 @@ supportingObject (
                         l_rfi  xxcmp_rfis%rowtype;
                         l_hash varchar2(128) := hash_token(p_token);   -- private function: not callable from SQL
                     begin
+                        -- The caller is an anonymous party (APP_USER nobody); the token is the authorisation,
+                        -- so row-level data security is bypassed for this call only.
+                        xxfnd_vpd_pkg.begin_trusted;
                         begin
                             select * into l_rfi from xxcmp_rfis
                              where response_token_hash = l_hash
@@ -5850,7 +6211,12 @@ supportingObject (
                                response_token_hash = null, token_expiry_date = null
                          where rfi_id = l_rfi.rfi_id;
                         advance(l_rfi.rfi_id, 'AWAIT_RESPONSE', 'RESPONDED');
+                        xxfnd_vpd_pkg.end_trusted;
                         return l_rfi.rfi_id;
+                    exception
+                        when others then
+                            xxfnd_vpd_pkg.end_trusted;
+                            raise;
                     end respond_by_token;
 
                     procedure resolve(p_rfi_id in number, p_status in varchar2, p_notes in varchar2) is
@@ -6533,6 +6899,163 @@ supportingObject (
                         end loop;
                     end if;
                     xxfnd_util_pkg.set_install_mode(false);
+                    commit;
+                end;
+                /
+                ```
+        }
+    )
+
+    installScript (
+        name: 18b Security framework - seed
+        execution {
+            sequence: 185
+        }
+        script {
+            content:
+                ```
+                --------------------------------------------------------------------------------
+                -- C02 Security framework - seed (release R10). Runs after the roles are seeded.
+                --------------------------------------------------------------------------------
+                declare
+                    -- Variables must precede the local subprograms.
+                    c_staff  constant varchar2(200) := 'COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE';
+                    c_rules  constant varchar2(200) := 'COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN';
+                    c_all    constant varchar2(200) := 'REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN';
+                    c_amp    constant varchar2(1)   := chr(38);   -- no literal ampersand: script runners substitute it
+
+                    procedure feature(p_code in varchar2, p_name in varchar2, p_group in varchar2, p_seq in number,
+                                      p_admin in varchar2, p_actions in varchar2) is
+                    begin
+                        merge into xxfnd_features t using (select p_code c from dual) s on (t.feature_code = s.c)
+                         when not matched then insert (feature_code, feature_name, feature_group, display_sequence, admin_flag)
+                                               values (p_code, p_name, p_group, p_seq, p_admin);
+                        for a in (select column_value action from table(apex_string.split(p_actions, ','))) loop
+                            merge into xxfnd_privileges t using (select p_code || '.' || a.action pc from dual) s
+                               on (t.privilege_code = s.pc)
+                             when not matched then insert (privilege_code, feature_code, action_code, privilege_name)
+                                                   values (s.pc, p_code, a.action,
+                                                           p_name || ' - ' || initcap(a.action));
+                        end loop;
+                    end feature;
+
+                    procedure pages(p_feature in varchar2, p_pages in varchar2) is
+                    begin
+                        for p in (select to_number(column_value) page_id from table(apex_string.split(p_pages, ','))) loop
+                            merge into xxfnd_feature_pages t using (select 'KYC' app_alias, p.page_id page_id from dual) s
+                               on (t.app_alias = s.app_alias and t.page_id = s.page_id)
+                             when not matched then insert (app_alias, page_id, feature_code) values ('KYC', p.page_id, p_feature);
+                        end loop;
+                    end pages;
+
+                    procedure grant_priv(p_roles in varchar2, p_privileges in varchar2) is
+                    begin
+                        for r in (select column_value role_code from table(apex_string.split(p_roles, ','))) loop
+                            for p in (select column_value privilege_code from table(apex_string.split(p_privileges, ','))) loop
+                                merge into xxfnd_role_privileges t
+                                using (select r.role_code rc, p.privilege_code pc from dual) s
+                                   on (t.role_code = s.rc and t.privilege_code = s.pc)
+                                 when not matched then insert (role_code, privilege_code) values (s.rc, s.pc);
+                            end loop;
+                        end loop;
+                    end grant_priv;
+
+                    procedure rule(p_role in varchar2, p_table in varchar2, p_type in varchar2, p_column in varchar2 default null) is
+                    begin
+                        merge into xxfnd_data_security_rules t
+                        using (select p_role r, p_table tb, p_type ty from dual) s
+                           on (t.role_code = s.r and t.table_name = s.tb and t.rule_type = s.ty)
+                         when not matched then insert (role_code, table_name, rule_type, column_name)
+                                               values (p_role, p_table, p_type, p_column);
+                    end rule;
+                begin
+                    xxfnd_util_pkg.set_install_mode(true);
+                    -- Business features
+                    feature('HOME',             'Home',                   'BUSINESS', 10, 'N', 'VIEW');
+                    feature('MY_TASKS',         'My Tasks',               'BUSINESS', 20, 'N', 'VIEW');
+                    feature('KYC_REQUESTS',     'KYC Requests',           'BUSINESS', 30, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('PARTIES',          'Parties',                'BUSINESS', 40, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('CASES',            'Cases',                  'BUSINESS', 50, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('MONITORING',       'Monitoring Watchlist',   'BUSINESS', 60, 'N', 'VIEW,MANAGE');
+                    feature('DASHBOARD',        'Executive Dashboard',    'BUSINESS', 70, 'N', 'VIEW');
+                    -- Admin: Basic Setup
+                    feature('LOOKUPS',          'Lookups',                'BASIC_SETUP', 110, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('FLEXFIELDS',       'Flexfields (DFF)',       'BASIC_SETUP', 120, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('KYC_RULES',        'KYC Rules',              'BASIC_SETUP', 130, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ATTACHMENTS',      'Attachments',            'BASIC_SETUP', 140, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('NOTIFICATIONS',    'Notifications',          'BASIC_SETUP', 150, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('RETENTION',        'Retention',              'BASIC_SETUP', 160, 'Y', 'VIEW,CREATE,MANAGE');
+                    -- Admin: Workflow and Integration
+                    feature('WORKFLOW_SETUP',   'Workflow Setup',         'WORKFLOW_INTEGRATION', 210, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ALERT_RULES',      'Alert Rules',            'WORKFLOW_INTEGRATION', 220, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('WORKFLOW_MONITOR', 'Workflow Monitor',       'WORKFLOW_INTEGRATION', 230, 'Y', 'VIEW,MANAGE');
+                    feature('INTEGRATIONS',     'Integrations',           'WORKFLOW_INTEGRATION', 240, 'Y', 'VIEW,CREATE,MANAGE');
+                    -- Admin: Security
+                    feature('USERS_ACCESS',     'Users ' || c_amp || ' Access',     'SECURITY', 310, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ROLES_PRIVILEGES', 'Roles ' || c_amp || ' Privileges', 'SECURITY', 320, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('DATA_SECURITY',    'Data Security',          'SECURITY', 330, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('AUDIT_LOG',        'Audit Log',              'SECURITY', 340, 'Y', 'VIEW');
+                    -- Admin: Application
+                    feature('APP_SETTINGS',     'Application Settings',   'APPLICATION', 410, 'Y', 'VIEW,MANAGE');
+                    feature('USAGE_FEEDBACK',   'Usage ' || c_amp || ' Feedback',   'APPLICATION', 420, 'Y', 'VIEW,MANAGE');
+                    -- Transitional: replaced by approval tasks in My Tasks (Chunk 4).
+                    feature('CHANGE_APPROVALS', 'Configuration Change Approvals', 'BASIC_SETUP', 190, 'Y', 'VIEW,MANAGE');
+
+                    -- Current pages -> features
+                    pages('HOME',             '1,10010,10050,90,91');
+                    pages('MY_TASKS',         '30,31,40,42,43');
+                    pages('PARTIES',          '20,21,22,23');
+                    pages('CASES',            '32');
+                    pages('LOOKUPS',          '101,102');
+                    pages('FLEXFIELDS',       '150,151,152,153');
+                    pages('KYC_RULES',        '160,161,162,163,164');
+                    pages('ATTACHMENTS',      '130,131,132,133,134,135,136,137,138,139');
+                    pages('NOTIFICATIONS',    '109,110');
+                    pages('RETENTION',        '112,113');
+                    pages('WORKFLOW_SETUP',   '114,115,140,141,142,143,165');
+                    pages('WORKFLOW_MONITOR', '41');
+                    pages('INTEGRATIONS',     '120,121,122,123,124,125');
+                    pages('USERS_ACCESS',     '103,104');
+                    pages('ROLES_PRIVILEGES', '105,106,107,108');
+                    pages('AUDIT_LOG',        '111');
+                    pages('APP_SETTINGS',     '10020,10021');
+                    pages('USAGE_FEEDBACK',   '10030,10031,10032,10033,10051,10052');
+                    pages('CHANGE_APPROVALS', '170,172');
+
+                    -- Grants that reproduce the previous role-based access
+                    grant_priv(c_all,   'HOME.VIEW,MY_TASKS.VIEW');
+                    grant_priv(c_staff, 'PARTIES.VIEW,PARTIES.CREATE,PARTIES.MANAGE,CASES.VIEW,CASES.CREATE,CASES.MANAGE');
+                    grant_priv(c_rules, 'KYC_RULES.VIEW,KYC_RULES.CREATE,KYC_RULES.MANAGE,'
+                                     || 'ATTACHMENTS.VIEW,ATTACHMENTS.CREATE,ATTACHMENTS.MANAGE,'
+                                     || 'WORKFLOW_SETUP.VIEW,WORKFLOW_SETUP.CREATE,WORKFLOW_SETUP.MANAGE,'
+                                     || 'CHANGE_APPROVALS.VIEW,CHANGE_APPROVALS.MANAGE');
+                    grant_priv('HEAD_OF_COMPLIANCE,SYSTEM_ADMIN', 'AUDIT_LOG.VIEW');
+                    grant_priv('SYSTEM_ADMIN',
+                               'LOOKUPS.VIEW,LOOKUPS.CREATE,LOOKUPS.MANAGE,FLEXFIELDS.VIEW,FLEXFIELDS.CREATE,FLEXFIELDS.MANAGE,'
+                            || 'NOTIFICATIONS.VIEW,NOTIFICATIONS.CREATE,NOTIFICATIONS.MANAGE,RETENTION.VIEW,RETENTION.CREATE,RETENTION.MANAGE,'
+                            || 'ALERT_RULES.VIEW,ALERT_RULES.CREATE,ALERT_RULES.MANAGE,WORKFLOW_MONITOR.VIEW,WORKFLOW_MONITOR.MANAGE,'
+                            || 'INTEGRATIONS.VIEW,INTEGRATIONS.CREATE,INTEGRATIONS.MANAGE,'
+                            || 'USERS_ACCESS.VIEW,USERS_ACCESS.CREATE,USERS_ACCESS.MANAGE,'
+                            || 'ROLES_PRIVILEGES.VIEW,ROLES_PRIVILEGES.CREATE,ROLES_PRIVILEGES.MANAGE,'
+                            || 'DATA_SECURITY.VIEW,DATA_SECURITY.CREATE,DATA_SECURITY.MANAGE,'
+                            || 'APP_SETTINGS.VIEW,APP_SETTINGS.MANAGE,USAGE_FEEDBACK.VIEW,USAGE_FEEDBACK.MANAGE');
+
+                    -- Row access: compliance staff and administrators see everything; a requester
+                    -- sees only the requests for information addressed to them.
+                    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+                        rule(r.role_code, 'XXCMP_PARTIES', 'ALL_ROWS');
+                        rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
+                    end loop;
+                    rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+
+                    xxfnd_util_pkg.set_install_mode(false);
+                    commit;
+                    xxfnd_vpd_pkg.apply_policies;
+                end;
+                /
+
+                begin
+                    xxfnd_ddl_pkg.mark_release('R10', 'Release 10: security framework (features, privileges, data security)');
                     commit;
                 end;
                 /
@@ -7814,6 +8337,334 @@ supportingObject (
                   from xxfnd_integration_purposes p
                  where p.approval_status = 'PENDING_APPROVAL';
                 comment on table xxfnd_pending_approvals_v is 'Config Change Approvals queue: every maker-checker change waiting for a second person.';
+                ```
+        }
+    )
+
+    upgradeScript (
+        name: 09b Security framework - objects
+        execution {
+            sequence: 55
+        }
+        script {
+            content:
+                ```
+                --------------------------------------------------------------------------------
+                -- C02 Security framework (release R10)
+                -- Features -> privileges (VIEW / CREATE / MANAGE) -> roles, maintained in the
+                -- application. Pages map to features, so rebuilding a screen only changes the
+                -- mapping. Row-level data security: typed rules enforced by one generic VPD
+                -- policy. Idempotent: safe on install and on every upgrade.
+                --------------------------------------------------------------------------------
+                create table if not exists xxfnd_features (
+                    feature_code           varchar2(30)   not null,
+                    feature_name           varchar2(240)  not null,
+                    feature_group          varchar2(30)   not null,
+                    display_sequence       number         default 100 not null,
+                    admin_flag             varchar2(1)    default 'N' not null,
+                    enabled_flag           varchar2(1)    default 'Y' not null,
+                    description            varchar2(1000),
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_features_pk primary key (feature_code),
+                    constraint xxfnd_features_ck1 check (admin_flag in ('Y','N')),
+                    constraint xxfnd_features_ck2 check (enabled_flag in ('Y','N'))
+                );
+                comment on table xxfnd_features is 'Application features (one menu entry each). Privileges are granted per feature and action.';
+
+                create table if not exists xxfnd_privileges (
+                    privilege_code         varchar2(61)   not null,
+                    feature_code           varchar2(30)   not null,
+                    action_code            varchar2(20)   not null,
+                    privilege_name         varchar2(240)  not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_privileges_pk primary key (privilege_code),
+                    constraint xxfnd_privileges_uk1 unique (feature_code, action_code),
+                    constraint xxfnd_privileges_fk1 foreign key (feature_code) references xxfnd_features (feature_code),
+                    constraint xxfnd_privileges_ck1 check (action_code in ('VIEW','CREATE','MANAGE')),
+                    constraint xxfnd_privileges_ck2 check (privilege_code = feature_code || '.' || action_code)
+                );
+                comment on table xxfnd_privileges is 'VIEW = open and read; CREATE = new records; MANAGE = change existing records (edit, delete, actions).';
+
+                create table if not exists xxfnd_feature_pages (
+                    app_alias              varchar2(255)  not null,
+                    page_id                number         not null,
+                    feature_code           varchar2(30)   not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_feature_pages_pk primary key (app_alias, page_id),
+                    constraint xxfnd_feature_pages_fk1 foreign key (feature_code) references xxfnd_features (feature_code)
+                );
+                comment on table xxfnd_feature_pages is 'Which feature an APEX page belongs to. Page authorization checks the privilege of this feature.';
+
+                create table if not exists xxfnd_role_privileges (
+                    role_code              varchar2(30)   not null,
+                    privilege_code         varchar2(61)   not null,
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_role_privileges_pk primary key (role_code, privilege_code),
+                    constraint xxfnd_role_privileges_fk1 foreign key (role_code) references xxfnd_roles (role_code) on delete cascade,
+                    constraint xxfnd_role_privileges_fk2 foreign key (privilege_code) references xxfnd_privileges (privilege_code) on delete cascade
+                );
+                comment on table xxfnd_role_privileges is 'Privileges granted to a role. Maintained on the Roles and Privileges screen.';
+
+                create table if not exists xxfnd_data_security_rules (
+                    rule_id                number generated by default on null as identity,
+                    role_code              varchar2(30)   not null,
+                    table_name             varchar2(128)  not null,
+                    rule_type              varchar2(20)   not null,
+                    column_name            varchar2(128),
+                    value_list             varchar2(4000),
+                    enabled_flag           varchar2(1)    default 'Y' not null,
+                    description            varchar2(1000),
+                    -- standard WHO columns
+                    created_by               varchar2(255)  not null,
+                    creation_date            timestamp      not null,
+                    last_updated_by          varchar2(255)  not null,
+                    last_update_date         timestamp      not null,
+                    last_update_login        varchar2(255),
+                    object_version_number    number         default 1 not null,
+                    constraint xxfnd_data_security_rules_pk primary key (rule_id),
+                    constraint xxfnd_data_security_rules_fk1 foreign key (role_code) references xxfnd_roles (role_code) on delete cascade,
+                    constraint xxfnd_data_security_rules_ck1 check (rule_type in ('ALL_ROWS','OWN_RECORDS','COLUMN_IN_LIST')),
+                    constraint xxfnd_data_security_rules_ck2 check (
+                        (rule_type = 'ALL_ROWS'       and column_name is null     and value_list is null) or
+                        (rule_type = 'OWN_RECORDS'    and column_name is not null and value_list is null) or
+                        (rule_type = 'COLUMN_IN_LIST' and column_name is not null and value_list is not null)),
+                    constraint xxfnd_data_security_rules_ck3 check (enabled_flag in ('Y','N'))
+                );
+                comment on table xxfnd_data_security_rules is 'Row access per role and table. A user sees the union of the rows allowed by the enabled rules of their active roles; no rule = no rows (enforced by XXFND_VPD_PKG).';
+                comment on column xxfnd_data_security_rules.value_list is 'COLUMN_IN_LIST: comma-separated values, e.g. AE,SA.';
+
+                begin
+                    for t in (select table_name from user_tables
+                               where table_name in ('XXFND_FEATURES','XXFND_PRIVILEGES','XXFND_FEATURE_PAGES',
+                                                    'XXFND_ROLE_PRIVILEGES','XXFND_DATA_SECURITY_RULES')) loop
+                        xxfnd_util_pkg.create_who_trigger(t.table_name);
+                    end loop;
+                    -- Security configuration is audited like every other setup table.
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_ROLE_PRIVILEGES');
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_DATA_SECURITY_RULES');
+                    xxfnd_audit_pkg.create_audit_trigger('XXFND_FEATURE_PAGES');
+                end;
+                /
+
+                --------------------------------------------------------------------------------
+                -- Privilege API
+                --------------------------------------------------------------------------------
+                create or replace package xxfnd_privilege_pkg authid definer as
+                    -- Current (or given) user holds FEATURE.ACTION through an active role.
+                    function has_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                           p_user_name in varchar2 default null) return boolean;
+                    function has_privilege_yn(p_feature_code in varchar2, p_action in varchar2,
+                                              p_user_name in varchar2 default null) return varchar2;
+                    -- Privilege on the feature an APEX page belongs to. Unmapped page = no access.
+                    function has_page_privilege(p_page_id in number, p_action in varchar2,
+                                                p_app_alias in varchar2 default null) return boolean;
+                    -- For DML processes: request CREATE needs CREATE, any other request needs MANAGE.
+                    function has_page_request_privilege(p_page_id in number, p_request in varchar2,
+                                                        p_app_alias in varchar2 default null) return boolean;
+                    -- True when the user holds at least one privilege (application-level check).
+                    function has_any_privilege(p_user_name in varchar2 default null) return boolean;
+                    -- True when the user holds a privilege on any admin feature (Admin Console).
+                    function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean;
+                end xxfnd_privilege_pkg;
+                /
+
+                create or replace package body xxfnd_privilege_pkg as
+
+                    function norm_user(p_user_name in varchar2) return varchar2 is
+                    begin
+                        return upper(nvl(p_user_name, xxfnd_util_pkg.current_user));
+                    end norm_user;
+
+                    function has_privilege(p_feature_code in varchar2, p_action in varchar2,
+                                           p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);   -- private function: not callable inside SQL
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                          join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                          join xxfnd_features f         on f.feature_code = p.feature_code
+                         where ur.user_name   = l_user
+                           and ur.active_flag = 'Y'
+                           and f.enabled_flag = 'Y'
+                           and p.feature_code = upper(p_feature_code)
+                           and p.action_code  = upper(p_action)
+                           and rownum = 1;
+                        return l_count > 0;
+                    end has_privilege;
+
+                    function has_privilege_yn(p_feature_code in varchar2, p_action in varchar2,
+                                              p_user_name in varchar2 default null) return varchar2 is
+                    begin
+                        return case when has_privilege(p_feature_code, p_action, p_user_name) then 'Y' else 'N' end;
+                    end has_privilege_yn;
+
+                    function page_feature(p_page_id in number, p_app_alias in varchar2) return varchar2 is
+                        l_feature xxfnd_feature_pages.feature_code%type;
+                    begin
+                        select max(feature_code) into l_feature
+                          from xxfnd_feature_pages
+                         where upper(app_alias) = upper(nvl(p_app_alias, v('APP_ALIAS')))
+                           and page_id = p_page_id;
+                        return l_feature;
+                    end page_feature;
+
+                    function has_page_privilege(p_page_id in number, p_action in varchar2,
+                                                p_app_alias in varchar2 default null) return boolean is
+                        l_feature xxfnd_feature_pages.feature_code%type := page_feature(p_page_id, p_app_alias);
+                    begin
+                        return l_feature is not null and has_privilege(l_feature, p_action);
+                    end has_page_privilege;
+
+                    function has_page_request_privilege(p_page_id in number, p_request in varchar2,
+                                                        p_app_alias in varchar2 default null) return boolean is
+                    begin
+                        return has_page_privilege(p_page_id,
+                                                  case when upper(p_request) = 'CREATE' then 'CREATE' else 'MANAGE' end,
+                                                  p_app_alias);
+                    end has_page_request_privilege;
+
+                    function has_any_privilege(p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                         where ur.user_name = l_user and ur.active_flag = 'Y' and rownum = 1;
+                        return l_count > 0;
+                    end has_any_privilege;
+
+                    function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean is
+                        l_count pls_integer;
+                        l_user  varchar2(255) := norm_user(p_user_name);
+                    begin
+                        select count(*) into l_count
+                          from xxfnd_user_roles_v ur
+                          join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                          join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                          join xxfnd_features f         on f.feature_code = p.feature_code
+                         where ur.user_name = l_user and ur.active_flag = 'Y'
+                           and f.admin_flag = 'Y' and f.enabled_flag = 'Y' and rownum = 1;
+                        return l_count > 0;
+                    end has_any_admin_privilege;
+
+                end xxfnd_privilege_pkg;
+                /
+
+                --------------------------------------------------------------------------------
+                -- Row-level data security (Virtual Private Database)
+                --------------------------------------------------------------------------------
+                create or replace package xxfnd_vpd_pkg authid definer as
+                    -- DBMS_RLS policy function for every table that has data security rules.
+                    function policy(p_schema in varchar2, p_object in varchar2) return varchar2;
+                    -- Attach the policy to every table referenced by a rule (idempotent).
+                    procedure apply_policies;
+                    -- Narrow bypass for server code that has already authorised the caller
+                    -- (e.g. a validated RFI response token). Always paired with end_trusted.
+                    procedure begin_trusted;
+                    procedure end_trusted;
+                end xxfnd_vpd_pkg;
+                /
+
+                create or replace package body xxfnd_vpd_pkg as
+                    g_trusted pls_integer := 0;
+                    c_policy  constant varchar2(30) := 'XXFND_DATA_SECURITY';
+
+                    procedure begin_trusted is begin g_trusted := g_trusted + 1; end begin_trusted;
+                    procedure end_trusted   is begin g_trusted := greatest(g_trusted - 1, 0); end end_trusted;
+
+                    function quoted_list(p_values in varchar2) return varchar2 is
+                        l_out varchar2(32767);
+                    begin
+                        for v in (select trim(column_value) val from table(apex_string.split(p_values, ','))
+                                   where trim(column_value) is not null) loop
+                            l_out := l_out || case when l_out is not null then ',' end
+                                           || dbms_assert.enquote_literal(replace(v.val, '''', ''''''));
+                        end loop;
+                        return l_out;
+                    end quoted_list;
+
+                    function policy(p_schema in varchar2, p_object in varchar2) return varchar2 is
+                        l_user      varchar2(255) := upper(sys_context('APEX$SESSION', 'APP_USER'));
+                        l_predicate varchar2(32767);
+                        l_part      varchar2(4000);
+                    begin
+                        -- Install scripts, scheduler jobs and developer sessions run without an APEX user.
+                        if l_user is null or g_trusted > 0 then
+                            return null;
+                        end if;
+                        for r in (select distinct d.rule_type, d.column_name, d.value_list
+                                    from xxfnd_data_security_rules d
+                                    join xxfnd_user_roles_v ur on ur.role_code = d.role_code
+                                   where ur.user_name = l_user and ur.active_flag = 'Y'
+                                     and d.enabled_flag = 'Y' and d.table_name = upper(p_object)) loop
+                            if r.rule_type = 'ALL_ROWS' then
+                                return null;
+                            end if;
+                            l_part := case r.rule_type
+                                        when 'OWN_RECORDS' then
+                                            'upper(' || dbms_assert.simple_sql_name(r.column_name) || ') = '
+                                            || dbms_assert.enquote_literal(replace(l_user, '''', ''''''))
+                                        when 'COLUMN_IN_LIST' then
+                                            dbms_assert.simple_sql_name(r.column_name) || ' in (' || quoted_list(r.value_list) || ')'
+                                      end;
+                            if l_part is not null then
+                                l_predicate := l_predicate || case when l_predicate is not null then ' or ' end || '(' || l_part || ')';
+                            end if;
+                        end loop;
+                        -- No rule for this user and table: deny.
+                        return nvl(l_predicate, '1 = 0');
+                    end policy;
+
+                    procedure apply_policies is
+                        l_count pls_integer;
+                    begin
+                        for t in (select distinct d.table_name from xxfnd_data_security_rules d
+                                    join user_tables u on u.table_name = d.table_name) loop
+                            select count(*) into l_count from user_policies
+                             where object_name = t.table_name and policy_name = c_policy;
+                            if l_count = 0 then
+                                dbms_rls.add_policy(
+                                    object_schema   => sys_context('USERENV', 'CURRENT_SCHEMA'),
+                                    object_name     => t.table_name,
+                                    policy_name     => c_policy,
+                                    function_schema => sys_context('USERENV', 'CURRENT_SCHEMA'),
+                                    policy_function => 'XXFND_VPD_PKG.POLICY',
+                                    statement_types => 'SELECT,INSERT,UPDATE,DELETE',
+                                    update_check    => true,
+                                    policy_type     => dbms_rls.dynamic);
+                            end if;
+                        end loop;
+                    end apply_policies;
+
+                end xxfnd_vpd_pkg;
+                /
                 ```
         }
     )
@@ -10665,6 +11516,9 @@ supportingObject (
                         l_rfi  xxcmp_rfis%rowtype;
                         l_hash varchar2(128) := hash_token(p_token);   -- private function: not callable from SQL
                     begin
+                        -- The caller is an anonymous party (APP_USER nobody); the token is the authorisation,
+                        -- so row-level data security is bypassed for this call only.
+                        xxfnd_vpd_pkg.begin_trusted;
                         begin
                             select * into l_rfi from xxcmp_rfis
                              where response_token_hash = l_hash
@@ -10683,7 +11537,12 @@ supportingObject (
                                response_token_hash = null, token_expiry_date = null
                          where rfi_id = l_rfi.rfi_id;
                         advance(l_rfi.rfi_id, 'AWAIT_RESPONSE', 'RESPONDED');
+                        xxfnd_vpd_pkg.end_trusted;
                         return l_rfi.rfi_id;
+                    exception
+                        when others then
+                            xxfnd_vpd_pkg.end_trusted;
+                            raise;
                     end respond_by_token;
 
                     procedure resolve(p_rfi_id in number, p_status in varchar2, p_notes in varchar2) is
@@ -11366,6 +12225,163 @@ supportingObject (
                         end loop;
                     end if;
                     xxfnd_util_pkg.set_install_mode(false);
+                    commit;
+                end;
+                /
+                ```
+        }
+    )
+
+    upgradeScript (
+        name: 18b Security framework - seed
+        execution {
+            sequence: 145
+        }
+        script {
+            content:
+                ```
+                --------------------------------------------------------------------------------
+                -- C02 Security framework - seed (release R10). Runs after the roles are seeded.
+                --------------------------------------------------------------------------------
+                declare
+                    -- Variables must precede the local subprograms.
+                    c_staff  constant varchar2(200) := 'COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE';
+                    c_rules  constant varchar2(200) := 'COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN';
+                    c_all    constant varchar2(200) := 'REQUESTER,COMPLIANCE_OFFICER,COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN';
+                    c_amp    constant varchar2(1)   := chr(38);   -- no literal ampersand: script runners substitute it
+
+                    procedure feature(p_code in varchar2, p_name in varchar2, p_group in varchar2, p_seq in number,
+                                      p_admin in varchar2, p_actions in varchar2) is
+                    begin
+                        merge into xxfnd_features t using (select p_code c from dual) s on (t.feature_code = s.c)
+                         when not matched then insert (feature_code, feature_name, feature_group, display_sequence, admin_flag)
+                                               values (p_code, p_name, p_group, p_seq, p_admin);
+                        for a in (select column_value action from table(apex_string.split(p_actions, ','))) loop
+                            merge into xxfnd_privileges t using (select p_code || '.' || a.action pc from dual) s
+                               on (t.privilege_code = s.pc)
+                             when not matched then insert (privilege_code, feature_code, action_code, privilege_name)
+                                                   values (s.pc, p_code, a.action,
+                                                           p_name || ' - ' || initcap(a.action));
+                        end loop;
+                    end feature;
+
+                    procedure pages(p_feature in varchar2, p_pages in varchar2) is
+                    begin
+                        for p in (select to_number(column_value) page_id from table(apex_string.split(p_pages, ','))) loop
+                            merge into xxfnd_feature_pages t using (select 'KYC' app_alias, p.page_id page_id from dual) s
+                               on (t.app_alias = s.app_alias and t.page_id = s.page_id)
+                             when not matched then insert (app_alias, page_id, feature_code) values ('KYC', p.page_id, p_feature);
+                        end loop;
+                    end pages;
+
+                    procedure grant_priv(p_roles in varchar2, p_privileges in varchar2) is
+                    begin
+                        for r in (select column_value role_code from table(apex_string.split(p_roles, ','))) loop
+                            for p in (select column_value privilege_code from table(apex_string.split(p_privileges, ','))) loop
+                                merge into xxfnd_role_privileges t
+                                using (select r.role_code rc, p.privilege_code pc from dual) s
+                                   on (t.role_code = s.rc and t.privilege_code = s.pc)
+                                 when not matched then insert (role_code, privilege_code) values (s.rc, s.pc);
+                            end loop;
+                        end loop;
+                    end grant_priv;
+
+                    procedure rule(p_role in varchar2, p_table in varchar2, p_type in varchar2, p_column in varchar2 default null) is
+                    begin
+                        merge into xxfnd_data_security_rules t
+                        using (select p_role r, p_table tb, p_type ty from dual) s
+                           on (t.role_code = s.r and t.table_name = s.tb and t.rule_type = s.ty)
+                         when not matched then insert (role_code, table_name, rule_type, column_name)
+                                               values (p_role, p_table, p_type, p_column);
+                    end rule;
+                begin
+                    xxfnd_util_pkg.set_install_mode(true);
+                    -- Business features
+                    feature('HOME',             'Home',                   'BUSINESS', 10, 'N', 'VIEW');
+                    feature('MY_TASKS',         'My Tasks',               'BUSINESS', 20, 'N', 'VIEW');
+                    feature('KYC_REQUESTS',     'KYC Requests',           'BUSINESS', 30, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('PARTIES',          'Parties',                'BUSINESS', 40, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('CASES',            'Cases',                  'BUSINESS', 50, 'N', 'VIEW,CREATE,MANAGE');
+                    feature('MONITORING',       'Monitoring Watchlist',   'BUSINESS', 60, 'N', 'VIEW,MANAGE');
+                    feature('DASHBOARD',        'Executive Dashboard',    'BUSINESS', 70, 'N', 'VIEW');
+                    -- Admin: Basic Setup
+                    feature('LOOKUPS',          'Lookups',                'BASIC_SETUP', 110, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('FLEXFIELDS',       'Flexfields (DFF)',       'BASIC_SETUP', 120, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('KYC_RULES',        'KYC Rules',              'BASIC_SETUP', 130, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ATTACHMENTS',      'Attachments',            'BASIC_SETUP', 140, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('NOTIFICATIONS',    'Notifications',          'BASIC_SETUP', 150, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('RETENTION',        'Retention',              'BASIC_SETUP', 160, 'Y', 'VIEW,CREATE,MANAGE');
+                    -- Admin: Workflow and Integration
+                    feature('WORKFLOW_SETUP',   'Workflow Setup',         'WORKFLOW_INTEGRATION', 210, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ALERT_RULES',      'Alert Rules',            'WORKFLOW_INTEGRATION', 220, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('WORKFLOW_MONITOR', 'Workflow Monitor',       'WORKFLOW_INTEGRATION', 230, 'Y', 'VIEW,MANAGE');
+                    feature('INTEGRATIONS',     'Integrations',           'WORKFLOW_INTEGRATION', 240, 'Y', 'VIEW,CREATE,MANAGE');
+                    -- Admin: Security
+                    feature('USERS_ACCESS',     'Users ' || c_amp || ' Access',     'SECURITY', 310, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('ROLES_PRIVILEGES', 'Roles ' || c_amp || ' Privileges', 'SECURITY', 320, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('DATA_SECURITY',    'Data Security',          'SECURITY', 330, 'Y', 'VIEW,CREATE,MANAGE');
+                    feature('AUDIT_LOG',        'Audit Log',              'SECURITY', 340, 'Y', 'VIEW');
+                    -- Admin: Application
+                    feature('APP_SETTINGS',     'Application Settings',   'APPLICATION', 410, 'Y', 'VIEW,MANAGE');
+                    feature('USAGE_FEEDBACK',   'Usage ' || c_amp || ' Feedback',   'APPLICATION', 420, 'Y', 'VIEW,MANAGE');
+                    -- Transitional: replaced by approval tasks in My Tasks (Chunk 4).
+                    feature('CHANGE_APPROVALS', 'Configuration Change Approvals', 'BASIC_SETUP', 190, 'Y', 'VIEW,MANAGE');
+
+                    -- Current pages -> features
+                    pages('HOME',             '1,10010,10050,90,91');
+                    pages('MY_TASKS',         '30,31,40,42,43');
+                    pages('PARTIES',          '20,21,22,23');
+                    pages('CASES',            '32');
+                    pages('LOOKUPS',          '101,102');
+                    pages('FLEXFIELDS',       '150,151,152,153');
+                    pages('KYC_RULES',        '160,161,162,163,164');
+                    pages('ATTACHMENTS',      '130,131,132,133,134,135,136,137,138,139');
+                    pages('NOTIFICATIONS',    '109,110');
+                    pages('RETENTION',        '112,113');
+                    pages('WORKFLOW_SETUP',   '114,115,140,141,142,143,165');
+                    pages('WORKFLOW_MONITOR', '41');
+                    pages('INTEGRATIONS',     '120,121,122,123,124,125');
+                    pages('USERS_ACCESS',     '103,104');
+                    pages('ROLES_PRIVILEGES', '105,106,107,108');
+                    pages('AUDIT_LOG',        '111');
+                    pages('APP_SETTINGS',     '10020,10021');
+                    pages('USAGE_FEEDBACK',   '10030,10031,10032,10033,10051,10052');
+                    pages('CHANGE_APPROVALS', '170,172');
+
+                    -- Grants that reproduce the previous role-based access
+                    grant_priv(c_all,   'HOME.VIEW,MY_TASKS.VIEW');
+                    grant_priv(c_staff, 'PARTIES.VIEW,PARTIES.CREATE,PARTIES.MANAGE,CASES.VIEW,CASES.CREATE,CASES.MANAGE');
+                    grant_priv(c_rules, 'KYC_RULES.VIEW,KYC_RULES.CREATE,KYC_RULES.MANAGE,'
+                                     || 'ATTACHMENTS.VIEW,ATTACHMENTS.CREATE,ATTACHMENTS.MANAGE,'
+                                     || 'WORKFLOW_SETUP.VIEW,WORKFLOW_SETUP.CREATE,WORKFLOW_SETUP.MANAGE,'
+                                     || 'CHANGE_APPROVALS.VIEW,CHANGE_APPROVALS.MANAGE');
+                    grant_priv('HEAD_OF_COMPLIANCE,SYSTEM_ADMIN', 'AUDIT_LOG.VIEW');
+                    grant_priv('SYSTEM_ADMIN',
+                               'LOOKUPS.VIEW,LOOKUPS.CREATE,LOOKUPS.MANAGE,FLEXFIELDS.VIEW,FLEXFIELDS.CREATE,FLEXFIELDS.MANAGE,'
+                            || 'NOTIFICATIONS.VIEW,NOTIFICATIONS.CREATE,NOTIFICATIONS.MANAGE,RETENTION.VIEW,RETENTION.CREATE,RETENTION.MANAGE,'
+                            || 'ALERT_RULES.VIEW,ALERT_RULES.CREATE,ALERT_RULES.MANAGE,WORKFLOW_MONITOR.VIEW,WORKFLOW_MONITOR.MANAGE,'
+                            || 'INTEGRATIONS.VIEW,INTEGRATIONS.CREATE,INTEGRATIONS.MANAGE,'
+                            || 'USERS_ACCESS.VIEW,USERS_ACCESS.CREATE,USERS_ACCESS.MANAGE,'
+                            || 'ROLES_PRIVILEGES.VIEW,ROLES_PRIVILEGES.CREATE,ROLES_PRIVILEGES.MANAGE,'
+                            || 'DATA_SECURITY.VIEW,DATA_SECURITY.CREATE,DATA_SECURITY.MANAGE,'
+                            || 'APP_SETTINGS.VIEW,APP_SETTINGS.MANAGE,USAGE_FEEDBACK.VIEW,USAGE_FEEDBACK.MANAGE');
+
+                    -- Row access: compliance staff and administrators see everything; a requester
+                    -- sees only the requests for information addressed to them.
+                    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+                        rule(r.role_code, 'XXCMP_PARTIES', 'ALL_ROWS');
+                        rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
+                    end loop;
+                    rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+
+                    xxfnd_util_pkg.set_install_mode(false);
+                    commit;
+                    xxfnd_vpd_pkg.apply_policies;
+                end;
+                /
+
+                begin
+                    xxfnd_ddl_pkg.mark_release('R10', 'Release 10: security framework (features, privileges, data security)');
                     commit;
                 end;
                 /

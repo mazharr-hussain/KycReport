@@ -8,7 +8,7 @@ page 102 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -306,6 +306,9 @@ page 102 (
                 nvl(:P102_SAVED, 'N') = 'N'
                 ```
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -329,6 +332,9 @@ page 102 (
         serverSideCondition {
             type: itemIsNotNull
             item: P102_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -805,6 +811,9 @@ page 102 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-values (
@@ -819,6 +828,9 @@ page 102 (
             type: requestIsContainedInValue
             value: SAVE
         }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process save-translations (
@@ -832,6 +844,9 @@ page 102 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 

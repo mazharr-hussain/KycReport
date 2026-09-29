@@ -15,7 +15,7 @@ page 108 (
         chained: false
     }
     security {
-        authorizationScheme: @administration-rights
+        authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -285,6 +285,9 @@ page 108 (
             type: itemIsNull
             item: P108_SOD_RULE_ID
         }
+        security {
+            authorizationScheme: @page-create
+        }
     )
 
     button save (
@@ -308,6 +311,9 @@ page 108 (
         serverSideCondition {
             type: itemIsNotNull
             item: P108_SOD_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -337,6 +343,9 @@ page 108 (
         serverSideCondition {
             type: itemIsNotNull
             item: P108_SOD_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -385,6 +394,9 @@ page 108 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
         }
     )
 
