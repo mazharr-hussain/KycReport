@@ -617,6 +617,56 @@ page 153 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CONTEXT_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CONTEXT_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @GLOBAL_FLAG
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PROTECTED_FLAG
+                layout {
+                    sequence: 7
+                }
+            )
         )
 
         column APEX$ROW_ACTION (
@@ -836,6 +886,98 @@ page 153 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @SEGMENT_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @COLUMN_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @SEQUENCE_NUMBER
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PROMPT
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @HELP_TEXT
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @VALUE_SET_CODE
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @REQUIRED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @DEFAULT_TYPE
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @DEFAULT_VALUE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @READ_ONLY_FLAG
+                layout {
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_FLAG
+                layout {
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 13
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

@@ -89,6 +89,49 @@ page 165 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @RISK_TIER
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @REQUIRED_LEVELS
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @LEVEL1_ROLE_CODE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @LEVEL2_ROLE_CODE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @SAR_GATE_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

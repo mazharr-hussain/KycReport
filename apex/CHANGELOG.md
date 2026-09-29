@@ -1,27 +1,54 @@
 # KYC Compliance Platform – APEXlang export: change log
 
-Current release: **`KYC-Compliance-Platform-APEXlang_12.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Current release: **`KYC-Compliance-Platform-APEXlang_13.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
 Source of truth: the APEXlang tree in `apex/src` and the database scripts in `apex/db` (one `.sql` file per script,
 order in `apex/db/manifest.json`). `python3 apex/tools/build.py --release N` generates the supporting-object
 components from `apex/db` and writes the zip. Each chunk is one commit.
 
 ## How each release is verified
 
-| Layer | Tool | Result for release 12 |
+| Layer | Tool | Result for release 13 |
 |---|---|---|
 | Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
 | Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
-| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 2,684 checks, 0 FAIL |
-| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 24 scripts run; 329 objects, 0 invalid; releases R09–R12 recorded; seed data + first administrator present |
-| Upgrade | release 9 → 10, 10 → 11 and 11 → 12 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; the former workflow engine removed |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,282 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 26 scripts run; 362 objects, 0 invalid; releases R09–R13 recorded; seed data + first administrator present |
+| Upgrade | release 9 → 10, 10 → 11, 11 → 12 and 12 → 13 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 362 objects as a clean install |
 | Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
-| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass (release 12 section) |
-| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 40 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1 and REQ1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
+| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
+| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer | 17/17 pass |
+| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 43 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1, REQ1, REQ2, MGR1 and HOC1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
 | Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
 
 The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
 (`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
 the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 13 – Chunk 5: KYC Requests and Cases (native workflows)
+
+The business screens run on two **APEX Workflows** (`KYC_REQUEST`, `KYC_CASE`) with three task definitions.
+Everything is in the one application import (supporting objects `16b`, `18e`).
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 51 | `apex/db/16b-kyc-requests-cases.sql` | Tables `XXCMP_REQUESTS`, `_CASES`, `_REQUEST_ANSWERS`, `_CASE_DECISIONS`, `_SCREENINGS`, `_DOC_VERIFICATIONS`, `_UBO_DETERMINATIONS`, `_CASE_NOTES`; `XXCMP_REQUEST_PKG`, `XXCMP_CASE_PKG` | – | request intake (link or create the party, score, gate and critical answers, waiver, auto-approval), case investigation, approval levels from the approval matrix (Enhanced KYC or PEP → two levels), SAR gate, separation of duties, next review date from the risk tier, closed cases locked | Module 1 and 2 business logic |
+| 52 | new `shared-components/workflows/KYC-REQUEST.apx`, `KYC-CASE.apx` | APEX Workflows (active) | – | request: evaluate → close, or checklist review → open case / reject; case: investigation → level 1 → optional level 2 → approve / reject | Rule 1 (OOTB) |
+| 53 | new `task-definitions/DOC-CHECKLIST-REVIEW.apx`, `CASE-INVESTIGATION.apx`, `CASE-APPROVAL.apx` | Tasks in My Tasks | – | details pages 205, 211, 212; approvers exclude earlier actors and SoD conflicts | |
+| 54 | new pages 200–203, 205 | **KYC Requests** list, **Create Request** wizard (counterparty → questionnaire → documents and submit), request page with the checklist decision | – | one neutral list; data security decides the rows (requesters: their own) | Agreed feature list |
+| 55 | new pages 210–217 | **Cases** list, **Case** (360: questionnaire grid, screenings, documents and verification, beneficial owners, notes, RFIs, decisions, workflow diagram), Case Decision drawer, Screening, Beneficial Owner, Document Verification, Create Case, Compliance Report | – | page read-only unless the case is under investigation and the user holds *Cases – Manage* (`XXCMP_CASE_PKG.IS_EDITABLE`) | |
+| 56 | `apex/db/18e-kyc-requests-cases.sql` | Seed | – | lookups, KYC parameters (SLA, PEP review, lead days), starter questionnaires, pages → features, My Tasks tabs, data security rules, grants, attachment registration for pages 203/205/211, task deadlines; records `R13` | |
+| 57 | `shared-components/lists.apx`, `breadcrumbs.apx`, `page-groups.apx` | Navigation | *Requests for Information* menu entry | *KYC Requests* and *Cases* entries; RFIs are a My Tasks tab; wizard progress list | Feature list |
+| 58 | `shared-components/app-processes.apx` | `DOWNLOAD_DOCUMENT` | requesters: RFI documents; `to_number(pk1_value)` | also documents on their own requests; compares as text | Earlier review finding (a non-numeric key raised ORA-01722) |
+| 59 | `apex/db/09b-security-framework-objects.sql` | Data security policy | denied rows to APEX background jobs (user *nobody*) | scheduler background sessions (workflow activities, automations) are trusted; browser requests never run in one | **Defect:** task subjects came out blank ("Approve Case 7 - (level )") |
+| 60 | pages 102, 104, 135, 153, 162, 165 (+ new 202, 211); new `apex/tools/ig_display_columns.py` | Interactive grids | primary report without display columns | every shown column listed | **Defect:** the grids rendered rows without any column; found by the new browser test |
+| 61 | `apex/tools/pagegen.py`, `pages_chunk5.py`, `workflows_chunk5.py` | Generators | – | reusable page patterns (list, form, wizard, drawer, task decision, SQL defaults, read-only page) | Rule 4 |
+
+Verified: the full path in the browser (`kyc_ui.py`) and in the database (`kyc_flow_test.sql`): a listed company is
+closed as *KYC not required*; a low score is auto-approved; unanswered questions block submission; a high score
+creates the checklist task (the requester cannot take it); approval opens the case; a case without a risk tier or a
+screening cannot be submitted; PEP forces Enhanced KYC and two levels; level 1 goes to managers but not the
+investigator, level 2 to the Head of Compliance; the SAR determination is required; approval closes the case, sets
+the next review, completes the request and locks the case.
 
 ## Release 12 – Chunk 4: native APEX workflow platform
 

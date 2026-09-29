@@ -12,7 +12,8 @@ appProcess DOWNLOAD_DOCUMENT (
                    or xxfnd_privilege_pkg.has_privilege('ATTACHMENTS', 'VIEW') then
                     l_allowed := 1;
                 else
-                    -- Requesters: only documents on requests for information addressed to them.
+                    -- Requesters: only documents on requests for information addressed to them and on
+                    -- their own KYC requests (XXCMP_REQUESTS rows are filtered by data security).
                     select count(*)
                       into l_allowed
                       from xxfnd_documents d
@@ -20,11 +21,15 @@ appProcess DOWNLOAD_DOCUMENT (
                         on ad.document_id in (select x.document_id from xxfnd_documents x
                                                where nvl(x.base_document_id, x.document_id)
                                                    = nvl(d.base_document_id, d.document_id))
-                      join xxcmp_rfis r
-                        on ad.entity_name = 'XXCMP_RFIS'
-                       and r.rfi_id = to_number(ad.pk1_value)
                      where d.document_id = :G_DOCUMENT_ID
-                       and upper(r.recipient_user_name) = :APP_USER;
+                       and (   (ad.entity_name = 'XXCMP_RFIS'
+                                and exists (select 1 from xxcmp_rfis r
+                                             where to_char(r.rfi_id) = ad.pk1_value
+                                               and upper(r.recipient_user_name) = :APP_USER))
+                            or (ad.entity_name = 'XXCMP_REQUESTS'
+                                and exists (select 1 from xxcmp_requests q
+                                             where to_char(q.request_id) = ad.pk1_value
+                                               and xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW'))));
                 end if;
                 if l_allowed = 0 then
                     raise_application_error(-20330, 'You are not allowed to open this document.');

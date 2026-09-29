@@ -2,6 +2,10 @@ pageGroup parties (
     name: Parties
 )
 
+pageGroup kyc (
+    name: KYC Requests and Cases
+)
+
 pageGroup rfi (
     name: Requests for Information
 )

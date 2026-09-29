@@ -139,5 +139,17 @@
   "file": "18d-workflow-platform.sql",
   "install_sequence": 188,
   "upgrade_sequence": 148
+ },
+ {
+  "name": "16b KYC requests and cases",
+  "file": "16b-kyc-requests-cases.sql",
+  "install_sequence": 165,
+  "upgrade_sequence": 125
+ },
+ {
+  "name": "18e KYC requests and cases - seed",
+  "file": "18e-kyc-requests-cases.sql",
+  "install_sequence": 189,
+  "upgrade_sequence": 149
  }
 ]

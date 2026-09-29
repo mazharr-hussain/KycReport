@@ -794,4 +794,132 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry kyc-requests (
+        name: KYC Requests
+        pageNumber: 200
+        execution {
+            sequence: 300
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+    )
+
+    entry kyc-request (
+        name: &P205_REQUEST_NUMBER.
+        pageNumber: 205
+        execution {
+            sequence: 301
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 205
+            }
+        }
+    )
+
+    entry create-request (
+        name: Create Request
+        pageNumber: 201
+        execution {
+            sequence: 302
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry cases (
+        name: Cases
+        pageNumber: 210
+        execution {
+            sequence: 310
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 210
+            }
+        }
+    )
+
+    entry case (
+        name: &P211_CASE_NUMBER.
+        pageNumber: 211
+        execution {
+            sequence: 311
+        }
+        appearance {
+            parentEntry: @cases
+        }
+        link {
+            target: {
+                page: 211
+            }
+        }
+    )
+
+    entry compliance-report (
+        name: Compliance Report
+        pageNumber: 217
+        execution {
+            sequence: 312
+        }
+        appearance {
+            parentEntry: @case
+        }
+        link {
+            target: {
+                page: 217
+            }
+        }
+    )
+
+    entry create-request-202 (
+        name: Create Request
+        pageNumber: 202
+        execution {
+            sequence: 303
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry create-request-203 (
+        name: Create Request
+        pageNumber: 203
+        execution {
+            sequence: 304
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
 )

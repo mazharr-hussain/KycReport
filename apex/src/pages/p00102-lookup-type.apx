@@ -399,6 +399,84 @@ page 102 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @LOOKUP_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @MEANING
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @TAG
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @PARENT_LOOKUP_TYPE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PARENT_LOOKUP_CODE
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @START_DATE_ACTIVE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @END_DATE_ACTIVE
+                layout {
+                    sequence: 11
+                }
+            )
         )
 
         column APEX$ROW_ACTION (
@@ -670,6 +748,35 @@ page 102 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @LOOKUP_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @MEANING
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    sequence: 4
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

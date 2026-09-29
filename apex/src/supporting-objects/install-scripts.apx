@@ -160,6 +160,15 @@ installScript 16-kyc-rules (
     }
 )
 
+installScript 16b-kyc-requests-and-cases (
+    execution {
+        sequence: 165
+    }
+    script {
+        contentFile: 16b-kyc-requests-cases.sql
+    }
+)
+
 installScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 170
@@ -202,6 +211,15 @@ installScript 18d-workflow-platform (
     }
     script {
         contentFile: 18d-workflow-platform.sql
+    }
+)
+
+installScript 18e-kyc-requests-and-cases-seed (
+    execution {
+        sequence: 189
+    }
+    script {
+        contentFile: 18e-kyc-requests-cases.sql
     }
 )
 

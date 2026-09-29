@@ -146,8 +146,11 @@ page 32 (
                 select nvl(c.contact_name, c.contact_value) || ' <' || c.contact_value || '>' as display_value,
                        c.party_contact_id as return_value
                   from xxcmp_party_contacts c
-                 where c.party_id = to_number(:P32_PK1_VALUE)
-                   and :P32_ENTITY_NAME = 'XXCMP_PARTIES'
+                 where c.party_id = case :P32_ENTITY_NAME
+                                        when 'XXCMP_PARTIES'  then to_number(:P32_PK1_VALUE)
+                                        when 'XXCMP_CASES'    then (select x.party_id from xxcmp_cases x where x.case_id = to_number(:P32_PK1_VALUE))
+                                        when 'XXCMP_REQUESTS' then (select x.party_id from xxcmp_requests x where x.request_id = to_number(:P32_PK1_VALUE))
+                                    end
                    and c.contact_type = 'EMAIL'
                    and c.enabled_flag = 'Y'
                  order by c.primary_flag desc, c.contact_name

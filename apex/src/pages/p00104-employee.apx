@@ -552,6 +552,42 @@ page 104 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @ROLE_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @START_DATE_ACTIVE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @END_DATE_ACTIVE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 5
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

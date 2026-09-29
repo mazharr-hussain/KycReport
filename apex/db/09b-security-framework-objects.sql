@@ -303,8 +303,10 @@ create or replace package body xxfnd_vpd_pkg as
         l_predicate varchar2(32767);
         l_part      varchar2(4000);
     begin
-        -- Install scripts, scheduler jobs and developer sessions run without an APEX user.
-        if l_user is null or g_trusted > 0 then
+        -- Install scripts, scheduler jobs and developer sessions run without an APEX user. APEX runs
+        -- workflow activities and automations in scheduler background jobs (as NOBODY): system work too.
+        -- Browser requests through ORDS never run in a scheduler job.
+        if l_user is null or g_trusted > 0 or sys_context('USERENV', 'BG_JOB_ID') is not null then
             return null;
         end if;
         for r in (select distinct d.rule_type, d.column_name, d.value_list

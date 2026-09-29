@@ -124,6 +124,15 @@ upgradeScript 16-kyc-rules (
     }
 )
 
+upgradeScript 16b-kyc-requests-and-cases (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 16b-kyc-requests-cases.sql
+    }
+)
+
 upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 130
@@ -166,6 +175,15 @@ upgradeScript 18d-workflow-platform (
     }
     script {
         contentFile: 18d-workflow-platform.sql
+    }
+)
+
+upgradeScript 18e-kyc-requests-and-cases-seed (
+    execution {
+        sequence: 149
+    }
+    script {
+        contentFile: 18e-kyc-requests-cases.sql
     }
 )
 

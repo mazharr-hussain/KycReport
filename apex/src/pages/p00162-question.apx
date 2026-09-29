@@ -536,6 +536,77 @@ page 162 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @LOOKUP_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ANSWER_LABEL
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @RISK_POINTS
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CRITICAL_FLAG
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @WAIVER_QUALIFYING_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_BY
+                layout {
+                    sequence: 10
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

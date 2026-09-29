@@ -430,6 +430,42 @@ page 135 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @BLOCK_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @REGION_STATIC_ID
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @BLOCK_NAME
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 5
+                }
+            )
         )
 
         column APEX$ROW_ACTION (
@@ -601,6 +637,70 @@ page 135 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @ENTITY_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PK1_PAGE_ITEM
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PK2_PAGE_ITEM
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PK3_PAGE_ITEM
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @INSERT_ALLOWED_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATE_ALLOWED_FLAG
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @DELETE_ALLOWED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 9
+                }
+            )
         )
 
         column APEX$ROW_ACTION (
@@ -861,6 +961,28 @@ page 135 (
             view {
                 default: grid
             }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 3
+                }
+            )
         )
 
         column APEX$ROW_ACTION (

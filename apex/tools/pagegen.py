@@ -232,7 +232,7 @@ def _lov(lov):
 
 def item(p, name, kind, label, seq, column, dtype='varchar2', required=False, lov=None, help_text=None,
          max_len=None, default=None, height=None, parent=None, read_only=None, region='form', pk=False,
-         read_only_sql=None):
+         read_only_sql=None, default_sql=None):
     """kind: textField, textarea, numberField, selectList, switch, datePicker, hidden, displayOnly."""
     iname = f'P{p}_{name}'
     pkl = '\n            primaryKey: true' if pk else ''
@@ -303,6 +303,15 @@ def item(p, name, kind, label, seq, column, dtype='varchar2', required=False, lo
             staticValue: {default}
         }}
 ''')
+    if default_sql:
+        parts.append(f'''        default {{
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                {default_sql}
+                ```
+        }}
+''')
     if read_only:
         parts.append(f'''        readOnly {{
             type: expression
@@ -334,6 +343,7 @@ def item(p, name, kind, label, seq, column, dtype='varchar2', required=False, lo
 def form_page(page_id, name, alias, group, help_text, table, pk_item, items, validations='', extra_processes='',
               width=None, delete=True):
     pk = f'P{page_id}_{pk_item}'
+    reqs = 'CREATE,SAVE,DELETE' if delete else 'CREATE,SAVE'
     wdt = f'\n        width: {width}' if width else ''
     dialog = f'''    dialog {{{wdt}
         chained: false
@@ -550,7 +560,7 @@ def form_page(page_id, name, alias, group, help_text, table, pk_item, items, val
         }}
         serverSideCondition {{
             type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+            value: {reqs}
         }}
         security {{
             authorizationScheme: @page-submit
@@ -566,7 +576,7 @@ def form_page(page_id, name, alias, group, help_text, table, pk_item, items, val
         }}
         serverSideCondition {{
             type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+            value: {reqs}
         }}
     )
 

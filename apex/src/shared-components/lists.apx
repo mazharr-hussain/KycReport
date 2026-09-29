@@ -170,6 +170,29 @@ list navigation-menu (
         }
     )
 
+    entry kyc-requests (
+        label: KYC Requests
+        icon {
+            imageIconCssClasses: fa-file-text-o
+        }
+        layout {
+            sequence: 25
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(200, 'VIEW')
+                ```
+        }
+    )
+
     entry parties (
         label: Parties
         icon {
@@ -193,17 +216,17 @@ list navigation-menu (
         }
     )
 
-    entry rfis (
-        label: Requests for Information
+    entry cases (
+        label: Cases
         icon {
-            imageIconCssClasses: fa-question-circle-o
+            imageIconCssClasses: fa-briefcase
         }
         layout {
-            sequence: 40
+            sequence: 35
         }
         link {
             target: {
-                page: 30
+                page: 210
             }
         }
         serverSideCondition {
@@ -211,7 +234,7 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(30, 'VIEW')
+                xxfnd_privilege_pkg.has_page_privilege(210, 'VIEW')
                 ```
         }
     )
@@ -398,4 +421,44 @@ list activity-menu (
         }
     )
 
+)
+
+list request-wizard (
+    name: Request Wizard
+
+    entry step-1 (
+        label: Counterparty
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Questionnaire
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review and Submit
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
 )
