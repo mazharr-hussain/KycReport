@@ -115,7 +115,21 @@ ADMIN = '''        participant (
 '''
 
 
-def workflow(static, name, title, comment, activities, variables):
+def version(number, state, activities, variables):
+    return f'''    version {number} (
+        settings {{
+            state: {state}
+        }}
+
+{''.join(activities)}{''.join(variables)}{ADMIN}
+    )
+
+'''
+
+
+def workflow(static, name, title, comment, activities, variables, versions=None):
+    """versions: [(number, state, activities, variables)]; default one active version 1.0."""
+    versions = versions or [('1.0', 'active', activities, variables)]
     return f'''workflow {static} (
     name: {name}
     title: {title}
@@ -123,15 +137,7 @@ def workflow(static, name, title, comment, activities, variables):
         comments: {comment}
     }}
 
-    version 1.0 (
-        settings {{
-            state: active
-        }}
-
-{''.join(activities)}{''.join(variables)}{ADMIN}
-    )
-
-)
+{''.join(version(*v) for v in versions)})
 '''
 
 
@@ -156,13 +162,43 @@ req = [
         code('xxcmp_request_pkg.reject(:APEX$WORKFLOW_DETAIL_PK);'), [conn('Done', 'End')]),
     act('End', 'End', 'workflowEnd', 90, 1160, 200),
 ]
+# 1.1: a new counterparty that resembles existing parties is decided by Compliance before the checklist
+req11 = [
+    act('Start', 'Start', 'workflowStart', 10, 60, 200, conns=[conn('Evaluate', 'Evaluate')]),
+    act('Evaluate', 'Evaluate intake', 'executeCode', 20, 200, 180,
+        code('xxcmp_request_pkg.evaluate(:APEX$WORKFLOW_DETAIL_PK);'), [conn('Next', 'KycRequired')]),
+    act('KycRequired', 'KYC required?', 'switch', 30, 380, 180,
+        switch_fn("return xxcmp_request_pkg.outcome(:APEX$WORKFLOW_DETAIL_PK) = 'ASSIGNED';"),
+        [conn('Yes', 'CounterpartyPending', when='true'), conn('No', 'CloseRequest', when='false')]),
+    act('CloseRequest', 'Close request (not required / auto-approved)', 'executeCode', 40, 380, 360,
+        code('xxcmp_request_pkg.close_without_case(:APEX$WORKFLOW_DETAIL_PK);'), [conn('Done', 'End')]),
+    act('CounterpartyPending', 'Counterparty to decide?', 'switch', 45, 480, 60,
+        switch_fn("return xxcmp_request_pkg.match_pending(:APEX$WORKFLOW_DETAIL_PK) = 'Y';"),
+        [conn('Yes', 'CounterpartyMatch', when='true'), conn('No', 'ChecklistReview', when='false')]),
+    act('CounterpartyMatch', 'Counterparty match (Compliance)', 'humanTaskCreate', 47, 560, 0,
+        task('COUNTERPARTY_MATCH', 'V_MATCH_TASK_ID'), [conn('Decided', 'ChecklistReview')]),
+    act('ChecklistReview', 'Document checklist review', 'humanTaskCreate', 50, 640, 180,
+        task('DOC_CHECKLIST_REVIEW', 'V_CHECKLIST_TASK_ID', 'V_CHECKLIST_OUTCOME', 'V_CHECKLIST_REVIEWER'),
+        [conn('Decided', 'ChecklistOutcome')]),
+    act('ChecklistOutcome', 'Documents complete?', 'switch', 60, 820, 180, switch_var('V_CHECKLIST_OUTCOME'),
+        [conn('Approved', 'OpenCase', value='APPROVED', seq=10), conn('Rejected', 'RejectRequest', value='REJECTED', seq=20)]),
+    act('OpenCase', 'Open case', 'executeCode', 70, 1000, 120,
+        code('xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);'), [conn('Done', 'End')]),
+    act('RejectRequest', 'Reject request', 'executeCode', 80, 1000, 260,
+        code('xxcmp_request_pkg.reject(:APEX$WORKFLOW_DETAIL_PK);'), [conn('Done', 'End')]),
+    act('End', 'End', 'workflowEnd', 90, 1200, 200),
+]
+req_vars = [variable('V_CHECKLIST_TASK_ID', 'Checklist task'), variable('V_CHECKLIST_OUTCOME', 'Checklist outcome'),
+            variable('V_CHECKLIST_REVIEWER', 'Checklist reviewer')]
 with open(os.path.join(OUT, 'KYC-REQUEST.apx'), 'w') as f:
     f.write(workflow('KYC_REQUEST', 'KYC Request', 'KYC request &APEX$WORKFLOW_DETAIL_PK.',
-                     'Module 1 intake: evaluate the answers (link or create the party, score, gate and critical answers), '
-                     'close the request when KYC is not required or auto-approved, otherwise Compliance reviews the '
-                     'documents and opens the case (KYC_CASE workflow).',
-                     req, [variable('V_CHECKLIST_TASK_ID', 'Checklist task'), variable('V_CHECKLIST_OUTCOME', 'Checklist outcome'),
-                           variable('V_CHECKLIST_REVIEWER', 'Checklist reviewer')]))
+                     'Module 1 intake: evaluate the answers (link the chosen party, or hold a new counterparty that '
+                     'resembles existing parties for Compliance; score, gate and critical answers), close the request when '
+                     'KYC is not required or auto-approved, otherwise Compliance decides the counterparty if needed, reviews '
+                     'the documents and opens the case (KYC_CASE workflow). Version 1.0 remains for requests started before 1.1.',
+                     None, None,
+                     versions=[('1.0', 'inactive', req, req_vars),
+                               ('1.1', 'active', req11, req_vars + [variable('V_MATCH_TASK_ID', 'Counterparty match task')])]))
 
 # KYC_CASE ---------------------------------------------------------------------
 case = [

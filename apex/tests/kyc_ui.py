@@ -2,13 +2,14 @@
 document checklist on the request (205), which opens the case; OFFICER1 sets the risk on the Case page (211) and
 submits it for approval; MGR1 approves in the Case Decision drawer (212). The case must end APPROVED.
 Usage: kyc_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
-import os, re, subprocess, sys, time
+import os, random, re, string, subprocess, sys, time
 from playwright.sync_api import sync_playwright
 
 APP = sys.argv[1] if len(sys.argv) > 1 else '101'
 HOST = 'http://localhost:8080'
 SQLCL = os.environ.get('SQLCL', 'sql')
-NAME = 'UI Test Trading ' + time.strftime('%H%M%S')
+# random name: resembles no earlier test party (else Compliance first decides the counterparty match)
+NAME = 'UIT ' + ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
 results = []
 CURRENT = []   # the page in use, for a screenshot when a step fails
 
@@ -81,8 +82,20 @@ def click(pg, label, confirm=False):
 
 def open_task(pg, s, page_item, task):
     """The task list links each task to its details page (task definition details page)."""
-    goto(pg, s, 40)
-    link = pg.locator(f'a[href*="{page_item.lower()}={task}"], a[href*="{page_item.lower()}%3D{task}"]').first
+    # search by subject (on a busy list the task may be beyond the first page); a new task can take a
+    # moment to be listed, so try a few times
+    subject = db(f"select subject from apex_tasks where task_id = {task}")
+    for attempt in range(4):
+        goto(pg, s, 40)
+        if subject:
+            pg.locator('input[type=search]').first.fill(subject[0].split(' - ')[0])
+            pg.keyboard.press('Enter')
+            pg.wait_for_load_state('networkidle')
+            pg.wait_for_timeout(2500)
+        link = pg.locator(f'a[href*="{page_item.lower()}={task}"], a[href*="{page_item.lower()}%3D{task}"]').first
+        if link.count():
+            return link
+        pg.wait_for_timeout(3000)
     return link
 
 
@@ -109,11 +122,13 @@ with sync_playwright() as p:
     for frag, label in answers.items():
         opts[frag] = db(f"""select o.answer_option_id from xxcmp_answer_options o join xxcmp_questions q on q.question_id = o.question_id
                              where q.questionnaire_code = 'CORPORATE' and q.question_text like '%{frag}%' and o.answer_label = '{label}'""")[0]
-    set_count = pg.evaluate('''([opts, labels]) => {
-        const m = apex.region("answers").call("getViews", "grid").model; let n = 0;
-        m.forEach(r => { const q = m.getValue(r, "QUESTION_TEXT");
-            for (const k in opts) if (q.includes(k)) { m.setValue(r, "ANSWER_OPTION_ID", {v: opts[k], d: labels[k]}); n++; } });
-        return n; }''', [opts, answers])
+    # the questionnaire form (page 202): click the answer under each question
+    set_count = 0
+    for frag, label in answers.items():
+        fs = pg.locator('fieldset.kyc-q', has_text=frag)
+        if fs.count():
+            fs.first.locator('label.kyc-q-option', has_text=label).first.click()
+            set_count += 1
     click(pg, 'Next')
     ok(f'step 2 saved {set_count} answers and moved to review ({pg.title()})', set_count == 5 and 'Submit' in pg.title() and not errors(pg))
     click(pg, 'Submit Request')

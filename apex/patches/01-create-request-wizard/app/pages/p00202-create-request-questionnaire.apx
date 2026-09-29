@@ -177,6 +177,28 @@ page 202 (
         }
     )
 
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
     button next (
         buttonName: NEXT
         label: Next
@@ -237,10 +259,26 @@ page 202 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: NEXT,PREVIOUS
+            value: NEXT,PREVIOUS,SAVE_DRAFT
         }
         security {
             authorizationScheme: @page-create
+        }
+    )
+
+    branch (
+        name: Draft saved
+        execution {
+            sequence: 5
+        }
+        behavior {
+            target: {
+                page: 200
+                clearCache: 200
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @save-draft
         }
     )
 

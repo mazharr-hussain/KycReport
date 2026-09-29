@@ -59,7 +59,8 @@ declare
     end;
     function new_request(p_name varchar2) return number is
     begin
-        return xxcmp_request_pkg.create_request(p_party_type => 'ORGANIZATION', p_party_name => p_name,
+        -- a random suffix: each run's counterparty resembles no earlier test party (else Compliance decides the match)
+        return xxcmp_request_pkg.create_request(p_party_type => 'ORGANIZATION', p_party_name => dbms_random.string('U', 16),
                    p_registration_number => upper(replace(p_name, ' ')) || to_char(sysdate, 'HH24MISS'),
                    p_jurisdiction => 'AE', p_entity_type => 'LLC', p_requesting_department => 'PROCUREMENT',
                    p_justification => 'New supplier');

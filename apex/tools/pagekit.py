@@ -292,6 +292,7 @@ def close_dialog(requests, seq=90):
 
 def branch(name, page, items, seq=10, button_=None):
     its = ''.join(f'                    {k}: {v}\n' for k, v in items.items())
+    items_block = f'\n                items: {{\n{its}                }}' if items else ''
     cond = f'        serverSideCondition {{\n            whenButtonPressed: @{button_}\n        }}\n' if button_ else ''
     return f'''    branch (
         name: {name}
@@ -300,9 +301,7 @@ def branch(name, page, items, seq=10, button_=None):
         }}
         behavior {{
             target: {{
-                page: {page}
-                items: {{
-{its}                }}
+                page: {page}{items_block}
                 clearCache: {page}
             }}
         }}
@@ -314,7 +313,10 @@ def branch(name, page, items, seq=10, button_=None):
 def classic(rid, name, sql, columns, seq, slot='BODY', submit=None, nodata='No data found.', parent=None, condition=None,
             badges=False):
     """Classic report; badges=True shows one row as Universal Theme badges (key figures)."""
-    sub = f'\n            pageItemsToSubmit: {submit}' if submit else ''
+    if submit and ',' in submit:   # several items: APEXlang list
+        sub = '\n            pageItemsToSubmit: [\n' + ''.join(f'                {x.strip()}\n' for x in submit.split(',')) + '            ]'
+    else:
+        sub = f'\n            pageItemsToSubmit: {submit}' if submit else ''
     par = f'\n            parentRegion: @{parent}' if parent else ''
     cond = f'''        serverSideCondition {{
 {ind(condition, 12)}

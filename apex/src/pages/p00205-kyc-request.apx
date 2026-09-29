@@ -317,6 +317,41 @@ page 205 (
         }
     )
 
+    pageItem P205_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
+                            when r.party_id is not null then 'Linked to a party'
+                            else 'Not decided yet' end
+                       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
+                  from xxcmp_requests r
+                  left join xxcmp_parties p on p.party_id = r.party_id
+                 where r.request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
     pageItem P205_CASE_NUMBER (
         type: displayOnly
         label {
@@ -324,7 +359,7 @@ page 205 (
             alignment: left
         }
         layout {
-            sequence: 80
+            sequence: 90
             region: @request
             slot: regionBody
             alignment: left
@@ -515,25 +550,14 @@ page 205 (
 
     )
 
-    region possible_matches (
-        name: Possible Existing Parties
-        type: classicReport
+    region counterparty_matching (
+        name: Counterparty Matching
+        type: staticContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select p.party_number, p.party_name, p.registration_number,
-                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
-                       xxcmp_kyc_pkg.name_similarity(p.party_name, r.party_name) as similarity
-                  from xxcmp_parties p
-                  join xxcmp_requests r on r.request_id = :P205_REQUEST_ID
-                 where (xxcmp_kyc_pkg.name_similarity(p.party_name, r.party_name) >= 70
-                        or upper(replace(p.registration_number, ' ')) = upper(replace(r.registration_number, ' ')))
-                   and p.party_id <> nvl(r.party_id, -1)
-                 order by similarity desc
+            htmlCode:
+                ```html
+                <p>This counterparty was entered as new, but existing parties may be the same. Merge it into one of them (the request is linked to that party and its empty fields are completed from the request), or confirm it as a new party. The checklist can be approved once this is decided.</p>
                 ```
-            pageItemsToSubmit: P205_REQUEST_ID
         }
         layout {
             sequence: 50
@@ -544,7 +568,91 @@ page 205 (
             templateOptions: #DEFAULT#
         }
         advanced {
-            htmlDomId: possible_matches
+            htmlDomId: counterparty_matching
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'
+                and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                ```
+        }
+    )
+
+    pageItem P205_MERGE_PARTY_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Set by the Merge link just before submit. XXCMP_REQUEST_PKG.RESOLVE_MATCH re-checks the privilege, the pending state and the party type.
+        }
+        layout {
+            sequence: 1
+            region: @counterparty_matching
+            slot: regionBody
+        }
+    )
+
+    pageItem P205_MATCH_NOTE (
+        type: textarea
+        label {
+            label: Decision Note
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @counterparty_matching
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Why the counterparty is (or is not) one of the existing parties.
+        }
+    )
+
+    region match_candidates (
+        name: Existing Parties That May Be This Counterparty
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+                       apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(j.party_id), p_clear_cache => '21') as party_url,
+                       'Merge into this party' as merge
+                  from json_table(xxcmp_request_pkg.request_candidates_json(:P205_REQUEST_ID), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+            parentRegion: @counterparty_matching
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: match_candidates
         }
         componentAppearance {
             template: @/standard
@@ -562,16 +670,22 @@ page 205 (
             numberOfRows: 50
         }
         messages {
-            whenNoDataFound: No similar parties.
+            whenNoDataFound: No existing party resembles this counterparty any more.
         }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
-                ```
-        }
+
+        column PARTY_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_URL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
 
         column PARTY_NUMBER (
             type: plainText
@@ -579,7 +693,13 @@ page 205 (
                 heading: Party
             }
             layout {
-                sequence: 10
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#PARTY_URL#" target="_blank">#PARTY_NUMBER#</a>
+                    ```
             }
         )
 
@@ -589,40 +709,170 @@ page 205 (
                 heading: Name
             }
             layout {
-                sequence: 20
-            }
-        )
-
-        column REGISTRATION_NUMBER (
-            type: plainText
-            heading {
-                heading: Registration
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column JURISDICTION (
-            type: plainText
-            heading {
-                heading: Jurisdiction
-            }
-            layout {
                 sequence: 40
             }
         )
 
-        column SIMILARITY (
+        column COUNTRY (
             type: plainText
             heading {
-                heading: Name Similarity %
+                heading: Country
             }
             layout {
                 sequence: 50
             }
         )
 
+        column SCORE (
+            type: plainText
+            heading {
+                heading: Match %
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column REASONS (
+            type: plainText
+            heading {
+                heading: Why
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column MERGE (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-merge-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>
+                    ```
+            }
+        )
+
+    )
+
+    button confirm-new (
+        buttonName: CONFIRM_NEW
+        label: Confirm as New Party
+        layout {
+            sequence: 10
+            region: @counterparty_matching
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Create a new party for this counterparty?
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'
+                and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                ```
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+    dynamicAction merge-party (
+        name: Merge into an existing party
+        execution {
+            sequence: 60
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-merge-party
+        }
+
+        action merge-party-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Merge this counterparty into " + a.data("label") + "?", function (ok) {
+                        if (ok) {
+                            apex.page.submit({ request: "MERGE", set: { P205_MERGE_PARTY_ID: String(a.data("party")) } });
+                        }
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process merge-party (
+        name: Merge into existing party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, to_number(:P205_MERGE_PARTY_ID), :P205_MATCH_NOTE);
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        successMessage {
+            successMessage: The counterparty was merged into the existing party.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    process confirm-new-party (
+        name: Confirm as new party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, null, :P205_MATCH_NOTE);
+                ```
+        }
+        execution {
+            sequence: 6
+            point: processing
+        }
+        successMessage {
+            successMessage: A new party was created for the counterparty.
+        }
+        serverSideCondition {
+            whenButtonPressed: @confirm-new
+        }
     )
 
     region request_attachments (
@@ -831,13 +1081,16 @@ page 205 (
             htmlDomId: decision
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                :P205_TASK_ID is not null
-                and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
     )
@@ -885,13 +1138,19 @@ page 205 (
             warnOnUnsavedChanges: doNotCheck
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                :P205_TASK_ID is not null
-                and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
     )
@@ -917,13 +1176,16 @@ page 205 (
             message: Reject this request?
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                :P205_TASK_ID is not null
-                and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
     )
@@ -953,13 +1215,16 @@ page 205 (
             warnOnUnsavedChanges: doNotCheck
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                :P205_TASK_ID is not null
-                and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
     )
@@ -1066,7 +1331,7 @@ page 205 (
                                    p_context        => 'SINGLE_TASK',
                                    p_task_id        => :P205_TASK_ID,
                                    p_application_id => :APP_ID ) )
-                 where task_def_static_id = 'DOC_CHECKLIST_REVIEW';
+                 where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');
                 ```
         }
         execution {
@@ -1087,6 +1352,8 @@ page 205 (
             plsqlCode:
                 ```plsql
                 select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
+                -- the breadcrumb shows the request number before the page items are rendered
+                select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;
                 ```
         }
         execution {

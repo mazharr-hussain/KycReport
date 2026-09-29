@@ -148,6 +148,11 @@ begin
     lvs('KYC_TRIGGER_SOURCE', 'MANUAL=Manual|SCHEDULED=Scheduled|EVENT_DRIVEN=Event driven');
     lt('KYC_REQUEST_STATUS', 'KYC Request Status');
     lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|SUBMITTED=Submitted|IN_PROGRESS=In progress|COMPLETED=Completed|REJECTED=Rejected|CANCELLED=Cancelled');
+    lt('ID_DOCUMENT_TYPE', 'Identity Document Types', 'E');
+    lvs('ID_DOCUMENT_TYPE', 'PASSPORT=Passport|NATIONAL_ID=National ID card|RESIDENCE_PERMIT=Residence permit');
+    lt('REQUEST_MATCH_STATUS', 'Counterparty Match Status');
+    lvs('REQUEST_MATCH_STATUS', 'SELECTED=Existing party chosen|NEW=New party|PENDING=Possible match - Compliance to decide'
+        || '|MERGED=Merged into an existing party|CONFIRMED_NEW=Confirmed as a new party');
     lt('KYC_INTAKE_OUTCOME', 'KYC Intake Outcomes');
     lvs('KYC_INTAKE_OUTCOME', 'NOT_REQUIRED=KYC not required|AUTO_APPROVED=Auto-approved|ASSIGNED=Assigned to Compliance');
     lt('CASE_STATUS', 'Case Status');
@@ -239,6 +244,7 @@ begin
          when not matched then insert (role_code, privilege_code) values (s.role_code, s.privilege_code);
     end loop;
 
+    task_setting('COUNTERPARTY_MATCH', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance decides whether a new counterparty is an existing party.');
     task_setting('DOC_CHECKLIST_REVIEW', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance checks the documents of a request before investigation.');
     task_setting('CASE_INVESTIGATION', 10, 2, 'COMPLIANCE_MANAGER', 'The officer investigates the case.');
     task_setting('CASE_APPROVAL', 3, 1, 'HEAD_OF_COMPLIANCE', 'An approver decides the case (one task per approval level).');

@@ -17,7 +17,11 @@ from pagegen import col, item, list_page, form_page, ir_region, refresh_da, brea
 from pagekit import *  # noqa: F401,F403 (shared page building blocks)
 
 REQ_LIST_SQL = '''select q.*,
-       apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url
+       apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
+       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER)
+            then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203')
+       end as edit_url,
+       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER) then 'Edit' end as edit
   from (
         select r.request_id,
                r.request_number,
@@ -28,6 +32,7 @@ REQ_LIST_SQL = '''select q.*,
                r.intake_score,
                xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department) as department,
                r.requester_user_name,
+               r.request_status,
                r.submitted_date,
                (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number
           from xxcmp_requests r
@@ -47,149 +52,281 @@ write('p00200-kyc-requests.apx', list_page(
      col('REQUESTER_USER_NAME', 'Requested By', 90),
      col('SUBMITTED_DATE', 'Submitted', 100, dtype='DATE', fmt='SINCE'),
      col('CASE_NUMBER', 'Case', 110),
-     col('OPEN_URL', 'Open Url', 120, kind='hidden')],
+     col('EDIT', 'Edit', 115, link='EDIT_URL'),
+     col('OPEN_URL', 'Open Url', 120, kind='hidden'),
+     col('EDIT_URL', 'Edit Url', 125, kind='hidden'),
+     col('REQUEST_STATUS', 'Status Code', 130, kind='hidden')],
     create_label='Create Request', form_page=201))
 
 # ===================================================================== 201
 p = 201
 t = page_header(p, 'Create Request - Counterparty', 'CREATE-REQUEST', 'kyc',
-                'Step 1 of 3: who is the counterparty. The request is saved as a draft; you can come back to it from KYC Requests.')
+                'Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one: '
+                'the system then looks for parties that may be the same (name, registration or identity number, '
+                'date of incorporation or birth, country); Compliance decides at the review whether it is an existing '
+                'party. Save as Draft keeps the request to finish later.')
 t += breadcrumb_region('Create Request') + '\n'
 t += wizard_region()
 t += static_region('counterparty', 'Counterparty', 20)
+t += static_region('new_party', 'New Counterparty', 30)
 t += static_region('buttons', 'Buttons', 90, template='buttons-container')
 t += pitem(p, 'REQUEST_ID', 'hidden', None, 1, 'counterparty', protect=True)
 t += pitem(p, 'PARTY_TYPE', 'radioGroup', 'Counterparty Type', 10, 'counterparty', required=True,
            lov=lookup_lov('PARTY_TYPE', None), default='ORGANIZATION',
            help_text='An organisation (company, trust, government entity) or an individual.')
-t += pitem(p, 'PARTY_NAME', 'textField', 'Name', 20, 'counterparty', required=True, max_len=360,
+t += pitem(p, 'PARTY_SELECTION', 'radioGroup', 'Counterparty', 20, 'counterparty', required=True,
+           lov=('sql', "select 'Existing counterparty' as display_value, 'EXISTING' as return_value from dual\n"
+                       "union all select 'New counterparty', 'NEW' from dual", None), default='NEW',
+           help_text='Existing: the counterparty is already a party (choose it). New: not yet known to the organisation.')
+t += pitem(p, 'PARTY_ID', 'popupLov', 'Existing Counterparty', 30, 'counterparty', mark_required=True,
+           lov=('sql', """select j.party_name || ' (' || j.party_number || nvl2(j.country, ', ' || j.country, null) || ')' as display_value,
+       j.party_id as return_value
+  from json_table(xxcmp_request_pkg.party_directory_json(:P201_PARTY_TYPE), '$[*]'
+         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country')) j
+ order by j.party_name""", None),
+           help_text='Search by name or party number.')
+t = t.replace('''    pageItem P201_PARTY_ID (
+        type: popupLov''', '''    pageItem P201_PARTY_ID (
+        type: popupLov''')
+# the party list depends on the type
+i = t.index('    pageItem P201_PARTY_ID (')
+j = t.index('        layout {', i)
+t = t[:j] + '''        cascadingLov {
+            parentItems: P201_PARTY_TYPE
+        }
+''' + t[j:]
+ORG_ITEMS = 'P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE,P201_INCORPORATION_DATE'
+PERSON_ITEMS = 'P201_DATE_OF_BIRTH,P201_NATIONALITY,P201_ID_TYPE,P201_ID_NUMBER'
+t += pitem(p, 'PARTY_NAME', 'textField', 'Name', 10, 'new_party', mark_required=True, max_len=360,
            help_text='Legal name of the organisation, or full name of the individual.')
-ORG_ITEMS, PERSON_ITEMS = 'P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE', 'P201_DATE_OF_BIRTH,P201_NATIONALITY'
-t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 30, 'counterparty', max_len=100, mark_required=True,
+t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 20, 'new_party', max_len=100, mark_required=True,
            help_text='Commercial registration or company number.')
-t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 40, 'counterparty', lov=lookup_lov('ENTITY_TYPE'), mark_required=True,
+t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 30, 'new_party', lov=lookup_lov('ENTITY_TYPE'), mark_required=True,
            help_text='Legal form of the organisation.')
-t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 45, 'counterparty', mark_required=True)
-t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 47, 'counterparty', lov=lookup_lov('JURISDICTION'), mark_required=True)
-t += pitem(p, 'JURISDICTION', 'selectList', 'Country', 50, 'counterparty', required=True, lov=lookup_lov('JURISDICTION'),
+t += pitem(p, 'INCORPORATION_DATE', 'datePicker', 'Date of Incorporation', 40, 'new_party')
+t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 50, 'new_party', mark_required=True)
+t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 60, 'new_party', lov=lookup_lov('JURISDICTION'), mark_required=True)
+t += pitem(p, 'ID_TYPE', 'selectList', 'Identity Document', 70, 'new_party', lov=lookup_lov('ID_DOCUMENT_TYPE'),
+           mark_required=True)
+t += pitem(p, 'ID_NUMBER', 'textField', 'Identity Document Number', 80, 'new_party', max_len=100, mark_required=True)
+t += pitem(p, 'JURISDICTION', 'selectList', 'Country', 90, 'new_party', lov=lookup_lov('JURISDICTION'), mark_required=True,
            help_text='Country of incorporation for an organisation, country of residence for an individual.')
-t += pitem(p, 'REQUESTING_DEPARTMENT', 'selectList', 'Requesting Department', 80, 'counterparty', required=True,
+t += pitem(p, 'MATCH_ACK', 'switch', 'None of the listed parties is this counterparty', 100, 'new_party', default='N',
+           help_text='Tick when you are sure none of the similar parties is the counterparty. Compliance still checks it.')
+t += pitem(p, 'REQUESTING_DEPARTMENT', 'selectList', 'Requesting Department', 40, 'counterparty', required=True,
            lov=lookup_lov('REQUESTING_DEPARTMENT'))
-t += pitem(p, 'JUSTIFICATION', 'textarea', 'Business Purpose', 90, 'counterparty', max_len=4000, height=3,
+t += pitem(p, 'JUSTIFICATION', 'textarea', 'Business Purpose', 50, 'counterparty', max_len=4000, height=3,
            help_text='Why the organisation wants to deal with this counterparty.')
-t += button('cancel', 'CANCEL', 'Cancel', 10, 'buttons', 'CLOSE', action='redirectThisApp',
-            target='page: 200', validations=False)
-t += button('next', 'NEXT', 'Next', 20, 'buttons', 'NEXT', hot=True, auth='page-create')
-t += process('load-request', 'Load draft', '''select party_type, party_name, registration_number, entity_type, jurisdiction,
-       date_of_birth, nationality, requesting_department, justification
-  into :P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER, :P201_ENTITY_TYPE, :P201_JURISDICTION,
-       :P201_DATE_OF_BIRTH, :P201_NATIONALITY, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION
-  from xxcmp_requests
- where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';''', 10, point='beforeHeader',
-                 condition='type: itemIsNotNull\nitem: P201_REQUEST_ID')
-t += f'''    dynamicAction fields-by-type (
-        name: Fields for the counterparty type
+DATE_EXPR = "case :P201_PARTY_TYPE when 'ORGANIZATION' then to_date(:P201_INCORPORATION_DATE) else to_date(:P201_DATE_OF_BIRTH) end"
+MATCH_ITEMS = 'P201_PARTY_TYPE,P201_PARTY_NAME,P201_REGISTRATION_NUMBER,P201_ID_NUMBER,P201_INCORPORATION_DATE,P201_DATE_OF_BIRTH,P201_JURISDICTION'
+t += classic('possible_matches', 'Existing Parties That May Be This Counterparty', f'''select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+       'Use this party' as use_party
+  from json_table(xxcmp_request_pkg.party_candidates_json(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,
+                      :P201_ID_NUMBER, {DATE_EXPR}, :P201_JURISDICTION), '$[*]'
+         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j''',
+             [('PARTY_ID', '', 'hidden'), ('PARTY_NUMBER', 'Party'), ('PARTY_NAME', 'Name'), ('COUNTRY', 'Country'),
+              ('SCORE', 'Match %'), ('REASONS', 'Why'),
+              ('USE_PARTY', 'Action', 'plainText',
+               '<a href="#" class="kyc-use-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#USE_PARTY#</a>')],
+             35, submit=MATCH_ITEMS, nodata='No existing party resembles this counterparty.')
+
+
+def toggle(name, item, value, true_items, false_items, seq, extra=''):
+    acts = ''
+    for n, (act, items, when) in enumerate([('show', true_items, 'true'), ('hide', false_items, 'true'),
+                                           ('hide', true_items, 'false'), ('show', false_items, 'false')]):
+        if not items:
+            continue
+        sel = ('selectionType: region\n                region: @' + items[1:]) if items.startswith('@') else \
+              ('selectionType: items\n                items: ' + items)
+        acts += f'''
+        action {name}-{n} (
+            action: {act}
+            affectedElements {{
+                {sel}
+            }}
+            execution {{
+                sequence: {(n + 1) * 10}
+                fireWhenEventResultIs: {when}
+                fireOnInit: true
+            }}
+        )
+'''
+    return f'''    dynamicAction {name} (
+        name: {name}
         execution {{
-            sequence: 10
+            sequence: {seq}
         }}
         when {{
             event: change
             selectionType: items
-            items: P201_PARTY_TYPE
+            items: {item}
         }}
         clientSideCondition {{
             type: item=value
-            item: P201_PARTY_TYPE
-            value: ORGANIZATION
+            item: {item}
+            value: {value}
+        }}
+{acts}{extra}
+    )
+
+'''
+# existing or new; then organisation or individual fields
+t += toggle('existing-or-new', 'P201_PARTY_SELECTION', 'EXISTING', 'P201_PARTY_ID', '@new_party', 10)
+t += toggle('existing-or-new-matches', 'P201_PARTY_SELECTION', 'EXISTING', '', '@possible_matches', 11)
+t += toggle('fields-by-type', 'P201_PARTY_TYPE', 'ORGANIZATION', ORG_ITEMS, PERSON_ITEMS, 20)
+t += f'''    dynamicAction refresh-matches (
+        name: Look for similar parties
+        execution {{
+            sequence: 30
+        }}
+        when {{
+            event: change
+            selectionType: items
+            items: {MATCH_ITEMS}
         }}
 
-        action fields-by-type-org-show (
-            action: show
+        action refresh-matches-refresh (
+            action: refresh
             affectedElements {{
-                selectionType: items
-                items: {ORG_ITEMS}
+                selectionType: region
+                region: @possible_matches
             }}
             execution {{
                 sequence: 10
-                fireWhenEventResultIs: true
-                fireOnInit: true
+                fireOnInit: false
             }}
         )
 
-        action fields-by-type-person-hide (
-            action: hide
-            affectedElements {{
-                selectionType: items
-                items: {PERSON_ITEMS}
-            }}
-            execution {{
-                sequence: 20
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }}
-        )
+    )
 
-        action fields-by-type-org-hide (
-            action: hide
-            affectedElements {{
-                selectionType: items
-                items: {ORG_ITEMS}
-            }}
-            execution {{
-                sequence: 30
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }}
-        )
+    dynamicAction match-ack-visibility (
+        name: Confirmation only when there are similar parties
+        execution {{
+            sequence: 40
+        }}
+        when {{
+            event: apexafterrefresh
+            selectionType: region
+            region: @possible_matches
+        }}
 
-        action fields-by-type-person-show (
-            action: show
-            affectedElements {{
-                selectionType: items
-                items: {PERSON_ITEMS}
+        action match-ack-visibility-js (
+            action: executeJsCode
+            settings {{
+                jsCode:
+                    ```javascript
+                    var found = $("#possible_matches a.kyc-use-party").length > 0;
+                    apex.item("P201_MATCH_ACK").show();
+                    if (!found) {{ apex.item("P201_MATCH_ACK").hide(); }}
+                    ```
             }}
             execution {{
-                sequence: 40
-                fireWhenEventResultIs: false
+                sequence: 10
                 fireOnInit: true
             }}
         )
 
     )
 
+    dynamicAction use-party (
+        name: Use an existing party
+        execution {{
+            sequence: 50
+            eventScope: dynamic
+            staticContainer: body
+        }}
+        when {{
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-use-party
+        }}
+
+        action use-party-js (
+            action: executeJsCode
+            settings {{
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.item("P201_PARTY_SELECTION").setValue("EXISTING");
+                    apex.item("P201_PARTY_ID").setValue(String(a.data("party")), a.data("label"));
+                    ```
+            }}
+            execution {{
+                sequence: 10
+                fireOnInit: false
+            }}
+        )
+
+    )
+
 '''
-for i, (fld, check, msg) in enumerate([
-        ('REGISTRATION_NUMBER', "if :P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null then",
-         'Enter the registration number of the organisation.'),
-        ('ENTITY_TYPE', "if :P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null then",
-         'Choose the entity type of the organisation.'),
-        ('DATE_OF_BIRTH', "if :P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null then",
-         'Enter the date of birth.'),
-        ('DATE_OF_BIRTH', "if :P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate) then",
-         'The date of birth cannot be in the future.'),
-        ('NATIONALITY', "if :P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null then",
-         'Choose the nationality.')]):
-    t += fn_validation(f'required-{i + 1}', msg, f"{check}\n    return '{msg}';\nend if;\nreturn null;",
+t += button('cancel', 'CANCEL', 'Cancel', 10, 'buttons', 'CLOSE', action='redirectThisApp',
+            target='page: 200', validations=False)
+t += button('save-draft', 'SAVE_DRAFT', 'Save as Draft', 20, 'buttons', 'NEXT', auth='page-create', validations=False)
+t += button('next', 'NEXT', 'Next', 30, 'buttons', 'NEXT', hot=True, auth='page-create')
+t += process('load-request', 'Load draft', '''select party_selection, party_id, party_type, party_name, registration_number, entity_type,
+       incorporation_date, date_of_birth, nationality, id_type, id_number, jurisdiction, match_ack_flag,
+       requesting_department, justification
+  into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER, :P201_ENTITY_TYPE,
+       :P201_INCORPORATION_DATE, :P201_DATE_OF_BIRTH, :P201_NATIONALITY, :P201_ID_TYPE, :P201_ID_NUMBER, :P201_JURISDICTION,
+       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION
+  from xxcmp_requests
+ where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';''', 10, point='beforeHeader',
+                 condition='type: itemIsNotNull\nitem: P201_REQUEST_ID')
+NEW = ":P201_PARTY_SELECTION = 'NEW' and "
+checks = [
+    ('PARTY_ID', ":P201_PARTY_SELECTION = 'EXISTING' and :P201_PARTY_ID is null", 'Choose the existing counterparty.'),
+    ('PARTY_NAME', NEW + "trim(:P201_PARTY_NAME) is null", 'Enter the name.'),
+    ('REGISTRATION_NUMBER', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null",
+     'Enter the registration number of the organisation.'),
+    ('ENTITY_TYPE', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null", 'Choose the entity type of the organisation.'),
+    ('INCORPORATION_DATE', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and to_date(:P201_INCORPORATION_DATE) > trunc(sysdate)",
+     'The date of incorporation cannot be in the future.'),
+    ('DATE_OF_BIRTH', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null", 'Enter the date of birth.'),
+    ('DATE_OF_BIRTH', NEW + ":P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate)",
+     'The date of birth cannot be in the future.'),
+    ('NATIONALITY', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null", 'Choose the nationality.'),
+    ('ID_TYPE', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_ID_TYPE is null", 'Choose the identity document.'),
+    ('ID_NUMBER', NEW + ":P201_PARTY_TYPE = 'PERSON' and trim(:P201_ID_NUMBER) is null", 'Enter the identity document number.'),
+    ('JURISDICTION', NEW + ":P201_JURISDICTION is null", 'Choose the country.'),
+    ('MATCH_ACK', NEW + "nvl(:P201_MATCH_ACK, 'N') <> 'Y'\n   and xxcmp_request_pkg.party_candidate_count(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,\n"
+                        f"         :P201_ID_NUMBER, {DATE_EXPR}, :P201_JURISDICTION) > 0",
+     'Existing parties may be this counterparty: choose one with Use this party, or confirm that none of them is.'),
+]
+for i, (fld, check, msg) in enumerate(checks):
+    t += fn_validation(f'check-{i + 1}', msg, f"if {check} then\n    return '{msg}';\nend if;\nreturn null;",
                        f'P201_{fld}', (i + 1) * 10, requests='NEXT')
 t += process('save-request', 'Save counterparty', '''declare
     l_request_id number := to_number(:P201_REQUEST_ID);
 begin
-    -- one rule set for the page and the database: fields that do not apply to the type are cleared,
-    -- a change of type replaces the questionnaire
+    -- one rule set for the page and the database; Save as Draft only needs the type and a name or party
     xxcmp_request_pkg.save_counterparty(
         p_request_id            => l_request_id,
+        p_party_selection       => :P201_PARTY_SELECTION,
+        p_party_id              => to_number(:P201_PARTY_ID),
         p_party_type            => :P201_PARTY_TYPE,
         p_party_name            => :P201_PARTY_NAME,
         p_registration_number   => :P201_REGISTRATION_NUMBER,
         p_entity_type           => :P201_ENTITY_TYPE,
+        p_incorporation_date    => to_date(:P201_INCORPORATION_DATE),
+        p_id_type               => :P201_ID_TYPE,
+        p_id_number             => :P201_ID_NUMBER,
         p_jurisdiction          => :P201_JURISDICTION,
         p_date_of_birth         => to_date(:P201_DATE_OF_BIRTH),
         p_nationality           => :P201_NATIONALITY,
         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
-        p_justification         => :P201_JUSTIFICATION);
+        p_justification         => :P201_JUSTIFICATION,
+        p_match_ack             => nvl(:P201_MATCH_ACK, 'N'),
+        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end);
     :P201_REQUEST_ID := l_request_id;
-end;''', 10, button_='next', auth='page-create')
-t += branch('To questionnaire', 202, {'P202_REQUEST_ID': '&P201_REQUEST_ID.'}, button_='next')
+end;''', 10, requests='NEXT,SAVE_DRAFT', auth='page-create', success='Request saved.')
+t += branch('Draft saved', 200, {}, seq=10, button_='save-draft')
+t += branch('To questionnaire', 202, {'P202_REQUEST_ID': '&P201_REQUEST_ID.'}, seq=20, button_='next')
 t += ')\n'
 write('p00201-create-request.apx', t)
 
@@ -275,13 +412,15 @@ t += '''    pageItem P202_ANSWERS (
 
 '''
 t += button('previous', 'PREVIOUS', 'Previous', 10, 'buttons', 'PREVIOUS', validations=False)
+t += button('save-draft', 'SAVE_DRAFT', 'Save as Draft', 15, 'buttons', 'NEXT', auth='page-create', validations=False)
 t += button('next', 'NEXT', 'Next', 20, 'buttons', 'NEXT', hot=True, auth='page-create')
 t += fn_validation('required-answers', 'Required questions answered',
                    'return xxcmp_request_pkg.answers_error(:P202_REQUEST_ID, :P202_ANSWERS);',
                    'P202_ANSWERS', 10, requests='NEXT')
 t += process('save-answers', 'Save answers',
              'xxcmp_request_pkg.save_answers(:P202_REQUEST_ID, :P202_ANSWERS);', 10,
-             requests='NEXT,PREVIOUS', auth='page-create')
+             requests='NEXT,PREVIOUS,SAVE_DRAFT', auth='page-create')
+t += branch('Draft saved', 200, {}, seq=5, button_='save-draft')
 t += branch('Back to counterparty', 201, {'P201_REQUEST_ID': '&P202_REQUEST_ID.'}, seq=10, button_='previous')
 t += branch('To review', 203, {'P203_REQUEST_ID': '&P202_REQUEST_ID.'}, seq=20, button_='next')
 t += ')\n'
@@ -325,6 +464,8 @@ t += button('request_attachments-add', 'REQUEST_ATTACHMENTS_ADD', 'Add Document'
 t += refresh_da('request_attachments', 30)
 t += button('previous', 'PREVIOUS', 'Previous', 10, 'buttons', 'PREVIOUS', action='redirectThisApp',
             target='page: 202\nitems: {\n    P202_REQUEST_ID: &P203_REQUEST_ID.\n}\nclearCache: 202', validations=False)
+t += button('save-draft', 'SAVE_DRAFT', 'Save as Draft', 15, 'buttons', 'NEXT', action='redirectThisApp',
+            target='page: 200', validations=False)
 t += button('submit', 'SUBMIT', 'Submit Request', 20, 'buttons', 'NEXT', hot=True, auth='page-create')
 t += fn_validation('submit-check', 'Request complete', 'return xxcmp_request_pkg.submit_error(:P203_REQUEST_ID);',
                    'P203_SUBMIT_CHECK', requests='SUBMIT')
@@ -359,6 +500,13 @@ for i, (name, label, sql) in enumerate([
        || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', requesting_department), null)
   from xxcmp_requests where request_id = :P205_REQUEST_ID"""),
         ('JUSTIFICATION', 'Business Purpose', "select justification from xxcmp_requests where request_id = :P205_REQUEST_ID"),
+        ('PARTY', 'Party', """select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
+            when r.party_id is not null then 'Linked to a party'
+            else 'Not decided yet' end
+       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
+  from xxcmp_requests r
+  left join xxcmp_parties p on p.party_id = r.party_id
+ where r.request_id = :P205_REQUEST_ID"""),
         ('CASE_NUMBER', 'Case', "select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID")]):
     t += pitem(p, name, 'displayOnly', label, (i + 1) * 10, 'request', sql=sql)
 t += classic('answer_summary', 'Answers', '''select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
@@ -383,19 +531,87 @@ t += classic('checklist', 'Document Checklist', '''select c.column_value as cate
              [('CATEGORY_CODE', '', 'hidden'), ('CATEGORY', 'Mandatory Document'), ('STATUS', 'Status')], 40,
              submit='P205_REQUEST_ID', nodata='No mandatory documents are configured for this counterparty.',
              condition="type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')\n    ```")
-t += classic('possible_matches', 'Possible Existing Parties', '''select p.party_number, p.party_name, p.registration_number,
-       xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
-       xxcmp_kyc_pkg.name_similarity(p.party_name, r.party_name) as similarity
-  from xxcmp_parties p
-  join xxcmp_requests r on r.request_id = :P205_REQUEST_ID
- where (xxcmp_kyc_pkg.name_similarity(p.party_name, r.party_name) >= 70
-        or upper(replace(p.registration_number, ' ')) = upper(replace(r.registration_number, ' ')))
-   and p.party_id <> nvl(r.party_id, -1)
- order by similarity desc''',
-             [('PARTY_NUMBER', 'Party'), ('PARTY_NAME', 'Name'), ('REGISTRATION_NUMBER', 'Registration'),
-              ('JURISDICTION', 'Jurisdiction'), ('SIMILARITY', 'Name Similarity %')], 50, submit='P205_REQUEST_ID',
-             nodata='No similar parties.',
-             condition="type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')\n    ```")
+MATCH_MANAGER = ("type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n"
+                 "    xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'\n"
+                 "    and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')\n    ```")
+t += static_region('counterparty_matching', 'Counterparty Matching', 50,
+                   html='<p>This counterparty was entered as new, but existing parties may be the same. Merge it into one of '
+                        'them (the request is linked to that party and its empty fields are completed from the request), '
+                        'or confirm it as a new party. The checklist can be approved once this is decided.</p>',
+                   condition=MATCH_MANAGER)
+t += pitem(p, 'MERGE_PARTY_ID', 'hidden', None, 1, 'counterparty_matching')
+t = t.replace('''    pageItem P205_MERGE_PARTY_ID (
+        type: hidden''', '''    pageItem P205_MERGE_PARTY_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Set by the Merge link just before submit. XXCMP_REQUEST_PKG.RESOLVE_MATCH re-checks the privilege, the pending state and the party type.
+        }''', 1)
+t += pitem(p, 'MATCH_NOTE', 'textarea', 'Decision Note', 10, 'counterparty_matching', max_len=1000, height=2,
+           help_text='Why the counterparty is (or is not) one of the existing parties.')
+t += classic('match_candidates', 'Existing Parties That May Be This Counterparty', '''select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+       apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(j.party_id), p_clear_cache => '21') as party_url,
+       'Merge into this party' as merge
+  from json_table(xxcmp_request_pkg.request_candidates_json(:P205_REQUEST_ID), '$[*]'
+         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j''',
+             [('PARTY_ID', '', 'hidden'), ('PARTY_URL', '', 'hidden'),
+              ('PARTY_NUMBER', 'Party', 'plainText', '<a href="#PARTY_URL#" target="_blank">#PARTY_NUMBER#</a>'),
+              ('PARTY_NAME', 'Name'), ('COUNTRY', 'Country'), ('SCORE', 'Match %'), ('REASONS', 'Why'),
+              ('MERGE', 'Action', 'plainText',
+               '<a href="#" class="kyc-merge-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>')],
+             20, submit='P205_REQUEST_ID', nodata='No existing party resembles this counterparty any more.',
+             parent='counterparty_matching')
+t += button('confirm-new', 'CONFIRM_NEW', 'Confirm as New Party', 10, 'counterparty_matching', 'EDIT',
+            condition=MATCH_MANAGER, auth='page-view', confirm='Create a new party for this counterparty?')
+t += '''    dynamicAction merge-party (
+        name: Merge into an existing party
+        execution {
+            sequence: 60
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-merge-party
+        }
+
+        action merge-party-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Merge this counterparty into " + a.data("label") + "?", function (ok) {
+                        if (ok) {
+                            apex.page.submit({ request: "MERGE", set: { P205_MERGE_PARTY_ID: String(a.data("party")) } });
+                        }
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+'''
+t += process('merge-party', 'Merge into existing party',
+             'xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, to_number(:P205_MERGE_PARTY_ID), :P205_MATCH_NOTE);', 5,
+             requests='MERGE', success='The counterparty was merged into the existing party.')
+t += process('confirm-new-party', 'Confirm as new party',
+             'xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, null, :P205_MATCH_NOTE);', 6,
+             button_='confirm-new', success='A new party was created for the counterparty.')
 t += classic('request_attachments', 'Documents', '''select a.attached_document_id, a.title, a.category_name, a.document_date, a.expiry_date,
        case when a.expired_flag = 'Y' then 'Expired' end as expired, a.created_by, a.creation_date
   from xxfnd_attached_documents_v a
@@ -411,12 +627,18 @@ t += button('request_attachments-add', 'REQUEST_ATTACHMENTS_ADD', 'Add Document'
             condition="type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    xxfnd_attach_pkg.block_permission(:APP_ALIAS, 205, 'request_attachments', 'XXCMP_REQUESTS', 'INSERT') = 'Y'\n    ```",
             validations=False)
 t += refresh_da('request_attachments', 30)
+TASK_ALLOWED = ("type: functionBody\nlanguage: plsql\nplsqlFunctionBody:\n    ```plsql\n"
+                "    -- the document checklist task of this request (the page also opens from the Counterparty Match task)\n"
+                "    for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop\n"
+                "        return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)\n"
+                "            or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);\n"
+                "    end loop;\n    return false;\n    ```")
 t += static_region('decision', 'Checklist Decision', 70, html='<p>Approve opens the case for investigation. Reject closes the request. For a missing document, raise a request for information instead.</p>',
-                   condition="type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    :P205_TASK_ID is not null\n    and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)\n         or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))\n    ```")
+                   condition=TASK_ALLOWED)
 t += pitem(p, 'COMMENT', 'textarea', 'Comment', 10, 'decision', max_len=1000, height=2,
            help_text='Recorded on the task; required when rejecting.')
-TASK_ALLOWED = "type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    :P205_TASK_ID is not null\n    and (apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)\n         or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim))\n    ```"
-t += button('approve', 'APPROVE', 'Approve - Open Case', 30, 'decision', 'NEXT', hot=True, condition=TASK_ALLOWED)
+t += button('approve', 'APPROVE', 'Approve - Open Case', 30, 'decision', 'NEXT', hot=True,
+            condition=TASK_ALLOWED.replace("    for t in", "    if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y' then\n        return false;\n    end if;\n    for t in", 1))
 t += button('reject', 'REJECT', 'Reject Request', 20, 'decision', 'DELETE', condition=TASK_ALLOWED,
             confirm='Reject this request?')
 t += button('raise-rfi', 'RAISE_RFI', 'Raise RFI', 10, 'decision', 'EDIT', action='redirectThisApp',
@@ -438,9 +660,11 @@ t += process('open-from-task', 'Open from task', '''select to_number(detail_pk) 
                    p_context        => 'SINGLE_TASK',
                    p_task_id        => :P205_TASK_ID,
                    p_application_id => :APP_ID ) )
- where task_def_static_id = 'DOC_CHECKLIST_REVIEW';''', 5, point='beforeHeader',
+ where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');''', 5, point='beforeHeader',
              condition='type: itemIsNotNull\nitem: P205_TASK_ID')
-t += process('load-case', 'Load case', '''select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;''',
+t += process('load-case', 'Load case', '''select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
+-- the breadcrumb shows the request number before the page items are rendered
+select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;''',
              6, point='beforeHeader')
 t += process('add-comment', 'Record comment', 'apex_human_task.add_task_comment(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);',
              10, requests='APPROVE,REJECT', condition=None)

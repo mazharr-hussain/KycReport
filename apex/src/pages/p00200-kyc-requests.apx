@@ -48,7 +48,11 @@ page 200 (
             sqlQuery:
                 ```sql
                 select q.*,
-                       apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url
+                       apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
+                       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER)
+                            then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203')
+                       end as edit_url,
+                       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER) then 'Edit' end as edit
                   from (
                         select r.request_id,
                                r.request_number,
@@ -59,6 +63,7 @@ page 200 (
                                r.intake_score,
                                xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department) as department,
                                r.requester_user_name,
+                               r.request_status,
                                r.submitted_date,
                                (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number
                           from xxcmp_requests r
@@ -248,6 +253,25 @@ page 200 (
             }
         )
 
+        column EDIT (
+            type: plainText
+            heading {
+                heading: Edit
+            }
+            layout {
+                sequence: 115
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#EDIT#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
         column OPEN_URL (
             type: hidden
             heading {
@@ -255,6 +279,32 @@ page 200 (
             }
             layout {
                 sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            heading {
+                heading: Edit Url
+            }
+            layout {
+                sequence: 125
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REQUEST_STATUS (
+            type: hidden
+            heading {
+                heading: Status Code
+            }
+            layout {
+                sequence: 130
             }
             source {
                 dataType: STRING
