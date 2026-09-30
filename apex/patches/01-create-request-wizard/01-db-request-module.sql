@@ -1,9 +1,7 @@
 -- Patch 01 - request module: database changes (run as the parsing schema).
--- Runs 16b (tables/columns/indexes, XXCMP_REQUEST_PKG, XXCMP_CASE_PKG) and 18e (seed); both are idempotent.
-set define off
-whenever sqlerror continue
+-- Runs 16b and 18e (idempotent). Works in SQL Workshop > SQL Scripts and in SQLcl.
 
-prompt ==== 16b-kyc-requests-cases.sql
+-- ==== 16b-kyc-requests-cases.sql
 --------------------------------------------------------------------------------
 -- 16b KYC requests and cases  (release R13)
 -- Module 1 (intake) and Module 2 (investigation, decision) data and logic.
@@ -1529,7 +1527,7 @@ begin
 end;
 /
 
-prompt ==== 18e-kyc-requests-cases.sql
+-- ==== 18e-kyc-requests-cases.sql
 --------------------------------------------------------------------------------
 -- 18e KYC requests and cases - seed (release R13)
 -- Lookups, attachment entities, KYC parameters, starter questionnaires, data
@@ -1789,7 +1787,7 @@ begin
 end;
 /
 
-prompt ==== checks
+-- ==== checks
 select object_name, object_type, status from user_objects
  where object_name in ('XXCMP_REQUEST_PKG', 'XXCMP_CASE_PKG') order by 1, 2;
 select lookup_type, count(*) values_count from xxfnd_lookup_values

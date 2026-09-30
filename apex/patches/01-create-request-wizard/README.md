@@ -43,7 +43,17 @@ Organization / Person questions where none is set.
 | `app/...` | same paths in the release 15 application source (`pages/`, `shared-components/...`, `supporting-objects/...`) |
 | `diag-request-workflow.sql` | not part of the patch: shows why a submitted request stays "Processing" |
 
-## Deploy
+## Deploy from the APEX screens (no SQLcl)
+1. **SQL Workshop > SQL Scripts > Upload** `01-db-request-module.sql` > **Run**. The results at the end must show
+   `XXCMP_REQUEST_PKG` VALID and the new lookups (ID_DOCUMENT_TYPE, REQUEST_MATCH_STATUS).
+2. **App Builder > Import** the full application zip `KYC-Compliance-Platform-APEXlang_16.zip` (release 15 +
+   this patch): choose **Replace existing application** with the same application ID; install supporting objects:
+   Yes (safe to re-run) or No (step 1 already did it).
+3. Check in SQL Commands:
+   `select workflow_static_id, workflow_version, state from apex_appl_workflow_versions where application_id = <app id>;`
+   KYC_REQUEST 1.1 Active, 1.0 Inactive.
+
+## Deploy with SQLcl
 1. `@01-db-request-module.sql` – the last queries must show `XXCMP_REQUEST_PKG` VALID and the new lookups.
 2. Copy the `app/` files over the release 15 source (same relative paths) and import:
    `apex import -input <source folder> -id <app id>`
