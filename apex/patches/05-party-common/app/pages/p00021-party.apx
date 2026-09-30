@@ -1,0 +1,2077 @@
+page 21 (
+    name: Party
+    alias: PARTY
+    title: Party
+    pageGroup: @parties
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    readOnly {
+        type: expression
+        language: plsql
+        plsqlExpression:
+            ```plsql
+            :P21_PARTY_ID is not null
+            ```
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText:
+            ```
+            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only. Edit (Parties - Manage) shows Edit Details (the common Party dialog) and the buttons to add contact persons, owners / officers and documents. Compliance can merge this party into a similar one.
+            ```
+    }
+
+    region breadcrumb (
+        name: Party
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region party (
+        name: Party Details
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_PARTIES
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: party
+        }
+    )
+
+    pageItem P21_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @party
+            slot: regionBody
+        }
+        source {
+            formRegion: @party
+            column: PARTY_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P21_PARTY_NUMBER (
+        type: displayOnly
+        label {
+            label: Party Number
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @party
+            column: PARTY_NUMBER
+            dataType: varchar2
+            queryOnly: true
+        }
+    )
+
+    pageItem P21_PARTY_TYPE (
+        type: selectList
+        label {
+            label: Party Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-party-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @party
+            column: PARTY_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: ORGANIZATION
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is not null
+                ```
+        }
+        help {
+            helpText: Choose the party Type.
+        }
+    )
+
+    pageItem P21_PARTY_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 360
+        }
+        source {
+            formRegion: @party
+            column: PARTY_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the name.
+        }
+    )
+
+    pageItem P21_JURISDICTION (
+        type: selectList
+        label {
+            label: Jurisdiction
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-jurisdiction
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 40
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: JURISDICTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the jurisdiction.
+        }
+    )
+
+    pageItem P21_REGISTRATION_NUMBER (
+        type: textField
+        label {
+            label: Registration Number
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 60
+        }
+        source {
+            formRegion: @party
+            column: REGISTRATION_NUMBER
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the registration Number.
+        }
+    )
+
+    pageItem P21_ENTITY_TYPE (
+        type: selectList
+        label {
+            label: Entity Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-entity-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 60
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: ENTITY_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the entity Type.
+        }
+    )
+
+    pageItem P21_INCORPORATION_DATE (
+        type: datePicker
+        label {
+            label: Incorporation Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: INCORPORATION_DATE
+            dataType: date
+        }
+        help {
+            helpText: Choose the incorporation Date.
+        }
+    )
+
+    pageItem P21_DATE_OF_BIRTH (
+        type: datePicker
+        label {
+            label: Date of Birth
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: DATE_OF_BIRTH
+            dataType: date
+        }
+        help {
+            helpText: Choose the date of Birth.
+        }
+    )
+
+    pageItem P21_NATIONALITY (
+        type: selectList
+        label {
+            label: Nationality
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-jurisdiction
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 90
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: NATIONALITY
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the nationality.
+        }
+    )
+
+    pageItem P21_DATA_PROVENANCE (
+        type: selectList
+        label {
+            label: Data Provenance
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-data-provenance
+        }
+        layout {
+            sequence: 100
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: DATA_PROVENANCE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: SELF_DECLARED
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Becomes Registry verified once the party is confirmed against an official registry.
+        }
+    )
+
+    pageItem P21_LAST_VERIFIED_DATE (
+        type: displayOnly
+        label {
+            label: Last Verified
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @party
+            column: LAST_VERIFIED_DATE
+            dataType: timestamp
+            queryOnly: true
+        }
+    )
+
+    pageItem P21_MODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @party
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: EDIT = the party can be changed (Edit button, Edit link on Parties); otherwise an existing party is read only. Edit itself needs Parties - Manage (buttons and processes).
+        }
+    )
+
+    pageItem P21_EMAIL (
+        type: textField
+        label {
+            label: Email
+            alignment: left
+        }
+        layout {
+            sequence: 112
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        source {
+            formRegion: @party
+            column: EMAIL
+            dataType: varchar2
+        }
+        help {
+            helpText: Main email address of the party (contact persons are listed below).
+        }
+    )
+
+    pageItem P21_PHONE (
+        type: textField
+        label {
+            label: Phone
+            alignment: left
+        }
+        layout {
+            sequence: 113
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @party
+            column: PHONE
+            dataType: varchar2
+        }
+        help {
+            helpText: Main phone number of the party.
+        }
+    )
+
+    pageItem P21_WEBSITE (
+        type: textField
+        label {
+            label: Website
+            alignment: left
+        }
+        layout {
+            sequence: 114
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @party
+            column: WEBSITE
+            dataType: varchar2
+        }
+        help {
+            helpText: Website of the party.
+        }
+    )
+
+    pageItem P21_FAX (
+        type: textField
+        label {
+            label: Fax
+            alignment: left
+        }
+        layout {
+            sequence: 115
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @party
+            column: FAX
+            dataType: varchar2
+        }
+        help {
+            helpText: Fax number of the party.
+        }
+    )
+
+    pageItem P21_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @party
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @party
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 20
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is null or nvl(:P21_MODE, 'VIEW') <> 'EDIT'
+                ```
+        }
+    )
+
+    button cancel-edit (
+        buttonName: CANCEL_EDIT
+        label: Done
+        layout {
+            sequence: 15
+            region: @party
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
+                ```
+        }
+    )
+
+    button edit-details (
+        buttonName: EDIT_DETAILS
+        label: Edit Details
+        layout {
+            sequence: 30
+            region: @party
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction details-saved (
+        name: Party details saved
+        execution {
+            sequence: 70
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party
+        }
+
+        action details-saved-reload (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    window.location.reload();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 25
+            region: @party
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                    P21_MODE: EDIT
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region party_dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.render(
+                           p_table_name   => 'XXCMP_PARTIES',
+                           p_pk_value     => :P21_PARTY_ID,
+                           p_reference_value => :P21_PARTY_TYPE,
+                           p_context_code => :P21_DFF_CONTEXT);
+                ```
+            pageItemsToSubmit: [
+                P21_PARTY_ID
+                P21_DFF_CONTEXT
+                P21_PARTY_TYPE
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_dff
+        }
+    )
+
+    pageItem P21_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @party
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    pageItem P21_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @party
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    dynamicAction bind-party_dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        comments {
+            comments: P21_DFF_JSON and P21_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
+        }
+
+        action bind-party_dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    xxfndDff.bind('party_dff', 'P21_DFF_JSON', 'P21_DFF_CONTEXT');
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    region matches (
+        name: Possible Existing Matches
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- name similarity computed once per party (inline view), not three times
+                select m.party_id,
+                       m.party_number,
+                       m.party_name,
+                       m.registration_number,
+                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
+                       case when m.same_registration = 'Y' then 'Same registration number'
+                            else round(m.similarity) || '% name match'
+                       end as match_reason,
+                       -- Compliance merges this party (the duplicate) into the matched one
+                       case when :P21_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                                 and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                            then 'Merge into this party' end as merge
+                  from (select p.party_id, p.party_number, p.party_name, p.registration_number, p.jurisdiction,
+                               case when p.registration_number is not null
+                                     and upper(replace(p.registration_number, ' ')) = upper(replace(:P21_REGISTRATION_NUMBER, ' '))
+                                    then 'Y' else 'N' end as same_registration,
+                               xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME) as similarity
+                          from xxcmp_parties p
+                         where p.party_id <> nvl(to_number(:P21_PARTY_ID), -1)
+                           and p.party_type = :P21_PARTY_TYPE
+                           and p.enabled_flag = 'Y'
+                           and :P21_PARTY_NAME is not null) m
+                 where m.same_registration = 'Y' or m.similarity >= 85
+                 order by m.similarity desc
+                 fetch first 10 rows only
+                ```
+            pageItemsToSubmit: [
+                P21_PARTY_ID
+                P21_PARTY_TYPE
+                P21_PARTY_NAME
+                P21_REGISTRATION_NUMBER
+            ]
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: matches
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 10
+        }
+        messages {
+            whenNoDataFound: No similar parties found.
+        }
+
+        column PARTY_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_NUMBER (
+            type: link
+            heading {
+                heading: Number
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 21
+                    items: {
+                        P21_PARTY_ID: #PARTY_ID#
+                    }
+                    clearCache: 21
+                }
+                linkText: #PARTY_NUMBER#
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration No.
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column JURISDICTION (
+            type: plainText
+            heading {
+                heading: Jurisdiction
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column MATCH_REASON (
+            type: plainText
+            heading {
+                heading: Why It Matches
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column MERGE (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-merge-into" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>
+                    ```
+            }
+        )
+
+    )
+
+    pageItem P21_MERGE_INTO_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @matches
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Set by the Merge link just before submit. XXCMP_PARTY_PKG.MERGE_PARTIES re-checks the privilege, the party types and that both parties are enabled.
+        }
+    )
+
+    dynamicAction merge-into (
+        name: Merge into an existing party
+        execution {
+            sequence: 60
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-merge-into
+        }
+
+        action merge-into-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Merge this party into " + a.data("label") + "? Its requests, cases, contacts, "
+                        + "ownership and documents move there and this party is disabled.", function (ok) {
+                        if (ok) {
+                            apex.page.submit({ request: "MERGE", set: { P21_MERGE_INTO_ID: String(a.data("party")) },
+                                               validate: false });
+                        }
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction refresh-matches (
+        name: Refresh matches on change
+        execution {
+            sequence: 40
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P21_PARTY_NAME,P21_REGISTRATION_NUMBER,P21_PARTY_TYPE
+        }
+
+        action refresh-matches-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @matches
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction refresh-party-dff (
+        name: Refresh party_dff on change
+        execution {
+            sequence: 45
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P21_PARTY_TYPE
+        }
+
+        action refresh-party-dff-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_dff
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction party-type-fields (
+        name: Show fields for P21_PARTY_TYPE
+        execution {
+            sequence: 50
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P21_PARTY_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P21_PARTY_TYPE
+            value: ORGANIZATION
+        }
+
+        action party-type-fields-show-t (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P21_REGISTRATION_NUMBER,P21_ENTITY_TYPE,P21_INCORPORATION_DATE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-hide-t (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P21_DATE_OF_BIRTH,P21_NATIONALITY
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-show-f (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P21_DATE_OF_BIRTH,P21_NATIONALITY
+            }
+            execution {
+                sequence: 30
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-hide-f (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P21_REGISTRATION_NUMBER,P21_ENTITY_TYPE,P21_INCORPORATION_DATE
+            }
+            execution {
+                sequence: 40
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    region missing-docs (
+        name: Mandatory Documents
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_missing apex_t_varchar2;
+                    l_html    varchar2(32767);
+                    l_name    varchar2(240);
+                    l_party   xxcmp_parties%rowtype;
+                begin
+                    select * into l_party from xxcmp_parties where party_id = :P21_PARTY_ID;
+                    l_missing := xxcmp_kyc_pkg.missing_categories('XXCMP_PARTIES', to_char(l_party.party_id),
+                                                                  l_party.jurisdiction, l_party.entity_type);
+                    if l_missing.count = 0 then
+                        return '<p class="u-success-text">All mandatory documents are on file.</p>';
+                    end if;
+                    l_html := '<p>Still needed:</p><ul>';
+                    for i in 1 .. l_missing.count loop
+                        select max(category_name) into l_name
+                          from xxfnd_document_categories_vl
+                         where category_code = l_missing(i);
+                        l_html := l_html || '<li>' || apex_escape.html(nvl(l_name, l_missing(i))) || '</li>';
+                    end loop;
+                    return l_html || '</ul>';
+                end;
+                ```
+            pageItemsToSubmit: P21_PARTY_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: missing-docs
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_PARTY_ID
+        }
+    )
+
+    region contacts (
+        name: Contact Persons
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.party_contact_id,
+                       nvl(c.contact_name, c.contact_value) as contact_name,
+                       c.job_title,
+                       coalesce(c.email, case when c.contact_type = 'EMAIL' then c.contact_value end) as email,
+                       coalesce(c.phone, case when c.contact_type in ('PHONE', 'MOBILE') then c.contact_value end) as phone,
+                       case when c.contact_type not in ('PERSON', 'EMAIL', 'PHONE', 'MOBILE')
+                            then xxfnd_util_pkg.lookup_meaning('CONTACT_TYPE', c.contact_type) || ': ' || c.contact_value end as other,
+                       c.primary_flag,
+                       c.enabled_flag,
+                       case when :P21_MODE = 'EDIT'
+                            then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID',
+                                                   p_values => to_char(c.party_contact_id) || ',' || :P21_PARTY_ID, p_clear_cache => '22') end as edit_url,
+                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit
+                  from xxcmp_party_contacts c
+                 where c.party_id = :P21_PARTY_ID
+                 order by c.primary_flag desc, c.enabled_flag desc, nvl(c.contact_name, c.contact_value)
+                ```
+            pageItemsToSubmit: P21_PARTY_ID,P21_MODE
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: contacts
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No contact persons.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_PARTY_ID
+        }
+
+        column PARTY_CONTACT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CONTACT_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column JOB_TITLE (
+            type: plainText
+            heading {
+                heading: Job Title
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PHONE (
+            type: plainText
+            heading {
+                heading: Phone
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column OTHER (
+            type: plainText
+            heading {
+                heading: Other
+            }
+            layout {
+                sequence: 55
+            }
+        )
+
+        column PRIMARY_FLAG (
+            type: plainText
+            heading {
+                heading: Primary
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column EDIT (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#EDIT#</a>
+                    ```
+            }
+        )
+
+    )
+
+    button add-contact (
+        buttonName: ADD_CONTACT
+        label: Add Contact Person
+        layout {
+            sequence: 10
+            region: @contacts
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 22
+                items: {
+                    P22_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 22
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction refresh-contacts (
+        name: Refresh contacts
+        execution {
+            sequence: 55
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @contacts
+        }
+
+        action refresh-contacts-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @contacts
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region relationships (
+        name: Ownership and Control
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select r.party_relationship_id,
+                       case when r.object_party_id = :P21_PARTY_ID then 'Holds interest in this party'
+                            else 'This party holds interest in' end as direction,
+                       o.party_name || ' (' || o.party_number || ')' as related_party,
+                       xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type) as relationship_type,
+                       r.ownership_percentage,
+                       r.start_date,
+                       r.end_date,
+                       xxfnd_util_pkg.lookup_meaning('UBO_STATUS', r.latest_ubo_status) as ubo_status,
+                       case when :P21_MODE = 'EDIT'
+                            then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
+                                                   p_values => to_char(r.party_relationship_id) || ',' || :P21_PARTY_ID,
+                                                   p_clear_cache => '23') end as edit_url,
+                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit
+                  from xxcmp_party_relationships r
+                  join xxcmp_parties o
+                    on o.party_id = case when r.object_party_id = :P21_PARTY_ID then r.subject_party_id
+                                         else r.object_party_id end
+                 where :P21_PARTY_ID in (r.object_party_id, r.subject_party_id)
+                 order by direction, r.ownership_percentage desc nulls last
+                ```
+            pageItemsToSubmit: P21_PARTY_ID,P21_MODE
+        }
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: relationships
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No owners, officers or holdings recorded.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_PARTY_ID
+        }
+
+        column PARTY_RELATIONSHIP_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Direction
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RELATED_PARTY (
+            type: plainText
+            heading {
+                heading: Related Party
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+        column EDIT (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 95
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#EDIT#</a>
+                    ```
+            }
+        )
+
+        column RELATIONSHIP_TYPE (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column OWNERSHIP_PERCENTAGE (
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: 990D00
+            }
+        )
+
+        column START_DATE (
+            type: plainText
+            heading {
+                heading: From
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column END_DATE (
+            type: plainText
+            heading {
+                heading: To
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column UBO_STATUS (
+            type: plainText
+            heading {
+                heading: UBO
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+    )
+
+    button add-relationship (
+        buttonName: ADD_RELATIONSHIP
+        label: Add Owner / Officer
+        layout {
+            sequence: 10
+            region: @relationships
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 23
+                items: {
+                    P23_OBJECT_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 23
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction refresh-relationships (
+        name: Refresh relationships
+        execution {
+            sequence: 65
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @relationships
+        }
+
+        action refresh-relationships-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @relationships
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region party_attachments (
+        name: Attachments
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id,
+                       a.document_id,
+                       a.title,
+                       a.category_name,
+                       xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', a.datatype_code) as datatype,
+                       a.version_number,
+                       a.document_date,
+                       a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       xxfnd_util_pkg.lookup_meaning('UPLOAD_STATUS', a.upload_status) as upload_status,
+                       case when a.datatype_code = 'FILE' then 'Download'
+                            when a.datatype_code = 'WEB_PAGE' then 'Open link' end as open_label,
+                       case when a.datatype_code = 'WEB_PAGE' then a.url end as url,
+                       a.datatype_code,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id)) end as download_url,
+                       a.created_by,
+                       a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_PARTIES'
+                   and a.pk1_value   = :P21_PARTY_ID
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: P21_PARTY_ID
+        }
+        layout {
+            sequence: 70
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_attachments
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No attachments yet.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_PARTY_ID
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TITLE (
+            type: link
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    page: 91
+                    items: {
+                        P91_ATTACHED_DOCUMENT_ID: #ATTACHED_DOCUMENT_ID#
+                        P91_SOURCE_PAGE: 21
+                        P91_SOURCE_REGION: party_attachments
+                    }
+                    clearCache: 91
+                }
+                linkText: #TITLE#
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DATATYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Issued
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 80
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="u-danger-text">#EXPIRED#</span>
+                    ```
+            }
+        )
+
+        column UPLOAD_STATUS (
+            type: plainText
+            heading {
+                heading: Storage
+            }
+            layout {
+                sequence: 100
+            }
+        )
+
+        column OPEN_LABEL (
+            type: plainText
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 110
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="#DOWNLOAD_URL#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
+                    ```
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 125
+            }
+        )
+
+        column DATATYPE_CODE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 140
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 150
+            }
+            appearance {
+            }
+        )
+
+    )
+
+    button party_attachments-add (
+        buttonName: PARTY_ATTACHMENTS_ADD
+        label: Add Attachment
+        layout {
+            sequence: 10
+            region: @party_attachments
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-paperclip
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 90
+                items: {
+                    P90_ENTITY_NAME: XXCMP_PARTIES
+                    P90_PK1_VALUE: &P21_PARTY_ID.
+                    P90_SOURCE_PAGE: 21
+                    P90_SOURCE_REGION: party_attachments
+                }
+                clearCache: 90
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 21, 'party_attachments', 'XXCMP_PARTIES', 'INSERT') = 'Y' and :P21_PARTY_ID is not null
+                and :P21_MODE = 'EDIT'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party_attachments (
+        name: Refresh party_attachments
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party_attachments
+        }
+
+        action refresh-party_attachments-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_attachments
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process merge-party (
+        name: Merge into another party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.merge_parties(:P21_PARTY_ID, to_number(:P21_MERGE_INTO_ID));
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        successMessage {
+            successMessage: The party was merged: you are now on the party it was merged into.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    branch (
+        name: To the kept party
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_MERGE_INTO_ID.
+                }
+                clearCache: 21
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    process initialize-party (
+        name: Initialize party
+        type: formInitialization
+        formRegion: @party
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+)

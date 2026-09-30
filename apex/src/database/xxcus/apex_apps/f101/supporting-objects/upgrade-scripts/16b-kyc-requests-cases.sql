@@ -1053,14 +1053,11 @@ create or replace package body xxcmp_request_pkg as
                 p_req.incorporation_date, p_req.date_of_birth, p_req.nationality, p_req.id_type, p_req.id_number,
                 'SELF_DECLARED')
         returning party_id into l_id;
-        -- the contact details given by the requesting department
-        if p_req.contact_email is not null then
-            insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, primary_flag)
-            values (l_id, 'EMAIL', p_req.contact_email, p_req.contact_name, 'Y');
-        end if;
-        if p_req.contact_phone is not null then
-            insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, primary_flag)
-            values (l_id, 'PHONE', p_req.contact_phone, p_req.contact_name, 'N');
+        -- the contact details given by the requesting department: the party's main email / phone and a contact person
+        update xxcmp_parties set email = p_req.contact_email, phone = p_req.contact_phone where party_id = l_id;
+        if p_req.contact_name is not null then
+            insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, email, phone, primary_flag)
+            values (l_id, 'PERSON', p_req.contact_name, p_req.contact_name, p_req.contact_email, p_req.contact_phone, 'Y');
         end if;
         return l_id;
     end new_party;
@@ -1650,6 +1647,12 @@ before update on xxcmp_cases
 for each row
 when (old.closed_date is not null)
 begin
+    -- a party merge (XXCMP_PARTY_PKG.MERGE_PARTIES) only re-points the case to the party that is kept
+    if updating('PARTY_ID') and not (updating('CASE_STATUS') or updating('DECISION') or updating('RISK_TIER')
+                                     or updating('CLOSED_DATE') or updating('CONDITIONS') or updating('NEXT_REVIEW_DATE')
+                                     or updating('ASSIGNED_TO') or updating('SAR_REQUIRED_FLAG') or updating('REQUEST_ID')) then
+        return;
+    end if;
     raise_application_error(-20614, 'Case ' || :old.case_number || ' is closed and cannot be changed.');
 end;
 /

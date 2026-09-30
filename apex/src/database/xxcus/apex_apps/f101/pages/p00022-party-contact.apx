@@ -1,7 +1,7 @@
 page 22 (
     name: Party Contact
     alias: PARTY-CONTACT
-    title: Party Contact
+    title: Contact Person
     pageGroup: @parties
     appearance {
         pageMode: modalDialog
@@ -20,7 +20,7 @@ page 22 (
         formAutoComplete: false
     }
     help {
-        helpText: A way to reach the party.
+        helpText: A person at the party to deal with, and how to reach them. The party's main email, phone, website and fax are on the party itself.
     }
 
     region form (
@@ -96,16 +96,42 @@ page 22 (
     )
 
     pageItem P22_CONTACT_TYPE (
-        type: selectList
-        label {
-            label: Contact Type
-            alignment: left
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
         }
-        lov {
-            type: sharedComponent
-            lov: @lov-contact-type
-            displayNullValue: true
-            nullDisplayValue: - Select -
+        source {
+            formRegion: @form
+            column: CONTACT_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: PERSON
+        }
+    )
+
+    pageItem P22_CONTACT_VALUE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: CONTACT_VALUE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P22_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
         }
         layout {
             sequence: 10
@@ -119,55 +145,26 @@ page 22 (
         }
         validation {
             valueRequired: true
+            maxLength: 240
         }
         source {
             formRegion: @form
-            column: CONTACT_TYPE
+            column: CONTACT_NAME
             dataType: varchar2
         }
         help {
-            helpText: Choose the contact Type.
+            helpText: Full name of the person.
         }
     )
 
-    pageItem P22_CONTACT_VALUE (
+    pageItem P22_JOB_TITLE (
         type: textField
         label {
-            label: Contact
+            label: Job Title
             alignment: left
         }
         layout {
             sequence: 20
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-            maxLength: 500
-        }
-        source {
-            formRegion: @form
-            column: CONTACT_VALUE
-            dataType: varchar2
-        }
-        help {
-            helpText: Enter the contact.
-        }
-    )
-
-    pageItem P22_CONTACT_NAME (
-        type: textField
-        label {
-            label: Contact Name
-            alignment: left
-        }
-        layout {
-            sequence: 30
             region: @form
             slot: regionBody
             alignment: left
@@ -181,11 +178,69 @@ page 22 (
         }
         source {
             formRegion: @form
-            column: CONTACT_NAME
+            column: JOB_TITLE
             dataType: varchar2
         }
         help {
-            helpText: Enter the contact Name.
+            helpText: Position of the person at the party.
+        }
+    )
+
+    pageItem P22_EMAIL (
+        type: textField
+        label {
+            label: Email
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        source {
+            formRegion: @form
+            column: EMAIL
+            dataType: varchar2
+        }
+        help {
+            helpText: Email of the person. Requests for information to the party can be sent to it.
+        }
+    )
+
+    pageItem P22_PHONE (
+        type: textField
+        label {
+            label: Phone
+            alignment: left
+        }
+        layout {
+            sequence: 35
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @form
+            column: PHONE
+            dataType: varchar2
+        }
+        help {
+            helpText: Phone or mobile number of the person.
         }
     )
 
@@ -215,7 +270,7 @@ page 22 (
             staticValue: N
         }
         help {
-            helpText: One primary contact per type. Requests for information to an external party use the primary email.
+            helpText: The main contact person of the party (one per party).
         }
     )
 
@@ -523,6 +578,80 @@ page 22 (
         execution {
             sequence: 10
             point: beforeHeader
+        }
+    )
+
+    process show-older-contact (
+        name: Show an older contact row as a contact person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- rows from before release 18 hold one email / phone in CONTACT_VALUE
+                if :P22_CONTACT_TYPE = 'EMAIL' then
+                    :P22_EMAIL := nvl(:P22_EMAIL, :P22_CONTACT_VALUE);
+                elsif :P22_CONTACT_TYPE in ('PHONE', 'MOBILE') then
+                    :P22_PHONE := nvl(:P22_PHONE, :P22_CONTACT_VALUE);
+                end if;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P22_PARTY_CONTACT_ID
+        }
+    )
+
+    validation email-or-phone (
+        name: Email or phone
+        execution {
+            sequence: 40
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if trim(:P22_EMAIL) is null and trim(:P22_PHONE) is null then
+                    return 'Enter the email or the phone of the contact person.';
+                elsif trim(:P22_EMAIL) is not null
+                      and not regexp_like(trim(:P22_EMAIL), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
+                    return 'Enter a valid email.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P22_EMAIL
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process as-contact-person (
+        name: Store as contact person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P22_CONTACT_TYPE  := 'PERSON';
+                :P22_CONTACT_VALUE := :P22_CONTACT_NAME;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
         }
     )
 

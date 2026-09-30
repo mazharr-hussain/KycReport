@@ -107,6 +107,18 @@ page 205 (
         }
     )
 
+    pageItem P205_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P205_REQUEST_NUMBER (
         type: displayOnly
         label {
@@ -379,6 +391,94 @@ page 205 (
                 ```
             used: always
         }
+    )
+
+    region party_card (
+        name: Party
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.card_html(:P205_PARTY_ID);
+                ```
+            pageItemsToSubmit: P205_PARTY_ID
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_card
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_PARTY_ID
+        }
+    )
+
+    button edit-party (
+        buttonName: EDIT_PARTY
+        label: Edit Party
+        layout {
+            sequence: 10
+            region: @party_card
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P205_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                and xxcmp_party_pkg.is_enabled(:P205_PARTY_ID) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-card (
+        name: Refresh the party card
+        execution {
+            sequence: 80
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party_card
+        }
+
+        action refresh-party-card-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_card
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     region answer_summary (
@@ -1099,6 +1199,135 @@ page 205 (
         )
 
     )
+    region approval_history (
+        name: Approval
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.task_def_name as step,
+                       t.state as status,
+                       coalesce(t.actual_owner,
+                                (select listagg(p.participant, ', ') within group (order by p.participant)
+                                   from apex_task_participants p
+                                  where p.task_id = t.task_id and p.participant_type = 'POTENTIAL_OWNER')) as assigned_to,
+                       t.outcome,
+                       t.created_on as started,
+                       case when t.state_code in ('COMPLETED', 'CANCELED', 'ERRORED', 'EXPIRED') then t.last_updated_on end as finished,
+                       (select max(h.event_creator) keep (dense_rank last order by h.event_timestamp)
+                          from apex_task_history h where h.task_id = t.task_id and h.event_type_code in ('COMPLETE', 'APPROVE', 'REJECT')) as decided_by
+                  from apex_tasks t
+                 where t.application_id = :APP_ID
+                   and t.detail_pk = :P205_REQUEST_ID
+                   and t.task_def_static_id in ('COUNTERPARTY_MATCH', 'DOC_CHECKLIST_REVIEW')
+                 order by t.created_on
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 65
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: approval_history
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No approval step yet: the request is a draft, or it was closed at intake (see Stage).
+        }
+
+        column STEP (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: plainText
+            heading {
+                heading: With
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OUTCOME (
+            type: plainText
+            heading {
+                heading: Outcome
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column STARTED (
+            type: plainText
+            heading {
+                heading: Started
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column FINISHED (
+            type: plainText
+            heading {
+                heading: Finished
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DECIDED_BY (
+            type: plainText
+            heading {
+                heading: Decided By
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
     region decision (
         name: Checklist Decision
         type: staticContent
@@ -1213,6 +1442,37 @@ page 205 (
         }
         confirmation {
             message: Reject this request?
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button request-info (
+        buttonName: REQUEST_INFO
+        label: Request Information
+        layout {
+            sequence: 15
+            region: @decision
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
         }
         serverSideCondition {
             type: functionBody
@@ -1358,6 +1618,28 @@ page 205 (
         }
     )
 
+    validation info-question (
+        name: Information requested
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P205_COMMENT is null then 'Enter the information you need from the requester.' end;
+                ```
+        }
+        error {
+            associatedItem: @P205_COMMENT
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REQUEST_INFO
+        }
+    )
+
     process open-from-task (
         name: Open from task
         type: executeCode
@@ -1383,6 +1665,31 @@ page 205 (
         }
     )
 
+    process find-my-task (
+        name: My open task on this request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- opened from KYC Requests (not My Tasks): use the approver's own open task on this request
+                select max(t.task_id) into :P205_TASK_ID
+                  from table ( apex_human_task.get_tasks ( p_context => 'MY_TASKS', p_application_id => :APP_ID ) ) t
+                 where t.detail_pk = :P205_REQUEST_ID
+                   and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
+                   and t.state_code in ('ASSIGNED', 'UNASSIGNED');
+                ```
+        }
+        execution {
+            sequence: 7
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P205_TASK_ID
+        }
+    )
+
     process load-case (
         name: Load case
         type: executeCode
@@ -1392,7 +1699,8 @@ page 205 (
                 ```plsql
                 select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
                 -- the breadcrumb shows the request number before the page items are rendered
-                select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID;
                 ```
         }
         execution {
@@ -1462,6 +1770,32 @@ page 205 (
         }
         serverSideCondition {
             whenButtonPressed: @reject
+        }
+    )
+
+    process request-info-task (
+        name: Request information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- the question goes to the requester (task initiator); an unclaimed task is claimed first
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and state_code = 'UNASSIGNED') loop
+                    apex_human_task.claim_task(p_task_id => :P205_TASK_ID);
+                end loop;
+                apex_human_task.request_more_information(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        successMessage {
+            successMessage: Information requested: the requester answers in My Tasks, then the task comes back to you.
+        }
+        serverSideCondition {
+            whenButtonPressed: @request-info
         }
     )
 

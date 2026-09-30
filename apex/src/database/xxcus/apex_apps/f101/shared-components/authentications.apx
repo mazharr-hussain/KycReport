@@ -3,3 +3,8 @@ authentication oracle-apex-accounts (
     type: oracleApexAccounts
 )
 
+
+authentication oracle-database-accounts (
+    name: Oracle Database Accounts
+    type: databaseAccounts
+)

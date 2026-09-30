@@ -520,6 +520,7 @@ t += static_region('buttons', 'Buttons', 15, slot='REGION_POSITION_01', template
 t += pitem(p, 'REQUEST_ID', 'hidden', None, 1, 'request', protect=True)
 t += pitem(p, 'TASK_ID', 'hidden', None, 2, 'request', protect=True)
 t += pitem(p, 'CASE_ID', 'hidden', None, 3, 'request', protect=True)
+t += pitem(p, 'PARTY_ID', 'hidden', None, 4, 'request', protect=True)
 for i, (name, label, sql) in enumerate([
         ('REQUEST_NUMBER', 'Request', "select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID"),
         ('STAGE', 'Stage', "select xxcmp_request_pkg.stage(:P205_REQUEST_ID) from dual"),
@@ -544,6 +545,8 @@ for i, (name, label, sql) in enumerate([
  where r.request_id = :P205_REQUEST_ID"""),
         ('CASE_NUMBER', 'Case', "select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID")]):
     t += pitem(p, name, 'displayOnly', label, (i + 1) * 10, 'request', sql=sql)
+# the common Party card (once the request is linked to a party)
+t += party_card(p, 'P205_PARTY_ID', 25, condition='type: itemIsNotNull\nitem: P205_PARTY_ID')
 t += classic('answer_summary', 'Answers', '''select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
        coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer,
        a.risk_points
@@ -675,6 +678,25 @@ TASK_ALLOWED = ("type: functionBody\nlanguage: plsql\nplsqlFunctionBody:\n    ``
                 "        return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)\n"
                 "            or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);\n"
                 "    end loop;\n    return false;\n    ```")
+t += classic('approval_history', 'Approval', '''select t.task_def_name as step,
+       t.state as status,
+       coalesce(t.actual_owner,
+                (select listagg(p.participant, ', ') within group (order by p.participant)
+                   from apex_task_participants p
+                  where p.task_id = t.task_id and p.participant_type = 'POTENTIAL_OWNER')) as assigned_to,
+       t.outcome,
+       t.created_on as started,
+       case when t.state_code in ('COMPLETED', 'CANCELED', 'ERRORED', 'EXPIRED') then t.last_updated_on end as finished,
+       (select max(h.event_creator) keep (dense_rank last order by h.event_timestamp)
+          from apex_task_history h where h.task_id = t.task_id and h.event_type_code in ('COMPLETE', 'APPROVE', 'REJECT')) as decided_by
+  from apex_tasks t
+ where t.application_id = :APP_ID
+   and t.detail_pk = :P205_REQUEST_ID
+   and t.task_def_static_id in ('COUNTERPARTY_MATCH', 'DOC_CHECKLIST_REVIEW')
+ order by t.created_on''',
+             [('STEP', 'Step'), ('STATUS', 'Status'), ('ASSIGNED_TO', 'With'), ('OUTCOME', 'Outcome'),
+              ('STARTED', 'Started'), ('FINISHED', 'Finished'), ('DECIDED_BY', 'Decided By')], 65,
+             submit='P205_REQUEST_ID', nodata='No approval step yet: the request is a draft, or it was closed at intake (see Stage).')
 t += static_region('decision', 'Checklist Decision', 70, html='<p>Approve opens the case for investigation. Reject closes the request. For a missing document, raise a request for information instead.</p>',
                    condition=TASK_ALLOWED)
 t += pitem(p, 'COMMENT', 'textarea', 'Comment', 10, 'decision', max_len=1000, height=2,
@@ -683,6 +705,7 @@ t += button('approve', 'APPROVE', 'Approve - Open Case', 30, 'decision', 'NEXT',
             condition=TASK_ALLOWED.replace("    for t in", "    if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y' then\n        return false;\n    end if;\n    for t in", 1))
 t += button('reject', 'REJECT', 'Reject Request', 20, 'decision', 'DELETE', condition=TASK_ALLOWED,
             confirm='Reject this request?')
+t += button('request-info', 'REQUEST_INFO', 'Request Information', 15, 'decision', 'EDIT', condition=TASK_ALLOWED)
 t += button('raise-rfi', 'RAISE_RFI', 'Raise RFI', 10, 'decision', 'EDIT', action='redirectThisApp',
             target='page: 32\nitems: {\n    P32_ENTITY_NAME: XXCMP_REQUESTS\n    P32_PK1_VALUE: &P205_REQUEST_ID.\n}\nclearCache: 32',
             condition=TASK_ALLOWED, validations=False)
@@ -697,6 +720,9 @@ t += button('open-case', 'OPEN_CASE', 'Open Case', 20, 'buttons', 'NEXT', action
 t += fn_validation('reject-reason', 'Reason for rejection',
                    "return case when :P205_COMMENT is null then 'Enter why the request is rejected.' end;",
                    'P205_COMMENT', requests='REJECT')
+t += fn_validation('info-question', 'Information requested',
+                   "return case when :P205_COMMENT is null then 'Enter the information you need from the requester.' end;",
+                   'P205_COMMENT', requests='REQUEST_INFO')
 t += process('open-from-task', 'Open from task', '''select to_number(detail_pk) into :P205_REQUEST_ID
   from table ( apex_human_task.get_tasks (
                    p_context        => 'SINGLE_TASK',
@@ -704,9 +730,17 @@ t += process('open-from-task', 'Open from task', '''select to_number(detail_pk) 
                    p_application_id => :APP_ID ) )
  where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');''', 5, point='beforeHeader',
              condition='type: itemIsNotNull\nitem: P205_TASK_ID')
+t += process('find-my-task', 'My open task on this request', '''-- opened from KYC Requests (not My Tasks): use the approver's own open task on this request
+select max(t.task_id) into :P205_TASK_ID
+  from table ( apex_human_task.get_tasks ( p_context => 'MY_TASKS', p_application_id => :APP_ID ) ) t
+ where t.detail_pk = :P205_REQUEST_ID
+   and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
+   and t.state_code in ('ASSIGNED', 'UNASSIGNED');''', 7, point='beforeHeader',
+             condition='type: itemIsNull\nitem: P205_TASK_ID')
 t += process('load-case', 'Load case', '''select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
 -- the breadcrumb shows the request number before the page items are rendered
-select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;''',
+select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+  from xxcmp_requests where request_id = :P205_REQUEST_ID;''',
              6, point='beforeHeader')
 t += process('add-comment', 'Record comment', 'apex_human_task.add_task_comment(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);',
              10, requests='APPROVE,REJECT', condition=None)
@@ -714,6 +748,14 @@ t += process('approve-task', 'Approve checklist', 'apex_human_task.approve_task(
              20, button_='approve', success='Checklist approved: the case will be opened.')
 t += process('reject-task', 'Reject request', 'apex_human_task.reject_task(p_task_id => :P205_TASK_ID, p_autoclaim => true);',
              30, button_='reject', success='Request rejected.')
+t += process('request-info-task', 'Request information',
+             '''-- the question goes to the requester (task initiator); an unclaimed task is claimed first
+for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and state_code = 'UNASSIGNED') loop
+    apex_human_task.claim_task(p_task_id => :P205_TASK_ID);
+end loop;
+apex_human_task.request_more_information(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);''',
+             40, button_='request-info',
+             success='Information requested: the requester answers in My Tasks, then the task comes back to you.')
 t += ')\n'
 # only record a comment when one was entered
 t = t.replace('''        serverSideCondition {

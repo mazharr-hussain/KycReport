@@ -214,8 +214,11 @@ begin
     select * into l_r from xxcmp_requests where request_id = l_req2;
     select count(*) into l_cnt from xxcmp_parties where party_id = l_r.party_id and registration_number = 'NEW-' || l_tag;
     ok('confirmed as new: ' || l_r.match_status || ', new party created', l_r.match_status = 'CONFIRMED_NEW' and l_cnt = 1);
-    select count(*) into l_cnt from xxcmp_party_contacts where party_id = l_r.party_id and contact_type in ('EMAIL', 'PHONE');
-    ok('the new party gets the contact details (email and phone): ' || l_cnt, l_cnt = 2);
+    select count(*) into l_cnt from xxcmp_parties p
+     where p.party_id = l_r.party_id and p.email = 'contact@example.com' and p.phone is not null
+       and exists (select 1 from xxcmp_party_contacts c where c.party_id = p.party_id and c.contact_type = 'PERSON'
+                      and c.contact_name = 'Test Contact' and c.email = 'contact@example.com' and c.primary_flag = 'Y');
+    ok('the new party gets the email and phone, and the contact person', l_cnt = 1);
 
     -- nothing similar: a new party at once, and the normal intake rules apply
     session_as('REQ1');

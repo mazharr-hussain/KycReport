@@ -115,6 +115,15 @@ upgradeScript 15-workflow (
     }
 )
 
+upgradeScript 16d-parties (
+    execution {
+        sequence: 118
+    }
+    script {
+        contentFile: 16d-parties.sql
+    }
+)
+
 upgradeScript 16-kyc-rules (
     execution {
         sequence: 120
@@ -139,6 +148,15 @@ upgradeScript 16c-monitoring (
     }
     script {
         contentFile: 16c-monitoring.sql
+    }
+)
+
+upgradeScript 16e-party-logic (
+    execution {
+        sequence: 127
+    }
+    script {
+        contentFile: 16e-party-pkg.sql
     }
 )
 
