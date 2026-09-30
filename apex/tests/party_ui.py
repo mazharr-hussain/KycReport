@@ -1,5 +1,5 @@
 """Party feature in the browser (pages 20-24 and the common party region on the Global Page): Edit link on Parties;
-the party opens read only (common region, no Add buttons) and Edit Details changes it in the common Party dialog;
+the party opens read only (common region, no Add buttons) and Edit makes the common form editable in one click (Save);
 a contact person in the drawer; a new owner / officer entered in the common region, with the ownership % rule;
 Create Party with labels that follow the party type; Compliance merges a duplicate into an existing party.
 Usage: party_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
@@ -64,22 +64,28 @@ with sync_playwright() as p:
        all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Add Contact', 'Add Owner', 'Add Attachment')))
     ok('view: the common party region is read only', pg.locator('#P0_PARTY_ENABLED_FLAG_CONTAINER .a-Switch').count() == 0
        and pg.get_attribute('#P0_PARTY_NAME', 'aria-readonly') == 'true')
-    ok('view: Edit button', pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).count() == 1)
+    ok('view: Edit button at the top and the bottom; read-only fields shown',
+       pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).count() == 2 and pg.locator('#P0_PARTY_STATUS').count() == 1)
 
-    # ---------------------------------------------------------- edit: main contact details
-    with pg.expect_navigation(): pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).click()
+    # ---------------------------------------------------------- edit: one click, the form is editable
+    with pg.expect_navigation(): pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).first.click()
     pg.wait_for_load_state('networkidle')
-    ok('edit: Edit Details (common Party dialog) and the Add buttons',
-       pg.locator('button:has-text("Edit Details")').count() == 1
+    ok('edit: editable form, Save top and bottom, no Edit Details, read-only fields hidden, Add buttons',
+       pg.get_attribute('#P0_PARTY_NAME', 'aria-readonly') != 'true'
+       and pg.locator('button', has_text=re.compile(r'^\s*Save\s*$')).count() == 2
+       and pg.locator('button:has-text("Edit Details")').count() == 0
+       and all(pg.locator(f'#P0_PARTY_{x}').count() == 0 for x in ('STATUS', 'NEXT_KYC_DATE', 'LAST_VERIFIED_DATE', 'NUMBER'))
        and pg.locator('button:has-text("Add Contact Person")').count() == 1)
-    pg.click('button:has-text("Edit Details")')
-    f = pg.frame_locator('iframe').first
-    f.locator('#P0_PARTY_EMAIL').wait_for()
-    f.locator('#P0_PARTY_EMAIL').fill('info@meridian.example'); f.locator('#P0_PARTY_PHONE').fill('+971 4 222 3333')
-    f.locator('#P0_PARTY_WEBSITE').fill('https://meridian.example'); f.locator('#P0_PARTY_FAX').fill('+971 4 222 3334')
-    with pg.expect_navigation(timeout=60000):
-        f.locator('button:has-text("Save")').click()
-    pg.wait_for_load_state('networkidle')
+    pg.fill('#P0_PARTY_EMAIL', 'info@meridian.example'); pg.fill('#P0_PARTY_PHONE', '+971 4 222 3333')
+    pg.fill('#P0_PARTY_WEBSITE', 'https://meridian.example'); pg.fill('#P0_PARTY_FAX', '+971 4 222 3334')
+    pg.locator('button', has_text=re.compile(r'^\s*Save\s*$')).first.click()
+    pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1500)
+    if 'Similar parties exist' in pg.inner_text('body'):
+        ok('similar parties: the save asks to confirm none of the Possible Matches is this party',
+           pg.locator('#possible_matches').count() == 1)
+        pg.evaluate("apex.item('P0_PARTY_MATCH_ACK').setValue('Y')")
+        pg.locator('button', has_text=re.compile(r'^\s*Save\s*$')).first.click()
+        pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1500)
     r = db(f"select email || '|' || website || '|' || fax from xxcmp_parties where party_id = {keep}")
     ok(f'main contact details saved on the party: {r}', r == ['info@meridian.example|https://meridian.example|+971 4 222 3334'])
     ok('the Party page shows the saved details', pg.evaluate("apex.item('P0_PARTY_EMAIL').getValue()") == 'info@meridian.example')
@@ -112,6 +118,8 @@ with sync_playwright() as p:
     f.locator('button:has-text("Create")').click(); pg.wait_for_timeout(2500)
     ok('a shareholder without ownership % is refused', 'ownership %' in fr.inner_text('body'))
     f.locator('#P23_OWNERSHIP_PERCENTAGE').fill('25')
+    if 'Similar parties exist' in fr.inner_text('body'):     # earlier runs left similar owners: confirm none is this party
+        fr.evaluate("apex.item('P0_PARTY_MATCH_ACK').setValue('Y')")
     f.locator('button:has-text("Create")').click()
     pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
     r = db(f"""select count(*) from xxcmp_party_relationships r join xxcmp_parties o on o.party_id = r.subject_party_id
@@ -131,6 +139,7 @@ with sync_playwright() as p:
     f.locator('#P0_PARTY_NAME').fill(f'Created In Dialog {TAG}')
     f.locator('#P0_PARTY_JURISDICTION').select_option('AE')
     f.locator('#P0_PARTY_EMAIL').fill('new@dialog.example')
+    fr.evaluate("apex.item('P0_PARTY_MATCH_ACK').setValue('Y')")   # earlier runs left similar parties
     with pg.expect_navigation(timeout=60000):
         f.locator('button:has-text("Create")').click()
     pg.wait_for_load_state('networkidle')

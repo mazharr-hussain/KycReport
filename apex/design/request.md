@@ -1,6 +1,6 @@
 # Request – agreed design
 
-Status: **built in release 23 (patch 08)**. Uses the Party design (`party.md`).
+Status: **built in release 23 (patch 08)**; release 24 (patch 09): party summary on 201 / 203 / 205, Possible Matches with a confirmation (MATCH_ACK_FLAG), approval paths from setup (page 166) shown on 203 / 205 with history, one approval task per step, the case opens only after the last step, role-based rights (the requester may approve if they hold the role). Uses the Party design (`party.md`).
 
 ## General rules
 - A new counterparty is created as a party **on the fly** when the request is saved (Party Status *Pending*). It

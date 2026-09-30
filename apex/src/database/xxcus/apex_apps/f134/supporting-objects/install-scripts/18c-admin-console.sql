@@ -97,7 +97,7 @@ begin
     tabs('FLEXFIELDS',       '152=Descriptive Flexfields|150=Value Sets');
     tabs('KYC_RULES',        '160=Questionnaires|163=Conclusion Templates');
     tabs('ATTACHMENTS',      '132=Categories|138=Mandatory Documents|136=Storage|130=Registration|134=Attachment Pages');
-    tabs('WORKFLOW_SETUP',   '165=Approval Matrix|114=Delegations');
+    tabs('WORKFLOW_SETUP',   '165=Approval Matrix|166=Request Approval Paths|114=Delegations');
     tabs('INTEGRATIONS',     '120=Endpoints|122=Purposes|124=Transmission Log');
     tabs('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties');
     tabs('APP_SETTINGS',     '10022=Settings|10020=Optional Features');

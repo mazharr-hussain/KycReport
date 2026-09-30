@@ -27,7 +27,8 @@ create or replace package xxcmp_party_pkg authid definer as
     -- The rules of the common party form (null = acceptable). Type, name and country required;
     -- organisation: registration number and entity type required; individual: ID type required when an
     -- ID number is given; email or phone required (email must be valid); the date not in the future;
-    -- no other party with the same number and country. P_DRAFT = Y checks only the type and the name.
+    -- no other party with the same number and country; when similar parties exist the user must confirm
+    -- (P_MATCH_ACK = Y) that none of them is this party. P_DRAFT = Y checks only the type and the name.
     function party_error(p_party_id            in number,
                          p_party_type          in varchar2,
                          p_party_name          in varchar2,
@@ -37,7 +38,8 @@ create or replace package xxcmp_party_pkg authid definer as
                          p_incorporation_date  in date,
                          p_email               in varchar2,
                          p_phone               in varchar2,
-                         p_draft               in varchar2 default 'N') return varchar2;
+                         p_draft               in varchar2 default 'N',
+                         p_match_ack           in varchar2 default 'Y') return varchar2;
 
     -- Inserts (P_PARTY_ID null) or updates the party's form fields, without a privilege check (the request
     -- package creates the Pending party of a request through it). A new party is APPROVED unless
@@ -71,7 +73,8 @@ create or replace package xxcmp_party_pkg authid definer as
                          p_website             in varchar2 default null,
                          p_fax                 in varchar2 default null,
                          p_data_provenance     in varchar2 default null,
-                         p_enabled_flag        in varchar2 default null);
+                         p_enabled_flag        in varchar2 default null,
+                         p_match_ack           in varchar2 default 'Y');
 
     -- Party status: PENDING, APPROVED, REJECTED, CANCELLED.
     procedure set_status(p_party_id in number, p_status in varchar2);
@@ -102,6 +105,9 @@ create or replace package xxcmp_party_pkg authid definer as
     -- identity, country, main contact details, primary contact person, party status and next KYC date. Follows
     -- data security: a user who may not see the party gets a short note instead.
     function card_html(p_party_id in number) return clob;
+    -- Party summary line with the card in an expander (Global Page region on 201 / 203 / 205). Shown to users with
+    -- PARTIES.VIEW, and to anyone for the party of a request they can see or for an approved party.
+    function summary_html(p_party_id in number, p_request_id in number default null) return clob;
 
 end xxcmp_party_pkg;
 /
@@ -166,7 +172,8 @@ create or replace package body xxcmp_party_pkg as
                          p_incorporation_date  in date,
                          p_email               in varchar2,
                          p_phone               in varchar2,
-                         p_draft               in varchar2 default 'N') return varchar2 is
+                         p_draft               in varchar2 default 'N',
+                         p_match_ack           in varchar2 default 'Y') return varchar2 is
         l_exact varchar2(30);
     begin
         if p_party_type is null or p_party_type not in ('ORGANIZATION', 'PERSON') then
@@ -194,6 +201,11 @@ create or replace package body xxcmp_party_pkg as
         if l_exact is not null then
             return 'Party ' || l_exact || ' already has this ' || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
                    || ' and ' || lower(field_label(p_party_type, 'JURISDICTION')) || ': use that party.';
+        end if;
+        if nvl(p_match_ack, 'N') <> 'Y'
+           and xxcmp_request_pkg.party_candidate_count(p_party_type, p_party_name, p_registration_number,
+                                                       p_incorporation_date, p_jurisdiction, p_party_id) > 0 then
+            return 'Similar parties exist (see Possible Matches): confirm that none of them is this party.';
         end if;
         return null;
     end party_error;
@@ -258,7 +270,8 @@ create or replace package body xxcmp_party_pkg as
                          p_website             in varchar2 default null,
                          p_fax                 in varchar2 default null,
                          p_data_provenance     in varchar2 default null,
-                         p_enabled_flag        in varchar2 default null) is
+                         p_enabled_flag        in varchar2 default null,
+                         p_match_ack           in varchar2 default 'Y') is
         l_error varchar2(4000);
     begin
         if p_party_id is null and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then
@@ -269,7 +282,7 @@ create or replace package body xxcmp_party_pkg as
             raise_application_error(-20707, 'A disabled or merged party cannot be changed.');
         end if;
         l_error := party_error(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
-                               p_entity_type, p_incorporation_date, p_email, p_phone);
+                               p_entity_type, p_incorporation_date, p_email, p_phone, 'N', p_match_ack);
         if l_error is not null then
             raise_application_error(-20705, l_error);
         end if;
@@ -324,6 +337,7 @@ create or replace package body xxcmp_party_pkg as
         put('P0_PARTY_NEXT_KYC_DATE',       to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
         put('P0_PARTY_ENABLED_FLAG',        nvl(l_p.enabled_flag, 'Y'));
         put('P0_PARTY_READ_ONLY',           case when p_read_only = 'Y' then 'Y' else 'N' end);
+        put('P0_PARTY_MATCH_ACK',           'N');    -- confirmed again on each save when similar parties exist
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -493,6 +507,41 @@ create or replace package body xxcmp_party_pkg as
         row('Next KYC Date', to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
         return l_html || '</dl>';
     end card_html;
+
+    function summary_html(p_party_id in number, p_request_id in number default null) return clob is
+        l_ok   boolean := xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW');
+        l_n    number;
+        l_p    xxcmp_parties%rowtype;
+        l_card clob;
+    begin
+        if p_party_id is null then
+            return null;
+        end if;
+        if not l_ok and p_request_id is not null then
+            select count(*) into l_n from xxcmp_requests where request_id = p_request_id and party_id = p_party_id;  -- data security
+            l_ok := l_n > 0;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_p from xxcmp_parties where party_id = p_party_id;
+        l_ok := l_ok or (l_p.party_status = 'APPROVED' and l_p.enabled_flag = 'Y');
+        if l_ok then
+            l_card := card_html(p_party_id);
+        end if;
+        xxfnd_vpd_pkg.end_trusted;
+        if not l_ok then
+            return '<p class="u-color-subtle">The party details are available to Compliance.</p>';
+        end if;
+        return '<p><strong>' || apex_escape.html(l_p.party_name) || '</strong> (' || apex_escape.html(l_p.party_number) || ') - '
+               || apex_escape.html(xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status)) || '</p>'
+               || '<details class="kyc-party-details"><summary>Show details</summary>' || l_card || '</details>';
+    exception
+        when no_data_found then
+            xxfnd_vpd_pkg.end_trusted;
+            return null;
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end summary_html;
 
 end xxcmp_party_pkg;
 /

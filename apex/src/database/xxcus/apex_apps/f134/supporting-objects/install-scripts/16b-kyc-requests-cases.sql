@@ -327,7 +327,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_email               in varchar2,
                            p_phone               in varchar2,
                            p_justification       in varchar2,
-                           p_draft               in varchar2 default 'N') return varchar2;
+                           p_draft               in varchar2 default 'N',
+                           p_match_ack           in varchar2 default 'Y') return varchar2;
 
     -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
     -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
@@ -351,7 +352,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_draft                 in varchar2 default 'N',
                            p_contact_name          in varchar2 default null,
                            p_contact_email         in varchar2 default null,
-                           p_contact_phone         in varchar2 default null);
+                           p_contact_phone         in varchar2 default null,
+                           p_match_ack             in varchar2 default 'Y');
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;
@@ -621,7 +623,8 @@ create or replace package body xxcmp_request_pkg as
                            p_email               in varchar2,
                            p_phone               in varchar2,
                            p_justification       in varchar2,
-                           p_draft               in varchar2 default 'N') return varchar2 is
+                           p_draft               in varchar2 default 'N',
+                           p_match_ack           in varchar2 default 'Y') return varchar2 is
         l_own   number;
         l_error varchar2(4000);
     begin
@@ -638,7 +641,7 @@ create or replace package body xxcmp_request_pkg as
             end if;
             l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
                                                    p_registration_number, p_entity_type, p_incorporation_date,
-                                                   p_email, p_phone, p_draft);
+                                                   p_email, p_phone, p_draft, p_match_ack);
             if l_error is not null then
                 return l_error;
             end if;
@@ -667,7 +670,8 @@ create or replace package body xxcmp_request_pkg as
                            p_draft                 in varchar2 default 'N',
                            p_contact_name          in varchar2 default null,
                            p_contact_email         in varchar2 default null,
-                           p_contact_phone         in varchar2 default null) is
+                           p_contact_phone         in varchar2 default null,
+                           p_match_ack             in varchar2 default 'Y') is
         l_error    varchar2(4000);
         l_old      xxcmp_requests%rowtype;
         l_party    xxcmp_parties%rowtype;
@@ -688,7 +692,7 @@ create or replace package body xxcmp_request_pkg as
         end if;
         l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
                                  p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone,
-                                 p_justification, p_draft);
+                                 p_justification, p_draft, p_match_ack);
         if l_error is not null then
             raise_application_error(-20611, l_error);
         end if;
@@ -745,6 +749,7 @@ create or replace package body xxcmp_request_pkg as
                incorporation_date    = l_party.incorporation_date,
                jurisdiction          = l_party.jurisdiction,
                match_status          = case when p_party_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
+               match_ack_flag        = case when p_match_ack = 'Y' then 'Y' else 'N' end,
                contact_name          = trim(p_contact_name),
                contact_email         = trim(p_contact_email),
                contact_phone         = trim(p_contact_phone),
@@ -1090,6 +1095,7 @@ create or replace package body xxcmp_request_pkg as
         update xxcmp_requests
            set request_status = 'IN_PROGRESS', submitted_date = systimestamp, last_action_date = sysdate
          where request_id = p_request_id;
+        xxcmp_approval_pkg.start_path(p_request_id);
         l_wf := apex_workflow.start_workflow(
                     p_application_id => v('APP_ID'),
                     p_static_id      => 'KYC_REQUEST',
@@ -1515,8 +1521,8 @@ create or replace package body xxcmp_case_pkg as
             -- nor while holding a role that may never be combined with this one
             select role_code bulk collect into l_roles from xxcmp_case_decisions
              where case_id = p_case_id and decided_by = u.user_name and role_code is not null;
-            if u.user_name not member of l_prior
-               and not xxfnd_security_pkg.sod_conflict(l_role, l_roles, u.user_name) then
+            -- role-based only: the role conflict rules (Segregation of Duties) decide, not who acted before
+            if not xxfnd_security_pkg.sod_conflict(l_role, l_roles, u.user_name) then
                 l_out := l_out || case when l_out is not null then ',' end || u.user_name;
             end if;
         end loop;
@@ -1581,9 +1587,6 @@ create or replace package body xxcmp_case_pkg as
         end if;
         if sar_gate(p_case_id) = 'Y' and l_case.sar_required_flag is null then
             return 'Record whether a Suspicious Activity Report is required.';
-        end if;
-        if xxfnd_util_pkg.current_user member of prior_actors(p_case_id) then
-            return 'You investigated or already decided this case.';
         end if;
         -- every mandatory document of the party must be verified in this case
         select count(*) into l_missing

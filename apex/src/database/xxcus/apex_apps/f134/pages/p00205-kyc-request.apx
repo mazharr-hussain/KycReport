@@ -480,93 +480,8 @@ page 205 (
         }
     )
 
-    region party_card (
-        name: Party
-        type: dynamicContent
-        source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_party_pkg.card_html(:P205_PARTY_ID);
-                ```
-            pageItemsToSubmit: P205_PARTY_ID
-        }
-        layout {
-            sequence: 25
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: party_card
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P205_PARTY_ID
-        }
-    )
 
-    button edit-party (
-        buttonName: EDIT_PARTY
-        label: Edit Party
-        layout {
-            sequence: 10
-            region: @party_card
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-pencil
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 24
-                items: {
-                    P24_PARTY_ID: &P205_PARTY_ID.
-                }
-                clearCache: 24
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P205_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
-                and xxcmp_party_pkg.is_enabled(:P205_PARTY_ID) = 'Y'
-                ```
-        }
-    )
 
-    dynamicAction refresh-party-card (
-        name: Refresh the party card
-        execution {
-            sequence: 80
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @party_card
-        }
-
-        action refresh-party-card-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @party_card
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
 
     region answer_summary (
         name: Answers
@@ -1233,134 +1148,6 @@ page 205 (
         )
 
     )
-    region approval_history (
-        name: Approval
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select t.task_def_name as step,
-                       t.state as status,
-                       coalesce(t.actual_owner,
-                                (select listagg(p.participant, ', ') within group (order by p.participant)
-                                   from apex_task_participants p
-                                  where p.task_id = t.task_id and p.participant_type = 'POTENTIAL_OWNER')) as assigned_to,
-                       t.outcome,
-                       t.created_on as started,
-                       case when t.state_code in ('COMPLETED', 'CANCELED', 'ERRORED', 'EXPIRED') then t.last_updated_on end as finished,
-                       (select max(h.event_creator) keep (dense_rank last order by h.event_timestamp)
-                          from apex_task_history h where h.task_id = t.task_id and h.event_type_code in ('COMPLETE', 'APPROVE', 'REJECT')) as decided_by
-                  from apex_tasks t
-                 where t.application_id = :APP_ID
-                   and t.detail_pk = :P205_REQUEST_ID
-                   and t.task_def_static_id in ('COUNTERPARTY_MATCH', 'DOC_CHECKLIST_REVIEW')
-                 order by t.created_on
-                ```
-            pageItemsToSubmit: P205_REQUEST_ID
-        }
-        layout {
-            sequence: 65
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: approval_history
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No approval step yet: the request is a draft, or it was closed at intake (see Stage).
-        }
-
-        column STEP (
-            type: plainText
-            heading {
-                heading: Step
-            }
-            layout {
-                sequence: 10
-            }
-        )
-
-        column STATUS (
-            type: plainText
-            heading {
-                heading: Status
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
-        column ASSIGNED_TO (
-            type: plainText
-            heading {
-                heading: With
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column OUTCOME (
-            type: plainText
-            heading {
-                heading: Outcome
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column STARTED (
-            type: plainText
-            heading {
-                heading: Started
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column FINISHED (
-            type: plainText
-            heading {
-                heading: Finished
-            }
-            layout {
-                sequence: 60
-            }
-        )
-
-        column DECIDED_BY (
-            type: plainText
-            heading {
-                heading: Decided By
-            }
-            layout {
-                sequence: 70
-            }
-        )
-
-    )
 
     region decision (
         name: Checklist Decision
@@ -1911,6 +1698,9 @@ page 205 (
                 -- the breadcrumb shows the request number before the page items are rendered
                 select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
                   from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                -- the common Party / Approval Path / History regions (Global Page)
+                :P0_REQUEST_ID := :P205_REQUEST_ID;
+                :P0_SUMMARY_PARTY_ID := :P205_PARTY_ID;
                 ```
         }
         execution {

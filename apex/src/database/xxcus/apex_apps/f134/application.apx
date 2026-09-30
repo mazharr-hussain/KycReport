@@ -31,7 +31,7 @@ app KYC (
     userInterface {
         currentTheme: @universal-theme
         globalPage: 0
-        usersCanChooseThemeStyle: true
+        usersCanChooseThemeStyle: false
         addBuiltWithApexToFooter: false
         autoDismissSuccessMessages: true
     }

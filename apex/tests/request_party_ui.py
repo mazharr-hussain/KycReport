@@ -47,7 +47,7 @@ def messages(pg):
     return ' '.join(m for m in pg.locator('.t-Alert-body, .a-Notification-item, .t-Form-error').all_inner_texts() if m.strip())
 
 
-def step1(pg, s, name, reg, next_button='Next'):
+def step1(pg, s, name, reg, next_button='Next', ack=True):
     """Create Request step 1: a new organisation in the common party region."""
     pg.goto(f'{HOST}/ords/f?p={APP}:201:{s}'); pg.wait_for_load_state('networkidle')
     pg.fill('#P0_PARTY_NAME', name); pg.select_option('#P0_PARTY_JURISDICTION', 'AE')
@@ -57,6 +57,8 @@ def step1(pg, s, name, reg, next_button='Next'):
     if pg.locator('select#P201_REQUESTING_DEPARTMENT').count():
         pg.select_option('#P201_REQUESTING_DEPARTMENT', 'FINANCE')
     pg.fill('#P201_JUSTIFICATION', 'UI test supplier')
+    if ack:     # confirm that none of the Possible Matches is this party
+        pg.evaluate("apex.item('P0_PARTY_MATCH_ACK').setValue('Y')")
     with pg.expect_navigation():
         pg.click(f'button:has-text("{next_button}")')
     pg.wait_for_load_state('networkidle')
@@ -86,9 +88,13 @@ with sync_playwright() as p:
     with pg.expect_navigation():
         pg.click('button:has-text("Next")')
     pg.wait_for_load_state('networkidle')
+    ok('review (203): the party summary and the expected approval path',
+       name in pg.inner_text('#party_card') and 'Compliance review' in pg.inner_text('#approval_path'))
     with pg.expect_navigation():
         pg.click('button:has-text("Submit Request")')
     pg.wait_for_load_state('networkidle')
+    ok('request page (205): approval path with its state and the history',
+       'Pending' in pg.inner_text('#approval_path') and 'Submitted' in pg.inner_text('#request_history'))
     task = None
     for _ in range(45):
         t = db(f"select max(task_id) from apex_tasks where detail_pk = '{rid}' and task_def_static_id = 'DOC_CHECKLIST_REVIEW'")
@@ -107,7 +113,7 @@ with sync_playwright() as p:
        and pg.locator('button:has-text("Raise RFI")').count() == 0)
     info = ' '.join(pg.inner_text('#request').split())
     ok('the request shows Status, KYC Required, Pending With and Action Date: ' + info[:150],
-       'Status In Progress' in info and 'KYC Required Yes' in info and 'Pending With Compliance' in info and 'Action Date' in info)
+       'Status In Progress' in info and 'KYC Required Yes' in info and re.search(r'Pending With (Compliance|OFFICER1)', info) and 'Action Date' in info)
     pg.fill('#P205_COMMENT', 'Please upload the trade licence.')
     with pg.expect_navigation():
         pg.click('button:has-text("Request Information")')
@@ -155,6 +161,16 @@ with sync_playwright() as p:
     pg.close()
     pg, s = login(b, 'REQ2')
     dup = existing[1].replace('UI Org', 'UI Orgg')
+    pg.goto(f'{HOST}/ords/f?p={APP}:201:{s}'); pg.wait_for_load_state('networkidle')
+    pg.fill('#P0_PARTY_NAME', dup); pg.select_option('#P0_PARTY_JURISDICTION', 'AE'); pg.wait_for_timeout(2000)
+    ok('Possible Matches lists the similar party while typing', existing[0] in pg.inner_text('#possible_matches'))
+    pg.fill('#P0_PARTY_REGISTRATION_NUMBER', f'UI2-{TAG}'); pg.wait_for_timeout(800)
+    pg.select_option('#P0_PARTY_ENTITY_TYPE', 'LLC'); pg.fill('#P0_PARTY_EMAIL', 'info@ui.example')
+    if pg.locator('select#P201_REQUESTING_DEPARTMENT').count():
+        pg.select_option('#P201_REQUESTING_DEPARTMENT', 'FINANCE')
+    pg.fill('#P201_JUSTIFICATION', 'UI test supplier')
+    pg.click('button:has-text("Next")'); pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(2000)
+    ok('similar parties: Next needs the confirmation (a draft can be saved)', 'Similar parties exist' in pg.inner_text('body'))
     step1(pg, s, dup, f'UI2-{TAG}', 'Save as Draft')
     drow = db(f"select request_number || ',' || party_id from xxcmp_requests where party_name = '{dup}'")[0].split(',')
     pg.close()

@@ -599,7 +599,7 @@ workflow KYC_REQUEST (
 
     version 1.2 (
         settings {
-            state: active
+            state: inactive
         }
 
         activity Start (
@@ -770,6 +770,305 @@ workflow KYC_REQUEST (
                 }
                 activity {
                     to: @RejectRequest
+                }
+            )
+
+        )
+
+        activity OpenCase (
+            name: Open case
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 70
+            }
+            advanced {
+                diagram: {"position":{"x":960,"y":120},"z":70}
+            }
+
+            connection (
+                name: Done
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity RejectRequest (
+            name: Reject request
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_request_pkg.reject(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 80
+            }
+            advanced {
+                diagram: {"position":{"x":960,"y":260},"z":80}
+            }
+
+            connection (
+                name: Done
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity End (
+            name: End
+            type: workflowEnd
+            layout {
+                sequence: 90
+            }
+            advanced {
+                diagram: {"position":{"x":1160,"y":200},"z":90}
+            }
+
+        )
+
+        variable V_CHECKLIST_TASK_ID (
+            label {
+                label: Checklist task
+            }
+        )
+
+        variable V_CHECKLIST_OUTCOME (
+            label {
+                label: Checklist outcome
+            }
+        )
+
+        variable V_CHECKLIST_REVIEWER (
+            label {
+                label: Checklist reviewer
+            }
+        )
+
+        participant (
+            name: Workflow administrators
+            type: admin
+            value {
+                type: expression
+                plsqlExpression: xxfnd_task_pkg.business_admins
+            }
+        )
+
+    )
+
+    version 1.3 (
+        settings {
+            state: active
+        }
+
+        activity Start (
+            name: Start
+            type: workflowStart
+            layout {
+                sequence: 10
+            }
+            advanced {
+                diagram: {"position":{"x":60,"y":200},"z":10}
+            }
+
+            connection (
+                name: Evaluate
+                activity {
+                    to: @Evaluate
+                }
+            )
+
+        )
+
+        activity Evaluate (
+            name: Evaluate intake
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_request_pkg.evaluate(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 20
+            }
+            advanced {
+                diagram: {"position":{"x":200,"y":180},"z":20}
+            }
+
+            connection (
+                name: Next
+                activity {
+                    to: @KycRequired
+                }
+            )
+
+        )
+
+        activity KycRequired (
+            name: KYC required?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxcmp_request_pkg.outcome(:APEX$WORKFLOW_DETAIL_PK) = 'ASSIGNED';
+            }
+            layout {
+                sequence: 30
+            }
+            advanced {
+                diagram: {"position":{"x":380,"y":180},"z":30}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @ChecklistReview
+                }
+            )
+
+            connection (
+                name: No
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @CloseRequest
+                }
+            )
+
+        )
+
+        activity CloseRequest (
+            name: Close request (not required / auto-approved)
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_request_pkg.close_without_case(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 40
+            }
+            advanced {
+                diagram: {"position":{"x":380,"y":360},"z":40}
+            }
+
+            connection (
+                name: Done
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity ChecklistReview (
+            name: Approval step
+            type: humanTaskCreate
+            humanTask {
+                definition: @DOC_CHECKLIST_REVIEW
+                taskIdItem: V_CHECKLIST_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            result {
+                outcome: V_CHECKLIST_OUTCOME
+                owner: V_CHECKLIST_REVIEWER
+            }
+            layout {
+                sequence: 50
+            }
+            advanced {
+                diagram: {"position":{"x":560,"y":180},"z":50}
+            }
+
+            connection (
+                name: Decided
+                activity {
+                    to: @ChecklistOutcome
+                }
+            )
+
+        )
+
+        activity ChecklistOutcome (
+            name: Documents complete?
+            type: switch
+            switch {
+                type: checkWorkflowVar
+            }
+            compare {
+                compareVar: V_CHECKLIST_OUTCOME
+            }
+            layout {
+                sequence: 60
+            }
+            advanced {
+                diagram: {"position":{"x":760,"y":180},"z":60}
+            }
+
+            connection (
+                name: Approved
+                execution {
+                    sequence: 10
+                }
+                condition {
+                    operator: =
+                    value: APPROVED
+                }
+                activity {
+                    to: @NextStep
+                }
+            )
+
+            connection (
+                name: Rejected
+                execution {
+                    sequence: 20
+                }
+                condition {
+                    operator: =
+                    value: REJECTED
+                }
+                activity {
+                    to: @RejectRequest
+                }
+            )
+
+        )
+
+        activity NextStep (
+            name: More approval steps?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxcmp_approval_pkg.next_step(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+            }
+            layout {
+                sequence: 65
+            }
+            advanced {
+                diagram: {"position":{"x":760,"y":40},"z":65}
+            }
+
+            connection (
+                name: Next step
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @ChecklistReview
+                }
+            )
+
+            connection (
+                name: Last step approved
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @OpenCase
                 }
             )
 

@@ -96,7 +96,7 @@ begin
     pages('ATTACHMENTS',      '130,131,132,133,134,135,136,137,138,139');
     pages('NOTIFICATIONS',    '109,110');
     pages('RETENTION',        '112,113');
-    pages('WORKFLOW_SETUP',   '114,115,165');
+    pages('WORKFLOW_SETUP',   '114,115,165,166');
     pages('WORKFLOW_MONITOR', '41');
     pages('INTEGRATIONS',     '120,121,122,123,124,125');
     pages('USERS_ACCESS',     '103,104');
