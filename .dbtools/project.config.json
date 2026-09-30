@@ -1,0 +1,55 @@
+{
+  "project" : "kyc",
+  "sqlcl" : {
+    "connectionName" : "kyc_local",
+    "autoConnect" : false,
+    "version" : "26.2.2.0"
+  },
+  "schemas" : [ "XXCUS" ],
+  "lastReleaseVersion" : "",
+  "apex" : {
+    "apexlang" : false
+  },
+  "export" : {
+    "format" : {
+      "enable" : true
+    },
+    "setTransform" : {
+      "collationClause" : "NEVER",
+      "constraints" : true,
+      "constraintsAsAlter" : true,
+      "emitSchema" : true,
+      "force" : true,
+      "partitioning" : false,
+      "segmentAttributes" : false,
+      "sizeByteKeyword" : true,
+      "sqlterminator" : true,
+      "storage" : false,
+      "tablespace" : false
+    },
+    "apex" : {
+      "exptype" : [ "APEXLANG", "APPLICATION_SOURCE" ],
+      "expAclAssignments" : false,
+      "expComments" : false,
+      "skipExportDate" : true,
+      "expirNotif" : false,
+      "expOriginalIds" : false,
+      "expSavedReports" : false,
+      "expPubReports" : true,
+      "expSubscriptions" : false,
+      "expSupportingObjects" : "N",
+      "expTranslations" : false,
+      "auditType" : "NULL"
+    }
+  },
+  "git" : {
+    "protectedBranches" : [ "main", "master" ],
+    "defaultBranch" : "main"
+  },
+  "stage" : {
+    "excludeObjects" : [ "ALL.user" ],
+    "generatedFormat" : "liquibase",
+    "softObjectIsolation" : "change",
+    "substituteSchemas" : false
+  }
+}
