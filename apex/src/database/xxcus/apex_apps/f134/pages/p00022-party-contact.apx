@@ -95,38 +95,6 @@ page 22 (
         }
     )
 
-    pageItem P22_CONTACT_TYPE (
-        type: hidden
-        layout {
-            sequence: 2
-            region: @form
-            slot: regionBody
-        }
-        source {
-            formRegion: @form
-            column: CONTACT_TYPE
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: PERSON
-        }
-    )
-
-    pageItem P22_CONTACT_VALUE (
-        type: hidden
-        layout {
-            sequence: 3
-            region: @form
-            slot: regionBody
-        }
-        source {
-            formRegion: @form
-            column: CONTACT_VALUE
-            dataType: varchar2
-        }
-    )
-
     pageItem P22_CONTACT_NAME (
         type: textField
         label {
@@ -581,31 +549,6 @@ page 22 (
         }
     )
 
-    process show-older-contact (
-        name: Show an older contact row as a contact person
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                -- rows from before release 18 hold one email / phone in CONTACT_VALUE
-                if :P22_CONTACT_TYPE = 'EMAIL' then
-                    :P22_EMAIL := nvl(:P22_EMAIL, :P22_CONTACT_VALUE);
-                elsif :P22_CONTACT_TYPE in ('PHONE', 'MOBILE') then
-                    :P22_PHONE := nvl(:P22_PHONE, :P22_CONTACT_VALUE);
-                end if;
-                ```
-        }
-        execution {
-            sequence: 20
-            point: beforeHeader
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P22_PARTY_CONTACT_ID
-        }
-    )
-
     validation email-or-phone (
         name: Email or phone
         execution {
@@ -627,27 +570,6 @@ page 22 (
         }
         error {
             associatedItem: @P22_EMAIL
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE
-        }
-    )
-
-    process as-contact-person (
-        name: Store as contact person
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                :P22_CONTACT_TYPE  := 'PERSON';
-                :P22_CONTACT_VALUE := :P22_CONTACT_NAME;
-                ```
-        }
-        execution {
-            sequence: 5
-            point: processing
         }
         serverSideCondition {
             type: requestIsContainedInValue

@@ -169,152 +169,6 @@ page 23 (
         }
     )
 
-    pageItem P23_NEW_PARTY_TYPE (
-        type: radioGroup
-        label {
-            label: New Party Type
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-party-type
-            displayNullValue: false
-        }
-        default {
-            type: static
-            staticValue: PERSON
-        }
-        layout {
-            sequence: 11
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P23_PARTY_RELATIONSHIP_ID
-        }
-        help {
-            helpText: An individual (for example a director or shareholder) or an organisation.
-        }
-    )
-
-    pageItem P23_NEW_PARTY_NAME (
-        type: textField
-        label {
-            label: Name
-            alignment: left
-        }
-        validation {
-            maxLength: 360
-        }
-        layout {
-            sequence: 12
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P23_PARTY_RELATIONSHIP_ID
-        }
-        help {
-            helpText: Legal name of the organisation, or full name of the individual.
-        }
-    )
-
-    pageItem P23_NEW_JURISDICTION (
-        type: selectList
-        label {
-            label: Country
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-jurisdiction
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 13
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P23_PARTY_RELATIONSHIP_ID
-        }
-        help {
-            helpText: Country of incorporation or residence.
-        }
-    )
-
-    pageItem P23_NEW_REGISTRATION_NUMBER (
-        type: textField
-        label {
-            label: Registration Number
-            alignment: left
-        }
-        validation {
-            maxLength: 100
-        }
-        layout {
-            sequence: 14
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P23_PARTY_RELATIONSHIP_ID
-        }
-        help {
-            helpText: Registration number of the organisation.
-        }
-    )
-
-    pageItem P23_NEW_DATE_OF_BIRTH (
-        type: datePicker
-        label {
-            label: Date of Birth
-            alignment: left
-        }
-        layout {
-            sequence: 15
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P23_PARTY_RELATIONSHIP_ID
-        }
-        help {
-            helpText: Date of birth of the individual.
-        }
-    )
-
     pageItem P23_RELATIONSHIP_TYPE (
         type: selectList
         label {
@@ -428,71 +282,6 @@ page 23 (
         }
         help {
             helpText: Choose the end Date.
-        }
-    )
-
-    pageItem P23_OFFICER_CORRECTED_FLAG (
-        type: switch
-        label {
-            label: Corrected by Officer
-            alignment: left
-        }
-        layout {
-            sequence: 60
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @form
-            column: OFFICER_CORRECTED_FLAG
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: N
-        }
-        help {
-            helpText: Choose the corrected by Officer.
-        }
-    )
-
-    pageItem P23_LATEST_UBO_STATUS (
-        type: selectList
-        label {
-            label: UBO Determination
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-ubo-status
-            displayNullValue: true
-            nullDisplayValue: - Not set -
-        }
-        layout {
-            sequence: 70
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @form
-            column: LATEST_UBO_STATUS
-            dataType: varchar2
-        }
-        readOnly {
-            type: always
-        }
-        help {
-            helpText: Display copy of the latest UBO determination, maintained by the investigation process.
         }
     )
 
@@ -775,10 +564,11 @@ page 23 (
                 ```plsql
                 if nvl(:P23_OWNER_SELECTION, 'EXISTING') = 'EXISTING' and :P23_SUBJECT_PARTY_ID is null then
                     return 'Choose the owner / officer.';
-                elsif :P23_OWNER_SELECTION = 'NEW' and trim(:P23_NEW_PARTY_NAME) is null then
-                    return 'Enter the name of the new owner / officer.';
-                elsif :P23_OWNER_SELECTION = 'NEW' and to_date(:P23_NEW_DATE_OF_BIRTH) > trunc(sysdate) then
-                    return 'The date of birth cannot be in the future.';
+                elsif :P23_OWNER_SELECTION = 'NEW' then
+                    -- the new owner / officer: the rules of the common party form
+                    return xxcmp_party_pkg.party_error(null, :P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_JURISDICTION,
+                               :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE, to_date(:P0_PARTY_INCORPORATION_DATE),
+                               :P0_PARTY_EMAIL, :P0_PARTY_PHONE);
                 end if;
                 return null;
                 ```
@@ -792,6 +582,46 @@ page 23 (
         }
     )
 
+    validation relationship-rules (
+        name: Ownership rules
+        execution {
+            sequence: 6
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.relationship_error(to_number(:P23_PARTY_RELATIONSHIP_ID), to_number(:P23_OBJECT_PARTY_ID),
+                           :P23_RELATIONSHIP_TYPE, to_number(:P23_OWNERSHIP_PERCENTAGE),
+                           to_date(:P23_START_DATE), to_date(:P23_END_DATE));
+                ```
+        }
+        error {
+            associatedItem: @P23_OWNERSHIP_PERCENTAGE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process clear-party-form (
+        name: Empty the common party form (new owner / officer)
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.load_items(null);
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
     process create-owner-party (
         name: Create the new owner / officer
         type: executeCode
@@ -799,12 +629,23 @@ page 23 (
             language: plsql
             plsqlCode:
                 ```plsql
-                :P23_SUBJECT_PARTY_ID := xxcmp_party_pkg.create_party(
-                    p_party_type          => :P23_NEW_PARTY_TYPE,
-                    p_party_name          => :P23_NEW_PARTY_NAME,
-                    p_jurisdiction        => :P23_NEW_JURISDICTION,
-                    p_registration_number => :P23_NEW_REGISTRATION_NUMBER,
-                    p_date_of_birth       => to_date(:P23_NEW_DATE_OF_BIRTH));
+                declare
+                    l_id number;
+                begin
+                    xxcmp_party_pkg.save_party(
+                        p_party_id            => l_id,
+                        p_party_type          => :P0_PARTY_TYPE,
+                        p_party_name          => :P0_PARTY_NAME,
+                        p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                        p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                        p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email               => :P0_PARTY_EMAIL,
+                        p_phone               => :P0_PARTY_PHONE,
+                        p_website             => :P0_PARTY_WEBSITE,
+                        p_fax                 => :P0_PARTY_FAX);
+                    :P23_SUBJECT_PARTY_ID := l_id;
+                end;
                 ```
         }
         execution {
@@ -832,7 +673,7 @@ page 23 (
         when {
             event: change
             selectionType: items
-            items: P23_OWNER_SELECTION,P23_NEW_PARTY_TYPE
+            items: P23_OWNER_SELECTION
         }
 
         action owner-existing-or-new-js (
@@ -840,16 +681,11 @@ page 23 (
             settings {
                 jsCode:
                     ```javascript
-                    var sel = apex.item("P23_OWNER_SELECTION");
-                    if (!sel.node) { return; }            // editing: the owner is already chosen
-                    var isNew = sel.getValue() === "NEW",
-                        org = apex.item("P23_NEW_PARTY_TYPE").getValue() === "ORGANIZATION";
-                    apex.item("P23_SUBJECT_PARTY_ID")[isNew ? "hide" : "show"]();
-                    ["P23_NEW_PARTY_TYPE", "P23_NEW_PARTY_NAME", "P23_NEW_JURISDICTION"].forEach(function (i) {
-                        apex.item(i)[isNew ? "show" : "hide"]();
-                    });
-                    apex.item("P23_NEW_REGISTRATION_NUMBER")[isNew && org ? "show" : "hide"]();
-                    apex.item("P23_NEW_DATE_OF_BIRTH")[isNew && !org ? "show" : "hide"]();
+                    var sel = apex.item("P23_OWNER_SELECTION"),
+                        isNew = !!sel.node && sel.getValue() === "NEW";
+                    // a new owner / officer is entered in the common party form
+                    $("#party-form")[isNew ? "show" : "hide"]();
+                    if (sel.node) { apex.item("P23_SUBJECT_PARTY_ID")[isNew ? "hide" : "show"](); }
                     ```
             }
             execution {

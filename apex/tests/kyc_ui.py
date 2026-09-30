@@ -113,16 +113,16 @@ with sync_playwright() as p:
     pg, s = login(b, 'REQ1')
     goto(pg, s, 201)
     pg.evaluate('''(n) => {
-        apex.item("P201_PARTY_NAME").setValue(n);
-        apex.item("P201_REGISTRATION_NUMBER").setValue("REG-" + Date.now());
-        apex.item("P201_ENTITY_TYPE").setValue("LLC");
-        apex.item("P201_JURISDICTION").setValue("AE");
+        apex.item("P0_PARTY_NAME").setValue(n);
+        apex.item("P0_PARTY_REGISTRATION_NUMBER").setValue("REG-" + Date.now());
+        apex.item("P0_PARTY_JURISDICTION").setValue("AE");
+        apex.item("P0_PARTY_EMAIL").setValue("ui.contact@example.com");
+        apex.item("P0_PARTY_PHONE").setValue("+971 4 000 0000");
         apex.item("P201_REQUESTING_DEPARTMENT").setValue("PROCUREMENT");
         apex.item("P201_JUSTIFICATION").setValue("New supplier for the UI test");
-        apex.item("P201_CONTACT_NAME").setValue("UI Contact");
-        apex.item("P201_CONTACT_EMAIL").setValue("ui.contact@example.com");
-        apex.item("P201_CONTACT_PHONE").setValue("+971 4 000 0000");
     }''', NAME)
+    pg.wait_for_timeout(800)     # the entity type list follows the party type (cascading list)
+    pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC")')
     click(pg, 'Next')
     ok(f'step 1 saved the counterparty and moved to the questionnaire ({pg.title()})', 'Questionnaire' in pg.title() and not errors(pg))
     req = db(f"select request_id from xxcmp_requests where party_name = '{NAME}'")[0]
@@ -206,7 +206,7 @@ with sync_playwright() as p:
     pg.wait_for_load_state('networkidle')
     closed = wait_db(f"select count(*) from xxcmp_cases where case_id = {case} and case_status = 'APPROVED'")
     ok('level 1 approval (medium risk: one level) approves and closes the case', closed == '1')
-    ok('request completed', db(f"select request_status from xxcmp_requests where request_id = {req}")[0] == 'COMPLETED')
+    ok('request completed', db(f"select request_status from xxcmp_requests where request_id = {req}")[0] == 'APPROVED')
     pg.close()
     b.close()
 print(f'{sum(results)}/{len(results)} passed')

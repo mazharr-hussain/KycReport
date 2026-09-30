@@ -1,5 +1,6 @@
--- Party feature: party-level contact details, contact persons, a new owner / officer created as a party,
--- and the Compliance merge of a duplicate party (everything moves to the kept party, the duplicate is disabled).
+-- Party feature (release 23): the common party form rules and save (one column per organisation / individual
+-- pair), contact persons, owner / officer rules (ownership %), and the Compliance merge of a duplicate party
+-- (everything moves to the kept party, the duplicate is disabled).
 -- Needs security_test.sql (REQ1, OFFICER1) and at least one closed case (kyc_flow_test.sql).
 set serveroutput on size unlimited feedback off
 declare
@@ -32,33 +33,60 @@ declare
 begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';
 
-    ---------------------------------------------------------------- create a party from another screen
+    ---------------------------------------------------------------- the common party form
     session_as('REQ1');
     begin
-        l_new := xxcmp_party_pkg.create_party('PERSON', 'Requester Made ' || l_tag);
+        xxcmp_party_pkg.save_party(l_new, 'PERSON', 'Requester Made ' || l_tag, 'AE', null, null, null, null, '+1');
         ok('a requester cannot create parties', false);
     exception when others then
         ok('a requester cannot create parties: ' || err(sqlerrm), sqlcode = -20701);
     end;
     session_as('OFFICER1');
-    l_new := xxcmp_party_pkg.create_party('PERSON', 'New Director ' || l_tag, 'AE', null, date '1975-05-05');
+    xxcmp_party_pkg.save_party(l_new, 'PERSON', 'New Director ' || l_tag, 'AE', 'PX-' || l_tag, 'PASSPORT',
+                               date '1975-05-05', null, '+971 50 1');
     select * into l_p from xxcmp_parties where party_id = l_new;
-    ok('Compliance creates a new owner / officer as a party: ' || l_p.party_number,
-       l_p.party_type = 'PERSON' and l_p.date_of_birth = date '1975-05-05' and l_p.enabled_flag = 'Y');
-    l_keep := xxcmp_party_pkg.create_party('ORGANIZATION', 'Keep Holding ' || l_tag, 'AE', 'KH-' || l_tag);
+    ok('an individual keeps its ID number, ID type, birth date and nationality in the shared columns: ' || l_p.party_number,
+       l_p.party_type = 'PERSON' and l_p.registration_number = 'PX-' || l_tag and l_p.entity_type = 'PASSPORT'
+       and l_p.incorporation_date = date '1975-05-05' and l_p.jurisdiction = 'AE' and l_p.party_status = 'APPROVED');
+    ok('labels follow the type', xxcmp_party_pkg.field_label('PERSON', 'REGISTRATION_NUMBER') = 'ID Number'
+       and xxcmp_party_pkg.field_label('ORGANIZATION', 'INCORPORATION_DATE') = 'Incorporation Date');
+    l_keep := null;
+    xxcmp_party_pkg.save_party(l_keep, 'ORGANIZATION', 'Keep Holding ' || l_tag, 'AE', 'KH-' || l_tag, 'LLC', null,
+                               'info@keep.example', null);
     begin
-        l_other := xxcmp_party_pkg.create_party('ORGANIZATION', 'Other Name ' || l_tag, 'AE', 'kh ' || l_tag);
+        l_other := null;
+        xxcmp_party_pkg.save_party(l_other, 'ORGANIZATION', 'Other Name ' || l_tag, 'AE', 'kh ' || l_tag, 'LLC', null,
+                                   'x@example.com', null);
         ok('same registration number and country is refused', false);
     exception when others then
         ok('same registration number and country is refused: ' || err(sqlerrm), sqlcode = -20705);
     end;
+    ok('an organisation needs its entity type: ' || xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'Z ' || l_tag, 'AE',
+                                                    'Z-' || l_tag, null, null, 'z@example.com', null),
+       xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'Z ' || l_tag, 'AE', 'Z-' || l_tag, null, null, 'z@example.com', null)
+       = 'Choose the entity type.');
+    ok('a birth date in the future is refused',
+       xxcmp_party_pkg.party_error(null, 'PERSON', 'Z ' || l_tag, 'AE', null, null, sysdate + 5, null, '1')
+       = 'The date of birth cannot be in the future.');
+
+    ---------------------------------------------------------------- owners / officers
+    ok('a shareholder needs its ownership %',
+       xxcmp_party_pkg.relationship_error(null, l_keep, 'SHAREHOLDER', null, sysdate, null) like 'Enter the ownership %');
+    ok('a director has no ownership %',
+       xxcmp_party_pkg.relationship_error(null, l_keep, 'DIRECTOR', 10, sysdate, null) like 'Ownership % applies only%');
+    insert into xxcmp_party_relationships (subject_party_id, object_party_id, relationship_type, ownership_percentage)
+    values (l_new, l_keep, 'SHAREHOLDER', 70);
+    l_txt := xxcmp_party_pkg.relationship_error(null, l_keep, 'SHAREHOLDER', 40, sysdate, null);
+    ok('the active owners hold at most 100%: ' || l_txt, l_txt like 'The active owners would hold 110%%');
+    ok('30% more is fine', xxcmp_party_pkg.relationship_error(null, l_keep, 'SHAREHOLDER', 30, sysdate, null) is null);
+    delete from xxcmp_party_relationships where subject_party_id = l_new and object_party_id = l_keep;
 
     ---------------------------------------------------------------- party-level contact details, contact persons
     update xxcmp_parties set email = 'info@keep.example', phone = '+971 4 555 0000', website = 'https://keep.example',
                              fax = '+971 4 555 0001'
      where party_id = l_keep;
-    insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, job_title, email, phone, primary_flag)
-    values (l_keep, 'PERSON', 'Jane Keep', 'Jane Keep', 'Finance Director', 'jane@keep.example', '+971 50 000 0000', 'Y');
+    insert into xxcmp_party_contacts (party_id, contact_name, job_title, email, phone, primary_flag)
+    values (l_keep, 'Jane Keep', 'Finance Director', 'jane@keep.example', '+971 50 000 0000', 'Y');
     select count(*) into l_cnt from xxcmp_parties
      where party_id = l_keep and email = 'info@keep.example' and website = 'https://keep.example' and fax is not null;
     ok('main email, phone, website and fax are kept on the party', l_cnt = 1);
@@ -74,8 +102,8 @@ begin
     end if;
     update xxcmp_parties set email = null, website = 'https://dup.example' where party_id = l_dup;
     update xxcmp_parties set website = null where party_id = l_keep;
-    insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, email, primary_flag)
-    values (l_dup, 'PERSON', 'Dup Person', 'Dup Person', 'dup@dup.example', 'N');
+    insert into xxcmp_party_contacts (party_id, contact_name, email, primary_flag)
+    values (l_dup, 'Dup Person', 'dup@dup.example', 'N');
     insert into xxcmp_party_relationships (subject_party_id, object_party_id, relationship_type, ownership_percentage)
     values (l_new, l_dup, 'SHAREHOLDER', 40);
     insert into xxcmp_party_relationships (subject_party_id, object_party_id, relationship_type, ownership_percentage)

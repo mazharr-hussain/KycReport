@@ -15,7 +15,7 @@ declare
 begin
     fix('XXFND_USER_ROLES_U1', 'xxfnd_user_roles (case when end_date_active is null then employee_id end, case when end_date_active is null then role_code end)');
     fix('XXFND_DF_CONTEXTS_U1', 'xxfnd_df_contexts (case when global_flag = ''Y'' then descriptive_flexfield_code end)');
-    fix('XXCMP_PARTY_CONTACTS_U1', 'xxcmp_party_contacts (case when primary_flag = ''Y'' then party_id end, case when primary_flag = ''Y'' then contact_type end)');
+    -- (XXCMP_PARTY_CONTACTS_U1 became one primary contact person per party in release 23: 16f)
 end;
 /
 

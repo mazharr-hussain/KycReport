@@ -143,9 +143,8 @@ page 32 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- contact persons with an email (and, from before release 18, email contact rows)
-                select nvl(c.contact_name, c.contact_value) || ' <'
-                       || coalesce(c.email, case when c.contact_type = 'EMAIL' then c.contact_value end) || '>' as display_value,
+                -- contact persons with an email
+                select c.contact_name || ' <' || c.email || '>' as display_value,
                        c.party_contact_id as return_value
                   from xxcmp_party_contacts c
                  where c.party_id = case :P32_ENTITY_NAME
@@ -153,7 +152,7 @@ page 32 (
                                         when 'XXCMP_CASES'    then (select x.party_id from xxcmp_cases x where x.case_id = to_number(:P32_PK1_VALUE))
                                         when 'XXCMP_REQUESTS' then (select x.party_id from xxcmp_requests x where x.request_id = to_number(:P32_PK1_VALUE))
                                     end
-                   and coalesce(c.email, case when c.contact_type = 'EMAIL' then c.contact_value end) is not null
+                   and c.email is not null
                    and c.enabled_flag = 'Y'
                  order by c.primary_flag desc, c.contact_name
                 ```

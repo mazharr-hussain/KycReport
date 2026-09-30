@@ -1,0 +1,285 @@
+page 30 (
+    name: Requests for Information
+    alias: REQUESTS-FOR-INFORMATION
+    title: Requests for Information
+    pageGroup: @rfi
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Requests for information raised by the Compliance team. Requesters see the requests addressed to them.
+    }
+
+    region breadcrumb (
+        name: Requests for Information
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Requests for Information
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(q.rfi_id), p_clear_cache => '31') as open_url
+                  from (
+
+                    select r.rfi_id,
+                           r.rfi_number,
+                           r.entity_name,
+                           r.pk1_value,
+                           xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) as rfi_category,
+                           xxfnd_util_pkg.lookup_meaning('RFI_RECIPIENT_TYPE', r.recipient_type) as recipient_type,
+                           coalesce(r.recipient_user_name,
+                                    (select c.contact_name || ' ' || c.email from xxcmp_party_contacts c
+                                      where c.party_contact_id = r.recipient_party_contact_id)) as recipient,
+                           xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status) as rfi_status,
+                           r.due_date,
+                           r.responded_date,
+                           r.created_by,
+                           r.creation_date
+                      from xxcmp_rfis r   -- rows filtered by data security (XXFND_VPD_PKG)
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column RFI_ID (
+            type: hidden
+            heading {
+                heading: Rfi Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column RFI_NUMBER (
+            type: plainText
+            heading {
+                heading: RFI
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#RFI_NUMBER#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENTITY_NAME (
+            type: plainText
+            heading {
+                heading: Record Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PK1_VALUE (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RFI_CATEGORY (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECIPIENT_TYPE (
+            type: plainText
+            heading {
+                heading: Recipient Type
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECIPIENT (
+            type: plainText
+            heading {
+                heading: Recipient
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RFI_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DUE_DATE (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 90
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column RESPONDED_DATE (
+            type: plainText
+            heading {
+                heading: Responded
+            }
+            layout {
+                sequence: 100
+            }
+            appearance {
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Raised By
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Raised On
+            }
+            layout {
+                sequence: 120
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+)

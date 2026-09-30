@@ -160,6 +160,15 @@ upgradeScript 16e-party-logic (
     }
 )
 
+upgradeScript 16f-party-and-request-redesign (
+    execution {
+        sequence: 128
+    }
+    script {
+        contentFile: 16f-party-request-redesign.sql
+    }
+)
+
 upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 130

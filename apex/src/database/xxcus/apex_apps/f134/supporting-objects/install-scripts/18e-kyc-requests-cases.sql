@@ -147,7 +147,15 @@ begin
     lt('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources');
     lvs('KYC_TRIGGER_SOURCE', 'MANUAL=Manual|SCHEDULED=Scheduled|EVENT_DRIVEN=Event driven');
     lt('KYC_REQUEST_STATUS', 'KYC Request Status');
-    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|SUBMITTED=Submitted|IN_PROGRESS=In progress|COMPLETED=Completed|REJECTED=Rejected|CANCELLED=Cancelled');
+    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Information Needed|APPROVED=Approved'
+        || '|REJECTED=Rejected|CANCELLED=Cancelled');
+    -- release 23: Submitted and Completed became In Progress and Approved
+    update xxfnd_lookup_values set enabled_flag = 'N'
+     where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code in ('SUBMITTED', 'COMPLETED') and enabled_flag = 'Y';
+    update xxfnd_lookup_values set meaning = 'In Progress', display_sequence = 20
+     where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code = 'IN_PROGRESS' and meaning = 'In progress';
+    lt('PARTY_STATUS', 'Party Status');
+    lvs('PARTY_STATUS', 'PENDING=Pending|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
     lt('ID_DOCUMENT_TYPE', 'Identity Document Types', 'E');
     lvs('ID_DOCUMENT_TYPE', 'PASSPORT=Passport|NATIONAL_ID=National ID card|RESIDENCE_PERMIT=Residence permit');
     lt('REQUEST_MATCH_STATUS', 'Counterparty Match Status');

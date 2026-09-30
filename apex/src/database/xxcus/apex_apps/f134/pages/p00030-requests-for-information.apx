@@ -55,7 +55,7 @@ page 30 (
                            xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) as rfi_category,
                            xxfnd_util_pkg.lookup_meaning('RFI_RECIPIENT_TYPE', r.recipient_type) as recipient_type,
                            coalesce(r.recipient_user_name,
-                                    (select c.contact_name || ' ' || c.contact_value from xxcmp_party_contacts c
+                                    (select c.contact_name || ' ' || c.email from xxcmp_party_contacts c
                                       where c.party_contact_id = r.recipient_party_contact_id)) as recipient,
                            xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status) as rfi_status,
                            r.due_date,

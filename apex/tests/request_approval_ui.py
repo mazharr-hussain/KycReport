@@ -39,9 +39,8 @@ db(f"""declare
 begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';
     apex_session.create_session(l_app, 1, 'REQ1');
-    xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', '{NAME}', null, null, null, null, null, 'AE',
-                                        null, null, 'FINANCE', 'Approval UI test',
-                                        p_contact_name => 'A Person', p_contact_email => 'a@b.co', p_contact_phone => '1');
+    xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', '{NAME}', 'AE', 'AP-' || dbms_random.string('U', 8),
+                                   'LLC', null, 'a@b.co', '1', null, null, 'FINANCE', 'Approval UI test');
     update xxcmp_request_answers x
        set answer_option_id = (select max(o.answer_option_id) keep (dense_rank last order by o.risk_points)
                                  from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED')
@@ -81,7 +80,7 @@ with sync_playwright() as p:
        'Document' in appr and 'OFFICER1' in appr)
     ok('the requester has no decision buttons', pg.locator('button:has-text("Approve - Open Case")').count() == 0)
     card = pg.inner_text('#party_card') if pg.locator('#party_card').count() else ''
-    ok('the requester sees the party card without the party master details', 'available to Compliance' in card)
+    ok('the requester sees the party card without the party master details (Pending party)', 'available to Compliance' in card)
     pg.close()
 
     pg = open_request(b, 'OFFICER1')
@@ -92,8 +91,8 @@ with sync_playwright() as p:
        NAME in card and pg.locator('button:has-text("Edit Party")').count() == 1)
     pg.click('button:has-text("Edit Party")')
     f = pg.frame_locator('iframe').first
-    f.locator('#P24_WEBSITE').wait_for()
-    f.locator('#P24_WEBSITE').fill('https://card.example')
+    f.locator('#P0_PARTY_WEBSITE').wait_for()
+    f.locator('#P0_PARTY_WEBSITE').fill('https://card.example')
     f.locator('button:has-text("Save")').click()
     pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
     pg.wait_for_timeout(2000)

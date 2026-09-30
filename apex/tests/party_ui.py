@@ -1,6 +1,7 @@
-"""Party feature in the browser (pages 20-23): Edit link on Parties; the party opens read only (no Save, no Raise RFI,
-no Add buttons, no Enabled switch) and Edit changes it (main email / phone / website / fax); a contact person in
-the drawer; a new owner / officer created as a party; Compliance merges a duplicate into an existing party.
+"""Party feature in the browser (pages 20-24 and the common party region on the Global Page): Edit link on Parties;
+the party opens read only (common region, no Add buttons) and Edit Details changes it in the common Party dialog;
+a contact person in the drawer; a new owner / officer entered in the common region, with the ownership % rule;
+Create Party with labels that follow the party type; Compliance merges a duplicate into an existing party.
 Usage: party_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
 import os, random, re, string, subprocess, sys
 from playwright.sync_api import sync_playwright
@@ -61,8 +62,8 @@ with sync_playwright() as p:
     ok('view: no Save, no Raise RFI', pg.locator('button:has-text("Save")').count() == 0 and 'Raise RFI' not in body)
     ok('view: no Add Contact / Owner / Attachment buttons',
        all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Add Contact', 'Add Owner', 'Add Attachment')))
-    ok('view: Enabled is read only (no switch)', pg.locator('#P21_ENABLED_FLAG_CONTAINER .a-Switch').count() == 0
-       and pg.get_attribute('#P21_ENABLED_FLAG', 'aria-readonly') == 'true')
+    ok('view: the common party region is read only', pg.locator('#P0_PARTY_ENABLED_FLAG_CONTAINER .a-Switch').count() == 0
+       and pg.get_attribute('#P0_PARTY_NAME', 'aria-readonly') == 'true')
     ok('view: Edit button', pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).count() == 1)
 
     # ---------------------------------------------------------- edit: main contact details
@@ -73,15 +74,15 @@ with sync_playwright() as p:
        and pg.locator('button:has-text("Add Contact Person")').count() == 1)
     pg.click('button:has-text("Edit Details")')
     f = pg.frame_locator('iframe').first
-    f.locator('#P24_EMAIL').wait_for()
-    f.locator('#P24_EMAIL').fill('info@meridian.example'); f.locator('#P24_PHONE').fill('+971 4 222 3333')
-    f.locator('#P24_WEBSITE').fill('https://meridian.example'); f.locator('#P24_FAX').fill('+971 4 222 3334')
+    f.locator('#P0_PARTY_EMAIL').wait_for()
+    f.locator('#P0_PARTY_EMAIL').fill('info@meridian.example'); f.locator('#P0_PARTY_PHONE').fill('+971 4 222 3333')
+    f.locator('#P0_PARTY_WEBSITE').fill('https://meridian.example'); f.locator('#P0_PARTY_FAX').fill('+971 4 222 3334')
     with pg.expect_navigation(timeout=60000):
         f.locator('button:has-text("Save")').click()
     pg.wait_for_load_state('networkidle')
     r = db(f"select email || '|' || website || '|' || fax from xxcmp_parties where party_id = {keep}")
     ok(f'main contact details saved on the party: {r}', r == ['info@meridian.example|https://meridian.example|+971 4 222 3334'])
-    ok('the Party page shows the saved details', pg.evaluate("apex.item('P21_EMAIL').getValue()") == 'info@meridian.example')
+    ok('the Party page shows the saved details', pg.evaluate("apex.item('P0_PARTY_EMAIL').getValue()") == 'info@meridian.example')
 
     # ---------------------------------------------------------- contact person drawer (still in edit mode)
     pg.click('button:has-text("Add Contact Person")')
@@ -91,20 +92,26 @@ with sync_playwright() as p:
     f.locator('#P22_EMAIL').fill('omar@meridian.example')
     f.locator('button:has-text("Create")').click()
     pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
-    r = db(f"select contact_type || '|' || contact_name || '|' || job_title || '|' || email from xxcmp_party_contacts where party_id = {keep}")
-    ok(f'contact person saved: {r}', r == ['PERSON|Omar Finance|CFO|omar@meridian.example'])
+    r = db(f"select contact_name || '|' || job_title || '|' || email from xxcmp_party_contacts where party_id = {keep}")
+    ok(f'contact person saved: {r}', r == ['Omar Finance|CFO|omar@meridian.example'])
 
     # ---------------------------------------------------------- new owner / officer
     pg.click('button:has-text("Add Owner")')
     f = pg.frame_locator('iframe').first
     f.locator('#P23_OWNER_SELECTION').wait_for()
     f.locator('#P23_OWNER_SELECTION input[value=NEW]').check(); pg.wait_for_timeout(500)
-    ok('new owner: the party fields appear, the party search hides',
-       f.locator('#P23_NEW_PARTY_NAME').is_visible() and not f.locator('#P23_SUBJECT_PARTY_ID').is_visible())
-    f.locator('#P23_NEW_PARTY_NAME').fill(f'Layla Owner {TAG}')
-    f.locator('#P23_RELATIONSHIP_TYPE').select_option(index=1)
+    ok('new owner: the common party form appears, the party search hides',
+       f.locator('#P0_PARTY_NAME').is_visible() and not f.locator('#P23_SUBJECT_PARTY_ID').is_visible())
+    f.locator('#P0_PARTY_TYPE input[value=PERSON]').check(); pg.wait_for_timeout(500)
+    f.locator('#P0_PARTY_NAME').fill(f'Layla Owner {TAG}')
+    f.locator('#P0_PARTY_JURISDICTION').select_option('AE')
+    f.locator('#P0_PARTY_PHONE').fill('+971 50 555')
+    f.locator('#P23_RELATIONSHIP_TYPE').select_option('SHAREHOLDER')
+    fr = [x for x in pg.frames if x != pg.main_frame][-1]
+    fr.evaluate("apex.item('P23_START_DATE').setValue('01-JAN-2020')")
+    f.locator('button:has-text("Create")').click(); pg.wait_for_timeout(2500)
+    ok('a shareholder without ownership % is refused', 'ownership %' in fr.inner_text('body'))
     f.locator('#P23_OWNERSHIP_PERCENTAGE').fill('25')
-    [x for x in pg.frames if x != pg.main_frame][-1].evaluate("apex.item('P23_START_DATE').setValue('01-JAN-2020')")
     f.locator('button:has-text("Create")').click()
     pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
     r = db(f"""select count(*) from xxcmp_party_relationships r join xxcmp_parties o on o.party_id = r.subject_party_id
@@ -115,14 +122,20 @@ with sync_playwright() as p:
     pg.goto(f'{HOST}/ords/f?p={APP}:20:{s}'); pg.wait_for_load_state('networkidle')
     pg.click('button:has-text("Create Party")')
     f = pg.frame_locator('iframe').first
-    f.locator('#P24_PARTY_NAME').wait_for()
-    f.locator('#P24_PARTY_NAME').fill(f'Created In Dialog {TAG}')
-    f.locator('#P24_EMAIL').fill('new@dialog.example')
+    f.locator('#P0_PARTY_NAME').wait_for()
+    fr = [x for x in pg.frames if x != pg.main_frame][-1]
+    ok('organisation labels', fr.inner_text('#P0_PARTY_REGISTRATION_NUMBER_LABEL') == 'Registration No.')
+    f.locator('#P0_PARTY_TYPE input[value=PERSON]').check(); pg.wait_for_timeout(800)
+    ok('individual labels', fr.inner_text('#P0_PARTY_REGISTRATION_NUMBER_LABEL') == 'ID Number'
+       and fr.inner_text('#P0_PARTY_JURISDICTION_LABEL') == 'Nationality')
+    f.locator('#P0_PARTY_NAME').fill(f'Created In Dialog {TAG}')
+    f.locator('#P0_PARTY_JURISDICTION').select_option('AE')
+    f.locator('#P0_PARTY_EMAIL').fill('new@dialog.example')
     with pg.expect_navigation(timeout=60000):
         f.locator('button:has-text("Create")').click()
     pg.wait_for_load_state('networkidle')
     ok('Create Party (common dialog) opens the new party',
-       pg.evaluate("apex.item('P21_PARTY_NAME').getValue()") == f'Created In Dialog {TAG}')
+       pg.evaluate("apex.item('P0_PARTY_NAME').getValue()") == f'Created In Dialog {TAG}')
 
     # ---------------------------------------------------------- merge a duplicate
     pg.goto(f'{HOST}/ords/f?p={APP}:20:{s}'); pg.wait_for_load_state('networkidle')
@@ -138,7 +151,7 @@ with sync_playwright() as p:
     pg.wait_for_load_state('networkidle')
     r = db(f"select enabled_flag || '|' || merged_into_party_id from xxcmp_parties where party_id = {dup}")
     ok(f'merged: duplicate disabled and linked to the kept party {r}', r == [f'N|{keep}'])
-    ok('the page now shows the kept party', pg.evaluate("apex.item('P21_PARTY_NAME').getValue()") == KEEP)
+    ok('the page now shows the kept party', pg.evaluate("apex.item('P0_PARTY_NAME').getValue()") == KEEP)
     b.close()
 print(f'{sum(results)}/{len(results)} passed')
 sys.exit(0 if all(results) else 1)

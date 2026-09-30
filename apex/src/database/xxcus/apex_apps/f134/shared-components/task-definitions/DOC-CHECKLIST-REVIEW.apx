@@ -26,7 +26,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
         vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
     }
     comments {
-        comments: Compliance checks that the documents of a KYC request are complete before investigation (Module 1). Approve opens the case; Reject rejects the request; missing items are requested with an RFI. Created by the KYC_REQUEST workflow.
+        comments: Compliance checks that the documents of a KYC request are complete before investigation (Module 1). Approve approves the request and its party and opens the case; Reject rejects the request; Request Information asks the requester (the request is Information Needed until they answer). Created by the KYC_REQUEST workflow.
     }
 
     action notify-owners (
@@ -38,6 +38,30 @@ taskDefinition DOC_CHECKLIST_REVIEW (
         execution {
             onEvent: create
             sequence: 10
+        }
+    )
+
+    action info-requested (
+        name: Request is Information Needed
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_request_pkg.info_requested(:APEX$TASK_PK);
+        }
+        execution {
+            onEvent: requestInformation
+            sequence: 20
+        }
+    )
+
+    action info-submitted (
+        name: Request back In Progress
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_request_pkg.info_submitted(:APEX$TASK_PK);
+        }
+        execution {
+            onEvent: submitInformation
+            sequence: 30
         }
     )
 

@@ -4,8 +4,8 @@ declare
 begin
     select min(party_id) into l_party from xxcmp_parties;
     xxfnd_util_pkg.set_install_mode(true);
-    insert into xxcmp_party_contacts (party_id, contact_type, contact_name, contact_value)
-    values (l_party, (select min(lookup_code) from xxfnd_lookup_values where lookup_type='CONTACT_TYPE'), 'Ext Person', 'ext@example.com')
+    insert into xxcmp_party_contacts (party_id, contact_name, email)
+    values (l_party, 'Ext Person', 'ext@example.com')
     returning party_contact_id into l_contact;
     xxfnd_util_pkg.set_install_mode(false);
     select min(lookup_code) into l_cat from xxfnd_lookup_values where lookup_type='RFI_CATEGORY';

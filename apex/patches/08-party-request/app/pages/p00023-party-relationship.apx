@@ -1,0 +1,742 @@
+page 23 (
+    name: Party Relationship
+    alias: PARTY-RELATIONSHIP
+    title: Party Relationship
+    pageGroup: @parties
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Who owns or controls the party. Choose an existing party, or create a new organisation or individual here. Ownership loops are rejected.
+    }
+
+    region form (
+        name: Party Relationship
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_PARTY_RELATIONSHIPS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P23_PARTY_RELATIONSHIP_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_RELATIONSHIP_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P23_OBJECT_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: OBJECT_PARTY_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P23_SUBJECT_PARTY_ID (
+        type: popupLov
+        label {
+            label: Owner / Officer
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-parties
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: SUBJECT_PARTY_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText:
+                ```
+                The party that holds the interest or role (for example the shareholder or director).
+                ```
+        }
+    )
+
+    pageItem P23_OWNER_SELECTION (
+        type: radioGroup
+        label {
+            label: Owner / Officer Is
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'An existing party' as display_value, 'EXISTING' as return_value from dual
+                union all select 'A new party', 'NEW' from dual
+                ```
+            displayNullValue: false
+        }
+        default {
+            type: static
+            staticValue: EXISTING
+        }
+        layout {
+            sequence: 6
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P23_PARTY_RELATIONSHIP_ID
+        }
+        help {
+            helpText: Existing: choose the party. New: enter the organisation or individual; it is created as a party.
+        }
+    )
+
+    pageItem P23_RELATIONSHIP_TYPE (
+        type: selectList
+        label {
+            label: Relationship
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-relationship-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: RELATIONSHIP_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the relationship.
+        }
+    )
+
+    pageItem P23_OWNERSHIP_PERCENTAGE (
+        type: numberField
+        label {
+            label: Ownership %
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: OWNERSHIP_PERCENTAGE
+            dataType: number
+        }
+        help {
+            helpText: Enter the ownership %.
+        }
+    )
+
+    pageItem P23_START_DATE (
+        type: datePicker
+        label {
+            label: Start Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: START_DATE
+            dataType: date
+        }
+        help {
+            helpText: Choose the start Date.
+        }
+    )
+
+    pageItem P23_END_DATE (
+        type: datePicker
+        label {
+            label: End Date
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: END_DATE
+            dataType: date
+        }
+        help {
+            helpText: Choose the end Date.
+        }
+    )
+
+    region dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.render(
+                           p_table_name   => 'XXCMP_PARTY_RELATIONSHIPS',
+                           p_pk_value     => :P23_PARTY_RELATIONSHIP_ID,
+                           p_context_code => :P23_DFF_CONTEXT);
+                ```
+            pageItemsToSubmit: [
+                P23_PARTY_RELATIONSHIP_ID
+                P23_DFF_CONTEXT
+            ]
+        }
+        layout {
+            sequence: 50
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: dff
+        }
+    )
+
+    dynamicAction bind-dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        comments {
+            comments: P23_DFF_JSON and P23_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
+        }
+
+        action bind-dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    xxfndDff.bind('dff', 'P23_DFF_JSON', 'P23_DFF_CONTEXT');
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    pageItem P23_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @form
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    pageItem P23_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    validation VAL_P23_DFF (
+        name: Validate additional information
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.validate('XXCMP_PARTY_RELATIONSHIPS', :P23_DFF_JSON, :P23_DFF_CONTEXT, :P23_PARTY_RELATIONSHIP_ID);
+                ```
+        }
+        error {
+            associatedItem: @P23_DFF_CONTEXT
+        }
+    )
+
+    process p23-dff-save (
+        name: Save Additional Information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_dff_pkg.save('XXCMP_PARTY_RELATIONSHIPS', :P23_PARTY_RELATIONSHIP_ID, :P23_DFF_JSON, :P23_DFF_CONTEXT);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P23_PARTY_RELATIONSHIP_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P23_PARTY_RELATIONSHIP_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P23_PARTY_RELATIONSHIP_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation owner-given (
+        name: Owner or officer given
+        execution {
+            sequence: 5
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if nvl(:P23_OWNER_SELECTION, 'EXISTING') = 'EXISTING' and :P23_SUBJECT_PARTY_ID is null then
+                    return 'Choose the owner / officer.';
+                elsif :P23_OWNER_SELECTION = 'NEW' then
+                    -- the new owner / officer: the rules of the common party form
+                    return xxcmp_party_pkg.party_error(null, :P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_JURISDICTION,
+                               :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE, to_date(:P0_PARTY_INCORPORATION_DATE),
+                               :P0_PARTY_EMAIL, :P0_PARTY_PHONE);
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P23_SUBJECT_PARTY_ID
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    validation relationship-rules (
+        name: Ownership rules
+        execution {
+            sequence: 6
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.relationship_error(to_number(:P23_PARTY_RELATIONSHIP_ID), to_number(:P23_OBJECT_PARTY_ID),
+                           :P23_RELATIONSHIP_TYPE, to_number(:P23_OWNERSHIP_PERCENTAGE),
+                           to_date(:P23_START_DATE), to_date(:P23_END_DATE));
+                ```
+        }
+        error {
+            associatedItem: @P23_OWNERSHIP_PERCENTAGE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process clear-party-form (
+        name: Empty the common party form (new owner / officer)
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.load_items(null);
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
+    process create-owner-party (
+        name: Create the new owner / officer
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    xxcmp_party_pkg.save_party(
+                        p_party_id            => l_id,
+                        p_party_type          => :P0_PARTY_TYPE,
+                        p_party_name          => :P0_PARTY_NAME,
+                        p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                        p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                        p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email               => :P0_PARTY_EMAIL,
+                        p_phone               => :P0_PARTY_PHONE,
+                        p_website             => :P0_PARTY_WEBSITE,
+                        p_fax                 => :P0_PARTY_FAX);
+                    :P23_SUBJECT_PARTY_ID := l_id;
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CREATE' and :P23_OWNER_SELECTION = 'NEW'
+                ```
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    dynamicAction owner-existing-or-new (
+        name: Existing or new owner
+        execution {
+            sequence: 5
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P23_OWNER_SELECTION
+        }
+
+        action owner-existing-or-new-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var sel = apex.item("P23_OWNER_SELECTION"),
+                        isNew = !!sel.node && sel.getValue() === "NEW";
+                    // a new owner / officer is entered in the common party form
+                    $("#party-form")[isNew ? "show" : "hide"]();
+                    if (sel.node) { apex.item("P23_SUBJECT_PARTY_ID")[isNew ? "hide" : "show"](); }
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+)
