@@ -36,8 +36,19 @@ Status: **being agreed**. Nothing below is built yet. Uses the Party design (`pa
 The counterparty columns on the request (PARTY_TYPE, PARTY_NAME, JURISDICTION, REGISTRATION_NUMBER, ENTITY_TYPE,
 INCORPORATION_DATE) follow the Party merge. NATIONALITY, ID_NUMBER, ID_TYPE and DATE_OF_BIRTH are moved and dropped.
 
+## Status and tracking fields
+| Field | Column | Rule |
+|---|---|---|
+| Status | REQUEST_STATUS | **Draft, In Progress, Information Needed, Approved, Rejected, Cancelled**. Existing data is moved: SUBMITTED / IN_PROGRESS → In Progress, COMPLETED → Approved. The separate "Stage" wording is removed. |
+| KYC Required | *derived from INTAKE_OUTCOME (no new column)* | **Yes** = the approval workflow runs (Compliance review). **No** = approved automatically (KYC not required, or auto-approved). |
+| Pending With | *derived from the open workflow task* | Draft / Information Needed → the requester; In Progress → the Compliance user holding the task, or "Compliance" if unclaimed; closed → empty |
+| Action Date | **LAST_ACTION_DATE** (new, DATE) | set on every step: save, submit, information requested / answered, approve, reject, cancel |
+
+Status flow: Draft → In Progress ⇄ Information Needed → Approved / Rejected; Draft → Cancelled.
+
+## List (page 200)
+Shown: Request, Counterparty, Status, KYC Required, Pending With, Action Date, Department, Requested By, Case,
+Edit (drafts only). Hidden, available: Type, Intake Score, Submitted, Who columns.
+
 ## Open
-- Stage wording (today Draft / Processing / In Progress / Completed – KYC not required / Completed – approved /
-  Rejected).
-- List (page 200) columns.
 - Wizard steps (201–203) and the Request page (205).
