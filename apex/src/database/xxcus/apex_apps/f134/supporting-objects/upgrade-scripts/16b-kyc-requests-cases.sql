@@ -1049,8 +1049,13 @@ create or replace package body xxcmp_request_pkg as
     begin
         insert into xxcmp_parties (party_type, party_name, registration_number, jurisdiction, entity_type, incorporation_date,
                                    date_of_birth, nationality, id_type, id_number, data_provenance)
-        values (p_req.party_type, p_req.party_name, p_req.registration_number, p_req.jurisdiction, p_req.entity_type,
-                p_req.incorporation_date, p_req.date_of_birth, p_req.nationality, p_req.id_type, p_req.id_number,
+        -- only the fields of the party type (xxcmp_parties_ck4); requests saved before release 17 may carry both
+        values (p_req.party_type, p_req.party_name,
+                case when p_req.party_type = 'ORGANIZATION' then p_req.registration_number end, p_req.jurisdiction,
+                case when p_req.party_type = 'ORGANIZATION' then p_req.entity_type end,
+                case when p_req.party_type = 'ORGANIZATION' then p_req.incorporation_date end,
+                case when p_req.party_type = 'PERSON' then p_req.date_of_birth end,
+                case when p_req.party_type = 'PERSON' then p_req.nationality end, p_req.id_type, p_req.id_number,
                 'SELF_DECLARED')
         returning party_id into l_id;
         -- the contact details given by the requesting department: the party's main email / phone and a contact person
