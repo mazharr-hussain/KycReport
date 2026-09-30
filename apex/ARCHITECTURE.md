@@ -20,7 +20,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 ## Features (page → packages → tables); change one, check the others in its row
 | Feature | Pages | Packages | Main tables | Workflow / tasks / automation |
 |---|---|---|---|---|
-| **Requests** | 200 list, 201-203 wizard, 205 request | xxcmp_request_pkg, xxcmp_kyc_pkg, xxfnd_attach_pkg | xxcmp_requests, xxcmp_request_answers, reads xxcmp_parties, xxcmp_questionnaires/questions/answer_options | KYC_REQUEST wf (v1.1 active, v1.0 for old runs): COUNTERPARTY_MATCH → DOC_CHECKLIST_REVIEW → `create_case` |
+| **Requests** | 200 list, 201-203 wizard, 205 request | xxcmp_request_pkg, xxcmp_kyc_pkg, xxfnd_attach_pkg | xxcmp_requests (incl. contact_name/email/phone), xxcmp_request_answers; reads xxcmp_parties, xxfnd_employees (department), xxcmp_attachment_rules (mandatory documents at submit), xxcmp_questionnaires/questions/answer_options; writes xxcmp_party_contacts (new party) | KYC_REQUEST wf (v1.2 active; v1.0/v1.1 for old runs): DOC_CHECKLIST_REVIEW (includes the match decision on 205) → `create_case`; v1.1 runs still have COUNTERPARTY_MATCH first |
 | **Cases** | 210, 211 case, 212 decision, 213 screening, 214 UBO, 215 doc verif., 216 create, 217 report | xxcmp_case_pkg | xxcmp_cases, _case_decisions, _screenings, _doc_verifications, _ubo_determinations, _case_notes; xxcmp_approval_matrix | KYC_CASE wf: CASE_INVESTIGATION → CASE_APPROVAL (1-2 levels) |
 | **Parties** | 20, 21, 22 contacts, 23 relationships | xxcmp_kyc_pkg, xxfnd_dff_pkg, xxfnd_attach_pkg | xxcmp_parties, _party_contacts, _party_relationships | – |
 | **RFI** | 30-33 | xxcmp_kyc_pkg | xxcmp_rfis | RFI_RESPONSE, RFI_REVIEW |
@@ -34,6 +34,9 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 
 ## Reverse map (table / package → who depends on it)
 - **xxcmp_requests**: pages 200-205; xxcmp_request_pkg; KYC_REQUEST wf; COUNTERPARTY_MATCH, DOC_CHECKLIST_REVIEW; xxcmp_case_pkg (create_case reads it); dashboard 230.
+- **xxfnd_employees.department_name**: default requesting department on 201 (`xxcmp_request_pkg.default_department`).
+- **xxcmp_attachment_rules** (Mandatory Document Rules, pages 138-139): request submit (`submit_error`), 205 checklist, case approval.
+- **xxcmp_party_contacts**: 22 (party contacts); written by `xxcmp_request_pkg.new_party` from the request's contact details.
 - **xxcmp_parties**: 20-23, 201 (via party_directory_json), 205 (merge), 211, 220 watchlist; xxcmp_request_pkg (link_party/resolve_match), xxcmp_case_pkg, xxcmp_monitor_pkg.
 - **xxcmp_questions / answer_options**: 160-162, 202 (`questionnaire_html`, `kycQuestionnaire` in kyc-app.js), 211 officer answers; intake scoring in xxcmp_request_pkg.evaluate.
 - **xxcmp_cases**: 210-217, 220-222, 230; xxcmp_case_pkg, xxcmp_monitor_pkg; KYC_CASE wf.

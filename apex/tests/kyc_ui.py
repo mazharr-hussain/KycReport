@@ -119,6 +119,9 @@ with sync_playwright() as p:
         apex.item("P201_JURISDICTION").setValue("AE");
         apex.item("P201_REQUESTING_DEPARTMENT").setValue("PROCUREMENT");
         apex.item("P201_JUSTIFICATION").setValue("New supplier for the UI test");
+        apex.item("P201_CONTACT_NAME").setValue("UI Contact");
+        apex.item("P201_CONTACT_EMAIL").setValue("ui.contact@example.com");
+        apex.item("P201_CONTACT_PHONE").setValue("+971 4 000 0000");
     }''', NAME)
     click(pg, 'Next')
     ok(f'step 1 saved the counterparty and moved to the questionnaire ({pg.title()})', 'Questionnaire' in pg.title() and not errors(pg))

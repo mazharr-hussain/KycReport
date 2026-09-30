@@ -61,10 +61,11 @@ write('p00200-kyc-requests.apx', list_page(
 # ===================================================================== 201
 p = 201
 t = page_header(p, 'Create Request - Counterparty', 'CREATE-REQUEST', 'kyc',
-                'Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one: '
-                'the system then looks for parties that may be the same (name, registration or identity number, '
-                'date of incorporation or birth, country); Compliance decides at the review whether it is an existing '
-                'party. Save as Draft keeps the request to finish later.')
+                'Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one with its '
+                'contact details (the other details are optional): the system then looks for parties that may be the same '
+                '(name, registration or identity number, date of incorporation or birth, country). A counterparty with the '
+                'same registration number and country as an existing party must use that party. Compliance decides at the '
+                'checklist review whether a similar party is the same. Save as Draft keeps the request to finish later.')
 t += breadcrumb_region('Create Request') + '\n'
 t += wizard_region()
 t += static_region('counterparty', 'Counterparty', 20)
@@ -100,35 +101,55 @@ ORG_ITEMS = 'P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE,P201_INCORPORATION_DATE'
 PERSON_ITEMS = 'P201_DATE_OF_BIRTH,P201_NATIONALITY,P201_ID_TYPE,P201_ID_NUMBER'
 t += pitem(p, 'PARTY_NAME', 'textField', 'Name', 10, 'new_party', mark_required=True, max_len=360,
            help_text='Legal name of the organisation, or full name of the individual.')
-t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 20, 'new_party', max_len=100, mark_required=True,
+t += pitem(p, 'REGISTRATION_NUMBER', 'textField', 'Registration Number', 20, 'new_party', max_len=100,
            help_text='Commercial registration or company number.')
-t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 30, 'new_party', lov=lookup_lov('ENTITY_TYPE'), mark_required=True,
+t += pitem(p, 'ENTITY_TYPE', 'selectList', 'Entity Type', 30, 'new_party', lov=lookup_lov('ENTITY_TYPE'),
            help_text='Legal form of the organisation.')
 t += pitem(p, 'INCORPORATION_DATE', 'datePicker', 'Date of Incorporation', 40, 'new_party')
-t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 50, 'new_party', mark_required=True)
-t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 60, 'new_party', lov=lookup_lov('JURISDICTION'), mark_required=True)
-t += pitem(p, 'ID_TYPE', 'selectList', 'Identity Document', 70, 'new_party', lov=lookup_lov('ID_DOCUMENT_TYPE'),
-           mark_required=True)
-t += pitem(p, 'ID_NUMBER', 'textField', 'Identity Document Number', 80, 'new_party', max_len=100, mark_required=True)
-t += pitem(p, 'JURISDICTION', 'selectList', 'Country', 90, 'new_party', lov=lookup_lov('JURISDICTION'), mark_required=True,
+t += pitem(p, 'DATE_OF_BIRTH', 'datePicker', 'Date of Birth', 50, 'new_party')
+t += pitem(p, 'NATIONALITY', 'selectList', 'Nationality', 60, 'new_party', lov=lookup_lov('JURISDICTION'))
+t += pitem(p, 'ID_TYPE', 'selectList', 'Identity Document', 70, 'new_party', lov=lookup_lov('ID_DOCUMENT_TYPE'))
+t += pitem(p, 'ID_NUMBER', 'textField', 'Identity Document Number', 80, 'new_party', max_len=100)
+t += pitem(p, 'JURISDICTION', 'selectList', 'Country', 90, 'new_party', lov=lookup_lov('JURISDICTION'),
            help_text='Country of incorporation for an organisation, country of residence for an individual.')
+t += pitem(p, 'CONTACT_NAME', 'textField', 'Contact Person', 92, 'new_party', mark_required=True, max_len=240,
+           help_text='Who the organisation deals with at the counterparty (or the individual).')
+t += pitem(p, 'CONTACT_EMAIL', 'textField', 'Contact Email', 94, 'new_party', mark_required=True, max_len=320)
+t += pitem(p, 'CONTACT_PHONE', 'textField', 'Contact Phone', 96, 'new_party', mark_required=True, max_len=50)
 t += pitem(p, 'MATCH_ACK', 'switch', 'None of the listed parties is this counterparty', 100, 'new_party', default='N',
            help_text='Tick when you are sure none of the similar parties is the counterparty. Compliance still checks it.')
 t += pitem(p, 'REQUESTING_DEPARTMENT', 'selectList', 'Requesting Department', 40, 'counterparty', required=True,
-           lov=lookup_lov('REQUESTING_DEPARTMENT'))
+           lov=lookup_lov('REQUESTING_DEPARTMENT'),
+           ro="xxcmp_request_pkg.can_choose_department = 'N' and xxcmp_request_pkg.default_department is not null",
+           help_text='The department of your employee profile. Compliance can raise requests for any department.')
+i = t.index('    pageItem P201_REQUESTING_DEPARTMENT (')
+j = t.index('        readOnly {', i)
+t = t[:j] + '''        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                select xxcmp_request_pkg.default_department from dual
+                ```
+        }
+''' + t[j:]
 t += pitem(p, 'JUSTIFICATION', 'textarea', 'Business Purpose', 50, 'counterparty', max_len=4000, height=3,
            help_text='Why the organisation wants to deal with this counterparty.')
 DATE_EXPR = "case :P201_PARTY_TYPE when 'ORGANIZATION' then to_date(:P201_INCORPORATION_DATE) else to_date(:P201_DATE_OF_BIRTH) end"
 MATCH_ITEMS = 'P201_PARTY_TYPE,P201_PARTY_NAME,P201_REGISTRATION_NUMBER,P201_ID_NUMBER,P201_INCORPORATION_DATE,P201_DATE_OF_BIRTH,P201_JURISDICTION'
-t += classic('possible_matches', 'Existing Parties That May Be This Counterparty', f'''select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+CAND_COLS = '''party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                  registration_number varchar2(100) path '$.registration_number',
+                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                  score number path '$.score', reg_match number path '$.reg_match',
+                  reasons varchar2(1000) path '$.reasons' '''.rstrip()
+CAND_REPORT = [('PARTY_NAME', 'Name'), ('COUNTRY', 'Country'), ('SCORE', 'Match %'),
+               ('REG_MATCH', 'Registration Match %'), ('REASONS', 'Why')]
+t += classic('possible_matches', 'Existing Parties That May Be This Counterparty', f'''select j.party_id, j.party_number, j.registration_number,
+       j.party_name, j.country, j.score, j.reg_match, j.reasons,
        'Use this party' as use_party
   from json_table(xxcmp_request_pkg.party_candidates_json(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,
                       :P201_ID_NUMBER, {DATE_EXPR}, :P201_JURISDICTION), '$[*]'
-         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
-                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
-                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j''',
-             [('PARTY_ID', '', 'hidden'), ('PARTY_NUMBER', 'Party'), ('PARTY_NAME', 'Name'), ('COUNTRY', 'Country'),
-              ('SCORE', 'Match %'), ('REASONS', 'Why'),
+         columns ({CAND_COLS})) j''',
+             [('PARTY_ID', '', 'hidden'), ('PARTY_NUMBER', 'Party'), ('REGISTRATION_NUMBER', 'Registration No')] + CAND_REPORT + [
               ('USE_PARTY', 'Action', 'plainText',
                '<a href="#" class="kyc-use-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#USE_PARTY#</a>')],
              35, submit=MATCH_ITEMS, nodata='No existing party resembles this counterparty.')
@@ -271,10 +292,11 @@ t += button('save-draft', 'SAVE_DRAFT', 'Save as Draft', 20, 'buttons', 'NEXT', 
 t += button('next', 'NEXT', 'Next', 30, 'buttons', 'NEXT', hot=True, auth='page-create')
 t += process('load-request', 'Load draft', '''select party_selection, party_id, party_type, party_name, registration_number, entity_type,
        incorporation_date, date_of_birth, nationality, id_type, id_number, jurisdiction, match_ack_flag,
-       requesting_department, justification
+       requesting_department, justification, contact_name, contact_email, contact_phone
   into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER, :P201_ENTITY_TYPE,
        :P201_INCORPORATION_DATE, :P201_DATE_OF_BIRTH, :P201_NATIONALITY, :P201_ID_TYPE, :P201_ID_NUMBER, :P201_JURISDICTION,
-       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION
+       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
+       :P201_CONTACT_PHONE
   from xxcmp_requests
  where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';''', 10, point='beforeHeader',
                  condition='type: itemIsNotNull\nitem: P201_REQUEST_ID')
@@ -282,18 +304,15 @@ NEW = ":P201_PARTY_SELECTION = 'NEW' and "
 checks = [
     ('PARTY_ID', ":P201_PARTY_SELECTION = 'EXISTING' and :P201_PARTY_ID is null", 'Choose the existing counterparty.'),
     ('PARTY_NAME', NEW + "trim(:P201_PARTY_NAME) is null", 'Enter the name.'),
-    ('REGISTRATION_NUMBER', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null",
-     'Enter the registration number of the organisation.'),
-    ('ENTITY_TYPE', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null", 'Choose the entity type of the organisation.'),
     ('INCORPORATION_DATE', NEW + ":P201_PARTY_TYPE = 'ORGANIZATION' and to_date(:P201_INCORPORATION_DATE) > trunc(sysdate)",
      'The date of incorporation cannot be in the future.'),
-    ('DATE_OF_BIRTH', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null", 'Enter the date of birth.'),
     ('DATE_OF_BIRTH', NEW + ":P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate)",
      'The date of birth cannot be in the future.'),
-    ('NATIONALITY', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null", 'Choose the nationality.'),
-    ('ID_TYPE', NEW + ":P201_PARTY_TYPE = 'PERSON' and :P201_ID_TYPE is null", 'Choose the identity document.'),
-    ('ID_NUMBER', NEW + ":P201_PARTY_TYPE = 'PERSON' and trim(:P201_ID_NUMBER) is null", 'Enter the identity document number.'),
-    ('JURISDICTION', NEW + ":P201_JURISDICTION is null", 'Choose the country.'),
+    ('CONTACT_NAME', NEW + "trim(:P201_CONTACT_NAME) is null", 'Enter the contact person.'),
+    ('CONTACT_EMAIL', NEW + "trim(:P201_CONTACT_EMAIL) is null", 'Enter the contact email.'),
+    ('CONTACT_EMAIL', NEW + "not regexp_like(trim(:P201_CONTACT_EMAIL), '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$')",
+     'Enter a valid contact email.'),
+    ('CONTACT_PHONE', NEW + "trim(:P201_CONTACT_PHONE) is null", 'Enter the contact phone.'),
     ('MATCH_ACK', NEW + "nvl(:P201_MATCH_ACK, 'N') <> 'Y'\n   and xxcmp_request_pkg.party_candidate_count(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,\n"
                         f"         :P201_ID_NUMBER, {DATE_EXPR}, :P201_JURISDICTION) > 0",
      'Existing parties may be this counterparty: choose one with Use this party, or confirm that none of them is.'),
@@ -301,6 +320,19 @@ checks = [
 for i, (fld, check, msg) in enumerate(checks):
     t += fn_validation(f'check-{i + 1}', msg, f"if {check} then\n    return '{msg}';\nend if;\nreturn null;",
                        f'P201_{fld}', (i + 1) * 10, requests='NEXT')
+# same registration / identity number and country as an existing party: never a new party, even when confirmed
+t += fn_validation('check-exact', 'Party already exists', '''declare
+    l_party varchar2(30);
+begin
+    if :P201_PARTY_SELECTION = 'NEW' then
+        l_party := xxcmp_request_pkg.exact_party_number(:P201_PARTY_TYPE, :P201_REGISTRATION_NUMBER, :P201_ID_NUMBER,
+                                                        :P201_JURISDICTION);
+        if l_party is not null then
+            return 'Party ' || l_party || ' already has this registration number and country: use this party.';
+        end if;
+    end if;
+    return null;
+end;''', 'P201_REGISTRATION_NUMBER', 5, requests='NEXT')
 t += process('save-request', 'Save counterparty', '''declare
     l_request_id number := to_number(:P201_REQUEST_ID);
 begin
@@ -322,7 +354,10 @@ begin
         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
         p_justification         => :P201_JUSTIFICATION,
         p_match_ack             => nvl(:P201_MATCH_ACK, 'N'),
-        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end);
+        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+        p_contact_name          => :P201_CONTACT_NAME,
+        p_contact_email         => :P201_CONTACT_EMAIL,
+        p_contact_phone         => :P201_CONTACT_PHONE);
     :P201_REQUEST_ID := l_request_id;
 end;''', 10, requests='NEXT,SAVE_DRAFT', auth='page-create', success='Request saved.')
 t += branch('Draft saved', 200, {}, seq=10, button_='save-draft')
@@ -531,13 +566,21 @@ t += classic('checklist', 'Document Checklist', '''select c.column_value as cate
              [('CATEGORY_CODE', '', 'hidden'), ('CATEGORY', 'Mandatory Document'), ('STATUS', 'Status')], 40,
              submit='P205_REQUEST_ID', nodata='No mandatory documents are configured for this counterparty.',
              condition="type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n    xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')\n    ```")
-MATCH_MANAGER = ("type: expression\nlanguage: plsql\nplsqlExpression:\n    ```plsql\n"
-                 "    xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'\n"
-                 "    and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')\n    ```")
+# the match decision is part of the checklist review task (workflow 1.2): shown to Compliance on the task;
+# requests started on workflow 1.1 still come with a Counterparty Match task
+MATCH_MANAGER = ("type: functionBody\nlanguage: plsql\nplsqlFunctionBody:\n    ```plsql\n"
+                 "    if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) <> 'Y'\n"
+                 "       or not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then\n"
+                 "        return false;\n    end if;\n"
+                 "    for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID\n"
+                 "                 and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')) loop\n"
+                 "        return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)\n"
+                 "            or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);\n"
+                 "    end loop;\n    return false;\n    ```")
 t += static_region('counterparty_matching', 'Counterparty Matching', 50,
-                   html='<p>This counterparty was entered as new, but existing parties may be the same. Merge it into one of '
-                        'them (the request is linked to that party and its empty fields are completed from the request), '
-                        'or confirm it as a new party. The checklist can be approved once this is decided.</p>',
+                   html='<p>Part of this review: the counterparty was entered as new, but existing parties may be the same. '
+                        'Merge it into one of them (the request is linked to that party and its empty fields are completed '
+                        'from the request), or confirm it as a new party. The checklist can be approved once this is decided.</p>',
                    condition=MATCH_MANAGER)
 t += pitem(p, 'MERGE_PARTY_ID', 'hidden', None, 1, 'counterparty_matching')
 t = t.replace('''    pageItem P205_MERGE_PARTY_ID (
@@ -554,16 +597,15 @@ t = t.replace('''    pageItem P205_MERGE_PARTY_ID (
         }''', 1)
 t += pitem(p, 'MATCH_NOTE', 'textarea', 'Decision Note', 10, 'counterparty_matching', max_len=1000, height=2,
            help_text='Why the counterparty is (or is not) one of the existing parties.')
-t += classic('match_candidates', 'Existing Parties That May Be This Counterparty', '''select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+t += classic('match_candidates', 'Existing Parties That May Be This Counterparty', f'''select j.party_id, j.party_number, j.registration_number,
+       j.party_name, j.country, j.score, j.reg_match, j.reasons,
        apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(j.party_id), p_clear_cache => '21') as party_url,
        'Merge into this party' as merge
   from json_table(xxcmp_request_pkg.request_candidates_json(:P205_REQUEST_ID), '$[*]'
-         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
-                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
-                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j''',
+         columns ({CAND_COLS})) j''',
              [('PARTY_ID', '', 'hidden'), ('PARTY_URL', '', 'hidden'),
               ('PARTY_NUMBER', 'Party', 'plainText', '<a href="#PARTY_URL#" target="_blank">#PARTY_NUMBER#</a>'),
-              ('PARTY_NAME', 'Name'), ('COUNTRY', 'Country'), ('SCORE', 'Match %'), ('REASONS', 'Why'),
+              ('REGISTRATION_NUMBER', 'Registration No')] + CAND_REPORT + [
               ('MERGE', 'Action', 'plainText',
                '<a href="#" class="kyc-merge-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>')],
              20, submit='P205_REQUEST_ID', nodata='No existing party resembles this counterparty any more.',

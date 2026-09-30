@@ -1,0 +1,1468 @@
+page 205 (
+    name: KYC Request
+    alias: KYC-REQUEST
+    title: KYC Request
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A KYC request: where it stands, the answers and the documents. Compliance reviews the document checklist here.
+            ```
+    }
+
+    region breadcrumb (
+        name: KYC Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region request (
+        name: Request
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P205_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_REQUEST_NUMBER (
+        type: displayOnly
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_STAGE (
+        type: displayOnly
+        label {
+            label: Stage
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_request_pkg.stage(:P205_REQUEST_ID) from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_COUNTERPARTY (
+        type: displayOnly
+        label {
+            label: Counterparty
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', party_type)
+                       || nvl2(registration_number, ', ' || registration_number, null)
+                       || nvl2(jurisdiction, ', ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_REQUEST_TYPE (
+        type: displayOnly
+        label {
+            label: Type
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', request_type) from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_INTAKE (
+        type: displayOnly
+        label {
+            label: Intake Result
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome)
+                       || nvl2(intake_score, ' (score ' || intake_score || case when intake_critical_flag = 'Y' then ', critical answer' end || ')', null)
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_REQUESTED_BY (
+        type: displayOnly
+        label {
+            label: Requested By
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select requester_user_name || nvl2(requesting_department, ' - '
+                       || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', requesting_department), null)
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_JUSTIFICATION (
+        type: displayOnly
+        label {
+            label: Business Purpose
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select justification from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
+                            when r.party_id is not null then 'Linked to a party'
+                            else 'Not decided yet' end
+                       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
+                  from xxcmp_requests r
+                  left join xxcmp_parties p on p.party_id = r.party_id
+                 where r.request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_CASE_NUMBER (
+        type: displayOnly
+        label {
+            label: Case
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    region answer_summary (
+        name: Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
+                       coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer,
+                       a.risk_points
+                  from xxcmp_request_answers a
+                 where a.request_id = :P205_REQUEST_ID and a.respondent_type = 'REQUESTER'
+                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: answer_summary
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column QUESTION (
+            type: plainText
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ANSWER (
+            type: plainText
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RISK_POINTS (
+            type: plainText
+            heading {
+                heading: Points
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    region checklist (
+        name: Document Checklist
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_value as category_code,
+                       (select nvl(tl.category_name, dc.category_name) from xxfnd_document_categories dc
+                          left join xxfnd_document_categories_tl tl on tl.category_code = dc.category_code and tl.language_code = xxfnd_util_pkg.current_lang
+                         where dc.category_code = c.column_value) as category,
+                       case when exists (select 1 from xxfnd_attached_documents_v a
+                                          where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                            and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P205_REQUEST_ID)
+                                              or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P205_REQUEST_ID))))
+                            then 'Present' else 'Missing' end as status
+                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
+                                 (select jurisdiction from xxcmp_requests where request_id = :P205_REQUEST_ID),
+                                 (select entity_type from xxcmp_requests where request_id = :P205_REQUEST_ID))) c
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: checklist
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No mandatory documents are configured for this counterparty.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Mandatory Document
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    region counterparty_matching (
+        name: Counterparty Matching
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Part of this review: the counterparty was entered as new, but existing parties may be the same. Merge it into one of them (the request is linked to that party and its empty fields are completed from the request), or confirm it as a new party. The checklist can be approved once this is decided.</p>
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: counterparty_matching
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) <> 'Y'
+                   or not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID
+                             and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    pageItem P205_MERGE_PARTY_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Set by the Merge link just before submit. XXCMP_REQUEST_PKG.RESOLVE_MATCH re-checks the privilege, the pending state and the party type.
+        }
+        layout {
+            sequence: 1
+            region: @counterparty_matching
+            slot: regionBody
+        }
+    )
+
+    pageItem P205_MATCH_NOTE (
+        type: textarea
+        label {
+            label: Decision Note
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @counterparty_matching
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Why the counterparty is (or is not) one of the existing parties.
+        }
+    )
+
+    region match_candidates (
+        name: Existing Parties That May Be This Counterparty
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_id, j.party_number, j.registration_number,
+                       j.party_name, j.country, j.score, j.reg_match, j.reasons,
+                       apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(j.party_id), p_clear_cache => '21') as party_url,
+                       'Merge into this party' as merge
+                  from json_table(xxcmp_request_pkg.request_candidates_json(:P205_REQUEST_ID), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  registration_number varchar2(100) path '$.registration_number',
+                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                                  score number path '$.score', reg_match number path '$.reg_match',
+                                  reasons varchar2(1000) path '$.reasons')) j
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+            parentRegion: @counterparty_matching
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: match_candidates
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No existing party resembles this counterparty any more.
+        }
+
+        column PARTY_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_URL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column PARTY_NUMBER (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#PARTY_URL#" target="_blank">#PARTY_NUMBER#</a>
+                    ```
+            }
+        )
+
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration No
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column COUNTRY (
+            type: plainText
+            heading {
+                heading: Country
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SCORE (
+            type: plainText
+            heading {
+                heading: Match %
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column REG_MATCH (
+            type: plainText
+            heading {
+                heading: Registration Match %
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column REASONS (
+            type: plainText
+            heading {
+                heading: Why
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column MERGE (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 100
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-merge-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>
+                    ```
+            }
+        )
+
+    )
+
+    button confirm-new (
+        buttonName: CONFIRM_NEW
+        label: Confirm as New Party
+        layout {
+            sequence: 10
+            region: @counterparty_matching
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Create a new party for this counterparty?
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) <> 'Y'
+                   or not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID
+                             and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+    dynamicAction merge-party (
+        name: Merge into an existing party
+        execution {
+            sequence: 60
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-merge-party
+        }
+
+        action merge-party-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Merge this counterparty into " + a.data("label") + "?", function (ok) {
+                        if (ok) {
+                            apex.page.submit({ request: "MERGE", set: { P205_MERGE_PARTY_ID: String(a.data("party")) } });
+                        }
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process merge-party (
+        name: Merge into existing party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, to_number(:P205_MERGE_PARTY_ID), :P205_MATCH_NOTE);
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        successMessage {
+            successMessage: The counterparty was merged into the existing party.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    process confirm-new-party (
+        name: Confirm as new party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.resolve_match(:P205_REQUEST_ID, null, :P205_MATCH_NOTE);
+                ```
+        }
+        execution {
+            sequence: 6
+            point: processing
+        }
+        successMessage {
+            successMessage: A new party was created for the counterparty.
+        }
+        serverSideCondition {
+            whenButtonPressed: @confirm-new
+        }
+    )
+
+    region request_attachments (
+        name: Documents
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id, a.title, a.category_name, a.document_date, a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired, a.created_by, a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P205_REQUEST_ID
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_attachments
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No documents attached.
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Document Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Expired
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+    )
+
+    button request_attachments-add (
+        buttonName: REQUEST_ATTACHMENTS_ADD
+        label: Add Document
+        layout {
+            sequence: 10
+            region: @request_attachments
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 90
+                items: {
+                    P90_ENTITY_NAME: XXCMP_REQUESTS
+                    P90_PK1_VALUE: &P205_REQUEST_ID.
+                    P90_SOURCE_PAGE: 205
+                    P90_SOURCE_REGION: request_attachments
+                }
+                clearCache: 90
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 205, 'request_attachments', 'XXCMP_REQUESTS', 'INSERT') = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-request_attachments (
+        name: Refresh request_attachments
+        execution {
+            sequence: 30
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @request_attachments
+        }
+
+        action refresh-request_attachments-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @request_attachments
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+    region decision (
+        name: Checklist Decision
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Approve opens the case for investigation. Reject closes the request. For a missing document, raise a request for information instead.</p>
+                ```
+        }
+        layout {
+            sequence: 70
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: decision
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    pageItem P205_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Recorded on the task; required when rejecting.
+        }
+    )
+
+    button approve (
+        buttonName: APPROVE
+        label: Approve - Open Case
+        layout {
+            sequence: 30
+            region: @decision
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button reject (
+        buttonName: REJECT
+        label: Reject Request
+        layout {
+            sequence: 20
+            region: @decision
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Reject this request?
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button raise-rfi (
+        buttonName: RAISE_RFI
+        label: Raise RFI
+        layout {
+            sequence: 10
+            region: @decision
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 32
+                items: {
+                    P32_ENTITY_NAME: XXCMP_REQUESTS
+                    P32_PK1_VALUE: &P205_REQUEST_ID.
+                }
+                clearCache: 32
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button edit-draft (
+        buttonName: EDIT_DRAFT
+        label: Continue Draft
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P205_REQUEST_ID.
+                }
+                clearCache: 201
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_requests where request_id = :P205_REQUEST_ID and request_status = 'DRAFT'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button open-case (
+        buttonName: OPEN_CASE
+        label: Open Case
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 211
+                items: {
+                    P211_CASE_ID: &P205_CASE_ID.
+                }
+                clearCache: 211
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_CASE_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+    )
+
+    validation reject-reason (
+        name: Reason for rejection
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P205_COMMENT is null then 'Enter why the request is rejected.' end;
+                ```
+        }
+        error {
+            associatedItem: @P205_COMMENT
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REJECT
+        }
+    )
+
+    process open-from-task (
+        name: Open from task
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select to_number(detail_pk) into :P205_REQUEST_ID
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'SINGLE_TASK',
+                                   p_task_id        => :P205_TASK_ID,
+                                   p_application_id => :APP_ID ) )
+                 where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_TASK_ID
+        }
+    )
+
+    process load-case (
+        name: Load case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
+                -- the breadcrumb shows the request number before the page items are rendered
+                select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
+    process add-comment (
+        name: Record comment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.add_task_comment(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_COMMENT
+        }
+    )
+
+    process approve-task (
+        name: Approve checklist
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.approve_task(p_task_id => :P205_TASK_ID, p_autoclaim => true);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Checklist approved: the case will be opened.
+        }
+        serverSideCondition {
+            whenButtonPressed: @approve
+        }
+    )
+
+    process reject-task (
+        name: Reject request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.reject_task(p_task_id => :P205_TASK_ID, p_autoclaim => true);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Request rejected.
+        }
+        serverSideCondition {
+            whenButtonPressed: @reject
+        }
+    )
+
+)

@@ -75,6 +75,9 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_RESOLVED_BY',   'varchar2(255)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_RESOLVED_DATE', 'timestamp');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_NOTE',          'varchar2(1000)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_NAME',        'varchar2(240)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_EMAIL',       'varchar2(320)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_PHONE',       'varchar2(50)');
     xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',  'ID_TYPE',             'varchar2(30)');
     xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',  'ID_NUMBER',           'varchar2(100)');
 end;
@@ -309,9 +312,22 @@ create or replace package xxcmp_request_pkg authid definer as
                             p_parent_case_id        in number   default null,
                             p_party_id              in number   default null) return number;
 
-    -- Counterparty rules (null = acceptable). EXISTING: a party must be chosen. NEW organisation: registration
-    -- number and entity type; NEW individual: date of birth (not in the future), nationality and identity document.
-    -- Country for every NEW counterparty. P_DRAFT = Y checks only what a draft needs (type and name or party).
+    -- Requesting department of the signed-in user: the department of the employee profile (matched to the
+    -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
+    function default_department return varchar2;
+    -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
+    -- department of the employee profile (when the profile has one).
+    function can_choose_department return varchar2;
+    -- Party number of an existing party that is certainly this counterparty: same registration number (organisation)
+    -- or identity document number (individual) AND same country. Such a counterparty cannot be created again.
+    function exact_party_number(p_party_type in varchar2, p_registration_number in varchar2,
+                                p_id_number in varchar2, p_country in varchar2) return varchar2;
+
+    -- Counterparty rules (null = acceptable). EXISTING: a party must be chosen. NEW: name and contact details
+    -- (contact name, email, phone); the other details are optional for the requester (dates not in the future).
+    -- A NEW counterparty with the same registration / identity number and country as an existing party is
+    -- refused, even when the requester confirmed it: use the existing party.
+    -- P_DRAFT = Y checks only what a draft needs (type and name or party).
     function counterparty_error(p_party_selection     in varchar2,
                                 p_party_id            in number,
                                 p_party_type          in varchar2,
@@ -324,7 +340,10 @@ create or replace package xxcmp_request_pkg authid definer as
                                 p_jurisdiction        in varchar2,
                                 p_date_of_birth       in date,
                                 p_nationality         in varchar2,
-                                p_draft               in varchar2 default 'N') return varchar2;
+                                p_draft               in varchar2 default 'N',
+                                p_contact_name        in varchar2 default null,
+                                p_contact_email       in varchar2 default null,
+                                p_contact_phone       in varchar2 default null) return varchar2;
 
     -- Wizard step 1: creates the DRAFT request (p_request_id null) or updates it. EXISTING copies the chosen
     -- party's details; NEW keeps what was typed, clearing fields that do not apply to the type. A change of
@@ -346,7 +365,10 @@ create or replace package xxcmp_request_pkg authid definer as
                                 p_requesting_department in varchar2,
                                 p_justification         in varchar2,
                                 p_match_ack             in varchar2 default 'N',
-                                p_draft                 in varchar2 default 'N');
+                                p_draft                 in varchar2 default 'N',
+                                p_contact_name          in varchar2 default null,
+                                p_contact_email         in varchar2 default null,
+                                p_contact_phone         in varchar2 default null);
 
     -- Parties a requester may choose from (requesters cannot read the party master itself): enabled parties of
     -- the type with number, name and country only. JSON array [{"party_id","party_number","party_name","country"}].
@@ -354,7 +376,9 @@ create or replace package xxcmp_request_pkg authid definer as
 
     -- Possible existing parties for a new counterparty, strongest first (at most 10). Matching: same registration
     -- number (organisation) or identity document number (individual); name similarity; same date of incorporation
-    -- or birth; same country. JSON array [{"party_id","party_number","party_name","country","score","reasons"}].
+    -- or birth; same country. 100 = same registration / identity number and same country.
+    -- JSON array [{"party_id","party_number","registration_number","party_name","country","score","reg_match",
+    --              "reasons","exact"}]; reg_match = 0-100 similarity of the registration / identity numbers.
     function party_candidates_json(p_party_type          in varchar2,
                                    p_party_name          in varchar2,
                                    p_registration_number in varchar2,
@@ -515,6 +539,45 @@ create or replace package body xxcmp_request_pkg as
         return upper(regexp_replace(p_value, '[^[:alnum:]]', ''));
     end norm_id;
 
+    function default_department return varchar2 is
+        l_code xxfnd_lookup_values.lookup_code%type;
+    begin
+        select max(v.lookup_code) keep (dense_rank first order by v.display_sequence) into l_code
+          from xxfnd_employees e
+          join xxfnd_lookup_values v
+            on v.lookup_type = 'REQUESTING_DEPARTMENT' and v.enabled_flag = 'Y'
+           and (upper(v.lookup_code) = upper(trim(e.department_name)) or upper(v.meaning) = upper(trim(e.department_name)))
+         where e.user_name = upper(xxfnd_util_pkg.current_user) and e.enabled_flag = 'Y';
+        return l_code;
+    end default_department;
+
+    function can_choose_department return varchar2 is
+    begin
+        return case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then 'Y' else 'N' end;
+    end can_choose_department;
+
+    function exact_party_number(p_party_type in varchar2, p_registration_number in varchar2,
+                                p_id_number in varchar2, p_country in varchar2) return varchar2 is
+        l_id     varchar2(100) := norm_id(case p_party_type when 'ORGANIZATION' then p_registration_number else p_id_number end);
+        l_number xxcmp_parties.party_number%type;
+    begin
+        if l_id is null or p_country is null then
+            return null;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select min(party_number) into l_number
+          from xxcmp_parties p
+         where p.party_type = p_party_type and p.enabled_flag = 'Y' and p.jurisdiction = p_country
+           and upper(regexp_replace(case p.party_type when 'ORGANIZATION' then p.registration_number else p.id_number end,
+                                    '[^[:alnum:]]', '')) = l_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_number;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end exact_party_number;
+
     function counterparty_error(p_party_selection     in varchar2,
                                 p_party_id            in number,
                                 p_party_type          in varchar2,
@@ -527,7 +590,11 @@ create or replace package body xxcmp_request_pkg as
                                 p_jurisdiction        in varchar2,
                                 p_date_of_birth       in date,
                                 p_nationality         in varchar2,
-                                p_draft               in varchar2 default 'N') return varchar2 is
+                                p_draft               in varchar2 default 'N',
+                                p_contact_name        in varchar2 default null,
+                                p_contact_email       in varchar2 default null,
+                                p_contact_phone       in varchar2 default null) return varchar2 is
+        l_exact varchar2(30);
     begin
         if p_party_selection = 'EXISTING' then
             return case when p_party_id is null then 'Choose the existing counterparty.' end;
@@ -537,26 +604,24 @@ create or replace package body xxcmp_request_pkg as
             return 'Enter the name.';
         elsif p_draft = 'Y' then
             return null;
-        elsif trim(p_jurisdiction) is null then
-            return 'Choose the country.';
-        elsif p_party_type = 'ORGANIZATION' then
-            if trim(p_registration_number) is null then
-                return 'Enter the registration number of the organisation.';
-            elsif trim(p_entity_type) is null then
-                return 'Choose the entity type of the organisation.';
-            elsif p_incorporation_date > trunc(sysdate) then
-                return 'The date of incorporation cannot be in the future.';
-            end if;
-        else
-            if p_date_of_birth is null then
-                return 'Enter the date of birth.';
-            elsif p_date_of_birth > trunc(sysdate) then
-                return 'The date of birth cannot be in the future.';
-            elsif trim(p_nationality) is null then
-                return 'Choose the nationality.';
-            elsif p_id_type is null or trim(p_id_number) is null then
-                return 'Enter the identity document type and number.';
-            end if;
+        elsif trim(p_contact_name) is null then
+            return 'Enter the contact person.';
+        elsif trim(p_contact_email) is null then
+            return 'Enter the contact email.';
+        elsif not regexp_like(trim(p_contact_email), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
+            return 'Enter a valid contact email.';
+        elsif trim(p_contact_phone) is null then
+            return 'Enter the contact phone.';
+        elsif p_incorporation_date > trunc(sysdate) then
+            return 'The date of incorporation cannot be in the future.';
+        elsif p_date_of_birth > trunc(sysdate) then
+            return 'The date of birth cannot be in the future.';
+        end if;
+        l_exact := exact_party_number(p_party_type, p_registration_number, p_id_number, p_jurisdiction);
+        if l_exact is not null then
+            return 'Party ' || l_exact || ' already has this ' ||
+                   case p_party_type when 'ORGANIZATION' then 'registration number' else 'identity document number' end ||
+                   ' and country: use this party instead of creating a new one.';
         end if;
         return null;
     end counterparty_error;
@@ -577,17 +642,26 @@ create or replace package body xxcmp_request_pkg as
                                 p_requesting_department in varchar2,
                                 p_justification         in varchar2,
                                 p_match_ack             in varchar2 default 'N',
-                                p_draft                 in varchar2 default 'N') is
+                                p_draft                 in varchar2 default 'N',
+                                p_contact_name          in varchar2 default null,
+                                p_contact_email         in varchar2 default null,
+                                p_contact_phone         in varchar2 default null) is
         l_error varchar2(4000) := counterparty_error(p_party_selection, p_party_id, p_party_type, p_party_name,
                                       p_registration_number, p_entity_type, p_incorporation_date, p_id_type, p_id_number,
-                                      p_jurisdiction, p_date_of_birth, p_nationality, p_draft);
+                                      p_jurisdiction, p_date_of_birth, p_nationality, p_draft,
+                                      p_contact_name, p_contact_email, p_contact_phone);
         l_new   xxcmp_requests%rowtype;
         l_old   xxcmp_requests%rowtype;
         l_party xxcmp_parties%rowtype;
         l_org   boolean;
+        l_dept  xxcmp_requests.requesting_department%type := p_requesting_department;
     begin
         if l_error is not null then
             raise_application_error(-20611, l_error);
+        end if;
+        -- a requester raises requests for the department of the employee profile; Compliance for any department
+        if can_choose_department = 'N' and default_department is not null then
+            l_dept := default_department;
         end if;
         -- the values to keep: the chosen party's, or what was typed (only what applies to the type)
         if p_party_selection = 'EXISTING' then
@@ -619,11 +693,14 @@ create or replace package body xxcmp_request_pkg as
                 l_new.id_type := p_id_type;          l_new.id_number := trim(p_id_number);
             end if;
             l_new.match_ack_flag := case when p_match_ack = 'Y' then 'Y' else 'N' end;
+            l_new.contact_name   := trim(p_contact_name);
+            l_new.contact_email  := trim(p_contact_email);
+            l_new.contact_phone  := trim(p_contact_phone);
         end if;
 
         if p_request_id is null then
             p_request_id := create_request(p_party_type => l_new.party_type, p_party_name => l_new.party_name,
-                                           p_requesting_department => p_requesting_department,
+                                           p_requesting_department => l_dept,
                                            p_justification => p_justification);
         end if;
         select * into l_old from xxcmp_requests where request_id = p_request_id for update;
@@ -645,7 +722,10 @@ create or replace package body xxcmp_request_pkg as
                nationality           = l_new.nationality,
                match_ack_flag        = l_new.match_ack_flag,
                match_status          = l_new.match_status,
-               requesting_department = p_requesting_department,
+               contact_name          = l_new.contact_name,
+               contact_email         = l_new.contact_email,
+               contact_phone         = l_new.contact_phone,
+               requesting_department = l_dept,
                justification         = p_justification,
                questionnaire_code    = questionnaire_for(l_new.party_type)
          where request_id = p_request_id;
@@ -689,14 +769,19 @@ create or replace package body xxcmp_request_pkg as
         end if;
         xxfnd_vpd_pkg.begin_trusted;    -- the whole party master, but only safe columns leave this function
         select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
+                                         'registration_number' value registration_number,
                                          'party_name' value party_name, 'country' value country,
-                                         'score' value score, 'reasons' value reasons)
+                                         'score' value score, 'reg_match' value reg_match, 'reasons' value reasons,
+                                         'exact' value case when id_hit = 'Y' and country_hit = 'Y' then 'Y' else 'N' end)
                              order by score desc, party_name returning clob)
           into l_json
           from (select m.*,
-                       case when id_hit = 'Y' then 100
-                            else least(99, round(similarity * 0.7 + case when date_hit = 'Y' then 20 else 0 end
+                       case when id_hit = 'Y' and country_hit = 'Y' then 100
+                            when id_hit = 'Y' then 90
+                            else least(89, round(similarity * 0.7 + case when date_hit = 'Y' then 20 else 0 end
                                                                 + case when country_hit = 'Y' then 10 else 0 end)) end as score,
+                       case when l_id is not null and party_id_number is not null
+                            then round(utl_match.edit_distance_similarity(party_id_number, l_id)) end as reg_match,
                        rtrim(case when id_hit = 'Y' then case p_party_type when 'ORGANIZATION' then 'Same registration number; '
                                                                            else 'Same identity document number; ' end end
                              || case when similarity >= 70 then 'Name ' || round(similarity) || '% similar; ' end
@@ -704,6 +789,10 @@ create or replace package body xxcmp_request_pkg as
                                                                                 else 'Same date of birth; ' end end
                              || case when country_hit = 'Y' then 'Same country; ' end, '; ') as reasons
                   from (select p.party_id, p.party_number, p.party_name,
+                               case p.party_type when 'ORGANIZATION' then p.registration_number else p.id_number end
+                                   as registration_number,
+                               upper(regexp_replace(case p.party_type when 'ORGANIZATION' then p.registration_number
+                                                         else p.id_number end, '[^[:alnum:]]', '')) as party_id_number,
                                xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,
                                case when l_id is not null
                                      -- same normalisation as NORM_ID (private functions cannot be used in SQL)
@@ -891,6 +980,8 @@ create or replace package body xxcmp_request_pkg as
     function submit_error(p_request_id in number) return varchar2 is
         l_req     xxcmp_requests%rowtype;
         l_missing pls_integer;
+        l_error   varchar2(4000);
+        l_docs    varchar2(4000);
     begin
         select * into l_req from xxcmp_requests where request_id = p_request_id;
         if l_req.request_status <> 'DRAFT' then
@@ -903,6 +994,36 @@ create or replace package body xxcmp_request_pkg as
            and q.required_flag = 'Y' and a.answer_option_id is null and a.answer_text is null;
         if l_missing > 0 then
             return l_missing || ' required question(s) are not answered.';
+        end if;
+        -- reviews of an existing case (monitoring) come with their party: only a requester's new counterparty is checked
+        if l_req.parent_case_id is not null then
+            return null;
+        end if;
+        if l_req.party_selection = 'NEW' and l_req.party_id is null then
+            l_error := counterparty_error(l_req.party_selection, l_req.party_id, l_req.party_type, l_req.party_name,
+                           l_req.registration_number, l_req.entity_type, l_req.incorporation_date, l_req.id_type,
+                           l_req.id_number, l_req.jurisdiction, l_req.date_of_birth, l_req.nationality, 'N',
+                           l_req.contact_name, l_req.contact_email, l_req.contact_phone);
+            if l_error is not null then
+                return l_error;
+            end if;
+        end if;
+        -- mandatory documents of the entity type / country (Mandatory Document Rules), attached to the request
+        -- or, for an existing party, to the party
+        for c in (select c.column_value as category_code,
+                         nvl((select max(tl.category_name) from xxfnd_document_categories_tl tl
+                               where tl.category_code = c.column_value and tl.language_code = xxfnd_util_pkg.current_lang),
+                             (select max(dc.category_name) from xxfnd_document_categories dc
+                               where dc.category_code = c.column_value)) as category_name
+                    from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_req.jurisdiction, l_req.entity_type)) c
+                   where not exists (select 1 from xxfnd_attached_documents_v a
+                                      where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                        and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = to_char(p_request_id))
+                                          or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = to_char(l_req.party_id))))) loop
+            l_docs := l_docs || case when l_docs is not null then ', ' end || c.category_name;
+        end loop;
+        if l_docs is not null then
+            return 'Attach the mandatory documents: ' || l_docs || '.';
         end if;
         return null;
     end submit_error;
@@ -932,6 +1053,15 @@ create or replace package body xxcmp_request_pkg as
                 p_req.incorporation_date, p_req.date_of_birth, p_req.nationality, p_req.id_type, p_req.id_number,
                 'SELF_DECLARED')
         returning party_id into l_id;
+        -- the contact details given by the requesting department
+        if p_req.contact_email is not null then
+            insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, primary_flag)
+            values (l_id, 'EMAIL', p_req.contact_email, p_req.contact_name, 'Y');
+        end if;
+        if p_req.contact_phone is not null then
+            insert into xxcmp_party_contacts (party_id, contact_type, contact_value, contact_name, primary_flag)
+            values (l_id, 'PHONE', p_req.contact_phone, p_req.contact_name, 'N');
+        end if;
         return l_id;
     end new_party;
 
@@ -992,7 +1122,8 @@ create or replace package body xxcmp_request_pkg as
            set party_id = l_req.party_id, match_status = l_req.match_status, match_note = p_note,
                match_resolved_by = xxfnd_util_pkg.current_user, match_resolved_date = systimestamp
          where request_id = p_request_id;
-        -- the workflow waits on the Counterparty Match task: completing it moves on to the document checklist
+        -- workflow 1.2 decides this inside the checklist review; requests started on 1.1 wait on a
+        -- Counterparty Match task: completing it moves them on to the checklist
         xxfnd_task_pkg.complete_open('COUNTERPARTY_MATCH', to_char(p_request_id));
         xxfnd_vpd_pkg.end_trusted;
     exception

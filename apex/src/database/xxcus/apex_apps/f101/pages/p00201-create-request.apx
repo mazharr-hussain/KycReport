@@ -15,7 +15,7 @@ page 201 (
     help {
         helpText:
             ```
-            Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one: the system then looks for parties that may be the same (name, registration or identity number, date of incorporation or birth, country); Compliance decides at the review whether it is an existing party. Save as Draft keeps the request to finish later.
+            Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one with its contact details (the other details are optional): the system then looks for parties that may be the same (name, registration or identity number, date of incorporation or birth, country). A counterparty with the same registration number and country as an existing party must use that party. Compliance decides at the checklist review whether a similar party is the same. Save as Draft keeps the request to finish later.
             ```
     }
 
@@ -272,7 +272,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
         validation {
@@ -308,7 +308,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
         help {
@@ -347,7 +347,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
     )
@@ -377,7 +377,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
     )
@@ -407,7 +407,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
     )
@@ -425,7 +425,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
         validation {
@@ -458,11 +458,77 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/optional-floating
             templateOptions: #DEFAULT#
         }
         help {
             helpText: Country of incorporation for an organisation, country of residence for an individual.
+        }
+    )
+
+    pageItem P201_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
+        }
+        layout {
+            sequence: 92
+            region: @new_party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        help {
+            helpText: Who the organisation deals with at the counterparty (or the individual).
+        }
+    )
+
+    pageItem P201_CONTACT_EMAIL (
+        type: textField
+        label {
+            label: Contact Email
+            alignment: left
+        }
+        layout {
+            sequence: 94
+            region: @new_party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+    )
+
+    pageItem P201_CONTACT_PHONE (
+        type: textField
+        label {
+            label: Contact Phone
+            alignment: left
+        }
+        layout {
+            sequence: 96
+            region: @new_party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
         }
     )
 
@@ -522,6 +588,24 @@ page 201 (
         validation {
             valueRequired: true
         }
+        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                select xxcmp_request_pkg.default_department from dual
+                ```
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_request_pkg.can_choose_department = 'N' and xxcmp_request_pkg.default_department is not null
+                ```
+        }
+        help {
+            helpText: The department of your employee profile. Compliance can raise requests for any department.
+        }
     )
 
     pageItem P201_JUSTIFICATION (
@@ -557,13 +641,16 @@ page 201 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+                select j.party_id, j.party_number, j.registration_number,
+                       j.party_name, j.country, j.score, j.reg_match, j.reasons,
                        'Use this party' as use_party
                   from json_table(xxcmp_request_pkg.party_candidates_json(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,
                                       :P201_ID_NUMBER, case :P201_PARTY_TYPE when 'ORGANIZATION' then to_date(:P201_INCORPORATION_DATE) else to_date(:P201_DATE_OF_BIRTH) end, :P201_JURISDICTION), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  registration_number varchar2(100) path '$.registration_number',
                                   party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
-                                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j
+                                  score number path '$.score', reg_match number path '$.reg_match',
+                                  reasons varchar2(1000) path '$.reasons')) j
                 ```
             pageItemsToSubmit: [
                 P201_PARTY_TYPE
@@ -622,13 +709,23 @@ page 201 (
             }
         )
 
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration No
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
         column PARTY_NAME (
             type: plainText
             heading {
                 heading: Name
             }
             layout {
-                sequence: 30
+                sequence: 40
             }
         )
 
@@ -638,7 +735,7 @@ page 201 (
                 heading: Country
             }
             layout {
-                sequence: 40
+                sequence: 50
             }
         )
 
@@ -648,7 +745,17 @@ page 201 (
                 heading: Match %
             }
             layout {
-                sequence: 50
+                sequence: 60
+            }
+        )
+
+        column REG_MATCH (
+            type: plainText
+            heading {
+                heading: Registration Match %
+            }
+            layout {
+                sequence: 70
             }
         )
 
@@ -658,7 +765,7 @@ page 201 (
                 heading: Why
             }
             layout {
-                sequence: 60
+                sequence: 80
             }
         )
 
@@ -668,7 +775,7 @@ page 201 (
                 heading: Action
             }
             layout {
-                sequence: 70
+                sequence: 90
             }
             columnFormatting {
                 htmlExpression:
@@ -1024,10 +1131,11 @@ page 201 (
                 ```plsql
                 select party_selection, party_id, party_type, party_name, registration_number, entity_type,
                        incorporation_date, date_of_birth, nationality, id_type, id_number, jurisdiction, match_ack_flag,
-                       requesting_department, justification
+                       requesting_department, justification, contact_name, contact_email, contact_phone
                   into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER, :P201_ENTITY_TYPE,
                        :P201_INCORPORATION_DATE, :P201_DATE_OF_BIRTH, :P201_NATIONALITY, :P201_ID_TYPE, :P201_ID_NUMBER, :P201_JURISDICTION,
-                       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION
+                       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
+                       :P201_CONTACT_PHONE
                   from xxcmp_requests
                  where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';
                 ```
@@ -1093,59 +1201,9 @@ page 201 (
     )
 
     validation check-3 (
-        name: Enter the registration number of the organisation.
-        execution {
-            sequence: 30
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'ORGANIZATION' and trim(:P201_REGISTRATION_NUMBER) is null then
-                    return 'Enter the registration number of the organisation.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_REGISTRATION_NUMBER
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-4 (
-        name: Choose the entity type of the organisation.
-        execution {
-            sequence: 40
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'ORGANIZATION' and :P201_ENTITY_TYPE is null then
-                    return 'Choose the entity type of the organisation.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_ENTITY_TYPE
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-5 (
         name: The date of incorporation cannot be in the future.
         execution {
-            sequence: 50
+            sequence: 30
         }
         validation {
             type: functionBody
@@ -1167,35 +1225,10 @@ page 201 (
         }
     )
 
-    validation check-6 (
-        name: Enter the date of birth.
-        execution {
-            sequence: 60
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'PERSON' and :P201_DATE_OF_BIRTH is null then
-                    return 'Enter the date of birth.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_DATE_OF_BIRTH
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-7 (
+    validation check-4 (
         name: The date of birth cannot be in the future.
         execution {
-            sequence: 70
+            sequence: 40
         }
         validation {
             type: functionBody
@@ -1217,8 +1250,83 @@ page 201 (
         }
     )
 
+    validation check-5 (
+        name: Enter the contact person.
+        execution {
+            sequence: 50
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_NAME) is null then
+                    return 'Enter the contact person.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_CONTACT_NAME
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation check-6 (
+        name: Enter the contact email.
+        execution {
+            sequence: 60
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_EMAIL) is null then
+                    return 'Enter the contact email.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_CONTACT_EMAIL
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation check-7 (
+        name: Enter a valid contact email.
+        execution {
+            sequence: 70
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P201_PARTY_SELECTION = 'NEW' and not regexp_like(trim(:P201_CONTACT_EMAIL), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
+                    return 'Enter a valid contact email.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P201_CONTACT_EMAIL
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
     validation check-8 (
-        name: Choose the nationality.
+        name: Enter the contact phone.
         execution {
             sequence: 80
         }
@@ -1227,14 +1335,14 @@ page 201 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'PERSON' and :P201_NATIONALITY is null then
-                    return 'Choose the nationality.';
+                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_PHONE) is null then
+                    return 'Enter the contact phone.';
                 end if;
                 return null;
                 ```
         }
         error {
-            associatedItem: @P201_NATIONALITY
+            associatedItem: @P201_CONTACT_PHONE
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1243,84 +1351,9 @@ page 201 (
     )
 
     validation check-9 (
-        name: Choose the identity document.
-        execution {
-            sequence: 90
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'PERSON' and :P201_ID_TYPE is null then
-                    return 'Choose the identity document.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_ID_TYPE
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-10 (
-        name: Enter the identity document number.
-        execution {
-            sequence: 100
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'PERSON' and trim(:P201_ID_NUMBER) is null then
-                    return 'Enter the identity document number.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_ID_NUMBER
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-11 (
-        name: Choose the country.
-        execution {
-            sequence: 110
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_JURISDICTION is null then
-                    return 'Choose the country.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_JURISDICTION
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-12 (
         name: Existing parties may be this counterparty: choose one with Use this party, or confirm that none of them is.
         execution {
-            sequence: 120
+            sequence: 90
         }
         validation {
             type: functionBody
@@ -1337,6 +1370,39 @@ page 201 (
         }
         error {
             associatedItem: @P201_MATCH_ACK
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    validation check-exact (
+        name: Party already exists
+        execution {
+            sequence: 5
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_party varchar2(30);
+                begin
+                    if :P201_PARTY_SELECTION = 'NEW' then
+                        l_party := xxcmp_request_pkg.exact_party_number(:P201_PARTY_TYPE, :P201_REGISTRATION_NUMBER, :P201_ID_NUMBER,
+                                                                        :P201_JURISDICTION);
+                        if l_party is not null then
+                            return 'Party ' || l_party || ' already has this registration number and country: use this party.';
+                        end if;
+                    end if;
+                    return null;
+                end;
+                ```
+        }
+        error {
+            associatedItem: @P201_REGISTRATION_NUMBER
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -1372,7 +1438,10 @@ page 201 (
                         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
                         p_justification         => :P201_JUSTIFICATION,
                         p_match_ack             => nvl(:P201_MATCH_ACK, 'N'),
-                        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end);
+                        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+                        p_contact_name          => :P201_CONTACT_NAME,
+                        p_contact_email         => :P201_CONTACT_EMAIL,
+                        p_contact_phone         => :P201_CONTACT_PHONE);
                     :P201_REQUEST_ID := l_request_id;
                 end;
                 ```
