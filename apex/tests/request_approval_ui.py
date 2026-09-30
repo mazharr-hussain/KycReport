@@ -80,11 +80,24 @@ with sync_playwright() as p:
     ok('the requester sees who the request is with: ' + ' '.join(appr.split())[:160],
        'Document' in appr and 'OFFICER1' in appr)
     ok('the requester has no decision buttons', pg.locator('button:has-text("Approve - Open Case")').count() == 0)
+    card = pg.inner_text('#party_card') if pg.locator('#party_card').count() else ''
+    ok('the requester sees the party card without the party master details', 'available to Compliance' in card)
     pg.close()
 
     pg = open_request(b, 'OFFICER1')
     ok('an approver opening it from KYC Requests gets Approve / Reject / Request Information',
        all(pg.locator(f'button:has-text("{x}")').count() == 1 for x in ('Approve - Open Case', 'Reject Request', 'Request Information')))
+    card = pg.inner_text('#party_card') if pg.locator('#party_card').count() else ''
+    ok('Compliance sees the common party card with Edit Party: ' + ' '.join(card.split())[:120],
+       NAME in card and pg.locator('button:has-text("Edit Party")').count() == 1)
+    pg.click('button:has-text("Edit Party")')
+    f = pg.frame_locator('iframe').first
+    f.locator('#P24_WEBSITE').wait_for()
+    f.locator('#P24_WEBSITE').fill('https://card.example')
+    f.locator('button:has-text("Save")').click()
+    pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
+    pg.wait_for_timeout(2000)
+    ok('Edit Party saves in the common dialog and the card refreshes', 'https://card.example' in pg.inner_text('#party_card'))
     pg.fill('#P205_COMMENT', 'Please send the trade licence.')
     with pg.expect_navigation(): pg.click('button:has-text("Request Information")')
     pg.wait_for_load_state('networkidle')

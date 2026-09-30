@@ -63,24 +63,27 @@ with sync_playwright() as p:
        all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Add Contact', 'Add Owner', 'Add Attachment')))
     ok('view: Enabled is read only (no switch)', pg.locator('#P21_ENABLED_FLAG_CONTAINER .a-Switch').count() == 0
        and pg.get_attribute('#P21_ENABLED_FLAG', 'aria-readonly') == 'true')
-    ok('view: Edit button', pg.locator('button:has-text("Edit")').count() == 1)
+    ok('view: Edit button', pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).count() == 1)
 
     # ---------------------------------------------------------- edit: main contact details
-    with pg.expect_navigation(): pg.click('button:has-text("Edit")')
+    with pg.expect_navigation(): pg.locator('button', has_text=re.compile(r'^\s*Edit\s*$')).click()
     pg.wait_for_load_state('networkidle')
-    ok('edit: Save and the Add buttons', pg.locator('button:has-text("Save")').count() == 1
+    ok('edit: Edit Details (common Party dialog) and the Add buttons',
+       pg.locator('button:has-text("Edit Details")').count() == 1
        and pg.locator('button:has-text("Add Contact Person")').count() == 1)
-    pg.fill('#P21_EMAIL', 'info@meridian.example'); pg.fill('#P21_PHONE', '+971 4 222 3333')
-    pg.fill('#P21_WEBSITE', 'https://meridian.example'); pg.fill('#P21_FAX', '+971 4 222 3334')
-    with pg.expect_navigation(): pg.click('button:has-text("Save")')
+    pg.click('button:has-text("Edit Details")')
+    f = pg.frame_locator('iframe').first
+    f.locator('#P24_EMAIL').wait_for()
+    f.locator('#P24_EMAIL').fill('info@meridian.example'); f.locator('#P24_PHONE').fill('+971 4 222 3333')
+    f.locator('#P24_WEBSITE').fill('https://meridian.example'); f.locator('#P24_FAX').fill('+971 4 222 3334')
+    with pg.expect_navigation(timeout=60000):
+        f.locator('button:has-text("Save")').click()
     pg.wait_for_load_state('networkidle')
     r = db(f"select email || '|' || website || '|' || fax from xxcmp_parties where party_id = {keep}")
     ok(f'main contact details saved on the party: {r}', r == ['info@meridian.example|https://meridian.example|+971 4 222 3334'])
-    ok('after Save the party is shown read only again', pg.locator('button:has-text("Save")').count() == 0)
+    ok('the Party page shows the saved details', pg.evaluate("apex.item('P21_EMAIL').getValue()") == 'info@meridian.example')
 
-    # ---------------------------------------------------------- contact person drawer
-    with pg.expect_navigation(): pg.click('button:has-text("Edit")')
-    pg.wait_for_load_state('networkidle')
+    # ---------------------------------------------------------- contact person drawer (still in edit mode)
     pg.click('button:has-text("Add Contact Person")')
     f = pg.frame_locator('iframe').first
     f.locator('#P22_CONTACT_NAME').wait_for()
@@ -107,6 +110,19 @@ with sync_playwright() as p:
     r = db(f"""select count(*) from xxcmp_party_relationships r join xxcmp_parties o on o.party_id = r.subject_party_id
                 where r.object_party_id = {keep} and o.party_name = 'Layla Owner {TAG}' and o.party_type = 'PERSON'""")
     ok('a new owner is created as a party and linked', r == ['1'])
+
+    # ---------------------------------------------------------- create a party in the common dialog
+    pg.goto(f'{HOST}/ords/f?p={APP}:20:{s}'); pg.wait_for_load_state('networkidle')
+    pg.click('button:has-text("Create Party")')
+    f = pg.frame_locator('iframe').first
+    f.locator('#P24_PARTY_NAME').wait_for()
+    f.locator('#P24_PARTY_NAME').fill(f'Created In Dialog {TAG}')
+    f.locator('#P24_EMAIL').fill('new@dialog.example')
+    with pg.expect_navigation(timeout=60000):
+        f.locator('button:has-text("Create")').click()
+    pg.wait_for_load_state('networkidle')
+    ok('Create Party (common dialog) opens the new party',
+       pg.evaluate("apex.item('P21_PARTY_NAME').getValue()") == f'Created In Dialog {TAG}')
 
     # ---------------------------------------------------------- merge a duplicate
     pg.goto(f'{HOST}/ords/f?p={APP}:20:{s}'); pg.wait_for_load_state('networkidle')

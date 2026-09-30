@@ -107,6 +107,18 @@ page 205 (
         }
     )
 
+    pageItem P205_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P205_REQUEST_NUMBER (
         type: displayOnly
         label {
@@ -379,6 +391,94 @@ page 205 (
                 ```
             used: always
         }
+    )
+
+    region party_card (
+        name: Party
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.card_html(:P205_PARTY_ID);
+                ```
+            pageItemsToSubmit: P205_PARTY_ID
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_card
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_PARTY_ID
+        }
+    )
+
+    button edit-party (
+        buttonName: EDIT_PARTY
+        label: Edit Party
+        layout {
+            sequence: 10
+            region: @party_card
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P205_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                and xxcmp_party_pkg.is_enabled(:P205_PARTY_ID) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-card (
+        name: Refresh the party card
+        execution {
+            sequence: 80
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party_card
+        }
+
+        action refresh-party-card-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_card
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     region answer_summary (
@@ -1599,7 +1699,8 @@ page 205 (
                 ```plsql
                 select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
                 -- the breadcrumb shows the request number before the page items are rendered
-                select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID;
                 ```
         }
         execution {

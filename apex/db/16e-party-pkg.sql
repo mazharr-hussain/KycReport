@@ -23,6 +23,11 @@ create or replace package xxcmp_party_pkg authid definer as
     -- Y when the party exists and is enabled (a merged or disabled party is not edited or merged again).
     function is_enabled(p_party_id in number) return varchar2;
 
+    -- The common Party card (HTML) shown on every screen that shows a party: number, name, type, registration /
+    -- identity, country, main contact details, primary contact person and status. Follows data security: a user who
+    -- may not see the party gets a short note instead.
+    function card_html(p_party_id in number) return clob;
+
 end xxcmp_party_pkg;
 /
 
@@ -130,6 +135,71 @@ create or replace package body xxcmp_party_pkg as
         select max(enabled_flag) into l_flag from xxcmp_parties where party_id = p_party_id;
         return case when l_flag = 'Y' then 'Y' else 'N' end;
     end is_enabled;
+
+    function card_html(p_party_id in number) return clob is
+        l_p      xxcmp_parties%rowtype;
+        l_into   xxcmp_parties.party_number%type;
+        l_html   clob;
+        l_found  boolean := false;
+
+        procedure row(p_label in varchar2, p_value in varchar2, p_raw in boolean default false) is
+        begin
+            if p_value is not null then
+                l_html := l_html || '<dt class="t-AVPList-label">' || apex_escape.html(p_label) || '</dt>'
+                               || '<dd class="t-AVPList-value">' || case when p_raw then p_value else apex_escape.html(p_value) end
+                               || '</dd>';
+            end if;
+        end row;
+    begin
+        if p_party_id is null then
+            return '<p class="u-color-subtle">No party linked yet.</p>';
+        end if;
+        for r in (select * from xxcmp_parties where party_id = p_party_id) loop     -- data security applies
+            l_p := r;
+            l_found := true;
+        end loop;
+        if not l_found then
+            return '<p class="u-color-subtle">The party details are available to Compliance.</p>';
+        end if;
+        select max(party_number) into l_into from xxcmp_parties where party_id = l_p.merged_into_party_id;
+
+        l_html := '<dl class="t-AVPList t-AVPList--leftAligned">';
+        row('Party', case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
+                          then '<a href="' || apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID',
+                                                                 p_values => to_char(l_p.party_id), p_clear_cache => '21')
+                               || '">' || apex_escape.html(l_p.party_number) || '</a>'
+                          else apex_escape.html(l_p.party_number) end
+                     || ' - ' || apex_escape.html(l_p.party_name), true);
+        row('Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
+        if l_p.party_type = 'ORGANIZATION' then
+            row('Registration No', l_p.registration_number);
+            row('Entity Type', xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
+            row('Incorporated', to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
+        else
+            row('Identity Document', xxfnd_util_pkg.lookup_meaning('ID_DOCUMENT_TYPE', l_p.id_type)
+                                     || nvl2(l_p.id_number, ' ' || l_p.id_number, null));
+            row('Date of Birth', to_char(l_p.date_of_birth, 'DD-MON-YYYY'));
+            row('Nationality', xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.nationality));
+        end if;
+        row('Country', xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
+        row('Email', l_p.email);
+        row('Phone', l_p.phone);
+        row('Website', l_p.website);
+        for c in (select nvl(contact_name, contact_value) as name, job_title,
+                         coalesce(email, case when contact_type = 'EMAIL' then contact_value end) as email,
+                         coalesce(phone, case when contact_type in ('PHONE', 'MOBILE') then contact_value end) as phone
+                    from xxcmp_party_contacts
+                   where party_id = p_party_id and enabled_flag = 'Y'
+                   order by primary_flag desc, party_contact_id
+                   fetch first 1 row only) loop
+            row('Contact Person', c.name || nvl2(c.job_title, ' (' || c.job_title || ')', null)
+                                  || nvl2(c.email, ', ' || c.email, null) || nvl2(c.phone, ', ' || c.phone, null));
+        end loop;
+        row('Status', case when l_p.merged_into_party_id is not null then 'Merged into ' || l_into
+                           when l_p.enabled_flag = 'Y' then 'Active' else 'Disabled' end
+                      || nvl2(l_p.last_verified_date, ' - verified ' || to_char(l_p.last_verified_date, 'DD-MON-YYYY'), null));
+        return l_html || '</dl>';
+    end card_html;
 
 end xxcmp_party_pkg;
 /

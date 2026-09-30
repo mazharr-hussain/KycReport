@@ -59,6 +59,37 @@ page 212 (
         }
     )
 
+    region party_card (
+        name: Party
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_party_id number;
+                begin
+                    select max(party_id) into l_party_id from (
+                        select party_id from xxcmp_cases where case_id = :P212_CASE_ID
+                    );
+                    return xxcmp_party_pkg.card_html(l_party_id);
+                end;
+                ```
+            pageItemsToSubmit: P212_CASE_ID
+        }
+        layout {
+            sequence: 5
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_card
+        }
+    )
+
     pageItem P212_TASK_ID (
         type: hidden
         layout {

@@ -316,8 +316,8 @@ page 20 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 21
-                clearCache: 21
+                page: 24
+                clearCache: 24
             }
             warnOnUnsavedChanges: doNotCheck
         }

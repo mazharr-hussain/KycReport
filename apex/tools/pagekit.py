@@ -525,3 +525,101 @@ def chart(rid, name, seq, sql, label_col, value_col, chart_type='bar', new_row=T
     )
 
 '''
+
+
+def party_card(p, party_item, seq, editable=True, slot='BODY', condition=None, party_sql=None):
+    """The common Party card (XXCMP_PARTY_PKG.CARD_HTML) for a page that shows a party; with editable, an Edit Party
+    button (Parties - Manage, enabled party) opens the common Party dialog (page 24) and the card refreshes after it.
+    party_sql: a query returning the party id (for pages that know the party only through, say, the case)."""
+    cond = f"        serverSideCondition {{\n{ind(condition, 12)}\n        }}\n" if condition else ''
+    body = (f'return xxcmp_party_pkg.card_html(:{party_item});' if not party_sql else
+            'declare\n    l_party_id number;\nbegin\n    select max(party_id) into l_party_id from (\n'
+            + ind(party_sql, 8) + '\n    );\n    return xxcmp_party_pkg.card_html(l_party_id);\nend;')
+    t = f'''    region party_card (
+        name: Party
+        type: dynamicContent
+        source {{
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+{ind(body, 16)}
+                ```
+            pageItemsToSubmit: {party_item}
+        }}
+        layout {{
+            sequence: {seq}
+            slot: {slot}
+        }}
+        appearance {{
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }}
+        advanced {{
+            htmlDomId: party_card
+        }}
+{cond}    )
+
+'''
+    if editable:
+        t += f'''    button edit-party (
+        buttonName: EDIT_PARTY
+        label: Edit Party
+        layout {{
+            sequence: 10
+            region: @party_card
+            slot: EDIT
+        }}
+        appearance {{
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }}
+        behavior {{
+            action: redirectThisApp
+            target: {{
+                page: 24
+                items: {{
+                    P24_PARTY_ID: &{party_item}.
+                }}
+                clearCache: 24
+            }}
+            warnOnUnsavedChanges: doNotCheck
+        }}
+        serverSideCondition {{
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :{party_item} is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                and xxcmp_party_pkg.is_enabled(:{party_item}) = 'Y'
+                ```
+        }}
+    )
+
+    dynamicAction refresh-party-card (
+        name: Refresh the party card
+        execution {{
+            sequence: 80
+        }}
+        when {{
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party_card
+        }}
+
+        action refresh-party-card-refresh (
+            action: refresh
+            affectedElements {{
+                selectionType: region
+                region: @party_card
+            }}
+            execution {{
+                sequence: 10
+                fireOnInit: false
+            }}
+        )
+
+    )
+
+'''
+    return t

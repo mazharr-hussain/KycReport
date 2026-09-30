@@ -1,0 +1,1072 @@
+page 24 (
+    name: Party Details
+    alias: PARTY-DETAILS
+    title: Party
+    pageGroup: @parties
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The one place to create or change a party: identity, main contact details (email, phone, website, fax) and additional information. Opened from Parties (Create Party), the Party page, and the request and case pages (Edit Party). Contact persons, ownership and documents are on the Party page.
+            ```
+    }
+
+    region form (
+        name: Party Details
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_PARTIES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P24_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P24_PARTY_NUMBER (
+        type: displayOnly
+        label {
+            label: Party Number
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: PARTY_NUMBER
+            dataType: varchar2
+            queryOnly: true
+        }
+    )
+
+    pageItem P24_PARTY_TYPE (
+        type: selectList
+        label {
+            label: Party Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-party-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: PARTY_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: ORGANIZATION
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P24_PARTY_ID is not null
+                ```
+        }
+        help {
+            helpText: Choose the party Type.
+        }
+    )
+
+    pageItem P24_PARTY_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 360
+        }
+        source {
+            formRegion: @form
+            column: PARTY_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the name.
+        }
+    )
+
+    pageItem P24_JURISDICTION (
+        type: selectList
+        label {
+            label: Jurisdiction
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-jurisdiction
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: JURISDICTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the jurisdiction.
+        }
+    )
+
+    pageItem P24_REGISTRATION_NUMBER (
+        type: textField
+        label {
+            label: Registration Number
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 60
+        }
+        source {
+            formRegion: @form
+            column: REGISTRATION_NUMBER
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the registration Number.
+        }
+    )
+
+    pageItem P24_ENTITY_TYPE (
+        type: selectList
+        label {
+            label: Entity Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-entity-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENTITY_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the entity Type.
+        }
+    )
+
+    pageItem P24_INCORPORATION_DATE (
+        type: datePicker
+        label {
+            label: Incorporation Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: INCORPORATION_DATE
+            dataType: date
+        }
+        help {
+            helpText: Choose the incorporation Date.
+        }
+    )
+
+    pageItem P24_DATE_OF_BIRTH (
+        type: datePicker
+        label {
+            label: Date of Birth
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: DATE_OF_BIRTH
+            dataType: date
+        }
+        help {
+            helpText: Choose the date of Birth.
+        }
+    )
+
+    pageItem P24_NATIONALITY (
+        type: selectList
+        label {
+            label: Nationality
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-jurisdiction
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: NATIONALITY
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the nationality.
+        }
+    )
+
+    pageItem P24_ID_TYPE (
+        type: selectList
+        label {
+            label: Identity Document
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values_vl
+                 where lookup_type = 'ID_DOCUMENT_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 85
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ID_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Passport, national ID or residence permit of the individual.
+        }
+    )
+
+    pageItem P24_ID_NUMBER (
+        type: textField
+        label {
+            label: Identity Document Number
+            alignment: left
+        }
+        layout {
+            sequence: 86
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+        source {
+            formRegion: @form
+            column: ID_NUMBER
+            dataType: varchar2
+        }
+        help {
+            helpText: Number of the identity document.
+        }
+    )
+
+    pageItem P24_DATA_PROVENANCE (
+        type: selectList
+        label {
+            label: Data Provenance
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-data-provenance
+        }
+        layout {
+            sequence: 100
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: DATA_PROVENANCE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: SELF_DECLARED
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Becomes Registry verified once the party is confirmed against an official registry.
+        }
+    )
+
+    pageItem P24_LAST_VERIFIED_DATE (
+        type: displayOnly
+        label {
+            label: Last Verified
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: LAST_VERIFIED_DATE
+            dataType: timestamp
+            queryOnly: true
+        }
+    )
+
+    pageItem P24_EMAIL (
+        type: textField
+        label {
+            label: Email
+            alignment: left
+        }
+        layout {
+            sequence: 112
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        source {
+            formRegion: @form
+            column: EMAIL
+            dataType: varchar2
+        }
+        help {
+            helpText: Main email address of the party (contact persons are listed below).
+        }
+    )
+
+    pageItem P24_PHONE (
+        type: textField
+        label {
+            label: Phone
+            alignment: left
+        }
+        layout {
+            sequence: 113
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @form
+            column: PHONE
+            dataType: varchar2
+        }
+        help {
+            helpText: Main phone number of the party.
+        }
+    )
+
+    pageItem P24_WEBSITE (
+        type: textField
+        label {
+            label: Website
+            alignment: left
+        }
+        layout {
+            sequence: 114
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @form
+            column: WEBSITE
+            dataType: varchar2
+        }
+        help {
+            helpText: Website of the party.
+        }
+    )
+
+    pageItem P24_FAX (
+        type: textField
+        label {
+            label: Fax
+            alignment: left
+        }
+        layout {
+            sequence: 115
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @form
+            column: FAX
+            dataType: varchar2
+        }
+        help {
+            helpText: Fax number of the party.
+        }
+    )
+
+    pageItem P24_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    region party_dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.render(
+                           p_table_name   => 'XXCMP_PARTIES',
+                           p_pk_value     => :P24_PARTY_ID,
+                           p_reference_value => :P24_PARTY_TYPE,
+                           p_context_code => :P24_DFF_CONTEXT);
+                ```
+            pageItemsToSubmit: [
+                P24_PARTY_ID
+                P24_DFF_CONTEXT
+                P24_PARTY_TYPE
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_dff
+        }
+    )
+
+    pageItem P24_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @form
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    pageItem P24_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    dynamicAction bind-party_dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        comments {
+            comments: P24_DFF_JSON and P24_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
+        }
+
+        action bind-party_dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    xxfndDff.bind('party_dff', 'P24_DFF_JSON', 'P24_DFF_CONTEXT');
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    dynamicAction refresh-party-dff (
+        name: Refresh party_dff on change
+        execution {
+            sequence: 45
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P24_PARTY_TYPE
+        }
+
+        action refresh-party-dff-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_dff
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction party-type-fields (
+        name: Show fields for P24_PARTY_TYPE
+        execution {
+            sequence: 50
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P24_PARTY_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P24_PARTY_TYPE
+            value: ORGANIZATION
+        }
+
+        action party-type-fields-show-t (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P24_REGISTRATION_NUMBER,P24_ENTITY_TYPE,P24_INCORPORATION_DATE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-hide-t (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P24_DATE_OF_BIRTH,P24_NATIONALITY,P24_ID_TYPE,P24_ID_NUMBER
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-show-f (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P24_DATE_OF_BIRTH,P24_NATIONALITY,P24_ID_TYPE,P24_ID_NUMBER
+            }
+            execution {
+                sequence: 30
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+        action party-type-fields-hide-f (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P24_REGISTRATION_NUMBER,P24_ENTITY_TYPE,P24_INCORPORATION_DATE
+            }
+            execution {
+                sequence: 40
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P24_PARTY_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P24_PARTY_ID is not null and xxcmp_party_pkg.is_enabled(:P24_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation VAL_PARTY_EXISTS (
+        name: Party already exists
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_id number;
+                    l_no varchar2(30);
+                begin
+                    l_id := xxcmp_kyc_pkg.exact_party_match(:P24_PARTY_TYPE, :P24_PARTY_NAME,
+                                :P24_REGISTRATION_NUMBER, :P24_JURISDICTION, to_date(:P24_DATE_OF_BIRTH));
+                    if l_id is not null then
+                        select party_number into l_no from xxcmp_parties where party_id = l_id;
+                        return 'This party already exists as ' || l_no || '. Open the existing record instead of creating a new one.';
+                    end if;
+                    return null;
+                end;
+                ```
+        }
+        error {
+            associatedItem: @P24_PARTY_NAME
+        }
+        serverSideCondition {
+            whenButtonPressed: @create
+        }
+    )
+
+    validation VAL_P24_DFF (
+        name: Validate additional information
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.validate('XXCMP_PARTIES', :P24_DFF_JSON, :P24_DFF_CONTEXT, :P24_PARTY_ID, p_reference_value => :P24_PARTY_TYPE);
+                ```
+        }
+        error {
+            associatedItem: @P24_DFF_CONTEXT
+        }
+    )
+
+    process p21-dff-save (
+        name: Save Additional Information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_dff_pkg.save('XXCMP_PARTIES', :P24_PARTY_ID, :P24_DFF_JSON, :P24_DFF_CONTEXT, p_reference_value => :P24_PARTY_TYPE);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process party
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Party saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+    branch (
+        name: Open the new party
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P24_PARTY_ID.
+                }
+                clearCache: 21
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @create
+        }
+    )
+
+)

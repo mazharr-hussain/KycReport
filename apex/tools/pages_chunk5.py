@@ -520,6 +520,7 @@ t += static_region('buttons', 'Buttons', 15, slot='REGION_POSITION_01', template
 t += pitem(p, 'REQUEST_ID', 'hidden', None, 1, 'request', protect=True)
 t += pitem(p, 'TASK_ID', 'hidden', None, 2, 'request', protect=True)
 t += pitem(p, 'CASE_ID', 'hidden', None, 3, 'request', protect=True)
+t += pitem(p, 'PARTY_ID', 'hidden', None, 4, 'request', protect=True)
 for i, (name, label, sql) in enumerate([
         ('REQUEST_NUMBER', 'Request', "select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID"),
         ('STAGE', 'Stage', "select xxcmp_request_pkg.stage(:P205_REQUEST_ID) from dual"),
@@ -544,6 +545,8 @@ for i, (name, label, sql) in enumerate([
  where r.request_id = :P205_REQUEST_ID"""),
         ('CASE_NUMBER', 'Case', "select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID")]):
     t += pitem(p, name, 'displayOnly', label, (i + 1) * 10, 'request', sql=sql)
+# the common Party card (once the request is linked to a party)
+t += party_card(p, 'P205_PARTY_ID', 25, condition='type: itemIsNotNull\nitem: P205_PARTY_ID')
 t += classic('answer_summary', 'Answers', '''select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
        coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer,
        a.risk_points
@@ -736,7 +739,8 @@ select max(t.task_id) into :P205_TASK_ID
              condition='type: itemIsNull\nitem: P205_TASK_ID')
 t += process('load-case', 'Load case', '''select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
 -- the breadcrumb shows the request number before the page items are rendered
-select max(request_number) into :P205_REQUEST_NUMBER from xxcmp_requests where request_id = :P205_REQUEST_ID;''',
+select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+  from xxcmp_requests where request_id = :P205_REQUEST_ID;''',
              6, point='beforeHeader')
 t += process('add-comment', 'Record comment', 'apex_human_task.add_task_comment(p_task_id => :P205_TASK_ID, p_text => :P205_COMMENT);',
              10, requests='APPROVE,REJECT', condition=None)

@@ -12,7 +12,7 @@ page 21 (
         language: plsql
         plsqlExpression:
             ```plsql
-            :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT'
+            :P21_PARTY_ID is not null
             ```
     }
     security {
@@ -26,7 +26,7 @@ page 21 (
     help {
         helpText:
             ```
-            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only; Edit (Parties - Manage) changes it. Possible matches are shown so duplicates are caught; Compliance can merge this party into one of them.
+            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only. Edit (Parties - Manage) shows Edit Details (the common Party dialog) and the buttons to add contact persons, owners / officers and documents. Compliance can merge this party into a similar one.
             ```
     }
 
@@ -629,7 +629,7 @@ page 21 (
 
     button cancel-edit (
         buttonName: CANCEL_EDIT
-        label: Cancel
+        label: Done
         layout {
             sequence: 15
             region: @party
@@ -658,6 +658,71 @@ page 21 (
                 :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
                 ```
         }
+    )
+
+    button edit-details (
+        buttonName: EDIT_DETAILS
+        label: Edit Details
+        layout {
+            sequence: 30
+            region: @party
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction details-saved (
+        name: Party details saved
+        execution {
+            sequence: 70
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party
+        }
+
+        action details-saved-reload (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    window.location.reload();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     button edit (
@@ -692,64 +757,6 @@ page 21 (
             plsqlExpression:
                 ```plsql
                 :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    button create (
-        buttonName: CREATE
-        label: Create
-        layout {
-            sequence: 20
-            region: @party
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            databaseAction: insert
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P21_PARTY_ID
-        }
-        security {
-            authorizationScheme: @page-create
-        }
-    )
-
-    button save (
-        buttonName: SAVE
-        label: Save
-        layout {
-            sequence: 30
-            region: @party
-            slot: CHANGE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            databaseAction: update
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
                 ```
         }
         security {
@@ -2014,79 +2021,6 @@ page 21 (
 
     )
 
-    validation VAL_PARTY_EXISTS (
-        name: Party already exists
-        execution {
-            sequence: 10
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                declare
-                    l_id number;
-                    l_no varchar2(30);
-                begin
-                    l_id := xxcmp_kyc_pkg.exact_party_match(:P21_PARTY_TYPE, :P21_PARTY_NAME,
-                                :P21_REGISTRATION_NUMBER, :P21_JURISDICTION, to_date(:P21_DATE_OF_BIRTH));
-                    if l_id is not null then
-                        select party_number into l_no from xxcmp_parties where party_id = l_id;
-                        return 'This party already exists as ' || l_no || '. Open the existing record instead of creating a new one.';
-                    end if;
-                    return null;
-                end;
-                ```
-        }
-        error {
-            associatedItem: @P21_PARTY_NAME
-        }
-        serverSideCondition {
-            whenButtonPressed: @create
-        }
-    )
-
-    validation VAL_P21_DFF (
-        name: Validate additional information
-        execution {
-            sequence: 30
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxfnd_dff_pkg.validate('XXCMP_PARTIES', :P21_DFF_JSON, :P21_DFF_CONTEXT, :P21_PARTY_ID, p_reference_value => :P21_PARTY_TYPE);
-                ```
-        }
-        error {
-            associatedItem: @P21_DFF_CONTEXT
-        }
-    )
-
-    process p21-dff-save (
-        name: Save Additional Information
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                xxfnd_dff_pkg.save('XXCMP_PARTIES', :P21_PARTY_ID, :P21_DFF_JSON, :P21_DFF_CONTEXT, p_reference_value => :P21_PARTY_TYPE);
-                ```
-        }
-        execution {
-            sequence: 40
-            point: processing
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE
-        }
-        security {
-            authorizationScheme: @page-submit
-        }
-    )
-
     process merge-party (
         name: Merge into another party
         type: executeCode
@@ -2107,26 +2041,6 @@ page 21 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: MERGE
-        }
-    )
-
-    process back-to-view (
-        name: Back to view
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                :P21_MODE := null;
-                ```
-        }
-        execution {
-            sequence: 50
-            point: processing
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE
         }
     )
 
@@ -2157,26 +2071,6 @@ page 21 (
         execution {
             sequence: 10
             point: beforeHeader
-        }
-    )
-
-    process process-party (
-        name: Process party
-        type: formAutoRowProcessing
-        formRegion: @party
-        execution {
-            sequence: 10
-            point: processing
-        }
-        successMessage {
-            successMessage: Changes saved.
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE
-        }
-        security {
-            authorizationScheme: @page-submit
         }
     )
 
