@@ -420,7 +420,7 @@ create or replace package body xxcmp_kyc_pkg as
               from xxfnd_employees where user_name = upper(l_rfi.recipient_user_name);
             l_template := 'RFI_RAISED_INTERNAL';
         else
-            select contact_value, contact_name into l_to, l_name
+            select coalesce(email, case when contact_type = 'EMAIL' then contact_value end), contact_name into l_to, l_name
               from xxcmp_party_contacts where party_contact_id = l_rfi.recipient_party_contact_id;
             l_template := 'RFI_RAISED_EXTERNAL';
         end if;

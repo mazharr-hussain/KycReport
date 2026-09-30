@@ -159,6 +159,18 @@
   "upgrade_sequence": 126
  },
  {
+  "name": "16d Parties",
+  "file": "16d-parties.sql",
+  "install_sequence": 158,
+  "upgrade_sequence": 118
+ },
+ {
+  "name": "16e Party logic",
+  "file": "16e-party-pkg.sql",
+  "install_sequence": 167,
+  "upgrade_sequence": 127
+ },
+ {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,

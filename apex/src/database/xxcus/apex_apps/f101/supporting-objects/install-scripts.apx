@@ -151,6 +151,15 @@ installScript 15-workflow (
     }
 )
 
+installScript 16d-parties (
+    execution {
+        sequence: 158
+    }
+    script {
+        contentFile: 16d-parties.sql
+    }
+)
+
 installScript 16-kyc-rules (
     execution {
         sequence: 160
@@ -175,6 +184,15 @@ installScript 16c-monitoring (
     }
     script {
         contentFile: 16c-monitoring.sql
+    }
+)
+
+installScript 16e-party-logic (
+    execution {
+        sequence: 167
+    }
+    script {
+        contentFile: 16e-party-pkg.sql
     }
 )
 
