@@ -1,7 +1,7 @@
 # KYC Compliance Platform – architecture and dependency map
 
-APEX 26.1 APEXlang app (alias KYC, workspace XXCUS). SQLcl 26.x project layout (see `PROJECT.md`):
-app source `src/database/xxcus/apex_apps/f101` (APEXlang); schema DDL per object `src/database/xxcus/<type>/` (exported
+APEX 26.1 APEXlang app (alias KYC, workspace XXCUS). SQLcl 26.x project rooted at `apex/` (see `apex/PROJECT.md`):
+app source `apex/src/database/xxcus/apex_apps/f101` (APEXlang); schema DDL per object `apex/src/database/xxcus/<type>/` (exported
 reference); install/upgrade + seed scripts `apex/db` (copied into the app's `supporting-objects/` by `apex/tools/build.py`). Every db script is idempotent.
 Prefixes: `XXFND_` = platform (reusable), `XXCMP_` = KYC business.
 
