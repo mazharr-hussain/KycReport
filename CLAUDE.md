@@ -1,0 +1,12 @@
+# Working rules (from the user)
+
+- Work **feature by feature** (screen by screen with its own db components). Do not fix or refactor anything outside
+  the feature asked for; no long unrequested work. Mention other issues briefly instead of fixing them.
+- Before changing a feature, check `apex/ARCHITECTURE.md` for its dependencies in both directions
+  (what it uses and what uses it), and keep that file up to date when a feature changes.
+- Deliver each feature as a small deployable patch: `apex/patches/NN-<feature>/` + zip (db script, changed app
+  files under `app/`, README with deploy steps), on top of the latest release.
+- Do not guess table or column names (ask for DDL); keep component IDs unless a fix needs a change.
+- Rules: OOTB APEX first; access/admin changes from the application console; every page has 2+ privileges
+  (View/Create/Manage) plus data security; reusable patterns; deploy in chunks.
+- Test only what the feature touches (its db test + browser test).
