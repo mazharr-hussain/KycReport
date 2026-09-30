@@ -8,7 +8,7 @@ The SQLcl project root is the `apex/` folder: open `apex/` in VS Code / Visual S
 apex/
 .dbtools/                         project config (project.config.json: connection name, export options), filters
 src/database/xxcus/
-  apex_apps/f101/                 the APEX application in APEXlang (pages/, shared-components/, supporting-objects/)
+  apex_apps/f134/                 the APEX application in APEXlang (pages/, shared-components/, supporting-objects/)
   tables/ views/ package_specs/ package_bodies/ triggers/ indexes/ sequences/ ref_constraints/ comments/
                                   one file per database object (exported DDL, for reading/compare)
 src/database/sys/object_grants/   grants the schema needs
@@ -20,11 +20,11 @@ tools/  tests/                    generators/build and tests
 
 ## Open in VS Code or Visual Studio 2022
 1. Clone the repo (or unzip the project zip) and open the folder.
-2. Edit pages in `src/database/xxcus/apex_apps/f101/pages/*.apx`, packages in `db/*.sql`.
+2. Edit pages in `src/database/xxcus/apex_apps/f134/pages/*.apx`, packages in `db/*.sql`.
 3. Deploy with SQLcl (VS Code: Oracle SQL Developer extension has it; Visual Studio: install SQLcl separately):
    - database: `@db/<script>.sql` (or the feature patch script)
-   - application: `apex validate -input src/database/xxcus/apex_apps/f101` then
-     `apex import -input src/database/xxcus/apex_apps/f101 -id <app id>`
+   - application: `apex validate -input src/database/xxcus/apex_apps/f134` then
+     `apex import -input src/database/xxcus/apex_apps/f134 -id <app id>`
    - or `python3 tools/build.py --release N` and import `KYC-Compliance-Platform-APEXlang_N.zip` in App Builder.
 4. Set your own connection name in `.dbtools/project.config.json` (`connectionName`), then `project export` refreshes
    `src/database/xxcus/` from your database.

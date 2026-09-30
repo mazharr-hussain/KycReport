@@ -5,7 +5,7 @@ Usage: request_party_ui.py [app-id]   (SQLCL env var: the SQLcl command, default
 import os, random, re, string, subprocess, sys
 from playwright.sync_api import sync_playwright
 
-APP = sys.argv[1] if len(sys.argv) > 1 else '101'
+APP = sys.argv[1] if len(sys.argv) > 1 else '134'
 HOST = 'http://localhost:8080'
 SQLCL = os.environ.get('SQLCL', 'sql')
 TAG = ''.join(random.choice(string.ascii_uppercase) for _ in range(8))

@@ -13,7 +13,7 @@ def login(b, user):
 
 
 def my_tasks(pg, s):
-    pg.goto(f'{ROOT}/f?p=101:40:{s}'); pg.wait_for_load_state('networkidle')
+    pg.goto(f'{ROOT}/f?p=134:40:{s}'); pg.wait_for_load_state('networkidle')
     return [(a.inner_text().strip(), a.get_attribute('href')) for a in pg.query_selector_all('#t_Body_content a')
             if a.inner_text().strip()]
 

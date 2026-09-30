@@ -9,7 +9,7 @@ def login(pg,u):
     pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
     return re.search(r'session=(\d+)',pg.url).group(1)
 def go(pg,s,page):
-    pg.goto(f'{ROOT}/f?p=101:{page}:{s}'); pg.wait_for_load_state('networkidle')
+    pg.goto(f'{ROOT}/f?p=134:{page}:{s}'); pg.wait_for_load_state('networkidle')
 def dialog(pg):
     pg.wait_for_selector('iframe[title]')
     for _ in range(40):

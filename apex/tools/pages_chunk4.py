@@ -5,7 +5,7 @@ import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from pagegen import col, item, list_page, form_page
 
-PAGES = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'pages')
+PAGES = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f134'), 'pages')
 
 
 def write(name, text):

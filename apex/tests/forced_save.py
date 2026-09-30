@@ -6,7 +6,7 @@ with sync_playwright() as p:
         pg=b.new_page()
         pg.goto('http://localhost:8080/ords/r/xxcus/kyc/login'); pg.fill('#P9999_USERNAME',u); pg.fill('#P9999_PASSWORD','KycTest#2026'); pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
         s=re.search(r'session=(\d+)',pg.url).group(1)
-        pg.goto(f'http://localhost:8080/ords/f?p=101:20:{s}'); pg.wait_for_load_state('networkidle')
+        pg.goto(f'http://localhost:8080/ords/f?p=134:20:{s}'); pg.wait_for_load_state('networkidle')
         pg.click('.a-IRR-table td a'); pg.wait_for_load_state('networkidle')
         pg.fill('#P21_PARTY_NAME', 'Renamed by '+u)
         pg.evaluate("apex.page.submit({request:'SAVE', validate:false})"); pg.wait_for_load_state('networkidle')

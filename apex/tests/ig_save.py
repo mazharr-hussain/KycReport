@@ -8,7 +8,7 @@ with sync_playwright() as p:
     pg.goto(f'{ROOT}/r/xxcus/kyc/login'); pg.fill('#P9999_USERNAME','ADMIN'); pg.fill('#P9999_PASSWORD','KycTest#2026')
     pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
     s=re.search(r'session=(\d+)',pg.url).group(1)
-    pg.goto(f'{ROOT}/f?p=101:101:{s}'); pg.wait_for_load_state('networkidle')
+    pg.goto(f'{ROOT}/f?p=134:101:{s}'); pg.wait_for_load_state('networkidle')
     pg.click('#report .a-IRR-table tr:has-text("LANGUAGE") td a'); pg.wait_for_load_state('networkidle')
     stamp='IG test '+time.strftime('%H:%M:%S')
     pg.evaluate("""s=>{const g=apex.region('values').widget().interactiveGrid('getViews','grid');
