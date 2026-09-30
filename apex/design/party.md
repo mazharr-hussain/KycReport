@@ -12,9 +12,10 @@ Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21
   users can show it again (Actions → Columns).
 - **Who columns** (Created By / On, Updated By / On) are hidden by default on every screen, but available to show.
   The contacts and owners regions become Interactive Reports so this is possible.
-- **No RFI at party level:** an RFI can no longer be sent to the external party (party contact person). RFIs go to
-  internal users only. This affects the RFI feature (page 32 recipient *Party*, page 33 secure external link,
-  `XXCMP_RFIS.RECIPIENT_PARTY_CONTACT_ID`). *Confirm this reading.*
+- **No RFI on the Party or Request screens.** An RFI is only part of a workflow step, for example
+  *Request Information* in the approval task. The Party page already has no RFI. The Request page (205) loses its
+  **Raise RFI** button, which goes into the Request design. The Case page (211) also has Raise RFI; it stays until
+  Cases is reviewed.
 
 ## A. Party (`XXCMP_PARTIES`)
 | # | Field (Organisation / Individual) | Column | Rule |
@@ -74,4 +75,3 @@ Hidden, available: Entity Type / ID Type, Date, Primary Contact, Provenance, Las
 
 ## Open before build
 1. **Column names** for the 4 merged pairs (keep one existing name each, or give new names / DDL).
-2. Confirm the **RFI** reading above.
