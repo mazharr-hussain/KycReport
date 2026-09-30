@@ -3,10 +3,13 @@
 Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21/22 (app 134).
 
 ## General rules
-- **One party form everywhere.** Page 24 is used for Parties (create / edit), for the Request (new counterparty)
-  and for a new Owner / Officer. It has the same fields, labels, rules and validation everywhere.
-- **Request → party:** a request creates the party if none exists. The requester can't change the party once the
-  request is closed, or when the request uses an existing party.
+- **One party form everywhere, defined once.** The party form is a single region on the **Global Page (page 0)**,
+  shown only on the pages that need it: Party dialog (24), Create Request step 1 (201) and Owner / Officer (23).
+  A change to the region is made once. The validation is one database function used by all of them.
+- **Request → party:** a new counterparty is **created as a party on the fly** when the request is saved, with
+  Party Status *Pending*. The requester can edit it while the request is Draft or Information Needed, but not once the
+  request is closed, or when the request uses an existing party. Possible duplicates are shown as a warning. Compliance
+  can merge a duplicate later.
 - **Type-driven fields:** one column per pair; the label changes with the party type.
 - **Required fields are never hidden** on a create / edit form. Search and list tables may hide any column by default;
   users can show it again (Actions → Columns).
@@ -34,6 +37,7 @@ Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21
 | 12 | Data Provenance | DATA_PROVENANCE | Compliance only |
 | 13 | Last Verified | LAST_VERIFIED_DATE | Compliance only |
 | 14 | Enabled | ENABLED_FLAG | default Yes, Compliance only |
+| 13a | Party Status | **PARTY_STATUS** (new) | **display only**: *Pending* (created from a request, not yet approved) → *Approved* when Compliance approves the request, or the request is approved automatically (KYC Required = No). Also *Rejected* when the request is rejected, and *Cancelled* when the request is cancelled (only if no other request uses the party). A party created by Compliance on page 20 is *Approved*. Existing parties are set to *Approved*. |
 | 14a | Next KYC Date | **NEXT_KYC_DATE** (new, DATE) | **display only**, set automatically when a KYC case is approved: approval date + review months of the risk tier (Lookup RISK_TIER, tag), capped at PEP_REVIEW_MONTHS for a PEP. Cleared when the party's KYC is rejected. The periodic review uses it. |
 | 15 | Merged Into / Merge Note | MERGED_INTO_PARTY_ID, MERGE_NOTE | set by merge, read only |
 | 16 | Additional Information | ATTRIBUTE_CATEGORY, ATTRIBUTE1… (DFF) | as configured in Flexfields |
@@ -84,7 +88,7 @@ request's counterparty), duplicate matching, the party card and the party check 
 - The same person with two roles is recorded as two rows. Circular ownership stays blocked.
 
 ## D. Parties list (page 20)
-Shown: Number (link), Name, Type, Registration No. / ID Number, Country, Email, Phone, Next KYC Date, Enabled, Edit.
+Shown: Number (link), Name, Type, Registration No. / ID Number, Country, Email, Phone, Party Status, Next KYC Date, Enabled, Edit.
 Hidden, available: Entity Type / ID Type, Date, Primary Contact, Provenance, Last Verified, Merged Into, Who columns.
 
 ## Open before build

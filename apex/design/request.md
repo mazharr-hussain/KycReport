@@ -3,8 +3,9 @@
 Status: **being agreed**. Nothing below is built yet. Uses the Party design (`party.md`).
 
 ## General rules
-- A request creates the party if none exists. The requester can't change the party once the request is closed,
-  or when the request uses an existing party.
+- A new counterparty is created as a party **on the fly** when the request is saved (Party Status *Pending*). It
+  becomes *Approved* with the request. The requester can edit it while the request is Draft or Information Needed,
+  but not once the request is closed, or when the request uses an existing party.
 - No RFI on the request screen. *Raise RFI* is removed from page 205; *Request Information* in the approval task
   (workflow) stays.
 - Required fields are never hidden on create / edit forms. Lists may hide columns by default.
@@ -44,11 +45,21 @@ INCORPORATION_DATE) follow the Party merge. NATIONALITY, ID_NUMBER, ID_TYPE and 
 | Pending With | *derived from the open workflow task* | Draft / Information Needed → the requester; In Progress → the Compliance user holding the task, or "Compliance" if unclaimed; closed → empty |
 | Action Date | **LAST_ACTION_DATE** (new, DATE) | set on every step: save, submit, information requested / answered, approve, reject, cancel |
 
-Status flow: Draft → In Progress ⇄ Information Needed → Approved / Rejected; Draft → Cancelled.
+Status flow: Draft → In Progress ⇄ Information Needed → Approved / Rejected. **Cancel** is allowed by the requester in
+Draft, In Progress and Information Needed; a running workflow and its task are ended.
 
 ## List (page 200)
 Shown: Request, Counterparty, Status, KYC Required, Pending With, Action Date, Department, Requested By, Case,
 Edit (drafts only). Hidden, available: Type, Intake Score, Submitted, Who columns.
 
+## Create Request wizard
+| Step | Content |
+|---|---|
+| 1 · Request & Counterparty (201) | Region *Request*: Department, Justification (required), Contact person (hidden by build option). Region *Counterparty*: Existing / New. Existing → search, then the party card (read only). New → the **common party region** (Global Page, same screen). **Possible matches** are shown as a warning. Buttons: Cancel Request, Save Draft, Next. |
+| 2 · Questionnaire (202) | no change |
+| 3 · Documents & Submit (203) | no change; mandatory documents are checked on Submit |
+
+The match decision in Compliance's checklist task is replaced by **Merge** (Compliance merges a duplicate party).
+
 ## Open
-- Wizard steps (201–203) and the Request page (205).
+- Request page (205).
