@@ -194,11 +194,14 @@ with open(os.path.join(OUT, 'KYC-REQUEST.apx'), 'w') as f:
     f.write(workflow('KYC_REQUEST', 'KYC Request', 'KYC request &APEX$WORKFLOW_DETAIL_PK.',
                      'Module 1 intake: evaluate the answers (link the chosen party, or hold a new counterparty that '
                      'resembles existing parties for Compliance; score, gate and critical answers), close the request when '
-                     'KYC is not required or auto-approved, otherwise Compliance decides the counterparty if needed, reviews '
-                     'the documents and opens the case (KYC_CASE workflow). Version 1.0 remains for requests started before 1.1.',
+                     'KYC is not required or auto-approved, otherwise Compliance reviews the documents - deciding a possible '
+                     'duplicate counterparty in the same review task - and opens the case (KYC_CASE workflow). Versions 1.0 '
+                     'and 1.1 remain for requests started on them.',
                      None, None,
                      versions=[('1.0', 'inactive', req, req_vars),
-                               ('1.1', 'active', req11, req_vars + [variable('V_MATCH_TASK_ID', 'Counterparty match task')])]))
+                               ('1.1', 'inactive', req11, req_vars + [variable('V_MATCH_TASK_ID', 'Counterparty match task')]),
+                               # 1.2: the counterparty match is decided inside the checklist review task
+                               ('1.2', 'active', req, req_vars)]))
 
 # KYC_CASE ---------------------------------------------------------------------
 case = [

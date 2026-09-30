@@ -556,7 +556,7 @@ page 205 (
         source {
             htmlCode:
                 ```html
-                <p>This counterparty was entered as new, but existing parties may be the same. Merge it into one of them (the request is linked to that party and its empty fields are completed from the request), or confirm it as a new party. The checklist can be approved once this is decided.</p>
+                <p>Part of this review: the counterparty was entered as new, but existing parties may be the same. Merge it into one of them (the request is linked to that party and its empty fields are completed from the request), or confirm it as a new party. The checklist can be approved once this is decided.</p>
                 ```
         }
         layout {
@@ -571,12 +571,20 @@ page 205 (
             htmlDomId: counterparty_matching
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'
-                and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) <> 'Y'
+                   or not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID
+                             and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
     )
@@ -632,13 +640,16 @@ page 205 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.party_id, j.party_number, j.party_name, j.country, j.score, j.reasons,
+                select j.party_id, j.party_number, j.registration_number,
+                       j.party_name, j.country, j.score, j.reg_match, j.reasons,
                        apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(j.party_id), p_clear_cache => '21') as party_url,
                        'Merge into this party' as merge
                   from json_table(xxcmp_request_pkg.request_candidates_json(:P205_REQUEST_ID), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  registration_number varchar2(100) path '$.registration_number',
                                   party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
-                                  score number path '$.score', reasons varchar2(1000) path '$.reasons')) j
+                                  score number path '$.score', reg_match number path '$.reg_match',
+                                  reasons varchar2(1000) path '$.reasons')) j
                 ```
             pageItemsToSubmit: P205_REQUEST_ID
         }
@@ -703,13 +714,23 @@ page 205 (
             }
         )
 
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration No
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
         column PARTY_NAME (
             type: plainText
             heading {
                 heading: Name
             }
             layout {
-                sequence: 40
+                sequence: 50
             }
         )
 
@@ -719,7 +740,7 @@ page 205 (
                 heading: Country
             }
             layout {
-                sequence: 50
+                sequence: 60
             }
         )
 
@@ -729,7 +750,17 @@ page 205 (
                 heading: Match %
             }
             layout {
-                sequence: 60
+                sequence: 70
+            }
+        )
+
+        column REG_MATCH (
+            type: plainText
+            heading {
+                heading: Registration Match %
+            }
+            layout {
+                sequence: 80
             }
         )
 
@@ -739,7 +770,7 @@ page 205 (
                 heading: Why
             }
             layout {
-                sequence: 70
+                sequence: 90
             }
         )
 
@@ -749,7 +780,7 @@ page 205 (
                 heading: Action
             }
             layout {
-                sequence: 80
+                sequence: 100
             }
             columnFormatting {
                 htmlExpression:
@@ -782,12 +813,20 @@ page 205 (
             message: Create a new party for this counterparty?
         }
         serverSideCondition {
-            type: expression
+            type: functionBody
             language: plsql
-            plsqlExpression:
+            plsqlFunctionBody:
                 ```plsql
-                xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) = 'Y'
-                and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                if xxcmp_request_pkg.match_pending(:P205_REQUEST_ID) <> 'Y'
+                   or not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P205_TASK_ID
+                             and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P205_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
                 ```
         }
         security {

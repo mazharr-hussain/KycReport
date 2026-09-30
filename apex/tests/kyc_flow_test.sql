@@ -58,12 +58,18 @@ declare
         end loop;
     end;
     function new_request(p_name varchar2) return number is
+        l number;
     begin
         -- a random suffix: each run's counterparty resembles no earlier test party (else Compliance decides the match)
-        return xxcmp_request_pkg.create_request(p_party_type => 'ORGANIZATION', p_party_name => dbms_random.string('U', 16),
+        l := xxcmp_request_pkg.create_request(p_party_type => 'ORGANIZATION', p_party_name => dbms_random.string('U', 16),
                    p_registration_number => upper(replace(p_name, ' ')) || to_char(sysdate, 'HH24MISS'),
                    p_jurisdiction => 'AE', p_entity_type => 'LLC', p_requesting_department => 'PROCUREMENT',
                    p_justification => 'New supplier');
+        -- a new counterparty needs contact details before it can be submitted
+        update xxcmp_requests set contact_name = 'Test Contact', contact_email = 'contact@example.com',
+                                  contact_phone = '+971 4 000 0000'
+         where request_id = l;
+        return l;
     end;
 begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';

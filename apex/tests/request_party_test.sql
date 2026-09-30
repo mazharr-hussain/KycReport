@@ -1,4 +1,6 @@
--- Request module: existing/new counterparty, possible-match detection, Compliance merge / confirm-new, approval guard.
+-- Request module: existing/new counterparty, possible-match detection, exact-match block, contact details,
+-- requesting department from the employee profile, mandatory documents at submit, and the Compliance merge /
+-- confirm-new decision inside the document checklist review (workflow 1.2).
 -- Needs security_test.sql (REQ1, OFFICER1). Creates its own parties with a run tag.
 set serveroutput on size unlimited feedback off
 declare
@@ -52,7 +54,9 @@ declare
         l number;
     begin
         xxcmp_request_pkg.save_counterparty(l, 'NEW', null, 'ORGANIZATION', p_name, p_reg, 'LLC', p_inc, null, null, 'AE',
-                                            null, null, 'FINANCE', 'Test', p_ack);
+                                            null, null, 'FINANCE', 'Test', p_ack,
+                                            p_contact_name => 'Test Contact', p_contact_email => 'contact@example.com',
+                                            p_contact_phone => '+971 4 000 0000');
         return l;
     end;
 begin
@@ -71,9 +75,16 @@ begin
     l_json := xxcmp_request_pkg.party_directory_json('ORGANIZATION');
     ok('but can choose from the party list (number, name, country only)',
        instr(l_json, 'Alpha Trading ' || l_tag) > 0 and instr(l_json, 'CR-' || l_tag) = 0);
-    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Other Name', 'cr ' || l_tag, null, null, null);
-    ok('same registration number (other spelling) -> 100%: ' || dbms_lob.substr(l_json, 200, 1),
-       instr(l_json, '"score":100') > 0 and instr(l_json, 'Same registration number') > 0);
+    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Other Name', 'cr ' || l_tag, null, null, 'AE');
+    ok('same registration number (other spelling) and country -> 100%, exact: ' || dbms_lob.substr(l_json, 260, 1),
+       instr(l_json, '"score":100') > 0 and instr(l_json, '"exact":"Y"') > 0 and instr(l_json, '"reg_match":100') > 0
+       and instr(l_json, '"registration_number":"CR-' || l_tag || '"') > 0);
+    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Other Name', 'cr ' || l_tag, null, null, 'QA');
+    ok('same registration number, other country -> 90%, not exact: ' || regexp_substr(l_json, '"score":[0-9]+'),
+       instr(l_json, '"score":90') > 0 and instr(l_json, '"exact":"N"') > 0);
+    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Alpha Trading ' || l_tag || ' LLC', 'CR-' || l_tag || 'X', null, null, 'AE');
+    ok('registration match % for a close number: ' || regexp_substr(l_json, '"reg_match":[0-9]+'),
+       regexp_like(l_json, '"reg_match":(8|9)[0-9]'));
     l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Alpha Tradin ' || l_tag || ' LLC', null, null, null, 'AE');
     ok('similar name and same country: ' || regexp_substr(l_json, '"reasons":"[^"]*"'), instr(l_json, 'Alpha Trading ' || l_tag) > 0);
     l_json := xxcmp_request_pkg.party_candidates_json('PERSON', 'Jon Smyth', null, 'p-' || l_tag, date '1980-01-01', null);
@@ -97,7 +108,54 @@ begin
     exception when others then
         ok('a draft needs only the type and name: ' || sqlerrm, false);
     end;
-    l_req := new_org('Alpha Trading ' || l_tag || ' L.L.C.', 'cr' || l_tag, date '2015-03-01');
+    -- same registration number and country: never a new party, even confirmed
+    begin
+        l_req := new_org('Alpha Trading Copy ' || l_tag, 'cr-' || l_tag, date '2015-03-01', 'Y');
+        ok('same registration number and country is refused even when confirmed', false);
+    exception when others then
+        ok('same registration number and country is refused even when confirmed: '
+           || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+'), sqlcode = -20611 and instr(sqlerrm, 'use this party') > 0);
+    end;
+    -- contact details are required, the other details are optional
+    l_req := null;
+    begin
+        xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', 'No Contact ' || l_tag, null, null, null, null,
+                                            null, null, null, null, 'FINANCE', 'Test');
+        ok('a new counterparty needs contact details', false);
+    exception when others then
+        ok('a new counterparty needs contact details: ' || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+'),
+           instr(sqlerrm, 'contact') > 0);
+    end;
+    l_req := null;
+    xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', 'Only Contact ' || l_rand, null, null, null, null,
+                                        null, null, null, null, 'FINANCE', 'Test',
+                                        p_contact_name => 'A Person', p_contact_email => 'a@b.co', p_contact_phone => '123');
+    ok('name and contact details are enough (registration, type, country optional)', l_req is not null);
+    -- requesting department: the employee profile's for a requester
+    update xxfnd_employees set department_name = 'Procurement' where user_name = 'REQ1';
+    ok('the department defaults from the employee profile: ' || xxcmp_request_pkg.default_department,
+       xxcmp_request_pkg.default_department = 'PROCUREMENT' and xxcmp_request_pkg.can_choose_department = 'N');
+    l_req2 := null;
+    xxcmp_request_pkg.save_counterparty(l_req2, 'EXISTING', l_org, null, null, null, null, null, null, null, null, null, null,
+                                        'SALES', 'Other department asked');
+    select requesting_department into l_txt from xxcmp_requests where request_id = l_req2;
+    ok('a requester cannot raise it for another department: ' || l_txt, l_txt = 'PROCUREMENT');
+    -- mandatory documents of the country / entity type must be attached before submitting
+    select min(r.jurisdiction) into l_txt from xxcmp_attachment_rules r
+     where r.entity_name = 'XXCMP_PARTIES' and r.mandatory_flag = 'Y' and r.enabled_flag = 'Y'
+       and r.approval_status = 'APPROVED' and r.entity_type is null and r.jurisdiction is not null;
+    if l_txt is not null then
+        l_req2 := null;
+        xxcmp_request_pkg.save_counterparty(l_req2, 'NEW', null, 'ORGANIZATION', 'Docs ' || l_rand, 'DOC-' || l_tag, 'LLC', null,
+                                            null, null, l_txt, null, null, 'FINANCE', 'Test',
+                                            p_contact_name => 'A Person', p_contact_email => 'a@b.co', p_contact_phone => '123');
+        answer_low(l_req2);
+        ok('mandatory documents missing: ' || xxcmp_request_pkg.submit_error(l_req2),
+           instr(xxcmp_request_pkg.submit_error(l_req2), 'Attach the mandatory documents') > 0);
+    else
+        ok('mandatory documents check (no country rule configured: skipped)', true);
+    end if;
+    l_req := new_org('Alpha Trading ' || l_tag || ' L.L.C.', 'NEWREG' || l_tag, date '2015-03-01');
     answer_low(l_req);
     xxcmp_request_pkg.submit(l_req);
     commit;
@@ -106,14 +164,14 @@ begin
     ok('possible duplicate -> ' || l_r.match_status || ', no party yet, to Compliance even with score ' || l_r.intake_score
        || ' (' || l_r.intake_outcome || ')',
        l_r.match_status = 'PENDING' and l_r.party_id is null and l_r.intake_outcome = 'ASSIGNED');
-    wait_for('select count(*) from apex_tasks where task_def_static_id = ''COUNTERPARTY_MATCH'' and detail_pk = ''' || l_req || '''');
-    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'COUNTERPARTY_MATCH' and detail_pk = to_char(l_req);
+    wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and detail_pk = ''' || l_req || '''');
+    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req);
     select listagg(participant, ',') within group (order by participant) into l_txt
       from apex_task_participants where task_id = l_task and participant_type = 'POTENTIAL_OWNER';
-    ok('Compliance gets a Counterparty Match task (' || l_txt || ')',
+    ok('the workflow goes straight to Compliance''s checklist review, which includes the match decision (' || l_txt || ')',
        l_task is not null and instr(l_txt, 'OFFICER1') > 0 and instr(l_txt, 'REQ1') = 0);
-    select count(*) into l_cnt from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req);
-    ok('no checklist to approve while the counterparty is undecided', l_cnt = 0);
+    select count(*) into l_cnt from apex_tasks where task_def_static_id = 'COUNTERPARTY_MATCH' and detail_pk = to_char(l_req);
+    ok('no separate Counterparty Match task', l_cnt = 0);
     begin
         xxcmp_request_pkg.resolve_match(l_req, l_org);
         ok('the requester cannot merge', false);
@@ -135,11 +193,8 @@ begin
     exception when others then
         ok('a decided counterparty cannot be decided again', true);
     end;
-    select state_code into l_txt from apex_tasks where task_id = l_task;
-    ok('the decision completes the Counterparty Match task: ' || l_txt, l_txt = 'COMPLETED');
-    wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and detail_pk = ''' || l_req || '''');
-    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req);
-    ok('then the workflow moves on to the document checklist', l_task is not null);
+    select count(*) into l_cnt from xxcmp_party_contacts where party_id = l_org and contact_type = 'EMAIL';
+    ok('merge keeps the existing party''s contacts (none added)', l_cnt = 0);
     apex_human_task.approve_task(l_task, p_autoclaim => true);
     commit;
     wait_for('select count(*) from xxcmp_cases where request_id = ' || l_req);
@@ -159,6 +214,8 @@ begin
     select * into l_r from xxcmp_requests where request_id = l_req2;
     select count(*) into l_cnt from xxcmp_parties where party_id = l_r.party_id and registration_number = 'NEW-' || l_tag;
     ok('confirmed as new: ' || l_r.match_status || ', new party created', l_r.match_status = 'CONFIRMED_NEW' and l_cnt = 1);
+    select count(*) into l_cnt from xxcmp_party_contacts where party_id = l_r.party_id and contact_type in ('EMAIL', 'PHONE');
+    ok('the new party gets the contact details (email and phone): ' || l_cnt, l_cnt = 2);
 
     -- nothing similar: a new party at once, and the normal intake rules apply
     session_as('REQ1');
@@ -171,6 +228,8 @@ begin
     ok('no similar party: ' || l_r.match_status || ', party linked, intake ' || l_r.intake_outcome,
        l_r.match_status = 'NEW' and l_r.party_id is not null and l_r.intake_outcome <> 'ASSIGNED');
     apex_session.delete_session;
+    update xxfnd_employees set department_name = null where user_name = 'REQ1';
+    commit;
 end;
 /
 exit
