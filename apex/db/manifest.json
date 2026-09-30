@@ -1,0 +1,179 @@
+[
+ {
+  "name": "00 Deployment framework",
+  "file": "00-deployment-framework.sql",
+  "install_sequence": 5,
+  "upgrade_sequence": 5
+ },
+ {
+  "name": "01 Common tables - XXFND - part 1 of 3",
+  "file": "01-common-tables-xxfnd-part-1-of-3.sql",
+  "install_sequence": 10
+ },
+ {
+  "name": "02 Common tables - XXFND - part 2 of 3",
+  "file": "02-common-tables-xxfnd-part-2-of-3.sql",
+  "install_sequence": 20
+ },
+ {
+  "name": "03 Common tables - XXFND - part 3 of 3",
+  "file": "03-common-tables-xxfnd-part-3-of-3.sql",
+  "install_sequence": 30
+ },
+ {
+  "name": "04 KYC tables - XXCMP",
+  "file": "04-kyc-tables-xxcmp.sql",
+  "install_sequence": 40
+ },
+ {
+  "name": "05 Core packages - part 1 of 2",
+  "file": "05-core-packages-part-1-of-2.sql",
+  "install_sequence": 50,
+  "upgrade_file": "05-core-packages-part-1-of-2-upgrade.sql",
+  "upgrade_sequence": 10
+ },
+ {
+  "name": "06 Core packages - part 2 of 2",
+  "file": "06-core-packages-part-2-of-2.sql",
+  "install_sequence": 60,
+  "upgrade_sequence": 20
+ },
+ {
+  "name": "07 WHO and audit triggers",
+  "file": "07-who-and-audit-triggers.sql",
+  "install_sequence": 70,
+  "upgrade_sequence": 30
+ },
+ {
+  "name": "08 Row rules",
+  "file": "08-row-rules.sql",
+  "install_sequence": 80,
+  "upgrade_sequence": 40
+ },
+ {
+  "name": "09 Views",
+  "file": "09-views.sql",
+  "install_sequence": 90,
+  "upgrade_sequence": 50
+ },
+ {
+  "name": "09b Security framework - objects",
+  "file": "09b-security-framework-objects.sql",
+  "install_sequence": 95,
+  "upgrade_sequence": 55
+ },
+ {
+  "name": "10 Flexfield runtime - part 1 of 2",
+  "file": "10-flexfield-runtime-part-1-of-2.sql",
+  "install_sequence": 100,
+  "upgrade_sequence": 60
+ },
+ {
+  "name": "11 Flexfield runtime - part 2 of 2",
+  "file": "11-flexfield-runtime-part-2-of-2.sql",
+  "install_sequence": 110,
+  "upgrade_sequence": 70
+ },
+ {
+  "name": "12 Flexfield setup",
+  "file": "12-flexfield-setup.sql",
+  "install_sequence": 120,
+  "upgrade_sequence": 80
+ },
+ {
+  "name": "13 Document store",
+  "file": "13-document-store.sql",
+  "install_sequence": 130,
+  "upgrade_sequence": 90
+ },
+ {
+  "name": "14 Attachments",
+  "file": "14-attachments.sql",
+  "install_sequence": 140,
+  "upgrade_sequence": 100
+ },
+ {
+  "name": "15 Workflow",
+  "file": "15-workflow.sql",
+  "install_sequence": 150,
+  "upgrade_sequence": 110
+ },
+ {
+  "name": "16 KYC rules",
+  "file": "16-kyc-rules.sql",
+  "install_sequence": 160,
+  "upgrade_sequence": 120
+ },
+ {
+  "name": "17 Seed data and administrator - part 1 of 2",
+  "file": "17-seed-data-and-administrator-part-1-of-2.sql",
+  "install_sequence": 170,
+  "upgrade_sequence": 130
+ },
+ {
+  "name": "18 Seed data and administrator - part 2 of 2",
+  "file": "18-seed-data-and-administrator-part-2-of-2.sql",
+  "install_sequence": 180,
+  "upgrade_sequence": 140
+ },
+ {
+  "name": "18b Security framework - seed",
+  "file": "18b-security-framework-seed.sql",
+  "install_sequence": 185,
+  "upgrade_sequence": 145
+ },
+ {
+  "name": "18c Admin console",
+  "file": "18c-admin-console.sql",
+  "install_sequence": 187,
+  "upgrade_sequence": 147
+ },
+ {
+  "name": "19 Reporting views and recompile",
+  "file": "19-reporting-views-and-recompile.sql",
+  "install_sequence": 195,
+  "upgrade_sequence": 155
+ },
+ {
+  "name": "18d Workflow platform",
+  "file": "18d-workflow-platform.sql",
+  "install_sequence": 188,
+  "upgrade_sequence": 148
+ },
+ {
+  "name": "16b KYC requests and cases",
+  "file": "16b-kyc-requests-cases.sql",
+  "install_sequence": 165,
+  "upgrade_sequence": 125
+ },
+ {
+  "name": "18e KYC requests and cases - seed",
+  "file": "18e-kyc-requests-cases.sql",
+  "install_sequence": 189,
+  "upgrade_sequence": 149
+ },
+ {
+  "name": "16c Monitoring",
+  "file": "16c-monitoring.sql",
+  "install_sequence": 166,
+  "upgrade_sequence": 126
+ },
+ {
+  "name": "18f Monitoring and dashboard - seed",
+  "file": "18f-monitoring.sql",
+  "install_sequence": 191,
+  "upgrade_sequence": 151
+ },
+ {
+  "name": "19b Enable automations",
+  "file": "19b-enable-automations.sql",
+  "install_sequence": 196,
+  "upgrade_sequence": 156
+ },
+ {
+  "name": "18g Release 15 marker",
+  "file": "18g-release-15.sql",
+  "install_sequence": 192,
+  "upgrade_sequence": 152
+ }
+]

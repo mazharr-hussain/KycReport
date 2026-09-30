@@ -1,0 +1,249 @@
+# KYC Compliance Platform – APEXlang export: change log
+
+Current release: **`KYC-Compliance-Platform-APEXlang_15.zip`** (APEX 26.1, `mmdVersion 26.1.0+3102`).
+Source of truth: the APEXlang tree in `apex/src` and the database scripts in `apex/db` (one `.sql` file per script,
+order in `apex/db/manifest.json`). `python3 apex/tools/build.py --release N` generates the supporting-object
+components from `apex/db` and writes the zip. Each chunk is one commit.
+
+## How each release is verified
+
+| Layer | Tool | Result for release 15 |
+|---|---|---|
+| Compiler | SQLcl 26.2.2 `apex validate` | Validation successful, 0 warnings |
+| Oracle APEX skill – live gate | `apexctl runtime validate` against a live APEX 26.1 | `live_check_status = pass`, 0 problems |
+| Cross-component rules | `apex/tests/rules.py` (IG ↔ page settings, forms ↔ DML, references, hidden items, links, LOV columns, process points …) | 3,448 checks, 0 FAIL |
+| Clean install | SQLcl `apex import` + supporting objects into Oracle AI Database 26ai Free (23.26.3) + APEX 26.1.0 | all 30 scripts run; 378 objects, 0 invalid; releases R09–R15 recorded; the 3 automations active; seed data + first administrator present |
+| Upgrade | release 9 → 10 → … → 14 → 15 over existing data (`apex import -id 101`) | data kept, each release recorded once, 0 invalid; same 378 objects as a clean install |
+| Security | `apex/tests/security_test.sql`, `token_test.sql`, `viewonly_ui.py`, `forced_save.py` | privileges and row filtering per user as designed (table below) |
+| Workflow | `apex/tests/workflow_test.sql` (20 checks in real APEX sessions), `kyc_flow_test.sql` (22 checks: KYC_REQUEST and KYC_CASE workflows), `monitoring_test.sql` (20 checks), `upload_limits_test.sql` (6 checks), `tasks_prep.sql` + `tasks_ui.py` (browser) | all pass |
+| Business flow (browser) | `apex/tests/kyc_ui.py`: REQ1 wizard → submit; OFFICER1 checklist → case → screening → submit; MGR1 decision drawer. `monitoring_ui.py`: watchlist → reassessment drawer, Alert Rules form, alert acknowledgement, dashboard charts | 17/17 and 14/14 pass; `upload_limits_ui.py` 4/4 |
+| Browser | `apex/tests/smoke.py <app> <out.json> <user>` (Playwright, ORDS 26.2.3): login, 47 pages, and the detail/grid page behind each list, as ADMIN, OFFICER1, REQ1, REQ2, MGR1 and HOC1 | 0 APEX errors; each user is denied exactly the pages outside their privileges |
+| Save tests | `save21.py` (Party with flexfields, as OFFICER1), `ig_save.py` (editable grid), `admin_ui.py` (console, tabs, Data Security, role privileges, settings) | all saved; validation and duplicate messages shown |
+
+The unfixed release 7 was imported side by side and fails the same browser test on pages 102, 104, 135, 143, 153
+(`For an Editable Interactive Grid, the Page attribute 'Reload on Submit' must be set to 'Only for Success'`) and
+the save test (`Session state protection violation … P21_DFF_JSON`).
+
+## Release 15 – upload limits and the remaining review findings
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 70 | `application.apx`; `apex/db/14-attachments.sql`; pages 133, 135; pages 33, 90, 91 | **Upload limits** | any file type and size, also on the public RFI page | application settings `ATTACH_MAX_FILE_SIZE_MB` (10) and `ATTACH_ALLOWED_FILE_TYPES` (pdf, jpg, jpeg, png, tif, tiff, doc, docx, xls, xlsx, msg, eml); an attachment page (135) can override them, a document category (133) overrides both; checked on the server in `ADD_FILE` / `ADD_VERSION`; the upload shows the accepted files and updates them with the category | Review findings 6/7 and 13 (your request: application default, override by screen and category) |
+| 71 | pages 90, 91 | Attachment processes | add, save details, additional information and remove relied on the button only | each also requires `BLOCK_PERMISSION` for its action, and on page 91 that the document belongs to the entity shown | Review finding 5/6 (a crafted request could bypass the hidden button) |
+| 72 | `shared-components/authorizations.apx` | *KYC User*, *Workflow – Administer*, *Administration Area* | evaluated once per session | every page view | Review finding 7/8: a revoked role or disabled user lost access only at the next login |
+| 73 | `apex/db/05…` | `XXFND_UTIL_PKG.LOOKUP_MEANING` | one query per row and column in ~40 reports | result cache per type, code and language (invalidated by Oracle when lookups change); about 8 µs per call measured over 200,000 rows | Review finding 8/9, fixed once for every screen |
+| 74 | `apex/db/10…`, `11…`; pages 151, 153 | Flexfield administrator SQL | value-set queries and SQL defaults ran as typed | `XXFND_DFF_PKG.ADMIN_SQL_ERROR`: SELECT/WITH only, one statement, no database links, `:CONTEXT_CODE` the only bind; parsed on save (value sets must return RETURN_VALUE and DISPLAY_VALUE; defaults one column); the runtime refuses SQL that fails the checks | Review finding 10 |
+| 75 | page 21 region *Possible Existing Matches* | Query | name similarity computed three times per party | once (inline view) | Review finding 11 |
+| 76 | `apex/db/16-kyc-rules.sql` | Index `XXCMP_RFIS_N2` on `upper(recipient_user_name)` | – | used by requesters' data security, their downloads and the home page | Review finding 12 |
+| 77 | `apex/db/18g-release-15.sql` | Release marker | – | records `R15` | |
+
+Already resolved by earlier chunks: the page 30 role check per row (page rebuilt), the scheduler job sessions (jobs replaced by
+APEX Automations), the page 170 link (page removed), `DOWNLOAD_DOCUMENT`'s `to_number` (release 13). Left as is:
+`compatibilityMode 24.2` (information only; changing it needs a full regression in 26.1 mode).
+
+## Release 14 – Chunk 6: monitoring, alert rules, periodic reviews, executive dashboard
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 62 | `apex/db/16c-monitoring.sql` | `XXCMP_ALERT_RULES`, `XXCMP_ALERTS`, `XXCMP_WATCHLIST_V`, `XXCMP_MONITOR_PKG` | – | watchlist of approved parties (latest approved case, next review, status CURRENT / DUE / IN_REVIEW / OVERDUE, open review, open alerts); daily run starts periodic reviews within the lead days and evaluates the alert rules (review due, review overdue, investigation past SLA, party document expiring, adverse screening after approval); one alert per rule and subject; e-mail to the rule's role; expired documents and adverse screenings can start an early review by themselves; early reassessment with a reason; acknowledgement | Agreed feature list: Monitoring Watchlist, Trigger Early Reassessment, periodic review |
+| 63 | new `shared-components/automations/kyc-monitoring.apx` | APEX Automation *KYC monitoring* (daily 06:30) | – | `xxcmp_monitor_pkg.run_daily` | Rule 1 (OOTB scheduling) |
+| 64 | new pages 220, 221, 222 | **Monitoring Watchlist** and **Alerts** (tabs), **Reassessment** drawer | – | Reassess / Handle only with *Monitoring – Manage*; the drawer says why a party cannot be reassessed (review already running) | |
+| 65 | new pages 225, 226 | **Alert Rules** (console: Workflow & Integration) | – | rules maintained by administrators; a review can only be started by the rule types where it applies | Rule 2 (from the application console) |
+| 66 | new page 230 | **Executive Dashboard** | – | key figures (badge list) and six charts: cases by status, approved parties by risk, requests per month, intake outcomes, reviews ahead, open alerts by type; each chart opens its list | |
+| 67 | `apex/db/18f-monitoring.sql` | Seed | – | lookups, five starter alert rules (insert only), e-mail template `KYC_ALERT`, pages → features, tabs, console entry, grants (staff: Monitoring View/Manage; managers and Head of Compliance: Dashboard); records `R14` | |
+| 68 | `apex/db/19b-enable-automations.sql`; `automations/*.apx` | Automations | every automation imported **Disabled** (also R12's task deadlines and Fusion HCM sync) | enabled by `apex_automation.enable` as the last install and upgrade step; `scheduleStatus: active` in the source | **Defect:** reminders, escalations and the HCM sync never ran after an import |
+| 69 | `apex/tools/pagekit.py` (new), `pages_chunk6.py` | Generators | page helpers inside the Chunk 5 generator | shared page kit (+ chart and key-figure patterns); Chunk 5 output unchanged byte for byte | Rule 4 |
+
+Verified (`monitoring_test.sql`, `monitoring_ui.py`): review status moves CURRENT → DUE → OVERDUE with the date; the rules raise
+each alert once; acknowledging records who; the periodic run starts one review per due party (PERIODIC_REVIEW / SCHEDULED,
+linked to the approved case), closes its alerts and never a second one while a review runs; the review goes to Compliance
+like any request; an early reassessment needs a reason and is refused while a review runs; a confirmed sanctions hit after
+approval raises an alert and starts an event-driven review. The automation runs successfully through APEX
+(`apex_automation.execute`, log status *Successful*).
+
+## Release 13 – Chunk 5: KYC Requests and Cases (native workflows)
+
+The business screens run on two **APEX Workflows** (`KYC_REQUEST`, `KYC_CASE`) with three task definitions.
+Everything is in the one application import (supporting objects `16b`, `18e`).
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 51 | `apex/db/16b-kyc-requests-cases.sql` | Tables `XXCMP_REQUESTS`, `_CASES`, `_REQUEST_ANSWERS`, `_CASE_DECISIONS`, `_SCREENINGS`, `_DOC_VERIFICATIONS`, `_UBO_DETERMINATIONS`, `_CASE_NOTES`; `XXCMP_REQUEST_PKG`, `XXCMP_CASE_PKG` | – | request intake (link or create the party, score, gate and critical answers, waiver, auto-approval), case investigation, approval levels from the approval matrix (Enhanced KYC or PEP → two levels), SAR gate, separation of duties, next review date from the risk tier, closed cases locked | Module 1 and 2 business logic |
+| 52 | new `shared-components/workflows/KYC-REQUEST.apx`, `KYC-CASE.apx` | APEX Workflows (active) | – | request: evaluate → close, or checklist review → open case / reject; case: investigation → level 1 → optional level 2 → approve / reject | Rule 1 (OOTB) |
+| 53 | new `task-definitions/DOC-CHECKLIST-REVIEW.apx`, `CASE-INVESTIGATION.apx`, `CASE-APPROVAL.apx` | Tasks in My Tasks | – | details pages 205, 211, 212; approvers exclude earlier actors and SoD conflicts | |
+| 54 | new pages 200–203, 205 | **KYC Requests** list, **Create Request** wizard (counterparty → questionnaire → documents and submit), request page with the checklist decision | – | one neutral list; data security decides the rows (requesters: their own) | Agreed feature list |
+| 55 | new pages 210–217 | **Cases** list, **Case** (360: questionnaire grid, screenings, documents and verification, beneficial owners, notes, RFIs, decisions, workflow diagram), Case Decision drawer, Screening, Beneficial Owner, Document Verification, Create Case, Compliance Report | – | page read-only unless the case is under investigation and the user holds *Cases – Manage* (`XXCMP_CASE_PKG.IS_EDITABLE`) | |
+| 56 | `apex/db/18e-kyc-requests-cases.sql` | Seed | – | lookups, KYC parameters (SLA, PEP review, lead days), starter questionnaires, pages → features, My Tasks tabs, data security rules, grants, attachment registration for pages 203/205/211, task deadlines; records `R13` | |
+| 57 | `shared-components/lists.apx`, `breadcrumbs.apx`, `page-groups.apx` | Navigation | *Requests for Information* menu entry | *KYC Requests* and *Cases* entries; RFIs are a My Tasks tab; wizard progress list | Feature list |
+| 58 | `shared-components/app-processes.apx` | `DOWNLOAD_DOCUMENT` | requesters: RFI documents; `to_number(pk1_value)` | also documents on their own requests; compares as text | Earlier review finding (a non-numeric key raised ORA-01722) |
+| 59 | `apex/db/09b-security-framework-objects.sql` | Data security policy | denied rows to APEX background jobs (user *nobody*) | scheduler background sessions (workflow activities, automations) are trusted; browser requests never run in one | **Defect:** task subjects came out blank ("Approve Case 7 - (level )") |
+| 60 | pages 102, 104, 135, 153, 162, 165 (+ new 202, 211); new `apex/tools/ig_display_columns.py` | Interactive grids | primary report without display columns | every shown column listed | **Defect:** the grids rendered rows without any column; found by the new browser test |
+| 61 | `apex/tools/pagegen.py`, `pages_chunk5.py`, `workflows_chunk5.py` | Generators | – | reusable page patterns (list, form, wizard, drawer, task decision, SQL defaults, read-only page) | Rule 4 |
+
+Verified: the full path in the browser (`kyc_ui.py`) and in the database (`kyc_flow_test.sql`): a listed company is
+closed as *KYC not required*; a low score is auto-approved; unanswered questions block submission; a high score
+creates the checklist task (the requester cannot take it); approval opens the case; a case without a risk tier or a
+screening cannot be submitted; PEP forces Enhanced KYC and two levels; level 1 goes to managers but not the
+investigator, level 2 to the Head of Compliance; the SAR determination is required; approval closes the case, sets
+the next review, completes the request and locks the case.
+
+## Release 12 – Chunk 4: native APEX workflow platform
+
+The custom workflow engine (`XXFND_WF_*` tables, `XXFND_WF_PKG`, its screens, mailer job) is replaced by native
+**APEX Task Definitions** and the **Unified Task List**; the Fusion HCM job becomes an **APEX Automation**.
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 38 | `apex/db/*.sql`, `apex/tools/build.py`, `supporting-objects/install-scripts.apx`, `upgrade-scripts.apx` | Supporting objects | one 12,700-line `supporting-objects.apx` with every script twice | one `.sql` file per script + manifest; generated `contentFile` components | Reviewable chunk deployments (rule 5); identical install result verified |
+| 39 | new `shared-components/task-definitions/CONFIG-CHANGE.apx` | Approval task **Configuration Change Approval** | queue page 170 + custom approve/reject | APEX approval task per change (all pending answers of one question = one change); participants = holders of *Configuration Change Approver – Manage*; the maker cannot claim it; actions apply or reject the change | Rule 1 (OOTB); "Config Change Approvals" replaced by approval tasks in My Tasks |
+| 40 | new `RFI-RESPONSE.apx`, `RFI-REVIEW.apx` | Action tasks | custom RFI process (await response → review) | RFI_RESPONSE for the internal recipient; RFI_REVIEW for Compliance when an answer arrives (also from the emailed link) | OOTB tasks; RFIs appear in My Tasks |
+| 41 | `pages/p00040-my-tasks.apx`, `p00042-task-details.apx`, `p00041-workflow-monitor.apx`, `p00044-workflows.apx`, `p00045-workflow-details.apx` | My Tasks, Task Details, Workflow Monitor (Tasks / Workflows tabs), Workflow Details (diagram) | custom worklist / item / monitor pages 40–43 | APEX Unified Task List and workflow console pages, adapted from Oracle's *Sample Workflow Approvals* (APEX 26.1) | Rule 1 |
+| 42 | `pages/p00172-review-change.apx` | Review Change | table/key parameters, custom approve | details page of the approval task: change, audit trail, rejection reason (task comment), Approve/Reject with claim | same |
+| 43 | new `pages/p00145…`, `p00146…`, `p00147…`; `p00114/115` | Workflow Setup tabs: Approval Matrix, Delegations, **Deadlines and Escalation**, **Process Catalogue** | item types / processes designer (140–143) | due days, reminder and escalation role per task definition; read-only list of workflows and task definitions; delegations per task definition | Process shape by developers, parameters by admins |
+| 44 | new `shared-components/automations/task-deadlines.apx`, `fusion-hcm-sync.apx` | Automations | DBMS_SCHEDULER jobs `XXFND_WF_MAILER`, `XXFND_HCM_SYNC` | daily reminders/escalations; nightly Fusion HCM sync | Rule 1; no manual job set-up |
+| 45 | `apex/db/15-workflow.sql` | `XXFND_TASK_PKG`, `XXFND_NOTIFY_PKG`, `XXFND_CONFIG_APPROVAL_PKG`, `XXFND_TASK_SETTINGS`, `XXFND_TASK_ALERTS` | `XXFND_WF_PKG` | participants by role or privilege, due dates, **task vacation rule procedure** over `XXFND_WF_DELEGATIONS`, e-mail from the admin templates, deadlines; retires the old engine idempotently | |
+| 46 | `apex/db/16-kyc-rules.sql` | `XXCMP_KYC_PKG` RFI API | custom workflow items | creates/completes/cancels the RFI tasks | |
+| 47 | `apex/db/09b-security-framework-objects.sql` | Data security `OWN_RECORDS` | the user's rows | the user's rows and those of anyone currently delegating to the user | A delegate must see what they cover |
+| 48 | `apex/db/05…`, `18d-workflow-platform.sql` | `XXFND_SECURITY_PKG.SOD_CONFLICT`, seed | read the engine's history | engine-neutral (roles the user already acted under); pages, tabs, default deadlines; records `R12` | |
+| 49 | `apex/db/17…`, `18…` | Seed data | every upgrade overwrote lookups, roles, templates, categories and flexfields | system (S) lookups only; everything an administrator maintains is insert-only | **Defect:** an upgrade silently undid administrators' changes (rule 2) |
+| 50 | `pages/p00031…`, `p00110…`, `p00151…`, `p00164…` | CLOB items | source `varchar2`, session state `clob` | source `clob` | **Defect:** page 31 failed to render once an RFI had a response ("Session State data type CLOB is not allowed"). New rule g12 in `rules.py` |
+
+Removed pages: 43, 140–143, 170. Removed: `XXFND_WF_ITEM_TYPES`, `_PROCESSES`, `_ACTIVITIES`, `_TRANSITIONS`,
+`_ITEMS`, `_ACTIVITY_HISTORY`, `_NOTIFICATIONS`, `XXCMP_WF_ACTIVITY_CONTROLS`, `XXFND_WF_PKG`, `XXFND_WF_ITEMS_V`,
+lookups `WF_*`. Kept: `XXFND_WF_DELEGATIONS` (column `ITEM_TYPE` renamed `TASK_DEFINITION`).
+
+Verified (`workflow_test.sql`, `tasks_ui.py`): an RFI to a requester creates a task only they see and e-mails them;
+answering completes it and gives Compliance a review task; resolving completes that; cancelling cancels its tasks;
+an active delegation offers the task to the delegate, who can also see the RFI; a configuration change creates an
+approval task the maker cannot claim; another approver approves it on page 172 and the rule becomes APPROVED;
+reminders go out once. Found while testing and fixed: APEX re-reads a task's source row on every operation, so the
+task source queries always return one row (otherwise a withdrawn change could not even be cancelled).
+
+## Release 11 – Chunk 3: admin console (one entry per feature, tabs, security screens)
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 28 | `pages/p00100-administration.apx`, `shared-components/lists.apx` | Administration console | one static list of 26 entries, conditions per entry | 4 groups (Basic Setup; Workflow and Integration; Security; Application), each a dynamic Media List over view `XXFND_ADMIN_MENU_V` | One entry per feature, grouped; an entry shows when the user holds VIEW on the feature – no page change needed when access changes |
+| 29 | `pages/p00000-global-page.apx`, list `feature-tabs` | Feature tabs | – | one Tabs region on the global page, driven by `XXFND_FEATURE_PAGES.TAB_LABEL` | The list pages of a feature (e.g. Attachments: Categories, Mandatory Documents, Storage, Registration, Attachment Pages) are tabs of one screen |
+| 30 | `shared-components/lists.apx` | Navigation menu | Administration → Change Approvals, Workflow Monitor, Setup | Administration (single entry) | Everything admin is reached from the console |
+| 31 | new `pages/p00180-data-security.apx`, `p00181-data-security-rule.apx` | Data Security (Security group) | rules only in SQL | list + drawer: role, table, rule (All rows / Own records / Column in list), column (cascading LOV), values; validations; applies the VPD policy to a table on its first rule | Rule 2: maintained in the application |
+| 32 | new `pages/p00182-privileges.apx` | Roles and Privileges → Privileges tab | – | every privilege and the roles holding it | Overview for administrators and auditors |
+| 33 | `pages/p00106-role.apx`, `lovs.apx` (`lov-privileges`) | Role form | no privileges | shuttle "Privileges" (feature – View/Create/Manage), loaded and saved with `XXFND_PRIVILEGE_PKG.ROLE_PRIVILEGE_LIST` / `SET_ROLE_PRIVILEGES` | Grant and revoke privileges per role |
+| 34 | new `pages/p10022-application-settings.apx`, `p10023-application-setting.apx` | Application Settings → Settings tab | settings editable only in the App Builder | list + drawer using `APEX_APP_SETTING.SET_VALUE` (values survive upgrades) | Rule 2 |
+| 35 | 99 page processes in 37 existing pages | Execution point | `point: afterSubmit` (= *On Submit – Before Computations and Validations*) | `point: processing` | **Defect:** every save ran before the validations, so no validation could stop bad data (found when the Data Security validation was bypassed and the raw ORA-02290 appeared). New rule g11 in `rules.py` guards it |
+| 36 | `supporting-objects.apx` script 09b | `XXFND_PRIVILEGE_PKG` | – | `ROLE_PRIVILEGE_LIST`, `SET_ROLE_PRIVILEGES` | used by #33 |
+| 37 | new install + upgrade script `18c Admin console` (install seq 187, upgrade seq 147) | Data | – | columns `XXFND_FEATURES.HOME_PAGE_ID`, `ICON_CSS`, `XXFND_FEATURE_PAGES.TAB_LABEL`, `TAB_SEQUENCE`; view `XXFND_ADMIN_MENU_V`; unique index `XXFND_DATA_SECURITY_RULES_U1`; landing pages, icons, descriptions, 23 tabs, new page mappings (only filling empty values); records `R11` | Idempotent chunk script |
+
+Not in this release: the **Alert Rules** entry appears with Chunk 6 (monitoring); **Configuration Change Approvals**
+stays in Basic Setup until Chunk 4 replaces it with APEX approval tasks in My Tasks.
+
+## Release 10 – Chunk 2: security framework (privileges + data security)
+
+Access is now **feature → privilege (VIEW / CREATE / MANAGE) → role**, stored in tables and maintained in the
+application (not in Workspace Administration). Every page is mapped to one feature; the same four generic
+authorization schemes protect every page, so a new or rebuilt screen only needs a row in `XXFND_FEATURE_PAGES`.
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 15 | `supporting-objects/supporting-objects.apx` | New install + upgrade script `09b Security framework - objects` (install seq 95, upgrade seq 55) | – | tables `XXFND_FEATURES`, `XXFND_PRIVILEGES`, `XXFND_FEATURE_PAGES`, `XXFND_ROLE_PRIVILEGES`, `XXFND_DATA_SECURITY_RULES` (WHO + audit triggers); packages `XXFND_PRIVILEGE_PKG`, `XXFND_VPD_PKG` | Rule 3: at least View + Create/Manage per page, plus data security. Runs before script 16, which uses the VPD package |
+| 16 | same | New install + upgrade script `18b Security framework - seed` (install seq 185, upgrade seq 145) | – | 24 features, 59 privileges, 71 page mappings, 96 role grants reproducing the release 9 access, 9 data-security rules; attaches the VPD policy; records `R10` | Runs after the roles exist; only adds missing rows, so admin changes survive re-imports |
+| 17 | same, script 16 (install + upgrade) | `XXCMP_KYC_PKG.RESPOND_BY_TOKEN` | – | `XXFND_VPD_PKG.BEGIN_TRUSTED` / `END_TRUSTED` around the body (also on error) | The public response page runs as `nobody`; the one-time token is the authorisation there |
+| 18 | same | Prerequisite validation `DBMS_RLS granted` | – | checks `dbms_rls` is executable | VPD policies are attached with `DBMS_RLS` |
+| 19 | `shared-components/authorizations.apx` | Authorization schemes | 7 role-based schemes (`compliance-staff`, `rules-admin`, `config-approver`, `audit-viewer`, `administration-rights`, `admin-area`, `kyc-user`) | `page-view`, `page-create`, `page-manage`, `page-submit` (per page view), `workflow-administer`; `kyc-user` = holds any privilege; `admin-area` = holds any admin privilege | One reusable pattern instead of role names in the application |
+| 20 | 72 pages (all except 0, 33, 9999) | Page authorization | role-based scheme | `@page-view` (page 100: `@admin-area`) | View privilege of the page's feature |
+| 21 | pages 20–23, 32, 101–172, 10020–10052 | Buttons | only list Create buttons had a scheme | Create → `@page-create`; Save, Delete, Activate, Generate, Submit for approval, Sync, Approve, Reject, Send, Raise RFI, Add Contact, Add Owner → `@page-manage` | Create/Manage privileges; buttons are hidden when not allowed |
+| 22 | same pages | Form / grid DML and data-changing processes (53) | none | `@page-submit` (request `CREATE` needs CREATE, others MANAGE) | Server-side enforcement; a forced submit is ignored |
+| 23 | `pages/p00042-workflow-item.apx` | Suspend / Resume / Move / Cancel buttons, `admin-action` process, admin items | `administration-rights`, `has_role('SYSTEM_ADMIN')` | `@workflow-administer`, `has_privilege('WORKFLOW_MONITOR','MANAGE')` | Privilege instead of role |
+| 24 | `pages/p00031…` | Resolve RFI conditions | `has_any_role(<staff>)` | `has_privilege('CASES','MANAGE')` | same |
+| 25 | `pages/p00030…` | RFI list query | role check + `recipient_user_name = :APP_USER` in SQL | plain query; rows filtered by the VPD policy | Data security in one place |
+| 26 | `shared-components/app-processes.apx` | `DOWNLOAD_DOCUMENT` | staff role check | `PARTIES`/`CASES`/`ATTACHMENTS` `.VIEW` privilege; requester branch unchanged (and VPD-filtered) | same |
+| 27 | `shared-components/lists.apx` | 35 menu entries | `has_any_role(...)` | `has_page_privilege(<target page>, 'VIEW')`; Administration entries `has_any_admin_privilege` | A menu entry shows exactly when its page opens |
+
+Data security (VPD, one policy function for every table): a user sees the union of the rows allowed by the rules
+of their active roles – `ALL_ROWS`, `OWN_RECORDS` (a user column) or `COLUMN_IN_LIST` (e.g. jurisdiction in `AE,SA`);
+no rule means no rows. Sessions without an APEX user (install scripts, scheduler jobs) are not filtered.
+Seeded rules: compliance staff and `SYSTEM_ADMIN` see all parties and RFIs; a requester sees only the RFIs addressed to them.
+
+Verified (clean install and upgrade):
+
+| User (role) | Parties | RFIs | Page 20 | Create party | Admin page 101 | My Tasks page 30 |
+|---|---|---|---|---|---|---|
+| ADMIN (`SYSTEM_ADMIN`) | all | all | denied (as in release 9) | – | yes | yes |
+| OFFICER1 (`COMPLIANCE_OFFICER`) | all | all | yes | yes | denied | yes |
+| REQ1 / REQ2 (`REQUESTER`) | none | own only | denied | – | denied | yes |
+| REQ2 + test role with only `PARTIES.VIEW` | all | own only | yes, no Create; party page without Save / Raise RFI / Add Contact; forced `SAVE` ignored | – | – | – |
+| not a KYC user | none | none | denied | – | denied | denied |
+| `nobody` via the emailed token | – | answer stored; 0 rows visible before and after | – | – | – | – |
+
+Note: the grants copy release 9, where Compliance Managers and the Head of Compliance could open the attachment
+and workflow setup screens; this can now be changed per role without a deployment.
+
+## Release 9 – Chunk 1: deployment framework (supporting objects)
+
+Decision: database objects stay in the APEX supporting objects (one `apex import`). To deploy chunk by chunk:
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 14 | `supporting-objects/supporting-objects.apx` | New install **and** upgrade script `00 Deployment framework` (sequence 5, runs first) | – | table `XXFND_SCHEMA_RELEASES`; package `XXFND_DDL_PKG` (`release_applied`, `mark_release`, `add_column`); records release `R09` | Every later chunk adds one idempotent upgrade script that checks `release_applied`, applies DDL with `create … if not exists` / `add_column`, and records itself with `mark_release`, so a re-import applies only what is new |
+
+Verified live: fresh install (338 objects, 0 invalid, R09 recorded); upgrade over an existing install twice
+(data kept – a party and role assignments survived; R09 recorded once); on Oracle 26ai `CREATE … IF NOT EXISTS`
+and `DROP … IF EXISTS` work, `ALTER TABLE … ADD IF NOT EXISTS (column)` does not – hence `XXFND_DDL_PKG.ADD_COLUMN`.
+
+## Release 8 – Chunk 0: runtime-breaking defects
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 9 | `pages/p00102…`, `p00104…`, `p00135…`, `p00143…`, `p00153…`, `p00162…` | Page attribute Reload on Submit | `reloadOnSubmit: always` | `reloadOnSubmit: onlyForSuccess` | Required by APEX for pages with an editable interactive grid (`APEXDEV.IG.RELOAD_ON_SUBMIT_EDITABLE`) |
+| 10 | `pages/p00021…`, `p00022…`, `p00023…`, `p00090…`, `p00091…` | Hidden items `Pn_DFF_JSON`, `Pn_DFF_CONTEXT` | value-protected (default) | `settings { valueProtected: false }` | `xxfnd-dff.js` writes them in the browser before submit; protected values caused "Session state protection violation" on every save. Values are still re-validated on the server by `XXFND_DFF_PKG.VALIDATE` |
+| 11 | `pages/p00021…`, `p00031…`, `p00091…` | Attachment download links | hand-written `f?p=…:1:…:APPLICATION_PROCESS=DOWNLOAD_DOCUMENT:::G_DOCUMENT_ID:#DOCUMENT_ID#` | `apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT', p_items => 'G_DOCUMENT_ID', …)` in the region SQL as hidden column `DOWNLOAD_URL`, link `#DOWNLOAD_URL#` | Page 1 requires argument checksums; the hand-written link carried none |
+| 12 | `pages/p00042-workflow-item.apx` | Process `admin-action` (suspend / resume / move / cancel) | no authorization | `authorizationScheme: @administration-rights` | Any KYC user could submit `RESUME` etc.; the package does not check roles |
+| 13 | `supporting-objects/supporting-objects.apx` (install + upgrade script 18) | First-administrator bootstrap | returned immediately when there is no APEX session ("install.sql handles the administrator") | uses the APEX session user when present, otherwise makes every unlocked workspace administrator `SYSTEM_ADMIN` | A single SQLcl `apex import` has no APEX session, so no administrator was created and nobody could use the app |
+
+## Release 7 – install fixes (earlier)
+
+| # | File | Component | Before | After | Reason |
+|---|------|-----------|--------|-------|--------|
+| 1 | `shared-components/app-settings.apx` → `application.apx` | App settings `MAIL_FROM`, `FUSION_BASE_URL`, `FUSION_CREDENTIAL_STATIC_ID` | in a file the 26.1 compiler ignores | appended to `application.apx` | settings were never imported |
+| 2 | `shared-components/text-messages.apx` → `messages.apx` | 11 text messages | file ignored | file renamed | messages were never imported |
+| 3 | supporting objects, scripts 05 / 09 | view `XXFND_USER_ROLES_V` | created after the package body that uses it | created just before it | dependency order |
+| 4 | script 14 | `XXFND_ATTACH_PKG` | private `NEXT_SEQ` called in SQL (PLS-00231) | computed into `l_seq` first | package compiled invalid |
+| 5 | script 15 | `XXFND_WF_PKG` | private `NORM` called in SQL (PLS-00231) | `l_user` variable | package compiled invalid |
+| 6 | script 15 | `XXFND_WF_PKG.SEND_QUEUED` | `SQLERRM` in SQL (ORA-00904) | `l_error` variable | package compiled invalid |
+| 7 | script 03 | index `XXFND_DF_CONTEXTS_U1` | `(code, case … then 1 end)` | `(case … then code end)` | blocked a second flexfield context (ORA-00001 in seed) |
+| 8 | scripts 01, 02, 04 | indexes `XXFND_USER_ROLES_U1`, `XXFND_WF_PROCESSES_U1`, `XXFND_WF_ACTIVITIES_U2`, `XXFND_WF_ITEMS_U1`, `XXCMP_PARTY_CONTACTS_U1` | same pattern as #7 | every key column inside the CASE | same ORA-00001 class; upgrade script 05 repairs existing indexes |
+
+No component was renamed and no IDs were changed.
+
+## One-step import (application + all database objects)
+
+One-time prerequisites (a privilege grant cannot be performed by any application import), run as a DBA:
+
+```sql
+grant execute on sys.dbms_crypto to <PARSING_SCHEMA>;
+grant execute on sys.dbms_rls    to <PARSING_SCHEMA>;   -- release 10+: row-level data security
+```
+
+Then, connected in SQLcl as the parsing schema of workspace `XXCUS`:
+
+```sql
+apex validate -input KYC-Compliance-Platform-APEXlang_12.zip
+
+begin
+    apex_application_install.set_auto_install_sup_obj(p_auto_install_sup_obj => true);
+end;
+/
+
+apex import -input KYC-Compliance-Platform-APEXlang_12.zip -workspace XXCUS   -- add -id <n> for a fixed app id
+
+select object_type, object_name from user_objects where status = 'INVALID';
+select job_name, enabled, state from user_scheduler_jobs where job_name like 'XXFND%';
+```
+
+The workspace administrators who run the import become the first `SYSTEM_ADMIN` users.
+
+**Re-importing over an existing install:** use the same application ID (`-id <current id>`). Because
+`XXFND_LOOKUP_TYPES` already exists, APEX runs the *upgrade* scripts: they repair the indexes, recreate all
+packages and re-run the merge-based seed data, keeping existing tables.
+
+After import, fill in the Application Settings `MAIL_FROM`, `FUSION_BASE_URL` and `FUSION_CREDENTIAL_STATIC_ID`.

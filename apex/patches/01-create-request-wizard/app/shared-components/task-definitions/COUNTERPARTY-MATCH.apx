@@ -1,0 +1,58 @@
+taskDefinition COUNTERPARTY_MATCH (
+    name: Counterparty Match
+    type: action
+    task {
+        subject: Counterparty match: &REQUEST_NUMBER. - &PARTY_NAME.
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row: the task stays manageable whatever the data security of the user
+            select nvl(r.request_number, 'Request ' || :APEX$TASK_PK) as request_number, r.party_name
+              from dual
+              left join xxcmp_requests r on r.request_id = to_number(:APEX$TASK_PK)
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 205
+            items: {
+                P205_TASK_ID: &TASK_ID.
+            }
+            clearCache: 205
+        }
+        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+    }
+    comments {
+        comments: A new counterparty resembles existing parties. Compliance decides on the request page whether it is one of them (merge) or a new party. Created by the KYC_REQUEST workflow before the document checklist; completed by XXCMP_REQUEST_PKG.RESOLVE_MATCH.
+    }
+
+    action notify-owners (
+        name: Notify potential owners
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxfnd_task_pkg.users_with_privilege('PARTIES', 'MANAGE')
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_task_pkg.business_admins
+        }
+    )
+
+)

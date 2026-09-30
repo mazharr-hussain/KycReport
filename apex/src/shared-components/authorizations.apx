@@ -1,0 +1,125 @@
+authorization kyc-user (
+    name: KYC User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Application-level check: the user holds at least one privilege through an active role.
+            return xxfnd_privilege_pkg.has_any_privilege;
+            ```
+    }
+    error {
+        errorMessage: You do not have access to the KYC Compliance Platform. Ask an administrator to grant you a role.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-view (
+    name: Page - View
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Generic page access: VIEW on the feature this page is mapped to (XXFND_FEATURE_PAGES).
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'VIEW');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-create (
+    name: Page - Create
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Create buttons: CREATE on the feature of the current page.
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-manage (
+    name: Page - Manage
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Save, delete and other change buttons: MANAGE on the feature of the current page.
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-submit (
+    name: Page - Submit
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Processes that change data: request CREATE needs CREATE, any other request needs MANAGE.
+            return xxfnd_privilege_pkg.has_page_request_privilege(:APP_PAGE_ID, :REQUEST);
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization workflow-administer (
+    name: Workflow - Administer
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Suspend, resume, move and cancel workflow items.
+            return xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to administer workflow items.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization admin-area (
+    name: Administration Area
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- The Administration console opens for anyone holding a privilege on an admin feature.
+            return xxfnd_privilege_pkg.has_any_admin_privilege;
+            ```
+    }
+    error {
+        errorMessage: You do not have access to Administration.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

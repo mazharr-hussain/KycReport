@@ -1,0 +1,58 @@
+taskDefinition RFI_REVIEW (
+    name: Review Information Received
+    type: action
+    task {
+        subject: Response received: &RFI_NUMBER.
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row (a delegate may not see the RFI itself)
+            select nvl(r.rfi_number, 'RFI ' || :APEX$TASK_PK) as rfi_number, r.description, r.responded_date
+              from dual
+              left join xxcmp_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 31
+            items: {
+                P31_TASK_ID: &TASK_ID.
+            }
+            clearCache: 31
+        }
+        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+    }
+    comments {
+        comments: The Compliance team reviews an answer (internal or through the emailed link). Completed by XXCMP_KYC_PKG.RESOLVE.
+    }
+
+    action notify-owners (
+        name: Notify potential owners
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxfnd_task_pkg.users_with_privilege('CASES', 'MANAGE')
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_task_pkg.business_admins
+        }
+    )
+
+)

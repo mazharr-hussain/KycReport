@@ -1,0 +1,295 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Home
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Start here: open your worklist, maintain parties, or answer requests for information.
+            ```
+    }
+
+    region breadcrumb (
+        name: Home
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region welcome (
+        name: KYC Compliance Platform
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Welcome, &APP_USER.. Use the menu to work with parties, requests for information and your worklist.
+                Administrators maintain the platform setup from <strong>Administration</strong>.</p>
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: welcome
+        }
+    )
+
+    region my-tasks (
+        name: My Open Tasks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select task_id,
+                       subject,
+                       task_def_name,
+                       details_link_target,
+                       due_on,
+                       created_on
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'MY_TASKS',
+                                   p_application_id => :APP_ID ) )
+                 where state_code in ('UNASSIGNED','ASSIGNED')
+                 order by due_on nulls last, created_on
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: my-tasks
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 10
+        }
+        messages {
+            whenNoDataFound: Nothing is waiting for you.
+        }
+
+        column TASK_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#DETAILS_LINK_TARGET#">#SUBJECT#</a>
+                    ```
+            }
+        )
+
+        column TASK_DEF_NAME (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DETAILS_LINK_TARGET (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DUE_ON (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: SINCE
+            }
+        )
+
+        column CREATED_ON (
+            type: plainText
+            heading {
+                heading: Waiting Since
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: SINCE
+            }
+        )
+
+    )
+
+    region my-rfis (
+        name: Requests for Information Addressed to Me
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select r.rfi_id,
+                       r.rfi_number,
+                       xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) as category,
+                       substr(r.description, 1, 200) as description,
+                       r.due_date
+                  from xxcmp_rfis r
+                 where upper(r.recipient_user_name) = :APP_USER
+                   and r.rfi_status in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                   and r.responded_date is null
+                 order by r.due_date nulls last
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: my-rfis
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 10
+        }
+        messages {
+            whenNoDataFound: No open requests.
+        }
+
+        column RFI_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column RFI_NUMBER (
+            type: link
+            heading {
+                heading: RFI
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 31
+                    items: {
+                        P31_RFI_ID: #RFI_ID#
+                    }
+                    clearCache: 31
+                }
+                linkText: #RFI_NUMBER#
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Request
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DUE_DATE (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+    )
+
+)

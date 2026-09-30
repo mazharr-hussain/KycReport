@@ -1,0 +1,226 @@
+page 10052 (
+    name: Feedback Follow-up
+    alias: FEEDBACK-FOLLOW-UP
+    title: Feedback Follow-up
+    pageGroup: @features
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    config {
+        buildOption: @feature-feedback
+    }
+    help {
+        helpText: Record a follow-up on the feedback.
+    }
+
+    region followup (
+        name: Feedback
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: followup
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P10052_FEEDBACK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @followup
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P10052_FEEDBACK (
+        type: displayOnly
+        label {
+            label: Feedback
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @followup
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select feedback from apex_team_feedback
+                 where application_id = :APP_ID and feedback_id = :P10052_FEEDBACK_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P10052_FOLLOW_UP (
+        type: textarea
+        label {
+            label: Follow-up
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @followup
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        validation {
+            valueRequired: true
+            maxLength: 4000
+        }
+        help {
+            helpText: Enter the follow-up.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Add Follow-up
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process add-follow-up (
+        name: Add follow-up
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_util.submit_feedback_followup(
+                    p_feedback_id => :P10052_FEEDBACK_ID,
+                    p_follow_up   => :P10052_FOLLOW_UP);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Follow-up added.
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+)

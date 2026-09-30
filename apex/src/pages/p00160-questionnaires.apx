@@ -1,0 +1,247 @@
+page 160 (
+    name: Questionnaires
+    alias: QUESTIONNAIRES
+    title: Questionnaires
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            KYC rules engine: requester questionnaires are scored and route the case; the officer questionnaire is unscored.
+            ```
+    }
+
+    region breadcrumb (
+        name: Questionnaires
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Questionnaires
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 161, p_items => 'P161_QUESTIONNAIRE_CODE', p_values => to_char(q.questionnaire_code), p_clear_cache => '161') as open_url
+                  from (
+
+                            select q.questionnaire_code, q.questionnaire_name,
+                                   xxfnd_util_pkg.lookup_meaning('QUESTIONNAIRE_AUDIENCE', q.audience) as audience,
+                                   q.low_risk_max_score, q.medium_risk_max_score, q.current_version_number, q.enabled_flag,
+                                   (select count(*) from xxcmp_questions x where x.questionnaire_code = q.questionnaire_code) as questions
+                              from xxcmp_questionnaires q
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column QUESTIONNAIRE_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#QUESTIONNAIRE_CODE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column QUESTIONNAIRE_NAME (
+            type: plainText
+            heading {
+                heading: Questionnaire
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column AUDIENCE (
+            type: plainText
+            heading {
+                heading: Audience
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LOW_RISK_MAX_SCORE (
+            type: plainText
+            heading {
+                heading: Low Up To
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column MEDIUM_RISK_MAX_SCORE (
+            type: plainText
+            heading {
+                heading: Medium Up To
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CURRENT_VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column QUESTIONS (
+            type: plainText
+            heading {
+                heading: Questions
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Questionnaire
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 161
+                clearCache: 161
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+)

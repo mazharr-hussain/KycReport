@@ -1,0 +1,67 @@
+buildOption commented-out (
+    name: Commented Out
+    status {
+        status: exclude
+        defaultOnExport: exclude
+    }
+)
+
+buildOption feature-about (
+    name: Feature - About Page
+    status {
+        status: include
+        defaultOnExport: include
+        onUpgradeKeepStatus: true
+    }
+    advanced {
+        featureIdentifier: APPLICATION_ABOUT_PAGE
+    }
+)
+
+buildOption feature-activity-reporting (
+    name: Feature - Activity Reporting
+    status {
+        status: include
+        defaultOnExport: include
+        onUpgradeKeepStatus: true
+    }
+    advanced {
+        featureIdentifier: APPLICATION_ACTIVITY_REPORTING
+    }
+)
+
+buildOption feature-configuration (
+    name: Feature - Configuration Options
+    status {
+        status: include
+        defaultOnExport: include
+        onUpgradeKeepStatus: true
+    }
+    advanced {
+        featureIdentifier: APPLICATION_CONFIGURATION
+    }
+)
+
+buildOption feature-feedback (
+    name: Feature - Feedback
+    status {
+        status: include
+        defaultOnExport: include
+        onUpgradeKeepStatus: true
+    }
+    advanced {
+        featureIdentifier: APPLICATION_FEEDBACK
+    }
+)
+
+buildOption feature-theme-style (
+    name: Feature - Theme Style Selection
+    status {
+        status: include
+        defaultOnExport: include
+        onUpgradeKeepStatus: true
+    }
+    advanced {
+        featureIdentifier: APPLICATION_THEME_STYLE_SELECTION
+    }
+)

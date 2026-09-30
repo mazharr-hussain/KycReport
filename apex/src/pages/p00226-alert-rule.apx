@@ -1,0 +1,581 @@
+page 226 (
+    name: Alert Rule
+    alias: ALERT-RULE
+    title: Alert Rule
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A monitoring rule. Days: how far ahead for review-due and expiring documents, days of grace for overdue reviews and SLA.
+            ```
+    }
+
+    region form (
+        name: Alert Rule
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_ALERT_RULES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P226_ALERT_RULE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: ALERT_RULE_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P226_RULE_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: RULE_CODE
+            dataType: varchar2
+        }
+        readOnly {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_alert_rules where alert_rule_id = :P226_ALERT_RULE_ID
+                ```
+        }
+    )
+
+    pageItem P226_RULE_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: RULE_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P226_ALERT_TYPE (
+        type: selectList
+        label {
+            label: Watches
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'ALERT_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: ALERT_TYPE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P226_DAYS_BEFORE (
+        type: numberField
+        label {
+            label: Days
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: DAYS_BEFORE
+            dataType: number
+        }
+        default {
+            type: static
+            staticValue: 0
+        }
+        help {
+            helpText: Review due and expiring documents: days ahead. Review overdue and SLA: days of grace.
+        }
+    )
+
+    pageItem P226_RISK_TIER (
+        type: selectList
+        label {
+            label: Risk Tier
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'RISK_TIER' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: All risk tiers
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: RISK_TIER
+            dataType: varchar2
+        }
+    )
+
+    pageItem P226_RECIPIENT_ROLE_CODE (
+        type: selectList
+        label {
+            label: Alerted Role
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select role_name as display_value, role_code as return_value
+                  from xxfnd_roles where enabled_flag = 'Y' order by role_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Nobody -
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: RECIPIENT_ROLE_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P226_NOTIFY_FLAG (
+        type: switch
+        label {
+            label: Send E-mail
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: NOTIFY_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+    )
+
+    pageItem P226_START_REVIEW_FLAG (
+        type: switch
+        label {
+            label: Start Early Review
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: START_REVIEW_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: N
+        }
+        help {
+            helpText: Expiring documents (once expired) and adverse screenings only.
+        }
+    )
+
+    pageItem P226_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+    )
+
+    pageItem P226_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    validation start-review-types (
+        name: Start review only where it applies
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P226_START_REVIEW_FLAG = 'Y' and :P226_ALERT_TYPE not in ('DOCUMENT_EXPIRY', 'ADVERSE_SCREENING') then
+                    return 'Only expiring documents and adverse screenings can start a review.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P226_START_REVIEW_FLAG
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    validation unique-code (
+        name: Code is unique
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                for r in (select 1 from xxcmp_alert_rules where rule_code = upper(:P226_RULE_CODE)
+                           and alert_rule_id <> nvl(to_number(:P226_ALERT_RULE_ID), -1)) loop
+                    return 'A rule with this code already exists.';
+                end loop;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P226_RULE_CODE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P226_ALERT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P226_ALERT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+)

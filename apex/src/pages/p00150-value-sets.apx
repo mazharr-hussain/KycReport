@@ -1,0 +1,256 @@
+page 150 (
+    name: Value Sets
+    alias: VALUE-SETS
+    title: Value Sets
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Validation for additional-information segments (FND_FLEX_VALUE_SETS).
+            ```
+    }
+
+    region breadcrumb (
+        name: Value Sets
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Value Sets
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 151, p_items => 'P151_VALUE_SET_CODE', p_values => to_char(q.value_set_code), p_clear_cache => '151') as open_url
+                  from (
+
+                            select v.value_set_code, v.value_set_name,
+                                   xxfnd_util_pkg.lookup_meaning('VS_VALIDATION_TYPE', v.validation_type) as validation_type,
+                                   xxfnd_util_pkg.lookup_meaning('VS_FORMAT_TYPE', v.format_type) as format_type,
+                                   v.maximum_size, v.lookup_type, v.parent_value_set_code
+                              from xxfnd_value_sets v
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column VALUE_SET_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#VALUE_SET_CODE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VALUE_SET_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VALIDATION_TYPE (
+            type: plainText
+            heading {
+                heading: Validation
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FORMAT_TYPE (
+            type: plainText
+            heading {
+                heading: Format
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MAXIMUM_SIZE (
+            type: plainText
+            heading {
+                heading: Max Size
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column LOOKUP_TYPE (
+            type: plainText
+            heading {
+                heading: Lookup Type
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARENT_VALUE_SET_CODE (
+            type: plainText
+            heading {
+                heading: Parent Value Set
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Value Set
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 151
+                clearCache: 151
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

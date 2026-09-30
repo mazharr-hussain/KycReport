@@ -1,0 +1,76 @@
+textMessage DELETE_MSG (
+    message {
+        text: Are you sure you want to delete this record?
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_CONTEXT_LABEL (
+    message {
+        text: Context
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_REQUIRED (
+    message {
+        text: %0 is required.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_TOO_LONG (
+    message {
+        text: %0 can be at most %1 characters.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_UPPERCASE (
+    message {
+        text: %0 must be in upper case.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_NOT_NUMBER (
+    message {
+        text: %0 must be a number.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_OUT_OF_RANGE (
+    message {
+        text: %0 must be between %1 and %2.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_NOT_DATE (
+    message {
+        text: %0 must be a valid date.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_NOT_IN_LIST (
+    message {
+        text: %0 must be one of the listed values.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_CONTEXT_REQUIRED (
+    message {
+        text: Choose the context for the additional information.
+        language: en
+    }
+)
+
+textMessage XXFND_DFF_BAD_PAYLOAD (
+    message {
+        text: The additional information could not be read. Reload the page and try again.
+        language: en
+    }
+)

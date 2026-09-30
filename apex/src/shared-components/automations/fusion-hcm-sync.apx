@@ -1,0 +1,31 @@
+automation fusion-hcm-sync (
+    name: Fusion HCM sync
+    execution {
+        scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=2;BYMINUTE=0
+        scheduleStatus: active
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Refreshes Fusion-linked employees from Oracle Fusion HCM (publicWorkers). Does nothing until the FUSION_BASE_URL and FUSION_CREDENTIAL_STATIC_ID application settings are filled in.
+    }
+
+    action sync-workers (
+        name: Sync workers
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                if apex_app_setting.get_value('FUSION_BASE_URL') is not null
+                   and apex_app_setting.get_value('FUSION_CREDENTIAL_STATIC_ID') is not null then
+                    xxfnd_security_pkg.sync_from_fusion(
+                        p_base_url             => apex_app_setting.get_value('FUSION_BASE_URL'),
+                        p_credential_static_id => apex_app_setting.get_value('FUSION_CREDENTIAL_STATIC_ID'));
+                end if;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)

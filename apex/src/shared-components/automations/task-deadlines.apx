@@ -1,0 +1,23 @@
+automation task-deadlines (
+    name: Task deadlines
+    execution {
+        scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=7;BYMINUTE=0
+        scheduleStatus: active
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Reminds task owners before a due date and escalates overdue tasks to the escalation role (Workflow Setup > Deadlines and Escalation).
+    }
+
+    action process-deadlines (
+        name: Reminders and escalations
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_task_pkg.process_deadlines;
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)

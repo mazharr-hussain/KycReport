@@ -1,0 +1,42 @@
+page 0 (
+    name: Global Page
+
+    region feature-tabs (
+        name: Feature Tabs
+        type: list
+        source {
+            list: @feature-tabs
+        }
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/tabs
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: feature-tabs
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- Only on a tab page of a feature that has more than one tab.
+                select 1
+                  from xxfnd_feature_pages c
+                 where c.app_alias = :APP_ALIAS
+                   and c.page_id   = :APP_PAGE_ID
+                   and c.tab_label is not null
+                   and (select count(*) from xxfnd_feature_pages t
+                         where t.app_alias = c.app_alias and t.feature_code = c.feature_code
+                           and t.tab_label is not null) > 1
+                ```
+        }
+    )
+
+)
