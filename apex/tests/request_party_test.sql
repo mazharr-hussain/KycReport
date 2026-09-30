@@ -1,20 +1,18 @@
--- Request module: existing/new counterparty, possible-match detection, exact-match block, contact details,
--- requesting department from the employee profile, mandatory documents at submit, and the Compliance merge /
--- confirm-new decision inside the document checklist review (workflow 1.2).
--- Needs security_test.sql (REQ1, OFFICER1). Creates its own parties with a run tag.
+-- Request module (release 23): request and counterparty rules, the new counterparty created as a Pending party with
+-- the request, switching to an existing party, submit (workflow), Information Needed, cancel, reject / approve and the
+-- party status that follows, KYC Required and Pending With.
+-- Needs security_test.sql (REQ1, REQ2, OFFICER1). Creates its own parties with a run tag.
 set serveroutput on size unlimited feedback off
 declare
     l_app    number;
-    l_tag    varchar2(20) := to_char(systimestamp, 'HH24MISSFF3');
-    l_rand   varchar2(20) := dbms_random.string('U', 16);   -- resembles no party of earlier runs
-    l_org    number;
-    l_person number;
+    l_tag    varchar2(20) := dbms_random.string('U', 12);
     l_req    number;
     l_req2   number;
-    l_task   number;
+    l_old    number;
+    l_party  number;
+    l_ok     number;
     l_cnt    number;
     l_txt    varchar2(4000);
-    l_json   clob;
     l_r      xxcmp_requests%rowtype;
 
     procedure ok(p_label varchar2, p_cond boolean) is
@@ -37,202 +35,150 @@ declare
             dbms_session.sleep(1);
         end loop;
     end;
-    -- low-risk answers: the score alone would auto-approve the request
-    procedure answer_low(p_req number) is
+    function err(p_sqlerrm varchar2) return varchar2 is
     begin
-        for a in (select a.question_id, q.question_text from xxcmp_request_answers a join xxcmp_questions q on q.question_id = a.question_id
-                   where a.request_id = p_req and a.respondent_type = 'REQUESTER') loop
-            update xxcmp_request_answers x
-               set answer_option_id = (select min(o.answer_option_id) keep (dense_rank first order by o.risk_points, o.display_sequence)
-                                         from xxcmp_answer_options o
-                                        where o.question_id = a.question_id and o.approval_status = 'APPROVED'
-                                          and o.waiver_qualifying_flag = 'N')
-             where x.request_id = p_req and x.question_id = a.question_id;
-        end loop;
+        return regexp_substr(substr(p_sqlerrm, 12), '[^' || chr(10) || ']+');
     end;
-    function new_org(p_name varchar2, p_reg varchar2, p_inc date, p_ack varchar2 default 'Y') return number is
-        l number;
+    function status(p_party number) return varchar2 is
+        l varchar2(30);
     begin
-        xxcmp_request_pkg.save_counterparty(l, 'NEW', null, 'ORGANIZATION', p_name, p_reg, 'LLC', p_inc, null, null, 'AE',
-                                            null, null, 'FINANCE', 'Test', p_ack,
-                                            p_contact_name => 'Test Contact', p_contact_email => 'contact@example.com',
-                                            p_contact_phone => '+971 4 000 0000');
+        xxfnd_vpd_pkg.begin_trusted;
+        select party_status into l from xxcmp_parties where party_id = p_party;
+        xxfnd_vpd_pkg.end_trusted;
         return l;
+    end;
+    -- a new organisation counterparty on request P_REQ (null = new request)
+    procedure save_org(p_req in out number, p_name varchar2, p_reg varchar2, p_draft varchar2 default 'N',
+                       p_email varchar2 default 'info@example.com', p_justification varchar2 default 'Supplier') is
+    begin
+        xxcmp_request_pkg.save_request(p_req, 'NEW', null, 'ORGANIZATION', p_name, 'AE', p_reg, 'LLC', date '2015-01-01',
+                                       p_email, null, null, null, 'FINANCE', p_justification, p_draft);
+    end;
+    procedure answer_high(p_req number) is
+    begin
+        update xxcmp_request_answers x
+           set answer_option_id = (select max(o.answer_option_id) keep (dense_rank last order by o.risk_points)
+                                     from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED')
+         where x.request_id = p_req;
     end;
 begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';
-    -- existing parties (as the schema: no APEX user, full access)
-    insert into xxcmp_parties (party_type, party_name, registration_number, jurisdiction, entity_type)
-    values ('ORGANIZATION', 'Alpha Trading ' || l_tag || ' LLC', 'CR-' || l_tag, 'AE', 'LLC') returning party_id into l_org;
-    insert into xxcmp_parties (party_type, party_name, date_of_birth, nationality, jurisdiction, id_type, id_number)
-    values ('PERSON', 'John Smith ' || l_tag, date '1980-01-01', 'AE', 'AE', 'PASSPORT', 'P' || l_tag) returning party_id into l_person;
+    session_as('OFFICER1');
+    l_ok := null;
+    xxcmp_party_pkg.save_party(l_ok, 'ORGANIZATION', 'Approved Org ' || l_tag, 'AE', 'APP-' || l_tag, 'LLC', null,
+                               'ok@example.com', null);
     commit;
 
-    ---------------------------------------------------------------- matching
+    ---------------------------------------------------------------- rules
     session_as('REQ1');
-    select count(*) into l_cnt from xxcmp_parties where party_id = l_org;
-    ok('the requester cannot read the party master', l_cnt = 0);
-    l_json := xxcmp_request_pkg.party_directory_json('ORGANIZATION');
-    ok('but can choose from the party list (number, name, country only)',
-       instr(l_json, 'Alpha Trading ' || l_tag) > 0 and instr(l_json, 'CR-' || l_tag) = 0);
-    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Other Name', 'cr ' || l_tag, null, null, 'AE');
-    ok('same registration number (other spelling) and country -> 100%, exact: ' || dbms_lob.substr(l_json, 260, 1),
-       instr(l_json, '"score":100') > 0 and instr(l_json, '"exact":"Y"') > 0 and instr(l_json, '"reg_match":100') > 0
-       and instr(l_json, '"registration_number":"CR-' || l_tag || '"') > 0);
-    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Other Name', 'cr ' || l_tag, null, null, 'QA');
-    ok('same registration number, other country -> 90%, not exact: ' || regexp_substr(l_json, '"score":[0-9]+'),
-       instr(l_json, '"score":90') > 0 and instr(l_json, '"exact":"N"') > 0);
-    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Alpha Trading ' || l_tag || ' LLC', 'CR-' || l_tag || 'X', null, null, 'AE');
-    ok('registration match % for a close number: ' || regexp_substr(l_json, '"reg_match":[0-9]+'),
-       regexp_like(l_json, '"reg_match":(8|9)[0-9]'));
-    l_json := xxcmp_request_pkg.party_candidates_json('ORGANIZATION', 'Alpha Tradin ' || l_tag || ' LLC', null, null, null, 'AE');
-    ok('similar name and same country: ' || regexp_substr(l_json, '"reasons":"[^"]*"'), instr(l_json, 'Alpha Trading ' || l_tag) > 0);
-    l_json := xxcmp_request_pkg.party_candidates_json('PERSON', 'Jon Smyth', null, 'p-' || l_tag, date '1980-01-01', null);
-    ok('individual: same identity document and date of birth: ' || regexp_substr(l_json, '"reasons":"[^"]*"'),
-       instr(l_json, 'Same identity document number') > 0 and instr(l_json, 'Same date of birth') > 0);
-    ok('an unrelated name finds nothing',
-       xxcmp_request_pkg.party_candidate_count('ORGANIZATION', l_rand, 'ZZ-' || l_tag, null, null, null) = 0);
+    ok('draft: only type and name are needed',
+       xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, null, null, null, null, null, null, null, 'Y') is null);
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
+                                             'x@example.com', null, null);
+    ok('the business justification is required: ' || l_txt, l_txt = 'Enter the business justification.');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', null, 'LLC', null,
+                                             'x@example.com', null, 'Why');
+    ok('an organisation needs its registration number: ' || l_txt, l_txt = 'Enter the registration number.');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'PERSON', 'X ' || l_tag, 'AE', 'ID1', null, null,
+                                             'x@example.com', null, 'Why');
+    ok('an individual''s ID number needs its ID type: ' || l_txt, l_txt = 'Choose the ID type of the ID number.');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
+                                             null, null, 'Why');
+    ok('an email or a phone is required: ' || l_txt, l_txt = 'Enter an email or a phone number.');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'Other ' || l_tag, 'AE', 'app ' || lower(l_tag), 'LLC',
+                                             null, 'x@example.com', null, 'Why');
+    ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this registration no. and country: use that party.');
 
-    ---------------------------------------------------------------- requester
-    l_req := null;
-    xxcmp_request_pkg.save_counterparty(l_req, 'EXISTING', l_org, null, null, null, null, null, null, null, null, null, null,
-                                        'FINANCE', 'Existing supplier');
+    ---------------------------------------------------------------- a new counterparty becomes a Pending party
+    save_org(l_req, 'Draft Org ' || l_tag, null, 'Y');
+    l_r := null;
     select * into l_r from xxcmp_requests where request_id = l_req;
-    ok('existing party chosen: details copied, ' || l_r.match_status, l_r.party_id = l_org and l_r.party_name like 'Alpha Trading%'
-       and l_r.registration_number = 'CR-' || l_tag and l_r.match_status = 'SELECTED');
-    l_req := null;
+    l_party := l_r.party_id;
+    ok('Save as Draft creates the request and a Pending party: ' || l_r.request_number || ' / ' || status(l_party),
+       l_r.request_status = 'DRAFT' and l_party is not null and status(l_party) = 'PENDING');
+    select count(*) into l_cnt
+      from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]' columns (party_id number path '$.party_id'))
+     where party_id = l_party;
+    ok('a Pending party cannot be chosen as an existing party', l_cnt = 0);
+    save_org(l_req, 'Draft Org ' || l_tag, 'DR-' || l_tag);
+    select * into l_r from xxcmp_requests where request_id = l_req;
+    ok('saving again updates the same party (no second party)', l_r.party_id = l_party and l_r.registration_number = 'DR-' || l_tag);
+    select justification, last_action_date into l_txt, l_r.last_action_date from xxcmp_requests where request_id = l_req;
+    ok('the action date is set', l_r.last_action_date is not null);
+
+    -- choose an approved party instead: the Pending one is cancelled
+    xxcmp_request_pkg.save_request(l_req, 'EXISTING', l_ok, null, null, null, null, null, null, null, null, null, null,
+                                   'FINANCE', 'Existing supplier');
+    ok('switching to an existing party cancels the Pending party: ' || status(l_party), status(l_party) = 'CANCELLED');
+    save_org(l_req, 'Again Org ' || l_tag, 'AG-' || l_tag);
+    select party_id into l_party from xxcmp_requests where request_id = l_req;
+    ok('back to a new counterparty: a new Pending party', status(l_party) = 'PENDING');
+    commit;
+
+    ---------------------------------------------------------------- another user cannot change or cancel it
+    session_as('REQ2');
     begin
-        xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', 'Draft Only ' || l_tag, null, null, null, null, null,
-                                            null, null, null, null, null, 'N', 'Y');
-        ok('a draft needs only the type and name', l_req is not null);
+        save_org(l_req, 'Hijack ' || l_tag, 'HJ-' || l_tag);
+        ok('another requester cannot change the request', false);
     exception when others then
-        ok('a draft needs only the type and name: ' || sqlerrm, false);
+        ok('another requester cannot change the request: ' || err(sqlerrm), sqlcode = -20612);
     end;
-    -- same registration number and country: never a new party, even confirmed
-    begin
-        l_req := new_org('Alpha Trading Copy ' || l_tag, 'cr-' || l_tag, date '2015-03-01', 'Y');
-        ok('same registration number and country is refused even when confirmed', false);
-    exception when others then
-        ok('same registration number and country is refused even when confirmed: '
-           || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+'), sqlcode = -20611 and instr(sqlerrm, 'use this party') > 0);
-    end;
-    -- contact details are required, the other details are optional
-    l_req := null;
-    begin
-        xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', 'No Contact ' || l_tag, null, null, null, null,
-                                            null, null, null, null, 'FINANCE', 'Test');
-        ok('a new counterparty needs contact details', false);
-    exception when others then
-        ok('a new counterparty needs contact details: ' || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+'),
-           instr(sqlerrm, 'contact') > 0);
-    end;
-    l_req := null;
-    xxcmp_request_pkg.save_counterparty(l_req, 'NEW', null, 'ORGANIZATION', 'Only Contact ' || l_rand, null, null, null, null,
-                                        null, null, null, null, 'FINANCE', 'Test',
-                                        p_contact_name => 'A Person', p_contact_email => 'a@b.co', p_contact_phone => '123');
-    ok('name and contact details are enough (registration, type, country optional)', l_req is not null);
-    -- requesting department: the employee profile's for a requester
-    update xxfnd_employees set department_name = 'Procurement' where user_name = 'REQ1';
-    ok('the department defaults from the employee profile: ' || xxcmp_request_pkg.default_department,
-       xxcmp_request_pkg.default_department = 'PROCUREMENT' and xxcmp_request_pkg.can_choose_department = 'N');
-    l_req2 := null;
-    xxcmp_request_pkg.save_counterparty(l_req2, 'EXISTING', l_org, null, null, null, null, null, null, null, null, null, null,
-                                        'SALES', 'Other department asked');
-    select requesting_department into l_txt from xxcmp_requests where request_id = l_req2;
-    ok('a requester cannot raise it for another department: ' || l_txt, l_txt = 'PROCUREMENT');
-    -- mandatory documents of the country / entity type must be attached before submitting
-    select min(r.jurisdiction) into l_txt from xxcmp_attachment_rules r
-     where r.entity_name = 'XXCMP_PARTIES' and r.mandatory_flag = 'Y' and r.enabled_flag = 'Y'
-       and r.approval_status = 'APPROVED' and r.entity_type is null and r.jurisdiction is not null;
-    if l_txt is not null then
-        l_req2 := null;
-        xxcmp_request_pkg.save_counterparty(l_req2, 'NEW', null, 'ORGANIZATION', 'Docs ' || l_rand, 'DOC-' || l_tag, 'LLC', null,
-                                            null, null, l_txt, null, null, 'FINANCE', 'Test',
-                                            p_contact_name => 'A Person', p_contact_email => 'a@b.co', p_contact_phone => '123');
-        answer_low(l_req2);
-        ok('mandatory documents missing: ' || xxcmp_request_pkg.submit_error(l_req2),
-           instr(xxcmp_request_pkg.submit_error(l_req2), 'Attach the mandatory documents') > 0);
-    else
-        ok('mandatory documents check (no country rule configured: skipped)', true);
-    end if;
-    l_req := new_org('Alpha Trading ' || l_tag || ' L.L.C.', 'NEWREG' || l_tag, date '2015-03-01');
-    answer_low(l_req);
+    ok('another requester cannot cancel it: ' || xxcmp_request_pkg.cancel_error(l_req),
+       xxcmp_request_pkg.cancel_error(l_req) like 'Only the requester%');
+
+    ---------------------------------------------------------------- submit: the workflow runs
+    session_as('REQ1');
+    answer_high(l_req);
+    ok('KYC Required is empty before the intake', xxcmp_request_pkg.kyc_required(l_req) is null);
+    ok('Pending With a draft: the requester', xxcmp_request_pkg.pending_with(l_req) = 'REQ1');
     xxcmp_request_pkg.submit(l_req);
     commit;
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and intake_outcome is not null');
     select * into l_r from xxcmp_requests where request_id = l_req;
-    ok('possible duplicate -> ' || l_r.match_status || ', no party yet, to Compliance even with score ' || l_r.intake_score
-       || ' (' || l_r.intake_outcome || ')',
-       l_r.match_status = 'PENDING' and l_r.party_id is null and l_r.intake_outcome = 'ASSIGNED');
+    ok('submitted: In Progress with a workflow', l_r.request_status = 'IN_PROGRESS' and l_r.workflow_id is not null);
     wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and detail_pk = ''' || l_req || '''');
-    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req);
-    select listagg(participant, ',') within group (order by participant) into l_txt
-      from apex_task_participants where task_id = l_task and participant_type = 'POTENTIAL_OWNER';
-    ok('the workflow goes straight to Compliance''s checklist review, which includes the match decision (' || l_txt || ')',
-       l_task is not null and instr(l_txt, 'OFFICER1') > 0 and instr(l_txt, 'REQ1') = 0);
-    select count(*) into l_cnt from apex_tasks where task_def_static_id = 'COUNTERPARTY_MATCH' and detail_pk = to_char(l_req);
-    ok('no separate Counterparty Match task', l_cnt = 0);
-    begin
-        xxcmp_request_pkg.resolve_match(l_req, l_org);
-        ok('the requester cannot merge', false);
-    exception when others then
-        ok('the requester cannot merge: ' || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+'), true);
-    end;
+    ok('high risk: KYC Required = ' || xxcmp_request_pkg.kyc_required(l_req), xxcmp_request_pkg.kyc_required(l_req) = 'Yes');
+    ok('Pending With: ' || xxcmp_request_pkg.pending_with(l_req), xxcmp_request_pkg.pending_with(l_req) = 'Compliance');
+    ok('status shown: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'In Progress');
 
-    ---------------------------------------------------------------- Compliance
-    session_as('OFFICER1');
-    xxcmp_request_pkg.resolve_match(l_req, l_org, 'Same registration, spelling of the name differs.');
+    ---------------------------------------------------------------- Information Needed and back
+    xxcmp_request_pkg.info_requested(l_req);
+    ok('Information Needed: ' || xxcmp_request_pkg.stage(l_req) || ', with ' || xxcmp_request_pkg.pending_with(l_req),
+       xxcmp_request_pkg.stage(l_req) = 'Information Needed' and xxcmp_request_pkg.pending_with(l_req) = 'REQ1');
+    ok('the requester may edit it while Information Needed', xxcmp_request_pkg.is_editable(l_req) = 'Y'
+       and xxcmp_request_pkg.party_editable(l_req) = 'Y');
+    begin
+        xxcmp_request_pkg.save_request(l_req, 'EXISTING', l_ok, null, null, null, null, null, null, null, null, null, null,
+                                       'FINANCE', 'x');
+        ok('the counterparty of a submitted request cannot be replaced', false);
+    exception when others then
+        ok('the counterparty of a submitted request cannot be replaced: ' || err(sqlerrm), sqlcode = -20617);
+    end;
+    xxcmp_request_pkg.info_submitted(l_req);
+    ok('answered: In Progress again', xxcmp_request_pkg.stage(l_req) = 'In Progress');
+
+    ---------------------------------------------------------------- cancel
+    xxcmp_request_pkg.cancel(l_req, 'Not needed any more');
     commit;
     select * into l_r from xxcmp_requests where request_id = l_req;
-    select to_char(incorporation_date, 'YYYY-MM-DD') into l_txt from xxcmp_parties where party_id = l_org;
-    ok('merged into the existing party by ' || l_r.match_resolved_by || '; its empty incorporation date completed: ' || l_txt,
-       l_r.match_status = 'MERGED' and l_r.party_id = l_org and l_txt = '2015-03-01');
-    begin
-        xxcmp_request_pkg.resolve_match(l_req, null);
-        ok('a decided counterparty cannot be decided again', false);
-    exception when others then
-        ok('a decided counterparty cannot be decided again', true);
-    end;
-    select count(*) into l_cnt from xxcmp_party_contacts where party_id = l_org and contact_type = 'EMAIL';
-    ok('merge keeps the existing party''s contacts (none added)', l_cnt = 0);
-    apex_human_task.approve_task(l_task, p_autoclaim => true);
-    commit;
-    wait_for('select count(*) from xxcmp_cases where request_id = ' || l_req);
-    select count(*) into l_cnt from xxcmp_cases where request_id = l_req and party_id = l_org;
-    ok('approved now: the case is opened for the existing party', l_cnt = 1);
+    select count(*) into l_cnt from apex_workflows where workflow_id = l_r.workflow_id and state_code in ('ACTIVE', 'SUSPENDED');
+    ok('cancelled: status Cancelled, workflow ended, party Cancelled',
+       l_r.request_status = 'CANCELLED' and l_cnt = 0 and status(l_r.party_id) = 'CANCELLED');
+    ok('a cancelled request cannot be cancelled again', xxcmp_request_pkg.cancel_error(l_req) like '%is closed%');
 
-    -- confirm as new
-    session_as('REQ1');
-    l_req2 := new_org('Alpha Tradin ' || l_tag || ' LLC', 'NEW-' || l_tag, null);
-    answer_low(l_req2);
-    xxcmp_request_pkg.submit(l_req2);
+    ---------------------------------------------------------------- reject / approve without case: the party follows
+    save_org(l_req2, 'Reject Org ' || l_tag, 'RJ-' || l_tag);
     commit;
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req2 || ' and match_status is not null');
-    session_as('OFFICER1');
-    xxcmp_request_pkg.resolve_match(l_req2, null, 'Different registration: another company.');
+    select party_id into l_party from xxcmp_requests where request_id = l_req2;
+    xxcmp_request_pkg.reject(l_req2);
+    ok('rejected request: its Pending party is Rejected', status(l_party) = 'REJECTED');
+    l_req2 := null;
+    save_org(l_req2, 'Easy Org ' || l_tag, 'EZ-' || l_tag);
+    select party_id into l_party from xxcmp_requests where request_id = l_req2;
+    xxcmp_request_pkg.close_without_case(l_req2);
+    ok('approved without KYC: request and party Approved',
+       xxcmp_request_pkg.stage(l_req2) = 'Approved' and status(l_party) = 'APPROVED');
     commit;
-    select * into l_r from xxcmp_requests where request_id = l_req2;
-    select count(*) into l_cnt from xxcmp_parties where party_id = l_r.party_id and registration_number = 'NEW-' || l_tag;
-    ok('confirmed as new: ' || l_r.match_status || ', new party created', l_r.match_status = 'CONFIRMED_NEW' and l_cnt = 1);
-    select count(*) into l_cnt from xxcmp_parties p
-     where p.party_id = l_r.party_id and p.email = 'contact@example.com' and p.phone is not null
-       and exists (select 1 from xxcmp_party_contacts c where c.party_id = p.party_id and c.contact_type = 'PERSON'
-                      and c.contact_name = 'Test Contact' and c.email = 'contact@example.com' and c.primary_flag = 'Y');
-    ok('the new party gets the email and phone, and the contact person', l_cnt = 1);
-
-    -- nothing similar: a new party at once, and the normal intake rules apply
-    session_as('REQ1');
-    l_req2 := new_org(l_rand, 'ZZ-' || l_tag, null);
-    answer_low(l_req2);
-    xxcmp_request_pkg.submit(l_req2);
-    commit;
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req2 || ' and intake_outcome is not null');
-    select * into l_r from xxcmp_requests where request_id = l_req2;
-    ok('no similar party: ' || l_r.match_status || ', party linked, intake ' || l_r.intake_outcome,
-       l_r.match_status = 'NEW' and l_r.party_id is not null and l_r.intake_outcome <> 'ASSIGNED');
     apex_session.delete_session;
-    update xxfnd_employees set department_name = null where user_name = 'REQ1';
-    commit;
 end;
 /
 exit

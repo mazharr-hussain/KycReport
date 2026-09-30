@@ -51,26 +51,21 @@ page 21 (
     )
 
     region party (
-        name: Party Details
-        type: form
-        source {
-            location: localDatabase
-            type: tableView
-            tableName: XXCMP_PARTIES
-        }
+        name: Party
+        type: staticContent
         layout {
-            sequence: 20
+            sequence: 22
             slot: BODY
         }
         appearance {
-            template: @/standard
+            template: @/buttons-container
             templateOptions: #DEFAULT#
-        }
-        edit {
-            enabled: true
         }
         advanced {
             htmlDomId: party
+        }
+        comments {
+            comments: The party details are the common party region (Global Page, read only here). This region holds the page's buttons.
         }
     )
 
@@ -81,359 +76,8 @@ page 21 (
             region: @party
             slot: regionBody
         }
-        source {
-            formRegion: @party
-            column: PARTY_ID
-            dataType: number
-            primaryKey: true
-        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
-        }
-    )
-
-    pageItem P21_PARTY_NUMBER (
-        type: displayOnly
-        label {
-            label: Party Number
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            formRegion: @party
-            column: PARTY_NUMBER
-            dataType: varchar2
-            queryOnly: true
-        }
-    )
-
-    pageItem P21_PARTY_TYPE (
-        type: selectList
-        label {
-            label: Party Type
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-party-type
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 20
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-        }
-        source {
-            formRegion: @party
-            column: PARTY_TYPE
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: ORGANIZATION
-        }
-        readOnly {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is not null
-                ```
-        }
-        help {
-            helpText: Choose the party Type.
-        }
-    )
-
-    pageItem P21_PARTY_NAME (
-        type: textField
-        label {
-            label: Name
-            alignment: left
-        }
-        layout {
-            sequence: 30
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-            maxLength: 360
-        }
-        source {
-            formRegion: @party
-            column: PARTY_NAME
-            dataType: varchar2
-        }
-        help {
-            helpText: Enter the name.
-        }
-    )
-
-    pageItem P21_JURISDICTION (
-        type: selectList
-        label {
-            label: Jurisdiction
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-jurisdiction
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 40
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: JURISDICTION
-            dataType: varchar2
-        }
-        help {
-            helpText: Choose the jurisdiction.
-        }
-    )
-
-    pageItem P21_REGISTRATION_NUMBER (
-        type: textField
-        label {
-            label: Registration Number
-            alignment: left
-        }
-        layout {
-            sequence: 50
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 60
-        }
-        source {
-            formRegion: @party
-            column: REGISTRATION_NUMBER
-            dataType: varchar2
-        }
-        help {
-            helpText: Enter the registration Number.
-        }
-    )
-
-    pageItem P21_ENTITY_TYPE (
-        type: selectList
-        label {
-            label: Entity Type
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-entity-type
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 60
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: ENTITY_TYPE
-            dataType: varchar2
-        }
-        help {
-            helpText: Choose the entity Type.
-        }
-    )
-
-    pageItem P21_INCORPORATION_DATE (
-        type: datePicker
-        label {
-            label: Incorporation Date
-            alignment: left
-        }
-        layout {
-            sequence: 70
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: INCORPORATION_DATE
-            dataType: date
-        }
-        help {
-            helpText: Choose the incorporation Date.
-        }
-    )
-
-    pageItem P21_DATE_OF_BIRTH (
-        type: datePicker
-        label {
-            label: Date of Birth
-            alignment: left
-        }
-        layout {
-            sequence: 80
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: DATE_OF_BIRTH
-            dataType: date
-        }
-        help {
-            helpText: Choose the date of Birth.
-        }
-    )
-
-    pageItem P21_NATIONALITY (
-        type: selectList
-        label {
-            label: Nationality
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-jurisdiction
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 90
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: NATIONALITY
-            dataType: varchar2
-        }
-        help {
-            helpText: Choose the nationality.
-        }
-    )
-
-    pageItem P21_DATA_PROVENANCE (
-        type: selectList
-        label {
-            label: Data Provenance
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-data-provenance
-        }
-        layout {
-            sequence: 100
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: DATA_PROVENANCE
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: SELF_DECLARED
-        }
-        readOnly {
-            type: always
-        }
-        help {
-            helpText: Becomes Registry verified once the party is confirmed against an official registry.
-        }
-    )
-
-    pageItem P21_LAST_VERIFIED_DATE (
-        type: displayOnly
-        label {
-            label: Last Verified
-            alignment: left
-        }
-        layout {
-            sequence: 110
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            formRegion: @party
-            column: LAST_VERIFIED_DATE
-            dataType: timestamp
-            queryOnly: true
         }
     )
 
@@ -449,152 +93,6 @@ page 21 (
         }
         comments {
             comments: EDIT = the party can be changed (Edit button, Edit link on Parties); otherwise an existing party is read only. Edit itself needs Parties - Manage (buttons and processes).
-        }
-    )
-
-    pageItem P21_EMAIL (
-        type: textField
-        label {
-            label: Email
-            alignment: left
-        }
-        layout {
-            sequence: 112
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 320
-        }
-        source {
-            formRegion: @party
-            column: EMAIL
-            dataType: varchar2
-        }
-        help {
-            helpText: Main email address of the party (contact persons are listed below).
-        }
-    )
-
-    pageItem P21_PHONE (
-        type: textField
-        label {
-            label: Phone
-            alignment: left
-        }
-        layout {
-            sequence: 113
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 50
-        }
-        source {
-            formRegion: @party
-            column: PHONE
-            dataType: varchar2
-        }
-        help {
-            helpText: Main phone number of the party.
-        }
-    )
-
-    pageItem P21_WEBSITE (
-        type: textField
-        label {
-            label: Website
-            alignment: left
-        }
-        layout {
-            sequence: 114
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 500
-        }
-        source {
-            formRegion: @party
-            column: WEBSITE
-            dataType: varchar2
-        }
-        help {
-            helpText: Website of the party.
-        }
-    )
-
-    pageItem P21_FAX (
-        type: textField
-        label {
-            label: Fax
-            alignment: left
-        }
-        layout {
-            sequence: 115
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 50
-        }
-        source {
-            formRegion: @party
-            column: FAX
-            dataType: varchar2
-        }
-        help {
-            helpText: Fax number of the party.
-        }
-    )
-
-    pageItem P21_ENABLED_FLAG (
-        type: switch
-        label {
-            label: Enabled
-            alignment: left
-        }
-        layout {
-            sequence: 120
-            region: @party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @party
-            column: ENABLED_FLAG
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: Y
-        }
-        help {
-            helpText: Choose the enabled.
         }
     )
 
@@ -774,13 +272,13 @@ page 21 (
                 return xxfnd_dff_pkg.render(
                            p_table_name   => 'XXCMP_PARTIES',
                            p_pk_value     => :P21_PARTY_ID,
-                           p_reference_value => :P21_PARTY_TYPE,
+                           p_reference_value => :P0_PARTY_TYPE,
                            p_context_code => :P21_DFF_CONTEXT);
                 ```
             pageItemsToSubmit: [
                 P21_PARTY_ID
                 P21_DFF_CONTEXT
-                P21_PARTY_TYPE
+                P0_PARTY_TYPE
             ]
         }
         layout {
@@ -882,33 +380,28 @@ page 21 (
                        m.party_name,
                        m.registration_number,
                        xxfnd_util_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
-                       case when m.same_registration = 'Y' then 'Same registration number'
+                       case when m.same_registration = 'Y'
+                            then 'Same ' || lower(xxcmp_party_pkg.field_label(m.party_type, 'REGISTRATION_NUMBER'))
                             else round(m.similarity) || '% name match'
                        end as match_reason,
                        -- Compliance merges this party (the duplicate) into the matched one
-                       case when :P21_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                       case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
                                  and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
                             then 'Merge into this party' end as merge
-                  from (select p.party_id, p.party_number, p.party_name, p.registration_number, p.jurisdiction,
+                  from (select p.party_id, p.party_number, p.party_name, p.party_type, p.registration_number, p.jurisdiction,
                                case when p.registration_number is not null
-                                     and upper(replace(p.registration_number, ' ')) = upper(replace(:P21_REGISTRATION_NUMBER, ' '))
+                                     and upper(replace(p.registration_number, ' ')) = upper(replace(me.registration_number, ' '))
                                     then 'Y' else 'N' end as same_registration,
-                               xxcmp_kyc_pkg.name_similarity(p.party_name, :P21_PARTY_NAME) as similarity
-                          from xxcmp_parties p
-                         where p.party_id <> nvl(to_number(:P21_PARTY_ID), -1)
-                           and p.party_type = :P21_PARTY_TYPE
-                           and p.enabled_flag = 'Y'
-                           and :P21_PARTY_NAME is not null) m
+                               xxcmp_kyc_pkg.name_similarity(p.party_name, me.party_name) as similarity
+                          from xxcmp_parties me
+                          join xxcmp_parties p
+                            on p.party_id <> me.party_id and p.party_type = me.party_type and p.enabled_flag = 'Y'
+                         where me.party_id = :P21_PARTY_ID) m
                  where m.same_registration = 'Y' or m.similarity >= 85
                  order by m.similarity desc
                  fetch first 10 rows only
                 ```
-            pageItemsToSubmit: [
-                P21_PARTY_ID
-                P21_PARTY_TYPE
-                P21_PARTY_NAME
-                P21_REGISTRATION_NUMBER
-            ]
+            pageItemsToSubmit: P21_PARTY_ID
         }
         layout {
             sequence: 25
@@ -980,7 +473,7 @@ page 21 (
         column REGISTRATION_NUMBER (
             type: plainText
             heading {
-                heading: Registration No.
+                heading: Registration No. / ID Number
             }
             layout {
                 sequence: 40
@@ -990,7 +483,7 @@ page 21 (
         column JURISDICTION (
             type: plainText
             heading {
-                heading: Jurisdiction
+                heading: Country / Nationality
             }
             layout {
                 sequence: 50
@@ -1080,126 +573,6 @@ page 21 (
 
     )
 
-    dynamicAction refresh-matches (
-        name: Refresh matches on change
-        execution {
-            sequence: 40
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P21_PARTY_NAME,P21_REGISTRATION_NUMBER,P21_PARTY_TYPE
-        }
-
-        action refresh-matches-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @matches
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
-    dynamicAction refresh-party-dff (
-        name: Refresh party_dff on change
-        execution {
-            sequence: 45
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P21_PARTY_TYPE
-        }
-
-        action refresh-party-dff-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @party_dff
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
-    dynamicAction party-type-fields (
-        name: Show fields for P21_PARTY_TYPE
-        execution {
-            sequence: 50
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P21_PARTY_TYPE
-        }
-        clientSideCondition {
-            type: item=value
-            item: P21_PARTY_TYPE
-            value: ORGANIZATION
-        }
-
-        action party-type-fields-show-t (
-            action: show
-            affectedElements {
-                selectionType: items
-                items: P21_REGISTRATION_NUMBER,P21_ENTITY_TYPE,P21_INCORPORATION_DATE
-            }
-            execution {
-                sequence: 10
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action party-type-fields-hide-t (
-            action: hide
-            affectedElements {
-                selectionType: items
-                items: P21_DATE_OF_BIRTH,P21_NATIONALITY
-            }
-            execution {
-                sequence: 20
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action party-type-fields-show-f (
-            action: show
-            affectedElements {
-                selectionType: items
-                items: P21_DATE_OF_BIRTH,P21_NATIONALITY
-            }
-            execution {
-                sequence: 30
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-        action party-type-fields-hide-f (
-            action: hide
-            affectedElements {
-                selectionType: items
-                items: P21_REGISTRATION_NUMBER,P21_ENTITY_TYPE,P21_INCORPORATION_DATE
-            }
-            execution {
-                sequence: 40
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-    )
-
     region missing-docs (
         name: Mandatory Documents
         type: dynamicContent
@@ -1250,28 +623,26 @@ page 21 (
 
     region contacts (
         name: Contact Persons
-        type: classicReport
+        type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
                 select c.party_contact_id,
-                       nvl(c.contact_name, c.contact_value) as contact_name,
+                       c.contact_name,
                        c.job_title,
-                       coalesce(c.email, case when c.contact_type = 'EMAIL' then c.contact_value end) as email,
-                       coalesce(c.phone, case when c.contact_type in ('PHONE', 'MOBILE') then c.contact_value end) as phone,
-                       case when c.contact_type not in ('PERSON', 'EMAIL', 'PHONE', 'MOBILE')
-                            then xxfnd_util_pkg.lookup_meaning('CONTACT_TYPE', c.contact_type) || ': ' || c.contact_value end as other,
+                       c.email,
+                       c.phone,
                        c.primary_flag,
                        c.enabled_flag,
                        case when :P21_MODE = 'EDIT'
                             then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID',
                                                    p_values => to_char(c.party_contact_id) || ',' || :P21_PARTY_ID, p_clear_cache => '22') end as edit_url,
-                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit
+                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit,
+                       c.created_by, c.creation_date, c.last_updated_by, c.last_update_date
                   from xxcmp_party_contacts c
                  where c.party_id = :P21_PARTY_ID
-                 order by c.primary_flag desc, c.enabled_flag desc, nvl(c.contact_name, c.contact_value)
                 ```
             pageItemsToSubmit: P21_PARTY_ID,P21_MODE
         }
@@ -1287,22 +658,16 @@ page 21 (
             htmlDomId: contacts
         }
         componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
+            showNullValuesAs: -
         }
         pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 15
+            type: rowRangesXToY
         }
         messages {
             whenNoDataFound: No contact persons.
+        }
+        searchBar {
+            includeSearchBar: true
         }
         serverSideCondition {
             type: itemIsNotNull
@@ -1311,8 +676,14 @@ page 21 (
 
         column PARTY_CONTACT_ID (
             type: hidden
+            heading {
+                heading: Contact Id
+            }
             layout {
                 sequence: 10
+            }
+            source {
+                dataType: NUMBER
             }
         )
 
@@ -1324,6 +695,9 @@ page 21 (
             layout {
                 sequence: 20
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column JOB_TITLE (
@@ -1333,6 +707,9 @@ page 21 (
             }
             layout {
                 sequence: 30
+            }
+            source {
+                dataType: STRING
             }
         )
 
@@ -1344,6 +721,9 @@ page 21 (
             layout {
                 sequence: 40
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column PHONE (
@@ -1354,15 +734,8 @@ page 21 (
             layout {
                 sequence: 50
             }
-        )
-
-        column OTHER (
-            type: plainText
-            heading {
-                heading: Other
-            }
-            layout {
-                sequence: 55
+            source {
+                dataType: STRING
             }
         )
 
@@ -1374,6 +747,9 @@ page 21 (
             layout {
                 sequence: 60
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column ENABLED_FLAG (
@@ -1384,12 +760,21 @@ page 21 (
             layout {
                 sequence: 70
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column EDIT_URL (
             type: hidden
+            heading {
+                heading: Edit Url
+            }
             layout {
                 sequence: 80
+            }
+            source {
+                dataType: STRING
             }
         )
 
@@ -1407,6 +792,118 @@ page 21 (
                     <a href="#EDIT_URL#">#EDIT#</a>
                     ```
             }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Created On
+            }
+            layout {
+                sequence: 110
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column LAST_UPDATED_BY (
+            type: plainText
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_UPDATE_DATE (
+            type: plainText
+            heading {
+                heading: Updated On
+            }
+            layout {
+                sequence: 130
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
+            }
+
+            displayColumn CONTACT_NAME (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn JOB_TITLE (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn EMAIL (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn PHONE (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn PRIMARY_FLAG (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn ENABLED_FLAG (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn EDIT (
+                layout {
+                    sequence: 7
+                }
+            )
+
         )
 
     )
@@ -1475,7 +972,7 @@ page 21 (
 
     region relationships (
         name: Ownership and Control
-        type: classicReport
+        type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
@@ -1489,18 +986,17 @@ page 21 (
                        r.ownership_percentage,
                        r.start_date,
                        r.end_date,
-                       xxfnd_util_pkg.lookup_meaning('UBO_STATUS', r.latest_ubo_status) as ubo_status,
                        case when :P21_MODE = 'EDIT'
                             then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
                                                    p_values => to_char(r.party_relationship_id) || ',' || :P21_PARTY_ID,
                                                    p_clear_cache => '23') end as edit_url,
-                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit
+                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit,
+                       r.created_by, r.creation_date, r.last_updated_by, r.last_update_date
                   from xxcmp_party_relationships r
                   join xxcmp_parties o
                     on o.party_id = case when r.object_party_id = :P21_PARTY_ID then r.subject_party_id
                                          else r.object_party_id end
                  where :P21_PARTY_ID in (r.object_party_id, r.subject_party_id)
-                 order by direction, r.ownership_percentage desc nulls last
                 ```
             pageItemsToSubmit: P21_PARTY_ID,P21_MODE
         }
@@ -1516,22 +1012,16 @@ page 21 (
             htmlDomId: relationships
         }
         componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
+            showNullValuesAs: -
         }
         pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 15
+            type: rowRangesXToY
         }
         messages {
             whenNoDataFound: No owners, officers or holdings recorded.
+        }
+        searchBar {
+            includeSearchBar: true
         }
         serverSideCondition {
             type: itemIsNotNull
@@ -1540,8 +1030,14 @@ page 21 (
 
         column PARTY_RELATIONSHIP_ID (
             type: hidden
+            heading {
+                heading: Relationship Id
+            }
             layout {
                 sequence: 10
+            }
+            source {
+                dataType: NUMBER
             }
         )
 
@@ -1553,6 +1049,9 @@ page 21 (
             layout {
                 sequence: 20
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column RELATED_PARTY (
@@ -1563,12 +1062,82 @@ page 21 (
             layout {
                 sequence: 30
             }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RELATIONSHIP_TYPE (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OWNERSHIP_PERCENTAGE (
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: 990D00
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column START_DATE (
+            type: plainText
+            heading {
+                heading: From
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column END_DATE (
+            type: plainText
+            heading {
+                heading: To
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
+            }
         )
 
         column EDIT_URL (
             type: hidden
+            heading {
+                heading: Edit Url
+            }
             layout {
                 sequence: 90
+            }
+            source {
+                dataType: STRING
             }
         )
 
@@ -1586,65 +1155,118 @@ page 21 (
                     <a href="#EDIT_URL#">#EDIT#</a>
                     ```
             }
-        )
-
-        column RELATIONSHIP_TYPE (
-            type: plainText
-            heading {
-                heading: Relationship
-            }
-            layout {
-                sequence: 40
+            source {
+                dataType: STRING
             }
         )
 
-        column OWNERSHIP_PERCENTAGE (
+        column CREATED_BY (
             type: plainText
             heading {
-                heading: Ownership %
+                heading: Created By
             }
             layout {
-                sequence: 50
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Created On
+            }
+            layout {
+                sequence: 110
             }
             appearance {
-                formatMask: 990D00
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
             }
         )
 
-        column START_DATE (
+        column LAST_UPDATED_BY (
             type: plainText
             heading {
-                heading: From
+                heading: Updated By
             }
             layout {
-                sequence: 60
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_UPDATE_DATE (
+            type: plainText
+            heading {
+                heading: Updated On
+            }
+            layout {
+                sequence: 130
             }
             appearance {
-                formatMask: DD-MON-YYYY
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
             }
         )
 
-        column END_DATE (
-            type: plainText
-            heading {
-                heading: To
-            }
-            layout {
-                sequence: 70
-            }
-            appearance {
-                formatMask: DD-MON-YYYY
-            }
-        )
 
-        column UBO_STATUS (
-            type: plainText
-            heading {
-                heading: UBO
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
             }
-            layout {
-                sequence: 80
-            }
+
+            displayColumn DIRECTION (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn RELATED_PARTY (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn RELATIONSHIP_TYPE (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn OWNERSHIP_PERCENTAGE (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn START_DATE (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn END_DATE (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn EDIT (
+                layout {
+                    sequence: 7
+                }
+            )
+
         )
 
     )
@@ -2065,9 +1687,15 @@ page 21 (
     )
 
     process initialize-party (
-        name: Initialize party
-        type: formInitialization
-        formRegion: @party
+        name: Load the party into the common party form (read only)
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.load_items(to_number(:P21_PARTY_ID), 'Y');
+                ```
+        }
         execution {
             sequence: 10
             point: beforeHeader

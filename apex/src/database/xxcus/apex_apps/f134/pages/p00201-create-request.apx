@@ -15,7 +15,7 @@ page 201 (
     help {
         helpText:
             ```
-            Step 1 of 3: who is the counterparty. Choose it from the existing parties, or enter a new one with its contact details (the other details are optional): the system then looks for parties that may be the same (name, registration or identity number, date of incorporation or birth, country). A counterparty with the same registration number and country as an existing party must use that party. Compliance decides at the checklist review whether a similar party is the same. Save as Draft keeps the request to finish later.
+            Step 1 of 3: the request and its counterparty. Choose an approved party, or enter a new one in the common party form: it is created as a party with status Pending and approved with the request. Parties that may be the same are shown as a warning (name, registration / ID number, date, country); a counterparty with the same number and country as an existing party must use that party. Compliance can merge a duplicate later. Save as Draft keeps the request to finish later; Cancel Request withdraws it.
             ```
     }
 
@@ -62,11 +62,27 @@ page 201 (
         }
     )
 
+    region request (
+        name: Request
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
     region counterparty (
         name: Counterparty
         type: staticContent
         layout {
-            sequence: 20
+            sequence: 15
             slot: BODY
         }
         appearance {
@@ -75,22 +91,6 @@ page 201 (
         }
         advanced {
             htmlDomId: counterparty
-        }
-    )
-
-    region new_party (
-        name: New Counterparty
-        type: staticContent
-        layout {
-            sequence: 30
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: new_party
         }
     )
 
@@ -114,7 +114,7 @@ page 201 (
         type: hidden
         layout {
             sequence: 1
-            region: @counterparty
+            region: @request
             slot: regionBody
         }
         security {
@@ -122,438 +122,15 @@ page 201 (
         }
     )
 
-    pageItem P201_PARTY_TYPE (
-        type: radioGroup
-        label {
-            label: Counterparty Type
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: false
-        }
+    pageItem P201_REQUEST_STATUS (
+        type: hidden
         layout {
-            sequence: 10
-            region: @counterparty
+            sequence: 2
+            region: @request
             slot: regionBody
-            alignment: left
         }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-        }
-        default {
-            type: static
-            staticValue: ORGANIZATION
-        }
-        help {
-            helpText: An organisation (company, trust, government entity) or an individual.
-        }
-    )
-
-    pageItem P201_PARTY_SELECTION (
-        type: radioGroup
-        label {
-            label: Counterparty
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select 'Existing counterparty' as display_value, 'EXISTING' as return_value from dual
-                union all select 'New counterparty', 'NEW' from dual
-                ```
-            displayNullValue: false
-        }
-        layout {
-            sequence: 20
-            region: @counterparty
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-        }
-        default {
-            type: static
-            staticValue: NEW
-        }
-        help {
-            helpText: Existing: the counterparty is already a party (choose it). New: not yet known to the organisation.
-        }
-    )
-
-    pageItem P201_PARTY_ID (
-        type: popupLov
-        label {
-            label: Existing Counterparty
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select j.party_name || ' (' || j.party_number || nvl2(j.country, ', ' || j.country, null) || ')' as display_value,
-                       j.party_id as return_value
-                  from json_table(xxcmp_request_pkg.party_directory_json(:P201_PARTY_TYPE), '$[*]'
-                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
-                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country')) j
-                 order by j.party_name
-                ```
-            displayNullValue: false
-        }
-        cascadingLov {
-            parentItems: P201_PARTY_TYPE
-        }
-        layout {
-            sequence: 30
-            region: @counterparty
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: Search by name or party number.
-        }
-    )
-
-    pageItem P201_PARTY_NAME (
-        type: textField
-        label {
-            label: Name
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 360
-        }
-        help {
-            helpText: Legal name of the organisation, or full name of the individual.
-        }
-    )
-
-    pageItem P201_REGISTRATION_NUMBER (
-        type: textField
-        label {
-            label: Registration Number
-            alignment: left
-        }
-        layout {
-            sequence: 20
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 100
-        }
-        help {
-            helpText: Commercial registration or company number.
-        }
-    )
-
-    pageItem P201_ENTITY_TYPE (
-        type: selectList
-        label {
-            label: Entity Type
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'ENTITY_TYPE' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 30
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: Legal form of the organisation.
-        }
-    )
-
-    pageItem P201_INCORPORATION_DATE (
-        type: datePicker
-        label {
-            label: Date of Incorporation
-            alignment: left
-        }
-        layout {
-            sequence: 40
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    pageItem P201_DATE_OF_BIRTH (
-        type: datePicker
-        label {
-            label: Date of Birth
-            alignment: left
-        }
-        layout {
-            sequence: 50
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    pageItem P201_NATIONALITY (
-        type: selectList
-        label {
-            label: Nationality
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 60
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    pageItem P201_ID_TYPE (
-        type: selectList
-        label {
-            label: Identity Document
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'ID_DOCUMENT_TYPE' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 70
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    pageItem P201_ID_NUMBER (
-        type: textField
-        label {
-            label: Identity Document Number
-            alignment: left
-        }
-        layout {
-            sequence: 80
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 100
-        }
-    )
-
-    pageItem P201_JURISDICTION (
-        type: selectList
-        label {
-            label: Country
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 90
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: Country of incorporation for an organisation, country of residence for an individual.
-        }
-    )
-
-    pageItem P201_CONTACT_NAME (
-        type: textField
-        label {
-            label: Contact Person
-            alignment: left
-        }
-        layout {
-            sequence: 92
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 240
-        }
-        help {
-            helpText: Who the organisation deals with at the counterparty (or the individual).
-        }
-    )
-
-    pageItem P201_CONTACT_EMAIL (
-        type: textField
-        label {
-            label: Contact Email
-            alignment: left
-        }
-        layout {
-            sequence: 94
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 320
-        }
-    )
-
-    pageItem P201_CONTACT_PHONE (
-        type: textField
-        label {
-            label: Contact Phone
-            alignment: left
-        }
-        layout {
-            sequence: 96
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-floating
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 50
-        }
-    )
-
-    pageItem P201_MATCH_ACK (
-        type: switch
-        label {
-            label: None of the listed parties is this counterparty
-            alignment: left
-        }
-        layout {
-            sequence: 100
-            region: @new_party
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-floating
-            templateOptions: #DEFAULT#
-        }
-        default {
-            type: static
-            staticValue: N
-        }
-        help {
-            helpText: Tick when you are sure none of the similar parties is the counterparty. Compliance still checks it.
+        settings {
+            valueProtected: true
         }
     )
 
@@ -576,8 +153,8 @@ page 201 (
             nullDisplayValue: - Select -
         }
         layout {
-            sequence: 40
-            region: @counterparty
+            sequence: 10
+            region: @request
             slot: regionBody
             alignment: left
         }
@@ -611,21 +188,22 @@ page 201 (
     pageItem P201_JUSTIFICATION (
         type: textarea
         label {
-            label: Business Purpose
+            label: Business Justification
             alignment: left
         }
         layout {
-            sequence: 50
-            region: @counterparty
+            sequence: 20
+            region: @request
             slot: regionBody
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/required-floating
             templateOptions: #DEFAULT#
             height: 3
         }
         validation {
+            valueRequired: true
             maxLength: 4000
         }
         help {
@@ -633,8 +211,170 @@ page 201 (
         }
     )
 
+    pageItem P201_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
+        }
+        layout {
+            sequence: 92
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        help {
+            helpText: Who the organisation deals with at the counterparty (or the individual).
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_EMAIL (
+        type: textField
+        label {
+            label: Contact Email
+            alignment: left
+        }
+        layout {
+            sequence: 94
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_PHONE (
+        type: textField
+        label {
+            label: Contact Phone
+            alignment: left
+        }
+        layout {
+            sequence: 96
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_PARTY_SELECTION (
+        type: radioGroup
+        label {
+            label: Counterparty
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Existing party' as display_value, 'EXISTING' as return_value from dual
+                union all select 'New counterparty', 'NEW' from dual
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: static
+            staticValue: NEW
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_STATUS = 'INFO_NEEDED'
+                ```
+        }
+        help {
+            helpText: Existing: an approved party (choose it). New: not yet known to the organisation; it is created as a Pending party with the request.
+        }
+    )
+
+    pageItem P201_PARTY_ID (
+        type: popupLov
+        label {
+            label: Existing Party
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_name || ' (' || j.party_number || nvl2(j.country, ', ' || j.country, null) || ')' as display_value,
+                       j.party_id as return_value
+                  from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country')) j
+                 order by j.party_name
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 20
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_STATUS = 'INFO_NEEDED'
+                ```
+        }
+        help {
+            helpText: Search by name or party number. Only approved parties can be chosen.
+        }
+    )
+
     region possible_matches (
-        name: Existing Parties That May Be This Counterparty
+        name: Parties That May Be This Counterparty (warning)
         type: classicReport
         source {
             location: localDatabase
@@ -642,24 +382,24 @@ page 201 (
             sqlQuery:
                 ```sql
                 select j.party_id, j.party_number, j.registration_number,
-                       j.party_name, j.country, j.score, j.reg_match, j.reasons,
+                       j.party_name, j.country, j.status, j.score, j.reg_match, j.reasons,
                        'Use this party' as use_party
-                  from json_table(xxcmp_request_pkg.party_candidates_json(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,
-                                      :P201_ID_NUMBER, case :P201_PARTY_TYPE when 'ORGANIZATION' then to_date(:P201_INCORPORATION_DATE) else to_date(:P201_DATE_OF_BIRTH) end, :P201_JURISDICTION), '$[*]'
+                  from json_table(xxcmp_request_pkg.party_candidates_json(:P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_REGISTRATION_NUMBER,
+                                      to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_JURISDICTION, to_number(:P0_PARTY_ID)), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
                                   registration_number varchar2(100) path '$.registration_number',
                                   party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                                  status varchar2(80) path '$.status',
                                   score number path '$.score', reg_match number path '$.reg_match',
                                   reasons varchar2(1000) path '$.reasons')) j
                 ```
             pageItemsToSubmit: [
-                P201_PARTY_TYPE
-                P201_PARTY_NAME
-                P201_REGISTRATION_NUMBER
-                P201_ID_NUMBER
-                P201_INCORPORATION_DATE
-                P201_DATE_OF_BIRTH
-                P201_JURISDICTION
+                P0_PARTY_ID
+                P0_PARTY_TYPE
+                P0_PARTY_NAME
+                P0_PARTY_REGISTRATION_NUMBER
+                P0_PARTY_INCORPORATION_DATE
+                P0_PARTY_JURISDICTION
             ]
         }
         layout {
@@ -712,7 +452,7 @@ page 201 (
         column REGISTRATION_NUMBER (
             type: plainText
             heading {
-                heading: Registration No
+                heading: Registration / ID No.
             }
             layout {
                 sequence: 30
@@ -736,6 +476,16 @@ page 201 (
             }
             layout {
                 sequence: 50
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Party Status
+            }
+            layout {
+                sequence: 55
             }
         )
 
@@ -780,7 +530,7 @@ page 201 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#" class="kyc-use-party" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#USE_PARTY#</a>
+                    <a href="#" class="kyc-use-party" data-party="#PARTY_ID#" data-status="#STATUS#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#USE_PARTY#</a>
                     ```
             }
         )
@@ -788,7 +538,7 @@ page 201 (
     )
 
     dynamicAction existing-or-new (
-        name: existing-or-new
+        name: Existing party or new counterparty
         execution {
             sequence: 10
         }
@@ -797,174 +547,20 @@ page 201 (
             selectionType: items
             items: P201_PARTY_SELECTION
         }
-        clientSideCondition {
-            type: item=value
-            item: P201_PARTY_SELECTION
-            value: EXISTING
-        }
 
-        action existing-or-new-0 (
-            action: show
-            affectedElements {
-                selectionType: items
-                items: P201_PARTY_ID
+        action existing-or-new-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // a new counterparty is entered in the common party form (Global Page region)
+                    var isNew = apex.item("P201_PARTY_SELECTION").getValue() !== "EXISTING";
+                    $("#party-form, #possible_matches")[isNew ? "show" : "hide"]();
+                    apex.item("P201_PARTY_ID")[isNew ? "hide" : "show"]();
+                    ```
             }
             execution {
                 sequence: 10
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action existing-or-new-1 (
-            action: hide
-            affectedElements {
-                selectionType: region
-                region: @new_party
-            }
-            execution {
-                sequence: 20
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action existing-or-new-2 (
-            action: hide
-            affectedElements {
-                selectionType: items
-                items: P201_PARTY_ID
-            }
-            execution {
-                sequence: 30
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-        action existing-or-new-3 (
-            action: show
-            affectedElements {
-                selectionType: region
-                region: @new_party
-            }
-            execution {
-                sequence: 40
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-    )
-
-    dynamicAction existing-or-new-matches (
-        name: existing-or-new-matches
-        execution {
-            sequence: 11
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P201_PARTY_SELECTION
-        }
-        clientSideCondition {
-            type: item=value
-            item: P201_PARTY_SELECTION
-            value: EXISTING
-        }
-
-        action existing-or-new-matches-1 (
-            action: hide
-            affectedElements {
-                selectionType: region
-                region: @possible_matches
-            }
-            execution {
-                sequence: 20
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action existing-or-new-matches-3 (
-            action: show
-            affectedElements {
-                selectionType: region
-                region: @possible_matches
-            }
-            execution {
-                sequence: 40
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-    )
-
-    dynamicAction fields-by-type (
-        name: fields-by-type
-        execution {
-            sequence: 20
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P201_PARTY_TYPE
-        }
-        clientSideCondition {
-            type: item=value
-            item: P201_PARTY_TYPE
-            value: ORGANIZATION
-        }
-
-        action fields-by-type-0 (
-            action: show
-            affectedElements {
-                selectionType: items
-                items: P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE,P201_INCORPORATION_DATE
-            }
-            execution {
-                sequence: 10
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action fields-by-type-1 (
-            action: hide
-            affectedElements {
-                selectionType: items
-                items: P201_DATE_OF_BIRTH,P201_NATIONALITY,P201_ID_TYPE,P201_ID_NUMBER
-            }
-            execution {
-                sequence: 20
-                fireWhenEventResultIs: true
-                fireOnInit: true
-            }
-        )
-
-        action fields-by-type-2 (
-            action: hide
-            affectedElements {
-                selectionType: items
-                items: P201_REGISTRATION_NUMBER,P201_ENTITY_TYPE,P201_INCORPORATION_DATE
-            }
-            execution {
-                sequence: 30
-                fireWhenEventResultIs: false
-                fireOnInit: true
-            }
-        )
-
-        action fields-by-type-3 (
-            action: show
-            affectedElements {
-                selectionType: items
-                items: P201_DATE_OF_BIRTH,P201_NATIONALITY,P201_ID_TYPE,P201_ID_NUMBER
-            }
-            execution {
-                sequence: 40
-                fireWhenEventResultIs: false
                 fireOnInit: true
             }
         )
@@ -979,7 +575,7 @@ page 201 (
         when {
             event: change
             selectionType: items
-            items: P201_PARTY_TYPE,P201_PARTY_NAME,P201_REGISTRATION_NUMBER,P201_ID_NUMBER,P201_INCORPORATION_DATE,P201_DATE_OF_BIRTH,P201_JURISDICTION
+            items: P0_PARTY_TYPE,P0_PARTY_NAME,P0_PARTY_REGISTRATION_NUMBER,P0_PARTY_INCORPORATION_DATE,P0_PARTY_JURISDICTION
         }
 
         action refresh-matches-refresh (
@@ -991,35 +587,6 @@ page 201 (
             execution {
                 sequence: 10
                 fireOnInit: false
-            }
-        )
-
-    )
-
-    dynamicAction match-ack-visibility (
-        name: Confirmation only when there are similar parties
-        execution {
-            sequence: 40
-        }
-        when {
-            event: apexafterrefresh
-            selectionType: region
-            region: @possible_matches
-        }
-
-        action match-ack-visibility-js (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    var found = $("#possible_matches a.kyc-use-party").length > 0;
-                    apex.item("P201_MATCH_ACK").show();
-                    if (!found) { apex.item("P201_MATCH_ACK").hide(); }
-                    ```
-            }
-            execution {
-                sequence: 10
-                fireOnInit: true
             }
         )
 
@@ -1045,6 +612,10 @@ page 201 (
                     ```javascript
                     var a = $(this.triggeringElement);
                     this.browserEvent.preventDefault();
+                    if (a.data("status") !== "Approved") {
+                        apex.message.alert("This party is not approved yet: it cannot be chosen.");
+                        return;
+                    }
                     apex.item("P201_PARTY_SELECTION").setValue("EXISTING");
                     apex.item("P201_PARTY_ID").setValue(String(a.data("party")), a.data("label"));
                     ```
@@ -1075,6 +646,42 @@ page 201 (
                 page: 200
             }
             warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button cancel-request (
+        buttonName: CANCEL_REQUEST
+        label: Cancel Request
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-ban
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Cancel this request? It cannot be submitted afterwards.
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_ID is not null and xxcmp_request_pkg.cancel_error(:P201_REQUEST_ID) is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
         }
     )
 
@@ -1123,35 +730,39 @@ page 201 (
     )
 
     process load-request (
-        name: Load draft
+        name: Load the request and its counterparty
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                select party_selection, party_id, party_type, party_name, registration_number, entity_type,
-                       incorporation_date, date_of_birth, nationality, id_type, id_number, jurisdiction, match_ack_flag,
-                       requesting_department, justification, contact_name, contact_email, contact_phone
-                  into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER, :P201_ENTITY_TYPE,
-                       :P201_INCORPORATION_DATE, :P201_DATE_OF_BIRTH, :P201_NATIONALITY, :P201_ID_TYPE, :P201_ID_NUMBER, :P201_JURISDICTION,
-                       :P201_MATCH_ACK, :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
-                       :P201_CONTACT_PHONE
-                  from xxcmp_requests
-                 where request_id = :P201_REQUEST_ID and request_status = 'DRAFT';
+                declare
+                    l_party number;
+                begin
+                    if :P201_REQUEST_ID is not null then
+                        select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
+                               requesting_department, justification, contact_name, contact_email, contact_phone,
+                               case when party_selection = 'NEW' then party_id end
+                          into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_REQUEST_STATUS,
+                               :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
+                               :P201_CONTACT_PHONE, l_party
+                          from xxcmp_requests
+                         where request_id = :P201_REQUEST_ID;
+                    end if;
+                    -- the new counterparty in the common party form: editable while it is the request's Pending party
+                    xxcmp_party_pkg.load_items(l_party,
+                        case when xxcmp_request_pkg.party_editable(:P201_REQUEST_ID) = 'Y' then 'N' else 'Y' end);
+                end;
                 ```
         }
         execution {
             sequence: 10
             point: beforeHeader
         }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P201_REQUEST_ID
-        }
     )
 
-    validation check-1 (
-        name: Choose the existing counterparty.
+    validation request-rules (
+        name: Request and counterparty rules
         execution {
             sequence: 10
         }
@@ -1160,258 +771,31 @@ page 201 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
-                if :P201_PARTY_SELECTION = 'EXISTING' and :P201_PARTY_ID is null then
-                    return 'Choose the existing counterparty.';
-                end if;
-                return null;
+                -- one rule set for the page and the database; Save as Draft only needs the type and a name or party
+                return xxcmp_request_pkg.request_error(
+                           p_request_id          => to_number(:P201_REQUEST_ID),
+                           p_party_selection     => :P201_PARTY_SELECTION,
+                           p_party_id            => to_number(:P201_PARTY_ID),
+                           p_party_type          => :P0_PARTY_TYPE,
+                           p_party_name          => :P0_PARTY_NAME,
+                           p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                           p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                           p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                           p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                           p_email               => :P0_PARTY_EMAIL,
+                           p_phone               => :P0_PARTY_PHONE,
+                           p_justification       => :P201_JUSTIFICATION,
+                           p_draft               => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end);
                 ```
-        }
-        error {
-            associatedItem: @P201_PARTY_ID
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-2 (
-        name: Enter the name.
-        execution {
-            sequence: 20
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_PARTY_NAME) is null then
-                    return 'Enter the name.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_PARTY_NAME
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-3 (
-        name: The date of incorporation cannot be in the future.
-        execution {
-            sequence: 30
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'ORGANIZATION' and to_date(:P201_INCORPORATION_DATE) > trunc(sysdate) then
-                    return 'The date of incorporation cannot be in the future.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_INCORPORATION_DATE
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-4 (
-        name: The date of birth cannot be in the future.
-        execution {
-            sequence: 40
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and :P201_PARTY_TYPE = 'PERSON' and to_date(:P201_DATE_OF_BIRTH) > trunc(sysdate) then
-                    return 'The date of birth cannot be in the future.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_DATE_OF_BIRTH
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-5 (
-        name: Enter the contact person.
-        execution {
-            sequence: 50
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_NAME) is null then
-                    return 'Enter the contact person.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_CONTACT_NAME
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-6 (
-        name: Enter the contact email.
-        execution {
-            sequence: 60
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_EMAIL) is null then
-                    return 'Enter the contact email.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_CONTACT_EMAIL
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-7 (
-        name: Enter a valid contact email.
-        execution {
-            sequence: 70
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and not regexp_like(trim(:P201_CONTACT_EMAIL), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
-                    return 'Enter a valid contact email.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_CONTACT_EMAIL
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-8 (
-        name: Enter the contact phone.
-        execution {
-            sequence: 80
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and trim(:P201_CONTACT_PHONE) is null then
-                    return 'Enter the contact phone.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_CONTACT_PHONE
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-9 (
-        name: Existing parties may be this counterparty: choose one with Use this party, or confirm that none of them is.
-        execution {
-            sequence: 90
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                if :P201_PARTY_SELECTION = 'NEW' and nvl(:P201_MATCH_ACK, 'N') <> 'Y'
-                   and xxcmp_request_pkg.party_candidate_count(:P201_PARTY_TYPE, :P201_PARTY_NAME, :P201_REGISTRATION_NUMBER,
-                         :P201_ID_NUMBER, case :P201_PARTY_TYPE when 'ORGANIZATION' then to_date(:P201_INCORPORATION_DATE) else to_date(:P201_DATE_OF_BIRTH) end, :P201_JURISDICTION) > 0 then
-                    return 'Existing parties may be this counterparty: choose one with Use this party, or confirm that none of them is.';
-                end if;
-                return null;
-                ```
-        }
-        error {
-            associatedItem: @P201_MATCH_ACK
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
-        }
-    )
-
-    validation check-exact (
-        name: Party already exists
-        execution {
-            sequence: 5
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                declare
-                    l_party varchar2(30);
-                begin
-                    if :P201_PARTY_SELECTION = 'NEW' then
-                        l_party := xxcmp_request_pkg.exact_party_number(:P201_PARTY_TYPE, :P201_REGISTRATION_NUMBER, :P201_ID_NUMBER,
-                                                                        :P201_JURISDICTION);
-                        if l_party is not null then
-                            return 'Party ' || l_party || ' already has this registration number and country: use this party.';
-                        end if;
-                    end if;
-                    return null;
-                end;
-                ```
-        }
-        error {
-            associatedItem: @P201_REGISTRATION_NUMBER
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: NEXT
+            value: NEXT,SAVE_DRAFT
         }
     )
 
     process save-request (
-        name: Save counterparty
+        name: Save the request and its counterparty
         type: executeCode
         source {
             language: plsql
@@ -1420,24 +804,22 @@ page 201 (
                 declare
                     l_request_id number := to_number(:P201_REQUEST_ID);
                 begin
-                    -- one rule set for the page and the database; Save as Draft only needs the type and a name or party
-                    xxcmp_request_pkg.save_counterparty(
+                    xxcmp_request_pkg.save_request(
                         p_request_id            => l_request_id,
                         p_party_selection       => :P201_PARTY_SELECTION,
                         p_party_id              => to_number(:P201_PARTY_ID),
-                        p_party_type            => :P201_PARTY_TYPE,
-                        p_party_name            => :P201_PARTY_NAME,
-                        p_registration_number   => :P201_REGISTRATION_NUMBER,
-                        p_entity_type           => :P201_ENTITY_TYPE,
-                        p_incorporation_date    => to_date(:P201_INCORPORATION_DATE),
-                        p_id_type               => :P201_ID_TYPE,
-                        p_id_number             => :P201_ID_NUMBER,
-                        p_jurisdiction          => :P201_JURISDICTION,
-                        p_date_of_birth         => to_date(:P201_DATE_OF_BIRTH),
-                        p_nationality           => :P201_NATIONALITY,
+                        p_party_type            => :P0_PARTY_TYPE,
+                        p_party_name            => :P0_PARTY_NAME,
+                        p_jurisdiction          => :P0_PARTY_JURISDICTION,
+                        p_registration_number   => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type           => :P0_PARTY_ENTITY_TYPE,
+                        p_incorporation_date    => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email                 => :P0_PARTY_EMAIL,
+                        p_phone                 => :P0_PARTY_PHONE,
+                        p_website               => :P0_PARTY_WEBSITE,
+                        p_fax                   => :P0_PARTY_FAX,
                         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
                         p_justification         => :P201_JUSTIFICATION,
-                        p_match_ack             => nvl(:P201_MATCH_ACK, 'N'),
                         p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
                         p_contact_name          => :P201_CONTACT_NAME,
                         p_contact_email         => :P201_CONTACT_EMAIL,
@@ -1462,8 +844,33 @@ page 201 (
         }
     )
 
+    process cancel-request (
+        name: Cancel the request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.cancel(:P201_REQUEST_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Request cancelled.
+        }
+        serverSideCondition {
+            whenButtonPressed: @cancel-request
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
     branch (
-        name: Draft saved
+        name: Draft saved or cancelled
         execution {
             sequence: 10
         }
@@ -1474,7 +881,8 @@ page 201 (
             }
         }
         serverSideCondition {
-            whenButtonPressed: @save-draft
+            type: requestIsContainedInValue
+            value: SAVE_DRAFT,CANCEL_REQUEST
         }
     )
 

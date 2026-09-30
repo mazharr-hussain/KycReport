@@ -60,15 +60,10 @@ declare
     function new_request(p_name varchar2) return number is
         l number;
     begin
-        -- a random suffix: each run's counterparty resembles no earlier test party (else Compliance decides the match)
-        l := xxcmp_request_pkg.create_request(p_party_type => 'ORGANIZATION', p_party_name => dbms_random.string('U', 16),
-                   p_registration_number => upper(replace(p_name, ' ')) || to_char(sysdate, 'HH24MISS'),
-                   p_jurisdiction => 'AE', p_entity_type => 'LLC', p_requesting_department => 'PROCUREMENT',
-                   p_justification => 'New supplier');
-        -- a new counterparty needs contact details before it can be submitted
-        update xxcmp_requests set contact_name = 'Test Contact', contact_email = 'contact@example.com',
-                                  contact_phone = '+971 4 000 0000'
-         where request_id = l;
+        -- a random suffix: each run's counterparty resembles no earlier test party; it is created as a Pending party
+        xxcmp_request_pkg.save_request(l, 'NEW', null, 'ORGANIZATION', dbms_random.string('U', 16), 'AE',
+                   upper(replace(p_name, ' ')) || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
+                   'contact@example.com', '+971 4 000 0000', null, null, 'PROCUREMENT', 'New supplier');
         return l;
     end;
 begin
@@ -84,11 +79,11 @@ begin
     answer(l_req, 'cash-intensive', 'No');
     xxcmp_request_pkg.submit(l_req);
     commit;
-    ok('right after submitting, the requester sees: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'Processing');
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''SUBMITTED''');
+    ok('right after submitting, the requester sees: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'In Progress');
+    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''IN_PROGRESS''');
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('listed company (gate answer) -> ' || l_row.intake_outcome || ' / ' || l_row.request_status || ' / stage ' || xxcmp_request_pkg.stage(l_req),
-       l_row.intake_outcome = 'NOT_REQUIRED' and l_row.request_status = 'COMPLETED');
+       l_row.intake_outcome = 'NOT_REQUIRED' and l_row.request_status = 'APPROVED');
 
     -------------------------------------------------------- auto-approve path
     l_req := new_request('Small Supplier');
@@ -99,10 +94,10 @@ begin
     answer(l_req, 'cash-intensive', 'No');
     xxcmp_request_pkg.submit(l_req);
     commit;
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''SUBMITTED''');
+    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''IN_PROGRESS''');
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('score ' || l_row.intake_score || ' within the low threshold -> ' || l_row.intake_outcome || ' / ' || l_row.request_status,
-       l_row.intake_outcome = 'AUTO_APPROVED' and l_row.request_status = 'COMPLETED');
+       l_row.intake_outcome = 'AUTO_APPROVED' and l_row.request_status = 'APPROVED');
 
     ---------------------------------------------------- incomplete submission
     l_req := new_request('Incomplete Co');
@@ -188,8 +183,11 @@ begin
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('level 2 approved -> case ' || l_c.case_status || ', closed ' || to_char(l_c.closed_date, 'DD-Mon')
        || ', next review ' || to_char(l_c.next_review_date, 'DD-Mon-YYYY') || '; request ' || l_row.request_status,
-       l_c.case_status = 'APPROVED' and l_c.closed_date is not null and l_row.request_status = 'COMPLETED'
+       l_c.case_status = 'APPROVED' and l_c.closed_date is not null and l_row.request_status = 'APPROVED'
        and l_c.next_review_date = add_months(trunc(sysdate), 12));
+    select count(*) into l_cnt from xxcmp_parties
+     where party_id = l_c.party_id and next_kyc_date = l_c.next_review_date and party_status = 'APPROVED';
+    ok('the party is Approved with the case''s next KYC date', l_cnt = 1);
     select listagg(level_no || ':' || decided_by || ':' || outcome, ', ') within group (order by level_no) into l_txt
       from xxcmp_case_decisions where case_id = l_case;
     ok('decision history: ' || l_txt, l_txt = '1:MGR1:APPROVED, 2:HOC1:APPROVED');

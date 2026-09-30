@@ -65,3 +65,15 @@ buildOption feature-theme-style (
         featureIdentifier: APPLICATION_THEME_STYLE_SELECTION
     }
 )
+
+buildOption request-contact (
+    name: Request - Contact Person
+    status {
+        status: exclude
+        defaultOnExport: exclude
+        onUpgradeKeepStatus: true
+    }
+    comments {
+        comments: Contact person fields on Create Request (page 201). Excluded: the fields stay in XXCMP_REQUESTS but are hidden. Set to Include to show them.
+    }
+)

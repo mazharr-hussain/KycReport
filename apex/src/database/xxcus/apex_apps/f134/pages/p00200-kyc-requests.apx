@@ -49,23 +49,27 @@ page 200 (
                 ```sql
                 select q.*,
                        apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
-                       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER)
+                       case when q.request_status in ('DRAFT', 'INFO_NEEDED') and upper(q.requester_user_name) = upper(:APP_USER)
                             then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203')
                        end as edit_url,
-                       case when q.request_status = 'DRAFT' and upper(q.requester_user_name) = upper(:APP_USER) then 'Edit' end as edit
+                       case when q.request_status in ('DRAFT', 'INFO_NEEDED') and upper(q.requester_user_name) = upper(:APP_USER) then 'Edit' end as edit
                   from (
                         select r.request_id,
                                r.request_number,
                                r.party_name,
                                xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type,
                                xxcmp_request_pkg.stage(r.request_id) as stage,
+                               xxcmp_request_pkg.kyc_required(r.request_id) as kyc_required,
+                               xxcmp_request_pkg.pending_with(r.request_id) as pending_with,
+                               r.last_action_date,
                                xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', r.intake_outcome) as intake_outcome,
                                r.intake_score,
                                xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department) as department,
                                r.requester_user_name,
                                r.request_status,
                                r.submitted_date,
-                               (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number
+                               (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number,
+                               r.created_by, r.creation_date, r.last_updated_by, r.last_update_date
                           from xxcmp_requests r
                        ) q
                 ```
@@ -162,7 +166,7 @@ page 200 (
         column STAGE (
             type: plainText
             heading {
-                heading: Stage
+                heading: Status
             }
             layout {
                 sequence: 50
@@ -171,6 +175,51 @@ page 200 (
                 dataType: STRING
             }
         )
+
+        column KYC_REQUIRED (
+            type: plainText
+            heading {
+                heading: KYC Required
+            }
+            layout {
+                sequence: 64
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+
+        column PENDING_WITH (
+            type: plainText
+            heading {
+                heading: Pending With
+            }
+            layout {
+                sequence: 66
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+
+        column LAST_ACTION_DATE (
+            type: plainText
+            heading {
+                heading: Action Date
+            }
+            layout {
+                sequence: 68
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
 
         column INTAKE_OUTCOME (
             type: plainText
@@ -309,6 +358,136 @@ page 200 (
             source {
                 dataType: STRING
             }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 400
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Created On
+            }
+            layout {
+                sequence: 410
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+
+        column LAST_UPDATED_BY (
+            type: plainText
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 420
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+
+        column LAST_UPDATE_DATE (
+            type: plainText
+            heading {
+                heading: Updated On
+            }
+            layout {
+                sequence: 430
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
+            }
+
+            displayColumn REQUEST_NUMBER (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn PARTY_NAME (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn STAGE (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn KYC_REQUIRED (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn PENDING_WITH (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn LAST_ACTION_DATE (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn DEPARTMENT (
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn REQUESTER_USER_NAME (
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn CASE_NUMBER (
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn EDIT (
+                layout {
+                    sequence: 10
+                }
+            )
+
         )
 
     )

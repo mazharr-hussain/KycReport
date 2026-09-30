@@ -500,6 +500,15 @@ page 203 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
         }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- a request in Information Needed is answered on the request page (Respond), not submitted again
+                xxcmp_request_pkg.stage(:P203_REQUEST_ID) = xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'DRAFT')
+                ```
+        }
         security {
             authorizationScheme: @page-create
         }

@@ -39,4 +39,528 @@ page 0 (
         }
     )
 
+
+    region party-form (
+        name: Party Details
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party-form
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 23, 24, 201)
+                ```
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+        comments {
+            comments: The one party form (common region). Pages 21 (read only), 23 (new owner / officer), 24 (Party dialog) and 201 (Create Request, new counterparty) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
+        }
+    )
+
+    pageItem P0_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @party-form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P0_PARTY_READ_ONLY (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @party-form
+            slot: regionBody
+        }
+    )
+
+    pageItem P0_PARTY_NUMBER (
+        type: displayOnly
+        label {
+            label: Party Number
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_TYPE (
+        type: radioGroup
+        label {
+            label: Party Type
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: false
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null and :APP_PAGE_ID <> 201
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 360
+        }
+    )
+
+    pageItem P0_PARTY_JURISDICTION (
+        type: selectList
+        label {
+            label: Country
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+    )
+
+    pageItem P0_PARTY_REGISTRATION_NUMBER (
+        type: textField
+        label {
+            label: Registration No.
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+    )
+
+    pageItem P0_PARTY_ENTITY_TYPE (
+        type: selectList
+        label {
+            label: Entity Type
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = xxcmp_party_pkg.entity_lookup(:P0_PARTY_TYPE) and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P0_PARTY_TYPE
+        }
+    )
+
+    pageItem P0_PARTY_INCORPORATION_DATE (
+        type: datePicker
+        label {
+            label: Incorporation Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P0_PARTY_EMAIL (
+        type: textField
+        label {
+            label: Email
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+    )
+
+    pageItem P0_PARTY_PHONE (
+        type: textField
+        label {
+            label: Phone
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+    )
+
+    pageItem P0_PARTY_WEBSITE (
+        type: textField
+        label {
+            label: Website
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 500
+        }
+    )
+
+    pageItem P0_PARTY_FAX (
+        type: textField
+        label {
+            label: Fax
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+    )
+
+    pageItem P0_PARTY_STATUS (
+        type: displayOnly
+        label {
+            label: Party Status
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_NEXT_KYC_DATE (
+        type: displayOnly
+        label {
+            label: Next KYC Date
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_DATA_PROVENANCE (
+        type: selectList
+        label {
+            label: Data Provenance
+            alignment: left
+        }
+        layout {
+            sequence: 140
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'DATA_PROVENANCE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24)
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_LAST_VERIFIED_DATE (
+        type: displayOnly
+        label {
+            label: Last Verified
+            alignment: left
+        }
+        layout {
+            sequence: 150
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24) and :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 160
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24) and :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    dynamicAction party-form-labels (
+        name: Party form - labels by party type
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P0_PARTY_TYPE
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 23, 24, 201)
+                ```
+        }
+
+        action party-form-labels-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // one column per organisation / individual pair: the label follows the party type
+                    var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
+                        labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
+                                   P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
+                                   P0_PARTY_ENTITY_TYPE: ["Entity Type", "ID Type"],
+                                   P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"] };
+                    Object.keys(labels).forEach(function (item) {
+                        $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+    )
+
 )

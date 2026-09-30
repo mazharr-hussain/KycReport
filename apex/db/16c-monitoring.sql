@@ -92,7 +92,7 @@ with latest as (
     select r.party_id, max(r.request_id) as request_id, max(r.request_number) as request_number
       from xxcmp_requests r
      where r.request_type <> 'NEW_ONBOARDING'
-       and r.request_status in ('DRAFT','SUBMITTED','IN_PROGRESS')
+       and r.request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED')
      group by r.party_id
 )
 select p.party_id,
@@ -149,7 +149,7 @@ create or replace package body xxcmp_monitor_pkg as
         select max(request_number) into l_number
           from xxcmp_requests
          where party_id = p_party_id
-           and request_status in ('DRAFT','SUBMITTED','IN_PROGRESS');
+           and request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED');
         return l_number;
     end open_review;
 

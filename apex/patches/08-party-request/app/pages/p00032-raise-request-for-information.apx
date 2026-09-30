@@ -1,0 +1,500 @@
+page 32 (
+    name: Raise Request for Information
+    alias: RAISE-REQUEST-FOR-INFORMATION
+    title: Raise Request for Information
+    pageGroup: @rfi
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Ask a colleague or the party itself for missing information. External parties receive a one-time secure link.
+    }
+
+    region raise (
+        name: Raise Request for Information
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: raise
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P32_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @raise
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P32_PK1_VALUE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @raise
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P32_RECIPIENT_TYPE (
+        type: radioGroup
+        label {
+            label: Send To
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-recipient-type
+        }
+        layout {
+            sequence: 10
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: static
+            staticValue: REQUESTING_DEPARTMENT
+        }
+        help {
+            helpText: Choose the send To.
+        }
+    )
+
+    pageItem P32_RECIPIENT_USER_NAME (
+        type: popupLov
+        label {
+            label: Colleague
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-employees
+        }
+        layout {
+            sequence: 20
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Choose the colleague.
+        }
+    )
+
+    pageItem P32_PARTY_CONTACT_ID (
+        type: selectList
+        label {
+            label: Party Email Contact
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- contact persons with an email
+                select c.contact_name || ' <' || c.email || '>' as display_value,
+                       c.party_contact_id as return_value
+                  from xxcmp_party_contacts c
+                 where c.party_id = case :P32_ENTITY_NAME
+                                        when 'XXCMP_PARTIES'  then to_number(:P32_PK1_VALUE)
+                                        when 'XXCMP_CASES'    then (select x.party_id from xxcmp_cases x where x.case_id = to_number(:P32_PK1_VALUE))
+                                        when 'XXCMP_REQUESTS' then (select x.party_id from xxcmp_requests x where x.request_id = to_number(:P32_PK1_VALUE))
+                                    end
+                   and c.email is not null
+                   and c.enabled_flag = 'Y'
+                 order by c.primary_flag desc, c.contact_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Choose the party Email Contact.
+        }
+    )
+
+    pageItem P32_RFI_CATEGORY (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-category
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 40
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Choose the category.
+        }
+    )
+
+    pageItem P32_DESCRIPTION (
+        type: textarea
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            height: 5
+        }
+        validation {
+            valueRequired: true
+            maxLength: 4000
+        }
+        help {
+            helpText: Enter the information Requested.
+        }
+    )
+
+    pageItem P32_CONTINUE_WORK (
+        type: switch
+        label {
+            label: Continue Other Work Meanwhile
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Off puts the record on hold until the information arrives.
+        }
+    )
+
+    pageItem P32_DUE_DATE (
+        type: datePicker
+        label {
+            label: Due Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @raise
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Choose the due Date.
+        }
+    )
+
+    dynamicAction recipient-fields (
+        name: Show fields for P32_RECIPIENT_TYPE
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P32_RECIPIENT_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P32_RECIPIENT_TYPE
+            value: REQUESTING_DEPARTMENT
+        }
+
+        action recipient-fields-show-t (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P32_RECIPIENT_USER_NAME
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action recipient-fields-hide-t (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P32_PARTY_CONTACT_ID
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action recipient-fields-show-f (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P32_PARTY_CONTACT_ID
+            }
+            execution {
+                sequence: 30
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+        action recipient-fields-hide-f (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P32_RECIPIENT_USER_NAME
+            }
+            execution {
+                sequence: 40
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button send (
+        buttonName: SEND
+        label: Send Request
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation VAL_RECIPIENT_CHOSEN (
+        name: Recipient chosen
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case
+                         when :P32_RECIPIENT_TYPE = 'REQUESTING_DEPARTMENT' and :P32_RECIPIENT_USER_NAME is null
+                              then 'Choose the colleague who should answer.'
+                         when :P32_RECIPIENT_TYPE = 'EXTERNAL_PARTY' and :P32_PARTY_CONTACT_ID is null
+                              then 'Choose the party email contact.'
+                       end;
+                ```
+        }
+        error {
+            associatedItem: @P32_RECIPIENT_TYPE
+        }
+        serverSideCondition {
+            whenButtonPressed: @send
+        }
+    )
+
+    process raise-rfi (
+        name: Raise RFI
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_rfi_id number;
+                    l_token  varchar2(200);
+                    l_url    varchar2(4000);
+                begin
+                    xxcmp_kyc_pkg.create_rfi(
+                        p_entity_name         => :P32_ENTITY_NAME,
+                        p_pk1_value           => :P32_PK1_VALUE,
+                        p_recipient_type      => :P32_RECIPIENT_TYPE,
+                        p_rfi_category        => :P32_RFI_CATEGORY,
+                        p_description         => :P32_DESCRIPTION,
+                        p_continue_other_work => :P32_CONTINUE_WORK,
+                        p_due_date            => to_date(:P32_DUE_DATE),
+                        p_recipient_user_name => case when :P32_RECIPIENT_TYPE = 'REQUESTING_DEPARTMENT'
+                                                      then :P32_RECIPIENT_USER_NAME end,
+                        p_party_contact_id    => case when :P32_RECIPIENT_TYPE = 'EXTERNAL_PARTY'
+                                                      then to_number(:P32_PARTY_CONTACT_ID) end,
+                        p_rfi_id              => l_rfi_id,
+                        p_token               => l_token);
+                    if l_token is not null then
+                        l_url := apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN',
+                                                   p_values => l_token, p_absolute_url => true);
+                    end if;
+                    xxcmp_kyc_pkg.send_rfi_email(l_rfi_id, l_url);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Request for information sent.
+        }
+        serverSideCondition {
+            whenButtonPressed: @send
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SEND
+        }
+    )
+
+)

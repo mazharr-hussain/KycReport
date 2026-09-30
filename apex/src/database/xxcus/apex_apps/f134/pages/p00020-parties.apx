@@ -58,10 +58,21 @@ page 20 (
                            xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', p.party_type) as party_type,
                            p.registration_number,
                            xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
-                           xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', p.entity_type) as entity_type,
+                           xxfnd_util_pkg.lookup_meaning(xxcmp_party_pkg.entity_lookup(p.party_type), p.entity_type) as entity_type,
+                           p.incorporation_date,
+                           p.email,
+                           p.phone,
+                           (select max(c.contact_name) keep (dense_rank first order by c.primary_flag desc, c.party_contact_id)
+                              from xxcmp_party_contacts c where c.party_id = p.party_id and c.enabled_flag = 'Y') as primary_contact,
+                           xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as party_status,
+                           p.next_kyc_date,
                            xxfnd_util_pkg.lookup_meaning('DATA_PROVENANCE', p.data_provenance) as data_provenance,
                            p.last_verified_date,
                            p.enabled_flag,
+                           (select m.party_number from xxcmp_parties m where m.party_id = p.merged_into_party_id) as merged_into,
+                           p.created_by,
+                           p.creation_date,
+                           p.last_updated_by,
                            p.last_update_date
                       from xxcmp_parties p
                 ) q
@@ -159,7 +170,7 @@ page 20 (
         column REGISTRATION_NUMBER (
             type: plainText
             heading {
-                heading: Registration No.
+                heading: Registration No. / ID Number
             }
             layout {
                 sequence: 50
@@ -172,7 +183,7 @@ page 20 (
         column JURISDICTION (
             type: plainText
             heading {
-                heading: Jurisdiction
+                heading: Country / Nationality
             }
             layout {
                 sequence: 60
@@ -185,13 +196,97 @@ page 20 (
         column ENTITY_TYPE (
             type: plainText
             heading {
-                heading: Entity Type
+                heading: Entity Type / ID Type
             }
             layout {
                 sequence: 70
             }
             source {
                 dataType: STRING
+            }
+        )
+
+        column INCORPORATION_DATE (
+            type: plainText
+            heading {
+                heading: Incorporation / Birth Date
+            }
+            layout {
+                sequence: 72
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 74
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PHONE (
+            type: plainText
+            heading {
+                heading: Phone
+            }
+            layout {
+                sequence: 75
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIMARY_CONTACT (
+            type: plainText
+            heading {
+                heading: Primary Contact
+            }
+            layout {
+                sequence: 76
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_STATUS (
+            type: plainText
+            heading {
+                heading: Party Status
+            }
+            layout {
+                sequence: 77
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEXT_KYC_DATE (
+            type: plainText
+            heading {
+                heading: Next KYC Date
+            }
+            layout {
+                sequence: 78
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+            source {
+                dataType: DATE
             }
         )
 
@@ -237,10 +332,65 @@ page 20 (
             }
         )
 
+        column MERGED_INTO (
+            type: plainText
+            heading {
+                heading: Merged Into
+            }
+            layout {
+                sequence: 102
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 104
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Created On
+            }
+            layout {
+                sequence: 106
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column LAST_UPDATED_BY (
+            type: plainText
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 108
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
         column LAST_UPDATE_DATE (
             type: plainText
             heading {
-                heading: Updated
+                heading: Updated On
             }
             layout {
                 sequence: 110
@@ -296,6 +446,81 @@ page 20 (
             source {
                 dataType: STRING
             }
+        )
+
+
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
+            }
+
+            displayColumn PARTY_NUMBER (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn PARTY_NAME (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn PARTY_TYPE (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn REGISTRATION_NUMBER (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn JURISDICTION (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn EMAIL (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn PHONE (
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn PARTY_STATUS (
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn NEXT_KYC_DATE (
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn ENABLED_FLAG (
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn EDIT (
+                layout {
+                    sequence: 11
+                }
+            )
+
         )
 
     )

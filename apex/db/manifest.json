@@ -171,6 +171,12 @@
   "upgrade_sequence": 127
  },
  {
+  "name": "16f Party and request redesign",
+  "file": "16f-party-request-redesign.sql",
+  "install_sequence": 168,
+  "upgrade_sequence": 128
+ },
+ {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,

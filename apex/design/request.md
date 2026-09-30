@@ -1,6 +1,6 @@
-# Request – agreed design (in progress)
+# Request – agreed design
 
-Status: **being agreed**. Nothing below is built yet. Uses the Party design (`party.md`).
+Status: **built in release 23 (patch 08)**. Uses the Party design (`party.md`).
 
 ## General rules
 - A new counterparty is created as a party **on the fly** when the request is saved (Party Status *Pending*). It
@@ -61,5 +61,13 @@ Edit (drafts only). Hidden, available: Type, Intake Score, Submitted, Who column
 
 The match decision in Compliance's checklist task is replaced by **Merge** (Compliance merges a duplicate party).
 
-## Open
-- Request page (205).
+## Request page (205)
+| Region | Content |
+|---|---|
+| Request | Status, KYC Required, Pending With, Action Date, counterparty, type, intake result, requested by, Business Justification, party, case |
+| Party | the common party card; Edit Party for Compliance |
+| Information Needed (requester) | Compliance's question, Your Answer, **Respond** (the request goes back In Progress) |
+| Possible Duplicate Parties (Compliance, Pending party) | similar parties with **Merge into this party** (replaces the old match decision) |
+| Answers, Document Checklist, Documents, Approval | as before |
+| Checklist Decision (Compliance holding the task) | Comment, Approve – Open Case, Reject Request, Request Information (Raise RFI removed) |
+| Buttons (requester) | Edit Request (Draft / Information Needed), Cancel Request (Draft / In Progress / Information Needed) |

@@ -1,6 +1,6 @@
-# Party – agreed design (for sign-off)
+# Party – agreed design
 
-Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21/22 (app 134).
+Status: **built in release 23 (patch 08)**.
 
 ## General rules
 - **One party form everywhere, defined once.** The party form is a single region on the **Global Page (page 0)**,
