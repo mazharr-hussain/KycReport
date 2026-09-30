@@ -4,7 +4,7 @@ read-only condition, static and classic report regions, non-form items, buttons,
 wizard progress, lookup LOVs."""
 import os
 
-PAGES = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'pages')
+PAGES = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f134'), 'pages')
 
 
 def write(name, text):

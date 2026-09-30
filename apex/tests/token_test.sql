@@ -9,13 +9,13 @@ begin
     returning party_contact_id into l_contact;
     xxfnd_util_pkg.set_install_mode(false);
     select min(lookup_code) into l_cat from xxfnd_lookup_values where lookup_type='RFI_CATEGORY';
-    apex_session.create_session(101, 1, 'OFFICER1');
+    apex_session.create_session(134, 1, 'OFFICER1');
     xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'EXTERNAL_PARTY',
         l_cat, 'x', 'Y', trunc(sysdate)+5, p_party_contact_id => l_contact, p_rfi_id => l_rfi, p_token => l_tok);
     commit;
     apex_session.delete_session;
     -- the public page runs as nobody
-    apex_session.create_session(101, 33, 'nobody');
+    apex_session.create_session(134, 33, 'nobody');
     begin
         l_cnt := xxcmp_kyc_pkg.respond_by_token('wrong-token', to_clob('no'));
     exception when others then dbms_output.put_line('bad token -> '||sqlerrm);

@@ -47,7 +47,7 @@ declare
         l_p number; l_r number; l_desc varchar2(200);
         function b(x boolean) return varchar2 is begin return case when x then 'Y' else 'N' end; end;
     begin
-        apex_session.create_session(p_app_id => 101, p_page_id => 1, p_username => p_user);
+        apex_session.create_session(p_app_id => 134, p_page_id => 1, p_username => p_user);
         select count(*) into l_p from xxcmp_parties;
         select count(*), listagg(description, ',') into l_r, l_desc from xxcmp_rfis;
         dbms_output.put_line(rpad(p_user,9)||' parties='||l_p||' rfis='||l_r||' ['||l_desc||']'

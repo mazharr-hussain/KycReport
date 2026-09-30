@@ -1,7 +1,7 @@
 import sys, json, re
 from playwright.sync_api import sync_playwright
 BASE='http://localhost:8080/ords/r/xxcus/kyc'
-APP=sys.argv[1] if len(sys.argv)>1 else '101'
+APP=sys.argv[1] if len(sys.argv)>1 else '134'
 USER=sys.argv[3] if len(sys.argv)>3 else 'ADMIN'
 direct=[1,20,30,40,41,44,200,201,210,220,221,225,230,100,101,103,105,107,109,111,112,114,120,122,124,130,132,134,136,138,145,147,150,152,160,163,165,10010,10020,10030,10031,10032,10033,10051,180,182,10022]
 res=[]
