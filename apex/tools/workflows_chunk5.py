@@ -4,7 +4,7 @@ and approval). Activities call XXCMP_REQUEST_PKG / XXCMP_CASE_PKG; human steps a
 DOC_CHECKLIST_REVIEW, CASE_INVESTIGATION and CASE_APPROVAL."""
 import json, os
 
-OUT = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'shared-components', 'workflows')
+OUT = os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'shared-components', 'workflows')
 os.makedirs(OUT, exist_ok=True)
 
 

@@ -5,7 +5,7 @@ in column sequence, the row actions menu frozen first. Idempotent: reports that 
 Usage: ig_display_columns.py [pages-dir]"""
 import os, re, sys
 
-PAGES = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'pages')
+PAGES = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'database', 'xxcus', 'apex_apps', 'f101'), 'pages')
 
 
 def blocks(text, indent, keyword):
