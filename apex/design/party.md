@@ -23,10 +23,10 @@ Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21
 | 1 | Party Number | PARTY_NUMBER | automatic, read only |
 | 2 | Party Type | PARTY_TYPE | **required** (Organisation / Individual) |
 | 3 | Name | PARTY_NAME | **required** |
-| 4 | Country / Nationality | *merged – name open* | **required** |
-| 5 | Registration No. / ID Number | *merged – name open* | **required** for an organisation, optional for an individual; same number + country = duplicate |
-| 6 | Entity Type / ID Type | *merged – name open* | **required** for an organisation; for an individual, required when an ID Number is entered |
-| 7 | Incorporation Date / Date of Birth | *merged – name open* | optional |
+| 4 | Country / Nationality | JURISDICTION | **required** |
+| 5 | Registration No. / ID Number | REGISTRATION_NUMBER | **required** for an organisation, optional for an individual; same number + country = duplicate |
+| 6 | Entity Type / ID Type | ENTITY_TYPE | **required** for an organisation; for an individual, required when an ID Number is entered |
+| 7 | Incorporation Date / Date of Birth | INCORPORATION_DATE | optional |
 | 8 | Email | EMAIL | email **or** phone required |
 | 9 | Phone | PHONE | email **or** phone required |
 | 10 | Website | WEBSITE | optional |
@@ -37,6 +37,19 @@ Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21
 | 15 | Merged Into / Merge Note | MERGED_INTO_PARTY_ID, MERGE_NOTE | set by merge, read only |
 | 16 | Additional Information | ATTRIBUTE_CATEGORY, ATTRIBUTE1… (DFF) | as configured in Flexfields |
 | 17 | Who columns | CREATED_BY … OBJECT_VERSION_NUMBER | automatic, hidden by default |
+
+**Merged columns (agreed names: keep the existing organisation column):**
+| Column kept | Organisation label | Individual label | Dropped (data moved first, individuals only) |
+|---|---|---|---|
+| JURISDICTION | Country | Nationality | NATIONALITY (an individual's nationality wins over country) |
+| REGISTRATION_NUMBER | Registration No. | ID Number | ID_NUMBER |
+| ENTITY_TYPE | Entity Type (lookup ENTITY_TYPE) | ID Type (lookup ID_TYPE) | ID_TYPE |
+| INCORPORATION_DATE | Incorporation Date | Date of Birth | DATE_OF_BIRTH |
+
+Side effects:
+- Duplicate check: number + country for both types. For individuals, name + date of birth also stays.
+- Mandatory document rules (Country + Entity Type): for an individual, they now match on **Nationality + ID Type**.
+- The party check constraint XXCMP_PARTIES_CK4 is no longer needed and is dropped.
 
 The 4 pairs become 4 columns, with existing data moved into them. The same change applies to `XXCMP_REQUESTS` (the
 request's counterparty), duplicate matching, the party card and the party check constraint.
@@ -74,4 +87,4 @@ Shown: Number (link), Name, Type, Registration No. / ID Number, Country, Email, 
 Hidden, available: Entity Type / ID Type, Date, Primary Contact, Provenance, Last Verified, Merged Into, Who columns.
 
 ## Open before build
-1. **Column names** for the 4 merged pairs (keep one existing name each, or give new names / DDL).
+None. Next: agree the Request screens, then build Party and Request as one patch each.
