@@ -12,14 +12,15 @@ APEXlang reads install scripts from supporting-objects/install-scripts/ and upgr
 supporting-objects/upgrade-scripts/, so this tool writes a copy into each folder it is used in.
 
 Usage:
-  python3 apex/tools/build.py                 # regenerate apex/src/supporting-objects
+  python3 apex/tools/build.py                 # regenerate src/database/xxcus/apex_apps/f101/supporting-objects
   python3 apex/tools/build.py --release 12    # ... and write apex/KYC-Compliance-Platform-APEXlang_12.zip
 """
 import argparse, json, os, re, shutil, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(ROOT, 'db')
-SO = os.path.join(ROOT, 'src', 'supporting-objects')
+APP = os.path.join(os.path.dirname(ROOT), 'src', 'database', 'xxcus', 'apex_apps', 'f101')
+SO = os.path.join(APP, 'supporting-objects')
 
 
 def ident(name):
@@ -59,7 +60,7 @@ def build():
 
 
 def release(n):
-    src = os.path.join(ROOT, 'src')
+    src = APP
     target = os.path.join(ROOT, f'KYC-Compliance-Platform-APEXlang_{n}.zip')
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
         for d, dirs, files in os.walk(src):
