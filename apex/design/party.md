@@ -34,6 +34,7 @@ Status: **draft for sign-off**. Nothing below is built yet. Builds on release 21
 | 12 | Data Provenance | DATA_PROVENANCE | Compliance only |
 | 13 | Last Verified | LAST_VERIFIED_DATE | Compliance only |
 | 14 | Enabled | ENABLED_FLAG | default Yes, Compliance only |
+| 14a | Next KYC Date | **NEXT_KYC_DATE** (new, DATE) | **display only**, set automatically when a KYC case is approved: approval date + review months of the risk tier (Lookup RISK_TIER, tag), capped at PEP_REVIEW_MONTHS for a PEP. Cleared when the party's KYC is rejected. The periodic review uses it. |
 | 15 | Merged Into / Merge Note | MERGED_INTO_PARTY_ID, MERGE_NOTE | set by merge, read only |
 | 16 | Additional Information | ATTRIBUTE_CATEGORY, ATTRIBUTE1… (DFF) | as configured in Flexfields |
 | 17 | Who columns | CREATED_BY … OBJECT_VERSION_NUMBER | automatic, hidden by default |
@@ -83,7 +84,7 @@ request's counterparty), duplicate matching, the party card and the party check 
 - The same person with two roles is recorded as two rows. Circular ownership stays blocked.
 
 ## D. Parties list (page 20)
-Shown: Number (link), Name, Type, Registration No. / ID Number, Country, Email, Phone, Enabled, Edit.
+Shown: Number (link), Name, Type, Registration No. / ID Number, Country, Email, Phone, Next KYC Date, Enabled, Edit.
 Hidden, available: Entity Type / ID Type, Date, Primary Contact, Provenance, Last Verified, Merged Into, Who columns.
 
 ## Open before build
