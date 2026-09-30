@@ -7,6 +7,7 @@
 - Deliver each feature as a small deployable patch: `apex/patches/NN-<feature>/` + zip (db script, changed app
   files under `app/`, README with deploy steps), on top of the latest release.
 - Do not guess table or column names (ask for DDL); keep component IDs unless a fix needs a change.
+- UI: Universal Theme with the **Redwood Light** theme style only (users cannot switch styles); use its standard templates.
 - Rules: OOTB APEX first; access/admin changes from the application console; every page has 2+ privileges
   (View/Create/Manage) plus data security; reusable patterns; deploy in chunks.
 - Test only what the feature touches (its db test + browser test).
