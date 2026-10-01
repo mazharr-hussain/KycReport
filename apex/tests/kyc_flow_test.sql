@@ -63,7 +63,8 @@ declare
         -- a random suffix: each run's counterparty resembles no earlier test party; it is created as a Pending party
         xxcmp_request_pkg.save_request(l, 'NEW', null, 'ORGANIZATION', dbms_random.string('U', 16), 'AE',
                    upper(replace(p_name, ' ')) || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
-                   'contact@example.com', '+971 4 000 0000', null, null, 'PROCUREMENT', 'New supplier');
+                   'contact@example.com', '+971 4 000 0000', null, null, 'PROCUREMENT', 'New supplier',
+                   p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
         return l;
     end;
 begin

@@ -1,0 +1,724 @@
+page 21 (
+    name: Party
+    alias: PARTY
+    title: Party
+    pageGroup: @parties
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One party, read only: the party, additional information, contact persons, owners / officers and documents (the common Global Page regions). Edit (Parties - Manage) opens the party wizard (Party Information, Party Details, Review); this page is its review step. Compliance can merge this party into a similar one.
+            ```
+    }
+
+    region breadcrumb (
+        name: Party
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Party
+        type: list
+        source {
+            list: @party-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button back-top (
+        buttonName: BACK_TOP
+        label: Back
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-chevron-left
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 20
+                clearCache: 20
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW'
+                ```
+        }
+    )
+
+    button edit-top (
+        buttonName: EDIT_TOP
+        label: Edit
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button previous-top (
+        buttonName: PREVIOUS_TOP
+        label: Previous
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 25
+                items: {
+                    P25_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 25
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button done-top (
+        buttonName: DONE_TOP
+        label: Done
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button back (
+        buttonName: BACK
+        label: Back
+        layout {
+            sequence: 10
+            region: @party
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-chevron-left
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 20
+                clearCache: 20
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW'
+                ```
+        }
+    )
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 20
+            region: @party
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @party
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 25
+                items: {
+                    P25_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 25
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button done (
+        buttonName: DONE
+        label: Done
+        layout {
+            sequence: 20
+            region: @party
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    region party (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party
+        }
+        comments {
+            comments: Holds the page's buttons (bottom); the same buttons are in the title bar (top).
+        }
+    )
+
+    pageItem P21_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @party
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P21_MODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @party
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: REVIEW = step 3 of the party wizard (progress, Previous / Done); otherwise the read-only party view (Back / Edit).
+        }
+    )
+
+    region matches (
+        name: Possible Existing Matches
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- name similarity computed once per party (inline view), not three times
+                select m.party_id,
+                       m.party_number,
+                       m.party_name,
+                       m.registration_number,
+                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
+                       case when m.same_registration = 'Y'
+                            then 'Same ' || lower(xxcmp_party_pkg.field_label(m.party_type, 'REGISTRATION_NUMBER'))
+                            else round(m.similarity) || '% name match'
+                       end as match_reason,
+                       -- Compliance merges this party (the duplicate) into the matched one
+                       case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                                 and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                            then 'Merge into this party' end as merge
+                  from (select p.party_id, p.party_number, p.party_name, p.party_type, p.registration_number, p.jurisdiction,
+                               case when p.registration_number is not null
+                                     and upper(replace(p.registration_number, ' ')) = upper(replace(me.registration_number, ' '))
+                                    then 'Y' else 'N' end as same_registration,
+                               xxcmp_kyc_pkg.name_similarity(p.party_name, me.party_name) as similarity
+                          from xxcmp_parties me
+                          join xxcmp_parties p
+                            on p.party_id <> me.party_id and p.party_type = me.party_type and p.enabled_flag = 'Y'
+                         where me.party_id = :P21_PARTY_ID) m
+                 where m.same_registration = 'Y' or m.similarity >= 85
+                 order by m.similarity desc
+                 fetch first 10 rows only
+                ```
+            pageItemsToSubmit: P21_PARTY_ID
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: matches
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 10
+        }
+        messages {
+            whenNoDataFound: No similar parties found.
+        }
+
+        column PARTY_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_NUMBER (
+            type: link
+            heading {
+                heading: Number
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 21
+                    items: {
+                        P21_PARTY_ID: #PARTY_ID#
+                    }
+                    clearCache: 21
+                }
+                linkText: #PARTY_NUMBER#
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration No. / ID Number
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column JURISDICTION (
+            type: plainText
+            heading {
+                heading: Country / Nationality
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column MATCH_REASON (
+            type: plainText
+            heading {
+                heading: Why It Matches
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column MERGE (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-merge-into" data-party="#PARTY_ID#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#MERGE#</a>
+                    ```
+            }
+        )
+
+    )
+
+    pageItem P21_MERGE_INTO_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @matches
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Set by the Merge link just before submit. XXCMP_PARTY_PKG.MERGE_PARTIES re-checks the privilege, the party types and that both parties are enabled.
+        }
+    )
+
+    dynamicAction merge-into (
+        name: Merge into an existing party
+        execution {
+            sequence: 60
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-merge-into
+        }
+
+        action merge-into-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Merge this party into " + a.data("label") + "? Its requests, cases, contacts, "
+                        + "ownership and documents move there and this party is disabled.", function (ok) {
+                        if (ok) {
+                            apex.page.submit({ request: "MERGE", set: { P21_MERGE_INTO_ID: String(a.data("party")) },
+                                               validate: false });
+                        }
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region missing-docs (
+        name: Mandatory Documents
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_missing apex_t_varchar2;
+                    l_html    varchar2(32767);
+                    l_name    varchar2(240);
+                    l_party   xxcmp_parties%rowtype;
+                begin
+                    select * into l_party from xxcmp_parties where party_id = :P21_PARTY_ID;
+                    l_missing := xxcmp_kyc_pkg.missing_categories('XXCMP_PARTIES', to_char(l_party.party_id),
+                                                                  l_party.jurisdiction,
+                                                                  case when l_party.party_type = 'PERSON' then l_party.registration_type else l_party.entity_type end);
+                    if l_missing.count = 0 then
+                        return '<p class="u-success-text">All mandatory documents are on file.</p>';
+                    end if;
+                    l_html := '<p>Still needed:</p><ul>';
+                    for i in 1 .. l_missing.count loop
+                        select max(category_name) into l_name
+                          from xxfnd_document_categories_vl
+                         where category_code = l_missing(i);
+                        l_html := l_html || '<li>' || apex_escape.html(nvl(l_name, l_missing(i))) || '</li>';
+                    end loop;
+                    return l_html || '</ul>';
+                end;
+                ```
+            pageItemsToSubmit: P21_PARTY_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: missing-docs
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_PARTY_ID
+        }
+    )
+
+    process merge-party (
+        name: Merge into another party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.merge_parties(:P21_PARTY_ID, to_number(:P21_MERGE_INTO_ID));
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        successMessage {
+            successMessage: The party was merged: you are now on the party it was merged into.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    branch (
+        name: To the kept party
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_MERGE_INTO_ID.
+                }
+                clearCache: 21
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MERGE
+        }
+    )
+
+    process set-context (
+        name: The party in the common regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := null;
+                :P0_SUMMARY_PARTY_ID := :P21_PARTY_ID;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    branch (
+        name: No party: to the list
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        behavior {
+            target: {
+                page: 20
+            }
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P21_PARTY_ID
+        }
+    )
+
+)

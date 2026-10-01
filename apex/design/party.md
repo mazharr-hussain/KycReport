@@ -28,6 +28,12 @@ Status: **built in release 23 (patch 08)**; release 24 (patch 09): read-only fie
 - Field order: organisation Entity Type before Name; individual ID Type before ID Number. **Registration Type** (organisation) waits for
   its column (DDL).
 
+## Release 26 (patch 11)
+- **Registration Type** (REGISTRATION_TYPE): the type of the registration / ID number. Organisation: Entity Type (category) → Name →
+  Country → Registration Type → Registration No.; individual: Name → Nationality → ID Type → ID Number (no Entity Type). Required with
+  the number (organisation always). An individual's ID type moved from ENTITY_TYPE.
+- **Business Relationships** on the party screens are derived from its requests (the relationship is kept on the request and case).
+
 ## A. Party (`XXCMP_PARTIES`)
 | # | Field (Organisation / Individual) | Column | Rule |
 |---|---|---|---|

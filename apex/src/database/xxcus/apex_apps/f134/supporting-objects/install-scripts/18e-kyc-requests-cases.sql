@@ -142,6 +142,11 @@ declare
 begin
     xxfnd_util_pkg.set_install_mode(true);
 
+    -- release 26: the type of an organisation's registration number, and what a counterparty is to the company
+    lt('REGISTRATION_TYPE', 'Registration Types');
+    lvs('REGISTRATION_TYPE', 'COMMERCIAL_REGISTRATION=Commercial Registration|TRADE_LICENCE=Trade Licence|TAX_NUMBER=Tax / VAT Number|OTHER=Other');
+    lt('BUSINESS_RELATIONSHIP', 'Business Relationships');
+    lvs('BUSINESS_RELATIONSHIP', 'CUSTOMER=Customer|VENDOR=Vendor / Supplier|PARTNER=Partner|AGENT=Agent / Intermediary|OTHER=Other');
     lt('KYC_REQUEST_TYPE', 'KYC Request Types');
     lvs('KYC_REQUEST_TYPE', 'NEW_ONBOARDING=New onboarding|PERIODIC_REVIEW=Periodic review|EVENT_TRIGGERED_REVIEW=Event-triggered review');
     lt('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources');

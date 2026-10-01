@@ -59,7 +59,8 @@ declare
                        p_email varchar2 default 'info@example.com', p_justification varchar2 default 'Supplier') is
     begin
         xxcmp_request_pkg.save_request(p_req, 'NEW', null, 'ORGANIZATION', p_name, 'AE', p_reg, 'LLC', date '2015-01-01',
-                                       p_email, null, null, null, 'FINANCE', p_justification, p_draft);
+                                       p_email, null, null, null, 'FINANCE', p_justification, p_draft,
+                                       p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
     end;
     procedure answer_high(p_req number) is
     begin
@@ -73,7 +74,7 @@ begin
     session_as('OFFICER1');
     l_ok := null;
     xxcmp_party_pkg.save_party(l_ok, 'ORGANIZATION', 'Approved Org ' || l_tag, 'AE', 'APP-' || l_tag, 'LLC', null,
-                               'ok@example.com', null);
+                               'ok@example.com', null, p_registration_type => 'COMMERCIAL_REGISTRATION');
     commit;
 
     ---------------------------------------------------------------- rules
@@ -81,7 +82,13 @@ begin
     ok('draft: only type and name are needed',
        xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, null, null, null, null, null, null, null, 'Y') is null);
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
-                                             'x@example.com', null, null);
+                                             'x@example.com', null, 'Why');
+    ok('an organisation needs the registration type: ' || l_txt, l_txt = 'Choose the registration type of the registration number.');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
+                                             'x@example.com', null, 'Why', p_registration_type => 'TRADE_LICENCE');
+    ok('the business relationship is required: ' || l_txt, l_txt like 'Choose the business relationship%');
+    l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
+                                             'x@example.com', null, null, p_registration_type => 'TRADE_LICENCE');
     ok('the business justification is required: ' || l_txt, l_txt = 'Enter the business justification.');
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', null, 'LLC', null,
                                              'x@example.com', null, 'Why');
@@ -90,10 +97,10 @@ begin
                                              'x@example.com', null, 'Why');
     ok('an individual''s ID number needs its ID type: ' || l_txt, l_txt = 'Choose the ID type of the ID number.');
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'X ' || l_tag, 'AE', 'R-' || l_tag, 'LLC', null,
-                                             null, null, 'Why');
+                                             null, null, 'Why', p_registration_type => 'TRADE_LICENCE');
     ok('an email or a phone is required: ' || l_txt, l_txt = 'Enter an email or a phone number.');
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'Other ' || l_tag, 'AE', 'app ' || lower(l_tag), 'LLC',
-                                             null, 'x@example.com', null, 'Why');
+                                             null, 'x@example.com', null, 'Why', p_registration_type => 'TRADE_LICENCE');
     ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this registration no. and country: use that party.');
 
     ---------------------------------------------------------------- a new counterparty becomes a Pending party
@@ -115,7 +122,7 @@ begin
 
     -- choose an approved party instead: the Pending one is cancelled
     xxcmp_request_pkg.save_request(l_req, 'EXISTING', l_ok, null, null, null, null, null, null, null, null, null, null,
-                                   'FINANCE', 'Existing supplier');
+                                   'FINANCE', 'Existing supplier', p_business_relationship => 'CUSTOMER');
     ok('switching to an existing party cancels the Pending party: ' || status(l_party), status(l_party) = 'CANCELLED');
     save_org(l_req, 'Again Org ' || l_tag, 'AG-' || l_tag);
     select party_id into l_party from xxcmp_requests where request_id = l_req;
@@ -187,6 +194,12 @@ begin
     select party_id into l_party from xxcmp_requests where request_id = l_req2;
     xxcmp_request_pkg.reject(l_req2);
     ok('rejected request: its Pending party is Rejected', status(l_party) = 'REJECTED');
+    -- release 26: a rejected request is corrected and submitted again
+    ok('a rejected request can be edited', xxcmp_request_pkg.is_editable(l_req2) = 'Y');
+    save_org(l_req2, 'Reject Org ' || l_tag, 'RJ-' || l_tag);
+    select * into l_r from xxcmp_requests where request_id = l_req2;
+    ok('editing a rejected request: Draft again, its party Pending, the relationship kept',
+       l_r.request_status = 'DRAFT' and status(l_party) = 'PENDING' and l_r.business_relationship = 'VENDOR');
     l_req2 := null;
     save_org(l_req2, 'Easy Org ' || l_tag, 'EZ-' || l_tag);
     select party_id into l_party from xxcmp_requests where request_id = l_req2;
@@ -230,12 +243,22 @@ begin
     select count(*) into l_cnt from xxcmp_cases where request_id = l_req2;
     ok('no case before the last step', l_cnt = 0);
     session_as('REQ1');
+    ok('the approver who is also the requester gets no Request Information (can_request_info = N)',
+       xxcmp_request_pkg.can_request_info(l_task) = 'N');
+    begin
+        apex_human_task.request_more_information(p_task_id => l_task, p_text => 'Asking myself?');
+        ok('APEX refuses Request Information to oneself', false);
+    exception when others then
+        ok('APEX refuses Request Information to oneself: ' || err(sqlerrm), sqlerrm like '%REQUEST_INFO%' or sqlerrm like '%not%');
+    end;
     apex_human_task.approve_task(l_task, p_autoclaim => true);
     commit;
     session_as('OFFICER1');     -- sees the cases (data security)
     wait_for('select count(*) from xxcmp_cases where request_id = ' || l_req2);
     select count(*) into l_cnt from xxcmp_cases where request_id = l_req2;
     ok('the requester approves step 2 (role based); the last approval opens the case', l_cnt = 1);
+    select count(*) into l_cnt from xxcmp_cases where request_id = l_req2 and business_relationship = 'VENDOR';
+    ok('the case carries the business relationship of the request', l_cnt = 1);
     ok('history shows the submit and the approvals',
        dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req2), 'Submitted') > 0);
     delete from xxcmp_approval_paths where path_name = 'Test ' || l_tag;

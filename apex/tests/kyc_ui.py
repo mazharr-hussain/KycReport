@@ -122,7 +122,7 @@ with sync_playwright() as p:
         apex.item("P201_JUSTIFICATION").setValue("New supplier for the UI test");
     }''', NAME)
     pg.wait_for_timeout(800)     # the entity type list follows the party type (cascading list)
-    pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC")')
+    pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC"); apex.item("P0_PARTY_REGISTRATION_TYPE").setValue("COMMERCIAL_REGISTRATION"); apex.item("P201_BUSINESS_RELATIONSHIP").setValue("VENDOR")')
     click(pg, 'Next')
     ok(f'step 1 saved the counterparty and moved to the party details ({pg.title()})', 'Party Details' in pg.title() and not errors(pg))
     click(pg, 'Next')

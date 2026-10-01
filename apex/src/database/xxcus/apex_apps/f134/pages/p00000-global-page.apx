@@ -267,6 +267,39 @@ page 0 (
         }
     )
 
+    pageItem P0_PARTY_REGISTRATION_TYPE (
+        type: selectList
+        label {
+            label: Registration Type
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = xxcmp_party_pkg.registration_lookup(:P0_PARTY_TYPE) and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P0_PARTY_TYPE
+        }
+    )
+
     pageItem P0_PARTY_INCORPORATION_DATE (
         type: datePicker
         label {
@@ -1848,9 +1881,10 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
+                select rownum as seq, h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
                   from table(xxcmp_approval_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                 order by seq
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -1899,6 +1933,13 @@ page 0 (
         comments {
             comments: One table for the approval path and its history: what happened (who, when, comments), then the current step (Pending) and the steps to come (Waiting); before submit, the expected steps.
         }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
 
         column STEP_NO (
             type: plainText
@@ -2104,15 +2145,17 @@ page 0 (
                     var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
-                                   P0_PARTY_ENTITY_TYPE: ["Entity Type", "ID Type"],
+                                   P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
                                    P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"] };
                     Object.keys(labels).forEach(function (item) {
                         $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
                     });
-                    // order: organisation = Entity Type before Name; individual = ID Type before ID Number
-                    var row = function (item) { return $("#" + item + "_CONTAINER").closest(".row"); },
-                        type = row("P0_PARTY_ENTITY_TYPE");
-                    type.insertBefore(row(person ? "P0_PARTY_REGISTRATION_NUMBER" : "P0_PARTY_NAME"));
+                    // order: organisation = Entity Type before Name, Registration Type before Registration No.;
+                    // individual = no entity type (category of organisations only), ID Type before ID Number
+                    var row = function (item) { return $("#" + item + "_CONTAINER").closest(".row"); };
+                    row("P0_PARTY_ENTITY_TYPE").insertBefore(row("P0_PARTY_NAME"))[person ? "hide" : "show"]();
+                    if (person) { apex.item("P0_PARTY_ENTITY_TYPE").setValue(""); }
+                    row("P0_PARTY_REGISTRATION_TYPE").insertBefore(row("P0_PARTY_REGISTRATION_NUMBER"));
                     ```
             }
             execution {

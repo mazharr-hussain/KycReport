@@ -135,6 +135,35 @@ page 203 (
         }
     )
 
+    pageItem P203_BUSINESS_RELATIONSHIP (
+        type: displayOnly
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 25
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
     pageItem P203_COUNTERPARTY (
         type: displayOnly
         label {

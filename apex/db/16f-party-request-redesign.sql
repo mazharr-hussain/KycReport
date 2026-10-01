@@ -157,12 +157,19 @@ begin
                                      from xxcmp_cases c where c.party_id = p.party_id and c.decision = 'APPROVED')
             where p.next_kyc_date is null
               and exists (select 1 from xxcmp_cases c where c.party_id = p.party_id and c.decision = 'APPROVED')]');
+
+    ---------------------------------------------------------------- release 26: an individual's ID type moves to REGISTRATION_TYPE
+    run(q'[update xxcmp_parties set registration_type = entity_type, entity_type = null
+            where party_type = 'PERSON' and entity_type is not null and registration_type is null]');
+    run(q'[update xxcmp_requests set registration_type = entity_type, entity_type = null
+            where party_type = 'PERSON' and entity_type is not null and registration_type is null]');
     commit;
 end;
 /
 comment on table xxcmp_party_contacts is 'Contact persons of a party (name, job title, email, phone); one primary per party.';
 comment on column xxcmp_parties.jurisdiction is 'Organisation: country of incorporation. Individual: nationality.';
 comment on column xxcmp_parties.registration_number is 'Organisation: registration number. Individual: identity document number.';
-comment on column xxcmp_parties.entity_type is 'Organisation: entity type (lookup ENTITY_TYPE). Individual: identity document type (lookup ID_DOCUMENT_TYPE).';
+comment on column xxcmp_parties.entity_type is 'Organisation: entity type, the category (lookup ENTITY_TYPE). Individual: empty.';
+comment on column xxcmp_parties.registration_type is 'Type of REGISTRATION_NUMBER. Organisation: registration type (lookup REGISTRATION_TYPE). Individual: identity document type (lookup ID_DOCUMENT_TYPE).';
 comment on column xxcmp_parties.incorporation_date is 'Organisation: date of incorporation. Individual: date of birth.';
 comment on column xxcmp_requests.last_action_date is 'When the request last moved: saved, submitted, information requested / given, approved, rejected, cancelled.';

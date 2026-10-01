@@ -264,6 +264,35 @@ page 206 (
         }
     )
 
+    pageItem P206_BUSINESS_RELATIONSHIP (
+        type: displayOnly
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P206_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
     pageItem P206_COUNTERPARTY (
         type: displayOnly
         label {
@@ -502,7 +531,7 @@ page 206 (
                             then 'Present' else 'Missing' end as status
                   from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
                                  (select jurisdiction from xxcmp_requests where request_id = :P206_REQUEST_ID),
-                                 (select entity_type from xxcmp_requests where request_id = :P206_REQUEST_ID))) c
+                                 (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P206_REQUEST_ID))) c
                 ```
             pageItemsToSubmit: P206_REQUEST_ID
         }
@@ -992,7 +1021,7 @@ page 206 (
         buttonName: APPROVE_TOP
         label: Approve
         layout {
-            sequence: 30
+            sequence: 20
             region: @buttons
             slot: NEXT
         }
@@ -1024,9 +1053,9 @@ page 206 (
         buttonName: REJECT_TOP
         label: Reject Request
         layout {
-            sequence: 20
+            sequence: 10
             region: @buttons
-            slot: DELETE
+            slot: PREVIOUS
         }
         appearance {
             buttonTemplate: @/text
@@ -1059,9 +1088,9 @@ page 206 (
         buttonName: REQUEST_INFO_TOP
         label: Request Information
         layout {
-            sequence: 15
+            sequence: 10
             region: @buttons
-            slot: EDIT
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -1077,6 +1106,38 @@ page 206 (
             plsqlFunctionBody:
                 ```plsql
                 -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                -- the question goes to the requester: not offered when the approver is the requester
+                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    region decision-buttons (
+        name: Decision Buttons
+        type: staticContent
+        layout {
+            sequence: 75
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: decision_buttons
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -1150,8 +1211,8 @@ page 206 (
         buttonName: APPROVE
         label: Approve
         layout {
-            sequence: 30
-            region: @decision
+            sequence: 20
+            region: @decision-buttons
             slot: NEXT
         }
         appearance {
@@ -1182,9 +1243,9 @@ page 206 (
         buttonName: REJECT
         label: Reject Request
         layout {
-            sequence: 20
-            region: @decision
-            slot: DELETE
+            sequence: 10
+            region: @decision-buttons
+            slot: PREVIOUS
         }
         appearance {
             buttonTemplate: @/text
@@ -1217,9 +1278,9 @@ page 206 (
         buttonName: REQUEST_INFO
         label: Request Information
         layout {
-            sequence: 15
-            region: @decision
-            slot: EDIT
+            sequence: 10
+            region: @decision-buttons
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -1235,6 +1296,10 @@ page 206 (
             plsqlFunctionBody:
                 ```plsql
                 -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                -- the question goes to the requester: not offered when the approver is the requester
+                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
+                    return false;
+                end if;
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -1470,6 +1535,9 @@ page 206 (
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and state_code = 'UNASSIGNED') loop
                     apex_human_task.claim_task(p_task_id => :P206_TASK_ID);
                 end loop;
+                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
+                    raise_application_error(-20624, 'You are the requester of this request: there is nobody else to ask. Approve or reject it.');
+                end if;
                 apex_human_task.request_more_information(p_task_id => :P206_TASK_ID, p_text => :P206_COMMENT);
                 ```
         }

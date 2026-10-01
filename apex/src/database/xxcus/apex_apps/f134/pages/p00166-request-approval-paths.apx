@@ -44,7 +44,7 @@ page 166 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select p.approval_path_id, p.path_name, p.requesting_department, p.party_type, p.jurisdiction, p.request_type, p.priority, p.step_sequence, p.step_name, p.approver_type, p.role_code, p.user_name, p.enabled_flag
+                select p.approval_path_id, p.path_name, p.requesting_department, p.party_type, p.jurisdiction, p.request_type, p.business_relationship, p.priority, p.step_sequence, p.step_name, p.approver_type, p.role_code, p.user_name, p.enabled_flag
                   from xxcmp_approval_paths p
                 ```
         }
@@ -130,6 +130,13 @@ page 166 (
                 column: @REQUEST_TYPE
                 layout {
                     sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @BUSINESS_RELATIONSHIP
+                layout {
+                    sequence: 60
                 }
             )
 
@@ -316,6 +323,32 @@ page 166 (
             source {
                 type: databaseColumn
                 databaseColumn: REQUEST_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column BUSINESS_RELATIONSHIP (
+            type: selectList
+            heading {
+                heading: Business Relationship
+            }
+            layout {
+                sequence: 65
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value
+                          from xxfnd_lookup_values
+                         where lookup_type = 'BUSINESS_RELATIONSHIP' and enabled_flag = 'Y'
+                         order by display_sequence, meaning
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BUSINESS_RELATIONSHIP
                 dataType: varchar2
             }
         )

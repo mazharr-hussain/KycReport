@@ -1,0 +1,518 @@
+page 166 (
+    name: Request Approval Paths
+    alias: REQUEST-APPROVAL-PATHS
+    title: Request Approval Paths
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: The approval steps of a KYC request. One row per step; the rows with the same Path Name make one path. Empty criteria match any request; the path that matches the most criteria wins, then the lowest Priority. Each step is approved by a role or by a named user.
+    }
+
+    region breadcrumb (
+        name: Request Approval Paths
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region paths (
+        name: Request Approval Paths
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select p.approval_path_id, p.path_name, p.requesting_department, p.party_type, p.jurisdiction, p.request_type, p.business_relationship, p.priority, p.step_sequence, p.step_name, p.approver_type, p.role_code, p.user_name, p.enabled_flag
+                  from xxcmp_approval_paths p
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: paths
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PATH_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @REQUESTING_DEPARTMENT
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PARTY_TYPE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @JURISDICTION
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @REQUEST_TYPE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @BUSINESS_RELATIONSHIP
+                layout {
+                    sequence: 60
+                }
+            )
+
+            displayColumn (
+                column: @PRIORITY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @STEP_SEQUENCE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @STEP_NAME
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @APPROVER_TYPE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @ROLE_CODE
+                layout {
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @USER_NAME
+                layout {
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 13
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column APPROVAL_PATH_ID (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVAL_PATH_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column PATH_NAME (
+            type: textField
+            heading {
+                heading: Path Name
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PATH_NAME
+                dataType: varchar2
+            }
+        )
+
+        column REQUESTING_DEPARTMENT (
+            type: selectList
+            heading {
+                heading: Department
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value
+                          from xxfnd_lookup_values
+                         where lookup_type = 'REQUESTING_DEPARTMENT' and enabled_flag = 'Y'
+                         order by display_sequence, meaning
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: REQUESTING_DEPARTMENT
+                dataType: varchar2
+            }
+        )
+
+        column PARTY_TYPE (
+            type: selectList
+            heading {
+                heading: Party Type
+            }
+            layout {
+                sequence: 40
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-party-type
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PARTY_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column JURISDICTION (
+            type: selectList
+            heading {
+                heading: Country
+            }
+            layout {
+                sequence: 50
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-jurisdiction
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: JURISDICTION
+                dataType: varchar2
+            }
+        )
+
+        column REQUEST_TYPE (
+            type: selectList
+            heading {
+                heading: Request Type
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value
+                          from xxfnd_lookup_values
+                         where lookup_type = 'KYC_REQUEST_TYPE' and enabled_flag = 'Y'
+                         order by display_sequence, meaning
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: REQUEST_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column BUSINESS_RELATIONSHIP (
+            type: selectList
+            heading {
+                heading: Business Relationship
+            }
+            layout {
+                sequence: 65
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value
+                          from xxfnd_lookup_values
+                         where lookup_type = 'BUSINESS_RELATIONSHIP' and enabled_flag = 'Y'
+                         order by display_sequence, meaning
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BUSINESS_RELATIONSHIP
+                dataType: varchar2
+            }
+        )
+
+        column PRIORITY (
+            type: numberField
+            heading {
+                heading: Priority
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PRIORITY
+                dataType: number
+            }
+            default {
+                type: static
+                staticValue: 100
+            }
+        )
+
+        column STEP_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: STEP_SEQUENCE
+                dataType: number
+            }
+        )
+
+        column STEP_NAME (
+            type: textField
+            heading {
+                heading: Step Name
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: STEP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column APPROVER_TYPE (
+            type: selectList
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 100
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC2:Role;ROLE,User;USER
+                displayNullValue: false
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVER_TYPE
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: ROLE
+            }
+        )
+
+        column ROLE_CODE (
+            type: selectList
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 110
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-roles
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ROLE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
+            type: selectList
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 120
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-employees
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 130
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+    )
+
+    process save-paths (
+        name: Save approval paths
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @paths
+        execution {
+            sequence: 10
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)

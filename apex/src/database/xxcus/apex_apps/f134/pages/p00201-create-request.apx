@@ -185,6 +185,39 @@ page 201 (
         }
     )
 
+    pageItem P201_BUSINESS_RELATIONSHIP (
+        type: selectList
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 15
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'BUSINESS_RELATIONSHIP' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        help {
+            helpText: What the counterparty is to the company for this request (customer, vendor...). One relationship per request; a party that is both a customer and a vendor gets one request for each. It goes on to the case and can choose the approval path.
+        }
+    )
+
     pageItem P201_JUSTIFICATION (
         type: textarea
         label {
@@ -582,6 +615,7 @@ page 201 (
                     l_party number;
                 begin
                     if :P201_REQUEST_ID is not null then
+                        select business_relationship into :P201_BUSINESS_RELATIONSHIP from xxcmp_requests where request_id = :P201_REQUEST_ID;
                         select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
                                requesting_department, justification, contact_name, contact_email, contact_phone,
                                case when party_selection = 'NEW' then party_id end
@@ -629,6 +663,8 @@ page 201 (
                            p_jurisdiction        => :P0_PARTY_JURISDICTION,
                            p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
                            p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                           p_registration_type   => :P0_PARTY_REGISTRATION_TYPE,
+                           p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
                            p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
                            p_email               => :P0_PARTY_EMAIL,
                            p_phone               => :P0_PARTY_PHONE,
@@ -662,6 +698,8 @@ page 201 (
                         p_jurisdiction          => :P0_PARTY_JURISDICTION,
                         p_registration_number   => :P0_PARTY_REGISTRATION_NUMBER,
                         p_entity_type           => :P0_PARTY_ENTITY_TYPE,
+                        p_registration_type     => :P0_PARTY_REGISTRATION_TYPE,
+                        p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
                         p_incorporation_date    => to_date(:P0_PARTY_INCORPORATION_DATE),
                         p_email                 => :P0_PARTY_EMAIL,
                         p_phone                 => :P0_PARTY_PHONE,

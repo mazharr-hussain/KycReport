@@ -68,7 +68,9 @@ def step1(pg, s, name, reg, none=True):
     pg.fill('#P0_PARTY_NAME', name); pg.select_option('#P0_PARTY_JURISDICTION', 'AE')
     pg.fill('#P0_PARTY_REGISTRATION_NUMBER', reg); pg.wait_for_timeout(800)
     pg.select_option('#P0_PARTY_ENTITY_TYPE', 'LLC')
+    pg.select_option('#P0_PARTY_REGISTRATION_TYPE', 'COMMERCIAL_REGISTRATION')
     pg.fill('#P0_PARTY_EMAIL', 'info@ui.example')
+    pg.select_option('#P201_BUSINESS_RELATIONSHIP', 'VENDOR')
     if pg.locator('select#P201_REQUESTING_DEPARTMENT').count():
         pg.select_option('#P201_REQUESTING_DEPARTMENT', 'FINANCE')
     pg.fill('#P201_JUSTIFICATION', 'UI test supplier')
@@ -96,6 +98,12 @@ def req(name):
 
 def open_task(pg, s, number):
     pg.goto(f'{HOST}/ords/f?p={APP}:40:{s}'); pg.wait_for_load_state('networkidle')
+    if pg.locator(f'a:has-text("{number}")').count() == 0:      # a busy list: search for the request
+        search = pg.locator('input[type=search]').first
+        search.click()
+        for _ in range(6):
+            pg.keyboard.press('Backspace')
+        search.fill(number); pg.keyboard.press('Enter'); pg.wait_for_timeout(2500)
     with pg.expect_navigation():
         pg.locator(f'a:has-text("{number}")').first.click()
     pg.wait_for_load_state('networkidle')
@@ -137,6 +145,7 @@ with sync_playwright() as p:
        name in card and 'Show details' not in card and 'Party Status' not in card
        and 'Rana Requester' in pg.inner_text('#party_contacts') and pg.locator('#answer_summary').count() == 1
        and pg.locator('#request_attachments').count() == 1 and 'Expected' in pg.inner_text('#approval_history'))
+    ok('review: the party number is not a link (everything is on the screen)', pg.locator('#party_card a').count() == 0)
     click_nav(pg, 'Submit Request')
     task = wait_task(rid)
     ok(f'Submit starts the workflow: task {task}', task is not None)
@@ -145,7 +154,9 @@ with sync_playwright() as p:
        and all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Cancel Request', 'Add Document', 'Edit Party', 'Approve')))
     pg.reload(); pg.wait_for_load_state('networkidle')
     hist = pg.inner_text('#approval_history')
-    ok('approval history: Submitted, then the current step Pending', 'Submitted' in hist and 'Pending' in hist)
+    ok('approval history in time order: Submitted, then the current step Pending',
+       'Submitted' in hist and 'Pending' in hist and hist.index('Submitted') < hist.index('Pending'))
+    ok('the request shows its business relationship', 'Vendor' in pg.inner_text('#request'))
     pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
     nums = [t.strip() for t in pg.locator('.a-IRR-table tr td:first-child').all_inner_texts()][:5]
     ok(f'list sorted by request number, newest first: {nums}', len(nums) > 1 and nums == sorted(nums, reverse=True))
@@ -159,6 +170,9 @@ with sync_playwright() as p:
     ok('approval screen: Approve / Reject / Request Information at the top and the bottom; no Cancel / Add Document',
        all(pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 2 for x in ('Approve', 'Reject Request', 'Request Information'))
        and pg.locator('button:has-text("Cancel Request")').count() == 0 and pg.locator('button:has-text("Add Document")').count() == 0)
+    bar = pg.inner_text('#decision_buttons')
+    ok('bottom bar: Reject, Request Information and Approve in one row',
+       all(x in bar for x in ('Reject Request', 'Request Information', 'Approve')))
     pg.locator('button', has_text=re.compile(r'^\s*Request Information\s*$')).first.click(); pg.wait_for_timeout(2000)
     ok('Request Information needs a comment', 'Enter the information you need' in pg.inner_text('body'))
     pg.fill('#P206_COMMENT', 'Please upload the trade licence.')

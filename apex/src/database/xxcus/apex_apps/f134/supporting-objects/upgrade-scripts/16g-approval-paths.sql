@@ -40,6 +40,8 @@ begin
     xxfnd_util_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CURRENT_STEP',       'number');
+    -- release 26: paths by business relationship (customer, vendor...)
+    xxfnd_ddl_pkg.add_column('XXCMP_APPROVAL_PATHS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
 end;
 /
 -- the default path (any request): one Compliance review
@@ -108,13 +110,14 @@ create or replace package body xxcmp_approval_pkg as
         select max(path_name) keep (dense_rank first order by hits desc, priority, path_name) into l_path
           from (select path_name, min(priority) priority,
                        max(nvl2(requesting_department, 1, 0) + nvl2(party_type, 1, 0)
-                           + nvl2(jurisdiction, 1, 0) + nvl2(request_type, 1, 0)) hits
+                           + nvl2(jurisdiction, 1, 0) + nvl2(request_type, 1, 0) + nvl2(business_relationship, 1, 0)) hits
                   from xxcmp_approval_paths
                  where enabled_flag = 'Y'
                    and (requesting_department is null or requesting_department = l_req.requesting_department)
                    and (party_type is null or party_type = l_req.party_type)
                    and (jurisdiction is null or jurisdiction = l_req.jurisdiction)
                    and (request_type is null or request_type = l_req.request_type)
+                   and (business_relationship is null or business_relationship = l_req.business_relationship)
                  group by path_name);
         return l_path;
     end path_for;

@@ -77,6 +77,9 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_EMAIL',       'varchar2(320)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_PHONE',       'varchar2(50)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'LAST_ACTION_DATE',    'date');
+    -- release 26: the type of the counterparty's number, and what the counterparty is to the company
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'REGISTRATION_TYPE',   'varchar2(30)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
 end;
 /
 comment on column xxcmp_requests.party_selection is 'EXISTING: the requester chose a party from the party list; NEW: a counterparty created with the request (party status Pending until the request is approved).';
@@ -278,8 +281,12 @@ begin
                  'XXCMP_DOC_VERIFICATIONS','XXCMP_UBO_DETERMINATIONS','XXCMP_CASE_NOTES'))) loop
         xxfnd_util_pkg.create_who_trigger(t.table_name);
     end loop;
+    -- release 26: the business relationship of the request goes on to its case
+    xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
 end;
 /
+comment on column xxcmp_requests.business_relationship is 'What the counterparty is to the company for this request (lookup BUSINESS_RELATIONSHIP: customer, vendor...). One per request; copied to the case.';
+comment on column xxcmp_requests.registration_type is 'Type of REGISTRATION_NUMBER: organisation lookup REGISTRATION_TYPE, individual lookup ID_DOCUMENT_TYPE.';
 
 --------------------------------------------------------------------------------
 -- Requests
@@ -303,7 +310,9 @@ create or replace package xxcmp_request_pkg authid definer as
                             p_trigger_source        in varchar2 default 'MANUAL',
                             p_parent_request_id     in number   default null,
                             p_parent_case_id        in number   default null,
-                            p_party_id              in number   default null) return number;
+                            p_party_id              in number   default null,
+                            p_registration_type     in varchar2 default null,
+                            p_business_relationship in varchar2 default null) return number;
 
     -- Requesting department of the signed-in user: the department of the employee profile (matched to the
     -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
@@ -328,7 +337,9 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_phone               in varchar2,
                            p_justification       in varchar2,
                            p_draft               in varchar2 default 'N',
-                           p_match_ack           in varchar2 default 'Y') return varchar2;
+                           p_match_ack           in varchar2 default 'Y',
+                           p_registration_type   in varchar2 default null,
+                           p_business_relationship in varchar2 default null) return varchar2;
 
     -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
     -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
@@ -353,7 +364,9 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_contact_name          in varchar2 default null,
                            p_contact_email         in varchar2 default null,
                            p_contact_phone         in varchar2 default null,
-                           p_match_ack             in varchar2 default 'Y');
+                           p_match_ack             in varchar2 default 'Y',
+                           p_registration_type     in varchar2 default null,
+                           p_business_relationship in varchar2 default null);
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;
@@ -408,6 +421,9 @@ create or replace package xxcmp_request_pkg authid definer as
     procedure cancel(p_request_id in number, p_reason in varchar2 default null);
     -- Withdraw: the requester pulls a submitted request (In Progress) back to Draft; its workflow and task end.
     function withdraw_error(p_request_id in number) return varchar2;
+    -- Y when the approver may use Request Information on the task: the question goes to the task's initiator (the
+    -- requester), so an approver who is also the requester cannot ask (APEX refuses REQUEST_INFO_NOT_AUTHORIZED).
+    function can_request_info(p_task_id in number) return varchar2;
     procedure withdraw(p_request_id in number);
 
     -- Document checklist task events: Compliance asked the requester for information / the requester answered.
@@ -579,18 +595,22 @@ create or replace package body xxcmp_request_pkg as
                             p_trigger_source        in varchar2 default 'MANUAL',
                             p_parent_request_id     in number   default null,
                             p_parent_case_id        in number   default null,
-                            p_party_id              in number   default null) return number is
+                            p_party_id              in number   default null,
+                            p_registration_type     in varchar2 default null,
+                            p_business_relationship in varchar2 default null) return number is
         l_id  number;
         l_qnr varchar2(30) := case when p_request_type = 'NEW_ONBOARDING' then questionnaire_for(p_party_type) end;
     begin
         insert into xxcmp_requests (request_number, request_type, trigger_source, parent_request_id, parent_case_id,
                                     party_id, party_type, party_name, registration_number, jurisdiction, entity_type,
                                     incorporation_date, requesting_department, requester_user_name,
-                                    questionnaire_code, justification, last_action_date)
+                                    questionnaire_code, justification, last_action_date,
+                                    registration_type, business_relationship)
         values ('REQ-' || lpad(xxcmp_request_number_s.nextval, 6, '0'), p_request_type, p_trigger_source,
                 p_parent_request_id, p_parent_case_id, p_party_id, p_party_type, p_party_name, p_registration_number,
                 p_jurisdiction, p_entity_type, p_incorporation_date, p_requesting_department,
-                xxfnd_util_pkg.current_user, l_qnr, p_justification, sysdate)
+                xxfnd_util_pkg.current_user, l_qnr, p_justification, sysdate,
+                p_registration_type, p_business_relationship)
         returning request_id into l_id;
         if l_qnr is not null then
             add_answer_rows(l_id, null, l_qnr, 'REQUESTER');
@@ -628,7 +648,9 @@ create or replace package body xxcmp_request_pkg as
                            p_phone               in varchar2,
                            p_justification       in varchar2,
                            p_draft               in varchar2 default 'N',
-                           p_match_ack           in varchar2 default 'Y') return varchar2 is
+                           p_match_ack           in varchar2 default 'Y',
+                           p_registration_type   in varchar2 default null,
+                           p_business_relationship in varchar2 default null) return varchar2 is
         l_own   number;
         l_error varchar2(4000);
     begin
@@ -645,13 +667,15 @@ create or replace package body xxcmp_request_pkg as
             end if;
             l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
                                                    p_registration_number, p_entity_type, p_incorporation_date,
-                                                   p_email, p_phone, p_draft, p_match_ack);
+                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type);
             if l_error is not null then
                 return l_error;
             end if;
         end if;
         if p_draft = 'N' and trim(p_justification) is null then
             return 'Enter the business justification.';
+        elsif p_draft = 'N' and p_business_relationship is null then
+            return 'Choose the business relationship (what the counterparty is to the company).';
         end if;
         return null;
     end request_error;
@@ -675,7 +699,9 @@ create or replace package body xxcmp_request_pkg as
                            p_contact_name          in varchar2 default null,
                            p_contact_email         in varchar2 default null,
                            p_contact_phone         in varchar2 default null,
-                           p_match_ack             in varchar2 default 'Y') is
+                           p_match_ack             in varchar2 default 'Y',
+                           p_registration_type     in varchar2 default null,
+                           p_business_relationship in varchar2 default null) is
         l_error    varchar2(4000);
         l_old      xxcmp_requests%rowtype;
         l_party    xxcmp_parties%rowtype;
@@ -685,7 +711,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         if p_request_id is not null then
             l_old := get_request(p_request_id);
-            if l_old.request_status not in ('DRAFT', 'INFO_NEEDED')
+            if l_old.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
                or upper(l_old.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
                 raise_application_error(-20612, 'Request ' || l_old.request_number || ' can no longer be changed.');
             elsif l_old.request_status = 'INFO_NEEDED'
@@ -696,9 +722,19 @@ create or replace package body xxcmp_request_pkg as
         end if;
         l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
                                  p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone,
-                                 p_justification, p_draft, p_match_ack);
+                                 p_justification, p_draft, p_match_ack, p_registration_type, p_business_relationship);
         if l_error is not null then
             raise_application_error(-20611, l_error);
+        end if;
+        -- a rejected request is corrected and submitted again: back to Draft, its own party back to Pending
+        if l_old.request_status = 'REJECTED' then
+            if l_old.party_selection = 'NEW' and l_old.party_id is not null and party_status(l_old.party_id) = 'REJECTED' then
+                xxcmp_party_pkg.set_status(l_old.party_id, 'PENDING');
+            end if;
+            update xxcmp_requests
+               set request_status = 'DRAFT', completed_date = null, approval_path_name = null, current_step = null
+             where request_id = p_request_id;
+            l_old.request_status := 'DRAFT';
         end if;
         -- a requester raises requests for the department of the employee profile; Compliance for any department
         if can_choose_department = 'N' and default_department is not null then
@@ -721,7 +757,7 @@ create or replace package body xxcmp_request_pkg as
             l_new := l_party_id is null;
             xxcmp_party_pkg.put_party(l_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
                                       p_entity_type, p_incorporation_date, p_email, p_phone, p_website, p_fax,
-                                      p_party_status => 'PENDING');
+                                      p_party_status => 'PENDING', p_registration_type => p_registration_type);
             if l_new and trim(p_contact_name) is not null then
                 xxfnd_vpd_pkg.begin_trusted;
                 begin
@@ -750,6 +786,8 @@ create or replace package body xxcmp_request_pkg as
                party_name            = l_party.party_name,
                registration_number   = l_party.registration_number,
                entity_type           = l_party.entity_type,
+               registration_type     = l_party.registration_type,
+               business_relationship = p_business_relationship,
                incorporation_date    = l_party.incorporation_date,
                jurisdiction          = l_party.jurisdiction,
                match_status          = case when p_party_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
@@ -777,7 +815,7 @@ create or replace package body xxcmp_request_pkg as
             return 'Y';
         end if;
         l_req := get_request(p_request_id);
-        return case when l_req.request_status in ('DRAFT', 'INFO_NEEDED')
+        return case when l_req.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
                      and upper(l_req.requester_user_name) = upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
     exception
         when no_data_found then
@@ -1061,10 +1099,12 @@ create or replace package body xxcmp_request_pkg as
             l_party := get_party(l_req.party_id);
             l_error := request_error(p_request_id, 'NEW', null, l_party.party_type, l_party.party_name, l_party.jurisdiction,
                                      l_party.registration_number, l_party.entity_type, l_party.incorporation_date,
-                                     l_party.email, l_party.phone, l_req.justification);
+                                     l_party.email, l_party.phone, l_req.justification,
+                                     p_registration_type => l_party.registration_type,
+                                     p_business_relationship => nvl(l_req.business_relationship, 'X'));
         else
             l_error := request_error(p_request_id, 'EXISTING', l_req.party_id, null, null, null, null, null, null, null,
-                                     null, l_req.justification);
+                                     null, l_req.justification, p_business_relationship => nvl(l_req.business_relationship, 'X'));
         end if;
         if l_error is not null then
             return l_error;
@@ -1076,7 +1116,8 @@ create or replace package body xxcmp_request_pkg as
                                where tl.category_code = c.column_value and tl.language_code = xxfnd_util_pkg.current_lang),
                              (select max(dc.category_name) from xxfnd_document_categories dc
                                where dc.category_code = c.column_value)) as category_name
-                    from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_req.jurisdiction, l_req.entity_type)) c
+                    from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_req.jurisdiction,
+                                 case when l_req.party_type = 'PERSON' then l_req.registration_type else l_req.entity_type end)) c
                    where not exists (select 1 from xxfnd_attached_documents_v a
                                       where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
                                         and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = to_char(p_request_id))
@@ -1115,7 +1156,7 @@ create or replace package body xxcmp_request_pkg as
             return 'Only the requester can cancel request ' || l_req.request_number || '.';
         elsif l_req.request_status = 'IN_PROGRESS' then
             return 'Request ' || l_req.request_number || ' is waiting for approval: withdraw it first.';
-        elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED') then
+        elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then
             return 'Request ' || l_req.request_number || ' is closed and cannot be cancelled.';
         end if;
         select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
@@ -1154,6 +1195,13 @@ create or replace package body xxcmp_request_pkg as
          where request_id = p_request_id;
         release_party(l_req.party_id, p_request_id, 'CANCELLED');
     end cancel;
+
+    function can_request_info(p_task_id in number) return varchar2 is
+        l_initiator apex_tasks.initiator%type;
+    begin
+        select max(initiator) into l_initiator from apex_tasks where task_id = p_task_id;
+        return case when l_initiator is not null and upper(l_initiator) <> upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
+    end can_request_info;
 
     function withdraw_error(p_request_id in number) return varchar2 is
         l_req   xxcmp_requests%rowtype := get_request(p_request_id);
@@ -1227,7 +1275,8 @@ create or replace package body xxcmp_request_pkg as
         if p_req.party_id is null then
             xxcmp_party_pkg.put_party(p_req.party_id, p_req.party_type, p_req.party_name, p_req.jurisdiction,
                                       p_req.registration_number, p_req.entity_type, p_req.incorporation_date,
-                                      p_req.contact_email, p_req.contact_phone, null, null, p_party_status => 'PENDING');
+                                      p_req.contact_email, p_req.contact_phone, null, null, p_party_status => 'PENDING',
+                                      p_registration_type => p_req.registration_type);
             update xxcmp_requests set party_id = p_req.party_id, match_status = 'NEW' where request_id = p_req.request_id;
         end if;
     end link_party;
@@ -1377,6 +1426,8 @@ create or replace package body xxcmp_request_pkg as
                                p_registration_number => l_party.registration_number,
                                p_jurisdiction        => l_party.jurisdiction,
                                p_entity_type         => l_party.entity_type,
+                               p_registration_type   => l_party.registration_type,
+                               p_business_relationship => l_case.business_relationship,
                                p_incorporation_date  => l_party.incorporation_date,
                                p_justification       => p_justification,
                                p_request_type        => p_request_type,
@@ -1426,9 +1477,12 @@ create or replace package body xxcmp_case_pkg as
     begin
         xxfnd_vpd_pkg.begin_trusted;
         select * into l_req from xxcmp_requests where request_id = p_request_id;
-        insert into xxcmp_cases (case_number, request_id, party_id, parent_case_id, assigned_to, sla_due_date)
+        insert into xxcmp_cases (case_number, request_id, party_id, parent_case_id, assigned_to, sla_due_date,
+                                 business_relationship)
         values ('CASE-' || lpad(xxcmp_case_number_s.nextval, 6, '0'), p_request_id, l_req.party_id, l_req.parent_case_id,
-                upper(p_assigned_to), trunc(sysdate) + l_sla)
+                upper(p_assigned_to), trunc(sysdate) + l_sla,
+                coalesce(l_req.business_relationship,
+                         (select c.business_relationship from xxcmp_cases c where c.case_id = l_req.parent_case_id)))
         returning case_id into l_id;
         -- the officer's investigation questionnaire
         insert into xxcmp_request_answers (request_id, case_id, respondent_type, question_id)
@@ -1459,15 +1513,20 @@ create or replace package body xxcmp_case_pkg as
 
     function create_manual_case(p_party_id in number, p_justification in varchar2) return number is
         l_party xxcmp_parties%rowtype;
+        l_rel   xxcmp_cases.business_relationship%type;
         l_req   number;
     begin
         select * into l_party from xxcmp_parties where party_id = p_party_id;
+        select max(c.business_relationship) keep (dense_rank last order by c.case_id) into l_rel
+          from xxcmp_cases c where c.party_id = p_party_id;
         l_req := xxcmp_request_pkg.create_request(
                      p_party_type          => l_party.party_type,
                      p_party_name          => l_party.party_name,
                      p_registration_number => l_party.registration_number,
                      p_jurisdiction        => l_party.jurisdiction,
                      p_entity_type         => l_party.entity_type,
+                     p_registration_type   => l_party.registration_type,
+                     p_business_relationship => l_rel,
                      p_incorporation_date  => l_party.incorporation_date,
                      p_justification       => p_justification,
                      p_request_type        => 'EVENT_TRIGGERED_REVIEW',
@@ -1641,7 +1700,8 @@ create or replace package body xxcmp_case_pkg as
         select count(*) into l_missing
           from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
                          (select jurisdiction from xxcmp_parties where party_id = l_case.party_id),
-                         (select entity_type from xxcmp_parties where party_id = l_case.party_id))) m
+                         (select case when party_type = 'PERSON' then registration_type else entity_type end
+                            from xxcmp_parties where party_id = l_case.party_id))) m
          where not exists (
                  select 1
                    from xxfnd_attached_documents ad

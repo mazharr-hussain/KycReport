@@ -72,6 +72,14 @@ The match decision in Compliance's checklist task is replaced by **Merge** (Comp
   the top and the bottom (comment required for Reject and Request Information) + Merge in a popup (note required).
 - One Approval History table (path + history) on 203 / 205 / 206.
 
+## Release 26 (patch 11)
+- **Business Relationship** (Customer, Vendor / Supplier, Partner, Agent / Intermediary, Other): one per request, required; on the
+  lists, review, view and approval; copied to the case; a criterion of the approval paths.
+- A **rejected** request can be edited (Edit on the list): Draft again, its party Pending, submitted again (the history keeps the
+  rejection). Cancel is allowed too.
+- Approval screen: Reject left, Request Information and Approve right, at the top and the bottom; no Request Information when the
+  approver is the requester. The history table keeps its time order. The party number is not a link on the request screens.
+
 ## Request page (205)
 | Region | Content |
 |---|---|

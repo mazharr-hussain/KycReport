@@ -55,6 +55,11 @@ page 20 (
                     select p.party_id,
                            p.party_number,
                            p.party_name,
+                           (select listagg(distinct xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), ', ')
+                                     within group (order by 1)
+                              from xxcmp_requests r
+                             where r.party_id = p.party_id and r.business_relationship is not null
+                               and r.request_status not in ('CANCELLED', 'DRAFT')) as business_relationships,
                            xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', p.party_type) as party_type,
                            p.registration_number,
                            xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
@@ -140,6 +145,19 @@ page 20 (
             }
         )
 
+        column BUSINESS_RELATIONSHIPS (
+            type: plainText
+            heading {
+                heading: Business Relationships
+            }
+            layout {
+                sequence: 35
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
         column PARTY_NAME (
             type: plainText
             heading {
@@ -195,7 +213,7 @@ page 20 (
         column ENTITY_TYPE (
             type: plainText
             heading {
-                heading: Entity Type / ID Type
+                heading: Entity Type
             }
             layout {
                 sequence: 70
@@ -457,6 +475,12 @@ page 20 (
             displayColumn PARTY_NUMBER (
                 layout {
                     sequence: 1
+                }
+            )
+
+            displayColumn BUSINESS_RELATIONSHIPS (
+                layout {
+                    sequence: 3
                 }
             )
 
