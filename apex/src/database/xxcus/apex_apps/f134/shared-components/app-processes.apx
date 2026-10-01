@@ -29,6 +29,11 @@ appProcess DOWNLOAD_DOCUMENT (
                             or (ad.entity_name = 'XXCMP_REQUESTS'
                                 and exists (select 1 from xxcmp_requests q
                                              where to_char(q.request_id) = ad.pk1_value
+                                               and xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')))
+                            -- the party of their own request (party details step and request screens)
+                            or (ad.entity_name = 'XXCMP_PARTIES'
+                                and exists (select 1 from xxcmp_requests q
+                                             where to_char(q.party_id) = ad.pk1_value
                                                and xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW'))));
                 end if;
                 if l_allowed = 0 then
@@ -40,6 +45,28 @@ appProcess DOWNLOAD_DOCUMENT (
     }
     execution {
         sequence: 10
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @kyc-user
+    }
+)
+
+appProcess PARTY_MATCHES (
+    name: PARTY_MATCHES
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- Similar parties for the party form (Global Page dialog before saving): JSON array, strongest first.
+            htp.p(xxcmp_request_pkg.party_candidates_json(apex_application.g_x01, apex_application.g_x02, apex_application.g_x03,
+                                                         to_date(apex_application.g_x04), apex_application.g_x05,
+                                                         to_number(apex_application.g_x06)));
+            ```
+    }
+    execution {
+        sequence: 20
         point: ajaxCallback
     }
     security {

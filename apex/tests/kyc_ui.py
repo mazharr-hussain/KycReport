@@ -1,5 +1,5 @@
-"""Chunk 5 in the browser: REQ1 creates a request with the wizard (201-203) and submits it; OFFICER1 approves the
-document checklist on the request (205), which opens the case; OFFICER1 sets the risk on the Case page (211) and
+"""Chunk 5 in the browser: REQ1 creates a request with the wizard (201, 204, 202, 203) and submits it; OFFICER1 approves the
+approval step on the approval screen (206, from My Tasks), which opens the case; OFFICER1 sets the risk on the Case page (211) and
 submits it for approval; MGR1 approves in the Case Decision drawer (212). The case must end APPROVED.
 Usage: kyc_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
 import os, random, re, string, subprocess, sys, time
@@ -124,7 +124,9 @@ with sync_playwright() as p:
     pg.wait_for_timeout(800)     # the entity type list follows the party type (cascading list)
     pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC")')
     click(pg, 'Next')
-    ok(f'step 1 saved the counterparty and moved to the questionnaire ({pg.title()})', 'Questionnaire' in pg.title() and not errors(pg))
+    ok(f'step 1 saved the counterparty and moved to the party details ({pg.title()})', 'Party Details' in pg.title() and not errors(pg))
+    click(pg, 'Next')
+    ok(f'party details -> questionnaire ({pg.title()})', 'Questionnaire' in pg.title() and not errors(pg))
     req = db(f"select request_id from xxcmp_requests where party_name = '{NAME}'")[0]
     answers = {'regulated stock exchange': 'No', 'country of incorporation': 'Medium-risk jurisdiction',
                'transaction volume': 'Above 10 million', 'politically exposed': 'No', 'cash-intensive': 'Yes'}
@@ -150,13 +152,14 @@ with sync_playwright() as p:
 
     # ------------------------------------------------ OFFICER1: checklist, case
     pg, s = login(b, 'OFFICER1')
-    link = open_task(pg, s, 'P205_TASK_ID', task)
+    link = open_task(pg, s, 'P206_TASK_ID', task)
     ok('the checklist task is in My Tasks', link.count() == 1)
     with pg.expect_navigation():
         link.click()
     pg.wait_for_load_state('networkidle')
-    ok('the task opens the request with the decision buttons', pg.locator('button:has-text("Approve - Open Case")').count() == 1)
-    click(pg, 'Approve - Open Case')
+    ok('the task opens the approval screen with the decision buttons (top and bottom)',
+       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 2)
+    click(pg, 'Approve')
     ok(f'checklist approved ({(errors(pg) or "no error")})', not errors(pg))
     case = wait_db(f"select max(case_id) from xxcmp_cases where request_id = {req}")
     itask = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'CASE_INVESTIGATION' and detail_pk = '{case}'")

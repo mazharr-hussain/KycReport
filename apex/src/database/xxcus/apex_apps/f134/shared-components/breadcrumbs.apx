@@ -939,6 +939,70 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry create-request-204 (
+        name: Create Request
+        pageNumber: 204
+        execution {
+            sequence: 305
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry kyc-request-approval (
+        name: &P206_REQUEST_NUMBER.
+        pageNumber: 206
+        execution {
+            sequence: 302
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 206
+            }
+        }
+    )
+
+    entry party-details (
+        name: Party Details
+        pageNumber: 25
+        execution {
+            sequence: 31
+        }
+        appearance {
+            parentEntry: @parties
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry party-information (
+        name: Party Information
+        pageNumber: 24
+        execution {
+            sequence: 32
+        }
+        appearance {
+            parentEntry: @parties
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
     entry watchlist (
         name: Monitoring Watchlist
         pageNumber: 220

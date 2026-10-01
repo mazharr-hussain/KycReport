@@ -40,6 +40,12 @@ declare
     begin
         return regexp_substr(substr(p_sqlerrm, 12), '[^' || chr(10) || ']+');
     end;
+    function exists_withdrawn(p_req number) return boolean is
+        l number;
+    begin
+        select count(*) into l from table(xxcmp_approval_pkg.history_rows(p_req)) where action = 'Withdrawn';
+        return l > 0;
+    end;
     function status(p_party number) return varchar2 is
         l varchar2(30);
     begin
@@ -157,7 +163,16 @@ begin
     xxcmp_request_pkg.info_submitted(l_req);
     ok('answered: In Progress again', xxcmp_request_pkg.stage(l_req) = 'In Progress');
 
-    ---------------------------------------------------------------- cancel
+    ---------------------------------------------------------------- withdraw, then cancel (release 25)
+    ok('waiting for approval: cancel needs a withdraw first', xxcmp_request_pkg.cancel_error(l_req) like '%withdraw it first%');
+    xxcmp_request_pkg.withdraw(l_req);
+    commit;
+    select * into l_r from xxcmp_requests where request_id = l_req;
+    select count(*) into l_cnt from apex_workflows where workflow_id = l_r.workflow_id and state_code in ('ACTIVE', 'SUSPENDED');
+    ok('withdrawn: back to Draft, workflow ended, the party stays editable',
+       l_r.request_status = 'DRAFT' and l_cnt = 0 and xxcmp_request_pkg.party_editable(l_req) = 'Y');
+    ok('history shows the withdraw', dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req), 'Submitted') > 0
+       and exists_withdrawn(l_req));
     xxcmp_request_pkg.cancel(l_req, 'Not needed any more');
     commit;
     select * into l_r from xxcmp_requests where request_id = l_req;

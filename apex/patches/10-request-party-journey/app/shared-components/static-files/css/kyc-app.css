@@ -1,0 +1,44 @@
+/* KYC app readability on Universal Theme / Redwood Light (patch 10). Theme variables first, plain values as fallback. */
+
+/* larger base text */
+.t-Body { font-size: 0.9375rem; }
+.t-Body-content { --ut-region-body-font-size: 0.9375rem; }
+
+/* region headers stand apart from their data */
+.t-Region-header { border-bottom: 1px solid var(--ut-component-border-color, #dcd9d4); }
+.t-Region-title { font-size: 1.125rem; font-weight: 600; }
+
+/* report headers vs rows */
+.t-Report-colHead,
+.a-IRR-header,
+.a-GV-header {
+    font-size: 0.875rem;
+    font-weight: 600;
+    background-color: var(--ut-report-header-background-color, #f1efec);
+}
+.t-Report-cell,
+.a-IRR-table td,
+.a-GV-cell { font-size: 0.9375rem; padding-top: 0.625rem; padding-bottom: 0.625rem; }
+
+/* label / value lists (party details) */
+.t-AVPList-label { font-weight: 600; font-size: 0.875rem; }
+.t-AVPList-value { font-size: 0.9375rem; }
+
+/* forms: labels and values readable; read-only values look like text, editable fields keep the input box */
+.t-Form-label { font-size: 0.875rem; }
+.t-Form-fieldContainer .apex-item-text,
+.t-Form-fieldContainer .apex-item-select,
+.t-Form-fieldContainer .apex-item-textarea,
+.t-Form-fieldContainer .display_only { font-size: 1rem; }
+.t-Form-fieldContainer.is-readonly .t-Form-inputContainer,
+.t-Form-fieldContainer .display_only,
+.t-Form-fieldContainer--floatingLabel.is-readonly .t-Form-itemWrapper {
+    border-style: solid;
+    border-color: transparent;
+    background-color: var(--ut-component-highlight-background-color, #f6f5f3);
+    box-shadow: none;
+}
+.t-Form-fieldContainer.is-required .t-Form-label { font-weight: 600; }
+
+/* wizard progress: current step stands out */
+.t-WizardSteps-step.is-active .t-WizardSteps-label { font-weight: 700; }

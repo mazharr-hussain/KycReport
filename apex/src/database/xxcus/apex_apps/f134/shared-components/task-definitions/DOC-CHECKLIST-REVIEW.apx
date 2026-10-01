@@ -18,11 +18,11 @@ taskDefinition DOC_CHECKLIST_REVIEW (
     }
     advanced {
         detailsPage: {
-            page: 205
+            page: 206
             items: {
-                P205_TASK_ID: &TASK_ID.
+                P206_TASK_ID: &TASK_ID.
             }
-            clearCache: 205
+            clearCache: 206
         }
         vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
     }

@@ -357,7 +357,8 @@ create or replace package xxcmp_request_pkg authid definer as
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;
-    -- Y when the requester may change the counterparty's party (editable request, new counterparty, party Pending).
+    -- Y when the requester may change the counterparty's party: an editable request whose party was created by it
+    -- (new counterparty, not merged into an existing party). The party status does not decide it.
     function party_editable(p_request_id in number) return varchar2;
 
     -- Parties a requester may choose from (requesters cannot read the party master itself): approved, enabled
@@ -405,6 +406,9 @@ create or replace package xxcmp_request_pkg authid definer as
     function cancel_error(p_request_id in number) return varchar2;
     -- Cancels the request: ends its workflow and tasks; a Pending party only this request uses is Cancelled.
     procedure cancel(p_request_id in number, p_reason in varchar2 default null);
+    -- Withdraw: the requester pulls a submitted request (In Progress) back to Draft; its workflow and task end.
+    function withdraw_error(p_request_id in number) return varchar2;
+    procedure withdraw(p_request_id in number);
 
     -- Document checklist task events: Compliance asked the requester for information / the requester answered.
     procedure info_requested(p_request_id in number);
@@ -788,7 +792,7 @@ create or replace package body xxcmp_request_pkg as
         end if;
         l_req := get_request(p_request_id);
         return case when is_editable(p_request_id) = 'Y' and nvl(l_req.party_selection, 'NEW') = 'NEW'
-                     and (l_req.party_id is null or party_status(l_req.party_id) = 'PENDING') then 'Y' else 'N' end;
+                     and nvl(l_req.match_status, '-') <> 'MERGED' then 'Y' else 'N' end;
     exception
         when no_data_found then
             return 'N';
@@ -1109,7 +1113,9 @@ create or replace package body xxcmp_request_pkg as
     begin
         if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
             return 'Only the requester can cancel request ' || l_req.request_number || '.';
-        elsif l_req.request_status not in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
+        elsif l_req.request_status = 'IN_PROGRESS' then
+            return 'Request ' || l_req.request_number || ' is waiting for approval: withdraw it first.';
+        elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED') then
             return 'Request ' || l_req.request_number || ' is closed and cannot be cancelled.';
         end if;
         select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
@@ -1148,6 +1154,49 @@ create or replace package body xxcmp_request_pkg as
          where request_id = p_request_id;
         release_party(l_req.party_id, p_request_id, 'CANCELLED');
     end cancel;
+
+    function withdraw_error(p_request_id in number) return varchar2 is
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_cases pls_integer;
+    begin
+        if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
+            return 'Only the requester can withdraw request ' || l_req.request_number || '.';
+        elsif l_req.request_status <> 'IN_PROGRESS' then
+            return 'Only a request waiting for approval can be withdrawn.';
+        end if;
+        select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
+        if l_cases > 0 then
+            return 'A case has been opened for request ' || l_req.request_number || ': it cannot be withdrawn.';
+        end if;
+        return null;
+    end withdraw_error;
+
+    procedure withdraw(p_request_id in number) is
+        l_error varchar2(4000) := withdraw_error(p_request_id);
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_state varchar2(30);
+    begin
+        if l_error is not null then
+            raise_application_error(-20623, l_error);
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            if l_req.workflow_id is not null then
+                select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
+                if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
+                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
+                end if;
+            end if;
+            update xxcmp_requests
+               set request_status = 'DRAFT', approval_path_name = null, current_step = null, last_action_date = sysdate
+             where request_id = p_request_id;
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+    end withdraw;
 
     procedure set_status(p_request_id in number, p_from in varchar2, p_to in varchar2) is
     begin

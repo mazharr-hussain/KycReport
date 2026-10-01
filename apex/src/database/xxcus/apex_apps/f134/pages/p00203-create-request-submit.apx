@@ -15,7 +15,7 @@ page 203 (
     help {
         helpText:
             ```
-            Step 3 of 3: attach the documents you have and submit. You will see the outcome on the request.
+            Step 4 of 4: review everything (the party and its details, the answers, the documents and the expected approval path), attach the documents you have and submit. When the request is Information Needed, answer the question here (Respond).
             ```
     }
 
@@ -195,248 +195,9 @@ page 203 (
         }
     )
 
-    region answer_summary (
-        name: Answers
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
-                       coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer
-                  from xxcmp_request_answers a
-                 where a.request_id = :P203_REQUEST_ID and a.respondent_type = 'REQUESTER'
-                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
-                ```
-            pageItemsToSubmit: P203_REQUEST_ID
-        }
-        layout {
-            sequence: 30
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: answer_summary
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No data found.
-        }
 
-        column QUESTION (
-            type: plainText
-            heading {
-                heading: Question
-            }
-            layout {
-                sequence: 10
-            }
-        )
 
-        column ANSWER (
-            type: plainText
-            heading {
-                heading: Answer
-            }
-            layout {
-                sequence: 20
-            }
-        )
 
-    )
-
-    region request_attachments (
-        name: Documents
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select a.attached_document_id, a.title, a.category_name, a.document_date, a.expiry_date, a.created_by, a.creation_date
-                  from xxfnd_attached_documents_v a
-                 where a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P203_REQUEST_ID
-                 order by a.seq_num, a.creation_date
-                ```
-            pageItemsToSubmit: P203_REQUEST_ID
-        }
-        layout {
-            sequence: 40
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: request_attachments
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No documents attached yet.
-        }
-
-        column ATTACHED_DOCUMENT_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-        )
-
-        column TITLE (
-            type: plainText
-            heading {
-                heading: Title
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
-        column CATEGORY_NAME (
-            type: plainText
-            heading {
-                heading: Category
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column DOCUMENT_DATE (
-            type: plainText
-            heading {
-                heading: Document Date
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column EXPIRY_DATE (
-            type: plainText
-            heading {
-                heading: Expires
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Added By
-            }
-            layout {
-                sequence: 60
-            }
-        )
-
-        column CREATION_DATE (
-            type: plainText
-            heading {
-                heading: Added On
-            }
-            layout {
-                sequence: 70
-            }
-        )
-
-    )
-
-    button request_attachments-add (
-        buttonName: REQUEST_ATTACHMENTS_ADD
-        label: Add Document
-        layout {
-            sequence: 10
-            region: @request_attachments
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 90
-                items: {
-                    P90_ENTITY_NAME: XXCMP_REQUESTS
-                    P90_PK1_VALUE: &P203_REQUEST_ID.
-                    P90_SOURCE_PAGE: 203
-                    P90_SOURCE_REGION: request_attachments
-                }
-                clearCache: 90
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 203, 'request_attachments', 'XXCMP_REQUESTS', 'INSERT') = 'Y'
-                ```
-        }
-    )
-
-    dynamicAction refresh-request_attachments (
-        name: Refresh request_attachments
-        execution {
-            sequence: 30
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @request_attachments
-        }
-
-        action refresh-request_attachments-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @request_attachments
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
     button previous (
         buttonName: PREVIOUS
         label: Previous
@@ -553,6 +314,163 @@ page 203 (
         }
     )
 
+    region respond (
+        name: Information Needed
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the question Compliance asked (the latest comment on the checklist task)
+                declare
+                    l_text varchar2(4000);
+                begin
+                    select max(c.text) keep (dense_rank last order by c.created_on) into l_text
+                      from apex_task_comments c
+                     where c.task_id = :P203_INFO_TASK_ID;
+                    return '<p>Compliance asked:</p><blockquote>' || apex_escape.html(nvl(l_text, '-')) || '</blockquote>'
+                           || '<p>Update the request if needed, then answer here: the request goes back to the approver.</p>';
+                end;
+                ```
+            pageItemsToSubmit: P203_INFO_TASK_ID
+        }
+        layout {
+            sequence: 8
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: respond
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P203_INFO_TASK_ID
+        }
+    )
+
+    pageItem P203_INFO_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P203_RESPONSE (
+        type: textarea
+        label {
+            label: Your Answer
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+    )
+
+    button respond (
+        buttonName: RESPOND
+        label: Respond
+        layout {
+            sequence: 10
+            region: @respond
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    validation response-given (
+        name: Answer given
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when trim(:P203_RESPONSE) is null then 'Enter your answer for Compliance.' end;
+                ```
+        }
+        error {
+            associatedItem: @P203_RESPONSE
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process respond-task (
+        name: Answer Compliance
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- the task event Submit Information moves the request back to In Progress (task action)
+                apex_human_task.submit_information(p_task_id => :P203_INFO_TASK_ID, p_text => :P203_RESPONSE);
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Your answer was sent: the request is back with the approver.
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process find-info-task (
+        name: The requester's information request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- Compliance asked this requester for information: the task waits for their answer
+                select max(t.task_id) into :P203_INFO_TASK_ID
+                  from apex_tasks t
+                  join xxcmp_requests r on to_char(r.request_id) = t.detail_pk
+                 where t.detail_pk = :P203_REQUEST_ID
+                   and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                   and t.state_code = 'INFO_REQUESTED'
+                   and upper(r.requester_user_name) = upper(:APP_USER);
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
     process submit-request (
         name: Submit request
         type: executeCode
@@ -593,7 +511,8 @@ page 203 (
             }
         }
         serverSideCondition {
-            whenButtonPressed: @submit
+            type: requestIsContainedInValue
+            value: SUBMIT,RESPOND
         }
     )
 

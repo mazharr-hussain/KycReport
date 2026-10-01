@@ -15,7 +15,7 @@ page 23 (
         chained: false
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @party-details-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -102,8 +102,20 @@ page 23 (
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-parties
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || party_number || ')' as display_value, party_id as return_value
+                  from xxcmp_parties
+                 where enabled_flag = 'Y'
+                union
+                select j.party_name || ' (' || j.party_number || ')', j.party_id
+                  from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  party_name varchar2(360) path '$.party_name')) j
+                 order by 1
+                ```
+            displayNullValue: false
         }
         layout {
             sequence: 10
@@ -424,7 +436,7 @@ page 23 (
             value: CREATE,SAVE
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @party-details-submit
         }
     )
 
@@ -468,7 +480,7 @@ page 23 (
             item: P23_PARTY_RELATIONSHIP_ID
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @party-details-create
         }
     )
 
@@ -495,7 +507,7 @@ page 23 (
             item: P23_PARTY_RELATIONSHIP_ID
         }
         security {
-            authorizationScheme: @page-manage
+            authorizationScheme: @party-details-manage
         }
     )
 
@@ -527,7 +539,7 @@ page 23 (
             item: P23_PARTY_RELATIONSHIP_ID
         }
         security {
-            authorizationScheme: @page-manage
+            authorizationScheme: @party-details-manage
         }
     )
 
@@ -568,7 +580,7 @@ page 23 (
                     -- the new owner / officer: the rules of the common party form
                     return xxcmp_party_pkg.party_error(null, :P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_JURISDICTION,
                                :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE, to_date(:P0_PARTY_INCORPORATION_DATE),
-                               :P0_PARTY_EMAIL, :P0_PARTY_PHONE, 'N', nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                               :P0_PARTY_EMAIL, :P0_PARTY_PHONE, 'N', :P0_PARTY_MATCH_ACK);
                 end if;
                 return null;
                 ```
@@ -644,7 +656,8 @@ page 23 (
                         p_phone               => :P0_PARTY_PHONE,
                         p_website             => :P0_PARTY_WEBSITE,
                         p_fax                 => :P0_PARTY_FAX,
-                        p_match_ack           => nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                        p_match_ack           => :P0_PARTY_MATCH_ACK,
+                        p_request_id          => to_number(:P0_REQUEST_ID));
                     :P23_SUBJECT_PARTY_ID := l_id;
                 end;
                 ```
@@ -662,7 +675,7 @@ page 23 (
                 ```
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @party-details-submit
         }
     )
 
@@ -723,7 +736,7 @@ page 23 (
             value: CREATE,SAVE,DELETE
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @party-details-submit
         }
     )
 

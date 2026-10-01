@@ -598,7 +598,7 @@ page 201 (
                     :P0_REQUEST_ID := :P201_REQUEST_ID;
                     :P0_SUMMARY_PARTY_ID := :P201_PARTY_ID;
                     if :P201_REQUEST_ID is not null then
-                        select nvl(match_ack_flag, 'N') into :P0_PARTY_MATCH_ACK from xxcmp_requests where request_id = :P201_REQUEST_ID;
+                        select match_ack_flag into :P0_PARTY_MATCH_ACK from xxcmp_requests where request_id = :P201_REQUEST_ID;
                     end if;
                 end;
                 ```
@@ -634,7 +634,7 @@ page 201 (
                            p_phone               => :P0_PARTY_PHONE,
                            p_justification       => :P201_JUSTIFICATION,
                            p_draft               => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
-                           p_match_ack           => nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                           p_match_ack           => :P0_PARTY_MATCH_ACK);
                 ```
         }
         serverSideCondition {
@@ -673,7 +673,7 @@ page 201 (
                         p_contact_name          => :P201_CONTACT_NAME,
                         p_contact_email         => :P201_CONTACT_EMAIL,
                         p_contact_phone         => :P201_CONTACT_PHONE,
-                        p_match_ack             => nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                        p_match_ack             => :P0_PARTY_MATCH_ACK);
                     :P201_REQUEST_ID := l_request_id;
                 end;
                 ```
@@ -743,9 +743,9 @@ page 201 (
         }
         behavior {
             target: {
-                page: 202
+                page: 204
                 items: {
-                    P202_REQUEST_ID: &P201_REQUEST_ID.
+                    P204_REQUEST_ID: &P201_REQUEST_ID.
                 }
                 clearCache: 202
             }

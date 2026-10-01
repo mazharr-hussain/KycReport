@@ -35,7 +35,7 @@ page 202 (
     help {
         helpText:
             ```
-            Step 2 of 3: answer every question. The answers decide whether a KYC review is needed.
+            Step 3 of 4: answer every question. The answers decide whether a KYC review is needed.
             ```
     }
 
@@ -283,17 +283,17 @@ page 202 (
     )
 
     branch (
-        name: Back to counterparty
+        name: Back to party details
         execution {
             sequence: 10
         }
         behavior {
             target: {
-                page: 201
+                page: 204
                 items: {
-                    P201_REQUEST_ID: &P202_REQUEST_ID.
+                    P204_REQUEST_ID: &P202_REQUEST_ID.
                 }
-                clearCache: 201
+                clearCache: 204
             }
         }
         serverSideCondition {

@@ -1,0 +1,677 @@
+page 205 (
+    name: KYC Request
+    alias: KYC-REQUEST
+    title: KYC Request
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A KYC request, read only: where it stands, the party and its details, the answers, the documents and the approval history. Changes go through Edit / Withdraw on the KYC Requests list; approvers decide from their task.
+            ```
+    }
+
+    region breadcrumb (
+        name: KYC Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region request (
+        name: Request
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    button back (
+        buttonName: BACK
+        label: Back
+        layout {
+            sequence: 5
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-chevron-left
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 200
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    pageItem P205_MERGE_NOTE (
+        type: displayOnly
+        label {
+            label: Merge Note
+            alignment: left
+        }
+        layout {
+            sequence: 200
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select match_note from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- only when the counterparty was merged into an existing party
+                select 1 from xxcmp_requests where request_id = :P205_REQUEST_ID and match_status = 'MERGED'
+                ```
+        }
+    )
+
+    pageItem P205_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_REQUEST_NUMBER (
+        type: displayOnly
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_STAGE (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_request_pkg.stage(:P205_REQUEST_ID) from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_KYC_REQUIRED (
+        type: displayOnly
+        label {
+            label: KYC Required
+            alignment: left
+        }
+        layout {
+            sequence: 22
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_request_pkg.kyc_required(:P205_REQUEST_ID) from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_PENDING_WITH (
+        type: displayOnly
+        label {
+            label: Pending With
+            alignment: left
+        }
+        layout {
+            sequence: 24
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_request_pkg.pending_with(:P205_REQUEST_ID) from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_ACTION_DATE (
+        type: displayOnly
+        label {
+            label: Action Date
+            alignment: left
+        }
+        layout {
+            sequence: 26
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select to_char(last_action_date, 'DD-MON-YYYY HH24:MI') from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_COUNTERPARTY (
+        type: displayOnly
+        label {
+            label: Counterparty
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', party_type)
+                       || nvl2(registration_number, ', ' || registration_number, null)
+                       || nvl2(jurisdiction, ', ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_REQUEST_TYPE (
+        type: displayOnly
+        label {
+            label: Type
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', request_type) from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_INTAKE (
+        type: displayOnly
+        label {
+            label: Intake Result
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome)
+                       || nvl2(intake_score, ' (score ' || intake_score || case when intake_critical_flag = 'Y' then ', critical answer' end || ')', null)
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_REQUESTED_BY (
+        type: displayOnly
+        label {
+            label: Requested By
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select requester_user_name || nvl2(requesting_department, ' - '
+                       || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', requesting_department), null)
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_JUSTIFICATION (
+        type: displayOnly
+        label {
+            label: Business Justification
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select justification from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
+                            when r.party_id is not null then 'Linked to a party'
+                            else 'Not decided yet' end
+                       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
+                  from xxcmp_requests r
+                  left join xxcmp_parties p on p.party_id = r.party_id
+                 where r.request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P205_CASE_NUMBER (
+        type: displayOnly
+        label {
+            label: Case
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+
+
+
+    region checklist (
+        name: Document Checklist
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_value as category_code,
+                       (select nvl(tl.category_name, dc.category_name) from xxfnd_document_categories dc
+                          left join xxfnd_document_categories_tl tl on tl.category_code = dc.category_code and tl.language_code = xxfnd_util_pkg.current_lang
+                         where dc.category_code = c.column_value) as category,
+                       case when exists (select 1 from xxfnd_attached_documents_v a
+                                          where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                            and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P205_REQUEST_ID)
+                                              or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P205_REQUEST_ID))))
+                            then 'Present' else 'Missing' end as status
+                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
+                                 (select jurisdiction from xxcmp_requests where request_id = :P205_REQUEST_ID),
+                                 (select entity_type from xxcmp_requests where request_id = :P205_REQUEST_ID))) c
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: checklist
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No mandatory documents are configured for this counterparty.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Mandatory Document
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    button open-case (
+        buttonName: OPEN_CASE
+        label: Open Case
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 211
+                items: {
+                    P211_CASE_ID: &P205_CASE_ID.
+                }
+                clearCache: 211
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_CASE_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+    )
+
+    process load-case (
+        name: Load case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
+                -- the breadcrumb shows the request number before the page items are rendered
+                select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                -- the common Party / Approval Path / History regions (Global Page)
+                :P0_REQUEST_ID := :P205_REQUEST_ID;
+                :P0_SUMMARY_PARTY_ID := :P205_PARTY_ID;
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
+)

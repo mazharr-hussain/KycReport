@@ -45,6 +45,11 @@ app KYC (
             #APP_FILES#js/kyc-app.js
         ]
     }
+    css {
+        fileUrls: [
+            #APP_FILES#css/kyc-app.css
+        ]
+    }
     authentication {
         scheme: @oracle-database-accounts
     }

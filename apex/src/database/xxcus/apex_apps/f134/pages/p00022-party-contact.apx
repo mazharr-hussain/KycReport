@@ -15,7 +15,7 @@ page 22 (
         chained: false
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @party-details-view
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -411,7 +411,7 @@ page 22 (
             value: CREATE,SAVE
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @party-details-submit
         }
     )
 
@@ -455,7 +455,7 @@ page 22 (
             item: P22_PARTY_CONTACT_ID
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @party-details-create
         }
     )
 
@@ -482,7 +482,7 @@ page 22 (
             item: P22_PARTY_CONTACT_ID
         }
         security {
-            authorizationScheme: @page-manage
+            authorizationScheme: @party-details-manage
         }
     )
 
@@ -514,7 +514,7 @@ page 22 (
             item: P22_PARTY_CONTACT_ID
         }
         security {
-            authorizationScheme: @page-manage
+            authorizationScheme: @party-details-manage
         }
     )
 
@@ -593,7 +593,7 @@ page 22 (
             value: CREATE,SAVE,DELETE
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @party-details-submit
         }
     )
 

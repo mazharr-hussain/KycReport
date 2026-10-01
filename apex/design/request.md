@@ -61,6 +61,17 @@ Edit (drafts only). Hidden, available: Type, Intake Score, Submitted, Who column
 
 The match decision in Compliance's checklist task is replaced by **Merge** (Compliance merges a duplicate party).
 
+## Release 25 (patch 10)
+- Wizard: 1 Counterparty (201) → 2 **Party Details** (204: additional information, contact persons, owners / officers, documents; editable only
+  when the request created the party) → 3 Questionnaire (202) → 4 Review and Submit (203: everything expanded; Respond when Information Needed).
+- Similar parties: a dialog on Next ("Confirmed - none of these is this party" = MATCH_ACK_FLAG Y, "A possible match exists" = N). Same
+  number + country stays a blocking error.
+- List: sorted by request number (newest first), Excel download; Action = Edit (Draft / Information Needed) or Withdraw (waiting for
+  approval: back to Draft). Cancel Request is on the edit screen (Draft / Information Needed).
+- 205 = request view, read only (Back). 206 = approval screen from the task: same regions + Approve / Reject / Request Information at
+  the top and the bottom (comment required for Reject and Request Information) + Merge in a popup (note required).
+- One Approval History table (path + history) on 203 / 205 / 206.
+
 ## Request page (205)
 | Region | Content |
 |---|---|

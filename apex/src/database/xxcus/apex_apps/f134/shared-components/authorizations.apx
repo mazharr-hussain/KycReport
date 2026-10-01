@@ -123,3 +123,83 @@ authorization admin-area (
         evaluationType: perPageView
     }
 )
+
+authorization party-details-view (
+    name: Party Details - View
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
+            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'VIEW')
+                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-create (
+    name: Party Details - Create
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
+            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'CREATE')
+                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-manage (
+    name: Party Details - Manage
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
+            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
+            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'MANAGE')
+                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-submit (
+    name: Party Details - Submit
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
+            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
+            return xxfnd_privilege_pkg.has_page_request_privilege(:APP_PAGE_ID, :REQUEST)
+                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
