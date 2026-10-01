@@ -1,0 +1,1069 @@
+breadcrumb breadcrumb (
+    name: Breadcrumb
+
+    entry home (
+        name: Home
+        pageNumber: 1
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry parties (
+        name: Parties
+        pageNumber: 20
+        execution {
+            sequence: 20
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 20
+            }
+        }
+    )
+
+    entry party (
+        name: Party
+        pageNumber: 21
+        execution {
+            sequence: 30
+        }
+        appearance {
+            parentEntry: @parties
+        }
+        link {
+            target: {
+                page: 21
+            }
+        }
+    )
+
+    entry rfis (
+        name: Requests for Information
+        pageNumber: 30
+        execution {
+            sequence: 40
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 30
+            }
+        }
+    )
+
+    entry rfi (
+        name: Request for Information
+        pageNumber: 31
+        execution {
+            sequence: 50
+        }
+        appearance {
+            parentEntry: @rfis
+        }
+        link {
+            target: {
+                page: 31
+            }
+        }
+    )
+
+    entry provide-information (
+        name: Provide Information
+        pageNumber: 33
+        execution {
+            sequence: 60
+        }
+        link {
+            target: {
+                page: 33
+            }
+        }
+    )
+
+    entry worklist (
+        name: My Tasks
+        pageNumber: 40
+        execution {
+            sequence: 70
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 40
+            }
+        }
+    )
+
+    entry wf-monitor (
+        name: Workflow Monitor
+        pageNumber: 41
+        execution {
+            sequence: 80
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 41
+            }
+        }
+    )
+
+    entry wf-item (
+        name: Task Details
+        pageNumber: 42
+        execution {
+            sequence: 90
+        }
+        appearance {
+            parentEntry: @wf-monitor
+        }
+        link {
+            target: {
+                page: 42
+            }
+        }
+    )
+
+    entry admin (
+        name: Administration
+        pageNumber: 100
+        execution {
+            sequence: 100
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
+    entry lookups (
+        name: Lookups
+        pageNumber: 101
+        execution {
+            sequence: 110
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry lookup (
+        name: Lookup Type
+        pageNumber: 102
+        execution {
+            sequence: 120
+        }
+        appearance {
+            parentEntry: @lookups
+        }
+        link {
+            target: {
+                page: 102
+            }
+        }
+    )
+
+    entry employees (
+        name: Employees and Access
+        pageNumber: 103
+        execution {
+            sequence: 130
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry employee (
+        name: Employee
+        pageNumber: 104
+        execution {
+            sequence: 140
+        }
+        appearance {
+            parentEntry: @employees
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry roles (
+        name: Roles
+        pageNumber: 105
+        execution {
+            sequence: 150
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry sod (
+        name: Segregation of Duties
+        pageNumber: 107
+        execution {
+            sequence: 160
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 107
+            }
+        }
+    )
+
+    entry templates (
+        name: Notification Templates
+        pageNumber: 109
+        execution {
+            sequence: 170
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 109
+            }
+        }
+    )
+
+    entry audit (
+        name: Audit Log
+        pageNumber: 111
+        execution {
+            sequence: 180
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 111
+            }
+        }
+    )
+
+    entry retention (
+        name: Retention Policies
+        pageNumber: 112
+        execution {
+            sequence: 190
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 112
+            }
+        }
+    )
+
+    entry delegations (
+        name: Delegations
+        pageNumber: 114
+        execution {
+            sequence: 200
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 114
+            }
+        }
+    )
+
+    entry endpoints (
+        name: Integration Endpoints
+        pageNumber: 120
+        execution {
+            sequence: 210
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 120
+            }
+        }
+    )
+
+    entry purposes (
+        name: Integration Purposes
+        pageNumber: 122
+        execution {
+            sequence: 220
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 122
+            }
+        }
+    )
+
+    entry transmissions (
+        name: Transmission Log
+        pageNumber: 124
+        execution {
+            sequence: 230
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 124
+            }
+        }
+    )
+
+    entry doc-entities (
+        name: Document Entities
+        pageNumber: 130
+        execution {
+            sequence: 240
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 130
+            }
+        }
+    )
+
+    entry doc-categories (
+        name: Document Categories
+        pageNumber: 132
+        execution {
+            sequence: 250
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 132
+            }
+        }
+    )
+
+    entry attach-functions (
+        name: Attachment Pages
+        pageNumber: 134
+        execution {
+            sequence: 260
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 134
+            }
+        }
+    )
+
+    entry attach-function (
+        name: Attachment Page
+        pageNumber: 135
+        execution {
+            sequence: 270
+        }
+        appearance {
+            parentEntry: @attach-functions
+        }
+        link {
+            target: {
+                page: 135
+            }
+        }
+    )
+
+    entry storage (
+        name: Document Storage
+        pageNumber: 136
+        execution {
+            sequence: 280
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 136
+            }
+        }
+    )
+
+    entry doc-rules (
+        name: Mandatory Document Rules
+        pageNumber: 138
+        execution {
+            sequence: 290
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 138
+            }
+        }
+    )
+
+    entry value-sets (
+        name: Value Sets
+        pageNumber: 150
+        execution {
+            sequence: 330
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 150
+            }
+        }
+    )
+
+    entry flexfields (
+        name: Descriptive Flexfields
+        pageNumber: 152
+        execution {
+            sequence: 340
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 152
+            }
+        }
+    )
+
+    entry flexfield (
+        name: Descriptive Flexfield
+        pageNumber: 153
+        execution {
+            sequence: 350
+        }
+        appearance {
+            parentEntry: @flexfields
+        }
+        link {
+            target: {
+                page: 153
+            }
+        }
+    )
+
+    entry questionnaires (
+        name: Questionnaires
+        pageNumber: 160
+        execution {
+            sequence: 360
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 160
+            }
+        }
+    )
+
+    entry questionnaire (
+        name: Questionnaire
+        pageNumber: 161
+        execution {
+            sequence: 370
+        }
+        appearance {
+            parentEntry: @questionnaires
+        }
+        link {
+            target: {
+                page: 161
+            }
+        }
+    )
+
+    entry question (
+        name: Question
+        pageNumber: 162
+        execution {
+            sequence: 380
+        }
+        appearance {
+            parentEntry: @questionnaire
+        }
+        link {
+            target: {
+                page: 162
+            }
+        }
+    )
+
+    entry conclusions (
+        name: Conclusion Templates
+        pageNumber: 163
+        execution {
+            sequence: 390
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 163
+            }
+        }
+    )
+
+    entry approval-matrix (
+        name: Approval Matrix
+        pageNumber: 165
+        execution {
+            sequence: 400
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 165
+            }
+        }
+    )
+
+    entry request-approval-paths (
+        name: Request Approval Paths
+        pageNumber: 166
+        execution {
+            sequence: 405
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 166
+            }
+        }
+    )
+
+    entry about (
+        name: About
+        pageNumber: 10010
+        execution {
+            sequence: 420
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 10010
+            }
+        }
+    )
+
+    entry features (
+        name: Feature Configuration
+        pageNumber: 10020
+        execution {
+            sequence: 430
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10020
+            }
+        }
+    )
+
+    entry activity (
+        name: Activity Reports
+        pageNumber: 10030
+        execution {
+            sequence: 440
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10030
+            }
+        }
+    )
+
+    entry top-users (
+        name: Top Users
+        pageNumber: 10031
+        execution {
+            sequence: 450
+        }
+        appearance {
+            parentEntry: @activity
+        }
+        link {
+            target: {
+                page: 10031
+            }
+        }
+    )
+
+    entry app-errors (
+        name: Application Errors
+        pageNumber: 10032
+        execution {
+            sequence: 460
+        }
+        appearance {
+            parentEntry: @activity
+        }
+        link {
+            target: {
+                page: 10032
+            }
+        }
+    )
+
+    entry page-performance (
+        name: Page Performance
+        pageNumber: 10033
+        execution {
+            sequence: 470
+        }
+        appearance {
+            parentEntry: @activity
+        }
+        link {
+            target: {
+                page: 10033
+            }
+        }
+    )
+
+    entry feedback-admin (
+        name: Manage Feedback
+        pageNumber: 10051
+        execution {
+            sequence: 480
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10051
+            }
+        }
+    )
+
+    entry privileges (
+        name: Privileges
+        pageNumber: 182
+        execution {
+            sequence: 152
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 182
+            }
+        }
+    )
+
+    entry data-security (
+        name: Data Security
+        pageNumber: 180
+        execution {
+            sequence: 156
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 180
+            }
+        }
+    )
+
+    entry app-settings (
+        name: Application Settings
+        pageNumber: 10022
+        execution {
+            sequence: 432
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10022
+            }
+        }
+    )
+
+    entry workflows (
+        name: Workflows
+        pageNumber: 44
+        execution {
+            sequence: 112
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 44
+            }
+        }
+    )
+
+    entry deadlines (
+        name: Deadlines and Escalation
+        pageNumber: 145
+        execution {
+            sequence: 262
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 145
+            }
+        }
+    )
+
+    entry process-catalogue (
+        name: Process Catalogue
+        pageNumber: 147
+        execution {
+            sequence: 264
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 147
+            }
+        }
+    )
+
+    entry kyc-requests (
+        name: KYC Requests
+        pageNumber: 200
+        execution {
+            sequence: 300
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+    )
+
+    entry kyc-request (
+        name: &P205_REQUEST_NUMBER.
+        pageNumber: 205
+        execution {
+            sequence: 301
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 205
+            }
+        }
+    )
+
+    entry create-request (
+        name: Create Request
+        pageNumber: 201
+        execution {
+            sequence: 302
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry cases (
+        name: Cases
+        pageNumber: 210
+        execution {
+            sequence: 310
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 210
+            }
+        }
+    )
+
+    entry case (
+        name: &P211_CASE_NUMBER.
+        pageNumber: 211
+        execution {
+            sequence: 311
+        }
+        appearance {
+            parentEntry: @cases
+        }
+        link {
+            target: {
+                page: 211
+            }
+        }
+    )
+
+    entry compliance-report (
+        name: Compliance Report
+        pageNumber: 217
+        execution {
+            sequence: 312
+        }
+        appearance {
+            parentEntry: @case
+        }
+        link {
+            target: {
+                page: 217
+            }
+        }
+    )
+
+    entry create-request-202 (
+        name: Create Request
+        pageNumber: 202
+        execution {
+            sequence: 303
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry create-request-203 (
+        name: Create Request
+        pageNumber: 203
+        execution {
+            sequence: 304
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+
+    entry create-request-204 (
+        name: Create Request
+        pageNumber: 204
+        execution {
+            sequence: 305
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry kyc-request-approval (
+        name: &P206_REQUEST_NUMBER.
+        pageNumber: 206
+        execution {
+            sequence: 302
+        }
+        appearance {
+            parentEntry: @kyc-requests
+        }
+        link {
+            target: {
+                page: 206
+            }
+        }
+    )
+
+    entry party-details (
+        name: Party Details
+        pageNumber: 25
+        execution {
+            sequence: 31
+        }
+        appearance {
+            parentEntry: @parties
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry party-information (
+        name: Party Information
+        pageNumber: 24
+        execution {
+            sequence: 32
+        }
+        appearance {
+            parentEntry: @parties
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
+    entry watchlist (
+        name: Monitoring Watchlist
+        pageNumber: 220
+        execution {
+            sequence: 320
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 220
+            }
+        }
+    )
+
+    entry alerts (
+        name: Alerts
+        pageNumber: 221
+        execution {
+            sequence: 321
+        }
+        appearance {
+            parentEntry: @watchlist
+        }
+        link {
+            target: {
+                page: 221
+            }
+        }
+    )
+
+    entry alert-rules (
+        name: Alert Rules
+        pageNumber: 225
+        execution {
+            sequence: 322
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 225
+            }
+        }
+    )
+
+    entry dashboard (
+        name: Executive Dashboard
+        pageNumber: 230
+        execution {
+            sequence: 330
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 230
+            }
+        }
+    )
+)

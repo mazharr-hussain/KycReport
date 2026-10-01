@@ -7,14 +7,6 @@ page 21 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
-    readOnly {
-        type: expression
-        language: plsql
-        plsqlExpression:
-            ```plsql
-            :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT'
-            ```
-    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -23,7 +15,7 @@ page 21 (
     help {
         helpText:
             ```
-            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only. Edit (Parties - Manage) makes the party form editable (Save) and shows the buttons to add contact persons, owners / officers and documents. Compliance can merge this party into a similar one.
+            One party, read only: the party, additional information, contact persons, owners / officers and documents (the common Global Page regions). Edit (Parties - Manage) opens the party wizard (Party Information, Party Details, Review); this page is its review step. Compliance can merge this party into a similar one.
             ```
     }
 
@@ -47,9 +39,40 @@ page 21 (
         }
     )
 
-    button cancel-top (
-        buttonName: CANCEL_TOP
-        label: Cancel
+    region wizard (
+        name: Party
+        type: list
+        source {
+            list: @party-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button back-top (
+        buttonName: BACK_TOP
+        label: Back
         layout {
             sequence: 10
             region: @breadcrumb
@@ -58,11 +81,13 @@ page 21 (
         appearance {
             buttonTemplate: @/text
             templateOptions: #DEFAULT#
+            icon: fa-chevron-left
         }
         behavior {
             action: redirectThisApp
             target: {
                 page: 20
+                clearCache: 20
             }
             warnOnUnsavedChanges: doNotCheck
         }
@@ -71,40 +96,7 @@ page 21 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P21_PARTY_ID is null or nvl(:P21_MODE, 'VIEW') <> 'EDIT'
-                ```
-        }
-    )
-
-    button cancel-edit-top (
-        buttonName: CANCEL_EDIT_TOP
-        label: Done
-        layout {
-            sequence: 15
-            region: @breadcrumb
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 21
-                items: {
-                    P21_PARTY_ID: &P21_PARTY_ID.
-                }
-                clearCache: 21
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW'
                 ```
         }
     )
@@ -113,7 +105,7 @@ page 21 (
         buttonName: EDIT_TOP
         label: Edit
         layout {
-            sequence: 25
+            sequence: 20
             region: @breadcrumb
             slot: CREATE
         }
@@ -126,10 +118,79 @@ page 21 (
         behavior {
             action: redirectThisApp
             target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button previous-top (
+        buttonName: PREVIOUS_TOP
+        label: Previous
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 25
+                items: {
+                    P25_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 25
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button done-top (
+        buttonName: DONE_TOP
+        label: Done
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
                 page: 21
                 items: {
                     P21_PARTY_ID: &P21_PARTY_ID.
-                    P21_MODE: EDIT
                 }
                 clearCache: 21
             }
@@ -140,29 +201,30 @@ page 21 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                :P21_MODE = 'REVIEW'
                 ```
-        }
-        security {
-            authorizationScheme: @page-manage
         }
     )
 
-    button save-top (
-        buttonName: SAVE_TOP
-        label: Save
+    button back (
+        buttonName: BACK
+        label: Back
         layout {
-            sequence: 30
-            region: @breadcrumb
-            slot: CREATE
+            sequence: 10
+            region: @party
+            slot: PREVIOUS
         }
         appearance {
             buttonTemplate: @/text
-            hot: true
             templateOptions: #DEFAULT#
+            icon: fa-chevron-left
         }
         behavior {
-            action: submitPage
+            action: redirectThisApp
+            target: {
+                page: 20
+                clearCache: 20
+            }
             warnOnUnsavedChanges: doNotCheck
         }
         serverSideCondition {
@@ -170,7 +232,42 @@ page 21 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW'
+                ```
+        }
+    )
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 20
+            region: @party
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 24
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P21_MODE, 'VIEW') <> 'REVIEW' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
                 ```
         }
         security {
@@ -178,11 +275,78 @@ page 21 (
         }
     )
 
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @party
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 25
+                items: {
+                    P25_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 25
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
+    button done (
+        buttonName: DONE
+        label: Done
+        layout {
+            sequence: 20
+            region: @party
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'REVIEW'
+                ```
+        }
+    )
+
     region party (
-        name: Party
+        name: Buttons
         type: staticContent
         layout {
-            sequence: 22
+            sequence: 90
             slot: BODY
         }
         appearance {
@@ -193,7 +357,7 @@ page 21 (
             htmlDomId: party
         }
         comments {
-            comments: The party details are the common party region (Global Page, read only here). This region holds the page's buttons.
+            comments: Holds the page's buttons (bottom); the same buttons are in the title bar (top).
         }
     )
 
@@ -220,246 +384,8 @@ page 21 (
             valueProtected: false
         }
         comments {
-            comments: EDIT = the party can be changed (Edit button, Edit link on Parties); otherwise an existing party is read only. Edit itself needs Parties - Manage (buttons and processes).
+            comments: REVIEW = step 3 of the party wizard (progress, Previous / Done); otherwise the read-only party view (Back / Edit).
         }
-    )
-
-    button cancel (
-        buttonName: CANCEL
-        label: Cancel
-        layout {
-            sequence: 10
-            region: @party
-            slot: CLOSE
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 20
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is null or nvl(:P21_MODE, 'VIEW') <> 'EDIT'
-                ```
-        }
-    )
-
-    button cancel-edit (
-        buttonName: CANCEL_EDIT
-        label: Done
-        layout {
-            sequence: 15
-            region: @party
-            slot: CLOSE
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 21
-                items: {
-                    P21_PARTY_ID: &P21_PARTY_ID.
-                }
-                clearCache: 21
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
-                ```
-        }
-    )
-
-
-
-    button edit (
-        buttonName: EDIT
-        label: Edit
-        layout {
-            sequence: 25
-            region: @party
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-            icon: fa-pencil
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 21
-                items: {
-                    P21_PARTY_ID: &P21_PARTY_ID.
-                    P21_MODE: EDIT
-                }
-                clearCache: 21
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    button save (
-        buttonName: SAVE
-        label: Save
-        layout {
-            sequence: 30
-            region: @party
-            slot: CHANGE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-
-    region party_dff (
-        name: Additional Information
-        type: dynamicContent
-        source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxfnd_dff_pkg.render(
-                           p_table_name   => 'XXCMP_PARTIES',
-                           p_pk_value     => :P21_PARTY_ID,
-                           p_reference_value => :P0_PARTY_TYPE,
-                           p_context_code => :P21_DFF_CONTEXT);
-                ```
-            pageItemsToSubmit: [
-                P21_PARTY_ID
-                P21_DFF_CONTEXT
-                P0_PARTY_TYPE
-            ]
-        }
-        layout {
-            sequence: 30
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: party_dff
-        }
-    )
-
-    pageItem P21_DFF_JSON (
-        type: hidden
-        layout {
-            sequence: 900
-            region: @party
-            slot: regionBody
-        }
-        sessionState {
-            dataType: clob
-        }
-        settings {
-            valueProtected: false
-        }
-        security {
-            sessionStateProtection: unrestricted
-        }
-        comments {
-            comments:
-                ```
-                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
-                ```
-        }
-    )
-
-    pageItem P21_DFF_CONTEXT (
-        type: hidden
-        layout {
-            sequence: 901
-            region: @party
-            slot: regionBody
-        }
-        settings {
-            valueProtected: false
-        }
-        security {
-            sessionStateProtection: unrestricted
-        }
-        comments {
-            comments:
-                ```
-                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
-                ```
-        }
-    )
-
-    dynamicAction bind-party_dff (
-        name: Bind additional information
-        execution {
-            sequence: 1
-        }
-        when {
-            event: ready
-        }
-        comments {
-            comments: P21_DFF_JSON and P21_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
-        }
-
-        action bind-party_dff-js (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    xxfndDff.bind('party_dff', 'P21_DFF_JSON', 'P21_DFF_CONTEXT');
-                    ```
-            }
-            execution {
-                sequence: 10
-            }
-        )
-
     )
 
     region matches (
@@ -717,1139 +643,6 @@ page 21 (
         }
     )
 
-    region contacts (
-        name: Contact Persons
-        type: interactiveReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select c.party_contact_id,
-                       c.contact_name,
-                       c.job_title,
-                       c.email,
-                       c.phone,
-                       c.primary_flag,
-                       c.enabled_flag,
-                       case when :P21_MODE = 'EDIT'
-                            then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID',
-                                                   p_values => to_char(c.party_contact_id) || ',' || :P21_PARTY_ID, p_clear_cache => '22') end as edit_url,
-                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit,
-                       c.created_by, c.creation_date, c.last_updated_by, c.last_update_date
-                  from xxcmp_party_contacts c
-                 where c.party_id = :P21_PARTY_ID
-                ```
-            pageItemsToSubmit: P21_PARTY_ID,P21_MODE
-        }
-        layout {
-            sequence: 50
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: contacts
-        }
-        componentAppearance {
-            showNullValuesAs: -
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: No contact persons.
-        }
-        searchBar {
-            includeSearchBar: true
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P21_PARTY_ID
-        }
-
-        column PARTY_CONTACT_ID (
-            type: hidden
-            heading {
-                heading: Contact Id
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        column CONTACT_NAME (
-            type: plainText
-            heading {
-                heading: Name
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column JOB_TITLE (
-            type: plainText
-            heading {
-                heading: Job Title
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column EMAIL (
-            type: plainText
-            heading {
-                heading: Email
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column PHONE (
-            type: plainText
-            heading {
-                heading: Phone
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column PRIMARY_FLAG (
-            type: plainText
-            heading {
-                heading: Primary
-            }
-            layout {
-                sequence: 60
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column ENABLED_FLAG (
-            type: plainText
-            heading {
-                heading: Enabled
-            }
-            layout {
-                sequence: 70
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column EDIT_URL (
-            type: hidden
-            heading {
-                heading: Edit Url
-            }
-            layout {
-                sequence: 80
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column EDIT (
-            type: plainText
-            heading {
-                heading: Action
-            }
-            layout {
-                sequence: 90
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    <a href="#EDIT_URL#">#EDIT#</a>
-                    ```
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 100
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column CREATION_DATE (
-            type: plainText
-            heading {
-                heading: Created On
-            }
-            layout {
-                sequence: 110
-            }
-            appearance {
-                formatMask: DD-MON-YYYY HH24:MI
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-        column LAST_UPDATED_BY (
-            type: plainText
-            heading {
-                heading: Updated By
-            }
-            layout {
-                sequence: 120
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column LAST_UPDATE_DATE (
-            type: plainText
-            heading {
-                heading: Updated On
-            }
-            layout {
-                sequence: 130
-            }
-            appearance {
-                formatMask: DD-MON-YYYY HH24:MI
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-
-        savedReport PRIMARY (
-            visibility: primaryDefault
-            view {
-                default: report
-            }
-
-            displayColumn CONTACT_NAME (
-                layout {
-                    sequence: 1
-                }
-            )
-
-            displayColumn JOB_TITLE (
-                layout {
-                    sequence: 2
-                }
-            )
-
-            displayColumn EMAIL (
-                layout {
-                    sequence: 3
-                }
-            )
-
-            displayColumn PHONE (
-                layout {
-                    sequence: 4
-                }
-            )
-
-            displayColumn PRIMARY_FLAG (
-                layout {
-                    sequence: 5
-                }
-            )
-
-            displayColumn ENABLED_FLAG (
-                layout {
-                    sequence: 6
-                }
-            )
-
-            displayColumn EDIT (
-                layout {
-                    sequence: 7
-                }
-            )
-
-        )
-
-    )
-
-    button add-contact (
-        buttonName: ADD_CONTACT
-        label: Add Contact Person
-        layout {
-            sequence: 10
-            region: @contacts
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-plus
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 22
-                items: {
-                    P22_PARTY_ID: &P21_PARTY_ID.
-                }
-                clearCache: 22
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_MODE = 'EDIT'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    dynamicAction refresh-contacts (
-        name: Refresh contacts
-        execution {
-            sequence: 55
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @contacts
-        }
-
-        action refresh-contacts-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @contacts
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
-    region relationships (
-        name: Ownership and Control
-        type: interactiveReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select r.party_relationship_id,
-                       case when r.object_party_id = :P21_PARTY_ID then 'Holds interest in this party'
-                            else 'This party holds interest in' end as direction,
-                       o.party_name || ' (' || o.party_number || ')' as related_party,
-                       xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type) as relationship_type,
-                       r.ownership_percentage,
-                       r.start_date,
-                       r.end_date,
-                       case when :P21_MODE = 'EDIT'
-                            then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
-                                                   p_values => to_char(r.party_relationship_id) || ',' || :P21_PARTY_ID,
-                                                   p_clear_cache => '23') end as edit_url,
-                       case when :P21_MODE = 'EDIT' then 'Edit' end as edit,
-                       r.created_by, r.creation_date, r.last_updated_by, r.last_update_date
-                  from xxcmp_party_relationships r
-                  join xxcmp_parties o
-                    on o.party_id = case when r.object_party_id = :P21_PARTY_ID then r.subject_party_id
-                                         else r.object_party_id end
-                 where :P21_PARTY_ID in (r.object_party_id, r.subject_party_id)
-                ```
-            pageItemsToSubmit: P21_PARTY_ID,P21_MODE
-        }
-        layout {
-            sequence: 60
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: relationships
-        }
-        componentAppearance {
-            showNullValuesAs: -
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: No owners, officers or holdings recorded.
-        }
-        searchBar {
-            includeSearchBar: true
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P21_PARTY_ID
-        }
-
-        column PARTY_RELATIONSHIP_ID (
-            type: hidden
-            heading {
-                heading: Relationship Id
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        column DIRECTION (
-            type: plainText
-            heading {
-                heading: Direction
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column RELATED_PARTY (
-            type: plainText
-            heading {
-                heading: Related Party
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column RELATIONSHIP_TYPE (
-            type: plainText
-            heading {
-                heading: Relationship
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column OWNERSHIP_PERCENTAGE (
-            type: plainText
-            heading {
-                heading: Ownership %
-            }
-            layout {
-                sequence: 50
-            }
-            appearance {
-                formatMask: 990D00
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        column START_DATE (
-            type: plainText
-            heading {
-                heading: From
-            }
-            layout {
-                sequence: 60
-            }
-            appearance {
-                formatMask: DD-MON-YYYY
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-        column END_DATE (
-            type: plainText
-            heading {
-                heading: To
-            }
-            layout {
-                sequence: 70
-            }
-            appearance {
-                formatMask: DD-MON-YYYY
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-        column EDIT_URL (
-            type: hidden
-            heading {
-                heading: Edit Url
-            }
-            layout {
-                sequence: 90
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column EDIT (
-            type: plainText
-            heading {
-                heading: Action
-            }
-            layout {
-                sequence: 95
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    <a href="#EDIT_URL#">#EDIT#</a>
-                    ```
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 100
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column CREATION_DATE (
-            type: plainText
-            heading {
-                heading: Created On
-            }
-            layout {
-                sequence: 110
-            }
-            appearance {
-                formatMask: DD-MON-YYYY HH24:MI
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-        column LAST_UPDATED_BY (
-            type: plainText
-            heading {
-                heading: Updated By
-            }
-            layout {
-                sequence: 120
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column LAST_UPDATE_DATE (
-            type: plainText
-            heading {
-                heading: Updated On
-            }
-            layout {
-                sequence: 130
-            }
-            appearance {
-                formatMask: DD-MON-YYYY HH24:MI
-            }
-            source {
-                dataType: DATE
-            }
-        )
-
-
-        savedReport PRIMARY (
-            visibility: primaryDefault
-            view {
-                default: report
-            }
-
-            displayColumn DIRECTION (
-                layout {
-                    sequence: 1
-                }
-            )
-
-            displayColumn RELATED_PARTY (
-                layout {
-                    sequence: 2
-                }
-            )
-
-            displayColumn RELATIONSHIP_TYPE (
-                layout {
-                    sequence: 3
-                }
-            )
-
-            displayColumn OWNERSHIP_PERCENTAGE (
-                layout {
-                    sequence: 4
-                }
-            )
-
-            displayColumn START_DATE (
-                layout {
-                    sequence: 5
-                }
-            )
-
-            displayColumn END_DATE (
-                layout {
-                    sequence: 6
-                }
-            )
-
-            displayColumn EDIT (
-                layout {
-                    sequence: 7
-                }
-            )
-
-        )
-
-    )
-
-    button add-relationship (
-        buttonName: ADD_RELATIONSHIP
-        label: Add Owner / Officer
-        layout {
-            sequence: 10
-            region: @relationships
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-plus
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 23
-                items: {
-                    P23_OBJECT_PARTY_ID: &P21_PARTY_ID.
-                }
-                clearCache: 23
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_MODE = 'EDIT'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    dynamicAction refresh-relationships (
-        name: Refresh relationships
-        execution {
-            sequence: 65
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @relationships
-        }
-
-        action refresh-relationships-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @relationships
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
-    region party_attachments (
-        name: Attachments
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select a.attached_document_id,
-                       a.document_id,
-                       a.title,
-                       a.category_name,
-                       xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', a.datatype_code) as datatype,
-                       a.version_number,
-                       a.document_date,
-                       a.expiry_date,
-                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
-                       xxfnd_util_pkg.lookup_meaning('UPLOAD_STATUS', a.upload_status) as upload_status,
-                       case when a.datatype_code = 'FILE' then 'Download'
-                            when a.datatype_code = 'WEB_PAGE' then 'Open link' end as open_label,
-                       case when a.datatype_code = 'WEB_PAGE' then a.url end as url,
-                       a.datatype_code,
-                       case when a.datatype_code = 'FILE' then
-                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
-                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id)) end as download_url,
-                       a.created_by,
-                       a.creation_date
-                  from xxfnd_attached_documents_v a
-                 where a.entity_name = 'XXCMP_PARTIES'
-                   and a.pk1_value   = :P21_PARTY_ID
-                 order by a.seq_num, a.creation_date
-                ```
-            pageItemsToSubmit: P21_PARTY_ID
-        }
-        layout {
-            sequence: 70
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: party_attachments
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 15
-        }
-        messages {
-            whenNoDataFound: No attachments yet.
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P21_PARTY_ID
-        }
-
-        column ATTACHED_DOCUMENT_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-        )
-
-        column DOCUMENT_ID (
-            type: hidden
-            layout {
-                sequence: 20
-            }
-        )
-
-        column TITLE (
-            type: link
-            heading {
-                heading: Title
-            }
-            layout {
-                sequence: 30
-            }
-            link {
-                target: {
-                    page: 91
-                    items: {
-                        P91_ATTACHED_DOCUMENT_ID: #ATTACHED_DOCUMENT_ID#
-                        P91_SOURCE_PAGE: 21
-                        P91_SOURCE_REGION: party_attachments
-                    }
-                    clearCache: 91
-                }
-                linkText: #TITLE#
-            }
-        )
-
-        column CATEGORY_NAME (
-            type: plainText
-            heading {
-                heading: Category
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column DATATYPE (
-            type: plainText
-            heading {
-                heading: Type
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column VERSION_NUMBER (
-            type: plainText
-            heading {
-                heading: Version
-            }
-            layout {
-                sequence: 60
-            }
-        )
-
-        column DOCUMENT_DATE (
-            type: plainText
-            heading {
-                heading: Issued
-            }
-            layout {
-                sequence: 70
-            }
-            appearance {
-                formatMask: DD-MON-YYYY
-            }
-        )
-
-        column EXPIRY_DATE (
-            type: plainText
-            heading {
-                heading: Expires
-            }
-            layout {
-                sequence: 80
-            }
-            appearance {
-                formatMask: DD-MON-YYYY
-            }
-        )
-
-        column EXPIRED (
-            type: plainText
-            heading {
-                heading: Status
-            }
-            layout {
-                sequence: 90
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    <span class="u-danger-text">#EXPIRED#</span>
-                    ```
-            }
-        )
-
-        column UPLOAD_STATUS (
-            type: plainText
-            heading {
-                heading: Storage
-            }
-            layout {
-                sequence: 100
-            }
-        )
-
-        column OPEN_LABEL (
-            type: plainText
-            heading {
-                heading: Open
-            }
-            layout {
-                sequence: 110
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="#DOWNLOAD_URL#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
-                    ```
-            }
-        )
-
-        column URL (
-            type: hidden
-            layout {
-                sequence: 120
-            }
-        )
-
-        column DOWNLOAD_URL (
-            type: hidden
-            layout {
-                sequence: 125
-            }
-        )
-
-        column DATATYPE_CODE (
-            type: hidden
-            layout {
-                sequence: 130
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Added By
-            }
-            layout {
-                sequence: 140
-            }
-        )
-
-        column CREATION_DATE (
-            type: plainText
-            heading {
-                heading: Added On
-            }
-            layout {
-                sequence: 150
-            }
-            appearance {
-            }
-        )
-
-    )
-
-    button party_attachments-add (
-        buttonName: PARTY_ATTACHMENTS_ADD
-        label: Add Attachment
-        layout {
-            sequence: 10
-            region: @party_attachments
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-paperclip
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 90
-                items: {
-                    P90_ENTITY_NAME: XXCMP_PARTIES
-                    P90_PK1_VALUE: &P21_PARTY_ID.
-                    P90_SOURCE_PAGE: 21
-                    P90_SOURCE_REGION: party_attachments
-                }
-                clearCache: 90
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 21, 'party_attachments', 'XXCMP_PARTIES', 'INSERT') = 'Y' and :P21_PARTY_ID is not null
-                and :P21_MODE = 'EDIT'
-                ```
-        }
-    )
-
-    dynamicAction refresh-party_attachments (
-        name: Refresh party_attachments
-        execution {
-            sequence: 60
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @party_attachments
-        }
-
-        action refresh-party_attachments-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @party_attachments
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
-    validation party-rules (
-        name: Party form rules
-        execution {
-            sequence: 10
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- the rules of the common party form, the same on every page that uses it
-                return xxcmp_party_pkg.party_error(to_number(:P21_PARTY_ID), :P0_PARTY_TYPE, :P0_PARTY_NAME,
-                           :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE,
-                           to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_EMAIL, :P0_PARTY_PHONE,
-                           'N', nvl(:P0_PARTY_MATCH_ACK, 'N'));
-                ```
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE,SAVE_TOP
-        }
-    )
-
-    validation party-dff (
-        name: Validate additional information
-        execution {
-            sequence: 20
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxfnd_dff_pkg.validate('XXCMP_PARTIES', :P21_DFF_JSON, :P21_DFF_CONTEXT, :P21_PARTY_ID, p_reference_value => :P0_PARTY_TYPE);
-                ```
-        }
-        error {
-            associatedItem: @P21_DFF_CONTEXT
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE,SAVE_TOP
-        }
-    )
-
-    process save-party (
-        name: Save party
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                declare
-                    l_id number := to_number(:P21_PARTY_ID);
-                begin
-                    xxcmp_party_pkg.save_party(
-                        p_party_id            => l_id,
-                        p_party_type          => :P0_PARTY_TYPE,
-                        p_party_name          => :P0_PARTY_NAME,
-                        p_jurisdiction        => :P0_PARTY_JURISDICTION,
-                        p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
-                        p_entity_type         => :P0_PARTY_ENTITY_TYPE,
-                        p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
-                        p_email               => :P0_PARTY_EMAIL,
-                        p_phone               => :P0_PARTY_PHONE,
-                        p_website             => :P0_PARTY_WEBSITE,
-                        p_fax                 => :P0_PARTY_FAX,
-                        p_data_provenance     => :P0_PARTY_DATA_PROVENANCE,
-                        p_enabled_flag        => :P0_PARTY_ENABLED_FLAG,
-                        p_match_ack           => nvl(:P0_PARTY_MATCH_ACK, 'N'));
-                    xxfnd_dff_pkg.save('XXCMP_PARTIES', l_id, :P21_DFF_JSON, :P21_DFF_CONTEXT, p_reference_value => :P0_PARTY_TYPE);
-                end;
-                ```
-        }
-        execution {
-            sequence: 6
-            point: processing
-        }
-        successMessage {
-            successMessage: Party saved.
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE,SAVE_TOP
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    branch (
-        name: Stay on the party (edit)
-        execution {
-            sequence: 20
-        }
-        behavior {
-            target: {
-                page: 21
-                items: {
-                    P21_PARTY_ID: &P21_PARTY_ID.
-                    P21_MODE: EDIT
-                }
-                clearCache: 21
-            }
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE,SAVE_TOP
-        }
-    )
-
     process merge-party (
         name: Merge into another party
         type: executeCode
@@ -1893,21 +686,37 @@ page 21 (
         }
     )
 
-    process initialize-party (
-        name: Load the party into the common party form (editable in Edit mode)
+    process set-context (
+        name: The party in the common regions
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxcmp_party_pkg.load_items(to_number(:P21_PARTY_ID),
-                    case when :P21_MODE = 'EDIT' and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
-                          and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y' then 'N' else 'Y' end);
+                :P0_REQUEST_ID := null;
+                :P0_SUMMARY_PARTY_ID := :P21_PARTY_ID;
                 ```
         }
         execution {
             sequence: 10
             point: beforeHeader
+        }
+    )
+
+    branch (
+        name: No party: to the list
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        behavior {
+            target: {
+                page: 20
+            }
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P21_PARTY_ID
         }
     )
 

@@ -199,8 +199,8 @@ begin
            and section_name is null;
     end loop;
 
-    -- KYC Requests: list, wizard (3 steps), request; Cases: workbench, case, decision, screening, UBO, document verification, new case, compliance report.
-    for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 205))) loop
+    -- KYC Requests: list, wizard (4 steps), request view, request approval; Cases: workbench, case, decision, screening, UBO, document verification, new case, compliance report.
+    for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 204, 205, 206))) loop
         page('KYC_REQUESTS', p.page_id);
     end loop;
     for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217))) loop
@@ -210,7 +210,9 @@ begin
     merge into xxfnd_attachment_functions t
     using (select 'KYC_REQUEST_SUBMIT' function_code, 'Create Request - Submit' function_name, 203 page_id from dual
            union all select 'KYC_REQUEST', 'KYC Request', 205 from dual
-           union all select 'KYC_CASE', 'Case', 211 from dual) s
+           union all select 'KYC_CASE', 'Case', 211 from dual
+           union all select 'KYC_REQUEST_PARTY', 'Create Request - Party Details', 204 from dual
+           union all select 'KYC_PARTY_DETAILS', 'Party - Details', 25 from dual) s
        on (t.function_code = s.function_code)
      when matched then update set t.apex_page_id = s.page_id
      when not matched then insert (function_code, application_code, function_name, apex_app_alias, apex_page_id)
@@ -218,14 +220,18 @@ begin
     merge into xxfnd_attachment_blocks t
     using (select 'KYC_REQUEST_SUBMIT' function_code, 'ATTACHMENTS' block_code, 'request_attachments' region, 'Documents' name from dual
            union all select 'KYC_REQUEST', 'ATTACHMENTS', 'request_attachments', 'Documents' from dual
-           union all select 'KYC_CASE', 'PARTY_DOCUMENTS', 'party_documents', 'Party Documents' from dual) s
+           union all select 'KYC_CASE', 'PARTY_DOCUMENTS', 'party_documents', 'Party Documents' from dual
+           union all select 'KYC_REQUEST_PARTY', 'ATTACHMENTS', 'party_attachments', 'Party Documents' from dual
+           union all select 'KYC_PARTY_DETAILS', 'ATTACHMENTS', 'party_attachments', 'Party Documents' from dual) s
        on (t.function_code = s.function_code and t.block_code = s.block_code)
      when not matched then insert (function_code, block_code, region_static_id, block_name, display_sequence)
                            values (s.function_code, s.block_code, s.region, s.name, 10);
     merge into xxfnd_attachment_blk_entities t
     using (select 'KYC_REQUEST_SUBMIT' function_code, 'ATTACHMENTS' block_code, 'XXCMP_REQUESTS' entity_name, 'P203_REQUEST_ID' item, 'Y' del from dual
            union all select 'KYC_REQUEST', 'ATTACHMENTS', 'XXCMP_REQUESTS', 'P205_REQUEST_ID', 'N' from dual
-           union all select 'KYC_CASE', 'PARTY_DOCUMENTS', 'XXCMP_PARTIES', 'P211_PARTY_ID', 'N' from dual) s
+           union all select 'KYC_CASE', 'PARTY_DOCUMENTS', 'XXCMP_PARTIES', 'P211_PARTY_ID', 'N' from dual
+           union all select 'KYC_REQUEST_PARTY', 'ATTACHMENTS', 'XXCMP_PARTIES', 'P0_SUMMARY_PARTY_ID', 'Y' from dual
+           union all select 'KYC_PARTY_DETAILS', 'ATTACHMENTS', 'XXCMP_PARTIES', 'P0_SUMMARY_PARTY_ID', 'Y' from dual) s
        on (t.function_code = s.function_code and t.block_code = s.block_code and t.entity_name = s.entity_name)
      when not matched then insert (function_code, block_code, entity_name, pk1_page_item, delete_allowed_flag, display_sequence)
                            values (s.function_code, s.block_code, s.entity_name, s.item, s.del, 10);

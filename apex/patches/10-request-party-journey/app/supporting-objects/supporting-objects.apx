@@ -1,0 +1,133 @@
+supportingObject (
+    prerequisites {
+        systemPrivileges: [
+            createTable
+            createView
+            createProcedure
+            createTrigger
+            createSequence
+        ]
+    }
+    installationMessages {
+        welcome:
+            ```
+            Installs the KYC Compliance Platform database objects: XXFND_ shared components and XXCMP_ KYC objects, seed data, scheduler jobs and the first administrator.
+            ```
+        confirmation:
+            ```
+            Install the database objects now? Existing XXFND_/XXCMP_ tables are upgraded instead of recreated.
+            ```
+        installSuccess:
+            ```
+            Installed. You are the first System Administrator. Sign in and open Administration: set the application settings (sender email, Fusion URL and credential), the web credentials and the document storage endpoint.
+            ```
+        installFailure:
+            ```
+            Installation failed. Check the script results, fix the cause and reinstall Supporting Objects; every script can be re-run.
+            ```
+    }
+    upgrade {
+        upgradeWhenSqlQuery:
+            ```sql
+            select null from user_tables where table_name = 'XXFND_LOOKUP_TYPES'
+            ```
+    }
+    upgradeMessages {
+        welcome:
+            ```
+            Upgrades the KYC Compliance Platform packages, views, seed data and jobs. Tables and data are kept.
+            ```
+        success:
+            ```
+            Upgrade complete.
+            ```
+    }
+    deinstall {
+        script:
+            ```
+            begin
+                for j in (select job_name from user_scheduler_jobs where job_name like 'XXFND\_%' escape '\') loop
+                    dbms_scheduler.drop_job(j.job_name, force => true);
+                end loop;
+                for o in (select object_type, object_name from user_objects
+                           where (object_name like 'XXFND\_%' escape '\' or object_name like 'XXCMP\_%' escape '\')
+                             and object_type in ('VIEW','PACKAGE','SEQUENCE','TABLE')
+                           order by decode(object_type, 'VIEW', 1, 'PACKAGE', 2, 'SEQUENCE', 3, 'TABLE', 4)) loop
+                    execute immediate 'drop ' || o.object_type || ' ' || o.object_name
+                        || case when o.object_type = 'TABLE' then ' cascade constraints purge' end;
+                end loop;
+            end;
+            /
+            ```
+    }
+    deinstallationMessages {
+        confirmation:
+            ```
+            This drops every XXFND_ and XXCMP_ table, package and job, with all data.
+            ```
+    }
+    advanced {
+        includeInAppExport: true
+    }
+
+    validation (
+        name: DBMS_CRYPTO granted
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- Runs the check as the parsing schema itself, the way the packages will use it.
+                declare
+                    l_type pls_integer;
+                begin
+                    execute immediate 'begin :t := dbms_crypto.hash_sh256; end;' using out l_type;
+                    return true;
+                exception
+                    when others then
+                        return false;
+                end;
+                ```
+        }
+        error {
+            errorMessage:
+                ```
+                Ask the database administrator to run: grant execute on dbms_crypto to <parsing schema>
+                ```
+        }
+    )
+
+    validation (
+        name: DBMS_RLS granted
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- Row-level data security (XXFND_VPD_PKG) attaches its policies with DBMS_RLS.
+                declare
+                    l_type pls_integer;
+                begin
+                    execute immediate 'begin :t := dbms_rls.dynamic; end;' using out l_type;
+                    return true;
+                exception
+                    when others then
+                        return false;
+                end;
+                ```
+        }
+        error {
+            errorMessage:
+                ```
+                Ask the database administrator to run: grant execute on dbms_rls to <parsing schema>
+                ```
+        }
+    )
+
+)

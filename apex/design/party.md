@@ -20,6 +20,14 @@ Status: **built in release 23 (patch 08)**; release 24 (patch 09): read-only fie
   **Raise RFI** button, which goes into the Request design. The Case page (211) also has Raise RFI; it stays until
   Cases is reviewed.
 
+## Release 25 (patch 10)
+- Party wizard: Create Party / Edit → 24 Party Information → 25 Party Details → 21 Review; the read-only Party view is 21 (Back / Edit top
+  and bottom). Parties list sorted by number, Excel download.
+- The party regions are on the Global Page and shared with the request screens: Party, Additional Information, Contact Persons, Owners and
+  Officers, Party Documents (classic reports: interactive reports cannot be on the Global Page, so the who columns are not offered there).
+- Field order: organisation Entity Type before Name; individual ID Type before ID Number. **Registration Type** (organisation) waits for
+  its column (DDL).
+
 ## A. Party (`XXCMP_PARTIES`)
 | # | Field (Organisation / Individual) | Column | Rule |
 |---|---|---|---|

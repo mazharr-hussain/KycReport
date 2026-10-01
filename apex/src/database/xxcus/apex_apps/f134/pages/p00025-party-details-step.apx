@@ -1,0 +1,244 @@
+page 25 (
+    name: Party Details
+    alias: PARTY-DETAILS-STEP
+    title: Party
+    pageGroup: @parties
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Step 2 of 3 of the party wizard: additional information, contact persons, owners / officers and documents (the common Global Page regions). Next goes to the review (the Party page).
+            ```
+    }
+
+    region breadcrumb (
+        name: Party
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Party
+        type: list
+        source {
+            list: @party-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P25_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+
+
+    validation party-dff (
+        name: Validate additional information
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.dff_error(:P0_SUMMARY_PARTY_ID, :P0_PARTY_DFF_JSON, :P0_PARTY_DFF_CONTEXT);
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('NEXT', 'PREVIOUS')
+                and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    process set-context (
+        name: The party in the common regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := null;
+                :P0_SUMMARY_PARTY_ID := :P25_PARTY_ID;
+                :P0_PARTY_DFF_CONTEXT := null;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-dff (
+        name: Save additional information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.save_dff(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_JSON, :P0_PARTY_DFF_CONTEXT);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('NEXT', 'PREVIOUS')
+                and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    branch (
+        name: Back to party information
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 24
+                items: {
+                    P24_PARTY_ID: &P25_PARTY_ID.
+                }
+                clearCache: 24
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @previous
+        }
+    )
+
+    branch (
+        name: To the review
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P25_PARTY_ID.
+                    P21_MODE: REVIEW
+                }
+                clearCache: 21
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @next
+        }
+    )
+
+)

@@ -1,8 +1,8 @@
-"""Request module in the browser (release 23): Create Request step 1 with the common party region (a new counterparty
-becomes a Pending party), required justification, submit starts the KYC_REQUEST workflow, Compliance requests
-information (Information Needed), the requester responds, Compliance approves (request and party Approved, case
-opened); the list shows Status, KYC Required, Pending With and Action Date; a requester cancels a draft (its Pending
-party is cancelled); Compliance merges a duplicate new counterparty into an existing party from the request page.
+"""Request module in the browser (release 25): the 4-step wizard (Counterparty, Party Details, Questionnaire, Review and
+Submit) with the common Global Page regions; the similar-parties dialog (MATCH_ACK_FLAG); the read-only request view
+(Back only); the approval screen from My Tasks (Approve / Reject / Request Information at the top and the bottom, a
+comment required for Request Information); the requester answers on the review step; the approval history table;
+the list's Edit / Withdraw action; withdraw then cancel; Compliance merges a duplicate party in a popup.
 Usage: request_party_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
 import os, random, re, string, subprocess, sys, time
 from playwright.sync_api import sync_playwright
@@ -47,8 +47,23 @@ def messages(pg):
     return ' '.join(m for m in pg.locator('.t-Alert-body, .a-Notification-item, .t-Form-error').all_inner_texts() if m.strip())
 
 
-def step1(pg, s, name, reg, next_button='Next', ack=True):
-    """Create Request step 1: a new organisation in the common party region."""
+def answer_matches(pg, none=True, wait=2500):
+    pg.wait_for_timeout(wait)
+    btn = pg.locator('.ui-dialog button:has-text("%s")' % ('Confirmed' if none else 'possible match exists'))
+    if btn.count() and btn.first.is_visible():
+        btn.first.click()
+        return True
+    return False
+
+
+def click_nav(pg, label):
+    with pg.expect_navigation():
+        pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % label)).first.click()
+    pg.wait_for_load_state('networkidle')
+
+
+def step1(pg, s, name, reg, none=True):
+    """Counterparty step: a new organisation in the common party form; Next (answers the similar-parties dialog)."""
     pg.goto(f'{HOST}/ords/f?p={APP}:201:{s}'); pg.wait_for_load_state('networkidle')
     pg.fill('#P0_PARTY_NAME', name); pg.select_option('#P0_PARTY_JURISDICTION', 'AE')
     pg.fill('#P0_PARTY_REGISTRATION_NUMBER', reg); pg.wait_for_timeout(800)
@@ -57,91 +72,119 @@ def step1(pg, s, name, reg, next_button='Next', ack=True):
     if pg.locator('select#P201_REQUESTING_DEPARTMENT').count():
         pg.select_option('#P201_REQUESTING_DEPARTMENT', 'FINANCE')
     pg.fill('#P201_JUSTIFICATION', 'UI test supplier')
-    if ack:     # confirm that none of the Possible Matches is this party
-        pg.evaluate("apex.item('P0_PARTY_MATCH_ACK').setValue('Y')")
+    pg.locator('button', has_text=re.compile(r'^\s*Next\s*$')).first.click()
+    asked = answer_matches(pg, none)
+    pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1000)
+    return asked
+
+
+def answer_all(rid):
+    db(f"""update xxcmp_request_answers x set answer_option_id = (select max(o.answer_option_id) keep (dense_rank last order by o.risk_points)
+            from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED') where x.request_id = {rid};
+          commit""")
+
+
+def to_review_and_submit(pg, rid):
+    click_nav(pg, 'Next')                       # party details -> questionnaire
+    answer_all(rid); pg.reload(); pg.wait_for_load_state('networkidle')
+    click_nav(pg, 'Next')                       # questionnaire -> review
+
+
+def req(name):
+    return db(f"select request_id || ',' || request_number || ',' || party_id from xxcmp_requests where party_name = '{name}'")[0].split(',')
+
+
+def open_task(pg, s, number):
+    pg.goto(f'{HOST}/ords/f?p={APP}:40:{s}'); pg.wait_for_load_state('networkidle')
     with pg.expect_navigation():
-        pg.click(f'button:has-text("{next_button}")')
+        pg.locator(f'a:has-text("{number}")').first.click()
     pg.wait_for_load_state('networkidle')
+
+
+def wait_task(rid):
+    for _ in range(45):
+        t = db(f"select max(task_id) from apex_tasks where detail_pk = '{rid}' and task_def_static_id = 'DOC_CHECKLIST_REVIEW' and state_code in ('ASSIGNED','UNASSIGNED')")
+        if t and t[0]:
+            return t[0]
+        time.sleep(2)
 
 
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get('CHROME', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'),
                           args=['--no-sandbox'])
-    # ------------------------------------------------------------ requester: step 1 with the common party region
+    # ------------------------------------------------------------ requester: the wizard
     pg, s = login(b, 'REQ1')
     pg.goto(f'{HOST}/ords/f?p={APP}:201:{s}'); pg.wait_for_load_state('networkidle')
-    ok('step 1 shows the common party region; the contact person fields are hidden (build option)',
-       pg.locator('#party-form').is_visible() and pg.locator('#P201_CONTACT_NAME').count() == 0)
-    pg.fill('#P0_PARTY_NAME', f'No Reason {TAG}')
-    pg.click('button:has-text("Next")'); pg.wait_for_timeout(1500)
-    ok('the business justification is required', 'Business Justification must have some value' in messages(pg))
+    ok('step 1: the wizard has 4 steps, the common party form, no match switch',
+       pg.locator('#wizard li').count() == 4 and pg.locator('#party-form').is_visible()
+       and pg.locator('#P0_PARTY_MATCH_ACK_CONTAINER .a-Switch').count() == 0)
     name = f'UI Org {TAG}'
     step1(pg, s, name, f'UI-{TAG}')
-    row = db(f"select request_id || ',' || request_number || ',' || party_id from xxcmp_requests where party_name = '{name}'")[0].split(',')
-    rid, rno, pid = row
-    ok('Next saved the request and created its party as Pending',
-       db(f"select party_status from xxcmp_parties where party_id = {pid}") == ['PENDING'])
-    db(f"""update xxcmp_request_answers x set answer_option_id = (select max(o.answer_option_id) keep (dense_rank last order by o.risk_points)
-            from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED') where x.request_id = {rid};
-          commit""")
+    rid, rno, pid = req(name)
+    ok('Next saved the request, created its Pending party and opened Party Details',
+       db(f"select party_status from xxcmp_parties where party_id = {pid}") == ['PENDING']
+       and pg.locator('button:has-text("Add Contact Person")').count() == 1)
+    pg.click('button:has-text("Add Contact Person")')
+    f = pg.frame_locator('iframe').first
+    f.locator('#P22_CONTACT_NAME').wait_for()
+    f.locator('#P22_CONTACT_NAME').fill('Rana Requester'); f.locator('#P22_EMAIL').fill('rana@ui.example')
+    f.locator('button:has-text("Create")').click()
+    pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000); pg.wait_for_timeout(1000)
+    ok('the requester adds a contact person to the party their request created', 'Rana Requester' in pg.inner_text('#party_contacts'))
+    to_review_and_submit(pg, rid)
+    card = pg.inner_text('#party_card')
+    ok('review: the party in full (no Show details, no Party Status), its details, answers, documents, expected path',
+       name in card and 'Show details' not in card and 'Party Status' not in card
+       and 'Rana Requester' in pg.inner_text('#party_contacts') and pg.locator('#answer_summary').count() == 1
+       and pg.locator('#request_attachments').count() == 1 and 'Expected' in pg.inner_text('#approval_history'))
+    click_nav(pg, 'Submit Request')
+    task = wait_task(rid)
+    ok(f'Submit starts the workflow: task {task}', task is not None)
+    ok('request view: read only, Back only (no Cancel / Add Document / Edit Party)',
+       pg.locator('button:has-text("Back")').count() >= 1
+       and all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Cancel Request', 'Add Document', 'Edit Party', 'Approve')))
     pg.reload(); pg.wait_for_load_state('networkidle')
-    with pg.expect_navigation():
-        pg.click('button:has-text("Next")')
-    pg.wait_for_load_state('networkidle')
-    ok('review (203): the party summary and the expected approval path',
-       name in pg.inner_text('#party_card') and 'Compliance review' in pg.inner_text('#approval_path'))
-    with pg.expect_navigation():
-        pg.click('button:has-text("Submit Request")')
-    pg.wait_for_load_state('networkidle')
-    ok('request page (205): approval path with its state and the history',
-       'Pending' in pg.inner_text('#approval_path') and 'Submitted' in pg.inner_text('#request_history'))
-    task = None
-    for _ in range(45):
-        t = db(f"select max(task_id) from apex_tasks where detail_pk = '{rid}' and task_def_static_id = 'DOC_CHECKLIST_REVIEW'")
-        if t and t[0]:
-            task = t[0]; break
-        time.sleep(2)
-    ok(f'Submit starts the workflow: checklist task {task}', task is not None
-       and db(f"select request_status from xxcmp_requests where request_id = {rid}") == ['IN_PROGRESS'])
+    hist = pg.inner_text('#approval_history')
+    ok('approval history: Submitted, then the current step Pending', 'Submitted' in hist and 'Pending' in hist)
+    pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
+    nums = [t.strip() for t in pg.locator('.a-IRR-table tr td:first-child').all_inner_texts()][:5]
+    ok(f'list sorted by request number, newest first: {nums}', len(nums) > 1 and nums == sorted(nums, reverse=True))
+    ok('list: Withdraw for the request waiting for approval',
+       pg.locator(f'.a-IRR-table tr:has-text("{rno}") a.kyc-row-action[data-action="Withdraw"]').count() == 1)
     pg.close()
 
-    # ------------------------------------------------------------ Compliance asks for information
+    # ------------------------------------------------------------ approver: Request Information (comment required)
     pg, s = login(b, 'OFFICER1')
-    open_request(pg, s, rno)
-    ok('Compliance gets Approve / Reject / Request Information and no Raise RFI',
-       all(pg.locator(f'button:has-text("{x}")').count() == 1 for x in ('Approve - Open Case', 'Reject Request', 'Request Information'))
-       and pg.locator('button:has-text("Raise RFI")').count() == 0)
-    info = ' '.join(pg.inner_text('#request').split())
-    ok('the request shows Status, KYC Required, Pending With and Action Date: ' + info[:150],
-       'Status In Progress' in info and 'KYC Required Yes' in info and re.search(r'Pending With (Compliance|OFFICER1)', info) and 'Action Date' in info)
-    pg.fill('#P205_COMMENT', 'Please upload the trade licence.')
-    with pg.expect_navigation():
-        pg.click('button:has-text("Request Information")')
-    pg.wait_for_load_state('networkidle')
+    open_task(pg, s, rno)
+    ok('approval screen: Approve / Reject / Request Information at the top and the bottom; no Cancel / Add Document',
+       all(pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 2 for x in ('Approve', 'Reject Request', 'Request Information'))
+       and pg.locator('button:has-text("Cancel Request")').count() == 0 and pg.locator('button:has-text("Add Document")').count() == 0)
+    pg.locator('button', has_text=re.compile(r'^\s*Request Information\s*$')).first.click(); pg.wait_for_timeout(2000)
+    ok('Request Information needs a comment', 'Enter the information you need' in pg.inner_text('body'))
+    pg.fill('#P206_COMMENT', 'Please upload the trade licence.')
+    click_nav(pg, 'Request Information')
     ok('Request Information: the request is Information Needed',
        db(f"select request_status from xxcmp_requests where request_id = {rid}") == ['INFO_NEEDED'])
     pg.close()
 
-    # ------------------------------------------------------------ the requester responds
+    # ------------------------------------------------------------ requester answers on the review step
     pg, s = login(b, 'REQ1')
-    open_request(pg, s, rno)
-    ok('the requester sees the question, Edit Request, Cancel Request and Respond',
-       'Please upload the trade licence.' in pg.inner_text('#respond')
-       and all(pg.locator(f'button:has-text("{x}")').count() == 1 for x in ('Edit Request', 'Cancel Request', 'Respond')))
-    pg.fill('#P205_RESPONSE', 'Uploaded now.')
+    pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
     with pg.expect_navigation():
-        pg.click('button:has-text("Respond")')
+        pg.locator(f'.a-IRR-table tr:has-text("{rno}") a.kyc-row-action[data-action="Edit"]').click()
     pg.wait_for_load_state('networkidle')
-    ok('Respond: the request is back In Progress',
-       db(f"select request_status from xxcmp_requests where request_id = {rid}") == ['IN_PROGRESS'])
+    click_nav(pg, 'Next'); click_nav(pg, 'Next'); click_nav(pg, 'Next')
+    ok('review step shows the question', 'Please upload the trade licence.' in pg.inner_text('#respond'))
+    pg.fill('#P203_RESPONSE', 'Uploaded now.')
+    click_nav(pg, 'Respond')
+    ok('Respond: back In Progress', db(f"select request_status from xxcmp_requests where request_id = {rid}") == ['IN_PROGRESS'])
     pg.close()
 
-    # ------------------------------------------------------------ Compliance approves
+    # ------------------------------------------------------------ approver approves
     pg, s = login(b, 'OFFICER1')
-    open_request(pg, s, rno)
-    with pg.expect_navigation():
-        pg.click('button:has-text("Approve - Open Case")')
-    pg.wait_for_load_state('networkidle')
+    wait_task(rid)
+    open_task(pg, s, rno)
+    click_nav(pg, 'Approve')
     final = None
     for _ in range(30):
         final = db(f"""select r.request_status || ',' || p.party_status || ',' || (select count(*) from xxcmp_cases c where c.request_id = r.request_id)
@@ -150,57 +193,60 @@ with sync_playwright() as p:
             break
         time.sleep(2)
     ok(f'Approve: request and party Approved, case opened ({final})', final == ['APPROVED,APPROVED,1'])
-    pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
-    heads = [h.strip() for h in pg.locator('.a-IRR-table .a-IRR-header').all_inner_texts()]
-    ok('the list shows Status, KYC Required, Pending With, Action Date; Type and Intake Score are hidden',
-       all(x in heads for x in ('Status', 'KYC Required', 'Pending With', 'Action Date'))
-       and 'Type' not in heads and 'Intake Score' not in heads)
-
-    # ------------------------------------------------------------ Compliance merges a duplicate counterparty
-    existing = db(f"""select party_number || ',' || party_name from xxcmp_parties where party_id = {pid}""")[0].split(',', 1)
+    existing = db(f"select party_number || ',' || party_name from xxcmp_parties where party_id = {pid}")[0].split(',', 1)
     pg.close()
+
+    # ------------------------------------------------------------ similar party: "a possible match exists", then merge in a popup
     pg, s = login(b, 'REQ2')
     dup = existing[1].replace('UI Org', 'UI Orgg')
-    pg.goto(f'{HOST}/ords/f?p={APP}:201:{s}'); pg.wait_for_load_state('networkidle')
-    pg.fill('#P0_PARTY_NAME', dup); pg.select_option('#P0_PARTY_JURISDICTION', 'AE'); pg.wait_for_timeout(2000)
-    ok('Possible Matches lists the similar party while typing', existing[0] in pg.inner_text('#possible_matches'))
-    pg.fill('#P0_PARTY_REGISTRATION_NUMBER', f'UI2-{TAG}'); pg.wait_for_timeout(800)
-    pg.select_option('#P0_PARTY_ENTITY_TYPE', 'LLC'); pg.fill('#P0_PARTY_EMAIL', 'info@ui.example')
-    if pg.locator('select#P201_REQUESTING_DEPARTMENT').count():
-        pg.select_option('#P201_REQUESTING_DEPARTMENT', 'FINANCE')
-    pg.fill('#P201_JUSTIFICATION', 'UI test supplier')
-    pg.click('button:has-text("Next")'); pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(2000)
-    ok('similar parties: Next needs the confirmation (a draft can be saved)', 'Similar parties exist' in pg.inner_text('body'))
-    step1(pg, s, dup, f'UI2-{TAG}', 'Save as Draft')
-    drow = db(f"select request_number || ',' || party_id from xxcmp_requests where party_name = '{dup}'")[0].split(',')
+    asked = step1(pg, s, dup, f'UI2-{TAG}', none=False)
+    did, dno, dpid = req(dup)
+    ok('similar parties: the dialog asked; "A possible match exists" is saved (MATCH_ACK_FLAG = N)',
+       asked and db(f"select match_ack_flag from xxcmp_requests where request_id = {did}") == ['N'])
+    to_review_and_submit(pg, did)
+    click_nav(pg, 'Submit Request')
+    wait_task(did)
     pg.close()
     pg, s = login(b, 'OFFICER1')
-    open_request(pg, s, drow[0])
+    open_task(pg, s, dno)
     link = pg.locator(f'#match_candidates tr:has-text("{existing[0]}") a.kyc-merge-party')
-    ok('Compliance sees the approved party as a possible duplicate', link.count() == 1)
-    if link.count():
-        link.click()
-        with pg.expect_navigation():
-            pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK")').first.click()
-        pg.wait_for_load_state('networkidle')
-    r = db(f"""select r.party_id || ',' || d.enabled_flag || ',' || d.merged_into_party_id || ',' || r.match_status
-                 from xxcmp_requests r, xxcmp_parties d where r.request_number = '{drow[0]}' and d.party_id = {drow[1]}""")
-    ok(f'merged: the request now uses the existing party, the duplicate is disabled ({r})', r == [f'{pid},N,{pid},MERGED'])
+    ok('the approver sees the approved party as a possible duplicate; no Merge Note box on the page',
+       link.count() == 1 and not pg.locator('#P206_MATCH_NOTE').is_visible())
+    link.click(); pg.wait_for_timeout(800)
+    ok('Merge opens a popup with the note', pg.locator('#P206_MATCH_NOTE').is_visible())
+    pg.fill('#P206_MATCH_NOTE', 'Same company, typo in the name.')
+    with pg.expect_navigation():
+        pg.locator('#merge_dialog').locator('xpath=ancestor::div[contains(@class,"ui-dialog")]').locator('button:has-text("Merge")').first.click()
+    pg.wait_for_load_state('networkidle')
+    r = db(f"""select r.party_id || ',' || d.enabled_flag || ',' || r.match_status
+                 from xxcmp_requests r, xxcmp_parties d where r.request_id = {did} and d.party_id = {dpid}""")
+    ok(f'merged: the request uses the existing party, the duplicate is disabled ({r})', r == [f'{pid},N,MERGED'])
     pg.close()
 
-    # ------------------------------------------------------------ the requester cancels a draft
+    # ------------------------------------------------------------ withdraw, then cancel on the edit screen
     pg, s = login(b, 'REQ1')
-    cname = f'Cancel Org {TAG}'
-    step1(pg, s, cname, f'CX-{TAG}', 'Save as Draft')
-    crow = db(f"select request_number || ',' || party_id from xxcmp_requests where party_name = '{cname}'")[0].split(',')
-    open_request(pg, s, crow[0])
+    cname = f'Withdraw Org {TAG}'
+    step1(pg, s, cname, f'WD-{TAG}')
+    wid, wno, wpid = req(cname)
+    to_review_and_submit(pg, wid)
+    click_nav(pg, 'Submit Request')
+    wait_task(wid)
+    pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
+    pg.locator(f'.a-IRR-table tr:has-text("{wno}") a.kyc-row-action[data-action="Withdraw"]').click()
+    pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK")').first.click()
+    pg.wait_for_timeout(3000)
+    ok('Withdraw: back to Draft', db(f"select request_status from xxcmp_requests where request_id = {wid}") == ['DRAFT'])
+    pg.reload(); pg.wait_for_load_state('networkidle')
+    with pg.expect_navigation():
+        pg.locator(f'.a-IRR-table tr:has-text("{wno}") a.kyc-row-action[data-action="Edit"]').click()
+    pg.wait_for_load_state('networkidle')
     pg.click('button:has-text("Cancel Request")')
     with pg.expect_navigation():
         pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK")').first.click()
     pg.wait_for_load_state('networkidle')
     r = db(f"""select r.request_status || ',' || p.party_status from xxcmp_requests r join xxcmp_parties p on p.party_id = r.party_id
-                where r.request_number = '{crow[0]}'""")
-    ok(f'Cancel Request: request and its Pending party Cancelled ({r})', r == ['CANCELLED,CANCELLED'])
+                where r.request_id = {wid}""")
+    ok(f'Cancel Request on the edit screen: request and its Pending party Cancelled ({r})', r == ['CANCELLED,CANCELLED'])
     b.close()
 print(f'{sum(results)}/{len(results)} passed')
 sys.exit(0 if all(results) else 1)

@@ -50,6 +50,20 @@ using (select 'Default' path_name, 1 step_sequence from dual) s
                        values ('Default', 999, 1, 'Compliance review', 'ROLE', 'COMPLIANCE_OFFICER');
 commit;
 
+-- one row of the approval history table (Global Page region Approval History)
+create or replace type xxcmp_history_row force as object (
+    step_no      number,
+    step_name    varchar2(200),
+    assigned_to  varchar2(1000),
+    action       varchar2(100),
+    action_by    varchar2(255),
+    action_date  timestamp,
+    comments     varchar2(4000)
+);
+/
+create or replace type xxcmp_history_tab force as table of xxcmp_history_row;
+/
+
 create or replace package xxcmp_approval_pkg authid definer as
     -- Path that applies to the request (most matching criteria, then lowest priority).
     function path_for(p_request_id in number) return varchar2;
@@ -65,6 +79,10 @@ create or replace package xxcmp_approval_pkg authid definer as
     function path_html(p_request_id in number) return clob;
     -- HTML: who did what and when on the request (submit, approvals, information requests, comments).
     function history_html(p_request_id in number) return clob;
+    -- The approval history table: what happened (submit, decisions, information requests, withdraw, cancel) with
+    -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
+    -- (Waiting); before submit, the expected steps (Expected) with their role or user.
+    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined;
 end xxcmp_approval_pkg;
 /
 
@@ -232,6 +250,79 @@ create or replace package body xxcmp_approval_pkg as
         end loop;
         return l_html || '</tbody></table>';
     end history_html;
+
+    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined is
+        l_req    xxcmp_requests%rowtype;
+        l_path   varchar2(100);
+        l_owners varchar2(1000);
+    begin
+        if p_request_id is null then
+            return;
+        end if;
+        l_req  := req(p_request_id);
+        l_path := nvl(l_req.approval_path_name, path_for(p_request_id));
+        for h in (select null as step_no, 'Request' as step_name, null as assigned_to, 'Submitted' as action,
+                         l_req.requester_user_name as action_by, cast(l_req.submitted_date as timestamp) as action_date,
+                         null as comments
+                    from dual where l_req.submitted_date is not null
+                  union all
+                  select null, regexp_substr(t.subject, '^[^:]+'), t.actual_owner,
+                         case h.event_type_code when 'COMPLETE'     then nvl(h.outcome, 'Completed')
+                                                when 'REQUEST_INFO' then 'Information requested'
+                                                when 'SUBMIT_INFO'  then 'Information submitted'
+                                                when 'CLAIM'        then 'Claimed'
+                                                when 'DELEGATE'     then 'Delegated'
+                                                when 'CANCEL'       then 'Ended' end,
+                         h.event_creator, cast(h.event_timestamp as timestamp),
+                         (select substr(listagg(c.text, ' / ') within group (order by c.created_on), 1, 4000)
+                            from apex_task_comments c
+                           where c.task_id = h.task_id and upper(c.created_by) = upper(h.event_creator)
+                             and c.created_on between h.event_timestamp - interval '2' minute and h.event_timestamp + interval '5' second)
+                    from apex_task_history h
+                    join apex_tasks t on t.task_id = h.task_id
+                   where t.detail_pk = to_char(p_request_id)
+                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
+                     and h.event_type_code in ('COMPLETE', 'REQUEST_INFO', 'SUBMIT_INFO', 'CLAIM', 'DELEGATE')
+                  union all
+                  select null, 'Request', null, 'Withdrawn', l_req.requester_user_name, cast(w.last_updated_on as timestamp), null
+                    from apex_workflows w
+                   where w.detail_pk = to_char(p_request_id) and w.state_code = 'TERMINATED'
+                     and not (l_req.request_status = 'CANCELLED'
+                              and abs(cast(w.last_updated_on as date) - cast(l_req.completed_date as date)) < 1 / 1440)
+                  union all
+                  select null, 'Request', null, 'Cancelled', l_req.last_updated_by, cast(l_req.completed_date as timestamp), l_req.match_note
+                    from dual where l_req.request_status = 'CANCELLED' and l_req.completed_date is not null
+                   order by 6) loop
+            pipe row (xxcmp_history_row(h.step_no, h.step_name, h.assigned_to, h.action, h.action_by, h.action_date, h.comments));
+        end loop;
+        if l_req.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
+            for p in (select step_sequence, step_name, approver_type, role_code, user_name
+                        from xxcmp_approval_paths
+                       where path_name = l_path and enabled_flag = 'Y'
+                         and (l_req.request_status = 'DRAFT' or l_req.current_step is null or step_sequence >= l_req.current_step)
+                       order by step_sequence) loop
+                l_owners := null;
+                if l_req.request_status <> 'DRAFT' and p.step_sequence = l_req.current_step then
+                    select max(coalesce(t.actual_owner,
+                                        (select listagg(pp.participant, ', ') within group (order by pp.participant)
+                                           from apex_task_participants pp
+                                          where pp.task_id = t.task_id and pp.participant_type = 'POTENTIAL_OWNER')))
+                      into l_owners
+                      from apex_tasks t
+                     where t.detail_pk = to_char(p_request_id) and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                       and t.state_code in ('ASSIGNED', 'UNASSIGNED', 'INFO_REQUESTED');
+                end if;
+                pipe row (xxcmp_history_row(p.step_sequence, p.step_name,
+                              nvl(l_owners, who(p.approver_type, p.role_code, p.user_name)),
+                              case when l_req.request_status = 'DRAFT' then 'Expected'
+                                   when p.step_sequence = l_req.current_step and l_req.request_status = 'INFO_NEEDED' then 'Information needed'
+                                   when p.step_sequence = l_req.current_step then 'Pending'
+                                   else 'Waiting' end,
+                              null, null, null));
+            end loop;
+        end if;
+        return;
+    end history_rows;
 
 end xxcmp_approval_pkg;
 /

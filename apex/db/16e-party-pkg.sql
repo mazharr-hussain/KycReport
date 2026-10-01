@@ -74,7 +74,21 @@ create or replace package xxcmp_party_pkg authid definer as
                          p_fax                 in varchar2 default null,
                          p_data_provenance     in varchar2 default null,
                          p_enabled_flag        in varchar2 default null,
-                         p_match_ack           in varchar2 default 'Y');
+                         p_match_ack           in varchar2 default 'Y',
+                         p_request_id          in number   default null);
+    -- Y when the user may see the party on a request or party screen: PARTIES.VIEW, the party of a request the user
+    -- can see (P_REQUEST_ID), or an approved party.
+    function can_view(p_party_id in number, p_request_id in number default null) return varchar2;
+    -- Y when the user may change the party's details (additional information, contact persons, owners / officers,
+    -- documents): PARTIES.MANAGE, or the requester while the request's party was created by it and is editable.
+    function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2;
+    -- Owners / officers of the party (both directions) when CAN_VIEW: JSON array [{"party_relationship_id",
+    -- "direction","related_party","relationship_type","ownership_percentage","start_date","end_date"}].
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob;
+    -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y.
+    function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob;
+    function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2;
+    procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2);
 
     -- Party status: PENDING, APPROVED, REJECTED, CANCELLED.
     procedure set_status(p_party_id in number, p_status in varchar2);
@@ -104,9 +118,10 @@ create or replace package xxcmp_party_pkg authid definer as
     -- The common Party card (HTML) shown on every screen that shows a party: number, name, type, registration /
     -- identity, country, main contact details, primary contact person, party status and next KYC date. Follows
     -- data security: a user who may not see the party gets a short note instead.
-    function card_html(p_party_id in number) return clob;
-    -- Party summary line with the card in an expander (Global Page region on 201 / 203 / 205). Shown to users with
-    -- PARTIES.VIEW, and to anyone for the party of a request they can see or for an approved party.
+    function card_html(p_party_id in number, p_show_status in varchar2 default 'Y') return clob;
+    -- The party's details, shown in full (Global Page region Party on the request and party screens), without the
+    -- party status. Shown to users with PARTIES.VIEW, and to anyone for the party of a request they can see or for an
+    -- approved party.
     function summary_html(p_party_id in number, p_request_id in number default null) return clob;
 
 end xxcmp_party_pkg;
@@ -202,10 +217,12 @@ create or replace package body xxcmp_party_pkg as
             return 'Party ' || l_exact || ' already has this ' || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
                    || ' and ' || lower(field_label(p_party_type, 'JURISDICTION')) || ': use that party.';
         end if;
-        if nvl(p_match_ack, 'N') <> 'Y'
+        -- similar parties: the user answers the page's dialog (none is this party = Y, a match exists = N); only an
+        -- unanswered save is stopped
+        if p_match_ack is null
            and xxcmp_request_pkg.party_candidate_count(p_party_type, p_party_name, p_registration_number,
                                                        p_incorporation_date, p_jurisdiction, p_party_id) > 0 then
-            return 'Similar parties exist (see Possible Matches): confirm that none of them is this party.';
+            return 'Similar parties exist (see Possible Matches): answer whether one of them is this party.';
         end if;
         return null;
     end party_error;
@@ -271,10 +288,14 @@ create or replace package body xxcmp_party_pkg as
                          p_fax                 in varchar2 default null,
                          p_data_provenance     in varchar2 default null,
                          p_enabled_flag        in varchar2 default null,
-                         p_match_ack           in varchar2 default 'Y') is
+                         p_match_ack           in varchar2 default 'Y',
+                         p_request_id          in number   default null) is
         l_error varchar2(4000);
+        -- a requester adds an owner / officer to the party created by their request: a Pending party
+        l_req_ok boolean := p_party_id is null and p_request_id is not null
+                            and xxcmp_request_pkg.party_editable(p_request_id) = 'Y';
     begin
-        if p_party_id is null and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then
+        if p_party_id is null and not l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then
             raise_application_error(-20701, 'You are not allowed to create parties.');
         elsif p_party_id is not null and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
             raise_application_error(-20706, 'You are not allowed to change parties.');
@@ -287,8 +308,133 @@ create or replace package body xxcmp_party_pkg as
             raise_application_error(-20705, l_error);
         end if;
         put_party(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number, p_entity_type,
-                  p_incorporation_date, p_email, p_phone, p_website, p_fax, null, p_data_provenance, p_enabled_flag);
+                  p_incorporation_date, p_email, p_phone, p_website, p_fax,
+                  case when l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then 'PENDING' end,
+                  p_data_provenance, p_enabled_flag);
     end save_party;
+
+    function request_party(p_request_id in number) return number is
+        l_party number;
+    begin
+        -- data security: only a request the user can see
+        select max(party_id) into l_party from xxcmp_requests where request_id = p_request_id;
+        return l_party;
+    end request_party;
+
+    function can_view(p_party_id in number, p_request_id in number default null) return varchar2 is
+        l_status xxcmp_parties.party_status%type;
+        l_flag   xxcmp_parties.enabled_flag%type;
+    begin
+        if p_party_id is null then
+            return 'N';
+        elsif xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
+              or (p_request_id is not null and request_party(p_request_id) = p_party_id) then
+            return 'Y';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_status), max(enabled_flag) into l_status, l_flag from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return case when l_status = 'APPROVED' and l_flag = 'Y' then 'Y' else 'N' end;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end can_view;
+
+    function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2 is
+    begin
+        if p_party_id is null then
+            return 'N';
+        elsif p_request_id is not null then
+            return case when request_party(p_request_id) = p_party_id
+                         and xxcmp_request_pkg.party_editable(p_request_id) = 'Y' then 'Y' else 'N' end;
+        end if;
+        return case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') and is_enabled(p_party_id) = 'Y'
+                    then 'Y' else 'N' end;
+    end can_edit_details;
+
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob is
+        l_json clob;
+    begin
+        if can_view(p_party_id, p_request_id) = 'N' then
+            return '[]';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select json_arrayagg(json_object(
+                   'party_relationship_id' value r.party_relationship_id,
+                   'direction'             value case when r.object_party_id = p_party_id then 'Holds interest in this party'
+                                                      else 'This party holds interest in' end,
+                   'related_party'         value o.party_name || ' (' || o.party_number || ')',
+                   'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
+                   'ownership_percentage'  value r.ownership_percentage,
+                   'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
+                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'))
+                   order by r.end_date nulls first, o.party_name returning clob)
+          into l_json
+          from xxcmp_party_relationships r
+          join xxcmp_parties o
+            on o.party_id = case when r.object_party_id = p_party_id then r.subject_party_id else r.object_party_id end
+         where p_party_id in (r.object_party_id, r.subject_party_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_json, '[]');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end owners_json;
+
+    function party_type(p_party_id in number) return varchar2 is
+        l_type xxcmp_parties.party_type%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_type) into l_type from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_type;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_type;
+
+    function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob is
+        l_html clob;
+    begin
+        if can_view(p_party_id, p_request_id) = 'N' then
+            return null;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        l_html := xxfnd_dff_pkg.render(p_table_name      => 'XXCMP_PARTIES',
+                                       p_pk_value        => to_char(p_party_id),
+                                       p_context_code    => p_context_code,
+                                       p_reference_value => party_type(p_party_id),
+                                       p_read_only       => case when p_edit = 'Y' and can_edit_details(p_party_id, p_request_id) = 'Y'
+                                                                 then 'N' else 'Y' end);
+        xxfnd_vpd_pkg.end_trusted;
+        return l_html;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end dff_html;
+
+    function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2 is
+    begin
+        return xxfnd_dff_pkg.validate('XXCMP_PARTIES', p_values_json, p_context_code, to_char(p_party_id), party_type(p_party_id));
+    end dff_error;
+
+    procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2) is
+    begin
+        if can_edit_details(p_party_id, p_request_id) = 'N' then
+            raise_application_error(-20706, 'You are not allowed to change this party.');
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        xxfnd_dff_pkg.save('XXCMP_PARTIES', to_char(p_party_id), p_values_json, p_context_code, party_type(p_party_id));
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end save_dff;
 
     procedure set_status(p_party_id in number, p_status in varchar2) is
     begin
@@ -337,7 +483,7 @@ create or replace package body xxcmp_party_pkg as
         put('P0_PARTY_NEXT_KYC_DATE',       to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
         put('P0_PARTY_ENABLED_FLAG',        nvl(l_p.enabled_flag, 'Y'));
         put('P0_PARTY_READ_ONLY',           case when p_read_only = 'Y' then 'Y' else 'N' end);
-        put('P0_PARTY_MATCH_ACK',           'N');    -- confirmed again on each save when similar parties exist
+        put('P0_PARTY_MATCH_ACK',           null);   -- answered in the similar-parties dialog on each save
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -450,7 +596,7 @@ create or replace package body xxcmp_party_pkg as
             raise;
     end is_enabled;
 
-    function card_html(p_party_id in number) return clob is
+    function card_html(p_party_id in number, p_show_status in varchar2 default 'Y') return clob is
         l_p      xxcmp_parties%rowtype;
         l_into   xxcmp_parties.party_number%type;
         l_html   clob;
@@ -500,44 +646,30 @@ create or replace package body xxcmp_party_pkg as
             row('Contact Person', c.name || nvl2(c.job_title, ' (' || c.job_title || ')', null)
                                   || nvl2(c.email, ', ' || c.email, null) || nvl2(c.phone, ', ' || c.phone, null));
         end loop;
+        if p_show_status = 'Y' then
         row('Party Status', case when l_p.merged_into_party_id is not null then 'Merged into ' || l_into
                                  when l_p.enabled_flag = 'N' then 'Disabled'
                                  else xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status) end
                             || nvl2(l_p.last_verified_date, ' - verified ' || to_char(l_p.last_verified_date, 'DD-MON-YYYY'), null));
         row('Next KYC Date', to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
+        end if;
         return l_html || '</dl>';
     end card_html;
 
     function summary_html(p_party_id in number, p_request_id in number default null) return clob is
-        l_ok   boolean := xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW');
-        l_n    number;
-        l_p    xxcmp_parties%rowtype;
         l_card clob;
     begin
         if p_party_id is null then
             return null;
-        end if;
-        if not l_ok and p_request_id is not null then
-            select count(*) into l_n from xxcmp_requests where request_id = p_request_id and party_id = p_party_id;  -- data security
-            l_ok := l_n > 0;
-        end if;
-        xxfnd_vpd_pkg.begin_trusted;
-        select * into l_p from xxcmp_parties where party_id = p_party_id;
-        l_ok := l_ok or (l_p.party_status = 'APPROVED' and l_p.enabled_flag = 'Y');
-        if l_ok then
-            l_card := card_html(p_party_id);
-        end if;
-        xxfnd_vpd_pkg.end_trusted;
-        if not l_ok then
+        elsif can_view(p_party_id, p_request_id) = 'N' then
             return '<p class="u-color-subtle">The party details are available to Compliance.</p>';
         end if;
-        return '<p><strong>' || apex_escape.html(l_p.party_name) || '</strong> (' || apex_escape.html(l_p.party_number) || ') - '
-               || apex_escape.html(xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status)) || '</p>'
-               || '<details class="kyc-party-details"><summary>Show details</summary>' || l_card || '</details>';
+        xxfnd_vpd_pkg.begin_trusted;
+        -- the party status shows on the party screens, not on a request
+        l_card := card_html(p_party_id, case when p_request_id is null then 'Y' else 'N' end);
+        xxfnd_vpd_pkg.end_trusted;
+        return l_card;
     exception
-        when no_data_found then
-            xxfnd_vpd_pkg.end_trusted;
-            return null;
         when others then
             xxfnd_vpd_pkg.end_trusted;
             raise;

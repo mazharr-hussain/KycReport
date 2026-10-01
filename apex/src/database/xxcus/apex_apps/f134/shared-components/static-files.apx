@@ -32,3 +32,8 @@ file "js/kyc-app.js" (
     mimeType: text/javascript
     charSet: utf-8
 )
+
+file "css/kyc-app.css" (
+    mimeType: text/css
+    charSet: utf-8
+)

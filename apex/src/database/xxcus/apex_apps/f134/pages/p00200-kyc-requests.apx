@@ -49,10 +49,17 @@ page 200 (
                 ```sql
                 select q.*,
                        apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
-                       case when q.request_status in ('DRAFT', 'INFO_NEEDED') and upper(q.requester_user_name) = upper(:APP_USER)
-                            then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203')
+                       -- the requester's action by status: Edit (Draft, Information Needed; Cancel is on the edit screen),
+                       -- Withdraw (waiting for approval: back to Draft)
+                       case when upper(q.requester_user_name) <> upper(:APP_USER) then null
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED')
+                            then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203,204')
+                            when q.request_status = 'IN_PROGRESS' and q.case_number is null then '#'
                        end as edit_url,
-                       case when q.request_status in ('DRAFT', 'INFO_NEEDED') and upper(q.requester_user_name) = upper(:APP_USER) then 'Edit' end as edit
+                       case when upper(q.requester_user_name) <> upper(:APP_USER) then null
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED') then 'Edit'
+                            when q.request_status = 'IN_PROGRESS' and q.case_number is null then 'Withdraw'
+                       end as edit
                   from (
                         select r.request_id,
                                r.request_number,
@@ -72,6 +79,7 @@ page 200 (
                                r.created_by, r.creation_date, r.last_updated_by, r.last_update_date
                           from xxcmp_requests r
                        ) q
+                 order by q.request_number desc
                 ```
         }
         layout {
@@ -94,13 +102,11 @@ page 200 (
         messages {
             whenNoDataFound: No data found.
         }
-        searchBar {
-            includeSearchBar: true
-        }
         download {
             formats: [
                 csv
                 html
+                excel
             ]
         }
 
@@ -305,7 +311,7 @@ page 200 (
         column EDIT (
             type: plainText
             heading {
-                heading: Edit
+                heading: Action
             }
             layout {
                 sequence: 115
@@ -313,7 +319,7 @@ page 200 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#EDIT_URL#">#EDIT#</a>
+                    <a href="#EDIT_URL#" class="kyc-row-action" data-id="#REQUEST_ID#" data-action="#EDIT#">#EDIT#</a>
                     ```
             }
             source {
@@ -541,6 +547,67 @@ page 200 (
             }
         )
 
+    )
+
+    dynamicAction withdraw (
+        name: Withdraw a request
+        execution {
+            sequence: 30
+            eventScope: dynamic
+            staticContainer: #report
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-row-action[data-action="Withdraw"]
+        }
+
+        action withdraw-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var id = $(this.triggeringElement).data("id");
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Withdraw this request from approval? It goes back to Draft: you can then edit or cancel it.", function (ok) {
+                        if (!ok) { return; }
+                        apex.server.process("WITHDRAW", { x01: id }, { dataType: "text" }).done(function (err) {
+                            if (err) { apex.message.alert(err); }
+                            apex.region("report").refresh();
+                        });
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process withdraw (
+        name: WITHDRAW
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id    number := to_number(apex_application.g_x01);
+                    l_error varchar2(4000) := xxcmp_request_pkg.withdraw_error(l_id);
+                begin
+                    if l_error is null then
+                        xxcmp_request_pkg.withdraw(l_id);
+                    end if;
+                    htp.p(l_error);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
     )
 
 )
