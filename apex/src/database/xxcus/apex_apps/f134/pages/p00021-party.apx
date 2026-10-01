@@ -12,7 +12,7 @@ page 21 (
         language: plsql
         plsqlExpression:
             ```plsql
-            :P21_PARTY_ID is not null
+            :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT'
             ```
     }
     security {
@@ -20,13 +20,10 @@ page 21 (
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
-    advanced {
-        reloadOnSubmit: always
-    }
     help {
         helpText:
             ```
-            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only. Edit (Parties - Manage) shows Edit Details (the common Party dialog) and the buttons to add contact persons, owners / officers and documents. Compliance can merge this party into a similar one.
+            One party: identity, main contact details, additional information, contact persons, ownership and documents. Opens read only. Edit (Parties - Manage) makes the party form editable (Save) and shows the buttons to add contact persons, owners / officers and documents. Compliance can merge this party into a similar one.
             ```
     }
 
@@ -47,6 +44,137 @@ page 21 (
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
             templateOptions: #DEFAULT#
+        }
+    )
+
+    button cancel-top (
+        buttonName: CANCEL_TOP
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 20
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is null or nvl(:P21_MODE, 'VIEW') <> 'EDIT'
+                ```
+        }
+    )
+
+    button cancel-edit-top (
+        buttonName: CANCEL_EDIT_TOP
+        label: Done
+        layout {
+            sequence: 15
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is not null and :P21_MODE = 'EDIT'
+                ```
+        }
+    )
+
+    button edit-top (
+        buttonName: EDIT_TOP
+        label: Edit
+        layout {
+            sequence: 25
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                    P21_MODE: EDIT
+                }
+                clearCache: 21
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_PARTY_ID is not null and nvl(:P21_MODE, 'VIEW') <> 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button save-top (
+        buttonName: SAVE_TOP
+        label: Save
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 
@@ -158,70 +286,7 @@ page 21 (
         }
     )
 
-    button edit-details (
-        buttonName: EDIT_DETAILS
-        label: Edit Details
-        layout {
-            sequence: 30
-            region: @party
-            slot: CHANGE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-            icon: fa-pencil
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 24
-                items: {
-                    P24_PARTY_ID: &P21_PARTY_ID.
-                }
-                clearCache: 24
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
 
-    dynamicAction details-saved (
-        name: Party details saved
-        execution {
-            sequence: 70
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @party
-        }
-
-        action details-saved-reload (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    window.location.reload();
-                    ```
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
 
     button edit (
         buttonName: EDIT
@@ -261,6 +326,37 @@ page 21 (
             authorizationScheme: @page-manage
         }
     )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @party
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P21_MODE = 'EDIT' and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
 
     region party_dff (
         name: Additional Information
@@ -1643,6 +1739,117 @@ page 21 (
 
     )
 
+    validation party-rules (
+        name: Party form rules
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the rules of the common party form, the same on every page that uses it
+                return xxcmp_party_pkg.party_error(to_number(:P21_PARTY_ID), :P0_PARTY_TYPE, :P0_PARTY_NAME,
+                           :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE,
+                           to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_EMAIL, :P0_PARTY_PHONE,
+                           'N', nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,SAVE_TOP
+        }
+    )
+
+    validation party-dff (
+        name: Validate additional information
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.validate('XXCMP_PARTIES', :P21_DFF_JSON, :P21_DFF_CONTEXT, :P21_PARTY_ID, p_reference_value => :P0_PARTY_TYPE);
+                ```
+        }
+        error {
+            associatedItem: @P21_DFF_CONTEXT
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,SAVE_TOP
+        }
+    )
+
+    process save-party (
+        name: Save party
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number := to_number(:P21_PARTY_ID);
+                begin
+                    xxcmp_party_pkg.save_party(
+                        p_party_id            => l_id,
+                        p_party_type          => :P0_PARTY_TYPE,
+                        p_party_name          => :P0_PARTY_NAME,
+                        p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                        p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                        p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email               => :P0_PARTY_EMAIL,
+                        p_phone               => :P0_PARTY_PHONE,
+                        p_website             => :P0_PARTY_WEBSITE,
+                        p_fax                 => :P0_PARTY_FAX,
+                        p_data_provenance     => :P0_PARTY_DATA_PROVENANCE,
+                        p_enabled_flag        => :P0_PARTY_ENABLED_FLAG,
+                        p_match_ack           => nvl(:P0_PARTY_MATCH_ACK, 'N'));
+                    xxfnd_dff_pkg.save('XXCMP_PARTIES', l_id, :P21_DFF_JSON, :P21_DFF_CONTEXT, p_reference_value => :P0_PARTY_TYPE);
+                end;
+                ```
+        }
+        execution {
+            sequence: 6
+            point: processing
+        }
+        successMessage {
+            successMessage: Party saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,SAVE_TOP
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    branch (
+        name: Stay on the party (edit)
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 21
+                items: {
+                    P21_PARTY_ID: &P21_PARTY_ID.
+                    P21_MODE: EDIT
+                }
+                clearCache: 21
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,SAVE_TOP
+        }
+    )
+
     process merge-party (
         name: Merge into another party
         type: executeCode
@@ -1687,13 +1894,15 @@ page 21 (
     )
 
     process initialize-party (
-        name: Load the party into the common party form (read only)
+        name: Load the party into the common party form (editable in Edit mode)
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxcmp_party_pkg.load_items(to_number(:P21_PARTY_ID), 'Y');
+                xxcmp_party_pkg.load_items(to_number(:P21_PARTY_ID),
+                    case when :P21_MODE = 'EDIT' and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE')
+                          and xxcmp_party_pkg.is_enabled(:P21_PARTY_ID) = 'Y' then 'N' else 'Y' end);
                 ```
         }
         execution {

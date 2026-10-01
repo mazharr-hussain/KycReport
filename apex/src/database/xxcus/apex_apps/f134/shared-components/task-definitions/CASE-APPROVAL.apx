@@ -3,7 +3,7 @@ taskDefinition CASE_APPROVAL (
     type: approval
     task {
         subject: Approve &CASE_NUMBER. - &PARTY_NAME. (level &CURRENT_LEVEL.)
-        initiatorCanComplete: false
+        initiatorCanComplete: true
     }
     source {
         type: sqlQuery

@@ -587,6 +587,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry request-approval-paths (
+        name: Request Approval Paths
+        pageNumber: 166
+        execution {
+            sequence: 405
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 166
+            }
+        }
+    )
+
     entry about (
         name: About
         pageNumber: 10010

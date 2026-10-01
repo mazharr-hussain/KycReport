@@ -1,6 +1,6 @@
 # Party – agreed design
 
-Status: **built in release 23 (patch 08)**.
+Status: **built in release 23 (patch 08)**; release 24 (patch 09): read-only fields hidden when creating / editing, Possible Matches with a confirmation on every create / edit (21, 23, 24, 201), one-click Edit on 21 with Save and buttons at the top and bottom.
 
 ## General rules
 - **One party form everywhere, defined once.** The party form is a single region on the **Global Page (page 0)**,

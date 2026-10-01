@@ -536,6 +536,23 @@ page 203 (
         }
     )
 
+    process set-summary (
+        name: Set the common Party and Approval Path regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := :P203_REQUEST_ID;
+                select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_requests where request_id = :P203_REQUEST_ID;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
     process submit-request (
         name: Submit request
         type: executeCode

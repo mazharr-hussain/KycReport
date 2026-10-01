@@ -205,6 +205,15 @@ installScript 16f-party-and-request-redesign (
     }
 )
 
+installScript 16g-request-approval-paths (
+    execution {
+        sequence: 169
+    }
+    script {
+        contentFile: 16g-approval-paths.sql
+    }
+)
+
 installScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 170

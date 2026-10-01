@@ -12,6 +12,7 @@ declare
     l_party  number;
     l_ok     number;
     l_cnt    number;
+    l_task   number;
     l_txt    varchar2(4000);
     l_r      xxcmp_requests%rowtype;
 
@@ -137,7 +138,7 @@ begin
     ok('submitted: In Progress with a workflow', l_r.request_status = 'IN_PROGRESS' and l_r.workflow_id is not null);
     wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and detail_pk = ''' || l_req || '''');
     ok('high risk: KYC Required = ' || xxcmp_request_pkg.kyc_required(l_req), xxcmp_request_pkg.kyc_required(l_req) = 'Yes');
-    ok('Pending With: ' || xxcmp_request_pkg.pending_with(l_req), xxcmp_request_pkg.pending_with(l_req) = 'Compliance');
+    ok('Pending With: ' || xxcmp_request_pkg.pending_with(l_req), xxcmp_request_pkg.pending_with(l_req) in ('Compliance', 'OFFICER1'));  -- one approver: the task is assigned to them
     ok('status shown: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'In Progress');
 
     ---------------------------------------------------------------- Information Needed and back
@@ -177,6 +178,52 @@ begin
     xxcmp_request_pkg.close_without_case(l_req2);
     ok('approved without KYC: request and party Approved',
        xxcmp_request_pkg.stage(l_req2) = 'Approved' and status(l_party) = 'APPROVED');
+    commit;
+
+    ---------------------------------------------------------------- approval path from setup (release 24)
+    insert into xxcmp_approval_paths (path_name, party_type, jurisdiction, priority, step_sequence, step_name, approver_type, role_code, user_name)
+    select 'Test ' || l_tag, 'ORGANIZATION', 'AE', 1, 1, 'Compliance check', 'ROLE', 'COMPLIANCE_OFFICER', null from dual union all
+    select 'Test ' || l_tag, 'ORGANIZATION', 'AE', 1, 2, 'Finance sign-off', 'USER', null, 'REQ1' from dual;
+    l_req2 := null;
+    save_org(l_req2, 'Path Org ' || l_tag, 'PA-' || l_tag);
+    ok('the path with the most matching criteria applies', xxcmp_approval_pkg.path_for(l_req2) = 'Test ' || l_tag);
+    ok('before submit: the expected path lists both steps',
+       dbms_lob.instr(xxcmp_approval_pkg.path_html(l_req2), 'Finance sign-off') > 0);
+    xxcmp_approval_pkg.start_path(l_req2);
+    ok('step 1: approved by the role (' || xxcmp_approval_pkg.step_approvers(l_req2) || ')',
+       xxcmp_approval_pkg.step_name(l_req2) = 'Compliance check' and instr(xxcmp_approval_pkg.step_approvers(l_req2), 'OFFICER1') > 0);
+    ok('after step 1 there is a next step', xxcmp_approval_pkg.next_step(l_req2) = 'Y');
+    ok('step 2: a named user, who may also be the requester (role based, not person based)',
+       xxcmp_approval_pkg.step_approvers(l_req2) = 'REQ1');
+    ok('after the last step the path is complete (the case opens)', xxcmp_approval_pkg.next_step(l_req2) = 'N');
+    -- live: the workflow runs one approval task per step; the requester approves step 2; then the case opens
+    l_req2 := null;
+    save_org(l_req2, 'Live Path Org ' || l_tag, 'LP-' || l_tag);
+    answer_high(l_req2);
+    xxcmp_request_pkg.submit(l_req2);
+    commit;
+    wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and state_code in (''ASSIGNED'', ''UNASSIGNED'') and detail_pk = ''' || l_req2 || '''');
+    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req2);
+    session_as('OFFICER1');
+    apex_human_task.approve_task(l_task, p_autoclaim => true);
+    commit;
+    wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and state_code in (''ASSIGNED'', ''UNASSIGNED'') and detail_pk = ''' || l_req2 || '''');
+    select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req2)
+       and state_code in ('ASSIGNED', 'UNASSIGNED');
+    ok('step 1 approved: the step 2 task goes to the named user', l_task is not null
+       and xxcmp_approval_pkg.step_name(l_req2) = 'Finance sign-off');
+    select count(*) into l_cnt from xxcmp_cases where request_id = l_req2;
+    ok('no case before the last step', l_cnt = 0);
+    session_as('REQ1');
+    apex_human_task.approve_task(l_task, p_autoclaim => true);
+    commit;
+    session_as('OFFICER1');     -- sees the cases (data security)
+    wait_for('select count(*) from xxcmp_cases where request_id = ' || l_req2);
+    select count(*) into l_cnt from xxcmp_cases where request_id = l_req2;
+    ok('the requester approves step 2 (role based); the last approval opens the case', l_cnt = 1);
+    ok('history shows the submit and the approvals',
+       dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req2), 'Submitted') > 0);
+    delete from xxcmp_approval_paths where path_name = 'Test ' || l_tag;
     commit;
     apex_session.delete_session;
 end;

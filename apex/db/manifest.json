@@ -177,6 +177,12 @@
   "upgrade_sequence": 128
  },
  {
+  "name": "16g Request approval paths",
+  "file": "16g-approval-paths.sql",
+  "install_sequence": 169,
+  "upgrade_sequence": 129
+ },
+ {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,
