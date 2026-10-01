@@ -17,11 +17,11 @@ taskDefinition CASE_APPROVAL (
     }
     advanced {
         detailsPage: {
-            page: 212
+            page: 211
             items: {
-                P212_TASK_ID: &TASK_ID.
+                P211_TASK_ID: &TASK_ID.
             }
-            clearCache: 212
+            clearCache: 211
         }
         vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
     }

@@ -491,6 +491,13 @@ create or replace package xxcmp_case_pkg authid definer as
     -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
     procedure apply_screening(p_case_id in number);
 
+    -- Case screen (211, release 27): the sections an officer works through, in order.
+    c_sections constant varchar2(200) := 'SUMMARY:PARTY:OWNERSHIP:SCREENING:DOCUMENTS:RISK:NOTES:REVIEW';
+    -- DONE, TODO or WARN (an open request for information) for one section.
+    function section_state(p_case_id in number, p_section in varchar2) return varchar2;
+    -- The section list with each section's state and the progress; links open the section (P211_SECTION).
+    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob;
+
 end xxcmp_case_pkg;
 /
 
@@ -1821,6 +1828,85 @@ create or replace package body xxcmp_case_pkg as
                enhanced_kyc_flag = case when l_pep > 0 or l_hit > 0 then 'Y' else enhanced_kyc_flag end
          where case_id = p_case_id and case_status = 'INVESTIGATION';
     end apply_screening;
+
+    function section_state(p_case_id in number, p_section in varchar2) return varchar2 is
+        l_case  xxcmp_cases%rowtype := get_case(p_case_id);
+        l_party xxcmp_parties%rowtype;
+        l_count pls_integer;
+    begin
+        select * into l_party from xxcmp_parties where party_id = l_case.party_id;
+        case p_section
+            when 'SUMMARY' then
+                return 'DONE';
+            when 'PARTY' then
+                return case when xxcmp_party_pkg.party_error(l_party.party_id, l_party.party_type, l_party.party_name,
+                                     l_party.jurisdiction, l_party.registration_number, l_party.entity_type,
+                                     l_party.incorporation_date, l_party.email, l_party.phone, 'N', 'Y',
+                                     l_party.registration_type) is null then 'DONE' else 'TODO' end;
+            when 'OWNERSHIP' then
+                if l_party.party_type = 'PERSON' then
+                    return 'DONE';
+                end if;
+                select count(*) into l_count from dual
+                 where exists (select 1 from xxcmp_party_relationships where object_party_id = l_party.party_id)
+                    or exists (select 1 from xxcmp_ubo_determinations where case_id = p_case_id);
+                return case when l_count > 0 then 'DONE' else 'TODO' end;
+            when 'SCREENING' then
+                select count(*) into l_count from xxcmp_screenings where case_id = p_case_id;
+                return case when l_count > 0 then 'DONE' else 'TODO' end;
+            when 'DOCUMENTS' then
+                select count(*) into l_count
+                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_party.jurisdiction,
+                                 case when l_party.party_type = 'PERSON' then l_party.registration_type else l_party.entity_type end)) m
+                 where not exists (
+                         select 1
+                           from xxfnd_attached_documents ad
+                           join xxcmp_doc_verifications v on v.attached_document_id = ad.attached_document_id
+                          where ad.entity_name = 'XXCMP_PARTIES' and ad.pk1_value = to_char(l_case.party_id)
+                            and ad.category_code = m.column_value
+                            and v.case_id = p_case_id and v.verification_status = 'VERIFIED');
+                return case when l_count = 0 then 'DONE' else 'TODO' end;
+            when 'RISK' then
+                return case when l_case.risk_tier is not null then 'DONE' else 'TODO' end;
+            when 'NOTES' then
+                select count(*) into l_count from xxcmp_rfis
+                 where entity_name = 'XXCMP_CASES' and pk1_value = to_char(p_case_id)
+                   and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING');
+                return case when l_count > 0 then 'WARN' else 'DONE' end;
+            when 'REVIEW' then
+                return case when l_case.case_status <> 'INVESTIGATION' or submit_error(p_case_id) is null then 'DONE' else 'TODO' end;
+            else
+                return null;
+        end case;
+    end section_state;
+
+    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob is
+        l_html  clob := '<ul class="kyc-case-nav">';
+        l_done  pls_integer := 0;
+        l_total pls_integer := 0;
+        l_state varchar2(10);
+        l_n     pls_integer := 0;
+    begin
+        for s in (select column_value code from table(apex_string.split(c_sections, ':'))) loop
+            l_n     := l_n + 1;
+            l_total := l_total + 1;
+            l_state := section_state(p_case_id, s.code);
+            if l_state = 'DONE' then
+                l_done := l_done + 1;
+            end if;
+            l_html := l_html || '<li class="kyc-case-nav-item' || case when s.code = p_section then ' is-current' end
+                      || ' is-' || lower(l_state) || '"><a href="'
+                      || apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                           p_values => p_case_id || ',' || p_task_id || ',' || s.code)
+                      || '"><span class="kyc-case-nav-icon fa ' || case when s.code = p_section then 'fa-dot-circle-o'
+                                                                       when l_state = 'DONE' then 'fa-check-circle'
+                                                                       when l_state = 'WARN' then 'fa-exclamation-triangle'
+                                                                       else 'fa-circle-o' end
+                      || '" aria-hidden="true"></span> ' || l_n || ' '
+                      || apex_escape.html(xxfnd_util_pkg.lookup_meaning('CASE_SECTION', s.code)) || '</a></li>';
+        end loop;
+        return l_html || '</ul><p class="kyc-case-nav-progress">Progress ' || l_done || ' / ' || l_total || '</p>';
+    end nav_html;
 
 end xxcmp_case_pkg;
 /
