@@ -36,7 +36,7 @@ One type scale for the whole app (Redwood font, `Oracle Sans` / system fallback)
 | `group-title` | 16px / 700, 2px divider under it | Field groups inside a section (Identity, Contact) |
 | `card-title` | 16px / 600 | Header card title, card titles, dialog titles |
 | `body` | **14px** / 400 | All data, table cells, values, form input text |
-| `value` | 15px / 400 | Values in a record grid; labels are bolder than values so the grid reads as label → value |
+| `value` | 15px / 700, dark | Values in a record grid and answers; label above in 13px bold dark grey, value larger and darker so it stands out |
 | `label` | 13px / 600, dark grey `#4a4541` | Field labels, question text, tile labels |
 | `column-header` | 14px / 700, dark text on a darker grey row `#e7e4e0` | Table column headers |
 | `meta` | 12px / 400, grey | Secondary info only: timestamps under a value, party number under a name, hints. **Never** for primary data. |
