@@ -99,6 +99,7 @@
 .kyc-badge--success { background: var(--kyc-success-bg); color: var(--kyc-success); }
 .kyc-badge--warning { background: var(--kyc-warning-bg); color: var(--kyc-warning); }
 .kyc-badge--danger  { background: var(--kyc-danger-bg);  color: var(--kyc-danger); }
+.kyc-badge:empty, .kyc-person:empty { display: none; }
 
 /* ---- people: employee name with a hover card (xxfnd_ui_pkg.person_html) ---- */
 .kyc-person { position: relative; border-bottom: 1px dotted currentColor; cursor: default; }
@@ -112,6 +113,9 @@
 .kyc-person-card table { border-collapse: collapse; }
 .kyc-person-card th, .kyc-person-card td { padding: .2rem .75rem; text-align: left; border: 0; background: none; }
 .kyc-person-card th { font-weight: 700; color: var(--kyc-label); }
+.a-IRR-table .kyc-person-card td, .a-IRR-table .kyc-person-card th,
+.t-Report-cell .kyc-person-card td, .t-Report-cell .kyc-person-card th {
+    background: transparent !important; border: 0 !important; padding: .2rem .75rem !important; font-size: .8125rem; }
 /* let the card show outside report cells */
 .a-IRR-tableContainer, .t-Report-wrap { overflow: visible; }
 

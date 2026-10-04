@@ -45,3 +45,17 @@ window.kycQuestionnaire = (function ($) {
 
     return { bind: bind, collect: collect };
 })(apex.jQuery);
+
+/*
+ * kycPerson - employee hover card for list cells (UIUX-STANDARD people rule).
+ * A cell shows <span class="kyc-person" data-user="USER_NAME">Employee name</span>; on the first hover or focus the
+ * card (name, employee no., department, user name) is loaded once from the PERSON_CARD application process.
+ */
+(function ($) {
+    "use strict";
+    $(document).on("mouseenter focusin", ".kyc-person[data-user]:not([data-loaded])", function () {
+        var el = $(this).attr("data-loaded", "Y");
+        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "text" })
+            .done(function (html) { el.append(html); });
+    });
+})(apex.jQuery);

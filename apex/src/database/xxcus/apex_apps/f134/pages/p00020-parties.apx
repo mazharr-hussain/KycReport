@@ -45,6 +45,7 @@ page 20 (
             sqlQuery:
                 ```sql
                 select q.*,
+                       xxfnd_ui_pkg.status_tone('PARTY', q.party_status_code) as status_tone,
                        apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(q.party_id), p_clear_cache => '21') as open_url,
                        case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') and q.enabled_flag = 'Y'
                             then apex_page.get_url(p_page => 24, p_items => 'P24_PARTY_ID', p_values => to_char(q.party_id),
@@ -70,6 +71,7 @@ page 20 (
                            (select max(c.contact_name) keep (dense_rank first order by c.primary_flag desc, c.party_contact_id)
                               from xxcmp_party_contacts c where c.party_id = p.party_id and c.enabled_flag = 'Y') as primary_contact,
                            xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as party_status,
+                           p.party_status as party_status_code,
                            p.next_kyc_date,
                            xxfnd_util_pkg.lookup_meaning('DATA_PROVENANCE', p.data_provenance) as data_provenance,
                            p.last_verified_date,
@@ -94,9 +96,6 @@ page 20 (
         }
         advanced {
             htmlDomId: report
-        }
-        componentAppearance {
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToY
@@ -286,6 +285,12 @@ page 20 (
             layout {
                 sequence: 77
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#PARTY_STATUS#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -433,6 +438,32 @@ page 20 (
                     ```html
                     <a href="#EDIT_URL#">#EDIT#</a>
                     ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_STATUS_CODE (
+            type: hidden
+            heading {
+                heading: Party Status Code
+            }
+            layout {
+                sequence: 501
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            heading {
+                heading: Status Tone
+            }
+            layout {
+                sequence: 502
             }
             source {
                 dataType: STRING
