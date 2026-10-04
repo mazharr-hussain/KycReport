@@ -106,7 +106,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         source {
@@ -178,7 +178,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -207,7 +207,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -236,7 +236,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -265,7 +265,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -294,7 +294,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -323,7 +323,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -352,7 +352,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -384,7 +384,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -413,7 +413,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -444,7 +444,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -475,7 +475,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -504,7 +504,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -539,7 +539,7 @@ page 205 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {

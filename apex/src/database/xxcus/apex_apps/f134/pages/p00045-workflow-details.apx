@@ -870,7 +870,7 @@ page 45 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -898,7 +898,7 @@ page 45 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             width: 30
             height: 3
@@ -967,7 +967,7 @@ page 45 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         advanced {

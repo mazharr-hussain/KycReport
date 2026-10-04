@@ -92,7 +92,7 @@ page 10050 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -120,7 +120,7 @@ page 10050 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             height: 6
         }

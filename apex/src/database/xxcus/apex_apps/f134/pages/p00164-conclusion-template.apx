@@ -79,7 +79,7 @@ page 164 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -148,7 +148,7 @@ page 164 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -178,7 +178,7 @@ page 164 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             height: 8
         }
@@ -214,7 +214,7 @@ page 164 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         source {

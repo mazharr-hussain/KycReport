@@ -93,7 +93,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -125,7 +125,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         help {
@@ -166,7 +166,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         security {
@@ -196,7 +196,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -220,7 +220,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             height: 5
         }
@@ -246,7 +246,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         default {
@@ -271,7 +271,7 @@ page 32 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         help {

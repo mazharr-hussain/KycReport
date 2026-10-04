@@ -159,7 +159,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -198,7 +198,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         lov {
@@ -231,7 +231,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             height: 3
         }
@@ -257,7 +257,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -284,7 +284,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -308,7 +308,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -341,7 +341,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         validation {
@@ -390,7 +390,7 @@ page 201 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
         }
         readOnly {

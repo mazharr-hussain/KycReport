@@ -65,7 +65,7 @@ page 125 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 10
         }
@@ -101,7 +101,7 @@ page 125 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 14
         }

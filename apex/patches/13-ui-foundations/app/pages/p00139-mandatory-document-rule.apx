@@ -1,0 +1,625 @@
+page 139 (
+    name: Mandatory Document Rule
+    alias: MANDATORY-DOCUMENT-RULE
+    title: Mandatory Document Rule
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Maker-checker controlled: a second person approves the rule before it applies.
+            ```
+    }
+
+    region form (
+        name: Mandatory Document Rule
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_ATTACHMENT_RULES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P139_ATTACHMENT_RULE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: ATTACHMENT_RULE_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P139_ENTITY_NAME (
+        type: selectList
+        label {
+            label: Entity
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-entities
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: ENTITY_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the entity.
+        }
+    )
+
+    pageItem P139_CATEGORY_CODE (
+        type: selectList
+        label {
+            label: Document Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-categories
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CATEGORY_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the document Category.
+        }
+    )
+
+    pageItem P139_JURISDICTION (
+        type: selectList
+        label {
+            label: Jurisdiction
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-jurisdiction
+            displayNullValue: true
+            nullDisplayValue: - Any -
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: JURISDICTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the jurisdiction.
+        }
+    )
+
+    pageItem P139_ENTITY_TYPE (
+        type: selectList
+        label {
+            label: Entity Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-entity-type
+            displayNullValue: true
+            nullDisplayValue: - Any -
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENTITY_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the entity Type.
+        }
+    )
+
+    pageItem P139_MANDATORY_FLAG (
+        type: switch
+        label {
+            label: Mandatory
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: MANDATORY_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText:
+                ```
+                Off = explicitly optional (overrides a broader rule).
+                ```
+        }
+    )
+
+    pageItem P139_PRIORITY (
+        type: numberField
+        label {
+            label: Priority
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: PRIORITY
+            dataType: number
+        }
+        default {
+            type: static
+            staticValue: 100
+        }
+        help {
+            helpText: Enter the priority.
+        }
+    )
+
+    pageItem P139_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    pageItem P139_APPROVAL_STATUS (
+        type: selectList
+        label {
+            label: Approval Status
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-approval-status
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: APPROVAL_STATUS
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: DRAFT
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the approval Status.
+        }
+    )
+
+    pageItem P139_CHANGE_REASON (
+        type: textField
+        label {
+            label: Reason for Change
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Recorded in the audit log with this change.
+        }
+    )
+
+    process set-change-reason (
+        name: Set change reason
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_audit_pkg.set_change_reason(:P139_CHANGE_REASON);
+                ```
+        }
+        execution {
+            sequence: 1
+            point: processing
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P139_ATTACHMENT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P139_ATTACHMENT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P139_ATTACHMENT_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+    button submit-approval (
+        buttonName: SUBMIT_APPROVAL
+        label: Submit for Approval
+        layout {
+            sequence: 35
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P139_APPROVAL_STATUS in ('DRAFT','REJECTED')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process submit-for-approval (
+        name: Submit for approval
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_config_approval_pkg.request('XXCMP_ATTACHMENT_RULES', :P139_ATTACHMENT_RULE_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Submitted for approval.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog-submitted (
+        name: Close Dialog after submit
+        type: closeDialog
+        execution {
+            sequence: 95
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT_APPROVAL
+        }
+    )
+
+)
