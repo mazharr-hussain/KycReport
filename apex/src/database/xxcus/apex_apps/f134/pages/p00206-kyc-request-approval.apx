@@ -718,36 +718,12 @@ page 206 (
     )
 
 
-    pageItem P206_COMMENT (
-        type: textarea
-        label {
-            label: Comment
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @decision-buttons
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-            height: 2
-        }
-        validation {
-            maxLength: 1000
-        }
-        help {
-            helpText: Recorded on the task; required when rejecting.
-        }
-    )
 
     button approve (
         buttonName: APPROVE
         label: Approve
         layout {
-            sequence: 20
+            sequence: 30
             region: @decision-buttons
             slot: NEXT
         }
@@ -755,10 +731,42 @@ page 206 (
             buttonTemplate: @/text
             hot: true
             templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-APPROVE
         }
         behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button approve-top (
+        buttonName: APPROVE_TOP
+        label: Approve
+        layout {
+            sequence: 50
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-APPROVE
+        }
+        behavior {
+            action: definedByDynamicAction
         }
         serverSideCondition {
             type: functionBody
@@ -777,23 +785,50 @@ page 206 (
 
     button reject (
         buttonName: REJECT
-        label: Reject Request
+        label: Reject
         layout {
             sequence: 10
             region: @decision-buttons
-            slot: PREVIOUS
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
             templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-REJECT
         }
         behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            requiresConfirmation: true
+            action: definedByDynamicAction
         }
-        confirmation {
-            message: Reject this request?
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button reject-top (
+        buttonName: REJECT_TOP
+        label: Reject
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-REJECT
+        }
+        behavior {
+            action: definedByDynamicAction
         }
         serverSideCondition {
             type: functionBody
@@ -814,17 +849,52 @@ page 206 (
         buttonName: REQUEST_INFO
         label: Request Information
         layout {
-            sequence: 10
+            sequence: 20
             region: @decision-buttons
             slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
             templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-REQUEST_INFO
         }
         behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
+                -- the question goes to the requester: not offered when the approver is the requester
+                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button request-info-top (
+        buttonName: REQUEST_INFO_TOP
+        label: Request Information
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-REQUEST_INFO
+        }
+        behavior {
+            action: definedByDynamicAction
         }
         serverSideCondition {
             type: functionBody
@@ -878,6 +948,81 @@ page 206 (
         }
     )
 
+    region decision-dialog (
+        name: Decision
+        type: staticContent
+        layout {
+            sequence: 99
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: decision_dialog
+        }
+    )
+
+    pageItem P206_DECISION (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @decision-dialog
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+    )
+
+    pageItem P206_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Recorded on the task; required when rejecting or requesting information.
+        }
+    )
+
+    button confirm (
+        buttonName: CONFIRM
+        label: Confirm
+        layout {
+            sequence: 10
+            region: @decision-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide-confirm
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
     validation reject-reason (
         name: Reason for rejection
         execution {
@@ -895,8 +1040,12 @@ page 206 (
             associatedItem: @P206_COMMENT
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: REJECT,REJECT_TOP
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'REJECT'
+                ```
         }
     )
 
@@ -917,8 +1066,12 @@ page 206 (
             associatedItem: @P206_COMMENT
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: REQUEST_INFO,REQUEST_INFO_TOP
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'REQUEST_INFO'
+                ```
         }
     )
 
@@ -1032,8 +1185,12 @@ page 206 (
             successMessage: Approved.
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: APPROVE,APPROVE_TOP
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE'
+                ```
         }
     )
 
@@ -1055,8 +1212,12 @@ page 206 (
             successMessage: Request rejected.
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: REJECT,REJECT_TOP
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'REJECT'
+                ```
         }
     )
 
@@ -1085,8 +1246,12 @@ page 206 (
             successMessage: Information requested: the requester answers in My Tasks, then the task comes back to you.
         }
         serverSideCondition {
-            type: requestIsContainedInValue
-            value: REQUEST_INFO,REQUEST_INFO_TOP
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'REQUEST_INFO'
+                ```
         }
     )
 

@@ -1,6 +1,6 @@
 """Request module in the browser (release 25): the 4-step wizard (Counterparty, Party Details, Questionnaire, Review and
 Submit) with the common Global Page regions; the similar-parties dialog (MATCH_ACK_FLAG); the read-only request view
-(Back only); the approval screen from My Tasks (Approve / Reject / Request Information at the top and the bottom, a
+(read only); the approval screen from My Tasks (Approve / Reject / Request Information at the top and the bottom, a
 comment required for Request Information); the requester answers on the review step; the approval history table;
 the list's Edit / Withdraw action; withdraw then cancel; Compliance merges a duplicate party in a popup.
 Usage: request_party_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local)"""
@@ -59,6 +59,17 @@ def answer_matches(pg, none=True, wait=2500):
 def click_nav(pg, label):
     with pg.expect_navigation():
         pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % label)).first.click()
+    pg.wait_for_load_state('networkidle')
+
+
+def decide(pg, label, comment=None):
+    """Approval screen 206: a decision button opens the Decision dialog; Confirm submits."""
+    pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*%s\s*$' % label)).first.click()
+    pg.locator('#decision_dialog').wait_for(state='visible')
+    if comment is not None:
+        pg.fill('#P206_COMMENT', comment)
+    with pg.expect_navigation(timeout=120000):
+        pg.locator('#decision_dialog button.kyc-decide-confirm').click()
     pg.wait_for_load_state('networkidle')
 
 
@@ -149,14 +160,13 @@ with sync_playwright() as p:
     click_nav(pg, 'Submit Request')
     task = wait_task(rid)
     ok(f'Submit starts the workflow: task {task}', task is not None)
-    ok('request view: read only, Back only (no Cancel / Add Document / Edit Party)',
-       pg.locator('button:has-text("Back")').count() >= 1
-       and all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Cancel Request', 'Add Document', 'Edit Party', 'Approve')))
+    ok('request view: read only (no Cancel / Add Document / Edit Party / Approve)',
+       all(pg.locator(f'button:has-text("{x}")').count() == 0 for x in ('Cancel Request', 'Add Document', 'Edit Party', 'Approve')))
     pg.reload(); pg.wait_for_load_state('networkidle')
     hist = pg.inner_text('#approval_history')
     ok('approval history in time order: Submitted, then the current step Pending',
        'Submitted' in hist and 'Pending' in hist and hist.index('Submitted') < hist.index('Pending'))
-    ok('the request shows its business relationship', 'Vendor' in pg.inner_text('#request'))
+    ok('the request shows its business relationship', 'Vendor' in pg.inner_text('#request_details'))
     pg.goto(f'{HOST}/ords/f?p={APP}:200:{s}'); pg.wait_for_load_state('networkidle')
     nums = [t.strip() for t in pg.locator('.a-IRR-table tr td:first-child').all_inner_texts()][:5]
     ok(f'list sorted by request number, newest first: {nums}', len(nums) > 1 and nums == sorted(nums, reverse=True))
@@ -167,17 +177,20 @@ with sync_playwright() as p:
     # ------------------------------------------------------------ approver: Request Information (comment required)
     pg, s = login(b, 'OFFICER1')
     open_task(pg, s, rno)
-    ok('approval screen: Approve / Reject / Request Information once, in the sticky action bar; no Cancel / Add Document',
-       all(pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 1 for x in ('Approve', 'Reject Request', 'Request Information'))
-       and pg.locator('#decision_buttons.kyc-actionbar #P206_COMMENT').count() == 1
+    ok('approval screen: Reject, Request Information and Approve once in the top bar and once in the bottom bar; no Cancel / Add Document',
+       all(pg.locator(f'{bar} button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 1
+           for bar in ('#buttons', '#decision_buttons') for x in ('Approve', 'Reject', 'Request Information'))
        and pg.locator('button:has-text("Cancel Request")').count() == 0 and pg.locator('button:has-text("Add Document")').count() == 0)
-    bar = pg.inner_text('#decision_buttons')
-    ok('bottom bar: Reject, Request Information and Approve in one row',
-       all(x in bar for x in ('Reject Request', 'Request Information', 'Approve')))
-    pg.locator('button', has_text=re.compile(r'^\s*Request Information\s*$')).first.click(); pg.wait_for_timeout(2000)
-    ok('Request Information needs a comment', 'Enter the information you need' in pg.inner_text('body'))
+    pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*Request Information\s*$')).click()
+    pg.locator('#decision_dialog').wait_for(state='visible')
+    ok('Request Information opens the Decision dialog with a required comment',
+       pg.locator('#P206_COMMENT_CONTAINER.is-required').count() == 1)
+    pg.locator('#decision_dialog button.kyc-decide-confirm').click(); pg.wait_for_timeout(800)
+    ok('Request Information needs a comment', 'Enter a comment.' in pg.inner_text('#decision_dialog'))
     pg.fill('#P206_COMMENT', 'Please upload the trade licence.')
-    click_nav(pg, 'Request Information')
+    with pg.expect_navigation():
+        pg.locator('#decision_dialog button.kyc-decide-confirm').click()
+    pg.wait_for_load_state('networkidle')
     ok('Request Information: the request is Information Needed',
        db(f"select request_status from xxcmp_requests where request_id = {rid}") == ['INFO_NEEDED'])
     pg.close()
@@ -199,7 +212,7 @@ with sync_playwright() as p:
     pg, s = login(b, 'OFFICER1')
     wait_task(rid)
     open_task(pg, s, rno)
-    click_nav(pg, 'Approve')
+    decide(pg, 'Approve')
     final = None
     for _ in range(30):
         final = db(f"""select r.request_status || ',' || p.party_status || ',' || (select count(*) from xxcmp_cases c where c.request_id = r.request_id)
