@@ -36,15 +36,14 @@ One type scale for the whole app (Redwood font, `Oracle Sans` / system fallback)
 | `group-title` | 16px / 700, 2px divider under it | Field groups inside a section (Identity, Contact) |
 | `card-title` | 16px / 600 | Header card title, card titles, dialog titles |
 | `body` | **14px** / 400 | All data, table cells, values, form input text |
-| `value` | 15px / 600, dark | Values on read-only pages (view, approval, case) – the data is the strongest text after headings |
-| `label` (view) | 13px / 400, mid-grey `#6b655f` (contrast ≥ 4.5:1) | Labels on read-only pages, question text – quieter than the value |
-| `label` (form) | 13px / 600, dark grey `#4a4541` | Labels above input fields on create/edit forms – the input box carries the value |
+| `value` | 15px / 400 | Values in a record grid; labels are bolder than values so the grid reads as label → value |
+| `label` | 13px / 600, dark grey `#4a4541` | Field labels, question text, tile labels |
 | `column-header` | 14px / 700, dark text on a darker grey row `#e7e4e0` | Table column headers |
 | `meta` | 12px / 400, grey | Secondary info only: timestamps under a value, party number under a name, hints. **Never** for primary data. |
 | `kpi` | 32px / 600 | Numbers on KPI cards |
 
 Rules: nothing the user must read is below 12px; data is never smaller than 14px; line height 1.45 for text, 1.25 for
-titles; hierarchy on read-only pages is **section heading → group heading → value → label** (headings give the structure, values the data, labels stay quiet but readable); on forms the label is semi-bold because the input box already holds the value; table column headers are bold on a shaded row because they label a whole column; no ALL-CAPS text (emails are shown in lower case).
+titles; headings and labels are always bolder and darker than the data they introduce, so the structure is clear at a glance; no ALL-CAPS text (emails are shown in lower case).
 
 ### 2.2 Colour
 
