@@ -18,6 +18,9 @@ create or replace package xxfnd_ui_pkg authid definer as
 
     -- employee name with a hover card: name, employee no., department, user name
     function person_html(p_user_name in varchar2) return varchar2;
+    -- KPI card for the home page: whole card is the link (p_url built with apex_page.get_url)
+    function kpi_card(p_label in varchar2, p_count in number, p_url in varchar2,
+                      p_icon in varchar2, p_tone in varchar2 default 'neutral') return varchar2;
 end xxfnd_ui_pkg;
 /
 
@@ -119,6 +122,16 @@ create or replace package body xxfnd_ui_pkg as
             || row_html('User name', l_emp.user_name)
             || '</table></span></span>';
     end person_html;
+
+    function kpi_card(p_label in varchar2, p_count in number, p_url in varchar2,
+                      p_icon in varchar2, p_tone in varchar2 default 'neutral') return varchar2 is
+        l_tone varchar2(10) := case when nvl(p_count, 0) = 0 then 'neutral' else lower(nvl(p_tone, 'neutral')) end;
+    begin
+        return '<a class="kyc-kpi kyc-kpi--' || l_tone || '" href="' || apex_escape.html_attribute(p_url) || '">'
+            || '<span class="kyc-kpi-icon fa ' || apex_escape.html_attribute(p_icon) || '" aria-hidden="true"></span>'
+            || '<span class="kyc-kpi-count">' || to_char(nvl(p_count, 0)) || '</span>'
+            || '<span class="kyc-kpi-label">' || apex_escape.html(p_label) || '</span></a>';
+    end kpi_card;
 
 end xxfnd_ui_pkg;
 /

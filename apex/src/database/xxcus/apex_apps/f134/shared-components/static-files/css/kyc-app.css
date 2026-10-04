@@ -125,8 +125,25 @@
 .kyc-actionbar { position: sticky; bottom: 0; z-index: 50; background: #fff;
                  border-top: 1px solid var(--kyc-border); box-shadow: 0 -2px 8px rgba(0, 0, 0, .06); }
 
-/* ---- 4.4 / 8 links that are whole cards ---- */
-#home_kpis .t-BadgeList-value a { text-decoration: none; }
+/* ---- 8 KPI cards (xxfnd_ui_pkg.kpi_card): whole card is the link ---- */
+.kyc-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.kyc-kpi { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.25rem; background: #fff; color: var(--kyc-text);
+           border: 1px solid var(--kyc-border); border-top: 4px solid var(--kyc-neutral); border-radius: 8px;
+           text-decoration: none; transition: box-shadow .15s; }
+.kyc-kpi:hover, .kyc-kpi:focus { box-shadow: 0 4px 14px rgba(0, 0, 0, .1); text-decoration: none; }
+.kyc-kpi-icon { font-size: 1.25rem; color: var(--kyc-muted); }
+.kyc-kpi-count { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.kyc-kpi-label { font-size: .875rem; font-weight: 700; color: var(--kyc-label); }
+.kyc-kpi--info    { border-top-color: var(--kyc-info); }    .kyc-kpi--info .kyc-kpi-icon    { color: var(--kyc-info); }
+.kyc-kpi--warning { border-top-color: #c27c0e; }            .kyc-kpi--warning .kyc-kpi-icon { color: #c27c0e; }
+.kyc-kpi--danger  { border-top-color: var(--kyc-danger); }  .kyc-kpi--danger .kyc-kpi-icon  { color: var(--kyc-danger); }
+.kyc-kpi--danger .kyc-kpi-count { color: var(--kyc-danger); }
+.kyc-kpi--neutral .kyc-kpi-count { color: var(--kyc-muted); }
+
+/* due dates: overdue red, due soon amber */
+.kyc-due--danger  { color: var(--kyc-danger); font-weight: 700; }
+.kyc-due--danger:after { content: " · overdue"; font-weight: 400; }
+.kyc-due--warning { color: var(--kyc-warning); font-weight: 700; }
 
 /* wizard progress: current step stands out */
 .t-WizardSteps-label { font-size: .875rem; }
