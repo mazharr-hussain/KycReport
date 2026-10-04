@@ -31,17 +31,19 @@ One type scale for the whole app (Redwood font, `Oracle Sans` / system fallback)
 
 | Token | Size / weight | Use |
 |---|---|---|
-| `page-title` | 24px / 600 | Page title (title bar) |
-| `section-title` | 18px / 600 | Region and section titles |
+| `page-title` | 26px / 700 | Page title (title bar) |
+| `section-title` | 20px / 700, on a shaded header strip with a 4px dark left accent | Region and section titles |
+| `group-title` | 16px / 700, 2px divider under it | Field groups inside a section (Identity, Contact) |
 | `card-title` | 16px / 600 | Header card title, card titles, dialog titles |
 | `body` | **14px** / 400 | All data, table cells, values, form input text |
-| `value-strong` | 15px / 500 | Key values in a record grid (number, name, amount) |
-| `label` | 13px / 500, grey | Field labels, column headers, tile labels |
+| `value` | 15px / 400 | Values in a record grid; labels are bolder than values so the grid reads as label → value |
+| `label` | 13px / 600, dark grey `#4a4541` | Field labels, question text, tile labels |
+| `column-header` | 14px / 700, dark text on a darker grey row `#e7e4e0` | Table column headers |
 | `meta` | 12px / 400, grey | Secondary info only: timestamps under a value, party number under a name, hints. **Never** for primary data. |
 | `kpi` | 32px / 600 | Numbers on KPI cards |
 
 Rules: nothing the user must read is below 12px; data is never smaller than 14px; line height 1.45 for text, 1.25 for
-titles; no bold for labels (the value is the important part); no ALL-CAPS text (emails are shown in lower case).
+titles; headings and labels are always bolder and darker than the data they introduce, so the structure is clear at a glance; no ALL-CAPS text (emails are shown in lower case).
 
 ### 2.2 Colour
 
@@ -119,7 +121,7 @@ Page types used by the app:
 - Column order: **identifier (link) → subject → status → who/where it is → when → related record → row actions**.
 
 ### 4.2 Table style
-- Header row: 13px/500, dark grey on light grey, 40px high, sticky on scroll.
+- Header row: 14px/700, dark text on a darker grey row, 40px high, sticky on scroll.
 - Data rows: 14px, 44px min height, 1px light divider, hover highlight, no zebra stripes.
 - Alignment: text left, numbers/amounts right, badges and dates left (consistent column start).
 - Identifier column is the **link to the record**; related records (Case, Party) are links too.
@@ -192,7 +194,7 @@ Small related lists (contacts, owners, documents, history) use a **compact list*
 ## 6. Forms
 
 ### 6.1 Labels and fields
-- Label template **Above** (not floating): 13px/500, red asterisk for required fields. No "Required" text.
+- Label template **Above** (not floating): 13px/600 dark grey, red asterisk for required fields. No "Required" text.
 - Input text 14px, field height 40px, placeholder text only as an example, never as the label.
 - Help: short **inline help** under the field when it guides input; the (?) help popup only for long explanations.
 - Field width follows the content: codes/dates/dropdowns in a half or third of the row, text areas full row.
