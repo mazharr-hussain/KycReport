@@ -7,6 +7,9 @@ page 206 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -40,8 +43,34 @@ page 206 (
     )
 
     region request (
-        name: Request
+        name: Request Items
         type: staticContent
+        layout {
+            sequence: 19
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region request-details (
+        name: Request
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_ui_pkg.details_html(to_number(:P206_REQUEST_ID));
+                ```
+            pageItemsToSubmit: [
+                P206_REQUEST_ID
+            ]
+        }
         layout {
             sequence: 20
             slot: BODY
@@ -51,7 +80,7 @@ page 206 (
             templateOptions: #DEFAULT#
         }
         advanced {
-            htmlDomId: request
+            htmlDomId: request_details
         }
     )
 
@@ -120,23 +149,11 @@ page 206 (
     )
 
     pageItem P206_REQUEST_NUMBER (
-        type: displayOnly
-        label {
-            label: Request
-            alignment: left
-        }
+        type: hidden
         layout {
             sequence: 10
             region: @request
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
         }
         source {
             type: sqlQuerySingleValue
@@ -148,366 +165,17 @@ page 206 (
         }
     )
 
-    pageItem P206_STAGE (
-        type: displayOnly
-        label {
-            label: Status
-            alignment: left
-        }
-        layout {
-            sequence: 20
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.stage(:P206_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_KYC_REQUIRED (
-        type: displayOnly
-        label {
-            label: KYC Required
-            alignment: left
-        }
-        layout {
-            sequence: 22
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.kyc_required(:P206_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_PENDING_WITH (
-        type: displayOnly
-        label {
-            label: Pending With
-            alignment: left
-        }
-        layout {
-            sequence: 24
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.pending_with(:P206_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_ACTION_DATE (
-        type: displayOnly
-        label {
-            label: Action Date
-            alignment: left
-        }
-        layout {
-            sequence: 26
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select to_char(last_action_date, 'DD-MON-YYYY HH24:MI') from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_BUSINESS_RELATIONSHIP (
-        type: displayOnly
-        label {
-            label: Business Relationship
-            alignment: left
-        }
-        layout {
-            sequence: 45
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_COUNTERPARTY (
-        type: displayOnly
-        label {
-            label: Counterparty
-            alignment: left
-        }
-        layout {
-            sequence: 30
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select party_name || ' (' || xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', party_type)
-                       || nvl2(registration_number, ', ' || registration_number, null)
-                       || nvl2(jurisdiction, ', ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
-                  from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_REQUEST_TYPE (
-        type: displayOnly
-        label {
-            label: Type
-            alignment: left
-        }
-        layout {
-            sequence: 40
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', request_type) from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_INTAKE (
-        type: displayOnly
-        label {
-            label: Intake Result
-            alignment: left
-        }
-        layout {
-            sequence: 50
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome)
-                       || nvl2(intake_score, ' (score ' || intake_score || case when intake_critical_flag = 'Y' then ', critical answer' end || ')', null)
-                  from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_REQUESTED_BY (
-        type: displayOnly
-        label {
-            label: Requested By
-            alignment: left
-        }
-        layout {
-            sequence: 60
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select requester_user_name || nvl2(requesting_department, ' - '
-                       || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', requesting_department), null)
-                  from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_JUSTIFICATION (
-        type: displayOnly
-        label {
-            label: Business Justification
-            alignment: left
-        }
-        layout {
-            sequence: 70
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select justification from xxcmp_requests where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_PARTY (
-        type: displayOnly
-        label {
-            label: Party
-            alignment: left
-        }
-        layout {
-            sequence: 80
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
-                            when r.party_id is not null then 'Linked to a party'
-                            else 'Not decided yet' end
-                       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
-                  from xxcmp_requests r
-                  left join xxcmp_parties p on p.party_id = r.party_id
-                 where r.request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P206_CASE_NUMBER (
-        type: displayOnly
-        label {
-            label: Case
-            alignment: left
-        }
-        layout {
-            sequence: 90
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select max(case_number) from xxcmp_cases where request_id = :P206_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
 
 
@@ -1017,118 +685,20 @@ page 206 (
         }
     )
 
-    button approve-top (
-        buttonName: APPROVE_TOP
-        label: Approve
-        layout {
-            sequence: 20
-            region: @buttons
-            slot: NEXT
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
-                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
-                end loop;
-                return false;
-                ```
-        }
-    )
 
-    button reject-top (
-        buttonName: REJECT_TOP
-        label: Reject Request
-        layout {
-            sequence: 10
-            region: @buttons
-            slot: PREVIOUS
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            requiresConfirmation: true
-        }
-        confirmation {
-            message: Reject this request?
-        }
-        serverSideCondition {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
-                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
-                end loop;
-                return false;
-                ```
-        }
-    )
 
-    button request-info-top (
-        buttonName: REQUEST_INFO_TOP
-        label: Request Information
-        layout {
-            sequence: 10
-            region: @buttons
-            slot: NEXT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                -- the question goes to the requester: not offered when the approver is the requester
-                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
-                    return false;
-                end if;
-                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
-                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
-                end loop;
-                return false;
-                ```
-        }
-    )
 
     region decision-buttons (
-        name: Decision Buttons
+        name: Decision
         type: staticContent
         layout {
-            sequence: 75
+            sequence: 990
             slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: decision_buttons
@@ -1147,40 +717,6 @@ page 206 (
         }
     )
 
-    region decision (
-        name: Decision
-        type: staticContent
-        source {
-            htmlCode:
-                ```html
-                <p>Approve completes your approval step: the next step of the approval path follows, and after the last one the request and its party are approved (and the case opens when KYC is required). Reject closes the request. Request Information sends your question to the requester: the request is Information Needed until they answer.</p>
-                ```
-        }
-        layout {
-            sequence: 70
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: decision
-        }
-        serverSideCondition {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
-                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
-                end loop;
-                return false;
-                ```
-        }
-    )
 
     pageItem P206_COMMENT (
         type: textarea
@@ -1190,7 +726,7 @@ page 206 (
         }
         layout {
             sequence: 10
-            region: @decision
+            region: @decision-buttons
             slot: regionBody
             alignment: left
         }

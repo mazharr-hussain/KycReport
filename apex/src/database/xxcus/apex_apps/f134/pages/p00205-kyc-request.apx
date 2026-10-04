@@ -7,6 +7,9 @@ page 205 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -40,8 +43,34 @@ page 205 (
     )
 
     region request (
-        name: Request
+        name: Request Items
         type: staticContent
+        layout {
+            sequence: 19
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region request-details (
+        name: Request
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_ui_pkg.details_html(to_number(:P205_REQUEST_ID));
+                ```
+            pageItemsToSubmit: [
+                P205_REQUEST_ID
+            ]
+        }
         layout {
             sequence: 20
             slot: BODY
@@ -51,7 +80,7 @@ page 205 (
             templateOptions: #DEFAULT#
         }
         advanced {
-            htmlDomId: request
+            htmlDomId: request_details
         }
     )
 
@@ -71,63 +100,7 @@ page 205 (
         }
     )
 
-    button back (
-        buttonName: BACK
-        label: Back
-        layout {
-            sequence: 5
-            region: @buttons
-            slot: PREVIOUS
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-chevron-left
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 200
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-    )
 
-    pageItem P205_MERGE_NOTE (
-        type: displayOnly
-        label {
-            label: Merge Note
-            alignment: left
-        }
-        layout {
-            sequence: 200
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select match_note from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        serverSideCondition {
-            type: rowsReturned
-            sqlQuery:
-                ```sql
-                -- only when the counterparty was merged into an existing party
-                select 1 from xxcmp_requests where request_id = :P205_REQUEST_ID and match_status = 'MERGED'
-                ```
-        }
-    )
 
     pageItem P205_REQUEST_ID (
         type: hidden
@@ -166,23 +139,11 @@ page 205 (
     )
 
     pageItem P205_REQUEST_NUMBER (
-        type: displayOnly
-        label {
-            label: Request
-            alignment: left
-        }
+        type: hidden
         layout {
             sequence: 10
             region: @request
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
         }
         source {
             type: sqlQuerySingleValue
@@ -194,366 +155,17 @@ page 205 (
         }
     )
 
-    pageItem P205_STAGE (
-        type: displayOnly
-        label {
-            label: Status
-            alignment: left
-        }
-        layout {
-            sequence: 20
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.stage(:P205_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_KYC_REQUIRED (
-        type: displayOnly
-        label {
-            label: KYC Required
-            alignment: left
-        }
-        layout {
-            sequence: 22
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.kyc_required(:P205_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_PENDING_WITH (
-        type: displayOnly
-        label {
-            label: Pending With
-            alignment: left
-        }
-        layout {
-            sequence: 24
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxcmp_request_pkg.pending_with(:P205_REQUEST_ID) from dual
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_ACTION_DATE (
-        type: displayOnly
-        label {
-            label: Action Date
-            alignment: left
-        }
-        layout {
-            sequence: 26
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select to_char(last_action_date, 'DD-MON-YYYY HH24:MI') from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_BUSINESS_RELATIONSHIP (
-        type: displayOnly
-        label {
-            label: Business Relationship
-            alignment: left
-        }
-        layout {
-            sequence: 45
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_COUNTERPARTY (
-        type: displayOnly
-        label {
-            label: Counterparty
-            alignment: left
-        }
-        layout {
-            sequence: 30
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select party_name || ' (' || xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', party_type)
-                       || nvl2(registration_number, ', ' || registration_number, null)
-                       || nvl2(jurisdiction, ', ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
-                  from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_REQUEST_TYPE (
-        type: displayOnly
-        label {
-            label: Type
-            alignment: left
-        }
-        layout {
-            sequence: 40
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', request_type) from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_INTAKE (
-        type: displayOnly
-        label {
-            label: Intake Result
-            alignment: left
-        }
-        layout {
-            sequence: 50
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome)
-                       || nvl2(intake_score, ' (score ' || intake_score || case when intake_critical_flag = 'Y' then ', critical answer' end || ')', null)
-                  from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_REQUESTED_BY (
-        type: displayOnly
-        label {
-            label: Requested By
-            alignment: left
-        }
-        layout {
-            sequence: 60
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select requester_user_name || nvl2(requesting_department, ' - '
-                       || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', requesting_department), null)
-                  from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_JUSTIFICATION (
-        type: displayOnly
-        label {
-            label: Business Justification
-            alignment: left
-        }
-        layout {
-            sequence: 70
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select justification from xxcmp_requests where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_PARTY (
-        type: displayOnly
-        label {
-            label: Party
-            alignment: left
-        }
-        layout {
-            sequence: 80
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select case when p.party_id is not null then p.party_number || ' - ' || p.party_name
-                            when r.party_id is not null then 'Linked to a party'
-                            else 'Not decided yet' end
-                       || nvl2(r.match_status, ' (' || xxfnd_util_pkg.lookup_meaning('REQUEST_MATCH_STATUS', r.match_status) || ')', null)
-                  from xxcmp_requests r
-                  left join xxcmp_parties p on p.party_id = r.party_id
-                 where r.request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
-    pageItem P205_CASE_NUMBER (
-        type: displayOnly
-        label {
-            label: Case
-            alignment: left
-        }
-        layout {
-            sequence: 90
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        source {
-            type: sqlQuerySingleValue
-            sqlQuery:
-                ```sql
-                select max(case_number) from xxcmp_cases where request_id = :P205_REQUEST_ID
-                ```
-            used: always
-        }
-    )
 
 
 

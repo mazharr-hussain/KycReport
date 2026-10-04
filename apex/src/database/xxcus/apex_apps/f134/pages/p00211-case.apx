@@ -7,6 +7,9 @@ page 211 (
         pageTemplate: @/left-side-column
         templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum

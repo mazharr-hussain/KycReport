@@ -167,8 +167,9 @@ with sync_playwright() as p:
     # ------------------------------------------------------------ approver: Request Information (comment required)
     pg, s = login(b, 'OFFICER1')
     open_task(pg, s, rno)
-    ok('approval screen: Approve / Reject / Request Information at the top and the bottom; no Cancel / Add Document',
-       all(pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 2 for x in ('Approve', 'Reject Request', 'Request Information'))
+    ok('approval screen: Approve / Reject / Request Information once, in the sticky action bar; no Cancel / Add Document',
+       all(pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*%s\s*$' % x)).count() == 1 for x in ('Approve', 'Reject Request', 'Request Information'))
+       and pg.locator('#decision_buttons.kyc-actionbar #P206_COMMENT').count() == 1
        and pg.locator('button:has-text("Cancel Request")').count() == 0 and pg.locator('button:has-text("Add Document")').count() == 0)
     bar = pg.inner_text('#decision_buttons')
     ok('bottom bar: Reject, Request Information and Approve in one row',

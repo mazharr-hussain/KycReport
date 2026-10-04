@@ -1555,19 +1555,51 @@ page 0 (
 
     )
 
-    region request-answers (
-        name: Questionnaire Answers
-        type: classicReport
+    region record-header (
+        name: Request Header
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
-                       coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer
-                  from xxcmp_request_answers a
-                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
-                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return '<div class="kyc-hcard">' || xxcmp_request_ui_pkg.header_html(to_number(:P0_REQUEST_ID)) || '</div>';
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: record_header
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        comments {
+            comments: UI/UX standard header card of a request (xxcmp_request_ui_pkg.header_html); kyc-app.js builds the section menu from the regions under it.
+        }
+    )
+
+    region request-answers (
+        name: Questionnaire
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_ui_pkg.answers_html(to_number(:P0_REQUEST_ID));
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -1592,48 +1624,6 @@ page 0 (
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--staticRowColors
-                t-Report--rowHighlight
-                t-Report--horizontalBorders
-            ]
-            showNullValuesAs: -
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No answers yet.
-        }
-
-        column QUESTION (
-            type: plainText
-            heading {
-                heading: Question
-            }
-            layout {
-                sequence: 10
-            }
-        )
-
-        column ANSWER (
-            type: plainText
-            heading {
-                heading: Answer
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
     )
 
     region request-documents (

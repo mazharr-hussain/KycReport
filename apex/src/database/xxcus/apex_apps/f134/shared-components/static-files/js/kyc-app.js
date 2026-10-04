@@ -59,3 +59,49 @@ window.kycQuestionnaire = (function ($) {
             .done(function (html) { el.append(html); });
     });
 })(apex.jQuery);
+
+/*
+ * kycSectionNav - section menu of a record page (UIUX-STANDARD 5.3, request pages 203 / 205 / 206).
+ * When the page has the header card (#record_header), every titled region under it gets a link in a menu on the left:
+ * a click jumps to the region on the same page, and the region in view is highlighted while scrolling.
+ * On phones the menu is a horizontal strip.
+ */
+(function ($) {
+    "use strict";
+    $(function () {
+        var header = $("#record_header"), container, regions, nav, list, links = {};
+        if (!header.length) { return; }
+        container = header.closest(".container");
+        regions = container.find(".t-Region").filter(function () {
+            var r = $(this);
+            return this.id && this.id !== "record_header" && r.parents(".t-Region").length === 0
+                && r.is(":visible") && $.trim(r.find(".t-Region-title").first().text()) !== "";
+        });
+        if (regions.length < 2) { return; }
+        nav = $('<nav class="kyc-secnav" aria-label="Sections"><ul></ul></nav>');
+        list = nav.find("ul");
+        regions.each(function () {
+            var a = $('<a></a>').attr("href", "#" + this.id).text($.trim($(this).find(".t-Region-title").first().text()));
+            links[this.id] = a;
+            list.append($("<li></li>").append(a));
+        });
+        container.addClass("kyc-has-secnav").prepend(nav);
+        header.closest(".row").addClass("kyc-secnav-full");
+        nav.on("click", "a", function (e) {
+            var t = document.getElementById(this.getAttribute("href").substring(1));
+            if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        });
+        if ("IntersectionObserver" in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) {
+                    if (en.isIntersecting) {
+                        list.find("a").removeClass("is-active");
+                        links[en.target.id].addClass("is-active");
+                    }
+                });
+            }, { rootMargin: "-20% 0px -70% 0px" });
+            regions.each(function () { io.observe(this); });
+        }
+        links[regions[0].id].addClass("is-active");
+    });
+})(apex.jQuery);
