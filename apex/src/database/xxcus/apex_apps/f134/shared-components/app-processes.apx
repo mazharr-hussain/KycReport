@@ -73,3 +73,23 @@ appProcess PARTY_MATCHES (
         authorizationScheme: @kyc-user
     }
 )
+
+appProcess PERSON_CARD (
+    name: PERSON_CARD
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- Hover card of an employee for list cells (kyc-app.js kycPerson): x01 = user name; returns the card HTML.
+            htp.p(xxfnd_ui_pkg.person_card(apex_application.g_x01));
+            ```
+    }
+    execution {
+        sequence: 30
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @kyc-user
+    }
+)

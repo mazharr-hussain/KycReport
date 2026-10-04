@@ -66,12 +66,13 @@ page 204 (
         name: Buttons
         type: staticContent
         layout {
-            sequence: 90
+            sequence: 990
             slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: buttons

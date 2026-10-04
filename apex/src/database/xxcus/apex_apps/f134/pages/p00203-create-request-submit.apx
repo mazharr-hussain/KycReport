@@ -7,6 +7,9 @@ page 203 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -82,12 +85,13 @@ page 203 (
         name: Buttons
         type: staticContent
         layout {
-            sequence: 90
+            sequence: 990
             slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: buttons

@@ -232,6 +232,15 @@ installScript 16h-ui-helpers (
     }
 )
 
+installScript 16i-request-ui (
+    execution {
+        sequence: 172
+    }
+    script {
+        contentFile: 16i-request-ui.sql
+    }
+)
+
 installScript 18-seed-data-and-administrator-part-2-of-2 (
     execution {
         sequence: 180

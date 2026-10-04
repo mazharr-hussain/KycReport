@@ -48,6 +48,12 @@ page 200 (
             sqlQuery:
                 ```sql
                 select q.*,
+                       xxfnd_ui_pkg.status_tone('REQUEST', q.request_status) as stage_tone,
+                       xxfnd_ui_pkg.person_name(q.pending_with) as pending_with_name,
+                       xxfnd_ui_pkg.person_name(q.requester_user_name) as requester_name,
+                       case when q.case_id is not null then
+                           apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '211')
+                       end as case_url,
                        apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
                        -- the requester's action by status: Edit (Draft, Information Needed; Cancel is on the edit screen),
                        -- Withdraw (waiting for approval: back to Draft)
@@ -77,6 +83,7 @@ page 200 (
                                r.request_status,
                                r.submitted_date,
                                (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number,
+                               (select c.case_id from xxcmp_cases c where c.request_id = r.request_id) as case_id,
                                r.created_by, r.creation_date, r.last_updated_by, r.last_update_date
                           from xxcmp_requests r
                        ) q
@@ -93,9 +100,6 @@ page 200 (
         }
         advanced {
             htmlDomId: report
-        }
-        componentAppearance {
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToY
@@ -191,6 +195,12 @@ page 200 (
             layout {
                 sequence: 50
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STAGE_TONE#">#STAGE#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -217,6 +227,12 @@ page 200 (
             }
             layout {
                 sequence: 66
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#PENDING_WITH#">#PENDING_WITH_NAME#</span>
+                    ```
             }
             source {
                 dataType: STRING
@@ -288,6 +304,12 @@ page 200 (
             layout {
                 sequence: 90
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#REQUESTER_USER_NAME#">#REQUESTER_NAME#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -316,6 +338,12 @@ page 200 (
             }
             layout {
                 sequence: 110
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#CASE_URL#">#CASE_NUMBER#</a>
+                    ```
             }
             source {
                 dataType: STRING
@@ -377,6 +405,71 @@ page 200 (
             }
             source {
                 dataType: STRING
+            }
+        )
+
+        column STAGE_TONE (
+            type: hidden
+            heading {
+                heading: Stage Tone
+            }
+            layout {
+                sequence: 131
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PENDING_WITH_NAME (
+            type: hidden
+            heading {
+                heading: Pending With Name
+            }
+            layout {
+                sequence: 132
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REQUESTER_NAME (
+            type: hidden
+            heading {
+                heading: Requester Name
+            }
+            layout {
+                sequence: 133
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CASE_URL (
+            type: hidden
+            heading {
+                heading: Case Url
+            }
+            layout {
+                sequence: 134
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CASE_ID (
+            type: hidden
+            heading {
+                heading: Case Id
+            }
+            layout {
+                sequence: 135
+            }
+            source {
+                dataType: NUMBER
             }
         )
 
@@ -472,11 +565,6 @@ page 200 (
                 }
             )
 
-            displayColumn KYC_REQUIRED (
-                layout {
-                    sequence: 4
-                }
-            )
 
             displayColumn PENDING_WITH (
                 layout {
@@ -490,17 +578,7 @@ page 200 (
                 }
             )
 
-            displayColumn DEPARTMENT (
-                layout {
-                    sequence: 7
-                }
-            )
 
-            displayColumn REQUESTER_USER_NAME (
-                layout {
-                    sequence: 8
-                }
-            )
 
             displayColumn CASE_NUMBER (
                 layout {

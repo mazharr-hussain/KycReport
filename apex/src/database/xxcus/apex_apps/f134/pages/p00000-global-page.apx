@@ -864,6 +864,8 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- hidden when the party type has no Additional Information fields
+                and dbms_lob.instr(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N'), 't-Form-fieldContainer') > 0
                 ```
         }
     )
@@ -948,8 +950,8 @@ page 0 (
             sqlQuery:
                 ```sql
                 select c.party_contact_id, c.contact_name, c.job_title, c.email, c.phone,
-                       case c.primary_flag when 'Y' then 'Yes' else 'No' end as primary_contact,
-                       case c.enabled_flag when 'Y' then 'Yes' else 'No' end as enabled,
+                       case c.primary_flag when 'Y' then 'Y' end as primary_contact,
+                       case c.enabled_flag when 'N' then 'Y' end as enabled,
                        case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID', p_values => to_char(c.party_contact_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '22') end as edit_url
                   from xxcmp_party_contacts c
                  where c.party_id = :P0_SUMMARY_PARTY_ID
@@ -977,7 +979,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -989,7 +991,6 @@ page 0 (
                 t-Report--rowHighlight
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination
@@ -1012,58 +1013,49 @@ page 0 (
         column CONTACT_NAME (
             type: plainText
             heading {
-                heading: Name
+                heading: Contact
             }
             layout {
                 sequence: 10
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#CONTACT_NAME#</strong>{if JOB_TITLE/} · #JOB_TITLE#{endif/} {if PRIMARY_CONTACT/}<span class="kyc-badge kyc-badge--info">Primary</span>{endif/} {if ENABLED/}<span class="kyc-badge kyc-badge--neutral">Disabled</span>{endif/}<span class="kyc-meta">#EMAIL#{if PHONE/} · #PHONE#{endif/}</span>
+                    ```
+            }
         )
 
         column JOB_TITLE (
-            type: plainText
-            heading {
-                heading: Job Title
-            }
+            type: hidden
             layout {
                 sequence: 20
             }
         )
 
         column EMAIL (
-            type: plainText
-            heading {
-                heading: Email
-            }
+            type: hidden
             layout {
                 sequence: 30
             }
         )
 
         column PHONE (
-            type: plainText
-            heading {
-                heading: Phone
-            }
+            type: hidden
             layout {
                 sequence: 40
             }
         )
 
         column PRIMARY_CONTACT (
-            type: plainText
-            heading {
-                heading: Primary
-            }
+            type: hidden
             layout {
                 sequence: 50
             }
         )
 
         column ENABLED (
-            type: plainText
-            heading {
-                heading: Enabled
-            }
+            type: hidden
             layout {
                 sequence: 60
             }
@@ -1183,7 +1175,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -1195,7 +1187,6 @@ page 0 (
                 t-Report--rowHighlight
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination
@@ -1216,10 +1207,7 @@ page 0 (
         )
 
         column DIRECTION (
-            type: plainText
-            heading {
-                heading: Direction
-            }
+            type: hidden
             layout {
                 sequence: 10
             }
@@ -1233,43 +1221,37 @@ page 0 (
             layout {
                 sequence: 20
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#RELATED_PARTY#</strong> {if RELATIONSHIP_TYPE/}<span class="kyc-badge kyc-badge--info">#RELATIONSHIP_TYPE#</span>{endif/}<span class="kyc-meta">#DIRECTION#{if OWNERSHIP_PERCENTAGE/} · ownership #OWNERSHIP_PERCENTAGE#%{endif/}{if START_DATE/} · since #START_DATE#{endif/}{if END_DATE/} · until #END_DATE#{endif/}</span>
+                    ```
+            }
         )
 
         column RELATIONSHIP_TYPE (
-            type: plainText
-            heading {
-                heading: Relationship
-            }
+            type: hidden
             layout {
                 sequence: 30
             }
         )
 
         column OWNERSHIP_PERCENTAGE (
-            type: plainText
-            heading {
-                heading: Ownership %
-            }
+            type: hidden
             layout {
                 sequence: 40
             }
         )
 
         column START_DATE (
-            type: plainText
-            heading {
-                heading: Start Date
-            }
+            type: hidden
             layout {
                 sequence: 50
             }
         )
 
         column END_DATE (
-            type: plainText
-            heading {
-                heading: End Date
-            }
+            type: hidden
             layout {
                 sequence: 60
             }
@@ -1573,19 +1555,51 @@ page 0 (
 
     )
 
-    region request-answers (
-        name: Questionnaire Answers
-        type: classicReport
+    region record-header (
+        name: Request Header
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question,
-                       coalesce((select o.answer_label from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id), a.answer_text, '-') as answer
-                  from xxcmp_request_answers a
-                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
-                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return '<div class="kyc-hcard">' || xxcmp_request_ui_pkg.header_html(to_number(:P0_REQUEST_ID)) || '</div>';
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: record_header
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        comments {
+            comments: UI/UX standard header card of a request (xxcmp_request_ui_pkg.header_html); kyc-app.js builds the section menu from the regions under it.
+        }
+    )
+
+    region request-answers (
+        name: Questionnaire
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_ui_pkg.answers_html(to_number(:P0_REQUEST_ID));
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -1610,48 +1624,6 @@ page 0 (
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--staticRowColors
-                t-Report--rowHighlight
-                t-Report--horizontalBorders
-            ]
-            showNullValuesAs: -
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No answers yet.
-        }
-
-        column QUESTION (
-            type: plainText
-            heading {
-                heading: Question
-            }
-            layout {
-                sequence: 10
-            }
-        )
-
-        column ANSWER (
-            type: plainText
-            heading {
-                heading: Answer
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
     )
 
     region request-documents (
@@ -2061,61 +2033,6 @@ page 0 (
     )
 
 
-    dynamicAction party-match-dialog (
-        name: Similar parties - ask before saving
-        execution {
-            sequence: 5
-        }
-        when {
-            event: apexbeforepagesubmit
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :APP_PAGE_ID in (23, 24, 201) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
-                ```
-        }
-        comments {
-            comments: Before a party is saved (Next / Create / Save) and similar parties exist, a dialog asks: "Confirmed - none of these is this party" (P0_PARTY_MATCH_ACK = Y) or "A possible match exists" (N). The answer is saved (MATCH_ACK_FLAG on a request). The same number and country stays a blocking error.
-        }
-
-        action party-match-dialog-js (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    var req = this.data, ack = apex.item("P0_PARTY_MATCH_ACK");
-                    if (["NEXT", "CREATE", "SAVE"].indexOf(req) < 0 || ack.getValue() || !$("#party-form").is(":visible")
-                        || !apex.item("P0_PARTY_NAME").getValue()) {
-                        return;
-                    }
-                    apex.event.gCancelFlag = true;
-                    apex.server.process("PARTY_MATCHES", {
-                        x01: apex.item("P0_PARTY_TYPE").getValue(), x02: apex.item("P0_PARTY_NAME").getValue(),
-                        x03: apex.item("P0_PARTY_REGISTRATION_NUMBER").getValue(), x04: apex.item("P0_PARTY_INCORPORATION_DATE").getValue(),
-                        x05: apex.item("P0_PARTY_JURISDICTION").getValue(), x06: apex.item("P0_PARTY_ID").getValue()
-                    }, { dataType: "json" }).done(function (d) {
-                        if (!d || !d.length) { ack.setValue("Y"); apex.submit(req); return; }
-                        var list = d.map(function (p) {
-                            return "- " + p.party_name + " (" + p.party_number + (p.country ? ", " + p.country : "") + ", " + p.score + "%)";
-                        }).join("\n");
-                        apex.message.confirm("Similar parties exist:\n" + list + "\n\nIs one of them this party?", function (none) {
-                            ack.setValue(none ? "Y" : "N");
-                            apex.submit(req);
-                        }, { title: "Possible Matches", style: "warning",
-                             confirmLabel: "Confirmed - none of these is this party", cancelLabel: "A possible match exists" });
-                    });
-                    ```
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
 
     dynamicAction party-form-labels (
         name: Party form - labels by party type

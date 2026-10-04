@@ -48,6 +48,10 @@ page 210 (
             sqlQuery:
                 ```sql
                 select q.*,
+                       xxfnd_ui_pkg.status_tone('CASE', q.case_status_code) as status_tone,
+                       xxfnd_ui_pkg.status_tone('RISK', q.risk_tier_code) as risk_tone,
+                       case q.sla_status when 'Overdue' then 'danger' when 'Due soon' then 'warning' when 'Closed' then 'neutral' else 'success' end as sla_tone,
+                       xxfnd_ui_pkg.person_name(q.assigned_to) as assigned_name,
                        apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '211') as open_url
                   from (
                         select c.case_id,
@@ -55,6 +59,8 @@ page 210 (
                                p.party_name,
                                xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship) as business_relationship,
                                xxfnd_util_pkg.lookup_meaning('CASE_STATUS', c.case_status) as case_status,
+                               c.case_status as case_status_code,
+                               c.risk_tier as risk_tier_code,
                                c.assigned_to,
                                xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
                                case when c.enhanced_kyc_flag = 'Y' then 'Enhanced' end as kyc_level,
@@ -83,9 +89,6 @@ page 210 (
         }
         advanced {
             htmlDomId: report
-        }
-        componentAppearance {
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToY
@@ -170,6 +173,12 @@ page 210 (
             layout {
                 sequence: 40
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#CASE_STATUS#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -182,6 +191,12 @@ page 210 (
             }
             layout {
                 sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#SLA_TONE#">#SLA_STATUS#</span>
+                    ```
             }
             source {
                 dataType: STRING
@@ -209,6 +224,12 @@ page 210 (
             layout {
                 sequence: 70
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#ASSIGNED_TO#">#ASSIGNED_NAME#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -221,6 +242,12 @@ page 210 (
             }
             layout {
                 sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RISK_TONE#">#RISK_TIER#</span>
+                    ```
             }
             source {
                 dataType: STRING
@@ -295,6 +322,84 @@ page 210 (
             }
         )
 
+        column CASE_STATUS_CODE (
+            type: hidden
+            heading {
+                heading: Case Status Code
+            }
+            layout {
+                sequence: 301
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TIER_CODE (
+            type: hidden
+            heading {
+                heading: Risk Tier Code
+            }
+            layout {
+                sequence: 302
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            heading {
+                heading: Status Tone
+            }
+            layout {
+                sequence: 303
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TONE (
+            type: hidden
+            heading {
+                heading: Risk Tone
+            }
+            layout {
+                sequence: 304
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SLA_TONE (
+            type: hidden
+            heading {
+                heading: Sla Tone
+            }
+            layout {
+                sequence: 305
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ASSIGNED_NAME (
+            type: hidden
+            heading {
+                heading: Assigned Name
+            }
+            layout {
+                sequence: 306
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
         column OPEN_URL (
             type: hidden
             heading {
@@ -306,6 +411,69 @@ page 210 (
             source {
                 dataType: STRING
             }
+        )
+
+
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
+            }
+
+            displayColumn CASE_NUMBER (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn PARTY_NAME (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn CASE_STATUS (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn SLA_STATUS (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn SLA_DUE_DATE (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn ASSIGNED_TO (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn RISK_TIER (
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn REQUEST_NUMBER (
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn CREATION_DATE (
+                layout {
+                    sequence: 9
+                }
+            )
+
         )
 
     )

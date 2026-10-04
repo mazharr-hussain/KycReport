@@ -189,6 +189,12 @@
   "upgrade_sequence": 131
  },
  {
+  "name": "16i Request UI",
+  "file": "16i-request-ui.sql",
+  "install_sequence": 172,
+  "upgrade_sequence": 132
+ },
+ {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,

@@ -82,7 +82,7 @@ page 201 (
         name: Counterparty
         type: staticContent
         layout {
-            sequence: 15
+            sequence: 8
             slot: BODY
         }
         appearance {
@@ -98,12 +98,13 @@ page 201 (
         name: Buttons
         type: staticContent
         layout {
-            sequence: 90
+            sequence: 990
             slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: buttons
@@ -195,6 +196,7 @@ page 201 (
             sequence: 15
             region: @request
             slot: regionBody
+            startNewRow: false
             alignment: left
         }
         appearance {
@@ -342,7 +344,11 @@ page 201 (
         }
         appearance {
             template: @/required-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--large
+            ]
         }
         validation {
             valueRequired: true

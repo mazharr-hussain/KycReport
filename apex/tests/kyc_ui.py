@@ -69,7 +69,7 @@ def errors(pg):
 def click(pg, label, confirm=False):
     """Press a submit button (and OK its confirmation) and wait for the page that follows."""
     with pg.expect_navigation(timeout=120000):     # the first submit after an import starts the workflow engine
-        pg.click(f'button:has-text("{label}")')
+        pg.locator(f'button:has-text("{label}")').locator('visible=true').first.click()
         if confirm:
             btn = pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK"), .ui-dialog button:has-text("Confirm")').first
             try:
@@ -144,7 +144,7 @@ with sync_playwright() as p:
     click(pg, 'Next')
     ok(f'step 2 saved {set_count} answers and moved to review ({pg.title()})', set_count == 5 and 'Submit' in pg.title() and not errors(pg))
     click(pg, 'Submit Request')
-    ok(f'submitted; the request page shows stage "{pg.inner_text("#P205_STAGE_CONTAINER").split(chr(10))[-1]}"',
+    ok(f'submitted; the request page shows stage "{pg.inner_text("#record_header .kyc-badge")}"',
        'KYC Request' in pg.title() and not errors(pg))
     task = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = '{req}'")
     ok(f'intake scored the request and created the checklist task {task}', task is not None)
@@ -157,8 +157,8 @@ with sync_playwright() as p:
     with pg.expect_navigation():
         link.click()
     pg.wait_for_load_state('networkidle')
-    ok('the task opens the approval screen with the decision buttons (top and bottom)',
-       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 2)
+    ok('the task opens the approval screen with the decision buttons (one sticky action bar)',
+       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 1)
     click(pg, 'Approve')
     ok(f'checklist approved ({(errors(pg) or "no error")})', not errors(pg))
     case = wait_db(f"select max(case_id) from xxcmp_cases where request_id = {req}")
@@ -169,17 +169,22 @@ with sync_playwright() as p:
         link.click()
     pg.wait_for_load_state('networkidle')
     ok('the investigation task opens the case screen: section list, no workflow diagram, Submit only on Review',
-       'Case' in pg.title() and pg.locator('#case_sections li').count() == 8 and pg.locator('text=Workflow').count() == 0
+       'Case' in pg.title() and pg.locator('#case_sections li').count() == 7 and pg.locator('text=Workflow').count() == 0
        and pg.locator('button:has-text("Submit for Approval")').count() == 0)
     def section(label):
         with pg.expect_navigation():
             pg.locator('#case_sections a', has_text=label).first.click()
         pg.wait_for_load_state('networkidle')
+    ok('case header card and Assign (the first approver is the assignee)',
+       pg.locator('#case_header .kyc-hcard-title').count() == 1 and pg.locator('button:has-text("Assign")').count() >= 1
+       and (db(f"select assigned_to from xxcmp_cases where case_id = {case}")[0] or '') != '')
     section('Party')
-    ok('Party section: the common Global Page party regions', pg.locator('#party_card').count() == 1 and pg.locator('#party_dff').count() == 1)
+    ok('Party section: the common Global Page party regions, with contacts and owners (merged section)', pg.locator('#party_card').count() == 1 and pg.locator('#party_contacts').count() == 1 and pg.locator('#party_owners').count() == 1)
     section('Risk Assessment')
     pg.evaluate('apex.item("P211_RISK_TIER").setValue("MEDIUM")')
-    click(pg, 'Save')
+    with pg.expect_navigation(timeout=120000):
+        pg.click('#buttons button:has-text("Save")')     # the case action bar (the findings region has its own Save)
+    pg.wait_for_load_state('networkidle')
     ok(f'risk saved in its section ({errors(pg) or "no error"})', not errors(pg) and db(f"select risk_tier from xxcmp_cases where case_id = {case}")[0] == 'MEDIUM')
     section('Review and Submit')
     ok('Review: Submit for Approval and the approval history', pg.locator('button:has-text("Submit for Approval")').count() == 1
@@ -209,6 +214,16 @@ with sync_playwright() as p:
     ok(f'submitted for approval ({errors(pg) or "no error"})', not errors(pg))
     atask = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'CASE_APPROVAL' and detail_pk = '{case}'")
     ok(f'approval task {atask} created', atask is not None)
+    goto(pg, s, 210)
+    cnum = db(f"select case_number from xxcmp_cases where case_id = {case}")[0]
+    pg.fill('#report_search_field', cnum); pg.keyboard.press('Enter'); pg.wait_for_timeout(2500)
+    pg.locator('#report td a', has_text=cnum).first.click()
+    pg.wait_for_load_state('networkidle')
+    wd = pg.locator('button:visible', has_text='Withdraw from Approval').count()
+    sv = pg.locator('button:visible', has_text=re.compile(r'^\s*Save\s*$')).count()
+    ok(f'pending approval: the case opens read only from the Cases list, with Withdraw from Approval'
+       f' ({errors(pg) or "no error"}, withdraw={wd}, save={sv})',
+       not errors(pg) and wd == 1 and sv == 0)
     pg.close()
 
     # --------------------------------------------------------- MGR1: decision on the case screen (review mode)
@@ -218,9 +233,9 @@ with sync_playwright() as p:
     with pg.expect_navigation():
         link.click()
     pg.wait_for_load_state('networkidle')
-    ok('review mode: Approve / Reject at the top and the bottom, the approval history',
-       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 2
-       and pg.locator('button', has_text=re.compile(r'^\s*Reject\s*$')).count() == 2 and pg.locator('#case_history').count() == 1)
+    ok('review mode: Approve / Reject once in the sticky action bar, the approval history',
+       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 1
+       and pg.locator('button', has_text=re.compile(r'^\s*Reject\s*$')).count() == 1 and pg.locator('#case_history').count() == 1)
     pg.fill('#P211_DEC_COMMENT', 'Approved in the UI test.')
     click(pg, 'Approve')
     closed = wait_db(f"select count(*) from xxcmp_cases where case_id = {case} and case_status = 'APPROVED'")

@@ -45,6 +45,9 @@ page 30 (
             sqlQuery:
                 ```sql
                 select q.*,
+                       xxfnd_ui_pkg.status_tone('RFI', q.rfi_status_code) as status_tone,
+                       xxfnd_ui_pkg.person_name(q.recipient) as recipient_name,
+                       xxfnd_ui_pkg.person_name(q.created_by) as created_by_name,
                        apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(q.rfi_id), p_clear_cache => '31') as open_url
                   from (
 
@@ -58,6 +61,7 @@ page 30 (
                                     (select c.contact_name || ' ' || c.email from xxcmp_party_contacts c
                                       where c.party_contact_id = r.recipient_party_contact_id)) as recipient,
                            xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status) as rfi_status,
+                           r.rfi_status as rfi_status_code,
                            r.due_date,
                            r.responded_date,
                            r.created_by,
@@ -76,9 +80,6 @@ page 30 (
         }
         advanced {
             htmlDomId: report
-        }
-        componentAppearance {
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToY
@@ -189,6 +190,12 @@ page 30 (
             layout {
                 sequence: 70
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#RECIPIENT#">#RECIPIENT_NAME#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -201,6 +208,12 @@ page 30 (
             }
             layout {
                 sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#RFI_STATUS#</span>
+                    ```
             }
             source {
                 dataType: STRING
@@ -246,6 +259,12 @@ page 30 (
             layout {
                 sequence: 110
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#CREATED_BY#">#CREATED_BY_NAME#</span>
+                    ```
+            }
             source {
                 dataType: STRING
             }
@@ -264,6 +283,58 @@ page 30 (
             }
             source {
                 dataType: DATE
+            }
+        )
+
+        column RFI_STATUS_CODE (
+            type: hidden
+            heading {
+                heading: Rfi Status Code
+            }
+            layout {
+                sequence: 301
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            heading {
+                heading: Status Tone
+            }
+            layout {
+                sequence: 302
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECIPIENT_NAME (
+            type: hidden
+            heading {
+                heading: Recipient Name
+            }
+            layout {
+                sequence: 303
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_BY_NAME (
+            type: hidden
+            heading {
+                heading: Created By Name
+            }
+            layout {
+                sequence: 304
+            }
+            source {
+                dataType: STRING
             }
         )
 
