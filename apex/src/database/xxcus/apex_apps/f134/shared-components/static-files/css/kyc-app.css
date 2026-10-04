@@ -203,3 +203,10 @@
 .t-Form-fieldContainer--radioButtonGroup .apex-item-grid,
 .t-Form-fieldContainer--radioButtonGroup .apex-item-grid-row { display: flex; flex-wrap: wrap; }
 .t-Form-fieldContainer--radioButtonGroup .apex-item-grid-row { flex: 1 1 auto; }
+/* a required value not set yet: warning with a link to the section that sets it */
+.kyc-missing { color: var(--kyc-warning); font-weight: 700; }
+.kyc-missing a { font-weight: 400; }
+/* case screen: the case form region has no visible field outside an editable Risk Assessment */
+#case:not(:has(.t-Form-fieldContainer)) { display: none; }
+.t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc { display: inline-flex; flex-wrap: wrap; width: auto; }
+.t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc .apex-item-option { flex: 0 0 auto; }

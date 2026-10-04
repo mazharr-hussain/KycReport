@@ -105,3 +105,68 @@ window.kycQuestionnaire = (function ($) {
         links[regions[0].id].addClass("is-active");
     });
 })(apex.jQuery);
+
+/*
+ * Dialog buttons: a button with the CSS class "kyc-open-<region static id>" opens that inline dialog
+ * (Add Note, Assign, Withdraw on the case screen). The dialog's own button submits the page.
+ */
+(function ($) {
+    "use strict";
+    $(document).on("click", "button[class*='kyc-open-']", function (e) {
+        var m = this.className.match(/kyc-open-(\S+)/);
+        if (m) {
+            e.preventDefault();
+            apex.theme.openRegion(m[1]);
+        }
+    });
+})(apex.jQuery);
+
+/*
+ * Similar parties - ask before saving (party form of the Global Page on pages 23, 24, 201).
+ * Before a party is saved (Next / Create / Save) and similar parties exist, a dialog asks: "Confirmed - none of these is
+ * this party" (P0_PARTY_MATCH_ACK = Y) or "A possible match exists" (N); then the page is submitted.
+ * apex.page.submit is wrapped so the submit waits for the check: cancelling it from an apexbeforepagesubmit handler is not
+ * reliable (a nested event resets apex.event.gCancelFlag), and the first submit then also went through - release 29:
+ * that created a duplicate request.
+ */
+(function ($) {
+    "use strict";
+    var busy = false, original = apex.page.submit;
+
+    function needsCheck(req) {
+        var page = String($v("pFlowStepId")), name = apex.item("P0_PARTY_NAME");
+        return ["23", "24", "201"].indexOf(page) >= 0 && ["NEXT", "CREATE", "SAVE"].indexOf(req) >= 0
+            && $("#party-form").is(":visible") && name.node && name.getValue()
+            && !apex.item("P0_PARTY_MATCH_ACK").getValue() && apex.item("P0_PARTY_READ_ONLY").getValue() !== "Y";
+    }
+
+    function wrapped(pOptions) {
+        var self = this, args = arguments,
+            req = (typeof pOptions === "string") ? pOptions : (pOptions && pOptions.request),
+            ack = apex.item("P0_PARTY_MATCH_ACK");
+        if (!needsCheck(req)) {
+            return original.apply(self, args);
+        }
+        if (busy) { return; }
+        busy = true;
+        apex.server.process("PARTY_MATCHES", {
+            x01: apex.item("P0_PARTY_TYPE").getValue(), x02: apex.item("P0_PARTY_NAME").getValue(),
+            x03: apex.item("P0_PARTY_REGISTRATION_NUMBER").getValue(), x04: apex.item("P0_PARTY_INCORPORATION_DATE").getValue(),
+            x05: apex.item("P0_PARTY_JURISDICTION").getValue(), x06: apex.item("P0_PARTY_ID").getValue()
+        }, { dataType: "json" }).done(function (d) {
+            busy = false;
+            if (!d || !d.length) { ack.setValue("Y"); original.apply(self, args); return; }
+            var list = d.map(function (p) {
+                return "- " + p.party_name + " (" + p.party_number + (p.country ? ", " + p.country : "") + ", " + p.score + "%)";
+            }).join("\n");
+            apex.message.confirm("Similar parties exist:\n" + list + "\n\nIs one of them this party?", function (none) {
+                ack.setValue(none ? "Y" : "N");
+                original.apply(self, args);
+            }, { title: "Possible Matches", style: "warning",
+                 confirmLabel: "Confirmed - none of these is this party", cancelLabel: "A possible match exists" });
+        }).fail(function () { busy = false; });
+    }
+
+    apex.page.submit = wrapped;
+    if (apex.submit === original) { apex.submit = wrapped; }
+})(apex.jQuery);

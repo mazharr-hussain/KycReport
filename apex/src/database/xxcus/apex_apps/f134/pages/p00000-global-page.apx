@@ -979,7 +979,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -1175,7 +1175,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -2033,61 +2033,6 @@ page 0 (
     )
 
 
-    dynamicAction party-match-dialog (
-        name: Similar parties - ask before saving
-        execution {
-            sequence: 5
-        }
-        when {
-            event: apexbeforepagesubmit
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :APP_PAGE_ID in (23, 24, 201) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
-                ```
-        }
-        comments {
-            comments: Before a party is saved (Next / Create / Save) and similar parties exist, a dialog asks: "Confirmed - none of these is this party" (P0_PARTY_MATCH_ACK = Y) or "A possible match exists" (N). The answer is saved (MATCH_ACK_FLAG on a request). The same number and country stays a blocking error.
-        }
-
-        action party-match-dialog-js (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    var req = this.data, ack = apex.item("P0_PARTY_MATCH_ACK");
-                    if (["NEXT", "CREATE", "SAVE"].indexOf(req) < 0 || ack.getValue() || !$("#party-form").is(":visible")
-                        || !apex.item("P0_PARTY_NAME").getValue()) {
-                        return;
-                    }
-                    apex.event.gCancelFlag = true;
-                    apex.server.process("PARTY_MATCHES", {
-                        x01: apex.item("P0_PARTY_TYPE").getValue(), x02: apex.item("P0_PARTY_NAME").getValue(),
-                        x03: apex.item("P0_PARTY_REGISTRATION_NUMBER").getValue(), x04: apex.item("P0_PARTY_INCORPORATION_DATE").getValue(),
-                        x05: apex.item("P0_PARTY_JURISDICTION").getValue(), x06: apex.item("P0_PARTY_ID").getValue()
-                    }, { dataType: "json" }).done(function (d) {
-                        if (!d || !d.length) { ack.setValue("Y"); apex.submit(req); return; }
-                        var list = d.map(function (p) {
-                            return "- " + p.party_name + " (" + p.party_number + (p.country ? ", " + p.country : "") + ", " + p.score + "%)";
-                        }).join("\n");
-                        apex.message.confirm("Similar parties exist:\n" + list + "\n\nIs one of them this party?", function (none) {
-                            ack.setValue(none ? "Y" : "N");
-                            apex.submit(req);
-                        }, { title: "Possible Matches", style: "warning",
-                             confirmLabel: "Confirmed - none of these is this party", cancelLabel: "A possible match exists" });
-                    });
-                    ```
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
 
     dynamicAction party-form-labels (
         name: Party form - labels by party type

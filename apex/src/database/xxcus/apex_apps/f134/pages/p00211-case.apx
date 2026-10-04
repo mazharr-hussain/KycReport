@@ -46,12 +46,13 @@ page 211 (
         name: Buttons
         type: staticContent
         layout {
-            sequence: 15
-            slot: REGION_POSITION_01
+            sequence: 990
+            slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: buttons
@@ -245,12 +246,13 @@ page 211 (
         name: Decision Buttons
         type: staticContent
         layout {
-            sequence: 97
+            sequence: 989
             slot: BODY
         }
         appearance {
             template: @/buttons-container
             templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
         }
         advanced {
             htmlDomId: decision_buttons
@@ -303,7 +305,70 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
+                -- release 29: the form keeps the case keys on Summary / Risk / Review; its fields show only in an editable Risk
+                -- Assessment (the summary grid shows the rest) and the region hides itself without visible fields (kyc-app.css)
                 :P211_SECTION in ('SUMMARY', 'RISK', 'REVIEW')
+                ```
+        }
+    )
+
+    region case-header (
+        name: Case Header
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return '<div class="kyc-hcard">' || xxcmp_request_ui_pkg.case_header_html(to_number(:P211_CASE_ID)) || '</div>';
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_header
+        }
+    )
+
+    region case-summary (
+        name: &P211_SECTION_LABEL.
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_ui_pkg.case_summary_html(to_number(:P211_CASE_ID), to_number(:P211_TASK_ID));
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_summary
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('SUMMARY', 'REVIEW') or (:P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N')
                 ```
         }
     )
@@ -439,7 +504,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -477,7 +542,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -517,7 +582,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -556,7 +621,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -596,7 +661,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -643,7 +708,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('SUMMARY', 'REVIEW')
+                1 = 0   -- release 29: shown in the case header and summary grid
                 ```
         }
     )
@@ -686,7 +751,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('RISK', 'REVIEW')
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
                 ```
         }
     )
@@ -719,7 +784,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('RISK', 'REVIEW')
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
                 ```
         }
     )
@@ -752,7 +817,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('RISK', 'REVIEW')
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
                 ```
         }
     )
@@ -785,7 +850,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('RISK', 'REVIEW')
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
                 ```
         }
     )
@@ -818,7 +883,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('RISK', 'REVIEW')
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
                 ```
         }
     )
@@ -1422,7 +1487,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_SECTION in ('OWNERSHIP', 'REVIEW')
+                :P211_SECTION in ('PARTY', 'REVIEW')
                 ```
         }
 
@@ -1661,7 +1726,7 @@ page 211 (
     )
 
     pageItem P211_NOTE_FILTER (
-        type: selectList
+        type: radioGroup
         label {
             label: Show
             alignment: left
@@ -1674,13 +1739,15 @@ page 211 (
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+            ]
         }
         lov {
             type: staticValues
-            staticValues: STATIC2:Notes;NOTES,Requests for Information;RFIS,Open Requests for Information;OPEN
-            displayNullValue: true
-            nullDisplayValue: All
+            staticValues: STATIC2:All;,Notes;NOTES,RFIs;RFIS,Open RFIs;OPEN
+            displayNullValue: false
         }
     )
 
@@ -1717,14 +1784,14 @@ page 211 (
         }
         layout {
             sequence: 10
-            region: @notes
+            region: @note-dialog
             slot: regionBody
             alignment: left
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
-            height: 2
+            height: 4
         }
         validation {
             maxLength: 4000
@@ -1735,6 +1802,257 @@ page 211 (
                 ```sql
                 select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
                 ```
+        }
+    )
+
+    button open-assign (
+        buttonName: OPEN_ASSIGN
+        label: Assign
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-user
+            cssClasses: kyc-open-assign_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_TYPE is null and xxcmp_case_pkg.can_assign(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    region assign-dialog (
+        name: Assign Case
+        type: staticContent
+        layout {
+            sequence: 97
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign_dialog
+        }
+    )
+
+    pageItem P211_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Officer
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select distinct e.full_name as display_value, upper(ur.user_name) as return_value
+                  from xxfnd_user_roles_v ur
+                  join xxfnd_employees e on upper(e.user_name) = upper(ur.user_name)
+                 where ur.role_code in ('COMPLIANCE_OFFICER','COMPLIANCE_MANAGER','HEAD_OF_COMPLIANCE') and ur.active_flag = 'Y'
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P211_ASSIGN_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process assign-case (
+        name: Assign case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.assign(:P211_CASE_ID, :P211_ASSIGN_TO, :P211_ASSIGN_COMMENT);
+                :P211_ASSIGN_TO := null;
+                :P211_ASSIGN_COMMENT := null;
+                ```
+        }
+        execution {
+            sequence: 32
+            point: processing
+        }
+        successMessage {
+            successMessage: Case assigned.
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+    button open-withdraw (
+        buttonName: OPEN_WITHDRAW
+        label: Withdraw from Approval
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-open-withdraw_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_TYPE is null and xxcmp_case_pkg.can_withdraw(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    region withdraw-dialog (
+        name: Withdraw from Approval
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>The open approval is cancelled and the case goes back to investigation, editable again. Submit it for approval when it is ready.</p>
+                ```
+        }
+        layout {
+            sequence: 98
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: withdraw_dialog
+        }
+    )
+
+    pageItem P211_WITHDRAW_REASON (
+        type: textarea
+        label {
+            label: Reason
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @withdraw-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button withdraw (
+        buttonName: WITHDRAW
+        label: Withdraw
+        layout {
+            sequence: 10
+            region: @withdraw-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process withdraw-case (
+        name: Withdraw from approval
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.withdraw(:P211_CASE_ID, :P211_WITHDRAW_REASON);
+                :P211_WITHDRAW_REASON := null;
+                ```
+        }
+        execution {
+            sequence: 33
+            point: processing
+        }
+        successMessage {
+            successMessage: The case is back under investigation.
+        }
+        serverSideCondition {
+            whenButtonPressed: @withdraw
         }
     )
 
@@ -1974,8 +2292,8 @@ page 211 (
         }
     )
 
-    button add-note (
-        buttonName: ADD_NOTE
+    button open-note (
+        buttonName: OPEN_NOTE
         label: Add Note
         layout {
             sequence: 5
@@ -1984,6 +2302,51 @@ page 211 (
         }
         appearance {
             buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-open-note_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region note-dialog (
+        name: Add Note
+        type: staticContent
+        layout {
+            sequence: 96
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: note_dialog
+        }
+    )
+
+    button add-note (
+        buttonName: ADD_NOTE
+        label: Add
+        layout {
+            sequence: 10
+            region: @note-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
             templateOptions: #DEFAULT#
         }
         behavior {
@@ -2118,9 +2481,6 @@ page 211 (
                 ```plsql
                 return xxcmp_case_pkg.submit_error(:P211_CASE_ID);
                 ```
-        }
-        error {
-            associatedItem: @P211_RISK_TIER
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -2761,37 +3121,6 @@ page 211 (
         }
     )
 
-    button reject-top (
-        buttonName: REJECT_TOP
-        label: Reject
-        layout {
-            sequence: 20
-            region: @buttons
-            slot: PREVIOUS
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            requiresConfirmation: true
-        }
-        confirmation {
-            message: Reject this case?
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
-                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
-                ```
-        }
-    )
 
     button approve (
         buttonName: APPROVE
@@ -2822,34 +3151,6 @@ page 211 (
         }
     )
 
-    button approve-top (
-        buttonName: APPROVE_TOP
-        label: Approve
-        layout {
-            sequence: 30
-            region: @buttons
-            slot: NEXT
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
-                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
-                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
-                ```
-        }
-    )
 
     process initialize-form (
         name: Initialize form
