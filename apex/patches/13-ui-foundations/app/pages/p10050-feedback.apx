@@ -1,0 +1,232 @@
+page 10050 (
+    name: Feedback
+    alias: FEEDBACK
+    title: Feedback
+    pageGroup: @features
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    config {
+        buildOption: @feature-feedback
+    }
+    help {
+        helpText: Tell the administrators what works and what does not.
+    }
+
+    region feedback (
+        name: Feedback
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: feedback
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P10050_PAGE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @feedback
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled from the navigation-bar link with &APP_PAGE_ID.; no same-page dynamic action changes it. It only labels the page the feedback is about.
+                ```
+        }
+    )
+
+    pageItem P10050_FEEDBACK_TYPE (
+        type: radioGroup
+        label {
+            label: Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'General comment' as display_value, '1' as return_value from dual union all
+                select 'Enhancement request', '2' from dual union all
+                select 'Bug', '3' from dual
+                ```
+        }
+        layout {
+            sequence: 10
+            region: @feedback
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+        help {
+            helpText: Choose the type.
+        }
+    )
+
+    pageItem P10050_FEEDBACK (
+        type: textarea
+        label {
+            label: Feedback
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @feedback
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 6
+        }
+        validation {
+            valueRequired: true
+            maxLength: 4000
+        }
+        help {
+            helpText: Enter the feedback.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button submit (
+        buttonName: SUBMIT
+        label: Submit Feedback
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process submit-feedback (
+        name: Submit feedback
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_util.submit_feedback(
+                    p_comment        => :P10050_FEEDBACK,
+                    p_type           => to_number(:P10050_FEEDBACK_TYPE),
+                    p_application_id => :APP_ID,
+                    p_page_id        => to_number(:P10050_PAGE_ID));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Thank you for your feedback.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT
+        }
+    )
+
+)

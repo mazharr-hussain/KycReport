@@ -1,0 +1,217 @@
+page 216 (
+    name: Create Case
+    alias: CREATE-CASE
+    title: Create Case
+    pageGroup: @kyc
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Open a case for a party without an intake request, e.g. on information received. A request is recorded for the audit trail.
+            ```
+    }
+
+    region new_case (
+        name: Create Case
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: new_case
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P216_PARTY_ID (
+        type: selectList
+        label {
+            label: Party
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || party_number || ')' as display_value, party_id as return_value
+                  from xxcmp_parties where enabled_flag = 'Y' order by party_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @new_case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    pageItem P216_JUSTIFICATION (
+        type: textarea
+        label {
+            label: Reason
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @new_case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            valueRequired: true
+            maxLength: 4000
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Case
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process create-case (
+        name: Create case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_case number;
+                begin
+                    l_case := xxcmp_case_pkg.create_manual_case(to_number(:P216_PARTY_ID), :P216_JUSTIFICATION);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Case created.
+        }
+        serverSideCondition {
+            whenButtonPressed: @create
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE
+        }
+    )
+
+)

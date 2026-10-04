@@ -1,0 +1,434 @@
+page 217 (
+    name: Compliance Report
+    alias: COMPLIANCE-REPORT
+    title: Compliance Report
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The report of a closed case: intake, investigation and approval trail with the conclusion for its risk tier. Print it from the browser.
+            ```
+    }
+
+    region breadcrumb (
+        name: Compliance Report
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Compliance Report
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+    )
+
+    pageItem P217_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @report
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P217_CASE (
+        type: displayOnly
+        label {
+            label: Case
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select c.case_number || ' - closed ' || to_char(c.closed_date, 'DD-Mon-YYYY') from xxcmp_cases c where c.case_id = :P217_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P217_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select p.party_number || ' - ' || p.party_name || nvl2(p.registration_number, ' - ' || p.registration_number, null)
+                       || nvl2(p.jurisdiction, ' - ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction), null)
+                  from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id where c.case_id = :P217_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P217_DECISION (
+        type: displayOnly
+        label {
+            label: Decision
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select c.decision || ' - risk ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
+                       || case when c.enhanced_kyc_flag = 'Y' then ' - Enhanced KYC' end || case when c.pep_flag = 'Y' then ' - PEP' end
+                       || ' - next review ' || to_char(c.next_review_date, 'DD-Mon-YYYY')
+                  from xxcmp_cases c where c.case_id = :P217_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P217_CONDITIONS (
+        type: displayOnly
+        label {
+            label: Conditions
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select conditions from xxcmp_cases where case_id = :P217_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P217_CONCLUSION (
+        type: displayOnly
+        label {
+            label: Conclusion
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.replace_tokens(t.template_text,
+                           json_object('PARTY_NAME' value p.party_name, 'REQUEST_NUMBER' value r.request_number,
+                                       'RISK_TIER' value xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier),
+                                       'RISK_FACTORS' value nvl((select listagg(xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type), ', ')
+                                                                   from xxcmp_screenings s where s.case_id = c.case_id
+                                                                    and (s.match_status = 'CONFIRMED_MATCH' or s.pep_flag = 'Y' or s.sanctions_flag = 'Y' or s.adverse_media_flag = 'Y')), 'none')))
+                  from xxcmp_cases c
+                  join xxcmp_parties p on p.party_id = c.party_id
+                  join xxcmp_requests r on r.request_id = c.request_id
+                  left join xxcmp_conclusion_templates t on t.risk_tier = c.risk_tier and t.enabled_flag = 'Y'
+                 where c.case_id = :P217_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    region trail (
+        name: Approval Trail
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.level_no, initcap(d.outcome) as outcome, r.role_name, d.decided_by,
+                       to_char(d.decision_date, 'DD-Mon-YYYY HH24:MI') as decision_date, d.comments
+                  from xxcmp_case_decisions d left join xxfnd_roles r on r.role_code = d.role_code
+                 where d.case_id = :P217_CASE_ID order by d.decision_date
+                ```
+            pageItemsToSubmit: P217_CASE_ID
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: trail
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column LEVEL_NO (
+            type: plainText
+            heading {
+                heading: Level
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column OUTCOME (
+            type: plainText
+            heading {
+                heading: Outcome
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: As
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DECIDED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DECISION_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comments
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+    )
+
+    region screening_summary (
+        name: Screening
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as check_type, p.party_name,
+                       xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as result, s.screened_date, s.result_notes
+                  from xxcmp_screenings s join xxcmp_parties p on p.party_id = s.party_id
+                 where s.case_id = :P217_CASE_ID order by s.screened_date
+                ```
+            pageItemsToSubmit: P217_CASE_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: screening_summary
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column CHECK_TYPE (
+            type: plainText
+            heading {
+                heading: Check
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column SCREENED_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RESULT_NOTES (
+            type: plainText
+            heading {
+                heading: Notes
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+    )
+
+)

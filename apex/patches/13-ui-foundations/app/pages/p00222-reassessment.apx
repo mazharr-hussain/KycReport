@@ -1,0 +1,456 @@
+page 222 (
+    name: Reassessment
+    alias: REASSESSMENT
+    title: Reassessment
+    pageGroup: @monitoring
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Start an early (event-triggered) review of an approved party, with the reason; or acknowledge the alert when no review is needed. The review goes through the same intake, checklist and case as any request.
+            ```
+    }
+
+    region reassess (
+        name: Reassessment
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: reassess
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    region party_card (
+        name: Party
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_party_id number;
+                begin
+                    select max(party_id) into l_party_id from (
+                        select party_id from xxcmp_cases where case_id = :P222_CASE_ID
+                    );
+                    return xxcmp_party_pkg.card_html(l_party_id);
+                end;
+                ```
+            pageItemsToSubmit: P222_CASE_ID
+        }
+        layout {
+            sequence: 5
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_card
+        }
+    )
+
+    pageItem P222_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @reassess
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P222_ALERT_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @reassess
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P222_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @reassess
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select p.party_name || ' (' || p.party_number || ') - ' || c.case_number
+                       || ', risk ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
+                       || ', next review ' || to_char(c.next_review_date, 'DD-Mon-YYYY')
+                  from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id
+                 where c.case_id = :P222_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P222_ALERT (
+        type: displayOnly
+        label {
+            label: Alert
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @reassess
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select alert_message || ' (' || xxfnd_util_pkg.lookup_meaning('ALERT_STATUS', alert_status) || ')'
+                  from xxcmp_alerts where alert_id = :P222_ALERT_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P222_ALERT_ID
+        }
+    )
+
+    pageItem P222_BLOCKED (
+        type: displayOnly
+        label {
+            label: Early Review
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @reassess
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_monitor_pkg.early_review_error(:P222_CASE_ID) from dual
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_monitor_pkg.early_review_error(:P222_CASE_ID) is not null
+                ```
+        }
+    )
+
+    pageItem P222_REASON (
+        type: textarea
+        label {
+            label: Reason
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @reassess
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select alert_message from xxcmp_alerts where alert_id = :P222_ALERT_ID
+                ```
+            used: always
+        }
+        help {
+            helpText: Why the party is reassessed now; recorded on the review request.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_monitor_pkg.early_review_error(:P222_CASE_ID) is null
+                ```
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button acknowledge (
+        buttonName: ACKNOWLEDGE
+        label: Acknowledge Alert
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_alerts where alert_id = :P222_ALERT_ID and alert_status = 'OPEN'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button start (
+        buttonName: START
+        label: Start Early Review
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Start an early review of this party now?
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_monitor_pkg.early_review_error(:P222_CASE_ID) is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation reason-required (
+        name: Reason required
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if trim(:P222_REASON) is null then
+                    return 'Give the reason for the early review.';
+                end if;
+                return xxcmp_monitor_pkg.early_review_error(:P222_CASE_ID);
+                ```
+        }
+        error {
+            associatedItem: @P222_REASON
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: START
+        }
+    )
+
+    process start-review (
+        name: Start early review
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_request number;
+                begin
+                    l_request := xxcmp_monitor_pkg.trigger_early_review(
+                                     p_case_id  => :P222_CASE_ID,
+                                     p_reason   => :P222_REASON,
+                                     p_alert_id => :P222_ALERT_ID);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Early review started.
+        }
+        serverSideCondition {
+            whenButtonPressed: @start
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process acknowledge-alert (
+        name: Acknowledge alert
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_monitor_pkg.acknowledge(:P222_ALERT_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Alert acknowledged.
+        }
+        serverSideCondition {
+            whenButtonPressed: @acknowledge
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: START,ACKNOWLEDGE
+        }
+    )
+
+)

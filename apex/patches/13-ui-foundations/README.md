@@ -40,4 +40,7 @@ shared helpers that the next chunks use page by page. It also fixes defect 20.
 - the supporting objects
 
 ## Tested (local Oracle 26ai + APEX 26.1, app 134)
-See the test results in the pull request.
+- `request_party_ui.py` 24/24, `party_ui.py` 22/22, `kyc_ui.py` 24/24 with the labels above on every form
+- screenshots of Home, KYC Requests, a request, Create Request, Cases and a case opened from the Cases list (no error)
+- `xxfnd_ui_pkg`: badge colours and the employee hover card checked in SQL
+- `apex validate` passes

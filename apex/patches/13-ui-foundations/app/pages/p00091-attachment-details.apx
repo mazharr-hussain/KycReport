@@ -1,0 +1,906 @@
+page 91 (
+    name: Attachment Details
+    alias: ATTACHMENT-DETAILS
+    title: Attachment Details
+    pageGroup: @attachments
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Review an attachment, correct its details, upload a new version or remove it.
+    }
+
+    region details (
+        name: Attachment
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: details
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P91_ATTACHED_DOCUMENT_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_SOURCE_PAGE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_SOURCE_REGION (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_DOCUMENT_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_BASE_DOCUMENT_ID (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_DATATYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 7
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_CATEGORY_CODE (
+        type: hidden
+        layout {
+            sequence: 8
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P91_CATEGORY_NAME (
+        type: displayOnly
+        label {
+            label: Category
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P91_FILE_NAME (
+        type: displayOnly
+        label {
+            label: File
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P91_VERSION_NUMBER (
+        type: displayOnly
+        label {
+            label: Version
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P91_TITLE (
+        type: textField
+        label {
+            label: Title
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 400
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y')
+                ```
+        }
+        help {
+            helpText: Enter the title.
+        }
+    )
+
+    pageItem P91_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 2000
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y')
+                ```
+        }
+        help {
+            helpText: Enter the description.
+        }
+    )
+
+    pageItem P91_DOCUMENT_DATE (
+        type: datePicker
+        label {
+            label: Issue Date
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y')
+                ```
+        }
+        help {
+            helpText: Choose the issue Date.
+        }
+    )
+
+    pageItem P91_EXPIRY_DATE (
+        type: datePicker
+        label {
+            label: Expiry Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y')
+                ```
+        }
+        help {
+            helpText: Choose the expiry Date.
+        }
+    )
+
+    pageItem P91_NEW_FILE (
+        type: fileUpload
+        label {
+            label: Upload New Version
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop the file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P91_DATATYPE_CODE = 'FILE' and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                ```
+        }
+        help {
+            helpText: Upload the upload New Version.
+        }
+    )
+
+    pageItem P91_UPLOAD_RULES (
+        type: displayOnly
+        label {
+            label: Accepted Files
+            alignment: left
+        }
+        layout {
+            sequence: 81
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_attach_pkg.upload_rules_text(to_number(:P91_SOURCE_PAGE), :P91_CATEGORY_CODE) from dual
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P91_DATATYPE_CODE = 'FILE' and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                ```
+        }
+    )
+
+    region versions (
+        name: Versions
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select v.document_id,
+                       v.version_number,
+                       v.file_name,
+                       apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                         p_items => 'G_DOCUMENT_ID', p_values => to_char(v.document_id)) as download_url,
+                       round(v.file_size_bytes / 1024) as size_kb,
+                       v.created_by,
+                       v.creation_date
+                  from xxfnd_document_versions_v v
+                 where v.base_document_id = to_number(:P91_BASE_DOCUMENT_ID)
+                 order by v.version_number desc
+                ```
+            pageItemsToSubmit: P91_BASE_DOCUMENT_ID
+        }
+        layout {
+            sequence: 30
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: versions
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P91_BASE_DOCUMENT_ID
+        }
+
+        column DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column FILE_NAME (
+            type: plainText
+            heading {
+                heading: File
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#DOWNLOAD_URL#">#FILE_NAME#</a>
+                    ```
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 35
+            }
+        )
+
+        column SIZE_KB (
+            type: plainText
+            heading {
+                heading: Size KB
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Uploaded By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Uploaded On
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+            }
+        )
+
+    )
+
+    region doc_dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.render(
+                           p_table_name   => 'XXFND_ATTACHED_DOCUMENTS',
+                           p_pk_value     => :P91_ATTACHED_DOCUMENT_ID,
+                           p_reference_value => :P91_CATEGORY_CODE,
+                           p_context_code => :P91_DFF_CONTEXT);
+                ```
+            pageItemsToSubmit: [
+                P91_ATTACHED_DOCUMENT_ID
+                P91_DFF_CONTEXT
+                P91_CATEGORY_CODE
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: doc_dff
+        }
+    )
+
+    pageItem P91_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @details
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    pageItem P91_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @details
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by xxfnd-dff.js, which the same-page dynamic action 'Bind additional information' attaches. XXFND_DFF_PKG.VALIDATE/SAVE re-validate every value on the server.
+                ```
+        }
+    )
+
+    dynamicAction bind-doc_dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        comments {
+            comments: P91_DFF_JSON and P91_DFF_CONTEXT are unrestricted because this script fills them in the browser before submit; XXFND_DFF_PKG re-validates every value on the server.
+        }
+
+        action bind-doc_dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    xxfndDff.bind('doc_dff', 'P91_DFF_JSON', 'P91_DFF_CONTEXT');
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Close
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button remove (
+        buttonName: REMOVE
+        label: Remove
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Remove this attachment? It stays in the audit history.
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'DELETE') = 'Y'
+                ```
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process load (
+        name: Load attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                for a in (select v.*, d.base_document_id as base_id
+                            from xxfnd_attached_documents_v v
+                            join xxfnd_documents d on d.document_id = v.document_id
+                           where v.attached_document_id = :P91_ATTACHED_DOCUMENT_ID)
+                loop
+                    :P91_ENTITY_NAME      := a.entity_name;
+                    :P91_DOCUMENT_ID      := a.document_id;
+                    :P91_BASE_DOCUMENT_ID := nvl(a.base_id, a.document_id);
+                    :P91_DATATYPE_CODE    := a.datatype_code;
+                    :P91_CATEGORY_CODE    := a.category_code;
+                    :P91_CATEGORY_NAME    := a.category_name;
+                    :P91_FILE_NAME        := nvl(a.file_name, a.url);
+                    :P91_VERSION_NUMBER   := a.version_number;
+                    :P91_TITLE            := a.title;
+                    :P91_DESCRIPTION      := a.description;
+                    :P91_DOCUMENT_DATE    := to_char(a.document_date);
+                    :P91_EXPIRY_DATE      := to_char(a.expiry_date);
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-details (
+        name: Save details
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_attach_pkg.update_details(
+                    p_attached_document_id => :P91_ATTACHED_DOCUMENT_ID,
+                    p_title                => :P91_TITLE,
+                    p_description          => :P91_DESCRIPTION,
+                    p_document_date        => to_date(:P91_DOCUMENT_DATE),
+                    p_expiry_date          => to_date(:P91_EXPIRY_DATE));
+                if :P91_NEW_FILE is not null then
+                    xxfnd_attach_pkg.add_version(
+                        p_attached_document_id => :P91_ATTACHED_DOCUMENT_ID,
+                        p_temp_file_name       => :P91_NEW_FILE,
+                        p_document_date        => to_date(:P91_DOCUMENT_DATE),
+                        p_expiry_date          => to_date(:P91_EXPIRY_DATE),
+                        p_page_id              => to_number(:P91_SOURCE_PAGE));
+                end if;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Attachment updated.
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
+        }
+    )
+
+    validation VAL_P91_DFF (
+        name: Validate additional information
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxfnd_dff_pkg.validate('XXFND_ATTACHED_DOCUMENTS', :P91_DFF_JSON, :P91_DFF_CONTEXT, :P91_ATTACHED_DOCUMENT_ID, p_reference_value => :P91_CATEGORY_CODE);
+                ```
+        }
+        error {
+            associatedItem: @P91_DFF_CONTEXT
+        }
+    )
+
+    process p91-dff-save (
+        name: Save Additional Information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_dff_pkg.save('XXFND_ATTACHED_DOCUMENTS', :P91_ATTACHED_DOCUMENT_ID, :P91_DFF_JSON, :P91_DFF_CONTEXT, p_reference_value => :P91_CATEGORY_CODE);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('SAVE')
+                and xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'UPDATE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
+        }
+    )
+
+    process remove-attachment (
+        name: Remove attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_attach_pkg.remove(:P91_ATTACHED_DOCUMENT_ID);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Attachment removed.
+        }
+        serverSideCondition {
+            whenButtonPressed: @remove
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, to_number(:P91_SOURCE_PAGE), :P91_SOURCE_REGION, :P91_ENTITY_NAME, 'DELETE') = 'Y'
+                and exists (select 1 from xxfnd_attached_documents a where a.attached_document_id = :P91_ATTACHED_DOCUMENT_ID
+                             and a.entity_name = :P91_ENTITY_NAME and a.expiration_date is null)
+                ```
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,REMOVE
+        }
+    )
+
+)
