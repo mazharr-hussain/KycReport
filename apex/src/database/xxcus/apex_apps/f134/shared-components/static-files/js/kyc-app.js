@@ -87,6 +87,14 @@ window.kycQuestionnaire = (function ($) {
         });
         container.addClass("kyc-has-secnav").prepend(nav);
         header.closest(".row").addClass("kyc-secnav-full");
+        // header card stays on top while scrolling; the menu and section jumps sit below it
+        function setOffset() {
+            var top = (apex.theme && apex.theme.defaultStickyTop) ? apex.theme.defaultStickyTop() : 0;
+            container[0].style.setProperty("--kyc-sticky-top", top + "px");
+            container[0].style.setProperty("--kyc-hcard-h", (top + header.outerHeight()) + "px");
+        }
+        setOffset();
+        $(window).on("resize", setOffset);
         nav.on("click", "a", function (e) {
             var t = document.getElementById(this.getAttribute("href").substring(1));
             if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth", block: "start" }); }

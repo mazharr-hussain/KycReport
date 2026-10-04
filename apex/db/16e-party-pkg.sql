@@ -19,12 +19,13 @@ create or replace package xxcmp_party_pkg authid definer as
     -- Lookup type of REGISTRATION_TYPE for the party type: REGISTRATION_TYPE (organisation) / ID_DOCUMENT_TYPE (individual).
     function registration_lookup(p_party_type in varchar2) return varchar2;
 
-    -- Party number of another enabled party with the same type, registration / ID number (ignoring spaces and
-    -- punctuation) and country, or null. Reads the whole party master (trusted); returns only the number.
+    -- Party number of another enabled party with the same party type, registration / ID type (when both are known),
+    -- registration / ID number (ignoring spaces and punctuation) and country, or null. Reads the whole party master (trusted); returns only the number.
     function exact_party_number(p_party_type          in varchar2,
                                 p_registration_number in varchar2,
                                 p_jurisdiction        in varchar2,
-                                p_exclude_party_id    in number default null) return varchar2;
+                                p_exclude_party_id    in number default null,
+                                p_registration_type   in varchar2 default null) return varchar2;
 
     -- The rules of the common party form (null = acceptable). Type, name and country required;
     -- organisation: registration number and entity type required; individual: ID type required when an
@@ -168,7 +169,8 @@ create or replace package body xxcmp_party_pkg as
     function exact_party_number(p_party_type          in varchar2,
                                 p_registration_number in varchar2,
                                 p_jurisdiction        in varchar2,
-                                p_exclude_party_id    in number default null) return varchar2 is
+                                p_exclude_party_id    in number default null,
+                                p_registration_type   in varchar2 default null) return varchar2 is
         l_id     varchar2(100) := norm(p_registration_number);
         l_number xxcmp_parties.party_number%type;
     begin
@@ -181,7 +183,9 @@ create or replace package body xxcmp_party_pkg as
          where p.party_type = p_party_type and p.enabled_flag = 'Y' and p.jurisdiction = p_jurisdiction
            and p.party_status not in ('REJECTED', 'CANCELLED')
            and p.party_id <> nvl(p_exclude_party_id, -1)
-           and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id;
+           and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
+           -- same number and country but another registration / ID type is a different party
+           and (p_registration_type is null or p.registration_type is null or p.registration_type = p_registration_type);
         xxfnd_vpd_pkg.end_trusted;
         return l_number;
     exception
@@ -227,9 +231,12 @@ create or replace package body xxcmp_party_pkg as
         elsif p_incorporation_date > trunc(sysdate) then
             return 'The ' || lower(field_label(p_party_type, 'INCORPORATION_DATE')) || ' cannot be in the future.';
         end if;
-        l_exact := exact_party_number(p_party_type, p_registration_number, p_jurisdiction, p_party_id);
+        l_exact := exact_party_number(p_party_type, p_registration_number, p_jurisdiction, p_party_id,
+                                      p_registration_type);
         if l_exact is not null then
-            return 'Party ' || l_exact || ' already has this ' || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
+            return 'Party ' || l_exact || ' already has this '
+                   || lower(case when p_party_type = 'PERSON' then 'ID type' else 'registration type' end) || ', '
+                   || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
                    || ' and ' || lower(field_label(p_party_type, 'JURISDICTION')) || ': use that party.';
         end if;
         -- similar parties: the user answers the page's dialog (none is this party = Y, a match exists = N); only an
@@ -671,18 +678,6 @@ create or replace package body xxcmp_party_pkg as
                                      when l_p.enabled_flag = 'N' then xxfnd_ui_pkg.badge('Disabled', 'neutral')
                                      else xxfnd_ui_pkg.status_badge('PARTY', l_p.party_status) end;
         end if;
-        -- what the party is to the company: from its requests (release 26), with the latest status of each
-        for r in (select business_relationship,
-                         max(request_status) keep (dense_rank last order by request_id) as request_status
-                    from xxcmp_requests
-                   where party_id = p_party_id and business_relationship is not null
-                     and request_status not in ('CANCELLED', 'DRAFT')
-                   group by business_relationship
-                   order by business_relationship) loop
-            l_html := l_html || xxfnd_ui_pkg.badge(xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship)
-                                                   || ' · ' || xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', r.request_status),
-                                                   xxfnd_ui_pkg.status_tone('REQUEST', r.request_status));
-        end loop;
         l_html := l_html || '</div>';
 
         fld('Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
