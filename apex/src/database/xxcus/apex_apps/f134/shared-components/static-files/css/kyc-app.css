@@ -124,6 +124,8 @@
 .kyc-hcard-title { font-size: 1.25rem; font-weight: 700; }
 .kyc-hcard-line { color: var(--kyc-muted); margin-top: .375rem; }
 .kyc-hcard-line b { color: var(--kyc-text); font-weight: 600; }
+.kyc-meta-inline { color: var(--kyc-muted); font-size: .875rem; }
+.kyc-party-title { margin-bottom: .5rem; }
 
 /* ---- 7.2 sticky action bar (Buttons Container region with CSS class kyc-actionbar) ---- */
 .kyc-actionbar { position: sticky; bottom: 0; z-index: 50; background: #fff;

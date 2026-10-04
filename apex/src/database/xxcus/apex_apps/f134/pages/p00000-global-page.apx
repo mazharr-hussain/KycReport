@@ -864,6 +864,8 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- hidden when the party type has no Additional Information fields
+                and dbms_lob.instr(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N'), 't-Form-fieldContainer') > 0
                 ```
         }
     )
@@ -948,8 +950,8 @@ page 0 (
             sqlQuery:
                 ```sql
                 select c.party_contact_id, c.contact_name, c.job_title, c.email, c.phone,
-                       case c.primary_flag when 'Y' then 'Yes' else 'No' end as primary_contact,
-                       case c.enabled_flag when 'Y' then 'Yes' else 'No' end as enabled,
+                       case c.primary_flag when 'Y' then 'Y' end as primary_contact,
+                       case c.enabled_flag when 'N' then 'Y' end as enabled,
                        case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID', p_values => to_char(c.party_contact_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '22') end as edit_url
                   from xxcmp_party_contacts c
                  where c.party_id = :P0_SUMMARY_PARTY_ID
@@ -989,7 +991,6 @@ page 0 (
                 t-Report--rowHighlight
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination
@@ -1012,58 +1013,49 @@ page 0 (
         column CONTACT_NAME (
             type: plainText
             heading {
-                heading: Name
+                heading: Contact
             }
             layout {
                 sequence: 10
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#CONTACT_NAME#</strong>{if JOB_TITLE/} · #JOB_TITLE#{endif/} {if PRIMARY_CONTACT/}<span class="kyc-badge kyc-badge--info">Primary</span>{endif/} {if ENABLED/}<span class="kyc-badge kyc-badge--neutral">Disabled</span>{endif/}<span class="kyc-meta">#EMAIL#{if PHONE/} · #PHONE#{endif/}</span>
+                    ```
+            }
         )
 
         column JOB_TITLE (
-            type: plainText
-            heading {
-                heading: Job Title
-            }
+            type: hidden
             layout {
                 sequence: 20
             }
         )
 
         column EMAIL (
-            type: plainText
-            heading {
-                heading: Email
-            }
+            type: hidden
             layout {
                 sequence: 30
             }
         )
 
         column PHONE (
-            type: plainText
-            heading {
-                heading: Phone
-            }
+            type: hidden
             layout {
                 sequence: 40
             }
         )
 
         column PRIMARY_CONTACT (
-            type: plainText
-            heading {
-                heading: Primary
-            }
+            type: hidden
             layout {
                 sequence: 50
             }
         )
 
         column ENABLED (
-            type: plainText
-            heading {
-                heading: Enabled
-            }
+            type: hidden
             layout {
                 sequence: 60
             }
@@ -1195,7 +1187,6 @@ page 0 (
                 t-Report--rowHighlight
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination
@@ -1216,10 +1207,7 @@ page 0 (
         )
 
         column DIRECTION (
-            type: plainText
-            heading {
-                heading: Direction
-            }
+            type: hidden
             layout {
                 sequence: 10
             }
@@ -1233,43 +1221,37 @@ page 0 (
             layout {
                 sequence: 20
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#RELATED_PARTY#</strong> {if RELATIONSHIP_TYPE/}<span class="kyc-badge kyc-badge--info">#RELATIONSHIP_TYPE#</span>{endif/}<span class="kyc-meta">#DIRECTION#{if OWNERSHIP_PERCENTAGE/} · ownership #OWNERSHIP_PERCENTAGE#%{endif/}{if START_DATE/} · since #START_DATE#{endif/}{if END_DATE/} · until #END_DATE#{endif/}</span>
+                    ```
+            }
         )
 
         column RELATIONSHIP_TYPE (
-            type: plainText
-            heading {
-                heading: Relationship
-            }
+            type: hidden
             layout {
                 sequence: 30
             }
         )
 
         column OWNERSHIP_PERCENTAGE (
-            type: plainText
-            heading {
-                heading: Ownership %
-            }
+            type: hidden
             layout {
                 sequence: 40
             }
         )
 
         column START_DATE (
-            type: plainText
-            heading {
-                heading: Start Date
-            }
+            type: hidden
             layout {
                 sequence: 50
             }
         )
 
         column END_DATE (
-            type: plainText
-            heading {
-                heading: End Date
-            }
+            type: hidden
             layout {
                 sequence: 60
             }
