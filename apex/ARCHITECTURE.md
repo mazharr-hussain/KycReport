@@ -53,6 +53,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **xxfnd_attach_pkg**: 21, 31, 33, 90, 91, 203, 205, 211 (upload limits via check_upload).
 - **xxfnd_privilege_pkg / authorizations.apx**: every page (2+ privileges per page).
 - **xxfnd_lookup_values**: nearly every LOV; `lookup_meaning` is result-cached.
+- **UI/UX standard** (`apex/UIUX-STANDARD.md`, patch 13): every page follows it. `css/kyc-app.css` holds all visual rules (type scale, section title strip, labels above, tables, badges, person card, header card, sticky action bar, plain title bar); no page has its own styling. **xxfnd_ui_pkg** (16h): `status_badge` / `status_tone` / `badge` (one colour map for request, party, case, match, screening, document and risk statuses) and `person_name` / `person_html` (employee name from xxfnd_employees with a hover card: name, employee no. = fusion_person_number, department, user name). Labels: every item uses the **Optional/Required – Above** templates (theme defaults too); the DFF fields drawn by xxfnd_dff_pkg (11) use `t-Form-fieldContainer--stacked` to match.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),

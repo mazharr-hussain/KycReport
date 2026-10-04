@@ -325,7 +325,7 @@ create or replace package body xxfnd_dff_pkg as
                 || case when p_seg.required_flag = 'Y' then ' required aria-required="true"' end
                 || case when p_read_only or p_seg.read_only_flag = 'Y' then ' disabled' end;
 
-        l_html := '<div class="t-Form-fieldContainer t-Form-fieldContainer--floatingLabel xxfnd-dff-field'
+        l_html := '<div class="t-Form-fieldContainer t-Form-fieldContainer--stacked xxfnd-dff-field'
                || case when p_seg.required_flag = 'Y' then ' is-required' end
                || case when p_seg.display_flag = 'N' then ' u-hidden' end || '">'
                || '<div class="t-Form-labelContainer"><label for="' || p_field_id || '" class="t-Form-label">'
@@ -404,7 +404,7 @@ create or replace package body xxfnd_dff_pkg as
 
         -- Context chooser (EBS "Context Value" field) when the user picks it.
         if l_ff.context_reference_column is null and l_ff.context_user_selectable_flag = 'Y' then
-            l_html := l_html || '<div class="t-Form-fieldContainer t-Form-fieldContainer--floatingLabel">'
+            l_html := l_html || '<div class="t-Form-fieldContainer t-Form-fieldContainer--stacked">'
                    || '<div class="t-Form-labelContainer"><label class="t-Form-label" for="' || l_prefix || 'context">'
                    || apex_escape.html(apex_lang.message('XXFND_DFF_CONTEXT_LABEL')) || '</label></div>'
                    || '<div class="t-Form-inputContainer"><div class="t-Form-itemWrapper">'

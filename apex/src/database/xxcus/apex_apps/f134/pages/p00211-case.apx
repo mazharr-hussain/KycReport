@@ -233,7 +233,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
         }
     )
@@ -257,7 +257,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
         }
     )
@@ -420,7 +420,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -453,7 +453,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -492,7 +492,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -532,7 +532,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -571,7 +571,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -624,7 +624,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         source {
@@ -667,7 +667,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         source {
@@ -700,7 +700,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         source {
@@ -733,7 +733,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -766,7 +766,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -799,7 +799,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -1670,7 +1670,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         lov {
@@ -1719,7 +1719,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 2
         }
@@ -2252,7 +2252,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL'
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 ```
         }
     )
@@ -2279,7 +2279,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2309,7 +2309,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2340,7 +2340,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2371,7 +2371,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2400,7 +2400,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2431,7 +2431,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         settings {
@@ -2467,7 +2467,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         help {
@@ -2488,7 +2488,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 2
         }
@@ -2510,7 +2510,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 2
         }
@@ -2532,7 +2532,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         help {
@@ -2553,7 +2553,7 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 2
         }
@@ -2751,7 +2751,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL'
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
@@ -2783,7 +2783,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL'
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
@@ -2812,7 +2812,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL'
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
@@ -2841,7 +2841,7 @@ page 211 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P211_TASK_TYPE = 'CASE_APPROVAL'
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```

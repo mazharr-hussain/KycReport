@@ -25,9 +25,9 @@ theme universal-theme (
         printerFriendlyPage: @/standard
         breadcrumb: @/breadcrumb
         button: @/text
-        defaultLabel: @/optional-floating
-        optionalLabel: @/optional-floating
-        requiredLabel: @/required-floating
+        defaultLabel: @/optional-above
+        optionalLabel: @/optional-above
+        requiredLabel: @/required-above
         list: @/links-list
         region: @/standard
         classicReport: @/standard

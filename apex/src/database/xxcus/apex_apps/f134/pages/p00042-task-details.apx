@@ -1437,7 +1437,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -1492,7 +1492,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             formatMask: YYYY-MM-DD HH24:MI
             width: 30
@@ -1544,7 +1544,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 1
         }
@@ -1572,7 +1572,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             width: 30
         }
@@ -1606,7 +1606,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -1642,7 +1642,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/required-floating
+            template: @/required-above
             templateOptions: #DEFAULT#
             width: 30
             height: 3
@@ -1674,7 +1674,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -1727,7 +1727,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -1768,7 +1768,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             height: 1
         }
@@ -1799,7 +1799,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             width: 30
             height: 7
@@ -1831,7 +1831,7 @@ page 42 (
             alignment: left
         }
         appearance {
-            template: @/optional-floating
+            template: @/optional-above
             templateOptions: #DEFAULT#
             width: 30
             height: 7
