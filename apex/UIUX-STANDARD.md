@@ -81,7 +81,7 @@ tooltip and an accessible label.
 | Recent activity | relative, exact date on hover | 2 days ago |
 | Amounts | grouped, 2 decimals, right aligned | 1,250,000.00 |
 | Percent | integer + % | 78% |
-| People | **display name**, email on hover; "System" for automatic actions | Shahid Hussain |
+| People | **employee name** (`xxfnd_employees.full_name`); on hover a small card: Name · Employee no. (`fusion_person_number`) · Department (`department_name`) · User name (`user_name`); "System" for automatic actions; user name shown when no employee record exists | Shahid Hussain |
 | Empty | blank cell (lists); hidden field (records) | — |
 | Yes/No | badge or icon, never the words alone in a dense table | ✓ KYC |
 
@@ -328,7 +328,7 @@ Badges: 12px/600 text, pill shape, sentence case.
 | Row actions menu | UT *Actions menu* (`apex.actions` / *Menu* template) in the last IR column |
 | Saved report tabs | IR saved public reports + *Show Report Tabs* (OOTB) |
 | Dialog forms | Modal *Drawer* page template for child records |
-| Names instead of emails | `xxfnd_util_pkg` lookup to the employee name (existing employee table) |
+| Names instead of emails | One shared helper `xxfnd_ui_pkg.person_html(user_name)` returns the employee name with a hover card (name, employee no., department, user name) from `xxfnd_employees`; used by every list, header card and history |
 
 No inline `style=` on pages; every visual rule lives in `kyc-app.css` or UT template options.
 

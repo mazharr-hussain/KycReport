@@ -76,6 +76,11 @@ textarea{width:100%;min-height:96px;font:14px/1.45 inherit;font-family:inherit;p
 textarea:focus,.btn:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .dlg-f{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
 .note{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+.person{position:relative;border-bottom:1px dotted currentColor;cursor:default}
+.person .pc{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:8px 0;min-width:260px;font-size:13px;font-weight:400;color:var(--text)}
+.person:hover .pc,.person:focus .pc{display:block}
+.pc table td{border:none;padding:3px 12px;white-space:nowrap}
+.pc table td:first-child{font-weight:700;color:#4a4541}
 @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:800px){.layout{grid-template-columns:1fr}.nav{position:static;display:flex;overflow-x:auto}.nav a{white-space:nowrap}
   .grid,.qa{grid-template-columns:1fr}.wrap{padding:12px 16px 140px}}
@@ -116,7 +121,7 @@ textarea:focus,.btn:focus-visible{outline:2px solid var(--link);outline-offset:2
           <div class="f"><label>Request type</label><div>New onboarding</div></div>
           <div class="f"><label>Business relationship</label><div>Customer</div></div>
           <div class="f"><label>Requesting department</label><div>Finance</div></div>
-          <div class="f"><label>Requested by</label><div>Shahid Hussain<small>shussain@qataridiar.com</small></div></div>
+          <div class="f"><label>Requested by</label><div><span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span></div></div>
           <div class="f"><label>Submitted</label><div>04-OCT-2026 06:04</div></div>
           <div class="f"><label>Routed to</label><div>Compliance<small>critical answer in questionnaire</small></div></div>
           <div class="f full"><label>Business justification</label><div style="font-weight:400">Supplier of facility management services for the Lusail project; annual contract value above 10 million.</div></div>
@@ -172,9 +177,9 @@ textarea:focus,.btn:focus-visible{outline:2px solid var(--link);outline-offset:2
         <table>
           <thead><tr><th>Document</th><th>Category</th><th>Expiry</th><th>Uploaded</th></tr></thead>
           <tbody>
-            <tr><td><a href="#">CR certificate.pdf</a></td><td>Commercial registration</td><td>31-DEC-2027</td><td>Shahid Hussain<small>04-OCT-2026</small></td></tr>
-            <tr><td><a href="#">Trade licence.pdf</a></td><td>Trade licence</td><td><span class="badge b-warn">12-OCT-2026</span></td><td>Shahid Hussain<small>04-OCT-2026</small></td></tr>
-            <tr><td><a href="#">Board resolution.pdf</a></td><td>Authorisation</td><td></td><td>Shahid Hussain<small>04-OCT-2026</small></td></tr>
+            <tr><td><a href="#">CR certificate.pdf</a></td><td>Commercial registration</td><td>31-DEC-2027</td><td><span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span><small>04-OCT-2026</small></td></tr>
+            <tr><td><a href="#">Trade licence.pdf</a></td><td>Trade licence</td><td><span class="badge b-warn">12-OCT-2026</span></td><td><span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span><small>04-OCT-2026</small></td></tr>
+            <tr><td><a href="#">Board resolution.pdf</a></td><td>Authorisation</td><td></td><td><span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span><small>04-OCT-2026</small></td></tr>
           </tbody>
         </table>
       </section>
@@ -183,8 +188,8 @@ textarea:focus,.btn:focus-visible{outline:2px solid var(--link);outline-offset:2
         <h2>History</h2>
         <ul class="tl">
           <li><span class="dot" style="background:var(--warn)"></span><b>Compliance review</b> <span class="badge b-warn">Pending</span><div class="meta">Assigned to you · since 04-OCT-2026 06:04</div></li>
-          <li><span class="dot" style="background:var(--info)"></span><b>Resubmitted</b> by Shahid Hussain<div class="meta">04-OCT-2026 06:04</div></li>
-          <li><span class="dot" style="background:var(--danger)"></span><b>Compliance review</b> <span class="badge b-danger">Rejected</span> by Shahid Hussain<div class="meta">01-OCT-2026 12:20</div><div class="cm">Kindly provide the documents</div></li>
+          <li><span class="dot" style="background:var(--info)"></span><b>Resubmitted</b> by <span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span><div class="meta">04-OCT-2026 06:04</div></li>
+          <li><span class="dot" style="background:var(--danger)"></span><b>Compliance review</b> <span class="badge b-danger">Rejected</span> by <span class="person" tabindex="0">Shahid Hussain<span class="pc" role="tooltip"><table><tr><td>Name</td><td>Shahid Hussain</td></tr><tr><td>Employee no.</td><td>100245</td></tr><tr><td>Department</td><td>Finance</td></tr><tr><td>User name</td><td>SHUSSAIN@QATARIDIAR.COM</td></tr></table></span></span><div class="meta">01-OCT-2026 12:20</div><div class="cm">Kindly provide the documents</div></li>
         </ul>
       </section>
     </main>
