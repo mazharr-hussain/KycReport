@@ -52,18 +52,19 @@ page 200 (
                        -- the requester's action by status: Edit (Draft, Information Needed; Cancel is on the edit screen),
                        -- Withdraw (waiting for approval: back to Draft)
                        case when upper(q.requester_user_name) <> upper(:APP_USER) then null
-                            when q.request_status in ('DRAFT', 'INFO_NEEDED')
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
                             then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203,204')
                             when q.request_status = 'IN_PROGRESS' and q.case_number is null then '#'
                        end as edit_url,
                        case when upper(q.requester_user_name) <> upper(:APP_USER) then null
-                            when q.request_status in ('DRAFT', 'INFO_NEEDED') then 'Edit'
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then 'Edit'
                             when q.request_status = 'IN_PROGRESS' and q.case_number is null then 'Withdraw'
                        end as edit
                   from (
                         select r.request_id,
                                r.request_number,
                                r.party_name,
+                               xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship) as business_relationship,
                                xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type,
                                xxcmp_request_pkg.stage(r.request_id) as stage,
                                xxcmp_request_pkg.kyc_required(r.request_id) as kyc_required,
@@ -137,6 +138,19 @@ page 200 (
                     ```html
                     <a href="#OPEN_URL#">#REQUEST_NUMBER#</a>
                     ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BUSINESS_RELATIONSHIP (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 35
             }
             source {
                 dataType: STRING
@@ -437,6 +451,12 @@ page 200 (
             displayColumn REQUEST_NUMBER (
                 layout {
                     sequence: 1
+                }
+            )
+
+            displayColumn BUSINESS_RELATIONSHIP (
+                layout {
+                    sequence: 2
                 }
             )
 

@@ -310,6 +310,35 @@ page 205 (
         }
     )
 
+    pageItem P205_BUSINESS_RELATIONSHIP (
+        type: displayOnly
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
     pageItem P205_COUNTERPARTY (
         type: displayOnly
         label {
@@ -548,7 +577,7 @@ page 205 (
                             then 'Present' else 'Missing' end as status
                   from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
                                  (select jurisdiction from xxcmp_requests where request_id = :P205_REQUEST_ID),
-                                 (select entity_type from xxcmp_requests where request_id = :P205_REQUEST_ID))) c
+                                 (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P205_REQUEST_ID))) c
                 ```
             pageItemsToSubmit: P205_REQUEST_ID
         }

@@ -42,3 +42,17 @@
 
 /* wizard progress: current step stands out */
 .t-WizardSteps-step.is-active .t-WizardSteps-label { font-weight: 700; }
+
+/* case screen: section list (left column, release 27) */
+.kyc-case-nav { list-style: none; margin: 0; padding: 0; }
+.kyc-case-nav-item a { display: flex; align-items: center; gap: .5rem; padding: .55rem .75rem; border-radius: 6px;
+                       color: inherit; text-decoration: none; font-size: .9375rem; }
+.kyc-case-nav-item a:hover { background-color: var(--ut-component-highlight-background-color, #f1efec); }
+.kyc-case-nav-item.is-current a { font-weight: 700; background-color: var(--ut-component-highlight-background-color, #f1efec); }
+.kyc-case-nav-item.is-done .kyc-case-nav-icon { color: var(--ut-palette-success, #3a7c4b); }
+.kyc-case-nav-item.is-warn .kyc-case-nav-icon { color: var(--ut-palette-warning, #c27c0e); }
+.kyc-case-nav-item.is-todo .kyc-case-nav-icon { color: var(--ut-palette-neutral, #8a8a8a); }
+.kyc-case-nav-progress { margin: .75rem .75rem 0; font-weight: 600; }
+
+/* home: KPI tiles are links */
+#home_kpis .t-BadgeList-value a { text-decoration: none; }

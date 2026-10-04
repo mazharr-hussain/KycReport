@@ -38,6 +38,243 @@ page 1 (
         }
     )
 
+    region home-kpis (
+        name: My Work
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select (select count(*) from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED')) as my_requests,
+                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_REQUESTER_USER_NAME', p_values => :APP_USER) as my_requests_url,
+                       (select count(*) from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED') as info_needed,
+                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
+                                         p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')) as info_needed_url,
+                       (select count(*) from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
+                         where state_code in ('ASSIGNED', 'UNASSIGNED')
+                           and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH')) as pending_approval,
+                       apex_page.get_url(p_page => 40) as pending_approval_url,
+                       (select count(*) from xxcmp_cases
+                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL')) as my_cases,
+                       apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_ASSIGNED_TO', p_values => upper(:APP_USER)) as my_cases_url,
+                       (select count(*) from xxcmp_cases
+                         where closed_date is null and sla_due_date < trunc(sysdate)) as overdue,
+                       apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_SLA_STATUS', p_values => 'Overdue') as overdue_url,
+                       (select count(*) from xxcmp_rfis
+                         where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
+                           and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER))) as open_rfis,
+                       apex_page.get_url(p_page => 30) as open_rfis_url
+                  from dual
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: home_kpis
+        }
+        componentAppearance {
+            template: @/badge-list
+            templateOptions: [
+                #DEFAULT#
+                t-BadgeList--large
+                t-BadgeList--flex
+            ]
+        }
+        pagination {
+            type: rowRangesXToYNoPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        comments {
+            comments: Count tiles of the user's open work (data security applies); each opens the matching list, filtered. A tile shows only with the privilege of the screen it opens.
+        }
+
+        column MY_REQUESTS (
+            type: plainText
+            heading {
+                heading: My Open Requests
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#MY_REQUESTS_URL#">#MY_REQUESTS#</a>
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
+                    ```
+            }
+        )
+
+        column MY_REQUESTS_URL (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+        )
+
+        column INFO_NEEDED (
+            type: plainText
+            heading {
+                heading: Information Needed
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#INFO_NEEDED_URL#">#INFO_NEEDED#</a>
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
+                    ```
+            }
+        )
+
+        column INFO_NEEDED_URL (
+            type: hidden
+            layout {
+                sequence: 25
+            }
+        )
+
+        column PENDING_APPROVAL (
+            type: plainText
+            heading {
+                heading: Pending My Approval
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#PENDING_APPROVAL_URL#">#PENDING_APPROVAL#</a>
+                    ```
+            }
+        )
+
+        column PENDING_APPROVAL_URL (
+            type: hidden
+            layout {
+                sequence: 35
+            }
+        )
+
+        column MY_CASES (
+            type: plainText
+            heading {
+                heading: My Open Cases
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#MY_CASES_URL#">#MY_CASES#</a>
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                    ```
+            }
+        )
+
+        column MY_CASES_URL (
+            type: hidden
+            layout {
+                sequence: 45
+            }
+        )
+
+        column OVERDUE (
+            type: plainText
+            heading {
+                heading: Overdue Cases
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OVERDUE_URL#">#OVERDUE#</a>
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                    ```
+            }
+        )
+
+        column OVERDUE_URL (
+            type: hidden
+            layout {
+                sequence: 55
+            }
+        )
+
+        column OPEN_RFIS (
+            type: plainText
+            heading {
+                heading: Open RFIs
+            }
+            layout {
+                sequence: 60
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_RFIS_URL#">#OPEN_RFIS#</a>
+                    ```
+            }
+        )
+
+        column OPEN_RFIS_URL (
+            type: hidden
+            layout {
+                sequence: 65
+            }
+        )
+
+    )
+
     region welcome (
         name: KYC Compliance Platform
         type: staticContent

@@ -97,8 +97,9 @@ with sync_playwright() as p:
        pg.get_attribute('#P0_PARTY_NAME', 'aria-readonly') != 'true'
        and all(pg.locator(f'#P0_PARTY_{x}').count() == 0 for x in ('STATUS', 'NEXT_KYC_DATE', 'LAST_VERIFIED_DATE', 'NUMBER'))
        and pg.locator('#P0_PARTY_MATCH_ACK_CONTAINER .a-Switch').count() == 0)
-    top = rows_order(pg, ['P0_PARTY_ENTITY_TYPE', 'P0_PARTY_NAME'])
-    ok(f'organisation: Entity Type before Name {top}', top[0] < top[1])
+    top = rows_order(pg, ['P0_PARTY_ENTITY_TYPE', 'P0_PARTY_NAME', 'P0_PARTY_REGISTRATION_TYPE', 'P0_PARTY_REGISTRATION_NUMBER'])
+    ok(f'organisation: Entity Type before Name, Registration Type before Registration No. {top}', top[0] < top[1] and top[2] < top[3])
+    pg.select_option('#P0_PARTY_REGISTRATION_TYPE', 'TRADE_LICENCE')
     pg.fill('#P0_PARTY_EMAIL', 'info@meridian.example'); pg.fill('#P0_PARTY_PHONE', '+971 4 222 3333')
     pg.fill('#P0_PARTY_WEBSITE', 'https://meridian.example'); pg.fill('#P0_PARTY_FAX', '+971 4 222 3334')
     pg.locator('button', has_text=re.compile(r'^\s*Next\s*$')).first.click()
@@ -125,8 +126,10 @@ with sync_playwright() as p:
     f.locator('#P23_OWNER_SELECTION input[value=NEW]').check(); pg.wait_for_timeout(500)
     f.locator('#P0_PARTY_TYPE input[value=PERSON]').check(); pg.wait_for_timeout(500)
     fr = [x for x in pg.frames if x != pg.main_frame][-1]
-    top = rows_order(fr, ['P0_PARTY_ENTITY_TYPE', 'P0_PARTY_REGISTRATION_NUMBER'])
-    ok(f'individual: ID Type before ID Number {top}', top[0] < top[1] and fr.inner_text('#P0_PARTY_ENTITY_TYPE_LABEL') == 'ID Type')
+    top = rows_order(fr, ['P0_PARTY_REGISTRATION_TYPE', 'P0_PARTY_REGISTRATION_NUMBER'])
+    ok(f'individual: ID Type before ID Number, no Entity Type {top}', top[0] < top[1]
+       and fr.inner_text('#P0_PARTY_REGISTRATION_TYPE_LABEL') == 'ID Type'
+       and not fr.locator('#P0_PARTY_ENTITY_TYPE_CONTAINER').is_visible())
     f.locator('#P0_PARTY_NAME').fill(f'Layla Owner {TAG}')
     f.locator('#P0_PARTY_JURISDICTION').select_option('AE')
     f.locator('#P0_PARTY_PHONE').fill('+971 50 555')

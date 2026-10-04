@@ -184,7 +184,7 @@ page 24 (
                 return xxcmp_party_pkg.party_error(to_number(:P24_PARTY_ID), :P0_PARTY_TYPE, :P0_PARTY_NAME,
                            :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_ENTITY_TYPE,
                            to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_EMAIL, :P0_PARTY_PHONE,
-                           'N', :P0_PARTY_MATCH_ACK);
+                           'N', :P0_PARTY_MATCH_ACK, :P0_PARTY_REGISTRATION_TYPE);
                 ```
         }
         serverSideCondition {
@@ -228,6 +228,7 @@ page 24 (
                         p_jurisdiction        => :P0_PARTY_JURISDICTION,
                         p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
                         p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                        p_registration_type   => :P0_PARTY_REGISTRATION_TYPE,
                         p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
                         p_email               => :P0_PARTY_EMAIL,
                         p_phone               => :P0_PARTY_PHONE,

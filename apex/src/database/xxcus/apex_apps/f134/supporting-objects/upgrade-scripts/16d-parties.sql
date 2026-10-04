@@ -19,6 +19,9 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_PARTY_CONTACTS', 'PHONE',                'varchar2(50)');
     xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'PARTY_STATUS',         q'[varchar2(30) default 'APPROVED' not null]');
     xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'NEXT_KYC_DATE',        'date');
+    -- release 26: the type of the registration / ID number (organisation: lookup REGISTRATION_TYPE, individual:
+    -- lookup ID_DOCUMENT_TYPE); ENTITY_TYPE is the organisation's category only
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'REGISTRATION_TYPE',    'varchar2(30)');
 end;
 /
 comment on column xxcmp_parties.email is 'Main email of the party (contact persons are in XXCMP_PARTY_CONTACTS).';

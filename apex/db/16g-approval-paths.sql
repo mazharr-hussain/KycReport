@@ -40,6 +40,8 @@ begin
     xxfnd_util_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CURRENT_STEP',       'number');
+    -- release 26: paths by business relationship (customer, vendor...)
+    xxfnd_ddl_pkg.add_column('XXCMP_APPROVAL_PATHS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
 end;
 /
 -- the default path (any request): one Compliance review
@@ -83,6 +85,9 @@ create or replace package xxcmp_approval_pkg authid definer as
     -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
     -- (Waiting); before submit, the expected steps (Expected) with their role or user.
     function history_rows(p_request_id in number) return xxcmp_history_tab pipelined;
+    -- The same table for a case (release 27): investigation, then each approval level of the approval matrix (who, when,
+    -- outcome, comments); the current level Pending and the levels to come Waiting (Expected while investigating).
+    function case_history_rows(p_case_id in number) return xxcmp_history_tab pipelined;
 end xxcmp_approval_pkg;
 /
 
@@ -108,13 +113,14 @@ create or replace package body xxcmp_approval_pkg as
         select max(path_name) keep (dense_rank first order by hits desc, priority, path_name) into l_path
           from (select path_name, min(priority) priority,
                        max(nvl2(requesting_department, 1, 0) + nvl2(party_type, 1, 0)
-                           + nvl2(jurisdiction, 1, 0) + nvl2(request_type, 1, 0)) hits
+                           + nvl2(jurisdiction, 1, 0) + nvl2(request_type, 1, 0) + nvl2(business_relationship, 1, 0)) hits
                   from xxcmp_approval_paths
                  where enabled_flag = 'Y'
                    and (requesting_department is null or requesting_department = l_req.requesting_department)
                    and (party_type is null or party_type = l_req.party_type)
                    and (jurisdiction is null or jurisdiction = l_req.jurisdiction)
                    and (request_type is null or request_type = l_req.request_type)
+                   and (business_relationship is null or business_relationship = l_req.business_relationship)
                  group by path_name);
         return l_path;
     end path_for;
@@ -323,6 +329,62 @@ create or replace package body xxcmp_approval_pkg as
         end if;
         return;
     end history_rows;
+
+    function case_history_rows(p_case_id in number) return xxcmp_history_tab pipelined is
+        l_case   xxcmp_cases%rowtype;
+        l_levels number;
+        l_role1  xxcmp_approval_matrix.level1_role_code%type;
+        l_role2  xxcmp_approval_matrix.level2_role_code%type;
+        l_done   number;
+    begin
+        if p_case_id is null then
+            return;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        xxfnd_vpd_pkg.end_trusted;
+        pipe row (xxcmp_history_row(null, 'Case opened', null, 'Opened',
+                                    case when lower(l_case.created_by) = 'nobody' then 'System' else l_case.created_by end,
+                                    l_case.creation_date, null));
+        for h in (select cast(h.event_timestamp as timestamp) as at_time, h.event_creator,
+                         case h.event_type_code when 'COMPLETE' then 'Submitted for approval' when 'CLAIM' then 'Claimed'
+                                                when 'DELEGATE' then 'Delegated' end as action
+                    from apex_task_history h
+                    join apex_tasks t on t.task_id = h.task_id
+                   where t.detail_pk = to_char(p_case_id) and t.task_def_static_id = 'CASE_INVESTIGATION'
+                     and h.event_type_code in ('COMPLETE', 'CLAIM', 'DELEGATE')
+                   order by h.event_timestamp) loop
+            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, h.action, h.event_creator, h.at_time, null));
+        end loop;
+        for d in (select level_no, role_code, decided_by, outcome, cast(decision_date as timestamp) as at_time, comments
+                    from xxcmp_case_decisions where case_id = p_case_id order by decision_date) loop
+            pipe row (xxcmp_history_row(d.level_no, 'Approval level ' || d.level_no, who('ROLE', d.role_code, null),
+                                        initcap(d.outcome), d.decided_by, d.at_time, d.comments));
+        end loop;
+        if l_case.case_status = 'INVESTIGATION' then
+            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
+        end if;
+        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL') then
+            select max(required_levels), max(level1_role_code), max(level2_role_code) into l_levels, l_role1, l_role2
+              from xxcmp_approval_matrix
+             where risk_tier = case when l_case.enhanced_kyc_flag = 'Y' then 'HIGH' else nvl(l_case.risk_tier, 'HIGH') end;
+            select count(*) into l_done from xxcmp_case_decisions where case_id = p_case_id and outcome = 'APPROVED';
+            for lvl in 1 .. nvl(l_levels, 1) loop
+                if lvl > l_done then
+                    pipe row (xxcmp_history_row(lvl, 'Approval level ' || lvl,
+                                                who('ROLE', case lvl when 1 then l_role1 else l_role2 end, null),
+                                                case when l_case.case_status = 'INVESTIGATION' then 'Expected'
+                                                     when lvl = l_done + 1 then 'Pending' else 'Waiting' end,
+                                                null, null, null));
+                end if;
+            end loop;
+        end if;
+        return;
+    exception
+        when no_data_found then
+            xxfnd_vpd_pkg.end_trusted;
+            return;
+    end case_history_rows;
 
 end xxcmp_approval_pkg;
 /

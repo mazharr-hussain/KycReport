@@ -68,7 +68,7 @@ def errors(pg):
 
 def click(pg, label, confirm=False):
     """Press a submit button (and OK its confirmation) and wait for the page that follows."""
-    with pg.expect_navigation(timeout=60000):
+    with pg.expect_navigation(timeout=120000):     # the first submit after an import starts the workflow engine
         pg.click(f'button:has-text("{label}")')
         if confirm:
             btn = pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK"), .ui-dialog button:has-text("Confirm")').first
@@ -122,7 +122,7 @@ with sync_playwright() as p:
         apex.item("P201_JUSTIFICATION").setValue("New supplier for the UI test");
     }''', NAME)
     pg.wait_for_timeout(800)     # the entity type list follows the party type (cascading list)
-    pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC")')
+    pg.evaluate('apex.item("P0_PARTY_ENTITY_TYPE").setValue("LLC"); apex.item("P0_PARTY_REGISTRATION_TYPE").setValue("COMMERCIAL_REGISTRATION"); apex.item("P201_BUSINESS_RELATIONSHIP").setValue("VENDOR")')
     click(pg, 'Next')
     ok(f'step 1 saved the counterparty and moved to the party details ({pg.title()})', 'Party Details' in pg.title() and not errors(pg))
     click(pg, 'Next')
@@ -168,16 +168,29 @@ with sync_playwright() as p:
     with pg.expect_navigation():
         link.click()
     pg.wait_for_load_state('networkidle')
-    ok('the investigation task opens the Case page', 'Case' in pg.title() and pg.locator('button:has-text("Submit for Approval")').count() == 1)
+    ok('the investigation task opens the case screen: section list, no workflow diagram, Submit only on Review',
+       'Case' in pg.title() and pg.locator('#case_sections li').count() == 8 and pg.locator('text=Workflow').count() == 0
+       and pg.locator('button:has-text("Submit for Approval")').count() == 0)
+    def section(label):
+        with pg.expect_navigation():
+            pg.locator('#case_sections a', has_text=label).first.click()
+        pg.wait_for_load_state('networkidle')
+    section('Party')
+    ok('Party section: the common Global Page party regions', pg.locator('#party_card').count() == 1 and pg.locator('#party_dff').count() == 1)
+    section('Risk Assessment')
     pg.evaluate('apex.item("P211_RISK_TIER").setValue("MEDIUM")')
     click(pg, 'Save')
-    ok(f'risk saved ({errors(pg) or "no error"})', not errors(pg) and db(f"select risk_tier from xxcmp_cases where case_id = {case}")[0] == 'MEDIUM')
+    ok(f'risk saved in its section ({errors(pg) or "no error"})', not errors(pg) and db(f"select risk_tier from xxcmp_cases where case_id = {case}")[0] == 'MEDIUM')
+    section('Review and Submit')
+    ok('Review: Submit for Approval and the approval history', pg.locator('button:has-text("Submit for Approval")').count() == 1
+       and 'Approval level 1' in pg.inner_text('#case_history'))
     # submitting without a screening is refused inline
     pg.click('button:has-text("Submit for Approval")')
     pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK")').first.click()
     pg.wait_for_selector('text=Record at least one screening', timeout=30000)
     ok('submitting without a screening is refused', db(f"select case_status from xxcmp_cases where case_id = {case}")[0] == 'INVESTIGATION')
     # record a sanctions screening in the Screening drawer
+    section('Screening')
     pg.click('button:has-text("Add Screening")')
     frame = pg.frame_locator('iframe').first
     frame.locator('#P213_SCREENING_TYPE').wait_for()
@@ -186,30 +199,36 @@ with sync_playwright() as p:
     frame.locator('button:has-text("Create")').click()
     pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
     ok('screening recorded in the drawer', db(f"select count(*) from xxcmp_screenings where case_id = {case}")[0] == '1')
-    pg.reload()
-    pg.wait_for_load_state('networkidle')
+    pg.reload(); pg.wait_for_load_state('networkidle')
+    ok('the section list marks Screening done', pg.locator('#case_sections li.is-done', has_text='Screening').count() == 1)
+    section('Notes and RFIs')
+    ok('Notes and RFIs: one section with Add Note and Raise RFI', pg.locator('#notes').count() == 1
+       and pg.locator('button:has-text("Add Note")').count() == 1 and pg.locator('button:has-text("Raise RFI")').count() == 1)
+    section('Review and Submit')
     click(pg, 'Submit for Approval', confirm=True)
     ok(f'submitted for approval ({errors(pg) or "no error"})', not errors(pg))
     atask = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'CASE_APPROVAL' and detail_pk = '{case}'")
     ok(f'approval task {atask} created', atask is not None)
     pg.close()
 
-    # --------------------------------------------------------- MGR1: decision
+    # --------------------------------------------------------- MGR1: decision on the case screen (review mode)
     pg, s = login(b, 'MGR1')
-    link = open_task(pg, s, 'P212_TASK_ID', atask)
+    link = open_task(pg, s, 'P211_TASK_ID', atask)
     ok('the approval task is in the manager\'s task list', link.count() == 1)
-    link.click()
-    frame = pg.frame_locator('iframe').first
-    frame.locator('#P212_COMMENT').wait_for()
-    frame.locator('#P212_COMMENT').fill('Approved in the UI test.')
-    frame.locator('button:has-text("Approve")').click()
-    if frame.locator('.ui-dialog button:has-text("OK")').count():
-        frame.locator('.ui-dialog button:has-text("OK")').click()
-    pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000)
+    with pg.expect_navigation():
+        link.click()
     pg.wait_for_load_state('networkidle')
+    ok('review mode: Approve / Reject at the top and the bottom, the approval history',
+       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 2
+       and pg.locator('button', has_text=re.compile(r'^\s*Reject\s*$')).count() == 2 and pg.locator('#case_history').count() == 1)
+    pg.fill('#P211_DEC_COMMENT', 'Approved in the UI test.')
+    click(pg, 'Approve')
     closed = wait_db(f"select count(*) from xxcmp_cases where case_id = {case} and case_status = 'APPROVED'")
     ok('level 1 approval (medium risk: one level) approves and closes the case', closed == '1')
     ok('request completed', db(f"select request_status from xxcmp_requests where request_id = {req}")[0] == 'APPROVED')
+    # home: the KPI tiles
+    goto(pg, s, 1)
+    ok('home shows the KPI tiles with links', pg.locator('#home_kpis a').count() >= 3)
     pg.close()
     b.close()
 print(f'{sum(results)}/{len(results)} passed')

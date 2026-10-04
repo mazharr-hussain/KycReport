@@ -53,6 +53,7 @@ page 210 (
                         select c.case_id,
                                c.case_number,
                                p.party_name,
+                               xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship) as business_relationship,
                                xxfnd_util_pkg.lookup_meaning('CASE_STATUS', c.case_status) as case_status,
                                c.assigned_to,
                                xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
@@ -142,6 +143,19 @@ page 210 (
             }
             layout {
                 sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BUSINESS_RELATIONSHIP (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 145
             }
             source {
                 dataType: STRING

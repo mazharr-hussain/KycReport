@@ -42,21 +42,21 @@ begin
         ok('a requester cannot create parties: ' || err(sqlerrm), sqlcode = -20701);
     end;
     session_as('OFFICER1');
-    xxcmp_party_pkg.save_party(l_new, 'PERSON', 'New Director ' || l_tag, 'AE', 'PX-' || l_tag, 'PASSPORT',
-                               date '1975-05-05', null, '+971 50 1');
+    xxcmp_party_pkg.save_party(l_new, 'PERSON', 'New Director ' || l_tag, 'AE', 'PX-' || l_tag, null,
+                               date '1975-05-05', null, '+971 50 1', p_registration_type => 'PASSPORT');
     select * into l_p from xxcmp_parties where party_id = l_new;
     ok('an individual keeps its ID number, ID type, birth date and nationality in the shared columns: ' || l_p.party_number,
-       l_p.party_type = 'PERSON' and l_p.registration_number = 'PX-' || l_tag and l_p.entity_type = 'PASSPORT'
+       l_p.party_type = 'PERSON' and l_p.registration_number = 'PX-' || l_tag and l_p.registration_type = 'PASSPORT' and l_p.entity_type is null
        and l_p.incorporation_date = date '1975-05-05' and l_p.jurisdiction = 'AE' and l_p.party_status = 'APPROVED');
     ok('labels follow the type', xxcmp_party_pkg.field_label('PERSON', 'REGISTRATION_NUMBER') = 'ID Number'
        and xxcmp_party_pkg.field_label('ORGANIZATION', 'INCORPORATION_DATE') = 'Incorporation Date');
     l_keep := null;
     xxcmp_party_pkg.save_party(l_keep, 'ORGANIZATION', 'Keep Holding ' || l_tag, 'AE', 'KH-' || l_tag, 'LLC', null,
-                               'info@keep.example', null);
+                               'info@keep.example', null, p_registration_type => 'COMMERCIAL_REGISTRATION');
     begin
         l_other := null;
         xxcmp_party_pkg.save_party(l_other, 'ORGANIZATION', 'Other Name ' || l_tag, 'AE', 'kh ' || l_tag, 'LLC', null,
-                                   'x@example.com', null);
+                                   'x@example.com', null, p_registration_type => 'COMMERCIAL_REGISTRATION');
         ok('same registration number and country is refused', false);
     exception when others then
         ok('same registration number and country is refused: ' || err(sqlerrm), sqlcode = -20705);

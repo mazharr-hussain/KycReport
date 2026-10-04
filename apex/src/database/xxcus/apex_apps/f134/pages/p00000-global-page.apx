@@ -267,6 +267,39 @@ page 0 (
         }
     )
 
+    pageItem P0_PARTY_REGISTRATION_TYPE (
+        type: selectList
+        label {
+            label: Registration Type
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = xxcmp_party_pkg.registration_lookup(:P0_PARTY_TYPE) and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P0_PARTY_TYPE
+        }
+    )
+
     pageItem P0_PARTY_INCORPORATION_DATE (
         type: datePicker
         label {
@@ -551,7 +584,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206)
+                :APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206, 211)
                 ```
         }
         comments {
@@ -785,7 +818,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206)
+                (:APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
                 ```
         }
         comments {
@@ -806,7 +839,7 @@ page 0 (
             plsqlFunctionBody:
                 ```plsql
                 return xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT,
-                                                case when :APP_PAGE_ID in (25, 204) then 'Y' else 'N' end);
+                                                case when :APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y') then 'Y' else 'N' end);
                 ```
             pageItemsToSubmit: [
                 P0_SUMMARY_PARTY_ID
@@ -830,7 +863,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 203, 204, 205, 206) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
     )
@@ -887,7 +920,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (25, 204)
+                :APP_PAGE_ID in (25, 204, 211)
                 ```
         }
 
@@ -917,7 +950,7 @@ page 0 (
                 select c.party_contact_id, c.contact_name, c.job_title, c.email, c.phone,
                        case c.primary_flag when 'Y' then 'Yes' else 'No' end as primary_contact,
                        case c.enabled_flag when 'Y' then 'Yes' else 'No' end as enabled,
-                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and :APP_PAGE_ID in (25, 204) then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID', p_values => to_char(c.party_contact_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '22') end as edit_url
+                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID', p_values => to_char(c.party_contact_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '22') end as edit_url
                   from xxcmp_party_contacts c
                  where c.party_id = :P0_SUMMARY_PARTY_ID
                    and xxcmp_party_pkg.can_view(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
@@ -944,7 +977,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 203, 204, 205, 206) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -1083,7 +1116,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (25, 204) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                 ```
         }
     )
@@ -1122,7 +1155,7 @@ page 0 (
             sqlQuery:
                 ```sql
                 select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.start_date, j.end_date,
-                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and :APP_PAGE_ID in (25, 204) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
+                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
                   from json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID), '$[*]'
                          columns (party_relationship_id number path '$.party_relationship_id', direction varchar2(100) path '$.direction',
                                   related_party varchar2(400) path '$.related_party', relationship_type varchar2(240) path '$.relationship_type',
@@ -1150,7 +1183,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 203, 204, 205, 206) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('OWNERSHIP', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -1289,7 +1322,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (25, 204) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                 ```
         }
     )
@@ -1360,7 +1393,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (21, 25, 203, 204, 205, 206) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -1509,7 +1542,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (25, 204) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
         and xxfnd_attach_pkg.block_permission(:APP_ALIAS, :APP_PAGE_ID, 'party_attachments', 'XXCMP_PARTIES', 'INSERT') = 'Y'
                 ```
         }
@@ -1848,9 +1881,10 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
+                select rownum as seq, h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
                   from table(xxcmp_approval_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                 order by seq
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -1899,6 +1933,13 @@ page 0 (
         comments {
             comments: One table for the approval path and its history: what happened (who, when, comments), then the current step (Pending) and the steps to come (Waiting); before submit, the expected steps.
         }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
 
         column STEP_NO (
             type: plainText
@@ -2104,15 +2145,17 @@ page 0 (
                     var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
-                                   P0_PARTY_ENTITY_TYPE: ["Entity Type", "ID Type"],
+                                   P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
                                    P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"] };
                     Object.keys(labels).forEach(function (item) {
                         $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
                     });
-                    // order: organisation = Entity Type before Name; individual = ID Type before ID Number
-                    var row = function (item) { return $("#" + item + "_CONTAINER").closest(".row"); },
-                        type = row("P0_PARTY_ENTITY_TYPE");
-                    type.insertBefore(row(person ? "P0_PARTY_REGISTRATION_NUMBER" : "P0_PARTY_NAME"));
+                    // order: organisation = Entity Type before Name, Registration Type before Registration No.;
+                    // individual = no entity type (category of organisations only), ID Type before ID Number
+                    var row = function (item) { return $("#" + item + "_CONTAINER").closest(".row"); };
+                    row("P0_PARTY_ENTITY_TYPE").insertBefore(row("P0_PARTY_NAME"))[person ? "hide" : "show"]();
+                    if (person) { apex.item("P0_PARTY_ENTITY_TYPE").setValue(""); }
+                    row("P0_PARTY_REGISTRATION_TYPE").insertBefore(row("P0_PARTY_REGISTRATION_NUMBER"));
                     ```
             }
             execution {
