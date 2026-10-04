@@ -1,0 +1,291 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Home
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Start here: open your worklist, maintain parties, or answer requests for information.
+            ```
+    }
+
+    region breadcrumb (
+        name: Home
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+
+    region home-kpis (
+        name: My Work
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    l_html clob;
+                    l_n    number;
+                    procedure add(p_html in varchar2) is begin l_html := l_html || p_html; end;
+                begin
+                    l_html := '<div class="kyc-kpis">';
+                    if xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW') then
+                        select count(*) into l_n from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED');
+                        add(xxfnd_ui_pkg.kpi_card('My open requests', l_n,
+                            apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_REQUESTER_USER_NAME', p_values => :APP_USER),
+                            'fa-file-text-o', 'info'));
+                        select count(*) into l_n from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED';
+                        add(xxfnd_ui_pkg.kpi_card('Information needed', l_n,
+                            apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
+                                              p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
+                            'fa-question-circle-o', 'warning'));
+                    end if;
+                    select count(*) into l_n from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
+                     where state_code in ('ASSIGNED', 'UNASSIGNED')
+                       and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH');
+                    add(xxfnd_ui_pkg.kpi_card('Pending my approval', l_n, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'warning'));
+                    if xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then
+                        select count(*) into l_n from xxcmp_cases
+                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL');
+                        add(xxfnd_ui_pkg.kpi_card('My open cases', l_n,
+                            apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_ASSIGNED_TO', p_values => upper(:APP_USER)),
+                            'fa-folder-open-o', 'info'));
+                        select count(*) into l_n from xxcmp_cases where closed_date is null and sla_due_date < trunc(sysdate);
+                        add(xxfnd_ui_pkg.kpi_card('Overdue cases', l_n,
+                            apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_SLA_STATUS', p_values => 'Overdue'),
+                            'fa-clock-o', 'danger'));
+                    end if;
+                    select count(*) into l_n from xxcmp_rfis
+                     where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
+                       and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER));
+                    add(xxfnd_ui_pkg.kpi_card('Open RFIs', l_n, apex_page.get_url(p_page => 30), 'fa-comments-o', 'warning'));
+                    return l_html || '</div>';
+                end;
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: home_kpis
+        }
+        comments {
+            comments: Count cards of the user's open work (data security applies); each opens the matching list, filtered. A card shows only with the privilege of the screen it opens. Zero counts are grey.
+        }
+    )
+
+    region my-tasks (
+        name: My Tasks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select apex_util.prepare_url(t.details_link_target) as task_url,
+                       t.subject,
+                       t.task_def_name as type_label,
+                       case when t.task_def_static_id like 'CASE%' then 'info' else 'warning' end as type_tone,
+                       to_char(t.due_on, 'DD-MON-YYYY') as due_text,
+                       case when t.due_on < systimestamp then 'danger'
+                            when t.due_on < systimestamp + 2 then 'warning' end as due_tone,
+                       cast(t.created_on as date) as waiting_since,
+                       t.due_on as sort_due
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'MY_TASKS',
+                                   p_application_id => :APP_ID ) ) t
+                 where t.state_code in ('UNASSIGNED', 'ASSIGNED')
+                union all
+                select apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31'),
+                       r.rfi_number || ' - ' || nvl(xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),
+                       'Information request',
+                       'warning',
+                       to_char(r.due_date, 'DD-MON-YYYY'),
+                       case when r.due_date < trunc(sysdate) then 'danger'
+                            when r.due_date < trunc(sysdate) + 2 then 'warning' end,
+                       cast(r.creation_date as date),
+                       cast(r.due_date as timestamp with time zone)
+                  from xxcmp_rfis r
+                 where upper(r.recipient_user_name) = upper(:APP_USER)
+                   and r.rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
+                   and r.responded_date is null
+                 order by 8 nulls last, 7
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: my-tasks
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYNoPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: You're all caught up.
+        }
+        comments {
+            comments: All actionable items in one list: the user's APEX tasks (links get their checksum from apex_util.prepare_url; the task definitions' detail links carry none) and the RFIs addressed to the user.
+        }
+
+        column TASK_URL (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#TASK_URL#">#SUBJECT#</a>
+                    ```
+            }
+        )
+
+        column TYPE_LABEL (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#TYPE_TONE#">#TYPE_LABEL#</span>
+                    ```
+            }
+        )
+
+        column TYPE_TONE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DUE_TEXT (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-due kyc-due--#DUE_TONE#">#DUE_TEXT#</span>
+                    ```
+            }
+        )
+
+        column DUE_TONE (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column WAITING_SINCE (
+            type: plainText
+            heading {
+                heading: Waiting since
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: SINCE
+            }
+        )
+
+        column SORT_DUE (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+    )
+
+    button view-all-tasks (
+        buttonName: VIEW_ALL_TASKS
+        label: View all
+        layout {
+            sequence: 10
+            region: @my-tasks
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: false
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 40
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+)

@@ -1,0 +1,552 @@
+page 203 (
+    name: Create Request - Review and Submit
+    alias: CREATE-REQUEST-SUBMIT
+    title: Create Request - Review and Submit
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Step 4 of 4: review everything (the party and its details, the answers, the documents and the expected approval path), attach the documents you have and submit. When the request is Information Needed, answer the question here (Respond).
+            ```
+    }
+
+    region breadcrumb (
+        name: Create Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Create Request
+        type: list
+        source {
+            list: @request-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region summary (
+        name: Summary
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: summary
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P203_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @summary
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P203_REQUEST_NUMBER (
+        type: displayOnly
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_number from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_BUSINESS_RELATIONSHIP (
+        type: displayOnly
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 25
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship) from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_COUNTERPARTY (
+        type: displayOnly
+        label {
+            label: Counterparty
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', party_type)
+                       || nvl2(jurisdiction, ', ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
+                  from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_SUBMIT_CHECK (
+        type: displayOnly
+        label {
+            label: Ready to Submit
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select nvl(xxcmp_request_pkg.submit_error(:P203_REQUEST_ID), 'Yes') from dual
+                ```
+            used: always
+        }
+    )
+
+
+
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 202
+                items: {
+                    P202_REQUEST_ID: &P203_REQUEST_ID.
+                }
+                clearCache: 202
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 200
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button submit (
+        buttonName: SUBMIT
+        label: Submit Request
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- a request in Information Needed is answered on the request page (Respond), not submitted again
+                xxcmp_request_pkg.stage(:P203_REQUEST_ID) = xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'DRAFT')
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    validation submit-check (
+        name: Request complete
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.submit_error(:P203_REQUEST_ID);
+                ```
+        }
+        error {
+            associatedItem: @P203_SUBMIT_CHECK
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT
+        }
+    )
+
+    process set-summary (
+        name: Set the common Party and Approval Path regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := :P203_REQUEST_ID;
+                select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_requests where request_id = :P203_REQUEST_ID;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
+    region respond (
+        name: Information Needed
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- the question Compliance asked (the latest comment on the checklist task)
+                declare
+                    l_text varchar2(4000);
+                begin
+                    select max(c.text) keep (dense_rank last order by c.created_on) into l_text
+                      from apex_task_comments c
+                     where c.task_id = :P203_INFO_TASK_ID;
+                    return '<p>Compliance asked:</p><blockquote>' || apex_escape.html(nvl(l_text, '-')) || '</blockquote>'
+                           || '<p>Update the request if needed, then answer here: the request goes back to the approver.</p>';
+                end;
+                ```
+            pageItemsToSubmit: P203_INFO_TASK_ID
+        }
+        layout {
+            sequence: 8
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: respond
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P203_INFO_TASK_ID
+        }
+    )
+
+    pageItem P203_INFO_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P203_RESPONSE (
+        type: textarea
+        label {
+            label: Your Answer
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+    )
+
+    button respond (
+        buttonName: RESPOND
+        label: Respond
+        layout {
+            sequence: 10
+            region: @respond
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    validation response-given (
+        name: Answer given
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when trim(:P203_RESPONSE) is null then 'Enter your answer for Compliance.' end;
+                ```
+        }
+        error {
+            associatedItem: @P203_RESPONSE
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process respond-task (
+        name: Answer Compliance
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- the task event Submit Information moves the request back to In Progress (task action)
+                apex_human_task.submit_information(p_task_id => :P203_INFO_TASK_ID, p_text => :P203_RESPONSE);
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Your answer was sent: the request is back with the approver.
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process find-info-task (
+        name: The requester's information request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- Compliance asked this requester for information: the task waits for their answer
+                select max(t.task_id) into :P203_INFO_TASK_ID
+                  from apex_tasks t
+                  join xxcmp_requests r on to_char(r.request_id) = t.detail_pk
+                 where t.detail_pk = :P203_REQUEST_ID
+                   and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                   and t.state_code = 'INFO_REQUESTED'
+                   and upper(r.requester_user_name) = upper(:APP_USER);
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
+    process submit-request (
+        name: Submit request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.submit(:P203_REQUEST_ID);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Request submitted.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    branch (
+        name: To the request
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 205
+                items: {
+                    P205_REQUEST_ID: &P203_REQUEST_ID.
+                }
+                clearCache: 205
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT,RESPOND
+        }
+    )
+
+)

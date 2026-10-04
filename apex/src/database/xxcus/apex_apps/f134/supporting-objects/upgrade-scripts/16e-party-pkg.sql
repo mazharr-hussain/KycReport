@@ -619,19 +619,31 @@ create or replace package body xxcmp_party_pkg as
     end is_enabled;
 
     function card_html(p_party_id in number, p_show_status in varchar2 default 'Y', p_link in varchar2 default 'Y') return clob is
+        -- UI/UX standard (patch 14): name as the title with number and badges, then a label-above-value grid in groups.
         l_p      xxcmp_parties%rowtype;
         l_into   xxcmp_parties.party_number%type;
         l_html   clob;
+        l_grp    clob;
         l_found  boolean := false;
 
-        procedure row(p_label in varchar2, p_value in varchar2, p_raw in boolean default false) is
+        procedure fld(p_label in varchar2, p_value in varchar2, p_raw in boolean default false, p_meta in varchar2 default null) is
         begin
             if p_value is not null then
-                l_html := l_html || '<dt class="t-AVPList-label">' || apex_escape.html(p_label) || '</dt>'
-                               || '<dd class="t-AVPList-value">' || case when p_raw then p_value else apex_escape.html(p_value) end
-                               || '</dd>';
+                l_grp := l_grp || '<div class="kyc-f"><span class="kyc-f-label">' || apex_escape.html(p_label) || '</span>'
+                               || '<div class="kyc-f-value">' || case when p_raw then p_value else apex_escape.html(p_value) end
+                               || case when p_meta is not null then '<span class="kyc-f-meta">' || apex_escape.html(p_meta) || '</span>' end
+                               || '</div></div>';
             end if;
-        end row;
+        end fld;
+
+        procedure grp(p_title in varchar2) is
+        begin
+            if l_grp is not null then
+                l_html := l_html || '<h3 class="kyc-group-title">' || apex_escape.html(p_title) || '</h3><div class="kyc-grid">'
+                               || l_grp || '</div>';
+            end if;
+            l_grp := null;
+        end grp;
     begin
         if p_party_id is null then
             return '<p class="u-color-subtle">No party linked yet.</p>';
@@ -645,53 +657,65 @@ create or replace package body xxcmp_party_pkg as
         end if;
         select max(party_number) into l_into from xxcmp_parties where party_id = l_p.merged_into_party_id;
 
-        l_html := '<dl class="t-AVPList t-AVPList--leftAligned">';
-        row('Party', case when p_link = 'Y' and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
-                          then '<a href="' || apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID',
-                                                                 p_values => to_char(l_p.party_id), p_clear_cache => '21')
-                               || '">' || apex_escape.html(l_p.party_number) || '</a>'
-                          else apex_escape.html(l_p.party_number) end
-                     || ' - ' || apex_escape.html(l_p.party_name), true);
-        row('Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
-        if l_p.party_type = 'ORGANIZATION' then
-            row('Entity Type', xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
+        -- title line: name, number, status, relationships
+        l_html := '<div class="kyc-hcard-top kyc-party-title"><span class="kyc-hcard-title">' || apex_escape.html(l_p.party_name) || '</span>'
+               || '<span class="kyc-meta-inline">'
+               || case when p_link = 'Y' and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
+                       then '<a href="' || apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID',
+                                                             p_values => to_char(l_p.party_id), p_clear_cache => '21')
+                            || '">' || apex_escape.html(l_p.party_number) || '</a>'
+                       else apex_escape.html(l_p.party_number) end
+               || '</span>';
+        if p_show_status = 'Y' then
+            l_html := l_html || case when l_p.merged_into_party_id is not null then xxfnd_ui_pkg.badge('Merged into ' || l_into, 'neutral')
+                                     when l_p.enabled_flag = 'N' then xxfnd_ui_pkg.badge('Disabled', 'neutral')
+                                     else xxfnd_ui_pkg.status_badge('PARTY', l_p.party_status) end;
         end if;
-        row(field_label(l_p.party_type, 'REGISTRATION_TYPE'),
-            xxfnd_util_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
-        row(field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number);
-        row(field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
-        row(field_label(l_p.party_type, 'JURISDICTION'), xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
         -- what the party is to the company: from its requests (release 26), with the latest status of each
-        for r in (select listagg(xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', business_relationship)
-                                 || ' (' || xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', request_status) || ')', ', ')
-                           within group (order by business_relationship) as rels
-                    from (select business_relationship,
-                                 max(request_status) keep (dense_rank last order by request_id) as request_status
-                            from xxcmp_requests
-                           where party_id = p_party_id and business_relationship is not null
-                             and request_status not in ('CANCELLED', 'DRAFT')
-                           group by business_relationship)) loop
-            row('Business Relationships', r.rels);
+        for r in (select business_relationship,
+                         max(request_status) keep (dense_rank last order by request_id) as request_status
+                    from xxcmp_requests
+                   where party_id = p_party_id and business_relationship is not null
+                     and request_status not in ('CANCELLED', 'DRAFT')
+                   group by business_relationship
+                   order by business_relationship) loop
+            l_html := l_html || xxfnd_ui_pkg.badge(xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship)
+                                                   || ' · ' || xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', r.request_status),
+                                                   xxfnd_ui_pkg.status_tone('REQUEST', r.request_status));
         end loop;
-        row('Email', l_p.email);
-        row('Phone', l_p.phone);
-        row('Website', l_p.website);
+        l_html := l_html || '</div>';
+
+        fld('Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
+        if l_p.party_type = 'ORGANIZATION' then
+            fld('Entity Type', xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
+        end if;
+        fld(field_label(l_p.party_type, 'JURISDICTION'), xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
+        fld(field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number, false,
+            xxfnd_util_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
+        fld(field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
+        grp('Identity');
+
+        fld('Email', case when p_link = 'Y' and l_p.email is not null
+                          then '<a href="mailto:' || apex_escape.html_attribute(l_p.email) || '">' || apex_escape.html(l_p.email) || '</a>'
+                          else apex_escape.html(l_p.email) end, true);
+        fld('Phone', l_p.phone);
+        fld('Website', l_p.website);
         for c in (select contact_name as name, job_title, email, phone
                     from xxcmp_party_contacts
                    where party_id = p_party_id and enabled_flag = 'Y'
                    order by primary_flag desc, party_contact_id
                    fetch first 1 row only) loop
-            row('Contact Person', c.name || nvl2(c.job_title, ' (' || c.job_title || ')', null)
-                                  || nvl2(c.email, ', ' || c.email, null) || nvl2(c.phone, ', ' || c.phone, null));
+            fld('Contact Person', c.name || nvl2(c.job_title, ' · ' || c.job_title, null), false,
+                ltrim(c.email || nvl2(c.phone, ' · ' || c.phone, null), ' ·'));
         end loop;
+        grp('Contact');
+
         if p_show_status = 'Y' then
-        row('Party Status', case when l_p.merged_into_party_id is not null then 'Merged into ' || l_into
-                                 when l_p.enabled_flag = 'N' then 'Disabled'
-                                 else xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status) end
-                            || nvl2(l_p.last_verified_date, ' - verified ' || to_char(l_p.last_verified_date, 'DD-MON-YYYY'), null));
-        row('Next KYC Date', to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
+            fld('Last Verified', to_char(l_p.last_verified_date, 'DD-MON-YYYY'));
+            fld('Next KYC Date', to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
+            grp('KYC');
         end if;
-        return l_html || '</dl>';
+        return l_html;
     end card_html;
 
     function summary_html(p_party_id in number, p_request_id in number default null) return clob is

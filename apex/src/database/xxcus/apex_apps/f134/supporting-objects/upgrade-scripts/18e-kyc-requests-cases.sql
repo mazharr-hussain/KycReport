@@ -149,7 +149,9 @@ begin
     lvs('BUSINESS_RELATIONSHIP', 'CUSTOMER=Customer|VENDOR=Vendor / Supplier|PARTNER=Partner|AGENT=Agent / Intermediary|OTHER=Other');
     -- release 27: the sections of the case screen (labels; codes fixed in XXCMP_CASE_PKG.C_SECTIONS)
     lt('CASE_SECTION', 'Case Screen Sections');
-    lvs('CASE_SECTION', 'SUMMARY=Summary|PARTY=Party|OWNERSHIP=Contacts and Ownership|SCREENING=Screening|DOCUMENTS=Documents|RISK=Risk Assessment|NOTES=Notes and RFIs|REVIEW=Review and Submit');
+    lvs('CASE_SECTION', 'SUMMARY=Summary|PARTY=Party|SCREENING=Screening|DOCUMENTS=Documents|RISK=Risk Assessment|NOTES=Notes and RFIs|REVIEW=Review and Submit');
+    -- release 29: Contacts and Ownership is part of Party
+    update xxfnd_lookup_values set enabled_flag = 'N' where lookup_type = 'CASE_SECTION' and lookup_code = 'OWNERSHIP';
     lt('KYC_REQUEST_TYPE', 'KYC Request Types');
     lvs('KYC_REQUEST_TYPE', 'NEW_ONBOARDING=New onboarding|PERIODIC_REVIEW=Periodic review|EVENT_TRIGGERED_REVIEW=Event-triggered review');
     lt('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources');
@@ -276,5 +278,26 @@ begin
     xxfnd_vpd_pkg.apply_policies;
     xxfnd_ddl_pkg.mark_release('R13', 'Release 13: KYC requests and cases (intake, investigation, approval workflows)');
     commit;
+end;
+/
+
+-- release 29: open cases without an assignee go to the approver of their request's first approval step
+declare
+    l_sgid number;
+begin
+    select max(workspace_id) into l_sgid from apex_applications where application_id = 134;
+    if l_sgid is not null then
+        apex_util.set_security_group_id(l_sgid);
+    end if;
+    xxfnd_vpd_pkg.begin_trusted;
+    update xxcmp_cases c
+       set c.assigned_to = xxcmp_case_pkg.first_approver(c.request_id)
+     where c.assigned_to is null and c.closed_date is null and c.request_id is not null;
+    xxfnd_vpd_pkg.end_trusted;
+    commit;
+exception
+    when others then
+        xxfnd_vpd_pkg.end_trusted;
+        raise;
 end;
 /

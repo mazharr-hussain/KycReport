@@ -363,6 +363,16 @@ The standard above fixes each item; this is the per-screen list from the review.
 | UX-7 | Create Request wizard (201, 204, 202, 203) | Labels above; 2-column short fields with max width; no "Required" text; counterparty choice first as selectable cards; sticky wizard footer; review step per §6.5. |
 | UX-8 | Approval (206) and Case (211) | Single sticky action bar (no top + bottom duplicates); decision comment inside the action dialog; approval history as timeline; section navigation per §5.3. |
 | UX-9 | Parties (20), Cases (210), My Tasks (40), RFIs (30), Monitoring, Dashboard, Administration | Apply §4 lists, §5 records, §6 forms, §9 badges; no screenshots needed – reviewed with before/after screenshots per chunk. |
+| UX-10 | Request record pages (203, 205, 206) | Left section menu with direct links to each region on the page (highlights the section in view). |
+| UX-11 | Case (211) | Sections *Party* and *Contacts and Ownership* merged into *Party*. |
+| UX-12 | Case (211) | *Assigned To* as text (employee name) + **Assign** button; default assignee = approver of the request's first approval step. |
+| UX-13 | Case (211) | Notes filter as pills (All · Notes · RFIs · Open RFIs) that work; *Add Note* in a dialog. |
+| UX-14 | Case (211) | Review and Submit: summary grid (no empty disabled boxes or raw codes). |
+| UX-15 | Case (211) | Once submitted for approval the case is read only, with **Withdraw from Approval** (back to Investigation). |
+
+**Status (release 29, patch 14):** UX-1 to UX-15 done, except: saved report tabs on 200, row actions menu,
+approval history as a timeline, decision dialogs on 206 (the comment sits in the sticky action bar), badges in the
+section menu, sentence case – still open.
 
 Related defects to fix with the first chunk: **#19** Home tile links without checksum, **#20** case opened from the
 Cases list raises *Task Not Found*.

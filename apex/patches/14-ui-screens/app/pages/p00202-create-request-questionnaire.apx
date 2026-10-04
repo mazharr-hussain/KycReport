@@ -1,0 +1,324 @@
+page 202 (
+    name: Create Request - Questionnaire
+    alias: CREATE-REQUEST-QUESTIONNAIRE
+    title: Create Request - Questionnaire
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            kycQuestionnaire.bind('answers', 'P202_ANSWERS');
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .kyc-section { margin-bottom: 1.5rem; }
+            .kyc-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 .75rem;
+                                 padding-bottom: .25rem; border-bottom: 1px solid var(--ut-component-border-color, #ddd); }
+            .kyc-q { border: 0; margin: 0 0 1rem; padding: 0; }
+            .kyc-q-text { font-weight: 500; margin-bottom: .4rem; padding: 0; }
+            .kyc-q-required { color: var(--ut-palette-danger, #c00); }
+            .kyc-q-options { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+            .kyc-q-option { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; }
+            .kyc-q-input { width: 100%; max-width: 40rem; }
+            ```
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Step 3 of 4: answer every question. The answers decide whether a KYC review is needed.
+            ```
+    }
+
+    region breadcrumb (
+        name: Create Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Create Request
+        type: list
+        source {
+            list: @request-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P202_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P202_ANSWERS (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: filled in the browser just before submit by kycQuestionnaire (kyc-app.js). XXCMP_REQUEST_PKG.ANSWERS_ERROR / SAVE_ANSWERS re-check every question and option on the server.
+                ```
+        }
+    )
+
+    region answers (
+        name: Questionnaire
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.questionnaire_html(:P202_REQUEST_ID);
+                ```
+            pageItemsToSubmit: P202_REQUEST_ID
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: answers
+        }
+    )
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+    )
+
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    validation required-answers (
+        name: Required questions answered
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_request_pkg.answers_error(:P202_REQUEST_ID, :P202_ANSWERS);
+                ```
+        }
+        error {
+            associatedItem: @P202_ANSWERS
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT
+        }
+    )
+
+    process save-answers (
+        name: Save answers
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.save_answers(:P202_REQUEST_ID, :P202_ANSWERS);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,PREVIOUS,SAVE_DRAFT
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    branch (
+        name: Draft saved
+        execution {
+            sequence: 5
+        }
+        behavior {
+            target: {
+                page: 200
+                clearCache: 200
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @save-draft
+        }
+    )
+
+    branch (
+        name: Back to party details
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 204
+                items: {
+                    P204_REQUEST_ID: &P202_REQUEST_ID.
+                }
+                clearCache: 204
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @previous
+        }
+    )
+
+    branch (
+        name: To review
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 203
+                items: {
+                    P203_REQUEST_ID: &P202_REQUEST_ID.
+                }
+                clearCache: 203
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @next
+        }
+    )
+
+)

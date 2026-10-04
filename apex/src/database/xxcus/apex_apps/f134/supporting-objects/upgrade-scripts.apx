@@ -196,6 +196,15 @@ upgradeScript 16h-ui-helpers (
     }
 )
 
+upgradeScript 16i-request-ui (
+    execution {
+        sequence: 132
+    }
+    script {
+        contentFile: 16i-request-ui.sql
+    }
+)
+
 upgradeScript 18-seed-data-and-administrator-part-2-of-2 (
     execution {
         sequence: 140
