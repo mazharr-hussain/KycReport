@@ -124,6 +124,15 @@ installScript 12-flexfield-setup (
     }
 )
 
+installScript 13a-database-document-store (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+)
+
 installScript 13-document-store (
     execution {
         sequence: 130

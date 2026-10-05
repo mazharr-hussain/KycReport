@@ -88,6 +88,15 @@ upgradeScript 12-flexfield-setup (
     }
 )
 
+upgradeScript 13a-database-document-store (
+    execution {
+        sequence: 85
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+)
+
 upgradeScript 13-document-store (
     execution {
         sequence: 90

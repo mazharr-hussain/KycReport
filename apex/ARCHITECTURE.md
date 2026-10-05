@@ -61,6 +61,8 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 
 - **Release 32 (patch 17):** 206 decisions: buttons `kyc-decide kyc-decide-<APPROVE|REJECT|REQUEST_INFO>` in the top bar (`#buttons`) and the bottom bar (`#decision_buttons`) open inline dialog `decision_dialog` (P206_DECISION, P206_COMMENT, Confirm = request CONFIRM; kyc-app.js); validations and processes run on CONFIRM + P206_DECISION. 211: region `top-buttons` (title bar) holds Assign and Withdraw; findings grid toolbar hidden (page Save runs its row processing); P211_DEC_SAR_REQUIRED_FLAG pills without null.
 
+- **Release 34 (patch 19):** attachments: storage type DATABASE (table `xxfnd_document_files`, 13a) is the default when no enabled `xxfnd_storage_config` row applies (`xxfnd_attach_pkg.resolve_storage` → `xxfnd_attach_store_pkg.database_config`; no entity container). kyc-app.js: wizard progress steps (`#wizard .t-WizardSteps-step`) are clickable and press the page's Next / Previous step by step (sessionStorage `kycWizardJump`). 200 Withdraw shows a success message.
+
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),
   `workflows_chunk5.py`. After running `pages_chunk5.py`, restore pages not in scope (`git checkout` them).

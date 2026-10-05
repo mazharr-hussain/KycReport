@@ -670,7 +670,12 @@ page 200 (
                     apex.message.confirm("Withdraw this request from approval? It goes back to Draft: you can then edit or cancel it.", function (ok) {
                         if (!ok) { return; }
                         apex.server.process("WITHDRAW", { x01: id }, { dataType: "text" }).done(function (err) {
-                            if (err) { apex.message.alert(err); }
+                            err = $.trim(err);    // the reply ends with a line break even when there is no error
+                            if (err) {
+                                apex.message.alert(err);
+                            } else {
+                                apex.message.showPageSuccess("Request withdrawn: it is back in Draft.");
+                            }
                             apex.region("report").refresh();
                         });
                     });
