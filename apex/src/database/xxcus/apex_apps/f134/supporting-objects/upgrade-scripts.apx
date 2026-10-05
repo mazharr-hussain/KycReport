@@ -7,6 +7,15 @@ upgradeScript 00-deployment-framework (
     }
 )
 
+upgradeScript 04a-employees-fusion-user (
+    execution {
+        sequence: 8
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+)
+
 upgradeScript 05-core-packages-part-1-of-2 (
     execution {
         sequence: 10

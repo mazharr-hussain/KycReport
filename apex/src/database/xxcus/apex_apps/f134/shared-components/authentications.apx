@@ -1,12 +1,18 @@
 authentication oracle-apex-accounts (
     name: Oracle APEX Accounts
     type: oracleApexAccounts
+    loginProcessing {
+        postAuthenticationProcedureName: xxfnd_security_pkg.map_login_user
+    }
 )
 
 
 authentication oracle-database-accounts (
     name: Oracle Database Accounts
     type: databaseAccounts
+    loginProcessing {
+        postAuthenticationProcedureName: xxfnd_security_pkg.map_login_user
+    }
 )
 
 
@@ -24,6 +30,7 @@ authentication oci-iam-identity-domain (
         verifyAttrs: true
     }
     loginProcessing {
+        postAuthenticationProcedureName: xxfnd_security_pkg.map_login_user
         switchInSession: true
     }
 )

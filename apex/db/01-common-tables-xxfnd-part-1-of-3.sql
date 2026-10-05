@@ -99,6 +99,7 @@ create table xxfnd_employees (
     source_type            varchar2(20)   default 'LOCAL' not null,
     fusion_person_id       number,
     fusion_person_number   varchar2(30),
+    fusion_user_id         varchar2(64),
     user_name              varchar2(255)  not null,
     full_name              varchar2(240)  not null,
     email_address          varchar2(320)  not null,

@@ -2057,6 +2057,10 @@ before update on xxcmp_cases
 for each row
 when (old.closed_date is not null)
 begin
+    -- a user rename (XXFND_SECURITY_PKG.RENAME_USER) only moves the user name columns to the new name
+    if xxfnd_security_pkg.renaming then
+        return;
+    end if;
     -- a party merge (XXCMP_PARTY_PKG.MERGE_PARTIES) only re-points the case to the party that is kept
     if updating('PARTY_ID') and not (updating('CASE_STATUS') or updating('DECISION') or updating('RISK_TIER')
                                      or updating('CLOSED_DATE') or updating('CONDITIONS') or updating('NEXT_REVIEW_DATE')

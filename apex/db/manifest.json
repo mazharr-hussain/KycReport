@@ -26,6 +26,12 @@
   "install_sequence": 40
  },
  {
+  "name": "04a Employees - Fusion user",
+  "file": "04a-employee-fusion-user.sql",
+  "install_sequence": 45,
+  "upgrade_sequence": 8
+ },
+ {
   "name": "05 Core packages - part 1 of 2",
   "file": "05-core-packages-part-1-of-2.sql",
   "install_sequence": 50,

@@ -87,7 +87,7 @@ page 9999 (
     pageItem P9999_USERNAME (
         type: textField
         label {
-            label: Username
+            label: Email
             alignment: right
         }
         layout {
@@ -101,7 +101,7 @@ page 9999 (
             templateOptions: #DEFAULT#
             icon: fa-user
             width: 40
-            valuePlaceholder: Username
+            valuePlaceholder: Email
         }
         validation {
             maxLength: 100

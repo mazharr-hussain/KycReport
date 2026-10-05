@@ -16,6 +16,10 @@ create or replace package xxfnd_util_pkg authid definer as
     -- Supporting Objects; this makes the session count as "not APEX" so seeded
     -- rows are not treated as user edits (maker-checker, lookup locks).
     procedure set_install_mode(p_on in boolean);
+    -- On while user names are renamed (xxfnd_security_pkg.rename_user): the WHO triggers keep the dates and
+    -- version of the rows and accept the new user names in CREATED_BY / LAST_UPDATED_BY.
+    procedure set_preserve_who(p_on in boolean);
+    function preserve_who return boolean;
 
     function lookup_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2;
     function is_valid_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2) return boolean;
@@ -35,11 +39,22 @@ end xxfnd_util_pkg;
 create or replace package body xxfnd_util_pkg as
 
     g_install_mode boolean := false;
+    g_preserve_who boolean := false;
 
     procedure set_install_mode(p_on in boolean) is
     begin
         g_install_mode := nvl(p_on, false);
     end set_install_mode;
+
+    procedure set_preserve_who(p_on in boolean) is
+    begin
+        g_preserve_who := nvl(p_on, false);
+    end set_preserve_who;
+
+    function preserve_who return boolean is
+    begin
+        return g_preserve_who;
+    end preserve_who;
 
     function in_apex_session return boolean is
     begin
@@ -149,6 +164,13 @@ create or replace package body xxfnd_util_pkg as
                      :new.created_by    := nvl(:new.created_by, xxfnd_util_pkg.current_user);
                      :new.creation_date := nvl(:new.creation_date, systimestamp);
                      :new.object_version_number := 1;
+                 elsif xxfnd_util_pkg.preserve_who then
+                     -- a user rename: only the user names change
+                     :new.creation_date         := :old.creation_date;
+                     :new.last_update_date      := :old.last_update_date;
+                     :new.last_update_login     := :old.last_update_login;
+                     :new.object_version_number := :old.object_version_number;
+                     return;
                  else
                      :new.created_by    := :old.created_by;
                      :new.creation_date := :old.creation_date;
@@ -355,6 +377,25 @@ create or replace package xxfnd_security_pkg authid definer as
     -- (XXFND_EMPLOYEES_SRC) tell the sync apart from a user edit.
     function sync_running return boolean;
 
+    -- Sets each Fusion employee's user name and Fusion user id from their Fusion / identity-domain user account
+    -- (HCM userAccounts: Username, UserId by PersonId); the user name is what single sign-on returns. Called by SYNC_FROM_FUSION; a worker without a
+    -- user account keeps the work e-mail.
+    procedure sync_user_names(p_base_url             in varchar2,
+                              p_credential_static_id in varchar2,
+                              p_page_size            in pls_integer default 200);
+
+    -- Moves every stored reference to a user name to a new one: request, case, approval, delegation and RFI
+    -- user columns, the WHO columns of all XXFND_/XXCMP_ tables, and the potential owners of open workflow tasks.
+    -- The audit log keeps the old name. Run by trigger XXFND_EMPLOYEES_RENAME when an employee's user name changes.
+    procedure rename_user(p_old_user_name in varchar2, p_new_user_name in varchar2);
+    -- True while RENAME_USER runs: record locks (closed cases) let the user name columns change.
+    function renaming return boolean;
+
+    -- Post-authentication procedure of every sign-in scheme: the name the person signed in with (the e-mail with
+    -- Database or APEX Accounts; the identity-domain user name with single sign-on) is mapped to the employee's
+    -- USER_NAME, which becomes APP_USER.
+    procedure map_login_user;
+
     -- Creates (or re-enables) a LOCAL employee and grants SYSTEM_ADMIN.
     -- Used by the installer so someone can sign in and grant further access.
     procedure bootstrap_admin(p_user_name in varchar2,
@@ -386,6 +427,7 @@ select ur.user_role_id,
 create or replace package body xxfnd_security_pkg as
 
     g_sync_running boolean := false;
+    g_renaming     boolean := false;
 
     function norm_user(p_user_name in varchar2) return varchar2 is
     begin
@@ -530,7 +572,6 @@ create or replace package body xxfnd_security_pkg as
               e.fusion_person_number = l_number,
               e.full_name            = nvl(l_name, e.full_name),
               e.email_address        = l_email,
-              e.user_name            = upper(l_email),
               e.department_name      = l_dept,
               e.job_title            = l_job,
               e.enabled_flag         = 'Y',
@@ -542,6 +583,128 @@ create or replace package body xxfnd_security_pkg as
               ('FUSION', l_person_id, l_number, upper(l_email), nvl(l_name, l_email),
                l_email, l_dept, l_job, systimestamp);
     end upsert_fusion_worker;
+
+    function renaming return boolean is
+    begin
+        return g_renaming;
+    end renaming;
+
+    procedure rename_user(p_old_user_name in varchar2, p_new_user_name in varchar2) is
+        l_old varchar2(255) := upper(trim(p_old_user_name));
+        l_new varchar2(255) := upper(trim(p_new_user_name));
+    begin
+        if l_old is null or l_new is null or l_old = l_new then
+            return;
+        end if;
+        g_renaming := true;
+        xxfnd_util_pkg.set_install_mode(true);
+        xxfnd_util_pkg.set_preserve_who(true);    -- the rows keep their dates; only the user names change
+        xxfnd_vpd_pkg.begin_trusted;              -- every row, whatever the caller may see
+        for c in (select c.table_name, c.column_name
+                    from user_tab_columns c
+                    join user_tables t on t.table_name = c.table_name
+                   where (c.table_name like 'XXCMP\_%' escape '\' or c.table_name like 'XXFND\_%' escape '\')
+                     and c.table_name not in ('XXFND_EMPLOYEES', 'XXFND_AUDIT_LOG')
+                     and c.data_type like '%CHAR%'
+                     and c.column_name in ('CREATED_BY', 'LAST_UPDATED_BY', 'APPROVED_BY', 'ACKNOWLEDGED_BY',
+                                           'DECIDED_BY', 'MATCH_RESOLVED_BY', 'ASSIGNED_TO', 'REQUESTER_USER_NAME',
+                                           'RECIPIENT_USER_NAME', 'DELEGATE_USER_NAME', 'DELEGATOR_USER_NAME',
+                                           'USER_NAME')) loop
+            execute immediate 'update ' || c.table_name || ' set ' || c.column_name || ' = :n where upper('
+                              || c.column_name || ') = :o' using l_new, l_old;
+        end loop;
+        -- open workflow tasks: the new name becomes a potential owner instead of the old one
+        for t in (select distinct p.task_id, upper(k.actual_owner) as actual_owner
+                    from apex_task_participants p
+                    join apex_tasks k on k.task_id = p.task_id
+                   where upper(p.participant) = l_old
+                     and p.participant_type = 'POTENTIAL_OWNER'
+                     and k.state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED')) loop
+            begin
+                begin
+                    apex_human_task.add_task_potential_owner(p_task_id => t.task_id, p_potential_owner => l_new);
+                exception
+                    when others then
+                        null;    -- already a potential owner
+                end;
+                if t.actual_owner = l_old then
+                    apex_human_task.delegate_task(p_task_id => t.task_id, p_to_user => l_new);
+                end if;
+                apex_human_task.remove_potential_owner(p_task_id => t.task_id, p_potential_owner => l_old);
+            exception
+                when others then
+                    apex_debug.warn('rename_user: task %0 not moved from %1 to %2: %3', t.task_id, l_old, l_new, sqlerrm);
+            end;
+        end loop;
+        xxfnd_vpd_pkg.end_trusted;
+        xxfnd_util_pkg.set_install_mode(false);
+        xxfnd_util_pkg.set_preserve_who(false);
+        g_renaming := false;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            xxfnd_util_pkg.set_install_mode(false);
+            xxfnd_util_pkg.set_preserve_who(false);
+            g_renaming := false;
+            raise;
+    end rename_user;
+
+    procedure map_login_user is
+        l_login varchar2(255) := upper(trim(v('APP_USER')));
+        l_user  xxfnd_employees.user_name%type;
+    begin
+        select max(user_name) keep (dense_rank first order by case when upper(user_name) = l_login then 0 else 1 end)
+          into l_user
+          from xxfnd_employees
+         where enabled_flag = 'Y'
+           and (upper(user_name) = l_login or upper(email_address) = l_login);
+        if l_user is not null and upper(l_user) <> l_login then
+            apex_custom_auth.set_user(upper(l_user));
+        end if;
+    end map_login_user;
+
+    procedure sync_user_names(p_base_url             in varchar2,
+                              p_credential_static_id in varchar2,
+                              p_page_size            in pls_integer default 200) is
+        l_offset   pls_integer := 0;
+        l_response clob;
+        l_doc      json_object_t;
+        l_items    json_array_t;
+        l_item     json_object_t;
+        l_has_more boolean := true;
+    begin
+        while l_has_more loop
+            l_response := apex_web_service.make_rest_request(
+                              p_url                  => rtrim(p_base_url, '/')
+                                                        || '/hcmRestApi/resources/11.13.18.05/userAccounts'
+                                                        || '?onlyData=true&limit=' || p_page_size || '&offset=' || l_offset
+                                                        || '&fields=Username,PersonId,UserId',
+                              p_http_method          => 'GET',
+                              p_credential_static_id => p_credential_static_id);
+            if apex_web_service.g_status_code <> 200 then
+                -- user names stay as they are; the worker sync itself is not failed
+                apex_debug.warn('sync_user_names: HTTP %0 from userAccounts', apex_web_service.g_status_code);
+                return;
+            end if;
+            l_doc   := json_object_t.parse(l_response);
+            l_items := l_doc.get_array('items');
+            for i in 0 .. l_items.get_size - 1 loop
+                l_item := treat(l_items.get(i) as json_object_t);
+                if l_item.get_number('PersonId') is not null and trim(l_item.get_string('Username')) is not null then
+                    -- trigger XXFND_EMPLOYEES_RENAME moves the references (rename_user)
+                    update xxfnd_employees
+                       set user_name      = upper(trim(l_item.get_string('Username'))),
+                           fusion_user_id = nvl(to_char(l_item.get_number('UserId')), fusion_user_id)
+                     where fusion_person_id = l_item.get_number('PersonId')
+                       and (user_name <> upper(trim(l_item.get_string('Username')))
+                            or nvl(fusion_user_id, '#') <> nvl(to_char(l_item.get_number('UserId')), nvl(fusion_user_id, '#')));
+                end if;
+            end loop;
+            l_has_more := nvl(l_doc.get_boolean('hasMore'), false);
+            l_offset   := l_offset + p_page_size;
+            commit;
+        end loop;
+    end sync_user_names;
 
     procedure sync_from_fusion(p_base_url              in varchar2,
                                p_credential_static_id  in varchar2,
@@ -577,6 +740,9 @@ create or replace package body xxfnd_security_pkg as
             l_offset   := l_offset + p_page_size;
             commit;
         end loop;
+
+        -- user names = the Fusion / identity-domain user names (the e-mail stays for workers without an account)
+        sync_user_names(p_base_url, p_credential_static_id, p_page_size);
 
         -- Workers no longer returned by Fusion (terminated) are disabled, not deleted.
         update xxfnd_employees e
