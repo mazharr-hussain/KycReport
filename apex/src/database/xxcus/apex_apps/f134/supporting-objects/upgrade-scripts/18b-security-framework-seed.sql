@@ -87,7 +87,7 @@ begin
 
     -- Current pages -> features
     pages('HOME',             '1,10010,10050,90,91');
-    pages('MY_TASKS',         '30,31,40,42');
+    pages('MY_TASKS',         '30,31,40');
     pages('PARTIES',          '20,21,22,23,24,25');
     pages('CASES',            '32');
     pages('LOOKUPS',          '101,102');

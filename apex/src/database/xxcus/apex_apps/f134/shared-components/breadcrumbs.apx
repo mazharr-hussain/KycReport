@@ -123,22 +123,6 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry wf-item (
-        name: Task Details
-        pageNumber: 42
-        execution {
-            sequence: 90
-        }
-        appearance {
-            parentEntry: @wf-monitor
-        }
-        link {
-            target: {
-                page: 42
-            }
-        }
-    )
-
     entry admin (
         name: Administration
         pageNumber: 100
