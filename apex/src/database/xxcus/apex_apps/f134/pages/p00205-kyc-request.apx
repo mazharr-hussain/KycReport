@@ -18,7 +18,7 @@ page 205 (
     help {
         helpText:
             ```
-            A KYC request, read only: where it stands, the party and its details, the answers, the documents and the approval history. Changes go through Edit / Withdraw on the KYC Requests list; approvers decide from their task.
+            A KYC request, read only: where it stands, the party and its details, the answers, the documents and the approval history. Edit (top right, for the requester while the request is Draft, Information Needed or Rejected) opens the request wizard; Withdraw is on the KYC Requests list; approvers decide from their task.
             ```
     }
 
@@ -258,6 +258,48 @@ page 205 (
             }
         )
 
+    )
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P205_REQUEST_ID.
+                }
+                clearCache: 201,202,203,204
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- same rule as Edit on the KYC Requests list: the requester, while the request can change
+                select 1
+                  from xxcmp_requests r
+                 where r.request_id = :P205_REQUEST_ID
+                   and upper(r.requester_user_name) = upper(:APP_USER)
+                   and r.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+                ```
+        }
     )
 
     button open-case (

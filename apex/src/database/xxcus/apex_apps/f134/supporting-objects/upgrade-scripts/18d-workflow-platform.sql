@@ -33,7 +33,6 @@ begin
 
     -- My Tasks: Unified Task List (40), task details (42), configuration change review (172).
     page('MY_TASKS', 40);
-    page('MY_TASKS', 42);
     page('MY_TASKS', 172);
     -- Workflow Monitor: tasks (41) and workflows (44) as tabs, workflow details (45).
     page('WORKFLOW_MONITOR', 41, 'Tasks', 10);
@@ -58,6 +57,9 @@ begin
     task_setting('CONFIG_CHANGE', 3, 1, 'HEAD_OF_COMPLIANCE', 'Second-person approval of a configuration change.');
     task_setting('RFI_RESPONSE',  7, 2, 'COMPLIANCE_MANAGER', 'Requesting department answers a request for information.');
     task_setting('RFI_REVIEW',    3, 1, 'COMPLIANCE_MANAGER', 'Compliance reviews the answer to a request for information.');
+
+    -- release 38: Task Details (42) and Case Decision (212) are removed; tasks open their own screens
+    delete from xxfnd_feature_pages where app_alias = 'KYC' and page_id in (42, 212);
 
     xxfnd_util_pkg.set_install_mode(false);
     xxfnd_ddl_pkg.mark_release('R12', 'Release 12: native APEX workflow platform (tasks, My Tasks, monitor, setup)');
