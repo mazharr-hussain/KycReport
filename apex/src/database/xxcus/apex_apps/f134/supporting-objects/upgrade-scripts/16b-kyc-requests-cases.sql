@@ -897,6 +897,7 @@ create or replace package body xxcmp_request_pkg as
         end if;
         xxfnd_vpd_pkg.begin_trusted;    -- the whole party master, but only safe columns leave this function
         select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
+                                         'registration_type' value registration_type,
                                          'registration_number' value registration_number,
                                          'party_name' value party_name, 'country' value country,
                                          'score' value score, 'reg_match' value reg_match, 'reasons' value reasons,
@@ -917,6 +918,8 @@ create or replace package body xxcmp_request_pkg as
                              || case when country_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'JURISDICTION')) || '; ' end,
                              '; ') as reasons
                   from (select p.party_id, p.party_number, p.party_name, p.registration_number,
+                               xxfnd_util_pkg.lookup_meaning(xxcmp_party_pkg.registration_lookup(p.party_type),
+                                                             p.registration_type) as registration_type,
                                xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as status,
                                upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) as party_id_number,
                                xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,

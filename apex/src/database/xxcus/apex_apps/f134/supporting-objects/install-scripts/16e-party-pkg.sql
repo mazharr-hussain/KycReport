@@ -19,8 +19,8 @@ create or replace package xxcmp_party_pkg authid definer as
     -- Lookup type of REGISTRATION_TYPE for the party type: REGISTRATION_TYPE (organisation) / ID_DOCUMENT_TYPE (individual).
     function registration_lookup(p_party_type in varchar2) return varchar2;
 
-    -- Party number of another enabled party with the same party type, registration / ID type (when both are known),
-    -- registration / ID number (ignoring spaces and punctuation) and country, or null. Reads the whole party master (trusted); returns only the number.
+    -- Party number of another enabled party with the same party type, registration / ID type, registration / ID
+    -- number (ignoring spaces and punctuation) and country, or null. Reads the whole party master (trusted); returns only the number.
     function exact_party_number(p_party_type          in varchar2,
                                 p_registration_number in varchar2,
                                 p_jurisdiction        in varchar2,
@@ -184,8 +184,8 @@ create or replace package body xxcmp_party_pkg as
            and p.party_status not in ('REJECTED', 'CANCELLED')
            and p.party_id <> nvl(p_exclude_party_id, -1)
            and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
-           -- same number and country but another registration / ID type is a different party
-           and (p_registration_type is null or p.registration_type is null or p.registration_type = p_registration_type);
+           -- the same registration / ID type too: another type (or none recorded) is a different registration
+           and nvl(p.registration_type, '#') = nvl(p_registration_type, '#');
         xxfnd_vpd_pkg.end_trusted;
         return l_number;
     exception
