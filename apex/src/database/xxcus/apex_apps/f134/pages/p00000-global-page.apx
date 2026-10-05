@@ -624,12 +624,13 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.party_id, j.party_number, j.registration_number,
+                select j.party_id, j.party_number, j.registration_type, j.registration_number,
                        j.party_name, j.country, j.status, j.score, j.reg_match, j.reasons,
                        case when :APP_PAGE_ID = 201 then 'Use this party' end as use_party
                   from json_table(xxcmp_request_pkg.party_candidates_json(:P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_REGISTRATION_NUMBER,
                                       to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_JURISDICTION, to_number(:P0_PARTY_ID)), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  registration_type varchar2(240) path '$.registration_type',
                                   registration_number varchar2(100) path '$.registration_number',
                                   party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
                                   status varchar2(80) path '$.status',
@@ -697,6 +698,16 @@ page 0 (
             }
             layout {
                 sequence: 20
+            }
+        )
+
+        column REGISTRATION_TYPE (
+            type: plainText
+            heading {
+                heading: Registration / ID Type
+            }
+            layout {
+                sequence: 25
             }
         )
 
@@ -1013,7 +1024,7 @@ page 0 (
         column CONTACT_NAME (
             type: plainText
             heading {
-                heading: Contact
+                heading: Name
             }
             layout {
                 sequence: 10
@@ -1021,27 +1032,36 @@ page 0 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <strong>#CONTACT_NAME#</strong>{if JOB_TITLE/} · #JOB_TITLE#{endif/} {if PRIMARY_CONTACT/}<span class="kyc-badge kyc-badge--info">Primary</span>{endif/} {if ENABLED/}<span class="kyc-badge kyc-badge--neutral">Disabled</span>{endif/}<span class="kyc-meta">#EMAIL#{if PHONE/} · #PHONE#{endif/}</span>
+                    <strong>#CONTACT_NAME#</strong> {if PRIMARY_CONTACT/}<span class="kyc-badge kyc-badge--info">Primary</span>{endif/} {if ENABLED/}<span class="kyc-badge kyc-badge--neutral">Disabled</span>{endif/}
                     ```
             }
         )
 
         column JOB_TITLE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Job Title
+            }
             layout {
                 sequence: 20
             }
         )
 
         column EMAIL (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Email
+            }
             layout {
                 sequence: 30
             }
         )
 
         column PHONE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Phone
+            }
             layout {
                 sequence: 40
             }
@@ -1073,6 +1093,14 @@ page 0 (
                 htmlExpression:
                     ```html
                     {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                     ```
             }
         )
@@ -1206,52 +1234,67 @@ page 0 (
             }
         )
 
-        column DIRECTION (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-        )
-
         column RELATED_PARTY (
             type: plainText
             heading {
                 heading: Party
             }
             layout {
-                sequence: 20
+                sequence: 10
             }
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <strong>#RELATED_PARTY#</strong> {if RELATIONSHIP_TYPE/}<span class="kyc-badge kyc-badge--info">#RELATIONSHIP_TYPE#</span>{endif/}<span class="kyc-meta">#DIRECTION#{if OWNERSHIP_PERCENTAGE/} · ownership #OWNERSHIP_PERCENTAGE#%{endif/}{if START_DATE/} · since #START_DATE#{endif/}{if END_DATE/} · until #END_DATE#{endif/}</span>
+                    <strong>#RELATED_PARTY#</strong>
                     ```
             }
         )
 
         column RELATIONSHIP_TYPE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
             layout {
                 sequence: 30
             }
         )
 
         column OWNERSHIP_PERCENTAGE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
             layout {
                 sequence: 40
             }
         )
 
         column START_DATE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: Start Date
+            }
             layout {
                 sequence: 50
             }
         )
 
         column END_DATE (
-            type: hidden
+            type: plainText
+            heading {
+                heading: End Date
+            }
             layout {
                 sequence: 60
             }
@@ -1269,6 +1312,14 @@ page 0 (
                 htmlExpression:
                     ```html
                     {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                     ```
             }
         )
