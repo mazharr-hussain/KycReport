@@ -14,7 +14,7 @@ authentication oci-iam-identity-domain (
     name: OCI IAM Identity Domain (SSO)
     type: socialSignIn
     settings {
-        credentialStore: @APEX_FA_IABWBN-DEV1_DBMS_CRED
+        credentialStore: @apex-fa-iabwbn-dev1-dbms-cred
         authProvider: openidConnect
         discoveryUrl: #FA_IABWBN-DEV1_DISCOVERY_URL#
         scope: profile,email,offline_access,groups,#FA_IABWBN-DEV1_OAUTH_SCOPE#
