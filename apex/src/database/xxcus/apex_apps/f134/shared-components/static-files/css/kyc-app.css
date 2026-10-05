@@ -213,3 +213,7 @@
 #case:not(:has(.t-Form-fieldContainer)) { display: none; }
 .t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc { display: inline-flex; flex-wrap: wrap; width: auto; }
 .t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc .apex-item-option { flex: 0 0 auto; }
+
+/* wizard steps are clickable (kyc-app.js) */
+.kyc-step-link { cursor: pointer; }
+.kyc-step-link:hover .t-WizardSteps-label, .kyc-step-link:focus .t-WizardSteps-label { text-decoration: underline; color: var(--kyc-info, #2f6ea7); }

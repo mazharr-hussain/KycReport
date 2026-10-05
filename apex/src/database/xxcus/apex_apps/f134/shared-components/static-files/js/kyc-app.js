@@ -212,3 +212,47 @@ window.kycQuestionnaire = (function ($) {
         apex.page.submit({ request: "CONFIRM", showWait: true });
     });
 })(apex.jQuery);
+
+/*
+ * Wizard steps (request wizard 201/204/202/203, party wizard 24/25/21): the steps in the progress bar are clickable.
+ * A jump presses the page's own Next or Previous button one step at a time, so every step saves and validates as
+ * usual; the jump stops on the first step that shows an error.
+ */
+(function ($) {
+    "use strict";
+    var KEY = "kycWizardJump";
+    function store(v) { try { if (v) { sessionStorage.setItem(KEY, JSON.stringify(v)); } else { sessionStorage.removeItem(KEY); } } catch (e) { /* no storage */ } }
+    function read() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch (e) { return null; } }
+    function button(label) {
+        return $("button:visible").filter(function () { return $.trim($(this).text()) === label; }).first();
+    }
+    $(function () {
+        var steps = $("#wizard .t-WizardSteps-step"), cur, jump;
+        if (!steps.length) { store(null); return; }
+        cur = steps.index(steps.filter(".is-active"));
+        function go(target) {
+            var btn = button(target > cur ? "Next" : "Previous");
+            if (!btn.length) { store(null); return; }
+            store({ target: target, from: cur, page: $v("pFlowStepId") });
+            btn.trigger("click");
+        }
+        // continue a jump started on the previous step; stop when that step did not move on (an error)
+        jump = read();
+        if (jump) {
+            if (jump.page === $v("pFlowStepId") && jump.from === cur || jump.target === cur) {
+                store(null);
+            } else {
+                setTimeout(function () { go(jump.target); }, 0);
+            }
+        }
+        steps.each(function (i) {
+            if (i === cur) { return; }
+            $(this).addClass("kyc-step-link").attr({ tabindex: 0, role: "link" })
+                .on("click keydown", function (e) {
+                    if (e.type === "keydown" && e.key !== "Enter") { return; }
+                    e.preventDefault();
+                    go(i);
+                });
+        });
+    });
+})(apex.jQuery);

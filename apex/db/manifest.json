@@ -81,6 +81,12 @@
   "upgrade_sequence": 80
  },
  {
+  "name": "13a Database document store",
+  "file": "13a-database-document-store.sql",
+  "install_sequence": 125,
+  "upgrade_sequence": 85
+ },
+ {
   "name": "13 Document store",
   "file": "13-document-store.sql",
   "install_sequence": 130,

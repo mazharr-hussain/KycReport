@@ -24,7 +24,7 @@ comment on column xxfnd_attachment_functions.allowed_file_types is 'File extensi
 
 create or replace package xxfnd_attach_pkg authid definer as
 
-    -- Most specific enabled storage row: entity+category, entity, category, default.
+    -- Most specific enabled storage row: entity+category, entity, category, default; DATABASE when none.
     function resolve_storage(p_entity_name in varchar2, p_category_code in varchar2)
         return xxfnd_storage_config%rowtype;
 
@@ -136,8 +136,8 @@ create or replace package body xxfnd_attach_pkg as
         return l_cfg;
     exception
         when no_data_found then
-            raise_application_error(-20300, 'No document storage is configured for ' || p_entity_name
-                || ' / ' || p_category_code || '. Ask an administrator to set up Document Storage.');
+            -- nothing configured: keep the file in the database
+            return xxfnd_attach_store_pkg.database_config;
     end resolve_storage;
 
     function block_permission(p_app_alias        in varchar2,
@@ -335,6 +335,9 @@ create or replace package body xxfnd_attach_pkg as
         l_stored := xxfnd_attach_store_pkg.upload(p_cfg, p_entity, p_pk1, l_folder, p_file, p_filename, p_mime,
                                                   p_title, p_previous_external_id);
 
+        if p_cfg.storage_type = xxfnd_attach_store_pkg.c_database then
+            return l_stored;    -- no external folder
+        end if;
         -- Remember the record's folder so later files land in the same place.
         merge into xxfnd_entity_containers c
         using (select p_entity e, p_pk1 k, p_cfg.storage_config_id s from dual) x
@@ -493,7 +496,11 @@ create or replace package body xxfnd_attach_pkg as
         check_upload(p_page_id, l_ad.category_code, l_filename, l_blob);
 
         -- Same store as the first version so the external history stays together.
-        select * into l_cfg from xxfnd_storage_config where storage_config_id = l_old.storage_config_id;
+        if l_old.storage_type = xxfnd_attach_store_pkg.c_database then
+            l_cfg := xxfnd_attach_store_pkg.database_config;
+        else
+            select * into l_cfg from xxfnd_storage_config where storage_config_id = l_old.storage_config_id;
+        end if;
         begin
             select title, description into l_title, l_desc
               from xxfnd_documents_tl

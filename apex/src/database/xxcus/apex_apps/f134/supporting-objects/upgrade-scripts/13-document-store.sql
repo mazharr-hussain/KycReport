@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- 07a_xxfnd_attach_store_pkg.sql
 -- Document store transport for attachments (0.1): Oracle UCM (WebCenter Content)
--- and SharePoint (Microsoft Graph). Kept apart from XXFND_ATTACH_PKG so the
+-- and SharePoint (Microsoft Graph); DATABASE (xxfnd_document_files) when nothing is configured. Kept apart from XXFND_ATTACH_PKG so the
 -- attachment rules and the storage protocols can change independently.
 --
 --   UCM         POST <base_url>/cs/idcplg  IdcService=CHECKIN_UNIVERSAL (multipart,
@@ -26,6 +26,10 @@ create or replace package xxfnd_attach_store_pkg authid definer as
         external_document_id varchar2(500),
         external_version_id  varchar2(500),
         external_url         varchar2(2000));
+
+    -- Storage used when no UCM / SharePoint row applies: the file is kept in xxfnd_document_files.
+    c_database constant varchar2(30) := 'DATABASE';
+    function database_config return xxfnd_storage_config%rowtype;
 
     -- Stores a file (new document, or a new version when p_previous_external_id is set).
     function upload(p_cfg                  in xxfnd_storage_config%rowtype,
@@ -414,6 +418,13 @@ create or replace package body xxfnd_attach_store_pkg as
     ----------------------------------------------------------------------------
     -- public
     ----------------------------------------------------------------------------
+    function database_config return xxfnd_storage_config%rowtype is
+        l_cfg xxfnd_storage_config%rowtype;
+    begin
+        l_cfg.storage_type := c_database;
+        return l_cfg;
+    end database_config;
+
     function upload(p_cfg                  in xxfnd_storage_config%rowtype,
                     p_entity               in varchar2,
                     p_pk1                  in varchar2,
@@ -423,8 +434,16 @@ create or replace package body xxfnd_attach_store_pkg as
                     p_mime                 in varchar2,
                     p_title                in varchar2,
                     p_previous_external_id in varchar2) return t_stored is
-        l_ep xxfnd_integration_endpoints%rowtype := get_endpoint(p_cfg.endpoint_code);
+        l_ep     xxfnd_integration_endpoints%rowtype;
+        l_stored t_stored;
     begin
+        if p_cfg.storage_type = c_database then
+            insert into xxfnd_document_files (file_content) values (p_file)
+            returning to_char(file_id) into l_stored.external_document_id;
+            l_stored.external_version_id := l_stored.external_document_id;
+            return l_stored;
+        end if;
+        l_ep := get_endpoint(p_cfg.endpoint_code);
         if p_cfg.storage_type = 'UCM' then
             return ucm_checkin(l_ep, p_cfg, p_entity, p_pk1, p_folder, p_file, p_filename, p_mime,
                                p_title, p_previous_external_id);
@@ -439,7 +458,12 @@ create or replace package body xxfnd_attach_store_pkg as
                         p_pk1        in varchar2) return blob is
         l_cfg xxfnd_storage_config%rowtype;
         l_ep  xxfnd_integration_endpoints%rowtype;
+        l_blob blob;
     begin
+        if p_doc.storage_type = c_database then
+            select file_content into l_blob from xxfnd_document_files where file_id = to_number(p_doc.external_version_id);
+            return l_blob;
+        end if;
         select * into l_cfg from xxfnd_storage_config where storage_config_id = p_doc.storage_config_id;
         select * into l_ep  from xxfnd_integration_endpoints where endpoint_code = l_cfg.endpoint_code;
         if p_doc.storage_type = 'UCM' then

@@ -1,0 +1,258 @@
+/*
+ * kyc-app.js - small application-wide behaviours.
+ * Navigation-bar "Customize" entry (Theme Style Selection feature): the list entry
+ * links to #customize-theme and opens the Universal Theme style dialog.
+ */
+(function ($) {
+    "use strict";
+    $(document).on("click", "a[href='#customize-theme']", function (event) {
+        event.preventDefault();
+        apex.theme.openCustomizationDialog();
+    });
+})(apex.jQuery);
+
+/*
+ * kycQuestionnaire - client side of XXCMP_REQUEST_PKG.QUESTIONNAIRE_HTML (questionnaire form region).
+ * Before the page is submitted it copies every answer into the page's JSON item:
+ *   [{"q": question_id, "o": answer_option_id, "t": "text"}, ...]
+ * The server (ANSWERS_ERROR / SAVE_ANSWERS) re-checks every value.
+ * Usage (page load): kycQuestionnaire.bind('answers', 'P202_ANSWERS');
+ */
+window.kycQuestionnaire = (function ($) {
+    "use strict";
+
+    function collect(regionId) {
+        var answers = [];
+        $("#" + regionId).find("fieldset[data-kyc-q]").each(function () {
+            var fs = $(this),
+                checked = fs.find("input[type=radio]:checked"),
+                input = fs.find(".kyc-q-input");
+            answers.push({
+                q: Number(fs.data("kyc-q")),
+                o: checked.length ? Number(checked.val()) : null,
+                t: input.length ? input.val() : null
+            });
+        });
+        return JSON.stringify(answers);
+    }
+
+    function bind(regionId, jsonItem) {
+        apex.item(jsonItem).setValue(collect(regionId));
+        $(apex.gPageContext$).on("apexbeforepagesubmit", function () {
+            apex.item(jsonItem).setValue(collect(regionId));
+        });
+    }
+
+    return { bind: bind, collect: collect };
+})(apex.jQuery);
+
+/*
+ * kycPerson - employee hover card for list cells (UIUX-STANDARD people rule).
+ * A cell shows <span class="kyc-person" data-user="USER_NAME">Employee name</span>; on the first hover or focus the
+ * card (name, employee no., department, user name) is loaded once from the PERSON_CARD application process.
+ */
+(function ($) {
+    "use strict";
+    $(document).on("mouseenter focusin", ".kyc-person[data-user]:not([data-loaded])", function () {
+        var el = $(this).attr("data-loaded", "Y");
+        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "text" })
+            .done(function (html) { el.append(html); });
+    });
+})(apex.jQuery);
+
+/*
+ * kycSectionNav - section menu of a record page (UIUX-STANDARD 5.3, request pages 203 / 205 / 206).
+ * When the page has the header card (#record_header), every titled region under it gets a link in a menu on the left:
+ * a click jumps to the region on the same page, and the region in view is highlighted while scrolling.
+ * On phones the menu is a horizontal strip.
+ */
+(function ($) {
+    "use strict";
+    $(function () {
+        var header = $("#record_header"), container, regions, nav, list, links = {};
+        if (!header.length) { return; }
+        container = header.closest(".container");
+        regions = container.find(".t-Region").filter(function () {
+            var r = $(this);
+            return this.id && this.id !== "record_header" && r.parents(".t-Region").length === 0
+                && r.is(":visible") && $.trim(r.find(".t-Region-title").first().text()) !== "";
+        });
+        if (regions.length < 2) { return; }
+        nav = $('<nav class="kyc-secnav" aria-label="Sections"><ul></ul></nav>');
+        list = nav.find("ul");
+        regions.each(function () {
+            var a = $('<a></a>').attr("href", "#" + this.id).text($.trim($(this).find(".t-Region-title").first().text()));
+            links[this.id] = a;
+            list.append($("<li></li>").append(a));
+        });
+        container.addClass("kyc-has-secnav").prepend(nav);
+        header.closest(".row").addClass("kyc-secnav-full");
+        // header card stays on top while scrolling; the menu and section jumps sit below it
+        function setOffset() {
+            var top = (apex.theme && apex.theme.defaultStickyTop) ? apex.theme.defaultStickyTop() : 0;
+            container[0].style.setProperty("--kyc-sticky-top", top + "px");
+            container[0].style.setProperty("--kyc-hcard-h", (top + header.outerHeight()) + "px");
+        }
+        setOffset();
+        $(window).on("resize", setOffset);
+        nav.on("click", "a", function (e) {
+            var t = document.getElementById(this.getAttribute("href").substring(1));
+            if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        });
+        if ("IntersectionObserver" in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) {
+                    if (en.isIntersecting) {
+                        list.find("a").removeClass("is-active");
+                        links[en.target.id].addClass("is-active");
+                    }
+                });
+            }, { rootMargin: "-20% 0px -70% 0px" });
+            regions.each(function () { io.observe(this); });
+        }
+        links[regions[0].id].addClass("is-active");
+    });
+})(apex.jQuery);
+
+/*
+ * Dialog buttons: a button with the CSS class "kyc-open-<region static id>" opens that inline dialog
+ * (Add Note, Assign, Withdraw on the case screen). The dialog's own button submits the page.
+ */
+(function ($) {
+    "use strict";
+    $(document).on("click", "button[class*='kyc-open-']", function (e) {
+        var m = this.className.match(/kyc-open-(\S+)/);
+        if (m) {
+            e.preventDefault();
+            apex.theme.openRegion(m[1]);
+        }
+    });
+})(apex.jQuery);
+
+/*
+ * Similar parties - ask before saving (party form of the Global Page on pages 23, 24, 201).
+ * Before a party is saved (Next / Create / Save) and similar parties exist, a dialog asks: "Confirmed - none of these is
+ * this party" (P0_PARTY_MATCH_ACK = Y) or "A possible match exists" (N); then the page is submitted.
+ * apex.page.submit is wrapped so the submit waits for the check: cancelling it from an apexbeforepagesubmit handler is not
+ * reliable (a nested event resets apex.event.gCancelFlag), and the first submit then also went through - release 29:
+ * that created a duplicate request.
+ */
+(function ($) {
+    "use strict";
+    var busy = false, original = apex.page.submit;
+
+    function needsCheck(req) {
+        var page = String($v("pFlowStepId")), name = apex.item("P0_PARTY_NAME");
+        return ["23", "24", "201"].indexOf(page) >= 0 && ["NEXT", "CREATE", "SAVE"].indexOf(req) >= 0
+            && $("#party-form").is(":visible") && name.node && name.getValue()
+            && !apex.item("P0_PARTY_MATCH_ACK").getValue() && apex.item("P0_PARTY_READ_ONLY").getValue() !== "Y";
+    }
+
+    function wrapped(pOptions) {
+        var self = this, args = arguments,
+            req = (typeof pOptions === "string") ? pOptions : (pOptions && pOptions.request),
+            ack = apex.item("P0_PARTY_MATCH_ACK");
+        if (!needsCheck(req)) {
+            return original.apply(self, args);
+        }
+        if (busy) { return; }
+        busy = true;
+        apex.server.process("PARTY_MATCHES", {
+            x01: apex.item("P0_PARTY_TYPE").getValue(), x02: apex.item("P0_PARTY_NAME").getValue(),
+            x03: apex.item("P0_PARTY_REGISTRATION_NUMBER").getValue(), x04: apex.item("P0_PARTY_INCORPORATION_DATE").getValue(),
+            x05: apex.item("P0_PARTY_JURISDICTION").getValue(), x06: apex.item("P0_PARTY_ID").getValue()
+        }, { dataType: "json" }).done(function (d) {
+            busy = false;
+            if (!d || !d.length) { ack.setValue("Y"); original.apply(self, args); return; }
+            var list = d.map(function (p) {
+                return "- " + p.party_name + " (" + p.party_number + (p.country ? ", " + p.country : "") + ", " + p.score + "%)";
+            }).join("\n");
+            apex.message.confirm("Similar parties exist:\n" + list + "\n\nIs one of them this party?", function (none) {
+                ack.setValue(none ? "Y" : "N");
+                original.apply(self, args);
+            }, { title: "Possible Matches", style: "warning",
+                 confirmLabel: "Confirmed - none of these is this party", cancelLabel: "A possible match exists" });
+        }).fail(function () { busy = false; });
+    }
+
+    apex.page.submit = wrapped;
+    if (apex.submit === original) { apex.submit = wrapped; }
+})(apex.jQuery);
+
+/*
+ * Decision buttons (approval screen 206): a button with classes "kyc-decide kyc-decide-<DECISION>" opens the
+ * inline dialog "decision_dialog" titled with the button label; P<page>_DECISION holds the decision and
+ * P<page>_COMMENT is required for every decision except APPROVE. Confirm submits the request CONFIRM; the
+ * server validations repeat the comment rule.
+ */
+(function ($) {
+    "use strict";
+    function pageItem(name) { return "P" + $v("pFlowStepId") + "_" + name; }
+    $(document).on("click", "button.kyc-decide", function (e) {
+        var m = this.className.match(/kyc-decide-([A-Z_]+)/), label = $.trim($(this).text()),
+            required = m && m[1] !== "APPROVE", dlg = $("#decision_dialog");
+        if (!m) { return; }
+        e.preventDefault();
+        apex.item(pageItem("DECISION")).setValue(m[1]);
+        $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
+        apex.message.clearErrors();
+        dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
+        apex.theme.openRegion("decision_dialog");
+        dlg.dialog("option", "title", label);
+    });
+    $(document).on("click", "button.kyc-decide-confirm", function (e) {
+        var comment = pageItem("COMMENT");
+        e.preventDefault();
+        if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: comment,
+                                       message: "Enter a comment.", unsafe: false }]);
+            return;
+        }
+        apex.page.submit({ request: "CONFIRM", showWait: true });
+    });
+})(apex.jQuery);
+
+/*
+ * Wizard steps (request wizard 201/204/202/203, party wizard 24/25/21): the steps in the progress bar are clickable.
+ * A jump presses the page's own Next or Previous button one step at a time, so every step saves and validates as
+ * usual; the jump stops on the first step that shows an error.
+ */
+(function ($) {
+    "use strict";
+    var KEY = "kycWizardJump";
+    function store(v) { try { if (v) { sessionStorage.setItem(KEY, JSON.stringify(v)); } else { sessionStorage.removeItem(KEY); } } catch (e) { /* no storage */ } }
+    function read() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch (e) { return null; } }
+    function button(label) {
+        return $("button:visible").filter(function () { return $.trim($(this).text()) === label; }).first();
+    }
+    $(function () {
+        var steps = $("#wizard .t-WizardSteps-step"), cur, jump;
+        if (!steps.length) { store(null); return; }
+        cur = steps.index(steps.filter(".is-active"));
+        function go(target) {
+            var btn = button(target > cur ? "Next" : "Previous");
+            if (!btn.length) { store(null); return; }
+            store({ target: target, from: cur, page: $v("pFlowStepId") });
+            btn.trigger("click");
+        }
+        // continue a jump started on the previous step; stop when that step did not move on (an error)
+        jump = read();
+        if (jump) {
+            if (jump.page === $v("pFlowStepId") && jump.from === cur || jump.target === cur) {
+                store(null);
+            } else {
+                setTimeout(function () { go(jump.target); }, 0);
+            }
+        }
+        steps.each(function (i) {
+            if (i === cur) { return; }
+            $(this).addClass("kyc-step-link").attr({ tabindex: 0, role: "link" })
+                .on("click keydown", function (e) {
+                    if (e.type === "keydown" && e.key !== "Enter") { return; }
+                    e.preventDefault();
+                    go(i);
+                });
+        });
+    });
+})(apex.jQuery);
