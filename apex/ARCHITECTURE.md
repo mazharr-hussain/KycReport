@@ -63,6 +63,8 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 
 - **Release 34 (patch 19):** attachments: storage type DATABASE (table `xxfnd_document_files`, 13a) is the default when no enabled `xxfnd_storage_config` row applies (`xxfnd_attach_pkg.resolve_storage` → `xxfnd_attach_store_pkg.database_config`; no entity container). kyc-app.js: wizard progress steps (`#wizard .t-WizardSteps-step`) are clickable and press the page's Next / Previous step by step (sessionStorage `kycWizardJump`). 200 Withdraw shows a success message.
 
+- **Release 37 (patch 22):** XXFND_EMPLOYEES: USER_NAME = identity-domain user name, EMAIL_ADDRESS, FUSION_USER_ID (04a). `xxfnd_security_pkg.sync_user_names` (HCM userAccounts, run by sync_from_fusion), `rename_user` (all user columns + WHO columns via `xxfnd_util_pkg.preserve_who`, open APEX tasks; trigger XXFND_EMPLOYEES_RENAME; `renaming` lets XXCMP_CASES_LOCK pass), `map_login_user` = post-authentication of all schemes (login by e-mail with DB / APEX accounts). WHO trigger generator honours preserve_who.
+
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),
   `workflows_chunk5.py`. After running `pages_chunk5.py`, restore pages not in scope (`git checkout` them).

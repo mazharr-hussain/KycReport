@@ -332,6 +332,32 @@ page 104 (
         }
     )
 
+    pageItem P104_FUSION_USER_ID (
+        type: displayOnly
+        label {
+            label: Fusion User ID
+            alignment: left
+        }
+        layout {
+            sequence: 75
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: FUSION_USER_ID
+            dataType: varchar2
+        }
+    )
+
     pageItem P104_ENABLED_FLAG (
         type: switch
         label {

@@ -43,6 +43,15 @@ installScript 04-kyc-tables-xxcmp (
     }
 )
 
+installScript 04a-employees-fusion-user (
+    execution {
+        sequence: 45
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+)
+
 installScript 05-core-packages-part-1-of-2 (
     execution {
         sequence: 50
