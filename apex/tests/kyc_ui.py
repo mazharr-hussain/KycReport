@@ -80,6 +80,17 @@ def click(pg, label, confirm=False):
     pg.wait_for_load_state('networkidle')
 
 
+def decide(pg, label, comment=None):
+    """Approval screen 206: a decision button opens the Decision dialog; Confirm submits."""
+    pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*%s\s*$' % label)).first.click()
+    pg.locator('#decision_dialog').wait_for(state='visible')
+    if comment is not None:
+        pg.fill('#P206_COMMENT', comment)
+    with pg.expect_navigation(timeout=120000):
+        pg.locator('#decision_dialog button.kyc-decide-confirm').click()
+    pg.wait_for_load_state('networkidle')
+
+
 def open_task(pg, s, page_item, task):
     """The task list links each task to its details page (task definition details page)."""
     # search by subject (on a busy list the task may be beyond the first page); a new task can take a
@@ -157,9 +168,9 @@ with sync_playwright() as p:
     with pg.expect_navigation():
         link.click()
     pg.wait_for_load_state('networkidle')
-    ok('the task opens the approval screen with the decision buttons (one sticky action bar)',
-       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 1)
-    click(pg, 'Approve')
+    ok('the task opens the approval screen with Approve in the top and the bottom bar',
+       pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 2)
+    decide(pg, 'Approve')
     ok(f'checklist approved ({(errors(pg) or "no error")})', not errors(pg))
     case = wait_db(f"select max(case_id) from xxcmp_cases where request_id = {req}")
     itask = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'CASE_INVESTIGATION' and detail_pk = '{case}'")

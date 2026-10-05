@@ -42,6 +42,22 @@ page 211 (
         }
     )
 
+    region top-buttons (
+        name: Case Actions
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: top_buttons
+        }
+    )
+
     region buttons (
         name: Buttons
         type: staticContent
@@ -931,9 +947,7 @@ page 211 (
             whenNoDataFound: No investigation questions are configured.
         }
         toolbar {
-            controls: [
-                saveButton
-            ]
+            show: false
         }
 
         savedReport PRIMARY (
@@ -1810,8 +1824,8 @@ page 211 (
         label: Assign
         layout {
             sequence: 1
-            region: @buttons
-            slot: PREVIOUS
+            region: @top-buttons
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -1949,8 +1963,8 @@ page 211 (
         label: Withdraw from Approval
         layout {
             sequence: 2
-            region: @buttons
-            slot: PREVIOUS
+            region: @top-buttons
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -2822,6 +2836,7 @@ page 211 (
                 ```sql
                 select 'Yes' as display_value, 'Y' as return_value from dual union all select 'No', 'N' from dual
                 ```
+            displayNullValue: false
         }
         layout {
             sequence: 70
@@ -2831,7 +2846,10 @@ page 211 (
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+            ]
         }
         help {
             helpText: Required before approval for high-risk and Enhanced KYC cases.

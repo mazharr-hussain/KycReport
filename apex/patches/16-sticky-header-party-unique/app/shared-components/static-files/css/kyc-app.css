@@ -1,0 +1,215 @@
+/* KYC app on Universal Theme / Redwood Light – implements apex/UIUX-STANDARD.md (patch 13).
+   Theme variables first, plain values as fallback. No page has its own styling: every visual rule lives here. */
+
+:root {
+    --kyc-text: var(--ut-body-text-color, #161513);
+    --kyc-label: #4a4541;
+    --kyc-muted: #6f6964;
+    --kyc-border: var(--ut-component-border-color, #e4e1dd);
+    --kyc-shade: #f1efed;
+    --kyc-header-row: #e7e4e0;
+    --kyc-accent: #312d2a;
+    --kyc-info-bg: #e4f1f7;    --kyc-info: #04608a;
+    --kyc-success-bg: #e6f3e8; --kyc-success: #2d6c35;
+    --kyc-warning-bg: #fdf1dc; --kyc-warning: #8a5a00;
+    --kyc-danger-bg: #fbe7e5;  --kyc-danger: #b3261e;
+    --kyc-neutral-bg: #efedeb; --kyc-neutral: #55504b;
+}
+
+/* ---- 2.1 typography: data 14px, nothing the user reads below 12px ---- */
+.t-Body { font-size: .875rem; line-height: 1.45; }
+.t-Body-content { --ut-region-body-font-size: .875rem; }
+
+/* ---- 2.3 plain title bar: no Redwood pattern strip, a thin line instead ---- */
+.t-Body .t-Body-title { --ut-body-title-border-width: 1px; --ut-body-title-border-color: var(--kyc-border); }
+.t-Body-title:after { background-image: none !important; }
+.t-BreadcrumbRegion-titleText { font-size: 1.625rem; font-weight: 700; }
+.t-Breadcrumb-label { font-size: .875rem; }
+
+/* ---- section titles: 20px bold on a shaded strip with a dark accent on the left ---- */
+.t-Region:not(.t-Region--noUI):not(.t-Region--hideHeader) > .t-Region-header {
+    background-color: var(--kyc-shade);
+    border-bottom: 1px solid var(--kyc-border);
+    border-left: 4px solid var(--kyc-accent);
+}
+.t-Region-title { font-size: 1.25rem; font-weight: 700; color: var(--kyc-text); }
+/* group title inside a section (Identity, Contact …) */
+.kyc-group-title { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 .75rem; padding-bottom: .375rem;
+                   border-bottom: 2px solid var(--kyc-border); }
+.kyc-group-title:first-child { margin-top: 0; }
+
+/* ---- labels 13px bold dark grey; values 15px bold (read-only) ---- */
+.t-Form-label { font-size: .8125rem; font-weight: 700; color: var(--kyc-label); }
+.t-Form-fieldContainer .apex-item-text,
+.t-Form-fieldContainer .apex-item-select,
+.t-Form-fieldContainer .apex-item-textarea,
+.t-Form-fieldContainer .apex-item-datepicker input { font-size: .875rem; }
+.t-Form-fieldContainer .display_only { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); }
+/* read-only values read as text, not as grey bars */
+.t-Form-fieldContainer.is-readonly .t-Form-inputContainer,
+.t-Form-fieldContainer .display_only {
+    border-color: transparent; background-color: transparent; box-shadow: none; padding-left: 0;
+}
+.t-Form-fieldContainer--stacked .t-Form-labelContainer { padding-bottom: .25rem; }
+/* "Required" text under fields: the asterisk is enough */
+.t-Form-fieldContainer .t-Form-itemRequired { display: none; }
+/* labels above: inputs fill their column up to a readable width */
+.t-Form-fieldContainer--stacked .t-Form-inputContainer { max-width: 40rem; }
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-text,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-select,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-textarea,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-group,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > a-date-picker,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-popup-lov,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper > .apex-item-number,
+.t-Form-fieldContainer--stacked .t-Form-itemWrapper textarea { width: 100%; max-width: none; }
+.t-Form-fieldContainer.is-required .t-Form-label:after { content: " *"; color: var(--kyc-danger); }
+
+/* label / value lists */
+.t-AVPList-label { font-size: .8125rem; font-weight: 700; color: var(--kyc-label); }
+.t-AVPList-value { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); }
+
+/* record grid (header card, party card): label above value, 3 / 2 / 1 columns */
+.kyc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.kyc-grid .kyc-f-label { display: block; font-size: .8125rem; font-weight: 700; color: var(--kyc-label); margin-bottom: .25rem; }
+.kyc-grid .kyc-f-value { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); overflow-wrap: anywhere; }
+.kyc-grid .kyc-f-meta  { display: block; font-size: .75rem; font-weight: 400; color: var(--kyc-muted); }
+.kyc-grid .kyc-f--full { grid-column: 1 / -1; }
+@media (max-width: 1199px) { .kyc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px)  { .kyc-grid { grid-template-columns: 1fr; } }
+
+/* ---- 4.2 tables: 14px bold headers on a darker row, 14px data, roomy rows ---- */
+.t-Report-colHead,
+.a-IRR-header,
+.a-GV-header {
+    font-size: .875rem; font-weight: 700; color: var(--kyc-text);
+    background-color: var(--kyc-header-row);
+}
+.a-IRR-header .a-IRR-headerLink, .a-IRR-headerLabel { font-weight: 700; color: var(--kyc-text); }
+.t-Report-cell,
+.a-IRR-table td,
+.a-GV-cell { font-size: .875rem; padding-top: .75rem; padding-bottom: .75rem; vertical-align: top; }
+.kyc-meta { display: block; font-size: .75rem; color: var(--kyc-muted); }
+
+/* ---- 9 status badges (xxfnd_ui_pkg.badge / status_badge) ---- */
+.kyc-badge { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .625rem; border-radius: 999px;
+             font-size: .75rem; font-weight: 700; line-height: 1.4; white-space: nowrap; }
+.kyc-badge--neutral { background: var(--kyc-neutral-bg); color: var(--kyc-neutral); }
+.kyc-badge--info    { background: var(--kyc-info-bg);    color: var(--kyc-info); }
+.kyc-badge--success { background: var(--kyc-success-bg); color: var(--kyc-success); }
+.kyc-badge--warning { background: var(--kyc-warning-bg); color: var(--kyc-warning); }
+.kyc-badge--danger  { background: var(--kyc-danger-bg);  color: var(--kyc-danger); }
+.kyc-badge:empty, .kyc-person:empty { display: none; }
+
+/* ---- people: employee name with a hover card (xxfnd_ui_pkg.person_html) ---- */
+.kyc-person { position: relative; border-bottom: 1px dotted currentColor; cursor: default; }
+.kyc-person--system { border-bottom: 0; color: var(--kyc-muted); }
+.kyc-person-card { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 1000; min-width: 16rem;
+                   padding: .5rem 0; background: #fff; border: 1px solid var(--kyc-border); border-radius: 8px;
+                   box-shadow: 0 6px 20px rgba(0, 0, 0, .15); font-size: .8125rem; font-weight: 400; color: var(--kyc-text);
+                   white-space: nowrap; }
+.kyc-person:hover .kyc-person-card,
+.kyc-person:focus .kyc-person-card { display: block; }
+.kyc-person-card table { border-collapse: collapse; }
+.kyc-person-card th, .kyc-person-card td { padding: .2rem .75rem; text-align: left; border: 0; background: none; }
+.kyc-person-card th { font-weight: 700; color: var(--kyc-label); }
+.a-IRR-table .kyc-person-card td, .a-IRR-table .kyc-person-card th,
+.t-Report-cell .kyc-person-card td, .t-Report-cell .kyc-person-card th {
+    background: transparent !important; border: 0 !important; padding: .2rem .75rem !important; font-size: .8125rem; }
+/* let the card show outside report cells */
+.a-IRR-tableContainer, .t-Report-wrap { overflow: visible; }
+
+/* ---- 5.1 header card ---- */
+.kyc-hcard-top { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+.kyc-hcard-title { font-size: 1.25rem; font-weight: 700; }
+.kyc-hcard-line { color: var(--kyc-muted); margin-top: .375rem; }
+.kyc-hcard-line b { color: var(--kyc-text); font-weight: 600; }
+.kyc-meta-inline { color: var(--kyc-muted); font-size: .875rem; }
+.kyc-party-title { margin-bottom: .5rem; }
+
+/* ---- 7.2 sticky action bar (Buttons Container region with CSS class kyc-actionbar) ---- */
+.kyc-actionbar { position: sticky; bottom: 0; z-index: 50; background: #fff;
+                 border-top: 1px solid var(--kyc-border); box-shadow: 0 -2px 8px rgba(0, 0, 0, .06); }
+
+/* ---- 8 KPI cards (xxfnd_ui_pkg.kpi_card): whole card is the link ---- */
+.kyc-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.kyc-kpi { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.25rem; background: #fff; color: var(--kyc-text);
+           border: 1px solid var(--kyc-border); border-top: 4px solid var(--kyc-neutral); border-radius: 8px;
+           text-decoration: none; transition: box-shadow .15s; }
+.kyc-kpi:hover, .kyc-kpi:focus { box-shadow: 0 4px 14px rgba(0, 0, 0, .1); text-decoration: none; }
+.kyc-kpi-icon { font-size: 1.25rem; color: var(--kyc-muted); }
+.kyc-kpi-count { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.kyc-kpi-label { font-size: .875rem; font-weight: 700; color: var(--kyc-label); }
+.kyc-kpi--info    { border-top-color: var(--kyc-info); }    .kyc-kpi--info .kyc-kpi-icon    { color: var(--kyc-info); }
+.kyc-kpi--warning { border-top-color: #c27c0e; }            .kyc-kpi--warning .kyc-kpi-icon { color: #c27c0e; }
+.kyc-kpi--danger  { border-top-color: var(--kyc-danger); }  .kyc-kpi--danger .kyc-kpi-icon  { color: var(--kyc-danger); }
+.kyc-kpi--danger .kyc-kpi-count { color: var(--kyc-danger); }
+.kyc-kpi--neutral .kyc-kpi-count { color: var(--kyc-muted); }
+
+/* due dates: overdue red, due soon amber */
+.kyc-due--danger  { color: var(--kyc-danger); font-weight: 700; }
+.kyc-due--danger:after { content: " · overdue"; font-weight: 400; }
+.kyc-due--warning { color: var(--kyc-warning); font-weight: 700; }
+
+/* wizard progress: current step stands out */
+.t-WizardSteps-label { font-size: .875rem; }
+.t-WizardSteps-step.is-active .t-WizardSteps-label { font-weight: 700; }
+
+/* ---- case screen: section list (left column, release 27) ---- */
+.kyc-case-nav { list-style: none; margin: 0; padding: 0; }
+.kyc-case-nav-item a { display: flex; align-items: center; gap: .5rem; padding: .55rem .75rem; border-radius: 6px;
+                       color: inherit; text-decoration: none; font-size: .9375rem; }
+.kyc-case-nav-item a:hover { background-color: var(--ut-component-highlight-background-color, #f1efec); }
+.kyc-case-nav-item.is-current a { font-weight: 700; background-color: var(--kyc-info-bg); color: var(--kyc-info); }
+.kyc-case-nav-item.is-done .kyc-case-nav-icon { color: var(--kyc-success); }
+.kyc-case-nav-item.is-warn .kyc-case-nav-icon { color: var(--kyc-warning); }
+.kyc-case-nav-item.is-todo .kyc-case-nav-icon { color: var(--kyc-neutral); }
+.kyc-case-nav-progress { margin: .75rem .75rem 0; font-weight: 600; }
+
+/* ---- 5.1 header card of a record (request: xxcmp_request_ui_pkg.header_html) ---- */
+.kyc-hcard { background: #fff; border: 1px solid var(--kyc-border); border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; }
+
+/* ---- 5.3 section menu (kyc-app.js kycSectionNav) ---- */
+.kyc-has-secnav { display: grid; grid-template-columns: 13rem minmax(0, 1fr); column-gap: 1rem; align-items: start; }
+.kyc-has-secnav > .row { grid-column: 2; }
+.kyc-has-secnav > .row.kyc-secnav-full { grid-column: 1 / -1; grid-row: 1; position: sticky; top: var(--kyc-sticky-top, 0px); z-index: 50;
+    background: var(--ut-body-background-color, #f5f4f2); padding-top: .5rem;
+    box-shadow: 0 -1.5rem 0 var(--ut-body-background-color, #f5f4f2); }
+.kyc-has-secnav > .row.kyc-secnav-full .kyc-hcard { margin-bottom: .75rem; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+.kyc-secnav { grid-column: 1; grid-row: 2 / span 100; position: sticky; top: calc(var(--kyc-hcard-h, 0px) + 1.25rem); align-self: start;
+              background: #fff; border: 1px solid var(--kyc-border); border-radius: 8px; padding: .5rem; }
+.kyc-secnav ul { list-style: none; margin: 0; padding: 0; }
+.kyc-secnav a { display: block; padding: .5rem .75rem; border-radius: 6px; color: var(--kyc-text); text-decoration: none; font-size: .875rem; }
+.kyc-secnav a:hover { background: var(--kyc-shade); }
+.kyc-secnav a.is-active { background: var(--kyc-info-bg); color: var(--kyc-info); font-weight: 700; }
+.kyc-has-secnav .t-Region { scroll-margin-top: calc(var(--kyc-hcard-h, 0px) + 1.5rem); }
+@media (max-width: 767px) {
+    .kyc-has-secnav { display: block; }
+    .kyc-secnav { position: sticky; top: calc(var(--kyc-hcard-h, 0px) + .75rem); z-index: 40; margin-bottom: 1rem; overflow-x: auto; }
+    .kyc-secnav ul { display: flex; gap: .25rem; }
+    .kyc-secnav a { white-space: nowrap; }
+}
+
+/* ---- 5.5 questionnaire answers (xxcmp_request_ui_pkg.answers_html) ---- */
+.kyc-qa { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.kyc-qa-q { font-size: .8125rem; font-weight: 700; color: var(--kyc-label); margin-bottom: .25rem; }
+.kyc-qa-a { font-size: .9375rem; font-weight: 700; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.kyc-qa-score { display: flex; gap: 2rem; padding: .75rem 1rem; background: var(--kyc-shade); border-radius: 8px; margin-bottom: 1rem; }
+.kyc-qa-score b { display: block; font-size: 1.5rem; line-height: 1.2; }
+.kyc-qa-score span { font-size: .75rem; color: var(--kyc-muted); }
+.kyc-text-danger { color: var(--kyc-danger); } .kyc-text-warning { color: #c27c0e; }
+@media (max-width: 767px) { .kyc-qa { grid-template-columns: 1fr; } }
+
+/* a button bar with no button (all conditional) takes no space */
+.t-ButtonRegion:not(:has(button)):not(:has(.t-Form-fieldContainer)) { display: none; }
+/* choice between 2-3 paths: pill buttons in one row */
+.t-Form-fieldContainer--radioButtonGroup .apex-item-grid,
+.t-Form-fieldContainer--radioButtonGroup .apex-item-grid-row { display: flex; flex-wrap: wrap; }
+.t-Form-fieldContainer--radioButtonGroup .apex-item-grid-row { flex: 1 1 auto; }
+/* a required value not set yet: warning with a link to the section that sets it */
+.kyc-missing { color: var(--kyc-warning); font-weight: 700; }
+.kyc-missing a { font-weight: 400; }
+/* case screen: the case form region has no visible field outside an editable Risk Assessment */
+#case:not(:has(.t-Form-fieldContainer)) { display: none; }
+.t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc { display: inline-flex; flex-wrap: wrap; width: auto; }
+.t-Form-fieldContainer--radioButtonGroup .apex-item-group--rc .apex-item-option { flex: 0 0 auto; }

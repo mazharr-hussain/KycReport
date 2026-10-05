@@ -87,6 +87,14 @@ window.kycQuestionnaire = (function ($) {
         });
         container.addClass("kyc-has-secnav").prepend(nav);
         header.closest(".row").addClass("kyc-secnav-full");
+        // header card stays on top while scrolling; the menu and section jumps sit below it
+        function setOffset() {
+            var top = (apex.theme && apex.theme.defaultStickyTop) ? apex.theme.defaultStickyTop() : 0;
+            container[0].style.setProperty("--kyc-sticky-top", top + "px");
+            container[0].style.setProperty("--kyc-hcard-h", (top + header.outerHeight()) + "px");
+        }
+        setOffset();
+        $(window).on("resize", setOffset);
         nav.on("click", "a", function (e) {
             var t = document.getElementById(this.getAttribute("href").substring(1));
             if (t) { e.preventDefault(); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
@@ -169,4 +177,38 @@ window.kycQuestionnaire = (function ($) {
 
     apex.page.submit = wrapped;
     if (apex.submit === original) { apex.submit = wrapped; }
+})(apex.jQuery);
+
+/*
+ * Decision buttons (approval screen 206): a button with classes "kyc-decide kyc-decide-<DECISION>" opens the
+ * inline dialog "decision_dialog" titled with the button label; P<page>_DECISION holds the decision and
+ * P<page>_COMMENT is required for every decision except APPROVE. Confirm submits the request CONFIRM; the
+ * server validations repeat the comment rule.
+ */
+(function ($) {
+    "use strict";
+    function pageItem(name) { return "P" + $v("pFlowStepId") + "_" + name; }
+    $(document).on("click", "button.kyc-decide", function (e) {
+        var m = this.className.match(/kyc-decide-([A-Z_]+)/), label = $.trim($(this).text()),
+            required = m && m[1] !== "APPROVE", dlg = $("#decision_dialog");
+        if (!m) { return; }
+        e.preventDefault();
+        apex.item(pageItem("DECISION")).setValue(m[1]);
+        $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
+        apex.message.clearErrors();
+        dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
+        apex.theme.openRegion("decision_dialog");
+        dlg.dialog("option", "title", label);
+    });
+    $(document).on("click", "button.kyc-decide-confirm", function (e) {
+        var comment = pageItem("COMMENT");
+        e.preventDefault();
+        if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: comment,
+                                       message: "Enter a comment.", unsafe: false }]);
+            return;
+        }
+        apex.page.submit({ request: "CONFIRM", showWait: true });
+    });
 })(apex.jQuery);

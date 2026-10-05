@@ -1,0 +1,28 @@
+authentication oracle-apex-accounts (
+    name: Oracle APEX Accounts
+    type: oracleApexAccounts
+)
+
+
+authentication oracle-database-accounts (
+    name: Oracle Database Accounts
+    type: databaseAccounts
+)
+
+
+authentication oci-iam-identity-domain (
+    name: OCI IAM Identity Domain (SSO)
+    type: socialSignIn
+    settings {
+        credentialStore: @oci-iam-identity-domain
+        authProvider: openidConnect
+        discoveryUrl: https://idcs-REPLACE.identity.oraclecloud.com/.well-known/openid-configuration
+        scope: openid,email,profile
+        username: #sub#
+        convertUsernameToUpperCase: true
+        verifyAttrs: true
+    }
+    loginProcessing {
+        switchInSession: true
+    }
+)
