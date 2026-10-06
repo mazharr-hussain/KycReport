@@ -10,6 +10,16 @@ page 211 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            // the investigation questionnaire opens ready to type (the grid toolbar with its Edit button is hidden)
+            var findings = apex.region('findings');
+            if (findings && findings.call('getViews', 'grid').model.getOption('editable')) {
+                findings.call('getActions').set('edit', true);
+            }
+            ```
+    }
     security {
         authorizationScheme: @page-view
         pageAccessProtection: argumentsMustHaveChecksum
@@ -920,6 +930,10 @@ page 211 (
                   from xxcmp_request_answers a
                  where a.case_id = :P211_CASE_ID
                    and a.respondent_type = 'OFFICER'
+                   -- the Enhanced Due Diligence questions only when the case is Enhanced KYC
+                   and (nvl((select q.section_name from xxcmp_questions q where q.question_id = a.question_id), '#') <> 'Enhanced Due Diligence'
+                        or (select c.enhanced_kyc_flag from xxcmp_cases c where c.case_id = a.case_id) = 'Y')
+                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
                 ```
             pageItemsToSubmit: P211_CASE_ID
         }
@@ -1001,13 +1015,6 @@ page 211 (
                 ```
         }
 
-        column APEX$ROW_SELECTOR (
-            type: rowSelector
-            layout {
-                sequence: 5
-            }
-        )
-
         column ANSWER_ID (
             type: hidden
             layout {
@@ -1068,10 +1075,21 @@ page 211 (
         column ANSWER_OPTION_ID (
             type: selectList
             heading {
-                heading: Answer
+                heading: Choice
             }
             layout {
                 sequence: 50
+            }
+            serverSideCondition {
+                type: rowsReturned
+                sqlQuery:
+                    ```sql
+                    select 1
+                      from xxcmp_answer_options o
+                      join xxcmp_questions q on q.question_id = o.question_id
+                      join xxcmp_questionnaires qn on qn.questionnaire_code = q.questionnaire_code
+                     where qn.audience = 'OFFICER' and o.enabled_flag = 'Y'
+                    ```
             }
             lov {
                 type: sqlQuery
@@ -1098,7 +1116,7 @@ page 211 (
         column ANSWER_TEXT (
             type: textarea
             heading {
-                heading: Findings
+                heading: Answer
             }
             layout {
                 sequence: 60

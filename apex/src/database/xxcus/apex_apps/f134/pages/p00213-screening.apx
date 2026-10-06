@@ -99,38 +99,11 @@ page 213 (
     )
 
     pageItem P213_PARTY_ID (
-        type: selectList
-        label {
-            label: Party
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select p.party_name || ' (' || p.party_number || ')' as display_value, p.party_id as return_value
-                  from xxcmp_parties p
-                 where p.party_id = (select c.party_id from xxcmp_cases c where c.case_id = :P213_CASE_ID)
-                    or p.party_id in (select r.object_party_id from xxcmp_party_relationships r
-                                       where r.subject_party_id = (select c.party_id from xxcmp_cases c where c.case_id = :P213_CASE_ID)
-                                         and (r.end_date is null or r.end_date >= trunc(sysdate)))
-                 order by 1
-                ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
+        type: hidden
         layout {
             sequence: 10
             region: @form
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-above
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
         }
         source {
             formRegion: @form
@@ -141,11 +114,9 @@ page 213 (
             type: sqlQuerySingleValue
             sqlQuerySingleValue:
                 ```sql
+                -- the case's party (no choice on the screen)
                 select party_id from xxcmp_cases where case_id = :P213_CASE_ID
                 ```
-        }
-        help {
-            helpText: The party or a related party of the case.
         }
     )
 
