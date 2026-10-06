@@ -300,8 +300,13 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'DUE_DILIGENCE_TYPE', 'varchar2(30)');
     -- release 42: the risk level of the screened party (lookup RISK_TIER); RESULT_NOTES is its conclusion
     xxfnd_ddl_pkg.add_column('XXCMP_SCREENINGS', 'RISK_TIER', 'varchar2(30)');
+    -- release 43: the officer's report conclusion and next steps (required to submit for approval)
+    xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'REPORT_CONCLUSION', 'varchar2(4000)');
+    xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'NEXT_STEPS', 'varchar2(4000)');
 end;
 /
+comment on column xxcmp_cases.report_conclusion is 'Report conclusion written by the officer (case Risk Assessment); required to submit for approval.';
+comment on column xxcmp_cases.next_steps is 'Next steps (e.g. on-going monitoring) written by the officer; required to submit for approval.';
 comment on column xxcmp_screenings.risk_tier is 'Risk level of the screened party (lookup RISK_TIER). RESULT_NOTES = the conclusion, SOURCE_REFERENCE = the source, MATCH_STATUS = the results.';
 comment on column xxcmp_cases.due_diligence_type is 'Due diligence type (lookup DUE_DILIGENCE_TYPE: SIMPLIFIED, STANDARD, ENHANCED). ENHANCED_KYC_FLAG = Y exactly when ENHANCED (trigger XXCMP_CASES_DD).';
 comment on column xxcmp_requests.business_relationship is 'What the counterparty is to the company for this request (lookup BUSINESS_RELATIONSHIP: customer, vendor...). One per request; copied to the case.';
@@ -520,7 +525,8 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Case screen (211, release 27): the sections an officer works through, in order.
     -- release 29: Contacts and Ownership merged into Party
-    c_sections constant varchar2(200) := 'SUMMARY:PARTY:SCREENING:DOCUMENTS:RISK:NOTES:REVIEW';
+    -- release 42: Ownership Tree (the whole ownership tree with each party's screening) after Party
+    c_sections constant varchar2(200) := 'SUMMARY:PARTY:TREE:SCREENING:DOCUMENTS:RISK:NOTES:REVIEW';
     -- DONE, TODO or WARN (an open request for information) for one section.
     function section_state(p_case_id in number, p_section in varchar2) return varchar2;
     -- The section list with each section's state and the progress; links open the section (P211_SECTION).
@@ -1806,6 +1812,9 @@ create or replace package body xxcmp_case_pkg as
         if l_case.risk_tier is null then
             return 'Set the risk classification.';
         end if;
+        if trim(l_case.report_conclusion) is null or trim(l_case.next_steps) is null then
+            return 'Enter the report conclusion and the next steps (Risk Assessment).';
+        end if;
         select count(*) into l_count from xxcmp_screenings where case_id = p_case_id;
         if l_count = 0 then
             return 'Record at least one screening.';
@@ -2000,6 +2009,13 @@ create or replace package body xxcmp_case_pkg as
                  where exists (select 1 from xxcmp_party_relationships where object_party_id = l_party.party_id)
                     or exists (select 1 from xxcmp_ubo_determinations where case_id = p_case_id);
                 return case when l_count > 0 then 'DONE' else 'TODO' end;
+            when 'TREE' then
+                -- every party in the ownership tree has a screening in this case
+                select count(*) into l_count
+                  from json_table(xxcmp_party_pkg.ownership_tree_json(l_case.party_id, null, p_case_id), '$[*]'
+                         columns (screening_id number path '$.screening_id')) j
+                 where j.screening_id is null;
+                return case when l_count = 0 then 'DONE' else 'TODO' end;
             when 'SCREENING' then
                 select count(*) into l_count from xxcmp_screenings where case_id = p_case_id;
                 return case when l_count > 0 then 'DONE' else 'TODO' end;

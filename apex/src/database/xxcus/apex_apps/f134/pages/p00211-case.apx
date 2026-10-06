@@ -925,6 +925,86 @@ page 211 (
                 ```
         }
     )
+    pageItem P211_REPORT_CONCLUSION (
+        type: textarea
+        label {
+            label: Report Conclusion
+            alignment: left
+        }
+        layout {
+            sequence: 112
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @case
+            column: REPORT_CONCLUSION
+            dataType: varchar2
+        }
+        help {
+            helpText: The conclusion of the KYC report (what was checked and found). Required to submit for approval.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    pageItem P211_NEXT_STEPS (
+        type: textarea
+        label {
+            label: Next Steps
+            alignment: left
+        }
+        layout {
+            sequence: 114
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @case
+            column: NEXT_STEPS
+            dataType: varchar2
+        }
+        help {
+            helpText: What follows the KYC, e.g. on-going monitoring applied. Required to submit for approval.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
     region findings (
         name: Investigation Questionnaire
         type: interactiveGrid
@@ -2132,7 +2212,7 @@ page 211 (
             sqlQuery:
                 ```sql
                 select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
-                   and :P211_SECTION not in ('REVIEW', 'SUMMARY')
+                   and :P211_SECTION not in ('REVIEW', 'SUMMARY', 'TREE')
                 ```
         }
         security {
