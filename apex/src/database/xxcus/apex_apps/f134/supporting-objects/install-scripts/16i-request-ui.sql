@@ -240,6 +240,8 @@ create or replace package body xxcmp_request_ui_pkg as
                                            else apex_escape.html(xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type)) end, true);
             fld('PEP', case when c.pep_flag = 'Y' then xxfnd_ui_pkg.badge('Yes', 'danger') else 'No' end, true);
             fld('Next review', to_char(c.next_review_date, 'DD-MON-YYYY'));
+            fld('Report conclusion', c.report_conclusion, false, true);
+            fld('Next steps', c.next_steps, false, true);
             fld('Conditions', c.conditions, false, true);
             grp('Assessment');
         end loop;

@@ -180,7 +180,7 @@ with sync_playwright() as p:
         link.click()
     pg.wait_for_load_state('networkidle')
     ok('the investigation task opens the case screen: section list, no workflow diagram, Submit only on Review',
-       'Case' in pg.title() and pg.locator('#case_sections li').count() == 7 and pg.locator('text=Workflow').count() == 0
+       'Case' in pg.title() and pg.locator('#case_sections li').count() == 8 and pg.locator('text=Workflow').count() == 0
        and pg.locator('button:has-text("Submit for Approval")').count() == 0)
     def section(label):
         with pg.expect_navigation():
@@ -193,10 +193,12 @@ with sync_playwright() as p:
     ok('Party section: the common Global Page party regions, with contacts and owners (merged section)', pg.locator('#party_card').count() == 1 and pg.locator('#party_contacts').count() == 1 and pg.locator('#party_owners').count() == 1)
     section('Risk Assessment')
     pg.evaluate('apex.item("P211_RISK_TIER").setValue("MEDIUM")')
+    pg.fill('#P211_REPORT_CONCLUSION', 'No red flags found in the screening.')
+    pg.fill('#P211_NEXT_STEPS', 'On-going monitoring applied.')
     with pg.expect_navigation(timeout=120000):
         pg.click('#buttons button:has-text("Save")')     # the case action bar (the findings region has its own Save)
     pg.wait_for_load_state('networkidle')
-    ok(f'risk saved in its section ({errors(pg) or "no error"})', not errors(pg) and db(f"select risk_tier from xxcmp_cases where case_id = {case}")[0] == 'MEDIUM')
+    ok(f'risk saved in its section ({errors(pg) or "no error"})', not errors(pg) and db(f"select risk_tier || '|' || next_steps from xxcmp_cases where case_id = {case}")[0] == 'MEDIUM|On-going monitoring applied.')
     section('Review and Submit')
     ok('Review: Submit for Approval and the approval history', pg.locator('button:has-text("Submit for Approval")').count() == 1
        and 'Approval level 1' in pg.inner_text('#case_history'))

@@ -1214,38 +1214,13 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 42: the whole ownership tree (owners of owners); on the case screen also the case's party and
-                -- each party's latest screening in the case
-                select j.party_relationship_id, j.lvl, j.direction, j.related_party, j.party_type, j.relationship_type,
-                       j.ownership_percentage, j.start_date, j.end_date, j.country, j.birth_date, j.id_number, j.id_expiry,
-                       j.results, j.conclusion, j.source, j.risk_tier,
-                       j.lvl * 1.5 as indent,
-                       case when l.can_edit = 'Y' and j.lvl = 1 then
-                            apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
-                                              p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url,
-                       -- owners of a related company are added from here too (Compliance)
-                       case when l.can_edit = 'Y' and j.grp = 1 and j.lvl >= 1 and j.party_type_code = 'ORGANIZATION'
-                                 and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
-                            apex_page.get_url(p_page => 23, p_items => 'P23_OBJECT_PARTY_ID', p_values => to_char(j.related_party_id), p_clear_cache => '23') end as add_owner_url,
-                       case when :APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y' then
-                            apex_page.get_url(p_page => 213, p_items => 'P213_CASE_ID,P213_SCREEN_PARTY_ID,P213_SCREENING_ID',
-                                              p_values => :P0_CASE_ID || ',' || j.related_party_id || ',' || j.screening_id, p_clear_cache => '213') end as screen_url
-                  from (select case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
-                                     and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y'))
-                                    then 'Y' else 'N' end as can_edit
-                          from dual) l,
-                       json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, case when :APP_PAGE_ID = 211 then to_number(:P0_CASE_ID) end), '$[*]'
-                         columns (party_relationship_id number path '$.party_relationship_id', grp number path '$.grp', lvl number path '$.lvl',
-                                  direction varchar2(400) path '$.direction', related_party_id number path '$.related_party_id',
-                                  related_party varchar2(400) path '$.related_party', party_type varchar2(240) path '$.party_type',
-                                  party_type_code varchar2(30) path '$.party_type_code',
-                                  relationship_type varchar2(240) path '$.relationship_type',
+                select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.start_date, j.end_date,
+                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
+                  from json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID), '$[*]'
+                         columns (party_relationship_id number path '$.party_relationship_id', direction varchar2(100) path '$.direction',
+                                  related_party varchar2(400) path '$.related_party', relationship_type varchar2(240) path '$.relationship_type',
                                   ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
-                                  end_date varchar2(20) path '$.end_date', country varchar2(240) path '$.country',
-                                  birth_date varchar2(20) path '$.birth_date', id_number varchar2(100) path '$.id_number',
-                                  id_expiry varchar2(20) path '$.id_expiry', screening_id number path '$.screening_id',
-                                  results varchar2(240) path '$.results', conclusion varchar2(4000) path '$.conclusion',
-                                  source varchar2(1000) path '$.source', risk_tier varchar2(240) path '$.risk_tier')) j
+                                  end_date varchar2(20) path '$.end_date')) j
                 ```
             pageItemsToSubmit: [
                 P0_SUMMARY_PARTY_ID
@@ -1291,6 +1266,252 @@ page 0 (
         }
         messages {
             whenNoDataFound: No owners or officers.
+        }
+
+        column PARTY_RELATIONSHIP_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column RELATED_PARTY (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#RELATED_PARTY#</strong>
+                    ```
+            }
+        )
+
+        column RELATIONSHIP_TYPE (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OWNERSHIP_PERCENTAGE (
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column START_DATE (
+            type: plainText
+            heading {
+                heading: Start Date
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column END_DATE (
+            type: plainText
+            heading {
+                heading: End Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    ```
+            }
+        )
+
+    )
+
+    button add-owner (
+        buttonName: ADD_RELATIONSHIP
+        label: Add Owner / Officer
+        layout {
+            sequence: 10
+            region: @party-owners
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 23
+                items: {
+                    P23_OBJECT_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                }
+                clearCache: 23
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-owners (
+        name: Refresh owners / officers
+        execution {
+            sequence: 56
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-owners
+        }
+
+        action refresh-owners-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-owners
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region ownership-tree (
+        name: Ownership Tree
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 42: the whole ownership tree (owners of owners); on the case screen also the case's party and
+                -- each party's latest screening in the case
+                select j.party_relationship_id, j.lvl, j.direction, j.related_party, j.party_type, j.relationship_type,
+                       j.ownership_percentage, j.start_date, j.end_date, j.country, j.birth_date, j.id_number, j.id_expiry,
+                       j.results, j.conclusion, j.source, j.risk_tier,
+                       j.lvl * 1.5 as indent,
+                       case when l.can_edit = 'Y' and j.lvl = 1 then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
+                                              p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url,
+                       -- owners of a related company are added from here too (Compliance)
+                       case when l.can_edit = 'Y' and j.grp = 1 and j.lvl >= 1 and j.party_type_code = 'ORGANIZATION'
+                                 and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_OBJECT_PARTY_ID', p_values => to_char(j.related_party_id), p_clear_cache => '23') end as add_owner_url,
+                       case when :APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y' then
+                            apex_page.get_url(p_page => 213, p_items => 'P213_CASE_ID,P213_SCREEN_PARTY_ID,P213_SCREENING_ID',
+                                              p_values => :P0_CASE_ID || ',' || j.related_party_id || ',' || j.screening_id, p_clear_cache => '213') end as screen_url
+                  from (select case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                                     and (:APP_PAGE_ID = 211 and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')
+                                    then 'Y' else 'N' end as can_edit
+                          from dual) l,
+                       json_table(xxcmp_party_pkg.ownership_tree_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, case when :APP_PAGE_ID = 211 then to_number(:P0_CASE_ID) end), '$[*]'
+                         columns (party_relationship_id number path '$.party_relationship_id', grp number path '$.grp', lvl number path '$.lvl',
+                                  direction varchar2(400) path '$.direction', related_party_id number path '$.related_party_id',
+                                  related_party varchar2(400) path '$.related_party', party_type varchar2(240) path '$.party_type',
+                                  party_type_code varchar2(30) path '$.party_type_code',
+                                  relationship_type varchar2(240) path '$.relationship_type',
+                                  ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
+                                  end_date varchar2(20) path '$.end_date', country varchar2(240) path '$.country',
+                                  birth_date varchar2(20) path '$.birth_date', id_number varchar2(100) path '$.id_number',
+                                  id_expiry varchar2(20) path '$.id_expiry', screening_id number path '$.screening_id',
+                                  results varchar2(240) path '$.results', conclusion varchar2(4000) path '$.conclusion',
+                                  source varchar2(1000) path '$.source', risk_tier varchar2(240) path '$.risk_tier')) j
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+                P0_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 29
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: ownership_tree
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 42: the party screen and the case's Ownership Tree section only
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION = 'TREE')) and :P0_SUMMARY_PARTY_ID is not null
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No owners, officers or related parties.
         }
 
         column PARTY_RELATIONSHIP_ID (
@@ -1548,63 +1769,29 @@ page 0 (
                 language: plsql
                 plsqlExpression:
                     ```plsql
-                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    (:APP_PAGE_ID = 211 and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y') and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                     ```
             }
         )
 
     )
 
-    button add-owner (
-        buttonName: ADD_RELATIONSHIP
-        label: Add Owner / Officer
-        layout {
-            sequence: 10
-            region: @party-owners
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-plus
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 23
-                items: {
-                    P23_OBJECT_PARTY_ID: &P0_SUMMARY_PARTY_ID.
-                }
-                clearCache: 23
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
-                ```
-        }
-    )
-
-    dynamicAction refresh-owners (
-        name: Refresh owners / officers
+    dynamicAction refresh-ownership-tree (
+        name: Refresh ownership tree
         execution {
-            sequence: 56
+            sequence: 57
         }
         when {
             event: apexafterclosedialog
             selectionType: region
-            region: @party-owners
+            region: @ownership-tree
         }
 
-        action refresh-owners-refresh (
+        action refresh-ownership-tree-refresh (
             action: refresh
             affectedElements {
                 selectionType: region
-                region: @party-owners
+                region: @ownership-tree
             }
             execution {
                 sequence: 10

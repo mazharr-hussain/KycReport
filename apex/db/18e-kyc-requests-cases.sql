@@ -149,7 +149,8 @@ begin
     lvs('BUSINESS_RELATIONSHIP', 'CUSTOMER=Customer|VENDOR=Vendor / Supplier|PARTNER=Partner|AGENT=Agent / Intermediary|OTHER=Other');
     -- release 27: the sections of the case screen (labels; codes fixed in XXCMP_CASE_PKG.C_SECTIONS)
     lt('CASE_SECTION', 'Case Screen Sections');
-    lvs('CASE_SECTION', 'SUMMARY=Summary|PARTY=Party|SCREENING=Screening|DOCUMENTS=Documents|RISK=Risk Assessment|NOTES=Notes and RFIs|REVIEW=Review and Submit');
+    -- release 42: the Ownership Tree section
+    lvs('CASE_SECTION', 'SUMMARY=Summary|PARTY=Party|TREE=Ownership Tree|SCREENING=Screening|DOCUMENTS=Documents|RISK=Risk Assessment|NOTES=Notes and RFIs|REVIEW=Review and Submit');
     -- release 29: Contacts and Ownership is part of Party
     update xxfnd_lookup_values set enabled_flag = 'N' where lookup_type = 'CASE_SECTION' and lookup_code = 'OWNERSHIP';
     lt('KYC_REQUEST_TYPE', 'KYC Request Types');

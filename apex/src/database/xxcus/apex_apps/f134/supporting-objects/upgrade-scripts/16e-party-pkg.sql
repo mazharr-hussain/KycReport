@@ -92,13 +92,14 @@ create or replace package xxcmp_party_pkg authid definer as
     function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2;
     -- Owners / officers of the party (both directions) when CAN_VIEW: JSON array [{"party_relationship_id",
     -- "direction","related_party","relationship_type","ownership_percentage","start_date","end_date"}].
-    -- Owners and officers of the party as a tree (release 42): the parties that hold an interest in it (level 1), the
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob;
+    -- Ownership Tree (release 42, party and case screens): the parties that hold an interest in it (level 1), the
     -- parties that hold an interest in those (level 2), and so on (at most 6 levels, no cycles), then the parties this
     -- party holds an interest in (level 1 only). Each row: relationship, the related party's country / nationality,
     -- incorporation date / date of birth, registration / ID number and the latest expiry date of its documents.
     -- With P_CASE_ID: a first row for the case's party itself (level 0) and, on every row, the party's latest
     -- screening in the case (results, conclusion, source, risk level).
-    function owners_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob;
+    function ownership_tree_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob;
     -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y.
     function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob;
     function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2;
@@ -392,7 +393,37 @@ create or replace package body xxcmp_party_pkg as
                     then 'Y' else 'N' end;
     end can_edit_details;
 
-    function owners_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob is
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob is
+        l_json clob;
+    begin
+        if can_view(p_party_id, p_request_id) = 'N' then
+            return '[]';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select json_arrayagg(json_object(
+                   'party_relationship_id' value r.party_relationship_id,
+                   'direction'             value case when r.object_party_id = p_party_id then 'Holds interest in this party'
+                                                      else 'This party holds interest in' end,
+                   'related_party'         value o.party_name || ' (' || o.party_number || ')',
+                   'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
+                   'ownership_percentage'  value r.ownership_percentage,
+                   'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
+                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'))
+                   order by r.end_date nulls first, o.party_name returning clob)
+          into l_json
+          from xxcmp_party_relationships r
+          join xxcmp_parties o
+            on o.party_id = case when r.object_party_id = p_party_id then r.subject_party_id else r.object_party_id end
+         where p_party_id in (r.object_party_id, r.subject_party_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_json, '[]');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end owners_json;
+
+    function ownership_tree_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob is
         l_json clob;
     begin
         if can_view(p_party_id, p_request_id) = 'N' then
@@ -470,7 +501,7 @@ create or replace package body xxcmp_party_pkg as
         when others then
             xxfnd_vpd_pkg.end_trusted;
             raise;
-    end owners_json;
+    end ownership_tree_json;
 
     function party_type(p_party_id in number) return varchar2 is
         l_type xxcmp_parties.party_type%type;
