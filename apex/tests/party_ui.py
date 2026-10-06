@@ -102,12 +102,14 @@ with sync_playwright() as p:
     pg.select_option('#P0_PARTY_REGISTRATION_TYPE', 'TRADE_LICENCE')
     pg.fill('#P0_PARTY_EMAIL', 'info@meridian.example'); pg.fill('#P0_PARTY_PHONE', '+971 4 222 3333')
     pg.fill('#P0_PARTY_WEBSITE', 'https://meridian.example'); pg.fill('#P0_PARTY_FAX', '+971 4 222 3334')
+    ok('organisation: the address is labelled Headquarters Address', pg.inner_text('#P0_PARTY_ADDRESS_LABEL').strip() == 'Headquarters Address')
+    pg.fill('#P0_PARTY_ADDRESS', 'Tower 2, Lusail, Doha, Qatar')
     pg.locator('button', has_text=re.compile(r'^\s*Next\s*$')).first.click()
     asked = answer_matches(pg)
     ok('similar parties: the dialog asks before saving', asked)
     pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1000)
-    r = db(f"select email || '|' || website || '|' || fax from xxcmp_parties where party_id = {keep}")
-    ok(f'step 1 saved the party: {r}', r == ['info@meridian.example|https://meridian.example|+971 4 222 3334'])
+    r = db(f"select email || '|' || website || '|' || fax || '|' || address from xxcmp_parties where party_id = {keep}")
+    ok(f'step 1 saved the party: {r}', r == ['info@meridian.example|https://meridian.example|+971 4 222 3334|Tower 2, Lusail, Doha, Qatar'])
 
     # ---------------------------------------------------------- step 2 Party Details: contact person, new owner
     ok('step 2: Add Contact Person / Owner / Document', all(pg.locator(f'button:has-text("{x}")').count() == 1
