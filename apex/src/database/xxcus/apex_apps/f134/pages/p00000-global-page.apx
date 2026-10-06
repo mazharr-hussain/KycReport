@@ -402,6 +402,31 @@ page 0 (
         }
     )
 
+    pageItem P0_PARTY_ADDRESS (
+        type: textarea
+        label {
+            label: Headquarters Address
+            alignment: left
+        }
+        layout {
+            sequence: 115
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
     pageItem P0_PARTY_STATUS (
         type: displayOnly
         label {
@@ -2114,7 +2139,8 @@ page 0 (
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
                                    P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
-                                   P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"] };
+                                   P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"],
+                                   P0_PARTY_ADDRESS: ["Headquarters Address", "Address"] };
                     Object.keys(labels).forEach(function (item) {
                         $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
                     });

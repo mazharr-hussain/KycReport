@@ -379,6 +379,7 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_contact_phone         in varchar2 default null,
                            p_match_ack             in varchar2 default 'Y',
                            p_registration_type     in varchar2 default null,
+                           p_address               in varchar2 default null,
                            p_business_relationship in varchar2 default null);
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
@@ -729,6 +730,7 @@ create or replace package body xxcmp_request_pkg as
                            p_contact_phone         in varchar2 default null,
                            p_match_ack             in varchar2 default 'Y',
                            p_registration_type     in varchar2 default null,
+                           p_address               in varchar2 default null,
                            p_business_relationship in varchar2 default null) is
         l_error    varchar2(4000);
         l_old      xxcmp_requests%rowtype;
@@ -785,7 +787,8 @@ create or replace package body xxcmp_request_pkg as
             l_new := l_party_id is null;
             xxcmp_party_pkg.put_party(l_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
                                       p_entity_type, p_incorporation_date, p_email, p_phone, p_website, p_fax,
-                                      p_party_status => 'PENDING', p_registration_type => p_registration_type);
+                                      p_party_status => 'PENDING', p_registration_type => p_registration_type,
+                                      p_address => p_address);
             if l_new and trim(p_contact_name) is not null then
                 xxfnd_vpd_pkg.begin_trusted;
                 begin

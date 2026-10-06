@@ -1,0 +1,2870 @@
+-- Patch 25 - party address (release 40): database changes.
+-- Run as the parsing schema. Order: 16d parties (column ADDRESS), 16e party package, 16b request package. Idempotent.
+set define off
+
+-- ==== 16d-parties.sql
+--------------------------------------------------------------------------------
+-- 16d Parties (party feature: pages 20-23)
+--   Party-level contact details (email, phone, website, fax) on XXCMP_PARTIES.
+--   Contact persons on XXCMP_PARTY_CONTACTS (name, job title, email, phone).
+--   Party status (Pending from a request, Approved, Rejected, Cancelled) and the next KYC date.
+--   (The one-off moves of older data and the dropped columns are in 16f.)
+--   (XXCMP_PARTY_PKG is in 16e: it uses the request and case tables created in 16b.)
+-- Idempotent: safe on install and on every upgrade.
+--------------------------------------------------------------------------------
+begin
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'EMAIL',                'varchar2(320)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'PHONE',                'varchar2(50)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'WEBSITE',              'varchar2(500)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'FAX',                  'varchar2(50)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'MERGED_INTO_PARTY_ID', 'number');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'MERGE_NOTE',           'varchar2(1000)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTY_CONTACTS', 'JOB_TITLE',            'varchar2(240)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTY_CONTACTS', 'EMAIL',                'varchar2(320)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTY_CONTACTS', 'PHONE',                'varchar2(50)');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'PARTY_STATUS',         q'[varchar2(30) default 'APPROVED' not null]');
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'NEXT_KYC_DATE',        'date');
+    -- release 26: the type of the registration / ID number (organisation: lookup REGISTRATION_TYPE, individual:
+    -- lookup ID_DOCUMENT_TYPE); ENTITY_TYPE is the organisation's category only
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'REGISTRATION_TYPE',    'varchar2(30)');
+    -- release 40: headquarters address (organisation) / address (individual)
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'ADDRESS',              'varchar2(1000)');
+end;
+/
+comment on column xxcmp_parties.address is 'Headquarters address of an organisation; address of an individual.';
+comment on column xxcmp_parties.email is 'Main email of the party (contact persons are in XXCMP_PARTY_CONTACTS).';
+comment on column xxcmp_parties.merged_into_party_id is 'Set when Compliance merged this duplicate into another party; the party is then disabled.';
+comment on column xxcmp_parties.party_status is 'PENDING: created from a KYC request, not yet approved; APPROVED; REJECTED / CANCELLED with its request.';
+comment on column xxcmp_parties.next_kyc_date is 'When the party''s KYC is due again: set when a KYC case is approved (risk tier review months, PEP cap).';
+
+
+-- ==== 16e-party-pkg.sql
+--------------------------------------------------------------------------------
+-- 16e Party logic (party feature: pages 20-24, and the common party region on the Global Page)
+--   XXCMP_PARTY_PKG: the rules and save of the common party form (Party dialog 24, Create Request
+--   step 1 on 201, new owner / officer on 23), party status, owner / officer rules, the merge of a
+--   duplicate party (Compliance) and the common party card. Runs after 16b/16c: the merge re-points
+--   requests, cases, screenings, alerts, notes and beneficial-owner decisions.
+-- Organisation / individual share one column per pair: JURISDICTION = country / nationality,
+-- REGISTRATION_NUMBER = registration / ID number, ENTITY_TYPE = entity / ID type (lookup
+-- ENTITY_TYPE / ID_DOCUMENT_TYPE), INCORPORATION_DATE = incorporation / birth date.
+-- Idempotent: safe on install and on every upgrade.
+--------------------------------------------------------------------------------
+create or replace package xxcmp_party_pkg authid definer as
+
+    -- Label of a shared party field for the party type: JURISDICTION, REGISTRATION_NUMBER, ENTITY_TYPE,
+    -- INCORPORATION_DATE (for example Registration No. / ID Number).
+    function field_label(p_party_type in varchar2, p_field in varchar2) return varchar2;
+    -- Lookup type of ENTITY_TYPE for the party type (ENTITY_TYPE / ID_DOCUMENT_TYPE).
+    function entity_lookup(p_party_type in varchar2) return varchar2;
+    -- Lookup type of REGISTRATION_TYPE for the party type: REGISTRATION_TYPE (organisation) / ID_DOCUMENT_TYPE (individual).
+    function registration_lookup(p_party_type in varchar2) return varchar2;
+
+    -- Party number of another enabled party with the same party type, registration / ID type, registration / ID
+    -- number (ignoring spaces and punctuation) and country, or null. Reads the whole party master (trusted); returns only the number.
+    function exact_party_number(p_party_type          in varchar2,
+                                p_registration_number in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_exclude_party_id    in number default null,
+                                p_registration_type   in varchar2 default null) return varchar2;
+
+    -- The rules of the common party form (null = acceptable). Type, name and country required;
+    -- organisation: registration number and entity type required; individual: ID type required when an
+    -- ID number is given; email or phone required (email must be valid); the date not in the future;
+    -- no other party with the same number and country; when similar parties exist the user must confirm
+    -- (P_MATCH_ACK = Y) that none of them is this party. P_DRAFT = Y checks only the type and the name.
+    function party_error(p_party_id            in number,
+                         p_party_type          in varchar2,
+                         p_party_name          in varchar2,
+                         p_jurisdiction        in varchar2,
+                         p_registration_number in varchar2,
+                         p_entity_type         in varchar2,
+                         p_incorporation_date  in date,
+                         p_email               in varchar2,
+                         p_phone               in varchar2,
+                         p_draft               in varchar2 default 'N',
+                         p_match_ack           in varchar2 default 'Y',
+                         p_registration_type   in varchar2 default null) return varchar2;
+
+    -- Inserts (P_PARTY_ID null) or updates the party's form fields, without a privilege check (the request
+    -- package creates the Pending party of a request through it). A new party is APPROVED unless
+    -- P_PARTY_STATUS says otherwise. Null P_DATA_PROVENANCE / P_ENABLED_FLAG keep the current values.
+    procedure put_party(p_party_id            in out number,
+                        p_party_type          in varchar2,
+                        p_party_name          in varchar2,
+                        p_jurisdiction        in varchar2,
+                        p_registration_number in varchar2,
+                        p_entity_type         in varchar2,
+                        p_incorporation_date  in date,
+                        p_email               in varchar2,
+                        p_phone               in varchar2,
+                        p_website             in varchar2,
+                        p_fax                 in varchar2,
+                        p_party_status        in varchar2 default null,
+                        p_data_provenance     in varchar2 default null,
+                        p_enabled_flag        in varchar2 default null,
+                        p_registration_type   in varchar2 default null,
+                        p_address             in varchar2 default null);
+
+    -- Compliance saves the common party form (Party dialog, new owner / officer): Parties - Create for a new
+    -- party, Parties - Manage to change one; the form rules apply. A party created here is Approved.
+    procedure save_party(p_party_id            in out number,
+                         p_party_type          in varchar2,
+                         p_party_name          in varchar2,
+                         p_jurisdiction        in varchar2,
+                         p_registration_number in varchar2,
+                         p_entity_type         in varchar2,
+                         p_incorporation_date  in date,
+                         p_email               in varchar2,
+                         p_phone               in varchar2,
+                         p_website             in varchar2 default null,
+                         p_fax                 in varchar2 default null,
+                         p_data_provenance     in varchar2 default null,
+                         p_enabled_flag        in varchar2 default null,
+                         p_match_ack           in varchar2 default 'Y',
+                         p_request_id          in number   default null,
+                         p_registration_type   in varchar2 default null,
+                         p_address             in varchar2 default null);
+    -- Y when the user may see the party on a request or party screen: PARTIES.VIEW, the party of a request the user
+    -- can see (P_REQUEST_ID), or an approved party.
+    function can_view(p_party_id in number, p_request_id in number default null) return varchar2;
+    -- Y when the user may change the party's details (additional information, contact persons, owners / officers,
+    -- documents): PARTIES.MANAGE, or the requester while the request's party was created by it and is editable.
+    function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2;
+    -- Owners / officers of the party (both directions) when CAN_VIEW: JSON array [{"party_relationship_id",
+    -- "direction","related_party","relationship_type","ownership_percentage","start_date","end_date"}].
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob;
+    -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y.
+    function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob;
+    function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2;
+    procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2);
+
+    -- Party status: PENDING, APPROVED, REJECTED, CANCELLED.
+    procedure set_status(p_party_id in number, p_status in varchar2);
+
+    -- Fills the items of the common party region (P0_PARTY_*) with the party, or empties them for a new party.
+    -- Compliance (Parties - View) reads any party; a requester only a party of one of their own requests.
+    -- P_READ_ONLY = Y shows the region read only.
+    procedure load_items(p_party_id in number, p_read_only in varchar2 default 'N');
+
+    -- Owner / officer rules (null = acceptable): Ownership % required for Shareholder, Beneficial Owner and
+    -- Parent Company and empty for the other types; the active owners of a party hold at most 100%.
+    function relationship_error(p_relationship_id   in number,
+                                p_object_party_id   in number,
+                                p_relationship_type in varchar2,
+                                p_percentage        in number,
+                                p_start_date        in date,
+                                p_end_date          in date) return varchar2;
+
+    -- Compliance merges the duplicate P_FROM_PARTY_ID into P_INTO_PARTY_ID (Parties - Manage): requests, cases,
+    -- screenings, alerts, notes, beneficial-owner decisions, contacts, relationships and documents move to the
+    -- kept party; its empty details are completed from the duplicate; the duplicate is disabled and points to it.
+    procedure merge_parties(p_from_party_id in number, p_into_party_id in number, p_note in varchar2 default null);
+
+    -- Y when the party exists and is enabled (a merged or disabled party is not edited or merged again).
+    function is_enabled(p_party_id in number) return varchar2;
+
+    -- The common Party card (HTML) shown on every screen that shows a party: number, name, type, registration /
+    -- identity, country, main contact details, primary contact person, party status and next KYC date. Follows
+    -- data security: a user who may not see the party gets a short note instead.
+    -- P_LINK = N: the party number without the link to the Party page (screens that already show the party in full).
+    function card_html(p_party_id in number, p_show_status in varchar2 default 'Y', p_link in varchar2 default 'Y') return clob;
+    -- The party's details, shown in full (Global Page region Party on the request and party screens), without the
+    -- party status. Shown to users with PARTIES.VIEW, and to anyone for the party of a request they can see or for an
+    -- approved party.
+    function summary_html(p_party_id in number, p_request_id in number default null) return clob;
+
+end xxcmp_party_pkg;
+/
+
+create or replace package body xxcmp_party_pkg as
+
+    -- relationship types that are ownership (Ownership % required)
+    c_ownership_types constant varchar2(200) := ':SHAREHOLDER:BENEFICIAL_OWNER:PARENT_COMPANY:';
+
+    function field_label(p_party_type in varchar2, p_field in varchar2) return varchar2 is
+        l_person boolean := p_party_type = 'PERSON';
+    begin
+        return case p_field
+                   when 'JURISDICTION'        then case when l_person then 'Nationality'   else 'Country' end
+                   when 'REGISTRATION_NUMBER' then case when l_person then 'ID Number'     else 'Registration No.' end
+                   when 'ENTITY_TYPE'         then 'Entity Type'
+                   when 'REGISTRATION_TYPE'   then case when l_person then 'ID Type'       else 'Registration Type' end
+                   when 'INCORPORATION_DATE'  then case when l_person then 'Date of Birth' else 'Incorporation Date' end
+                   when 'ADDRESS'             then case when l_person then 'Address'       else 'Headquarters Address' end
+               end;
+    end field_label;
+
+    function entity_lookup(p_party_type in varchar2) return varchar2 is
+    begin
+        return 'ENTITY_TYPE';      -- release 26: the organisation's category only (an individual's ID type is REGISTRATION_TYPE)
+    end entity_lookup;
+
+    function registration_lookup(p_party_type in varchar2) return varchar2 is
+    begin
+        return case when p_party_type = 'PERSON' then 'ID_DOCUMENT_TYPE' else 'REGISTRATION_TYPE' end;
+    end registration_lookup;
+
+    function norm(p_value in varchar2) return varchar2 is
+    begin
+        return upper(regexp_replace(p_value, '[^[:alnum:]]', ''));
+    end norm;
+
+    function exact_party_number(p_party_type          in varchar2,
+                                p_registration_number in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_exclude_party_id    in number default null,
+                                p_registration_type   in varchar2 default null) return varchar2 is
+        l_id     varchar2(100) := norm(p_registration_number);
+        l_number xxcmp_parties.party_number%type;
+    begin
+        if l_id is null or p_jurisdiction is null then
+            return null;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;    -- requesters cannot read the party master; only the number leaves
+        select min(party_number) into l_number
+          from xxcmp_parties p
+         where p.party_type = p_party_type and p.enabled_flag = 'Y' and p.jurisdiction = p_jurisdiction
+           and p.party_status not in ('REJECTED', 'CANCELLED')
+           and p.party_id <> nvl(p_exclude_party_id, -1)
+           and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
+           -- the same registration / ID type too: another type (or none recorded) is a different registration
+           and nvl(p.registration_type, '#') = nvl(p_registration_type, '#');
+        xxfnd_vpd_pkg.end_trusted;
+        return l_number;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end exact_party_number;
+
+    function party_error(p_party_id            in number,
+                         p_party_type          in varchar2,
+                         p_party_name          in varchar2,
+                         p_jurisdiction        in varchar2,
+                         p_registration_number in varchar2,
+                         p_entity_type         in varchar2,
+                         p_incorporation_date  in date,
+                         p_email               in varchar2,
+                         p_phone               in varchar2,
+                         p_draft               in varchar2 default 'N',
+                         p_match_ack           in varchar2 default 'Y',
+                         p_registration_type   in varchar2 default null) return varchar2 is
+        l_exact varchar2(30);
+    begin
+        if p_party_type is null or p_party_type not in ('ORGANIZATION', 'PERSON') then
+            return 'Choose whether the party is an organisation or an individual.';
+        elsif trim(p_party_name) is null then
+            return 'Enter the name.';
+        elsif p_draft = 'Y' then
+            return null;
+        elsif p_jurisdiction is null then
+            return 'Enter the ' || lower(field_label(p_party_type, 'JURISDICTION')) || '.';
+        elsif p_party_type = 'ORGANIZATION' and trim(p_registration_number) is null then
+            return 'Enter the registration number.';
+        elsif p_party_type = 'ORGANIZATION' and p_entity_type is null then
+            return 'Choose the entity type.';
+        elsif p_party_type = 'ORGANIZATION' and p_registration_type is null then
+            return 'Choose the registration type of the registration number.';
+        elsif p_party_type = 'PERSON' and trim(p_registration_number) is not null and p_registration_type is null then
+            return 'Choose the ID type of the ID number.';
+        elsif trim(p_email) is null and trim(p_phone) is null then
+            return 'Enter an email or a phone number.';
+        elsif trim(p_email) is not null and not regexp_like(trim(p_email), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
+            return 'Enter a valid email.';
+        elsif p_incorporation_date > trunc(sysdate) then
+            return 'The ' || lower(field_label(p_party_type, 'INCORPORATION_DATE')) || ' cannot be in the future.';
+        end if;
+        l_exact := exact_party_number(p_party_type, p_registration_number, p_jurisdiction, p_party_id,
+                                      p_registration_type);
+        if l_exact is not null then
+            return 'Party ' || l_exact || ' already has this '
+                   || lower(case when p_party_type = 'PERSON' then 'ID type' else 'registration type' end) || ', '
+                   || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
+                   || ' and ' || lower(field_label(p_party_type, 'JURISDICTION')) || ': use that party.';
+        end if;
+        -- similar parties: the user answers the page's dialog (none is this party = Y, a match exists = N); only an
+        -- unanswered save is stopped
+        if p_match_ack is null
+           and xxcmp_request_pkg.party_candidate_count(p_party_type, p_party_name, p_registration_number,
+                                                       p_incorporation_date, p_jurisdiction, p_party_id) > 0 then
+            return 'Similar parties exist (see Possible Matches): answer whether one of them is this party.';
+        end if;
+        return null;
+    end party_error;
+
+    procedure put_party(p_party_id            in out number,
+                        p_party_type          in varchar2,
+                        p_party_name          in varchar2,
+                        p_jurisdiction        in varchar2,
+                        p_registration_number in varchar2,
+                        p_entity_type         in varchar2,
+                        p_incorporation_date  in date,
+                        p_email               in varchar2,
+                        p_phone               in varchar2,
+                        p_website             in varchar2,
+                        p_fax                 in varchar2,
+                        p_party_status        in varchar2 default null,
+                        p_data_provenance     in varchar2 default null,
+                        p_enabled_flag        in varchar2 default null,
+                        p_registration_type   in varchar2 default null,
+                        p_address             in varchar2 default null) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        if p_party_id is null then
+            insert into xxcmp_parties (party_type, party_name, jurisdiction, registration_number, entity_type,
+                                       incorporation_date, email, phone, website, fax, party_status, data_provenance,
+                                       enabled_flag, registration_type, address)
+            values (p_party_type, trim(p_party_name), p_jurisdiction, trim(p_registration_number),
+                    case when p_party_type = 'ORGANIZATION' then p_entity_type end,
+                    p_incorporation_date, trim(p_email), trim(p_phone), trim(p_website), trim(p_fax),
+                    nvl(p_party_status, 'APPROVED'), nvl(p_data_provenance, 'SELF_DECLARED'), nvl(p_enabled_flag, 'Y'),
+                    p_registration_type, trim(p_address))
+            returning party_id into p_party_id;
+        else
+            update xxcmp_parties
+               set party_type          = p_party_type,
+                   party_name          = trim(p_party_name),
+                   jurisdiction        = p_jurisdiction,
+                   registration_number = trim(p_registration_number),
+                   entity_type         = case when p_party_type = 'ORGANIZATION' then p_entity_type end,
+                   registration_type   = p_registration_type,
+                   incorporation_date  = p_incorporation_date,
+                   email               = trim(p_email),
+                   phone               = trim(p_phone),
+                   website             = trim(p_website),
+                   fax                 = trim(p_fax),
+                   address             = trim(p_address),
+                   party_status        = nvl(p_party_status, party_status),
+                   data_provenance     = nvl(p_data_provenance, data_provenance),
+                   enabled_flag        = nvl(p_enabled_flag, enabled_flag)
+             where party_id = p_party_id;
+        end if;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end put_party;
+
+    procedure save_party(p_party_id            in out number,
+                         p_party_type          in varchar2,
+                         p_party_name          in varchar2,
+                         p_jurisdiction        in varchar2,
+                         p_registration_number in varchar2,
+                         p_entity_type         in varchar2,
+                         p_incorporation_date  in date,
+                         p_email               in varchar2,
+                         p_phone               in varchar2,
+                         p_website             in varchar2 default null,
+                         p_fax                 in varchar2 default null,
+                         p_data_provenance     in varchar2 default null,
+                         p_enabled_flag        in varchar2 default null,
+                         p_match_ack           in varchar2 default 'Y',
+                         p_request_id          in number   default null,
+                         p_registration_type   in varchar2 default null,
+                         p_address             in varchar2 default null) is
+        l_error varchar2(4000);
+        -- a requester adds an owner / officer to the party created by their request: a Pending party
+        l_req_ok boolean := p_party_id is null and p_request_id is not null
+                            and xxcmp_request_pkg.party_editable(p_request_id) = 'Y';
+    begin
+        if p_party_id is null and not l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then
+            raise_application_error(-20701, 'You are not allowed to create parties.');
+        elsif p_party_id is not null and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+            raise_application_error(-20706, 'You are not allowed to change parties.');
+        elsif p_party_id is not null and is_enabled(p_party_id) = 'N' and nvl(p_enabled_flag, 'N') = 'N' then
+            raise_application_error(-20707, 'A disabled or merged party cannot be changed.');
+        end if;
+        l_error := party_error(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
+                               p_entity_type, p_incorporation_date, p_email, p_phone, 'N', p_match_ack, p_registration_type);
+        if l_error is not null then
+            raise_application_error(-20705, l_error);
+        end if;
+        put_party(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number, p_entity_type,
+                  p_incorporation_date, p_email, p_phone, p_website, p_fax,
+                  case when l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then 'PENDING' end,
+                  p_data_provenance, p_enabled_flag, p_registration_type, p_address);
+    end save_party;
+
+    function request_party(p_request_id in number) return number is
+        l_party number;
+    begin
+        -- data security: only a request the user can see
+        select max(party_id) into l_party from xxcmp_requests where request_id = p_request_id;
+        return l_party;
+    end request_party;
+
+    function can_view(p_party_id in number, p_request_id in number default null) return varchar2 is
+        l_status xxcmp_parties.party_status%type;
+        l_flag   xxcmp_parties.enabled_flag%type;
+    begin
+        if p_party_id is null then
+            return 'N';
+        elsif xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
+              or (p_request_id is not null and request_party(p_request_id) = p_party_id) then
+            return 'Y';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_status), max(enabled_flag) into l_status, l_flag from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return case when l_status = 'APPROVED' and l_flag = 'Y' then 'Y' else 'N' end;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end can_view;
+
+    function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2 is
+    begin
+        if p_party_id is null then
+            return 'N';
+        elsif p_request_id is not null then
+            return case when request_party(p_request_id) = p_party_id
+                         and xxcmp_request_pkg.party_editable(p_request_id) = 'Y' then 'Y' else 'N' end;
+        end if;
+        return case when xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') and is_enabled(p_party_id) = 'Y'
+                    then 'Y' else 'N' end;
+    end can_edit_details;
+
+    function owners_json(p_party_id in number, p_request_id in number default null) return clob is
+        l_json clob;
+    begin
+        if can_view(p_party_id, p_request_id) = 'N' then
+            return '[]';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select json_arrayagg(json_object(
+                   'party_relationship_id' value r.party_relationship_id,
+                   'direction'             value case when r.object_party_id = p_party_id then 'Holds interest in this party'
+                                                      else 'This party holds interest in' end,
+                   'related_party'         value o.party_name || ' (' || o.party_number || ')',
+                   'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
+                   'ownership_percentage'  value r.ownership_percentage,
+                   'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
+                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'))
+                   order by r.end_date nulls first, o.party_name returning clob)
+          into l_json
+          from xxcmp_party_relationships r
+          join xxcmp_parties o
+            on o.party_id = case when r.object_party_id = p_party_id then r.subject_party_id else r.object_party_id end
+         where p_party_id in (r.object_party_id, r.subject_party_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_json, '[]');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end owners_json;
+
+    function party_type(p_party_id in number) return varchar2 is
+        l_type xxcmp_parties.party_type%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_type) into l_type from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_type;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_type;
+
+    function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob is
+        l_html clob;
+    begin
+        if can_view(p_party_id, p_request_id) = 'N' then
+            return null;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        l_html := xxfnd_dff_pkg.render(p_table_name      => 'XXCMP_PARTIES',
+                                       p_pk_value        => to_char(p_party_id),
+                                       p_context_code    => p_context_code,
+                                       p_reference_value => party_type(p_party_id),
+                                       p_read_only       => case when p_edit = 'Y' and can_edit_details(p_party_id, p_request_id) = 'Y'
+                                                                 then 'N' else 'Y' end);
+        xxfnd_vpd_pkg.end_trusted;
+        return l_html;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end dff_html;
+
+    function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2 is
+    begin
+        return xxfnd_dff_pkg.validate('XXCMP_PARTIES', p_values_json, p_context_code, to_char(p_party_id), party_type(p_party_id));
+    end dff_error;
+
+    procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2) is
+    begin
+        if can_edit_details(p_party_id, p_request_id) = 'N' then
+            raise_application_error(-20706, 'You are not allowed to change this party.');
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        xxfnd_dff_pkg.save('XXCMP_PARTIES', to_char(p_party_id), p_values_json, p_context_code, party_type(p_party_id));
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end save_dff;
+
+    procedure set_status(p_party_id in number, p_status in varchar2) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_parties set party_status = p_status where party_id = p_party_id and party_status <> p_status;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end set_status;
+
+    procedure load_items(p_party_id in number, p_read_only in varchar2 default 'N') is
+        l_p     xxcmp_parties%rowtype;
+        l_mine  pls_integer;
+
+        procedure put(p_item in varchar2, p_value in varchar2) is
+        begin
+            apex_util.set_session_state(p_item, p_value);
+        end put;
+    begin
+        if p_party_id is not null then
+            xxfnd_vpd_pkg.begin_trusted;
+            select count(*) into l_mine from xxcmp_requests
+             where party_id = p_party_id and upper(requester_user_name) = upper(xxfnd_util_pkg.current_user);
+            if l_mine > 0 or xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') then
+                select * into l_p from xxcmp_parties where party_id = p_party_id;
+            end if;
+            xxfnd_vpd_pkg.end_trusted;
+        end if;
+        put('P0_PARTY_ID',                  to_char(l_p.party_id));
+        put('P0_PARTY_NUMBER',              l_p.party_number);
+        put('P0_PARTY_TYPE',                nvl(l_p.party_type, 'ORGANIZATION'));
+        put('P0_PARTY_NAME',                l_p.party_name);
+        put('P0_PARTY_JURISDICTION',        l_p.jurisdiction);
+        put('P0_PARTY_REGISTRATION_NUMBER', l_p.registration_number);
+        put('P0_PARTY_ENTITY_TYPE',         l_p.entity_type);
+        put('P0_PARTY_REGISTRATION_TYPE',   l_p.registration_type);
+        put('P0_PARTY_INCORPORATION_DATE',  to_char(l_p.incorporation_date));
+        put('P0_PARTY_EMAIL',               l_p.email);
+        put('P0_PARTY_PHONE',               l_p.phone);
+        put('P0_PARTY_WEBSITE',             l_p.website);
+        put('P0_PARTY_FAX',                 l_p.fax);
+        put('P0_PARTY_ADDRESS',             l_p.address);
+        put('P0_PARTY_DATA_PROVENANCE',     nvl(l_p.data_provenance, 'SELF_DECLARED'));
+        put('P0_PARTY_LAST_VERIFIED_DATE',  to_char(l_p.last_verified_date, 'DD-MON-YYYY'));
+        put('P0_PARTY_STATUS',              xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status));
+        put('P0_PARTY_NEXT_KYC_DATE',       to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
+        put('P0_PARTY_ENABLED_FLAG',        nvl(l_p.enabled_flag, 'Y'));
+        put('P0_PARTY_READ_ONLY',           case when p_read_only = 'Y' then 'Y' else 'N' end);
+        put('P0_PARTY_MATCH_ACK',           null);   -- answered in the similar-parties dialog on each save
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end load_items;
+
+    function relationship_error(p_relationship_id   in number,
+                                p_object_party_id   in number,
+                                p_relationship_type in varchar2,
+                                p_percentage        in number,
+                                p_start_date        in date,
+                                p_end_date          in date) return varchar2 is
+        l_total number;
+    begin
+        if p_relationship_type is null then
+            return 'Choose the relationship.';
+        elsif instr(c_ownership_types, ':' || p_relationship_type || ':') > 0 and p_percentage is null then
+            return 'Enter the ownership % of a ' || lower(xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', p_relationship_type)) || '.';
+        elsif instr(c_ownership_types, ':' || p_relationship_type || ':') = 0 and p_percentage is not null then
+            return 'Ownership % applies only to shareholders, beneficial owners and parent companies.';
+        elsif p_percentage not between 0 and 100 then
+            return 'Ownership % is between 0 and 100.';
+        elsif p_end_date < p_start_date then
+            return 'The end date cannot be before the start date.';
+        end if;
+        if p_percentage is not null and (p_end_date is null or p_end_date >= trunc(sysdate)) then
+            select nvl(sum(ownership_percentage), 0) into l_total
+              from xxcmp_party_relationships
+             where object_party_id = p_object_party_id
+               and party_relationship_id <> nvl(p_relationship_id, -1)
+               and instr(c_ownership_types, ':' || relationship_type || ':') > 0
+               and (end_date is null or end_date >= trunc(sysdate));
+            if l_total + p_percentage > 100 then
+                return 'The active owners would hold ' || (l_total + p_percentage) || '%: at most 100% (others hold '
+                       || l_total || '%).';
+            end if;
+        end if;
+        return null;
+    end relationship_error;
+
+    procedure merge_parties(p_from_party_id in number, p_into_party_id in number, p_note in varchar2 default null) is
+        l_from xxcmp_parties%rowtype;
+        l_into xxcmp_parties%rowtype;
+    begin
+        if not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+            raise_application_error(-20711, 'Only Compliance can merge parties.');
+        elsif p_from_party_id is null or p_into_party_id is null or p_from_party_id = p_into_party_id then
+            raise_application_error(-20712, 'Choose another party to merge into.');
+        end if;
+        select * into l_from from xxcmp_parties where party_id = p_from_party_id for update;
+        select * into l_into from xxcmp_parties where party_id = p_into_party_id for update;
+        if l_from.party_type <> l_into.party_type then
+            raise_application_error(-20713, 'An organisation cannot be merged into an individual, or the reverse.');
+        elsif l_from.enabled_flag = 'N' or l_into.enabled_flag = 'N' then
+            raise_application_error(-20714, 'Both parties must be enabled.');
+        end if;
+
+        -- everything recorded against the duplicate now belongs to the kept party
+        update xxcmp_requests   set party_id = p_into_party_id,
+                                    match_status = case when party_selection = 'NEW' then 'MERGED' else match_status end,
+                                    match_resolved_by = xxfnd_util_pkg.current_user, match_resolved_date = systimestamp
+         where party_id = p_from_party_id;
+        update xxcmp_cases      set party_id = p_into_party_id where party_id = p_from_party_id;
+        update xxcmp_screenings set party_id = p_into_party_id where party_id = p_from_party_id;
+        update xxcmp_alerts     set party_id = p_into_party_id where party_id = p_from_party_id;
+        update xxcmp_case_notes set related_party_id = p_into_party_id where related_party_id = p_from_party_id;
+        -- one beneficial-owner decision per case and owner
+        delete from xxcmp_ubo_determinations u
+         where u.owner_party_id = p_from_party_id
+           and exists (select 1 from xxcmp_ubo_determinations k where k.case_id = u.case_id and k.owner_party_id = p_into_party_id);
+        update xxcmp_ubo_determinations set owner_party_id = p_into_party_id where owner_party_id = p_from_party_id;
+        -- contacts move as non-primary (the kept party keeps its primary contact)
+        update xxcmp_party_contacts set party_id = p_into_party_id, primary_flag = 'N' where party_id = p_from_party_id;
+        -- relationships: a relationship between the two parties would point to itself
+        delete from xxcmp_party_relationships
+         where (subject_party_id = p_from_party_id and object_party_id = p_into_party_id)
+            or (subject_party_id = p_into_party_id and object_party_id = p_from_party_id);
+        update xxcmp_party_relationships set subject_party_id = p_into_party_id where subject_party_id = p_from_party_id;
+        update xxcmp_party_relationships set object_party_id  = p_into_party_id where object_party_id  = p_from_party_id;
+        -- documents
+        update xxfnd_attached_documents set pk1_value = to_char(p_into_party_id)
+         where entity_name = 'XXCMP_PARTIES' and pk1_value = to_char(p_from_party_id);
+
+        -- the kept party's empty details are completed from the duplicate
+        update xxcmp_parties
+           set registration_number = nvl(registration_number, l_from.registration_number),
+               entity_type         = nvl(entity_type, l_from.entity_type),
+               registration_type   = nvl(registration_type, l_from.registration_type),
+               incorporation_date  = nvl(incorporation_date, l_from.incorporation_date),
+               jurisdiction        = nvl(jurisdiction, l_from.jurisdiction),
+               email               = nvl(email, l_from.email),
+               phone               = nvl(phone, l_from.phone),
+               website             = nvl(website, l_from.website),
+               fax                 = nvl(fax, l_from.fax),
+               address             = nvl(address, l_from.address)
+         where party_id = p_into_party_id;
+        update xxcmp_parties
+           set enabled_flag = 'N', merged_into_party_id = p_into_party_id, merge_note = substr(p_note, 1, 1000)
+         where party_id = p_from_party_id;
+    end merge_parties;
+
+    function is_enabled(p_party_id in number) return varchar2 is
+        l_flag xxcmp_parties.enabled_flag%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;    -- also asked for a requester's chosen party
+        select max(enabled_flag) into l_flag from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return case when l_flag = 'Y' then 'Y' else 'N' end;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end is_enabled;
+
+    function card_html(p_party_id in number, p_show_status in varchar2 default 'Y', p_link in varchar2 default 'Y') return clob is
+        -- UI/UX standard (patch 14): name as the title with number and badges, then a label-above-value grid in groups.
+        l_p      xxcmp_parties%rowtype;
+        l_into   xxcmp_parties.party_number%type;
+        l_html   clob;
+        l_grp    clob;
+        l_found  boolean := false;
+
+        procedure fld(p_label in varchar2, p_value in varchar2, p_raw in boolean default false, p_meta in varchar2 default null) is
+        begin
+            if p_value is not null then
+                l_grp := l_grp || '<div class="kyc-f"><span class="kyc-f-label">' || apex_escape.html(p_label) || '</span>'
+                               || '<div class="kyc-f-value">' || case when p_raw then p_value else apex_escape.html(p_value) end
+                               || case when p_meta is not null then '<span class="kyc-f-meta">' || apex_escape.html(p_meta) || '</span>' end
+                               || '</div></div>';
+            end if;
+        end fld;
+
+        procedure grp(p_title in varchar2) is
+        begin
+            if l_grp is not null then
+                l_html := l_html || '<h3 class="kyc-group-title">' || apex_escape.html(p_title) || '</h3><div class="kyc-grid">'
+                               || l_grp || '</div>';
+            end if;
+            l_grp := null;
+        end grp;
+    begin
+        if p_party_id is null then
+            return '<p class="u-color-subtle">No party linked yet.</p>';
+        end if;
+        for r in (select * from xxcmp_parties where party_id = p_party_id) loop     -- data security applies
+            l_p := r;
+            l_found := true;
+        end loop;
+        if not l_found then
+            return '<p class="u-color-subtle">The party details are available to Compliance.</p>';
+        end if;
+        select max(party_number) into l_into from xxcmp_parties where party_id = l_p.merged_into_party_id;
+
+        -- title line: name, number, status, relationships
+        l_html := '<div class="kyc-hcard-top kyc-party-title"><span class="kyc-hcard-title">' || apex_escape.html(l_p.party_name) || '</span>'
+               || '<span class="kyc-meta-inline">'
+               || case when p_link = 'Y' and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
+                       then '<a href="' || apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID',
+                                                             p_values => to_char(l_p.party_id), p_clear_cache => '21')
+                            || '">' || apex_escape.html(l_p.party_number) || '</a>'
+                       else apex_escape.html(l_p.party_number) end
+               || '</span>';
+        if p_show_status = 'Y' then
+            l_html := l_html || case when l_p.merged_into_party_id is not null then xxfnd_ui_pkg.badge('Merged into ' || l_into, 'neutral')
+                                     when l_p.enabled_flag = 'N' then xxfnd_ui_pkg.badge('Disabled', 'neutral')
+                                     else xxfnd_ui_pkg.status_badge('PARTY', l_p.party_status) end;
+        end if;
+        l_html := l_html || '</div>';
+
+        fld('Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
+        if l_p.party_type = 'ORGANIZATION' then
+            fld('Entity Type', xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
+        end if;
+        fld(field_label(l_p.party_type, 'JURISDICTION'), xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
+        fld(field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number, false,
+            xxfnd_util_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
+        fld(field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
+        grp('Identity');
+
+        fld('Email', case when p_link = 'Y' and l_p.email is not null
+                          then '<a href="mailto:' || apex_escape.html_attribute(l_p.email) || '">' || apex_escape.html(l_p.email) || '</a>'
+                          else apex_escape.html(l_p.email) end, true);
+        fld('Phone', l_p.phone);
+        fld('Website', l_p.website);
+        fld(field_label(l_p.party_type, 'ADDRESS'), l_p.address);
+        for c in (select contact_name as name, job_title, email, phone
+                    from xxcmp_party_contacts
+                   where party_id = p_party_id and enabled_flag = 'Y'
+                   order by primary_flag desc, party_contact_id
+                   fetch first 1 row only) loop
+            fld('Contact Person', c.name || nvl2(c.job_title, ' · ' || c.job_title, null), false,
+                ltrim(c.email || nvl2(c.phone, ' · ' || c.phone, null), ' ·'));
+        end loop;
+        grp('Contact');
+
+        if p_show_status = 'Y' then
+            fld('Last Verified', to_char(l_p.last_verified_date, 'DD-MON-YYYY'));
+            fld('Next KYC Date', to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
+            grp('KYC');
+        end if;
+        return l_html;
+    end card_html;
+
+    function summary_html(p_party_id in number, p_request_id in number default null) return clob is
+        l_card clob;
+    begin
+        if p_party_id is null then
+            return null;
+        elsif can_view(p_party_id, p_request_id) = 'N' then
+            return '<p class="u-color-subtle">The party details are available to Compliance.</p>';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        -- the party status shows on the party screens, not on a request
+        l_card := card_html(p_party_id, case when p_request_id is null then 'Y' else 'N' end, 'N');
+        xxfnd_vpd_pkg.end_trusted;
+        return l_card;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end summary_html;
+
+end xxcmp_party_pkg;
+/
+
+
+-- ==== 16b-kyc-requests-cases.sql
+--------------------------------------------------------------------------------
+-- 16b KYC requests and cases  (release R13)
+-- Module 1 (intake) and Module 2 (investigation, decision) data and logic.
+--   XXCMP_REQUESTS            a KYC request (new onboarding, periodic or event-triggered review)
+--   XXCMP_REQUEST_ANSWERS     questionnaire answers (requester at intake, officer in the case)
+--   XXCMP_CASES               the compliance case opened from a request
+--   XXCMP_CASE_DECISIONS      approval history per level
+--   XXCMP_SCREENINGS          registry / sanctions / PEP / adverse-media checks
+--   XXCMP_DOC_VERIFICATIONS   genuine-and-current check per attached document
+--   XXCMP_UBO_DETERMINATIONS  the officer's beneficial-owner decisions
+--   XXCMP_CASE_NOTES          investigation notes
+--   XXCMP_REQUEST_PKG / XXCMP_CASE_PKG  logic behind the screens and the KYC_REQUEST /
+--                             KYC_CASE APEX workflows
+-- Idempotent: safe on install and on every upgrade.
+--------------------------------------------------------------------------------
+create sequence if not exists xxcmp_request_number_s start with 1 nocache;
+create sequence if not exists xxcmp_case_number_s start with 1 nocache;
+
+create table if not exists xxcmp_requests (
+    request_id             number generated by default on null as identity,
+    request_number         varchar2(30)   not null,
+    request_type           varchar2(30)   default 'NEW_ONBOARDING' not null,
+    trigger_source         varchar2(30)   default 'MANUAL' not null,
+    parent_request_id      number,
+    parent_case_id         number,
+    party_id               number,
+    party_type             varchar2(30)   not null,
+    party_name             varchar2(360)  not null,
+    registration_number    varchar2(100),
+    jurisdiction           varchar2(30),
+    entity_type            varchar2(30),
+    requesting_department  varchar2(240),
+    requester_user_name    varchar2(255)  not null,
+    questionnaire_code     varchar2(30),
+    intake_score           number,
+    intake_critical_flag   varchar2(1),
+    intake_outcome         varchar2(30),
+    request_status         varchar2(30)   default 'DRAFT' not null,
+    justification          varchar2(4000),
+    submitted_date         timestamp,
+    completed_date         timestamp,
+    workflow_id            number,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_requests_pk primary key (request_id),
+    constraint xxcmp_requests_uk1 unique (request_number),
+    constraint xxcmp_requests_fk1 foreign key (party_id) references xxcmp_parties (party_id),
+    constraint xxcmp_requests_fk2 foreign key (parent_request_id) references xxcmp_requests (request_id),
+    constraint xxcmp_requests_fk3 foreign key (questionnaire_code) references xxcmp_questionnaires (questionnaire_code),
+    constraint xxcmp_requests_ck1 check (request_type in ('NEW_ONBOARDING','PERIODIC_REVIEW','EVENT_TRIGGERED_REVIEW')),
+    constraint xxcmp_requests_ck2 check (trigger_source in ('MANUAL','SCHEDULED','EVENT_DRIVEN')),
+    constraint xxcmp_requests_ck3 check (request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED','APPROVED','REJECTED','CANCELLED')),
+    constraint xxcmp_requests_ck4 check (intake_outcome in ('NOT_REQUIRED','AUTO_APPROVED','ASSIGNED')),
+    constraint xxcmp_requests_ck5 check (party_type in ('ORGANIZATION','PERSON')),
+    constraint xxcmp_requests_ck6 check (intake_critical_flag in ('Y','N'))
+);
+create index if not exists xxcmp_requests_n1 on xxcmp_requests (requester_user_name, request_status);
+
+-- Counterparty selection (an existing party chosen by the requester, or a new one created with the request).
+-- The counterparty columns are shared by organisations and individuals (16f): JURISDICTION = country /
+-- nationality, REGISTRATION_NUMBER = registration / ID number, ENTITY_TYPE = entity / ID type,
+-- INCORPORATION_DATE = incorporation / birth date.
+begin
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'PARTY_SELECTION',     q'[varchar2(10) default 'NEW']');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'INCORPORATION_DATE',  'date');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_ACK_FLAG',      q'[varchar2(1) default 'N']');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_STATUS',        'varchar2(20)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_RESOLVED_BY',   'varchar2(255)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_RESOLVED_DATE', 'timestamp');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'MATCH_NOTE',          'varchar2(1000)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_NAME',        'varchar2(240)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_EMAIL',       'varchar2(320)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CONTACT_PHONE',       'varchar2(50)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'LAST_ACTION_DATE',    'date');
+    -- release 26: the type of the counterparty's number, and what the counterparty is to the company
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'REGISTRATION_TYPE',   'varchar2(30)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
+end;
+/
+comment on column xxcmp_requests.party_selection is 'EXISTING: the requester chose a party from the party list; NEW: a counterparty created with the request (party status Pending until the request is approved).';
+comment on column xxcmp_requests.match_status is 'SELECTED (existing party chosen), NEW (party created with the request), MERGED (Compliance merged it into an existing party). Older values: PENDING, CONFIRMED_NEW.';
+create index if not exists xxcmp_parties_n4 on xxcmp_parties (upper(replace(registration_number, ' ')));
+create index if not exists xxcmp_requests_n2 on xxcmp_requests (party_id);
+comment on table xxcmp_requests is 'KYC request from a requesting department, or a periodic / event-triggered review. A new counterparty is created as a party (Pending) with the request.';
+
+create table if not exists xxcmp_cases (
+    case_id                number generated by default on null as identity,
+    case_number            varchar2(30)   not null,
+    request_id             number         not null,
+    party_id               number         not null,
+    parent_case_id         number,
+    case_status            varchar2(30)   default 'INVESTIGATION' not null,
+    assigned_to            varchar2(255),
+    risk_tier              varchar2(30),
+    enhanced_kyc_flag      varchar2(1)    default 'N' not null,
+    pep_flag               varchar2(1)    default 'N' not null,
+    sla_due_date           date,
+    investigation_completed_date timestamp,
+    current_level          number,
+    decision               varchar2(30),
+    decision_date          timestamp,
+    conditions             varchar2(4000),
+    next_review_date       date,
+    next_review_reason     varchar2(1000),
+    sar_required_flag      varchar2(1),
+    sar_notes              varchar2(4000),
+    closed_date            timestamp,
+    workflow_id            number,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_cases_pk primary key (case_id),
+    constraint xxcmp_cases_uk1 unique (case_number),
+    constraint xxcmp_cases_fk1 foreign key (request_id) references xxcmp_requests (request_id),
+    constraint xxcmp_cases_fk2 foreign key (party_id) references xxcmp_parties (party_id),
+    constraint xxcmp_cases_fk3 foreign key (parent_case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_cases_ck1 check (case_status in ('INVESTIGATION','PENDING_APPROVAL','APPROVED','REJECTED','CANCELLED')),
+    constraint xxcmp_cases_ck2 check (enhanced_kyc_flag in ('Y','N')),
+    constraint xxcmp_cases_ck3 check (pep_flag in ('Y','N')),
+    constraint xxcmp_cases_ck4 check (decision in ('APPROVED','REJECTED')),
+    constraint xxcmp_cases_ck5 check (sar_required_flag in ('Y','N'))
+);
+create index if not exists xxcmp_cases_n1 on xxcmp_cases (case_status, assigned_to);
+create index if not exists xxcmp_cases_n2 on xxcmp_cases (party_id);
+create index if not exists xxcmp_cases_n3 on xxcmp_cases (next_review_date);
+comment on table xxcmp_cases is 'Compliance case: investigation, risk classification, approval and closure. A decided case is closed (CLOSED_DATE) and locked.';
+
+create table if not exists xxcmp_request_answers (
+    answer_id              number generated by default on null as identity,
+    request_id             number         not null,
+    case_id                number,
+    respondent_type        varchar2(30)   not null,
+    question_id            number         not null,
+    answer_option_id       number,
+    answer_text            varchar2(4000),
+    risk_points            number,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_request_answers_pk primary key (answer_id),
+    constraint xxcmp_request_answers_uk1 unique (request_id, respondent_type, question_id),
+    constraint xxcmp_request_answers_fk1 foreign key (request_id) references xxcmp_requests (request_id) on delete cascade,
+    constraint xxcmp_request_answers_fk2 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_request_answers_fk3 foreign key (question_id) references xxcmp_questions (question_id),
+    constraint xxcmp_request_answers_fk4 foreign key (answer_option_id) references xxcmp_answer_options (answer_option_id),
+    constraint xxcmp_request_answers_ck1 check (respondent_type in ('REQUESTER','OFFICER'))
+);
+comment on table xxcmp_request_answers is 'Questionnaire answers: the requester''s at intake (scored) and the officer''s in the case (findings).';
+
+create table if not exists xxcmp_case_decisions (
+    decision_id            number generated by default on null as identity,
+    case_id                number         not null,
+    level_no               number         not null,
+    role_code              varchar2(30),
+    decided_by             varchar2(255)  not null,
+    outcome                varchar2(30)   not null,
+    decision_date          timestamp      default systimestamp not null,
+    comments               varchar2(4000),
+    task_id                number,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_case_decisions_pk primary key (decision_id),
+    constraint xxcmp_case_decisions_fk1 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_case_decisions_ck1 check (outcome in ('APPROVED','REJECTED','WITHDRAWN'))
+);
+comment on table xxcmp_case_decisions is 'Every approval-level decision on a case: who, under which role, when, outcome and comments.';
+-- release 29: an officer can withdraw a case from approval (outcome WITHDRAWN)
+declare
+    l_cond varchar2(4000);
+begin
+    select search_condition_vc into l_cond from user_constraints
+     where table_name = 'XXCMP_CASE_DECISIONS' and constraint_name = 'XXCMP_CASE_DECISIONS_CK1';
+    if instr(l_cond, 'WITHDRAWN') = 0 then
+        execute immediate 'alter table xxcmp_case_decisions drop constraint xxcmp_case_decisions_ck1';
+        execute immediate q'[alter table xxcmp_case_decisions add constraint xxcmp_case_decisions_ck1
+                             check (outcome in ('APPROVED','REJECTED','WITHDRAWN'))]';
+    end if;
+end;
+/
+
+create table if not exists xxcmp_screenings (
+    screening_id           number generated by default on null as identity,
+    case_id                number         not null,
+    party_id               number         not null,
+    screening_type         varchar2(30)   not null,
+    match_status           varchar2(30)   default 'NO_MATCH' not null,
+    pep_flag               varchar2(1)    default 'N' not null,
+    sanctions_flag         varchar2(1)    default 'N' not null,
+    adverse_media_flag     varchar2(1)    default 'N' not null,
+    capture_method         varchar2(30)   default 'MANUAL' not null,
+    source_reference       varchar2(1000),
+    result_notes           varchar2(4000),
+    screened_date          date           default trunc(sysdate) not null,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_screenings_pk primary key (screening_id),
+    constraint xxcmp_screenings_fk1 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_screenings_fk2 foreign key (party_id) references xxcmp_parties (party_id),
+    constraint xxcmp_screenings_ck1 check (screening_type in ('REGISTRY','SANCTIONS','PEP','ADVERSE_MEDIA')),
+    constraint xxcmp_screenings_ck2 check (match_status in ('NO_MATCH','POTENTIAL_MATCH','CONFIRMED_MATCH','FALSE_POSITIVE')),
+    constraint xxcmp_screenings_ck3 check (pep_flag in ('Y','N') and sanctions_flag in ('Y','N') and adverse_media_flag in ('Y','N')),
+    constraint xxcmp_screenings_ck4 check (capture_method in ('MANUAL','API'))
+);
+comment on table xxcmp_screenings is 'One screening event per check, with all its flags. A confirmed match or a PEP flag forces the case into Enhanced KYC.';
+
+create table if not exists xxcmp_doc_verifications (
+    verification_id        number generated by default on null as identity,
+    case_id                number         not null,
+    attached_document_id   number         not null,
+    verification_status    varchar2(30)   not null,
+    notes                  varchar2(4000),
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_doc_verifications_pk primary key (verification_id),
+    constraint xxcmp_doc_verifications_uk1 unique (case_id, attached_document_id),
+    constraint xxcmp_doc_verifications_fk1 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_doc_verifications_fk2 foreign key (attached_document_id) references xxfnd_attached_documents (attached_document_id),
+    constraint xxcmp_doc_verifications_ck1 check (verification_status in ('VERIFIED','REJECTED','EXPIRED'))
+);
+comment on table xxcmp_doc_verifications is 'Whether each document attached to the party is genuine and current, as checked for this case.';
+
+create table if not exists xxcmp_ubo_determinations (
+    ubo_id                 number generated by default on null as identity,
+    case_id                number         not null,
+    owner_party_id         number         not null,
+    basis                  varchar2(30)   not null,
+    ownership_percentage   number,
+    notes                  varchar2(4000),
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_ubo_determinations_pk primary key (ubo_id),
+    constraint xxcmp_ubo_determinations_uk1 unique (case_id, owner_party_id),
+    constraint xxcmp_ubo_determinations_fk1 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_ubo_determinations_fk2 foreign key (owner_party_id) references xxcmp_parties (party_id),
+    constraint xxcmp_ubo_determinations_ck1 check (basis in ('OWNERSHIP','CONTROL','FALLBACK')),
+    constraint xxcmp_ubo_determinations_ck2 check (ownership_percentage between 0 and 100)
+);
+comment on table xxcmp_ubo_determinations is 'The officer''s decision on who the beneficial owners are, for this case (a later review never overwrites it).';
+
+create table if not exists xxcmp_case_notes (
+    note_id                number generated by default on null as identity,
+    case_id                number         not null,
+    related_party_id       number,
+    note_text              varchar2(4000) not null,
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxcmp_case_notes_pk primary key (note_id),
+    constraint xxcmp_case_notes_fk1 foreign key (case_id) references xxcmp_cases (case_id),
+    constraint xxcmp_case_notes_fk2 foreign key (related_party_id) references xxcmp_parties (party_id)
+);
+comment on table xxcmp_case_notes is 'Investigation notes, optionally about one related party.';
+
+begin
+    for t in (select column_value table_name from table(apex_t_varchar2(
+                 'XXCMP_REQUESTS','XXCMP_CASES','XXCMP_REQUEST_ANSWERS','XXCMP_CASE_DECISIONS','XXCMP_SCREENINGS',
+                 'XXCMP_DOC_VERIFICATIONS','XXCMP_UBO_DETERMINATIONS','XXCMP_CASE_NOTES'))) loop
+        xxfnd_util_pkg.create_who_trigger(t.table_name);
+    end loop;
+    -- release 26: the business relationship of the request goes on to its case
+    xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
+end;
+/
+comment on column xxcmp_requests.business_relationship is 'What the counterparty is to the company for this request (lookup BUSINESS_RELATIONSHIP: customer, vendor...). One per request; copied to the case.';
+comment on column xxcmp_requests.registration_type is 'Type of REGISTRATION_NUMBER: organisation lookup REGISTRATION_TYPE, individual lookup ID_DOCUMENT_TYPE.';
+
+--------------------------------------------------------------------------------
+-- Requests
+--------------------------------------------------------------------------------
+create or replace package xxcmp_request_pkg authid definer as
+
+    -- Requester questionnaire for a party type (PERSON -> INDIVIDUAL, ORGANIZATION -> CORPORATE).
+    function questionnaire_for(p_party_type in varchar2) return varchar2;
+
+    -- New DRAFT request with one empty answer row per question of its questionnaire. The counterparty columns
+    -- are shared by organisations and individuals (see XXCMP_PARTY_PKG).
+    function create_request(p_party_type            in varchar2,
+                            p_party_name            in varchar2,
+                            p_registration_number   in varchar2 default null,
+                            p_jurisdiction          in varchar2 default null,
+                            p_entity_type           in varchar2 default null,
+                            p_incorporation_date    in date     default null,
+                            p_requesting_department in varchar2 default null,
+                            p_justification         in varchar2 default null,
+                            p_request_type          in varchar2 default 'NEW_ONBOARDING',
+                            p_trigger_source        in varchar2 default 'MANUAL',
+                            p_parent_request_id     in number   default null,
+                            p_parent_case_id        in number   default null,
+                            p_party_id              in number   default null,
+                            p_registration_type     in varchar2 default null,
+                            p_business_relationship in varchar2 default null) return number;
+
+    -- Requesting department of the signed-in user: the department of the employee profile (matched to the
+    -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
+    function default_department return varchar2;
+    -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
+    -- department of the employee profile (when the profile has one).
+    function can_choose_department return varchar2;
+
+    -- The rules of Create Request step 1 (null = acceptable): EXISTING needs an approved party; NEW follows the
+    -- common party form (XXCMP_PARTY_PKG.PARTY_ERROR); the business justification is required.
+    -- P_DRAFT = Y checks only what a draft needs (type and name, or the party).
+    function request_error(p_request_id          in number,
+                           p_party_selection     in varchar2,
+                           p_party_id            in number,
+                           p_party_type          in varchar2,
+                           p_party_name          in varchar2,
+                           p_jurisdiction        in varchar2,
+                           p_registration_number in varchar2,
+                           p_entity_type         in varchar2,
+                           p_incorporation_date  in date,
+                           p_email               in varchar2,
+                           p_phone               in varchar2,
+                           p_justification       in varchar2,
+                           p_draft               in varchar2 default 'N',
+                           p_match_ack           in varchar2 default 'Y',
+                           p_registration_type   in varchar2 default null,
+                           p_business_relationship in varchar2 default null) return varchar2;
+
+    -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
+    -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
+    -- request's own Pending party); EXISTING links an approved party. A change of type replaces the questionnaire.
+    -- The contact person (hidden by the build option REQUEST_CONTACT) becomes the new party's primary contact.
+    procedure save_request(p_request_id            in out number,
+                           p_party_selection       in varchar2,
+                           p_party_id              in number,
+                           p_party_type            in varchar2,
+                           p_party_name            in varchar2,
+                           p_jurisdiction          in varchar2,
+                           p_registration_number   in varchar2,
+                           p_entity_type           in varchar2,
+                           p_incorporation_date    in date,
+                           p_email                 in varchar2,
+                           p_phone                 in varchar2,
+                           p_website               in varchar2,
+                           p_fax                   in varchar2,
+                           p_requesting_department in varchar2,
+                           p_justification         in varchar2,
+                           p_draft                 in varchar2 default 'N',
+                           p_contact_name          in varchar2 default null,
+                           p_contact_email         in varchar2 default null,
+                           p_contact_phone         in varchar2 default null,
+                           p_match_ack             in varchar2 default 'Y',
+                           p_registration_type     in varchar2 default null,
+                           p_address               in varchar2 default null,
+                           p_business_relationship in varchar2 default null);
+
+    -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
+    function is_editable(p_request_id in number) return varchar2;
+    -- Y when the requester may change the counterparty's party: an editable request whose party was created by it
+    -- (new counterparty, not merged into an existing party). The party status does not decide it.
+    function party_editable(p_request_id in number) return varchar2;
+
+    -- Parties a requester may choose from (requesters cannot read the party master itself): approved, enabled
+    -- parties of the type (null = both types) with number, name and country only. JSON array [{"party_id","party_number","party_name","country"}].
+    function party_directory_json(p_party_type in varchar2) return clob;
+
+    -- Possible existing parties for a counterparty, strongest first (at most 10). Matching: same registration / ID
+    -- number; name similarity; same incorporation / birth date; same country. 100 = same number and country.
+    -- JSON array [{"party_id","party_number","registration_number","party_name","country","score","reg_match",
+    --              "reasons","exact","status"}]; reg_match = 0-100 similarity of the numbers.
+    function party_candidates_json(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return clob;
+    function party_candidate_count(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return number;
+    -- The same for a saved request, without its own party (Compliance merges a duplicate from the request page).
+    function request_candidates_json(p_request_id in number) return clob;
+    -- Y while an older request (workflow 1.1) still waits for Compliance's match decision.
+    function match_pending(p_request_id in number) return varchar2;
+
+    -- Create Request step 2: the questionnaire as a form. Questions grouped by section (translated), each with its
+    -- answer control (Yes/No and single choice: radio buttons; text, number, date: an input) and the saved answer.
+    -- kyc-app.js (kycQuestionnaire.bind) copies the answers into a JSON item before submit:
+    --   [{"q": question_id, "o": answer_option_id, "t": "text answer"}, ...]
+    function questionnaire_html(p_request_id in number, p_respondent in varchar2 default 'REQUESTER') return clob;
+    -- Required questions without an answer in P_ANSWERS (null = all answered).
+    function answers_error(p_request_id in number, p_answers in clob) return varchar2;
+    -- Saves the answers of a Draft or Information Needed request; only its own questions and approved options.
+    procedure save_answers(p_request_id in number, p_answers in clob);
+
+    -- Why the request cannot be submitted yet (null = it can).
+    function submit_error(p_request_id in number) return varchar2;
+    -- Submits the request (In Progress) and starts the KYC_REQUEST workflow.
+    procedure submit(p_request_id in number);
+
+    -- Why the signed-in user cannot cancel the request (null = can): its requester, while Draft, In Progress or
+    -- Information Needed.
+    function cancel_error(p_request_id in number) return varchar2;
+    -- Cancels the request: ends its workflow and tasks; a Pending party only this request uses is Cancelled.
+    procedure cancel(p_request_id in number, p_reason in varchar2 default null);
+    -- Withdraw: the requester pulls a submitted request (In Progress) back to Draft; its workflow and task end.
+    function withdraw_error(p_request_id in number) return varchar2;
+    -- Y when the approver may use Request Information on the task: the question goes to the task's initiator (the
+    -- requester), so an approver who is also the requester cannot ask (APEX refuses REQUEST_INFO_NOT_AUTHORIZED).
+    function can_request_info(p_task_id in number) return varchar2;
+    procedure withdraw(p_request_id in number);
+
+    -- Document checklist task events: Compliance asked the requester for information / the requester answered.
+    procedure info_requested(p_request_id in number);
+    procedure info_submitted(p_request_id in number);
+
+    -- Workflow steps (KYC_REQUEST). Run as system steps, not limited by data security.
+    procedure evaluate(p_request_id in number);
+    function outcome(p_request_id in number) return varchar2;
+    procedure close_without_case(p_request_id in number);
+    procedure create_case(p_request_id in number);
+    procedure reject(p_request_id in number);
+
+    -- Status as shown to users (lookup KYC_REQUEST_STATUS).
+    function stage(p_request_id in number) return varchar2;
+    -- KYC Required: Yes when the approval workflow runs (Compliance review), No when approved automatically.
+    function kyc_required(p_request_id in number) return varchar2;
+    -- Who must act now: the requester (Draft, Information Needed), the Compliance user holding the task or
+    -- 'Compliance' (In Progress); null once closed.
+    function pending_with(p_request_id in number) return varchar2;
+
+    -- New review request for the party of a case (monitoring): submitted at once, always to Compliance.
+    function start_review(p_case_id in number, p_request_type in varchar2, p_trigger_source in varchar2,
+                          p_justification in varchar2) return number;
+
+end xxcmp_request_pkg;
+/
+
+create or replace package xxcmp_case_pkg authid definer as
+
+    -- Opens the case of a request and starts the KYC_CASE workflow.
+    function create_case(p_request_id in number, p_assigned_to in varchar2 default null) return number;
+    -- A case opened by an officer without an intake request (a request is recorded for the trail).
+    function create_manual_case(p_party_id in number, p_justification in varchar2) return number;
+
+    procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
+    -- Assign / Assign to me on the case screen: Manage on Cases, or the current assignee.
+    function can_assign(p_case_id in number) return varchar2;
+    -- The approver of the first step of the request's approval path (default assignee of its case).
+    function first_approver(p_request_id in number) return varchar2;
+    -- Withdraw from approval: back to investigation (the submitter or Manage on Cases, while Pending approval).
+    function can_withdraw(p_case_id in number) return varchar2;
+    procedure withdraw(p_case_id in number, p_reason in varchar2);
+
+    -- Task participants.
+    function investigation_owners(p_case_id in number) return varchar2;
+    function level_approvers(p_case_id in number) return varchar2;
+
+    -- Approval levels from the approval matrix (risk tier; Enhanced KYC needs two).
+    function required_levels(p_case_id in number) return number;
+    function level_role(p_case_id in number, p_level in number) return varchar2;
+    function sar_gate(p_case_id in number) return varchar2;
+
+    -- Y when the case is under investigation and the user may manage cases (Case page read-only otherwise).
+    function is_editable(p_case_id in number) return varchar2;
+
+    -- Investigation -> approval.
+    function submit_error(p_case_id in number) return varchar2;
+    procedure submit_for_approval(p_case_id in number);
+
+    -- Approval (CASE_APPROVAL task actions and the decision page).
+    function approval_error(p_case_id in number) return varchar2;
+    procedure record_decision(p_case_id in number, p_outcome in varchar2, p_comments in varchar2, p_task_id in number);
+    function next_review_date(p_case_id in number) return date;
+
+    -- Workflow steps (KYC_CASE).
+    procedure start_approval(p_case_id in number);
+    function has_next_level(p_case_id in number) return varchar2;
+    procedure approve_case(p_case_id in number);
+    procedure reject_case(p_case_id in number);
+
+    -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
+    procedure apply_screening(p_case_id in number);
+
+    -- Case screen (211, release 27): the sections an officer works through, in order.
+    -- release 29: Contacts and Ownership merged into Party
+    c_sections constant varchar2(200) := 'SUMMARY:PARTY:SCREENING:DOCUMENTS:RISK:NOTES:REVIEW';
+    -- DONE, TODO or WARN (an open request for information) for one section.
+    function section_state(p_case_id in number, p_section in varchar2) return varchar2;
+    -- The section list with each section's state and the progress; links open the section (P211_SECTION).
+    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob;
+
+end xxcmp_case_pkg;
+/
+
+create or replace package body xxcmp_request_pkg as
+
+    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG).
+    function param(p_code in varchar2, p_default in number) return number is
+        l_value number;
+    begin
+        select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
+         where lookup_type = 'KYC_PARAMETER' and lookup_code = p_code and enabled_flag = 'Y';
+        return nvl(l_value, p_default);
+    end param;
+
+    function questionnaire_for(p_party_type in varchar2) return varchar2 is
+    begin
+        return case p_party_type when 'PERSON' then 'INDIVIDUAL' else 'CORPORATE' end;
+    end questionnaire_for;
+
+    procedure add_answer_rows(p_request_id in number, p_case_id in number, p_questionnaire in varchar2,
+                              p_respondent in varchar2) is
+    begin
+        insert into xxcmp_request_answers (request_id, case_id, respondent_type, question_id)
+        select p_request_id, p_case_id, p_respondent, q.question_id
+          from xxcmp_questions q
+         where q.questionnaire_code = p_questionnaire
+           and q.enabled_flag = 'Y'
+           and not exists (select 1 from xxcmp_request_answers a
+                            where a.request_id = p_request_id and a.respondent_type = p_respondent
+                              and a.question_id = q.question_id);
+    end add_answer_rows;
+
+    function get_request(p_request_id in number) return xxcmp_requests%rowtype is
+        l_req xxcmp_requests%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_req from xxcmp_requests where request_id = p_request_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_req;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end get_request;
+
+    function get_party(p_party_id in number) return xxcmp_parties%rowtype is
+        l_party xxcmp_parties%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_party from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_party;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end get_party;
+
+    function party_status(p_party_id in number) return varchar2 is
+        l_status xxcmp_parties.party_status%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_status) into l_status from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_status;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_status;
+
+    -- a Pending party created with a request that no other open or approved request uses gets P_STATUS
+    procedure release_party(p_party_id in number, p_request_id in number, p_status in varchar2) is
+        l_other pls_integer;
+    begin
+        if p_party_id is null or party_status(p_party_id) <> 'PENDING' then
+            return;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        select count(*) into l_other from xxcmp_requests
+         where party_id = p_party_id and request_id <> p_request_id
+           and request_status not in ('CANCELLED', 'REJECTED');
+        xxfnd_vpd_pkg.end_trusted;
+        if l_other = 0 then
+            xxcmp_party_pkg.set_status(p_party_id, p_status);
+        end if;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end release_party;
+
+    function create_request(p_party_type            in varchar2,
+                            p_party_name            in varchar2,
+                            p_registration_number   in varchar2 default null,
+                            p_jurisdiction          in varchar2 default null,
+                            p_entity_type           in varchar2 default null,
+                            p_incorporation_date    in date     default null,
+                            p_requesting_department in varchar2 default null,
+                            p_justification         in varchar2 default null,
+                            p_request_type          in varchar2 default 'NEW_ONBOARDING',
+                            p_trigger_source        in varchar2 default 'MANUAL',
+                            p_parent_request_id     in number   default null,
+                            p_parent_case_id        in number   default null,
+                            p_party_id              in number   default null,
+                            p_registration_type     in varchar2 default null,
+                            p_business_relationship in varchar2 default null) return number is
+        l_id  number;
+        l_qnr varchar2(30) := case when p_request_type = 'NEW_ONBOARDING' then questionnaire_for(p_party_type) end;
+    begin
+        insert into xxcmp_requests (request_number, request_type, trigger_source, parent_request_id, parent_case_id,
+                                    party_id, party_type, party_name, registration_number, jurisdiction, entity_type,
+                                    incorporation_date, requesting_department, requester_user_name,
+                                    questionnaire_code, justification, last_action_date,
+                                    registration_type, business_relationship)
+        values ('REQ-' || lpad(xxcmp_request_number_s.nextval, 6, '0'), p_request_type, p_trigger_source,
+                p_parent_request_id, p_parent_case_id, p_party_id, p_party_type, p_party_name, p_registration_number,
+                p_jurisdiction, p_entity_type, p_incorporation_date, p_requesting_department,
+                xxfnd_util_pkg.current_user, l_qnr, p_justification, sysdate,
+                p_registration_type, p_business_relationship)
+        returning request_id into l_id;
+        if l_qnr is not null then
+            add_answer_rows(l_id, null, l_qnr, 'REQUESTER');
+        end if;
+        return l_id;
+    end create_request;
+
+    function default_department return varchar2 is
+        l_code xxfnd_lookup_values.lookup_code%type;
+    begin
+        select max(v.lookup_code) keep (dense_rank first order by v.display_sequence) into l_code
+          from xxfnd_employees e
+          join xxfnd_lookup_values v
+            on v.lookup_type = 'REQUESTING_DEPARTMENT' and v.enabled_flag = 'Y'
+           and (upper(v.lookup_code) = upper(trim(e.department_name)) or upper(v.meaning) = upper(trim(e.department_name)))
+         where e.user_name = upper(xxfnd_util_pkg.current_user) and e.enabled_flag = 'Y';
+        return l_code;
+    end default_department;
+
+    function can_choose_department return varchar2 is
+    begin
+        return case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then 'Y' else 'N' end;
+    end can_choose_department;
+
+    function request_error(p_request_id          in number,
+                           p_party_selection     in varchar2,
+                           p_party_id            in number,
+                           p_party_type          in varchar2,
+                           p_party_name          in varchar2,
+                           p_jurisdiction        in varchar2,
+                           p_registration_number in varchar2,
+                           p_entity_type         in varchar2,
+                           p_incorporation_date  in date,
+                           p_email               in varchar2,
+                           p_phone               in varchar2,
+                           p_justification       in varchar2,
+                           p_draft               in varchar2 default 'N',
+                           p_match_ack           in varchar2 default 'Y',
+                           p_registration_type   in varchar2 default null,
+                           p_business_relationship in varchar2 default null) return varchar2 is
+        l_own   number;
+        l_error varchar2(4000);
+    begin
+        if p_party_selection = 'EXISTING' then
+            if p_party_id is null then
+                return 'Choose the existing counterparty.';
+            elsif party_status(p_party_id) <> 'APPROVED' or xxcmp_party_pkg.is_enabled(p_party_id) = 'N' then
+                return 'Choose an approved, enabled party.';
+            end if;
+        else
+            -- the request's own party is not a duplicate of itself
+            if p_request_id is not null then
+                l_own := get_request(p_request_id).party_id;
+            end if;
+            l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
+                                                   p_registration_number, p_entity_type, p_incorporation_date,
+                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type);
+            if l_error is not null then
+                return l_error;
+            end if;
+        end if;
+        if p_draft = 'N' and trim(p_justification) is null then
+            return 'Enter the business justification.';
+        elsif p_draft = 'N' and p_business_relationship is null then
+            return 'Choose the business relationship (what the counterparty is to the company).';
+        end if;
+        return null;
+    end request_error;
+
+    procedure save_request(p_request_id            in out number,
+                           p_party_selection       in varchar2,
+                           p_party_id              in number,
+                           p_party_type            in varchar2,
+                           p_party_name            in varchar2,
+                           p_jurisdiction          in varchar2,
+                           p_registration_number   in varchar2,
+                           p_entity_type           in varchar2,
+                           p_incorporation_date    in date,
+                           p_email                 in varchar2,
+                           p_phone                 in varchar2,
+                           p_website               in varchar2,
+                           p_fax                   in varchar2,
+                           p_requesting_department in varchar2,
+                           p_justification         in varchar2,
+                           p_draft                 in varchar2 default 'N',
+                           p_contact_name          in varchar2 default null,
+                           p_contact_email         in varchar2 default null,
+                           p_contact_phone         in varchar2 default null,
+                           p_match_ack             in varchar2 default 'Y',
+                           p_registration_type     in varchar2 default null,
+                           p_address               in varchar2 default null,
+                           p_business_relationship in varchar2 default null) is
+        l_error    varchar2(4000);
+        l_old      xxcmp_requests%rowtype;
+        l_party    xxcmp_parties%rowtype;
+        l_party_id number;
+        l_new      boolean := false;
+        l_dept     xxcmp_requests.requesting_department%type := p_requesting_department;
+    begin
+        if p_request_id is not null then
+            l_old := get_request(p_request_id);
+            if l_old.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+               or upper(l_old.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
+                raise_application_error(-20612, 'Request ' || l_old.request_number || ' can no longer be changed.');
+            elsif l_old.request_status = 'INFO_NEEDED'
+                  and (p_party_selection <> l_old.party_selection
+                       or (p_party_selection = 'EXISTING' and p_party_id <> l_old.party_id)) then
+                raise_application_error(-20617, 'The counterparty of a submitted request cannot be replaced.');
+            end if;
+        end if;
+        l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
+                                 p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone,
+                                 p_justification, p_draft, p_match_ack, p_registration_type, p_business_relationship);
+        if l_error is not null then
+            raise_application_error(-20611, l_error);
+        end if;
+        -- a rejected request is corrected and submitted again: back to Draft, its own party back to Pending
+        if l_old.request_status = 'REJECTED' then
+            if l_old.party_selection = 'NEW' and l_old.party_id is not null and party_status(l_old.party_id) = 'REJECTED' then
+                xxcmp_party_pkg.set_status(l_old.party_id, 'PENDING');
+            end if;
+            update xxcmp_requests
+               set request_status = 'DRAFT', completed_date = null, approval_path_name = null, current_step = null
+             where request_id = p_request_id;
+            l_old.request_status := 'DRAFT';
+        end if;
+        -- a requester raises requests for the department of the employee profile; Compliance for any department
+        if can_choose_department = 'N' and default_department is not null then
+            l_dept := default_department;
+        end if;
+
+        if p_party_selection = 'EXISTING' then
+            l_party_id := p_party_id;
+            -- the Pending party this request created before is no longer needed
+            if l_old.party_selection = 'NEW' and l_old.party_id is not null and l_old.party_id <> p_party_id then
+                release_party(l_old.party_id, p_request_id, 'CANCELLED');
+            end if;
+        else
+            -- the request's own Pending party is updated; otherwise a new Pending party is created
+            if l_old.party_selection = 'NEW' and party_status(l_old.party_id) = 'PENDING' then
+                l_party_id := l_old.party_id;
+            elsif l_old.party_selection = 'NEW' and l_old.party_id is not null then
+                raise_application_error(-20618, 'The party of this request has been approved: Compliance maintains it.');
+            end if;
+            l_new := l_party_id is null;
+            xxcmp_party_pkg.put_party(l_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
+                                      p_entity_type, p_incorporation_date, p_email, p_phone, p_website, p_fax,
+                                      p_party_status => 'PENDING', p_registration_type => p_registration_type,
+                                      p_address => p_address);
+            if l_new and trim(p_contact_name) is not null then
+                xxfnd_vpd_pkg.begin_trusted;
+                begin
+                    insert into xxcmp_party_contacts (party_id, contact_name, email, phone, primary_flag)
+                    values (l_party_id, trim(p_contact_name), trim(p_contact_email), trim(p_contact_phone), 'Y');
+                exception
+                    when others then
+                        xxfnd_vpd_pkg.end_trusted;
+                        raise;
+                end;
+                xxfnd_vpd_pkg.end_trusted;
+            end if;
+        end if;
+        l_party := get_party(l_party_id);
+
+        if p_request_id is null then
+            p_request_id := create_request(p_party_type => l_party.party_type, p_party_name => l_party.party_name,
+                                           p_requesting_department => l_dept, p_justification => p_justification,
+                                           p_party_id => l_party_id);
+            l_old := get_request(p_request_id);
+        end if;
+        update xxcmp_requests
+           set party_selection       = p_party_selection,
+               party_id              = l_party_id,
+               party_type            = l_party.party_type,
+               party_name            = l_party.party_name,
+               registration_number   = l_party.registration_number,
+               entity_type           = l_party.entity_type,
+               registration_type     = l_party.registration_type,
+               business_relationship = p_business_relationship,
+               incorporation_date    = l_party.incorporation_date,
+               jurisdiction          = l_party.jurisdiction,
+               match_status          = case when p_party_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
+               match_ack_flag        = case when p_match_ack = 'Y' then 'Y' else 'N' end,
+               contact_name          = trim(p_contact_name),
+               contact_email         = trim(p_contact_email),
+               contact_phone         = trim(p_contact_phone),
+               requesting_department = case when l_old.request_status = 'DRAFT' then l_dept else requesting_department end,
+               justification         = p_justification,
+               questionnaire_code    = case when l_old.request_status = 'DRAFT' then questionnaire_for(l_party.party_type)
+                                            else questionnaire_code end,
+               last_action_date      = sysdate
+         where request_id = p_request_id;
+        -- another type answers another questionnaire
+        if l_old.request_status = 'DRAFT' and nvl(l_old.questionnaire_code, '#') <> questionnaire_for(l_party.party_type) then
+            delete from xxcmp_request_answers where request_id = p_request_id and respondent_type = 'REQUESTER';
+            add_answer_rows(p_request_id, null, questionnaire_for(l_party.party_type), 'REQUESTER');
+        end if;
+    end save_request;
+
+    function is_editable(p_request_id in number) return varchar2 is
+        l_req xxcmp_requests%rowtype;
+    begin
+        if p_request_id is null then
+            return 'Y';
+        end if;
+        l_req := get_request(p_request_id);
+        return case when l_req.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+                     and upper(l_req.requester_user_name) = upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end is_editable;
+
+    function party_editable(p_request_id in number) return varchar2 is
+        l_req xxcmp_requests%rowtype;
+    begin
+        if p_request_id is null then
+            return 'Y';
+        end if;
+        l_req := get_request(p_request_id);
+        return case when is_editable(p_request_id) = 'Y' and nvl(l_req.party_selection, 'NEW') = 'NEW'
+                     and nvl(l_req.match_status, '-') <> 'MERGED' then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end party_editable;
+
+    function party_directory_json(p_party_type in varchar2) return clob is
+        l_json clob;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
+                                         'party_name' value party_name,
+                                         'country' value xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction))
+                             order by party_name returning clob)
+          into l_json
+          from xxcmp_parties
+         where (party_type = p_party_type or p_party_type is null) and enabled_flag = 'Y' and party_status = 'APPROVED';
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_json, '[]');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_directory_json;
+
+    function party_candidates_json(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return clob is
+        l_json clob;
+        l_id   varchar2(100) := upper(regexp_replace(p_registration_number, '[^[:alnum:]]', ''));
+    begin
+        if trim(p_party_name) is null and l_id is null then
+            return '[]';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;    -- the whole party master, but only safe columns leave this function
+        select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
+                                         'registration_type' value registration_type,
+                                         'registration_number' value registration_number,
+                                         'party_name' value party_name, 'country' value country,
+                                         'score' value score, 'reg_match' value reg_match, 'reasons' value reasons,
+                                         'exact' value case when id_hit = 'Y' and country_hit = 'Y' then 'Y' else 'N' end,
+                                         'status' value status)
+                             order by score desc, party_name returning clob)
+          into l_json
+          from (select m.*,
+                       case when id_hit = 'Y' and country_hit = 'Y' then 100
+                            when id_hit = 'Y' then 90
+                            else least(89, round(similarity * 0.7 + case when date_hit = 'Y' then 20 else 0 end
+                                                                + case when country_hit = 'Y' then 10 else 0 end)) end as score,
+                       case when l_id is not null and party_id_number is not null
+                            then round(utl_match.edit_distance_similarity(party_id_number, l_id)) end as reg_match,
+                       rtrim(case when id_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'REGISTRATION_NUMBER')) || '; ' end
+                             || case when similarity >= 70 then 'Name ' || round(similarity) || '% similar; ' end
+                             || case when date_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'INCORPORATION_DATE')) || '; ' end
+                             || case when country_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'JURISDICTION')) || '; ' end,
+                             '; ') as reasons
+                  from (select p.party_id, p.party_number, p.party_name, p.registration_number,
+                               xxfnd_util_pkg.lookup_meaning(xxcmp_party_pkg.registration_lookup(p.party_type),
+                                                             p.registration_type) as registration_type,
+                               xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as status,
+                               upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) as party_id_number,
+                               xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,
+                               case when l_id is not null
+                                     and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
+                                    then 'Y' else 'N' end as id_hit,
+                               case when trim(p_party_name) is not null
+                                    then xxcmp_kyc_pkg.name_similarity(p.party_name, p_party_name) else 0 end as similarity,
+                               case when p_date is not null and p_date = p.incorporation_date then 'Y' else 'N' end as date_hit,
+                               case when p_country is not null and p.jurisdiction = p_country then 'Y' else 'N' end as country_hit
+                          from xxcmp_parties p
+                         where p.party_type = p_party_type
+                           and p.enabled_flag = 'Y'
+                           and p.party_status not in ('REJECTED', 'CANCELLED')
+                           and p.party_id <> nvl(p_exclude_party_id, -1)) m
+                 where id_hit = 'Y'
+                    or similarity >= 85
+                    or (similarity >= 70 and date_hit = 'Y')
+                 order by score desc
+                 fetch first 10 rows only);
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_json, '[]');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_candidates_json;
+
+    function party_candidate_count(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return number is
+    begin
+        return json_array_t.parse(party_candidates_json(p_party_type, p_party_name, p_registration_number,
+                                                        p_date, p_country, p_exclude_party_id)).get_size;
+    end party_candidate_count;
+
+    function request_candidates_json(p_request_id in number) return clob is
+        l_req xxcmp_requests%rowtype := get_request(p_request_id);
+    begin
+        return party_candidates_json(l_req.party_type, l_req.party_name, l_req.registration_number,
+                                     l_req.incorporation_date, l_req.jurisdiction, l_req.party_id);
+    end request_candidates_json;
+
+    function match_pending(p_request_id in number) return varchar2 is
+    begin
+        return case when get_request(p_request_id).match_status = 'PENDING' then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end match_pending;
+
+    function questionnaire_html(p_request_id in number, p_respondent in varchar2 default 'REQUESTER') return clob is
+        l_html    clob;
+        l_section varchar2(240) := chr(0);
+        l_lang    varchar2(10) := xxfnd_util_pkg.current_lang;
+        l_id      varchar2(100);
+
+        procedure add(p_text in varchar2) is
+        begin
+            dbms_lob.writeappend(l_html, length(p_text), p_text);
+        end add;
+    begin
+        dbms_lob.createtemporary(l_html, true);
+        add('<div class="kyc-questionnaire">');
+        for q in (select a.question_id, a.answer_option_id, a.answer_text, qu.answer_type, qu.required_flag,
+                         nvl(tl.question_text, qu.question_text) as question_text,
+                         nvl(nvl(tl.section_name, qu.section_name), 'General') as section_name
+                    from xxcmp_request_answers a
+                    join xxcmp_questions qu on qu.question_id = a.question_id
+                    left join xxcmp_questions_tl tl on tl.question_id = qu.question_id and tl.language_code = l_lang
+                   where a.request_id = p_request_id
+                     and a.respondent_type = p_respondent
+                   -- a section's questions stay together, in the order of its first question
+                   order by min(qu.display_sequence) over (partition by nvl(nvl(tl.section_name, qu.section_name), 'General')),
+                            qu.display_sequence, qu.question_id) loop
+            if q.section_name <> l_section then
+                if l_section <> chr(0) then
+                    add('</div>');
+                end if;
+                l_section := q.section_name;
+                add('<div class="kyc-section"><h3 class="kyc-section-title">' || apex_escape.html(q.section_name) || '</h3>');
+            end if;
+            l_id := 'kycq_' || q.question_id;
+            add('<fieldset class="kyc-q" data-kyc-q="' || q.question_id || '" data-kyc-type="' || q.answer_type || '">'
+                || '<legend class="kyc-q-text">' || apex_escape.html(q.question_text)
+                || case when q.required_flag = 'Y' then ' <span class="kyc-q-required" title="Required">*</span>' end
+                || '</legend>');
+            if q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then
+                add('<div class="kyc-q-options" role="radiogroup">');
+                for o in (select answer_option_id, answer_label
+                            from xxcmp_answer_options
+                           where question_id = q.question_id and approval_status = 'APPROVED' and enabled_flag = 'Y'
+                           order by display_sequence, answer_option_id) loop
+                    add('<label class="kyc-q-option"><input type="radio" name="' || l_id || '" value="' || o.answer_option_id || '"'
+                        || case when o.answer_option_id = q.answer_option_id then ' checked' end
+                        || '> <span>' || apex_escape.html(o.answer_label) || '</span></label>');
+                end loop;
+                add('</div>');
+            elsif q.answer_type = 'TEXT' then
+                add('<textarea class="textarea apex-item-textarea kyc-q-input" rows="3" maxlength="4000" aria-label="'
+                    || apex_escape.html_attribute(q.question_text) || '">' || apex_escape.html(q.answer_text) || '</textarea>');
+            else
+                add('<input class="text_field apex-item-text kyc-q-input" type="'
+                    || case q.answer_type when 'DATE' then 'date' else 'text" inputmode="decimal' end
+                    || '" value="' || apex_escape.html_attribute(q.answer_text) || '" aria-label="'
+                    || apex_escape.html_attribute(q.question_text) || '">');
+            end if;
+            add('</fieldset>');
+        end loop;
+        if l_section <> chr(0) then
+            add('</div>');
+        else
+            add('<p class="kyc-q-empty">No questions are configured for this counterparty type.</p>');
+        end if;
+        add('</div>');
+        return l_html;
+    end questionnaire_html;
+
+    function answers_error(p_request_id in number, p_answers in clob) return varchar2 is
+        l_missing varchar2(4000);
+    begin
+        select listagg(qu.question_text, '; ') within group (order by qu.display_sequence)
+          into l_missing
+          from xxcmp_request_answers a
+          join xxcmp_questions qu on qu.question_id = a.question_id
+         where a.request_id = p_request_id
+           and a.respondent_type = 'REQUESTER'
+           and qu.required_flag = 'Y'
+           and not exists (select 1 from json_table(nvl(p_answers, '[]'), '$[*]'
+                                            columns (q number path '$.q', o number path '$.o', t varchar2(4000) path '$.t')) j
+                            where j.q = a.question_id and (j.o is not null or trim(j.t) is not null));
+        return case when l_missing is not null then 'Answer the required questions: ' || l_missing end;
+    end answers_error;
+
+    procedure save_answers(p_request_id in number, p_answers in clob) is
+        l_status xxcmp_requests.request_status%type;
+        l_type   xxcmp_questions.answer_type%type;
+        l_option number;
+        l_text   varchar2(4000);
+    begin
+        select request_status into l_status from xxcmp_requests where request_id = p_request_id;
+        if l_status not in ('DRAFT', 'INFO_NEEDED') then
+            raise_application_error(-20613, 'The request has been submitted; its answers can no longer be changed.');
+        end if;
+        for j in (select q, o, t from json_table(nvl(p_answers, '[]'), '$[*]'
+                          columns (q number path '$.q', o number path '$.o', t varchar2(4000) path '$.t'))) loop
+            begin
+                select qu.answer_type into l_type
+                  from xxcmp_request_answers a join xxcmp_questions qu on qu.question_id = a.question_id
+                 where a.request_id = p_request_id and a.respondent_type = 'REQUESTER' and a.question_id = j.q;
+            exception
+                when no_data_found then
+                    raise_application_error(-20614, 'Question ' || j.q || ' does not belong to this request.');
+            end;
+            l_option := null;
+            l_text   := null;
+            if l_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then
+                if j.o is not null then
+                    select max(answer_option_id) into l_option
+                      from xxcmp_answer_options
+                     where answer_option_id = j.o and question_id = j.q and approval_status = 'APPROVED' and enabled_flag = 'Y';
+                    if l_option is null then
+                        raise_application_error(-20615, 'Answer ' || j.o || ' is not an option of question ' || j.q || '.');
+                    end if;
+                end if;
+            elsif l_type = 'NUMBER' and trim(j.t) is not null
+                  and validate_conversion(trim(j.t) as number) = 0 then
+                raise_application_error(-20616, 'Enter a number for: ' || j.t);
+            else
+                l_text := trim(j.t);
+            end if;
+            update xxcmp_request_answers
+               set answer_option_id = l_option,
+                   answer_text      = case when l_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then answer_text else l_text end
+             where request_id = p_request_id and respondent_type = 'REQUESTER' and question_id = j.q;
+        end loop;
+    end save_answers;
+
+    function submit_error(p_request_id in number) return varchar2 is
+        l_req     xxcmp_requests%rowtype := get_request(p_request_id);
+        l_party   xxcmp_parties%rowtype;
+        l_missing pls_integer;
+        l_error   varchar2(4000);
+        l_docs    varchar2(4000);
+    begin
+        if l_req.request_status <> 'DRAFT' then
+            return 'This request has already been submitted.';
+        end if;
+        select count(*) into l_missing
+          from xxcmp_request_answers a
+          join xxcmp_questions q on q.question_id = a.question_id
+         where a.request_id = p_request_id and a.respondent_type = 'REQUESTER'
+           and q.required_flag = 'Y' and a.answer_option_id is null and a.answer_text is null;
+        if l_missing > 0 then
+            return l_missing || ' required question(s) are not answered.';
+        end if;
+        -- reviews of an existing case (monitoring) come with their party: only a requester's counterparty is checked
+        if l_req.parent_case_id is not null then
+            return null;
+        end if;
+        if l_req.party_id is null then
+            return 'Choose or enter the counterparty.';
+        end if;
+        if l_req.party_selection = 'NEW' then
+            l_party := get_party(l_req.party_id);
+            l_error := request_error(p_request_id, 'NEW', null, l_party.party_type, l_party.party_name, l_party.jurisdiction,
+                                     l_party.registration_number, l_party.entity_type, l_party.incorporation_date,
+                                     l_party.email, l_party.phone, l_req.justification,
+                                     p_registration_type => l_party.registration_type,
+                                     p_business_relationship => nvl(l_req.business_relationship, 'X'));
+        else
+            l_error := request_error(p_request_id, 'EXISTING', l_req.party_id, null, null, null, null, null, null, null,
+                                     null, l_req.justification, p_business_relationship => nvl(l_req.business_relationship, 'X'));
+        end if;
+        if l_error is not null then
+            return l_error;
+        end if;
+        -- mandatory documents of the entity / ID type and country (Mandatory Document Rules), attached to the
+        -- request or to the party
+        for c in (select c.column_value as category_code,
+                         nvl((select max(tl.category_name) from xxfnd_document_categories_tl tl
+                               where tl.category_code = c.column_value and tl.language_code = xxfnd_util_pkg.current_lang),
+                             (select max(dc.category_name) from xxfnd_document_categories dc
+                               where dc.category_code = c.column_value)) as category_name
+                    from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_req.jurisdiction,
+                                 case when l_req.party_type = 'PERSON' then l_req.registration_type else l_req.entity_type end)) c
+                   where not exists (select 1 from xxfnd_attached_documents_v a
+                                      where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                        and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = to_char(p_request_id))
+                                          or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = to_char(l_req.party_id))))) loop
+            l_docs := l_docs || case when l_docs is not null then ', ' end || c.category_name;
+        end loop;
+        if l_docs is not null then
+            return 'Attach the mandatory documents: ' || l_docs || '.';
+        end if;
+        return null;
+    end submit_error;
+
+    procedure submit(p_request_id in number) is
+        l_error varchar2(4000) := submit_error(p_request_id);
+        l_wf    number;
+    begin
+        if l_error is not null then
+            raise_application_error(-20601, l_error);
+        end if;
+        update xxcmp_requests
+           set request_status = 'IN_PROGRESS', submitted_date = systimestamp, last_action_date = sysdate
+         where request_id = p_request_id;
+        xxcmp_approval_pkg.start_path(p_request_id);
+        l_wf := apex_workflow.start_workflow(
+                    p_application_id => v('APP_ID'),
+                    p_static_id      => 'KYC_REQUEST',
+                    p_detail_pk      => to_char(p_request_id));
+        update xxcmp_requests set workflow_id = l_wf where request_id = p_request_id;
+    end submit;
+
+    function cancel_error(p_request_id in number) return varchar2 is
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_cases pls_integer;
+    begin
+        if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
+            return 'Only the requester can cancel request ' || l_req.request_number || '.';
+        elsif l_req.request_status = 'IN_PROGRESS' then
+            return 'Request ' || l_req.request_number || ' is waiting for approval: withdraw it first.';
+        elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then
+            return 'Request ' || l_req.request_number || ' is closed and cannot be cancelled.';
+        end if;
+        select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
+        if l_cases > 0 then
+            return 'A case has been opened for request ' || l_req.request_number || ': it cannot be cancelled.';
+        end if;
+        return null;
+    end cancel_error;
+
+    procedure cancel(p_request_id in number, p_reason in varchar2 default null) is
+        l_error varchar2(4000) := cancel_error(p_request_id);
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_state varchar2(30);
+    begin
+        if l_error is not null then
+            raise_application_error(-20623, l_error);
+        end if;
+        -- the running workflow and its open task end with the request
+        if l_req.workflow_id is not null then
+            select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
+            if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
+                xxfnd_vpd_pkg.begin_trusted;
+                begin
+                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
+                exception
+                    when others then
+                        xxfnd_vpd_pkg.end_trusted;
+                        raise;
+                end;
+                xxfnd_vpd_pkg.end_trusted;
+            end if;
+        end if;
+        update xxcmp_requests
+           set request_status = 'CANCELLED', completed_date = systimestamp, last_action_date = sysdate,
+               match_note = nvl(substr(p_reason, 1, 1000), match_note)
+         where request_id = p_request_id;
+        release_party(l_req.party_id, p_request_id, 'CANCELLED');
+    end cancel;
+
+    function can_request_info(p_task_id in number) return varchar2 is
+        l_initiator apex_tasks.initiator%type;
+    begin
+        select max(initiator) into l_initiator from apex_tasks where task_id = p_task_id;
+        return case when l_initiator is not null and upper(l_initiator) <> upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
+    end can_request_info;
+
+    function withdraw_error(p_request_id in number) return varchar2 is
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_cases pls_integer;
+    begin
+        if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
+            return 'Only the requester can withdraw request ' || l_req.request_number || '.';
+        elsif l_req.request_status <> 'IN_PROGRESS' then
+            return 'Only a request waiting for approval can be withdrawn.';
+        end if;
+        select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
+        if l_cases > 0 then
+            return 'A case has been opened for request ' || l_req.request_number || ': it cannot be withdrawn.';
+        end if;
+        return null;
+    end withdraw_error;
+
+    procedure withdraw(p_request_id in number) is
+        l_error varchar2(4000) := withdraw_error(p_request_id);
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_state varchar2(30);
+    begin
+        if l_error is not null then
+            raise_application_error(-20623, l_error);
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            if l_req.workflow_id is not null then
+                select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
+                if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
+                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
+                end if;
+            end if;
+            update xxcmp_requests
+               set request_status = 'DRAFT', approval_path_name = null, current_step = null, last_action_date = sysdate
+             where request_id = p_request_id;
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+    end withdraw;
+
+    procedure set_status(p_request_id in number, p_from in varchar2, p_to in varchar2) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests set request_status = p_to, last_action_date = sysdate
+         where request_id = p_request_id and request_status = p_from;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end set_status;
+
+    procedure info_requested(p_request_id in number) is
+    begin
+        set_status(p_request_id, 'IN_PROGRESS', 'INFO_NEEDED');
+    end info_requested;
+
+    procedure info_submitted(p_request_id in number) is
+    begin
+        set_status(p_request_id, 'INFO_NEEDED', 'IN_PROGRESS');
+    end info_submitted;
+
+    -- The request's party: the one chosen or created with the request. Requests saved before release 23 may
+    -- still have none: a Pending party is created from what was typed.
+    procedure link_party(p_req in out xxcmp_requests%rowtype) is
+    begin
+        if p_req.party_id is null then
+            xxcmp_party_pkg.put_party(p_req.party_id, p_req.party_type, p_req.party_name, p_req.jurisdiction,
+                                      p_req.registration_number, p_req.entity_type, p_req.incorporation_date,
+                                      p_req.contact_email, p_req.contact_phone, null, null, p_party_status => 'PENDING',
+                                      p_registration_type => p_req.registration_type);
+            update xxcmp_requests set party_id = p_req.party_id, match_status = 'NEW' where request_id = p_req.request_id;
+        end if;
+    end link_party;
+
+    procedure evaluate(p_request_id in number) is
+        l_req      xxcmp_requests%rowtype;
+        l_score    number;
+        l_critical pls_integer;
+        l_waiver   pls_integer;
+        l_low      number;
+        l_outcome  varchar2(30);
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_req from xxcmp_requests where request_id = p_request_id for update;
+        link_party(l_req);
+        if l_req.request_type <> 'NEW_ONBOARDING' or l_req.questionnaire_code is null then
+            l_outcome := 'ASSIGNED';                          -- reviews always go to Compliance
+        else
+            update xxcmp_request_answers a
+               set risk_points = (select o.risk_points from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id)
+             where a.request_id = p_request_id and a.respondent_type = 'REQUESTER';
+            select nvl(sum(a.risk_points), 0),
+                   count(case when o.critical_flag = 'Y' then 1 end),
+                   count(case when q.gate_question_flag = 'Y' and o.waiver_qualifying_flag = 'Y' then 1 end)
+              into l_score, l_critical, l_waiver
+              from xxcmp_request_answers a
+              join xxcmp_questions q on q.question_id = a.question_id
+              left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+             where a.request_id = p_request_id and a.respondent_type = 'REQUESTER';
+            select low_risk_max_score into l_low from xxcmp_questionnaires where questionnaire_code = l_req.questionnaire_code;
+            l_outcome := case when l_critical > 0 then 'ASSIGNED'
+                              when l_waiver > 0 then 'NOT_REQUIRED'
+                              when l_low is not null and l_score <= l_low then 'AUTO_APPROVED'
+                              else 'ASSIGNED' end;
+            update xxcmp_requests set intake_score = l_score, intake_critical_flag = case when l_critical > 0 then 'Y' else 'N' end
+             where request_id = p_request_id;
+        end if;
+        update xxcmp_requests
+           set intake_outcome = l_outcome, request_status = 'IN_PROGRESS', last_action_date = sysdate
+         where request_id = p_request_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end evaluate;
+
+    function outcome(p_request_id in number) return varchar2 is
+    begin
+        return get_request(p_request_id).intake_outcome;
+    end outcome;
+
+    procedure close_without_case(p_request_id in number) is
+        l_party number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests
+           set request_status = 'APPROVED', completed_date = systimestamp, last_action_date = sysdate
+         where request_id = p_request_id
+        returning party_id into l_party;
+        xxfnd_vpd_pkg.end_trusted;
+        if party_status(l_party) = 'PENDING' then
+            xxcmp_party_pkg.set_status(l_party, 'APPROVED');
+        end if;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end close_without_case;
+
+    procedure create_case(p_request_id in number) is
+        l_case number;
+    begin
+        l_case := xxcmp_case_pkg.create_case(p_request_id);
+    end create_case;
+
+    procedure reject(p_request_id in number) is
+        l_party number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests
+           set request_status = 'REJECTED', completed_date = systimestamp, last_action_date = sysdate
+         where request_id = p_request_id
+        returning party_id into l_party;
+        xxfnd_vpd_pkg.end_trusted;
+        release_party(l_party, p_request_id, 'REJECTED');
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end reject;
+
+    function stage(p_request_id in number) return varchar2 is
+    begin
+        return xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', get_request(p_request_id).request_status);
+    exception
+        when no_data_found then
+            return null;
+    end stage;
+
+    function kyc_required(p_request_id in number) return varchar2 is
+        l_outcome xxcmp_requests.intake_outcome%type;
+    begin
+        l_outcome := get_request(p_request_id).intake_outcome;
+        return case when l_outcome = 'ASSIGNED' then 'Yes'
+                    when l_outcome in ('NOT_REQUIRED', 'AUTO_APPROVED') then 'No' end;
+    exception
+        when no_data_found then
+            return null;
+    end kyc_required;
+
+    function pending_with(p_request_id in number) return varchar2 is
+        l_req   xxcmp_requests%rowtype;
+        l_owner varchar2(255);
+        l_open  pls_integer;
+    begin
+        l_req := get_request(p_request_id);
+        if l_req.request_status in ('DRAFT', 'INFO_NEEDED') then
+            return l_req.requester_user_name;
+        elsif l_req.request_status = 'IN_PROGRESS' then
+            select max(actual_owner), count(*) into l_owner, l_open
+              from apex_tasks
+             where detail_pk = to_char(p_request_id)
+               and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
+               and state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED');
+            return case when l_owner is not null then l_owner
+                        when l_open > 0 then 'Compliance'
+                        else 'System' end;
+        end if;
+        return null;
+    exception
+        when no_data_found then
+            return null;
+    end pending_with;
+
+    function start_review(p_case_id in number, p_request_type in varchar2, p_trigger_source in varchar2,
+                          p_justification in varchar2) return number is
+        l_id    number;
+        l_party xxcmp_parties%rowtype;
+        l_case  xxcmp_cases%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        select * into l_party from xxcmp_parties where party_id = l_case.party_id;
+        l_id := create_request(p_party_type          => l_party.party_type,
+                               p_party_name          => l_party.party_name,
+                               p_registration_number => l_party.registration_number,
+                               p_jurisdiction        => l_party.jurisdiction,
+                               p_entity_type         => l_party.entity_type,
+                               p_registration_type   => l_party.registration_type,
+                               p_business_relationship => l_case.business_relationship,
+                               p_incorporation_date  => l_party.incorporation_date,
+                               p_justification       => p_justification,
+                               p_request_type        => p_request_type,
+                               p_trigger_source      => p_trigger_source,
+                               p_parent_request_id   => l_case.request_id,
+                               p_parent_case_id      => p_case_id,
+                               p_party_id            => l_case.party_id);
+        update xxcmp_requests set party_selection = 'EXISTING', match_status = 'SELECTED' where request_id = l_id;
+        submit(l_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return l_id;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end start_review;
+
+end xxcmp_request_pkg;
+/
+
+--------------------------------------------------------------------------------
+-- Cases
+--------------------------------------------------------------------------------
+create or replace package body xxcmp_case_pkg as
+
+    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG).
+    function param(p_code in varchar2, p_default in number) return number is
+        l_value number;
+    begin
+        select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
+         where lookup_type = 'KYC_PARAMETER' and lookup_code = p_code and enabled_flag = 'Y';
+        return nvl(l_value, p_default);
+    end param;
+
+    function get_case(p_case_id in number) return xxcmp_cases%rowtype is
+        l_case xxcmp_cases%rowtype;
+    begin
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        return l_case;
+    end get_case;
+
+    function create_case(p_request_id in number, p_assigned_to in varchar2 default null) return number is
+        l_req  xxcmp_requests%rowtype;
+        l_id   number;
+        l_wf   number;
+        l_sla  number := param('CASE_SLA_DAYS', 10);   -- private function: not callable inside SQL
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_req from xxcmp_requests where request_id = p_request_id;
+        insert into xxcmp_cases (case_number, request_id, party_id, parent_case_id, assigned_to, sla_due_date,
+                                 business_relationship)
+        values ('CASE-' || lpad(xxcmp_case_number_s.nextval, 6, '0'), p_request_id, l_req.party_id, l_req.parent_case_id,
+                -- release 29: by default the case goes to the approver of the request's first approval step
+                upper(coalesce(p_assigned_to, first_approver(p_request_id))), trunc(sysdate) + l_sla,
+                coalesce(l_req.business_relationship,
+                         (select c.business_relationship from xxcmp_cases c where c.case_id = l_req.parent_case_id)))
+        returning case_id into l_id;
+        -- the officer's investigation questionnaire
+        insert into xxcmp_request_answers (request_id, case_id, respondent_type, question_id)
+        select p_request_id, l_id, 'OFFICER', q.question_id
+          from xxcmp_questions q
+          join xxcmp_questionnaires qn on qn.questionnaire_code = q.questionnaire_code
+         where qn.audience = 'OFFICER' and qn.enabled_flag = 'Y' and q.enabled_flag = 'Y'
+           and not exists (select 1 from xxcmp_request_answers a
+                            where a.request_id = p_request_id and a.respondent_type = 'OFFICER' and a.question_id = q.question_id);
+        -- Compliance approved the request: the request is Approved and its party too
+        update xxcmp_requests set request_status = 'APPROVED', completed_date = systimestamp, last_action_date = sysdate
+         where request_id = p_request_id;
+        update xxcmp_parties set party_status = 'APPROVED' where party_id = l_req.party_id and party_status = 'PENDING';
+        l_wf := apex_workflow.start_workflow(
+                    p_application_id => v('APP_ID'),
+                    p_static_id      => 'KYC_CASE',
+                    -- the requester (or whoever opened a manual case) initiates; separation of duties excludes them
+                    p_initiator      => coalesce(l_req.requester_user_name, nullif(v('APP_USER'), 'nobody')),
+                    p_detail_pk      => to_char(l_id));
+        update xxcmp_cases set workflow_id = l_wf where case_id = l_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_id;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end create_case;
+
+    function create_manual_case(p_party_id in number, p_justification in varchar2) return number is
+        l_party xxcmp_parties%rowtype;
+        l_rel   xxcmp_cases.business_relationship%type;
+        l_req   number;
+    begin
+        select * into l_party from xxcmp_parties where party_id = p_party_id;
+        select max(c.business_relationship) keep (dense_rank last order by c.case_id) into l_rel
+          from xxcmp_cases c where c.party_id = p_party_id;
+        l_req := xxcmp_request_pkg.create_request(
+                     p_party_type          => l_party.party_type,
+                     p_party_name          => l_party.party_name,
+                     p_registration_number => l_party.registration_number,
+                     p_jurisdiction        => l_party.jurisdiction,
+                     p_entity_type         => l_party.entity_type,
+                     p_registration_type   => l_party.registration_type,
+                     p_business_relationship => l_rel,
+                     p_incorporation_date  => l_party.incorporation_date,
+                     p_justification       => p_justification,
+                     p_request_type        => 'EVENT_TRIGGERED_REVIEW',
+                     p_trigger_source      => 'MANUAL',
+                     p_party_id            => p_party_id);
+        update xxcmp_requests set request_status = 'IN_PROGRESS', intake_outcome = 'ASSIGNED', submitted_date = systimestamp,
+                                  party_selection = 'EXISTING', match_status = 'SELECTED', last_action_date = sysdate
+         where request_id = l_req;
+        return create_case(l_req, xxfnd_util_pkg.current_user);
+    end create_manual_case;
+
+    function first_approver(p_request_id in number) return varchar2 is
+        l_user varchar2(255);
+    begin
+        select max(h.event_creator) keep (dense_rank first order by h.event_timestamp)
+          into l_user
+          from apex_task_history h
+          join apex_tasks t on t.task_id = h.task_id
+         where t.detail_pk = to_char(p_request_id)
+           and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+           and h.event_type_code = 'COMPLETE';
+        -- the first step is being completed right now (single-step path): its approver is the current user
+        return upper(coalesce(l_user, nullif(xxfnd_util_pkg.current_user, 'nobody')));
+    end first_approver;
+
+    function can_assign(p_case_id in number) return varchar2 is
+        l_case xxcmp_cases%rowtype;
+    begin
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        return case when l_case.case_status = 'INVESTIGATION'
+                         and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                              or upper(l_case.assigned_to) = upper(xxfnd_util_pkg.current_user))
+                    then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end can_assign;
+
+    procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null) is
+        l_case xxcmp_cases%rowtype;
+        l_note varchar2(4000);
+        function emp(p_user in varchar2) return varchar2 is
+            l_name xxfnd_employees.full_name%type;
+        begin
+            select max(full_name) into l_name from xxfnd_employees where upper(user_name) = upper(p_user);
+            return nvl(l_name, p_user);
+        end emp;
+    begin
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        if can_assign(p_case_id) = 'N' then
+            raise_application_error(-20611, 'Only a case under investigation can be reassigned, by Compliance management or its assignee.');
+        end if;
+        if p_user_name is null then
+            raise_application_error(-20611, 'Select the officer.');
+        end if;
+        update xxcmp_cases set assigned_to = upper(p_user_name) where case_id = p_case_id;
+        -- the open investigation task follows the case
+        for t in (select task_id from apex_tasks
+                   where detail_pk = to_char(p_case_id) and task_def_static_id = 'CASE_INVESTIGATION'
+                     and state_code in ('UNASSIGNED', 'ASSIGNED')) loop
+            begin
+                apex_human_task.add_task_potential_owner(p_task_id => t.task_id, p_potential_owner => upper(p_user_name));
+            exception
+                when others then null;   -- already a potential owner
+            end;
+            if l_case.assigned_to is not null and upper(l_case.assigned_to) <> upper(p_user_name) then
+                begin
+                    apex_human_task.remove_potential_owner(p_task_id => t.task_id, p_potential_owner => upper(l_case.assigned_to));
+                exception
+                    when others then null;
+                end;
+            end if;
+        end loop;
+        l_note := substr('Assigned to ' || emp(p_user_name)
+                         || case when l_case.assigned_to is not null then ' (was ' || emp(l_case.assigned_to) || ')' end
+                         || case when p_comment is not null then ': ' || p_comment end, 1, 4000);
+        insert into xxcmp_case_notes (case_id, note_text) values (p_case_id, l_note);
+    end assign;
+
+    function can_withdraw(p_case_id in number) return varchar2 is
+        l_case xxcmp_cases%rowtype;
+    begin
+        select * into l_case from xxcmp_cases where case_id = p_case_id;
+        return case when l_case.case_status = 'PENDING_APPROVAL'
+                         and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                              or upper(l_case.assigned_to) = upper(xxfnd_util_pkg.current_user))
+                    then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end can_withdraw;
+
+    procedure withdraw(p_case_id in number, p_reason in varchar2) is
+        l_case  xxcmp_cases%rowtype;
+        l_state varchar2(30);
+        l_wf    number;
+        l_init  varchar2(255);
+    begin
+        if can_withdraw(p_case_id) = 'N' then
+            raise_application_error(-20615, 'Only a case waiting for approval can be withdrawn, by its officer or Compliance management.');
+        end if;
+        if trim(p_reason) is null then
+            raise_application_error(-20615, 'Enter the reason for withdrawing the case from approval.');
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        insert into xxcmp_case_decisions (case_id, level_no, role_code, decided_by, outcome, comments)
+        values (p_case_id, nvl(l_case.current_level, 1), null, xxfnd_util_pkg.current_user, 'WITHDRAWN', substr(p_reason, 1, 4000));
+        if l_case.workflow_id is not null then
+            select max(state_code) into l_state from apex_workflows where workflow_id = l_case.workflow_id;
+            if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
+                apex_workflow.terminate(p_instance_id => l_case.workflow_id);
+            end if;
+        end if;
+        update xxcmp_cases
+           set case_status = 'INVESTIGATION', current_level = null, investigation_completed_date = null
+         where case_id = p_case_id;
+        -- a fresh KYC_CASE workflow: the investigation task goes back to the assignee
+        select max(requester_user_name) into l_init from xxcmp_requests where request_id = l_case.request_id;
+        l_wf := apex_workflow.start_workflow(
+                    p_application_id => v('APP_ID'),
+                    p_static_id      => 'KYC_CASE',
+                    p_initiator      => coalesce(l_init, nullif(v('APP_USER'), 'nobody')),
+                    p_detail_pk      => to_char(p_case_id));
+        update xxcmp_cases set workflow_id = l_wf where case_id = p_case_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end withdraw;
+
+    function investigation_owners(p_case_id in number) return varchar2 is
+        l_case xxcmp_cases%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(l_case.assigned_to, xxfnd_task_pkg.users_with_privilege('CASES', 'MANAGE'));
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end investigation_owners;
+
+    function matrix(p_case in xxcmp_cases%rowtype) return xxcmp_approval_matrix%rowtype is
+        l_row xxcmp_approval_matrix%rowtype;
+    begin
+        select * into l_row from xxcmp_approval_matrix where risk_tier = p_case.risk_tier;
+        return l_row;
+    exception
+        when no_data_found then
+            raise_application_error(-20612, 'The approval matrix has no row for risk tier ' || p_case.risk_tier || '.');
+    end matrix;
+
+    function required_levels(p_case_id in number) return number is
+        l_case xxcmp_cases%rowtype := get_case(p_case_id);
+        l_m    xxcmp_approval_matrix%rowtype := matrix(l_case);
+    begin
+        return case when l_case.enhanced_kyc_flag = 'Y' then greatest(l_m.required_levels, 2) else l_m.required_levels end;
+    end required_levels;
+
+    function level_role(p_case_id in number, p_level in number) return varchar2 is
+        l_m xxcmp_approval_matrix%rowtype := matrix(get_case(p_case_id));
+    begin
+        return case p_level when 1 then l_m.level1_role_code
+                            else nvl(l_m.level2_role_code, 'HEAD_OF_COMPLIANCE') end;
+    end level_role;
+
+    function sar_gate(p_case_id in number) return varchar2 is
+        l_case xxcmp_cases%rowtype := get_case(p_case_id);
+    begin
+        return case when l_case.enhanced_kyc_flag = 'Y' then 'Y' else nvl(matrix(l_case).sar_gate_flag, 'N') end;
+    end sar_gate;
+
+    function is_editable(p_case_id in number) return varchar2 is
+        l_status xxcmp_cases.case_status%type;
+    begin
+        select max(case_status) into l_status from xxcmp_cases where case_id = p_case_id;
+        return case when l_status = 'INVESTIGATION' and xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                    then 'Y' else 'N' end;
+    end is_editable;
+
+    -- Users who investigated or already decided this case, with the roles they acted under.
+    function prior_actors(p_case_id in number) return apex_t_varchar2 is
+        l_list apex_t_varchar2;
+    begin
+        select upper(u) bulk collect into l_list from (
+            select assigned_to u from xxcmp_cases where case_id = p_case_id and assigned_to is not null
+            union
+            select actual_owner from apex_tasks
+             where task_def_static_id = 'CASE_INVESTIGATION' and detail_pk = to_char(p_case_id) and actual_owner is not null
+            union
+            select decided_by from xxcmp_case_decisions where case_id = p_case_id);
+        return l_list;
+    end prior_actors;
+
+    function level_approvers(p_case_id in number) return varchar2 is
+        l_case  xxcmp_cases%rowtype;
+        l_role  varchar2(30);
+        l_prior apex_t_varchar2;
+        l_out   varchar2(32767);
+        l_roles apex_t_varchar2;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case  := get_case(p_case_id);
+        l_role  := level_role(p_case_id, l_case.current_level);
+        l_prior := prior_actors(p_case_id);
+        for u in (select distinct ur.user_name from xxfnd_user_roles_v ur
+                   where ur.role_code = l_role and ur.active_flag = 'Y'
+                   order by ur.user_name) loop
+            -- four eyes: nobody decides a case they investigated or already decided,
+            -- nor while holding a role that may never be combined with this one
+            select role_code bulk collect into l_roles from xxcmp_case_decisions
+             where case_id = p_case_id and decided_by = u.user_name and role_code is not null;
+            -- role-based only: the role conflict rules (Segregation of Duties) decide, not who acted before
+            if not xxfnd_security_pkg.sod_conflict(l_role, l_roles, u.user_name) then
+                l_out := l_out || case when l_out is not null then ',' end || u.user_name;
+            end if;
+        end loop;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_out;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end level_approvers;
+
+    function submit_error(p_case_id in number) return varchar2 is
+        l_case  xxcmp_cases%rowtype := get_case(p_case_id);
+        l_count pls_integer;
+    begin
+        if l_case.case_status <> 'INVESTIGATION' then
+            return 'The case is not under investigation.';
+        end if;
+        if l_case.risk_tier is null then
+            return 'Set the risk classification.';
+        end if;
+        select count(*) into l_count from xxcmp_screenings where case_id = p_case_id;
+        if l_count = 0 then
+            return 'Record at least one screening.';
+        end if;
+        select count(*) into l_count from xxcmp_rfis
+         where entity_name = 'XXCMP_CASES' and pk1_value = to_char(p_case_id)
+           and continue_other_work_flag = 'N' and rfi_status in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING');
+        if l_count > 0 then
+            return 'A request for information that pauses the case is still open.';
+        end if;
+        if l_case.enhanced_kyc_flag = 'Y' then
+            select count(*) into l_count
+              from xxcmp_request_answers a
+              join xxcmp_questions q on q.question_id = a.question_id
+             where a.case_id = p_case_id and a.respondent_type = 'OFFICER'
+               and q.section_name = 'Enhanced Due Diligence'
+               and a.answer_option_id is null and a.answer_text is null;
+            if l_count > 0 then
+                return 'Enhanced KYC: answer the source of funds and source of wealth questions.';
+            end if;
+        end if;
+        return null;
+    end submit_error;
+
+    procedure submit_for_approval(p_case_id in number) is
+        l_error varchar2(4000) := submit_error(p_case_id);
+    begin
+        if l_error is not null then
+            raise_application_error(-20613, l_error);
+        end if;
+        -- completing the investigation task moves the KYC_CASE workflow on
+        xxfnd_task_pkg.complete_open('CASE_INVESTIGATION', to_char(p_case_id));
+    end submit_for_approval;
+
+    function approval_error(p_case_id in number) return varchar2 is
+        l_case    xxcmp_cases%rowtype := get_case(p_case_id);
+        l_missing pls_integer;
+    begin
+        if l_case.case_status <> 'PENDING_APPROVAL' then
+            return 'The case is not waiting for approval.';
+        end if;
+        if sar_gate(p_case_id) = 'Y' and l_case.sar_required_flag is null then
+            return 'Record whether a Suspicious Activity Report is required.';
+        end if;
+        -- every mandatory document of the party must be verified in this case
+        select count(*) into l_missing
+          from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
+                         (select jurisdiction from xxcmp_parties where party_id = l_case.party_id),
+                         (select case when party_type = 'PERSON' then registration_type else entity_type end
+                            from xxcmp_parties where party_id = l_case.party_id))) m
+         where not exists (
+                 select 1
+                   from xxfnd_attached_documents ad
+                   join xxcmp_doc_verifications v on v.attached_document_id = ad.attached_document_id
+                  where ad.entity_name = 'XXCMP_PARTIES' and ad.pk1_value = to_char(l_case.party_id)
+                    and ad.category_code = m.column_value
+                    and v.case_id = p_case_id and v.verification_status = 'VERIFIED');
+        if l_missing > 0 then
+            return l_missing || ' mandatory document(s) are not verified for this case.';
+        end if;
+        return null;
+    end approval_error;
+
+    procedure record_decision(p_case_id in number, p_outcome in varchar2, p_comments in varchar2, p_task_id in number) is
+        l_case xxcmp_cases%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        insert into xxcmp_case_decisions (case_id, level_no, role_code, decided_by, outcome, comments, task_id)
+        values (p_case_id, l_case.current_level, level_role(p_case_id, l_case.current_level),
+                xxfnd_util_pkg.current_user, p_outcome, p_comments, p_task_id);
+        if p_outcome = 'APPROVED' then
+            update xxcmp_cases set current_level = current_level + 1 where case_id = p_case_id;
+        end if;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end record_decision;
+
+    function next_review_date(p_case_id in number) return date is
+        l_case   xxcmp_cases%rowtype := get_case(p_case_id);
+        l_months number;
+    begin
+        select max(to_number(tag default null on conversion error)) into l_months
+          from xxfnd_lookup_values where lookup_type = 'RISK_TIER' and lookup_code = l_case.risk_tier;
+        if l_case.pep_flag = 'Y' then
+            l_months := least(nvl(l_months, 12), param('PEP_REVIEW_MONTHS', 12));
+        end if;
+        return add_months(trunc(sysdate), nvl(l_months, 12));
+    end next_review_date;
+
+    procedure start_approval(p_case_id in number) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_cases
+           set case_status = 'PENDING_APPROVAL', current_level = 1, investigation_completed_date = systimestamp
+         where case_id = p_case_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end start_approval;
+
+    function has_next_level(p_case_id in number) return varchar2 is
+        l_result varchar2(1);
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_result := case when get_case(p_case_id).current_level <= required_levels(p_case_id) then 'Y' else 'N' end;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_result;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end has_next_level;
+
+    procedure close_case(p_case_id in number, p_decision in varchar2) is
+        l_case xxcmp_cases%rowtype := get_case(p_case_id);
+        -- computed first: the function reads XXCMP_CASES, which would be mutating inside the UPDATE
+        l_next date := case when p_decision = 'APPROVED' then nvl(l_case.next_review_date, next_review_date(p_case_id)) end;
+    begin
+        update xxcmp_cases
+           set case_status      = p_decision,
+               decision         = p_decision,
+               decision_date    = systimestamp,
+               next_review_date = l_next,
+               closed_date      = systimestamp
+         where case_id = p_case_id;
+        -- the party's next KYC date follows its latest decided case (cleared when the KYC is rejected)
+        update xxcmp_parties set next_kyc_date = l_next where party_id = l_case.party_id;
+    end close_case;
+
+    procedure approve_case(p_case_id in number) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        close_case(p_case_id, 'APPROVED');
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end approve_case;
+
+    procedure reject_case(p_case_id in number) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        close_case(p_case_id, 'REJECTED');
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end reject_case;
+
+    procedure apply_screening(p_case_id in number) is
+        l_pep pls_integer;
+        l_hit pls_integer;
+    begin
+        select count(case when pep_flag = 'Y' then 1 end), count(case when match_status = 'CONFIRMED_MATCH' then 1 end)
+          into l_pep, l_hit
+          from xxcmp_screenings where case_id = p_case_id;
+        update xxcmp_cases
+           set pep_flag          = case when l_pep > 0 then 'Y' else pep_flag end,
+               enhanced_kyc_flag = case when l_pep > 0 or l_hit > 0 then 'Y' else enhanced_kyc_flag end
+         where case_id = p_case_id and case_status = 'INVESTIGATION';
+    end apply_screening;
+
+    function section_state(p_case_id in number, p_section in varchar2) return varchar2 is
+        l_case  xxcmp_cases%rowtype := get_case(p_case_id);
+        l_party xxcmp_parties%rowtype;
+        l_count pls_integer;
+    begin
+        select * into l_party from xxcmp_parties where party_id = l_case.party_id;
+        case p_section
+            when 'SUMMARY' then
+                return 'DONE';
+            when 'PARTY' then
+                -- the party details are complete and, for an organisation, its ownership is recorded
+                if xxcmp_party_pkg.party_error(l_party.party_id, l_party.party_type, l_party.party_name,
+                                               l_party.jurisdiction, l_party.registration_number, l_party.entity_type,
+                                               l_party.incorporation_date, l_party.email, l_party.phone, 'N', 'Y',
+                                               l_party.registration_type) is not null then
+                    return 'TODO';
+                end if;
+                if l_party.party_type = 'PERSON' then
+                    return 'DONE';
+                end if;
+                select count(*) into l_count from dual
+                 where exists (select 1 from xxcmp_party_relationships where object_party_id = l_party.party_id)
+                    or exists (select 1 from xxcmp_ubo_determinations where case_id = p_case_id);
+                return case when l_count > 0 then 'DONE' else 'TODO' end;
+            when 'SCREENING' then
+                select count(*) into l_count from xxcmp_screenings where case_id = p_case_id;
+                return case when l_count > 0 then 'DONE' else 'TODO' end;
+            when 'DOCUMENTS' then
+                select count(*) into l_count
+                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES', l_party.jurisdiction,
+                                 case when l_party.party_type = 'PERSON' then l_party.registration_type else l_party.entity_type end)) m
+                 where not exists (
+                         select 1
+                           from xxfnd_attached_documents ad
+                           join xxcmp_doc_verifications v on v.attached_document_id = ad.attached_document_id
+                          where ad.entity_name = 'XXCMP_PARTIES' and ad.pk1_value = to_char(l_case.party_id)
+                            and ad.category_code = m.column_value
+                            and v.case_id = p_case_id and v.verification_status = 'VERIFIED');
+                return case when l_count = 0 then 'DONE' else 'TODO' end;
+            when 'RISK' then
+                return case when l_case.risk_tier is not null then 'DONE' else 'TODO' end;
+            when 'NOTES' then
+                select count(*) into l_count from xxcmp_rfis
+                 where entity_name = 'XXCMP_CASES' and pk1_value = to_char(p_case_id)
+                   and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING');
+                return case when l_count > 0 then 'WARN' else 'DONE' end;
+            when 'REVIEW' then
+                return case when l_case.case_status <> 'INVESTIGATION' or submit_error(p_case_id) is null then 'DONE' else 'TODO' end;
+            else
+                return null;
+        end case;
+    end section_state;
+
+    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob is
+        l_html  clob := '<ul class="kyc-case-nav">';
+        l_done  pls_integer := 0;
+        l_total pls_integer := 0;
+        l_state varchar2(10);
+        l_n     pls_integer := 0;
+    begin
+        for s in (select column_value code from table(apex_string.split(c_sections, ':'))) loop
+            l_n     := l_n + 1;
+            l_total := l_total + 1;
+            l_state := section_state(p_case_id, s.code);
+            if l_state = 'DONE' then
+                l_done := l_done + 1;
+            end if;
+            l_html := l_html || '<li class="kyc-case-nav-item' || case when s.code = p_section then ' is-current' end
+                      || ' is-' || lower(l_state) || '"><a href="'
+                      || apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                           p_values => p_case_id || ',' || p_task_id || ',' || s.code)
+                      || '"><span class="kyc-case-nav-icon fa ' || case when s.code = p_section then 'fa-dot-circle-o'
+                                                                       when l_state = 'DONE' then 'fa-check-circle'
+                                                                       when l_state = 'WARN' then 'fa-exclamation-triangle'
+                                                                       else 'fa-circle-o' end
+                      || '" aria-hidden="true"></span> ' || l_n || ' '
+                      || apex_escape.html(xxfnd_util_pkg.lookup_meaning('CASE_SECTION', s.code)) || '</a></li>';
+        end loop;
+        return l_html || '</ul><p class="kyc-case-nav-progress">Progress ' || l_done || ' / ' || l_total || '</p>';
+    end nav_html;
+
+end xxcmp_case_pkg;
+/
+
+-- A closed case cannot change any more (case closure locks it).
+create or replace trigger xxcmp_cases_lock
+before update on xxcmp_cases
+for each row
+when (old.closed_date is not null)
+begin
+    -- a user rename (XXFND_SECURITY_PKG.RENAME_USER) only moves the user name columns to the new name
+    if xxfnd_security_pkg.renaming then
+        return;
+    end if;
+    -- a party merge (XXCMP_PARTY_PKG.MERGE_PARTIES) only re-points the case to the party that is kept
+    if updating('PARTY_ID') and not (updating('CASE_STATUS') or updating('DECISION') or updating('RISK_TIER')
+                                     or updating('CLOSED_DATE') or updating('CONDITIONS') or updating('NEXT_REVIEW_DATE')
+                                     or updating('ASSIGNED_TO') or updating('SAR_REQUIRED_FLAG') or updating('REQUEST_ID')) then
+        return;
+    end if;
+    raise_application_error(-20614, 'Case ' || :old.case_number || ' is closed and cannot be changed.');
+end;
+/
+
+
+begin dbms_utility.compile_schema(user, false); end;
+/
+-- Invalid objects (expect no rows)
+select object_type, object_name from user_objects where status <> 'VALID' order by 1, 2;

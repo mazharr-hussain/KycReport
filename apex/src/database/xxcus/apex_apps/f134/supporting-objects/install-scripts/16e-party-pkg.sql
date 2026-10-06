@@ -62,7 +62,8 @@ create or replace package xxcmp_party_pkg authid definer as
                         p_party_status        in varchar2 default null,
                         p_data_provenance     in varchar2 default null,
                         p_enabled_flag        in varchar2 default null,
-                        p_registration_type   in varchar2 default null);
+                        p_registration_type   in varchar2 default null,
+                        p_address             in varchar2 default null);
 
     -- Compliance saves the common party form (Party dialog, new owner / officer): Parties - Create for a new
     -- party, Parties - Manage to change one; the form rules apply. A party created here is Approved.
@@ -81,7 +82,8 @@ create or replace package xxcmp_party_pkg authid definer as
                          p_enabled_flag        in varchar2 default null,
                          p_match_ack           in varchar2 default 'Y',
                          p_request_id          in number   default null,
-                         p_registration_type   in varchar2 default null);
+                         p_registration_type   in varchar2 default null,
+                         p_address             in varchar2 default null);
     -- Y when the user may see the party on a request or party screen: PARTIES.VIEW, the party of a request the user
     -- can see (P_REQUEST_ID), or an approved party.
     function can_view(p_party_id in number, p_request_id in number default null) return varchar2;
@@ -148,6 +150,7 @@ create or replace package body xxcmp_party_pkg as
                    when 'ENTITY_TYPE'         then 'Entity Type'
                    when 'REGISTRATION_TYPE'   then case when l_person then 'ID Type'       else 'Registration Type' end
                    when 'INCORPORATION_DATE'  then case when l_person then 'Date of Birth' else 'Incorporation Date' end
+                   when 'ADDRESS'             then case when l_person then 'Address'       else 'Headquarters Address' end
                end;
     end field_label;
 
@@ -263,18 +266,19 @@ create or replace package body xxcmp_party_pkg as
                         p_party_status        in varchar2 default null,
                         p_data_provenance     in varchar2 default null,
                         p_enabled_flag        in varchar2 default null,
-                        p_registration_type   in varchar2 default null) is
+                        p_registration_type   in varchar2 default null,
+                        p_address             in varchar2 default null) is
     begin
         xxfnd_vpd_pkg.begin_trusted;
         if p_party_id is null then
             insert into xxcmp_parties (party_type, party_name, jurisdiction, registration_number, entity_type,
                                        incorporation_date, email, phone, website, fax, party_status, data_provenance,
-                                       enabled_flag, registration_type)
+                                       enabled_flag, registration_type, address)
             values (p_party_type, trim(p_party_name), p_jurisdiction, trim(p_registration_number),
                     case when p_party_type = 'ORGANIZATION' then p_entity_type end,
                     p_incorporation_date, trim(p_email), trim(p_phone), trim(p_website), trim(p_fax),
                     nvl(p_party_status, 'APPROVED'), nvl(p_data_provenance, 'SELF_DECLARED'), nvl(p_enabled_flag, 'Y'),
-                    p_registration_type)
+                    p_registration_type, trim(p_address))
             returning party_id into p_party_id;
         else
             update xxcmp_parties
@@ -289,6 +293,7 @@ create or replace package body xxcmp_party_pkg as
                    phone               = trim(p_phone),
                    website             = trim(p_website),
                    fax                 = trim(p_fax),
+                   address             = trim(p_address),
                    party_status        = nvl(p_party_status, party_status),
                    data_provenance     = nvl(p_data_provenance, data_provenance),
                    enabled_flag        = nvl(p_enabled_flag, enabled_flag)
@@ -316,7 +321,8 @@ create or replace package body xxcmp_party_pkg as
                          p_enabled_flag        in varchar2 default null,
                          p_match_ack           in varchar2 default 'Y',
                          p_request_id          in number   default null,
-                         p_registration_type   in varchar2 default null) is
+                         p_registration_type   in varchar2 default null,
+                         p_address             in varchar2 default null) is
         l_error varchar2(4000);
         -- a requester adds an owner / officer to the party created by their request: a Pending party
         l_req_ok boolean := p_party_id is null and p_request_id is not null
@@ -337,7 +343,7 @@ create or replace package body xxcmp_party_pkg as
         put_party(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number, p_entity_type,
                   p_incorporation_date, p_email, p_phone, p_website, p_fax,
                   case when l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then 'PENDING' end,
-                  p_data_provenance, p_enabled_flag, p_registration_type);
+                  p_data_provenance, p_enabled_flag, p_registration_type, p_address);
     end save_party;
 
     function request_party(p_request_id in number) return number is
@@ -505,6 +511,7 @@ create or replace package body xxcmp_party_pkg as
         put('P0_PARTY_PHONE',               l_p.phone);
         put('P0_PARTY_WEBSITE',             l_p.website);
         put('P0_PARTY_FAX',                 l_p.fax);
+        put('P0_PARTY_ADDRESS',             l_p.address);
         put('P0_PARTY_DATA_PROVENANCE',     nvl(l_p.data_provenance, 'SELF_DECLARED'));
         put('P0_PARTY_LAST_VERIFIED_DATE',  to_char(l_p.last_verified_date, 'DD-MON-YYYY'));
         put('P0_PARTY_STATUS',              xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status));
@@ -605,7 +612,8 @@ create or replace package body xxcmp_party_pkg as
                email               = nvl(email, l_from.email),
                phone               = nvl(phone, l_from.phone),
                website             = nvl(website, l_from.website),
-               fax                 = nvl(fax, l_from.fax)
+               fax                 = nvl(fax, l_from.fax),
+               address             = nvl(address, l_from.address)
          where party_id = p_into_party_id;
         update xxcmp_parties
            set enabled_flag = 'N', merged_into_party_id = p_into_party_id, merge_note = substr(p_note, 1, 1000)
@@ -695,6 +703,7 @@ create or replace package body xxcmp_party_pkg as
                           else apex_escape.html(l_p.email) end, true);
         fld('Phone', l_p.phone);
         fld('Website', l_p.website);
+        fld(field_label(l_p.party_type, 'ADDRESS'), l_p.address);
         for c in (select contact_name as name, job_title, email, phone
                     from xxcmp_party_contacts
                    where party_id = p_party_id and enabled_flag = 'Y'

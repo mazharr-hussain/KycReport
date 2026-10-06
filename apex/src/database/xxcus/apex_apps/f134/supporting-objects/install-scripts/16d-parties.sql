@@ -22,8 +22,11 @@ begin
     -- release 26: the type of the registration / ID number (organisation: lookup REGISTRATION_TYPE, individual:
     -- lookup ID_DOCUMENT_TYPE); ENTITY_TYPE is the organisation's category only
     xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'REGISTRATION_TYPE',    'varchar2(30)');
+    -- release 40: headquarters address (organisation) / address (individual)
+    xxfnd_ddl_pkg.add_column('XXCMP_PARTIES',        'ADDRESS',              'varchar2(1000)');
 end;
 /
+comment on column xxcmp_parties.address is 'Headquarters address of an organisation; address of an individual.';
 comment on column xxcmp_parties.email is 'Main email of the party (contact persons are in XXCMP_PARTY_CONTACTS).';
 comment on column xxcmp_parties.merged_into_party_id is 'Set when Compliance merged this duplicate into another party; the party is then disabled.';
 comment on column xxcmp_parties.party_status is 'PENDING: created from a KYC request, not yet approved; APPROVED; REJECTED / CANCELLED with its request.';

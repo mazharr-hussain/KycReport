@@ -711,6 +711,7 @@ page 201 (
                         p_phone                 => :P0_PARTY_PHONE,
                         p_website               => :P0_PARTY_WEBSITE,
                         p_fax                   => :P0_PARTY_FAX,
+                        p_address               => :P0_PARTY_ADDRESS,
                         p_requesting_department => :P201_REQUESTING_DEPARTMENT,
                         p_justification         => :P201_JUSTIFICATION,
                         p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
