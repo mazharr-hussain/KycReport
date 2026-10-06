@@ -65,6 +65,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 
 - **Release 37 (patch 22):** XXFND_EMPLOYEES: USER_NAME = identity-domain user name, EMAIL_ADDRESS, FUSION_USER_ID (04a). `xxfnd_security_pkg.sync_user_names` (HCM userAccounts, run by sync_from_fusion), `rename_user` (all user columns + WHO columns via `xxfnd_util_pkg.preserve_who`, open APEX tasks; trigger XXFND_EMPLOYEES_RENAME; `renaming` lets XXCMP_CASES_LOCK pass), `map_login_user` = post-authentication of all schemes (login by e-mail with DB / APEX accounts). WHO trigger generator honours preserve_who.
 - **Release 38 (patch 23):** pages 42 (Task Details, only a breadcrumb) and 212 (Case Decision, unlinked since release 27) removed, with their feature-page rows (18d, MY_TASKS = 30, 31, 40 in 18b). 205: Edit button (title bar, same rule as the 200 list Edit) opens the wizard 201.
+- **Release 39 (patch 24):** 211 Investigation Questionnaire grid opens in edit mode (page JS), EDD questions only for Enhanced KYC cases, Choice column only when officer questions have options; 213 Party is hidden (the case party).
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),
