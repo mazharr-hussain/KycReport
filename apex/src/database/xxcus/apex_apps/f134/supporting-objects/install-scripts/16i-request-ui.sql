@@ -236,7 +236,8 @@ create or replace package body xxcmp_request_ui_pkg as
             grp('Case');
             fld('Risk classification', case when c.risk_tier is not null then xxfnd_ui_pkg.status_badge('RISK', c.risk_tier)
                                              else missing('Not classified', 'RISK') end, true);
-            fld('Enhanced KYC', case when c.enhanced_kyc_flag = 'Y' then xxfnd_ui_pkg.badge('Yes', 'warning') else 'No' end, true);
+            fld('Due Diligence Type', case when c.enhanced_kyc_flag = 'Y' then xxfnd_ui_pkg.badge(xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type), 'warning')
+                                           else apex_escape.html(xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type)) end, true);
             fld('PEP', case when c.pep_flag = 'Y' then xxfnd_ui_pkg.badge('Yes', 'danger') else 'No' end, true);
             fld('Next review', to_char(c.next_review_date, 'DD-MON-YYYY'));
             fld('Conditions', c.conditions, false, true);

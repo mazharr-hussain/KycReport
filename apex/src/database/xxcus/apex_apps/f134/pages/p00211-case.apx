@@ -781,11 +781,20 @@ page 211 (
                 ```
         }
     )
-    pageItem P211_ENHANCED_KYC_FLAG (
-        type: switch
+    pageItem P211_DUE_DILIGENCE_TYPE (
+        type: selectList
         label {
-            label: Enhanced KYC
+            label: Due Diligence Type
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values
+                 where lookup_type = 'DUE_DILIGENCE_TYPE' and enabled_flag = 'Y' order by display_sequence
+                ```
+            displayNullValue: false
         }
         layout {
             sequence: 80
@@ -794,16 +803,19 @@ page 211 (
             alignment: left
         }
         appearance {
-            template: @/optional-above
+            template: @/required-above
             templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
         }
         source {
             formRegion: @case
-            column: ENHANCED_KYC_FLAG
+            column: DUE_DILIGENCE_TYPE
             dataType: varchar2
         }
         help {
-            helpText: Set automatically by a confirmed match or a PEP flag; can also be set by the officer.
+            helpText: Simplified, Standard or Enhanced KYC. A confirmed screening match or a PEP flag sets Enhanced; Enhanced KYC needs two approval levels and the source of funds and wealth answers.
         }
         serverSideCondition {
             type: expression
@@ -2746,7 +2758,7 @@ page 211 (
             sqlQuery:
                 ```sql
                 select xxfnd_util_pkg.lookup_meaning('RISK_TIER', risk_tier)
-                       || case when enhanced_kyc_flag = 'Y' then ' - Enhanced KYC' end || case when pep_flag = 'Y' then ' - PEP' end
+                       || ' - ' || xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', due_diligence_type) || case when pep_flag = 'Y' then ' - PEP' end
                   from xxcmp_cases where case_id = :P211_CASE_ID
                 ```
             used: always

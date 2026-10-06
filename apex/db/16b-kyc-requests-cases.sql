@@ -296,8 +296,11 @@ begin
     end loop;
     -- release 26: the business relationship of the request goes on to its case
     xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
+    -- release 41: the due diligence type (lookup DUE_DILIGENCE_TYPE); ENHANCED_KYC_FLAG follows it (trigger XXCMP_CASES_DD)
+    xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'DUE_DILIGENCE_TYPE', 'varchar2(30)');
 end;
 /
+comment on column xxcmp_cases.due_diligence_type is 'Due diligence type (lookup DUE_DILIGENCE_TYPE: SIMPLIFIED, STANDARD, ENHANCED). ENHANCED_KYC_FLAG = Y exactly when ENHANCED (trigger XXCMP_CASES_DD).';
 comment on column xxcmp_requests.business_relationship is 'What the counterparty is to the company for this request (lookup BUSINESS_RELATIONSHIP: customer, vendor...). One per request; copied to the case.';
 comment on column xxcmp_requests.registration_type is 'Type of REGISTRATION_NUMBER: organisation lookup REGISTRATION_TYPE, individual lookup ID_DOCUMENT_TYPE.';
 
@@ -2055,11 +2058,37 @@ end xxcmp_case_pkg;
 /
 
 -- A closed case cannot change any more (case closure locks it).
+-- release 41: the due diligence type and the Enhanced KYC flag stay in step. The officer chooses the type; a
+-- screening that forces Enhanced KYC (APPLY_SCREENING sets the flag) makes the type Enhanced.
+create or replace trigger xxcmp_cases_dd
+before insert or update of due_diligence_type, enhanced_kyc_flag on xxcmp_cases
+for each row
+begin
+    if inserting then
+        :new.due_diligence_type := nvl(:new.due_diligence_type,
+                                       case when :new.enhanced_kyc_flag = 'Y' then 'ENHANCED' else 'STANDARD' end);
+    elsif nvl(:new.due_diligence_type, '#') <> nvl(:old.due_diligence_type, '#') then
+        :new.due_diligence_type := nvl(:new.due_diligence_type, 'STANDARD');
+    elsif :new.enhanced_kyc_flag <> :old.enhanced_kyc_flag then
+        :new.due_diligence_type := case when :new.enhanced_kyc_flag = 'Y' then 'ENHANCED'
+                                        when :old.due_diligence_type = 'ENHANCED' then 'STANDARD'
+                                        else nvl(:old.due_diligence_type, 'STANDARD') end;
+    end if;
+    :new.enhanced_kyc_flag := case when :new.due_diligence_type = 'ENHANCED' then 'Y' else 'N' end;
+end;
+/
+
 create or replace trigger xxcmp_cases_lock
 before update on xxcmp_cases
 for each row
 when (old.closed_date is not null)
 begin
+    -- release 41: the one-time fill of the new due diligence type
+    if :old.due_diligence_type is null and not (updating('CASE_STATUS') or updating('DECISION') or updating('RISK_TIER')
+                                                or updating('CLOSED_DATE') or updating('CONDITIONS') or updating('NEXT_REVIEW_DATE')
+                                                or updating('ASSIGNED_TO') or updating('SAR_REQUIRED_FLAG') or updating('REQUEST_ID')) then
+        return;
+    end if;
     -- a user rename (XXFND_SECURITY_PKG.RENAME_USER) only moves the user name columns to the new name
     if xxfnd_security_pkg.renaming then
         return;
@@ -2073,3 +2102,8 @@ begin
     raise_application_error(-20614, 'Case ' || :old.case_number || ' is closed and cannot be changed.');
 end;
 /
+
+-- release 41: existing cases get their due diligence type from the Enhanced KYC flag
+update xxcmp_cases set due_diligence_type = case when enhanced_kyc_flag = 'Y' then 'ENHANCED' else 'STANDARD' end
+ where due_diligence_type is null;
+commit;

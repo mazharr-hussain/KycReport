@@ -63,7 +63,7 @@ page 210 (
                                c.risk_tier as risk_tier_code,
                                c.assigned_to,
                                xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
-                               case when c.enhanced_kyc_flag = 'Y' then 'Enhanced' end as kyc_level,
+                               xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) as kyc_level,
                                c.sla_due_date,
                                case when c.closed_date is not null then 'Closed'
                                     when c.sla_due_date < trunc(sysdate) then 'Overdue'
@@ -257,7 +257,7 @@ page 210 (
         column KYC_LEVEL (
             type: plainText
             heading {
-                heading: KYC Level
+                heading: Due Diligence Type
             }
             layout {
                 sequence: 90

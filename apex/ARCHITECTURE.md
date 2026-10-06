@@ -67,6 +67,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **Release 38 (patch 23):** pages 42 (Task Details, only a breadcrumb) and 212 (Case Decision, unlinked since release 27) removed, with their feature-page rows (18d, MY_TASKS = 30, 31, 40 in 18b). 205: Edit button (title bar, same rule as the 200 list Edit) opens the wizard 201.
 - **Release 39 (patch 24):** 211 Investigation Questionnaire grid opens in edit mode (page JS), EDD questions only for Enhanced KYC cases, Choice column only when officer questions have options; 213 Party is hidden (the case party).
 - **Release 40 (patch 25):** xxcmp_parties.ADDRESS (headquarters address / address): party form item P0_PARTY_ADDRESS (pages 23, 24, 201 pass it to save_party / save_request → put_party), load_items, card_html, merge_party fills it from the duplicate.
+- **Release 41 (patch 26):** xxcmp_cases.DUE_DILIGENCE_TYPE (lookup DUE_DILIGENCE_TYPE) replaces the Enhanced KYC switch on 211; trigger XXCMP_CASES_DD keeps ENHANCED_KYC_FLAG in step (all approval / EDD / SAR logic still reads the flag); shown on 210, 211 decision, 217, case_summary_html.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),
