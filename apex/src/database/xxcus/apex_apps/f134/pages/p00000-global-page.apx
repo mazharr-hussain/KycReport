@@ -617,6 +617,21 @@ page 0 (
         }
     )
 
+    pageItem P0_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request-context
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        help {
+            helpText: The case of the case screen (211, release 42): Owners and Officers shows the case's party and each party's screening in the case.
+        }
+    )
+
     pageItem P0_REQUEST_ID (
         type: hidden
         layout {
@@ -1199,17 +1214,43 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.start_date, j.end_date,
-                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
-                  from json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID), '$[*]'
-                         columns (party_relationship_id number path '$.party_relationship_id', direction varchar2(100) path '$.direction',
-                                  related_party varchar2(400) path '$.related_party', relationship_type varchar2(240) path '$.relationship_type',
+                -- release 42: the whole ownership tree (owners of owners); on the case screen also the case's party and
+                -- each party's latest screening in the case
+                select j.party_relationship_id, j.lvl, j.direction, j.related_party, j.party_type, j.relationship_type,
+                       j.ownership_percentage, j.start_date, j.end_date, j.country, j.birth_date, j.id_number, j.id_expiry,
+                       j.results, j.conclusion, j.source, j.risk_tier,
+                       j.lvl * 1.5 as indent,
+                       case when l.can_edit = 'Y' and j.lvl = 1 then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
+                                              p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url,
+                       -- owners of a related company are added from here too (Compliance)
+                       case when l.can_edit = 'Y' and j.grp = 1 and j.lvl >= 1 and j.party_type_code = 'ORGANIZATION'
+                                 and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_OBJECT_PARTY_ID', p_values => to_char(j.related_party_id), p_clear_cache => '23') end as add_owner_url,
+                       case when :APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y' then
+                            apex_page.get_url(p_page => 213, p_items => 'P213_CASE_ID,P213_SCREEN_PARTY_ID,P213_SCREENING_ID',
+                                              p_values => :P0_CASE_ID || ',' || j.related_party_id || ',' || j.screening_id, p_clear_cache => '213') end as screen_url
+                  from (select case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                                     and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y'))
+                                    then 'Y' else 'N' end as can_edit
+                          from dual) l,
+                       json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, case when :APP_PAGE_ID = 211 then to_number(:P0_CASE_ID) end), '$[*]'
+                         columns (party_relationship_id number path '$.party_relationship_id', grp number path '$.grp', lvl number path '$.lvl',
+                                  direction varchar2(400) path '$.direction', related_party_id number path '$.related_party_id',
+                                  related_party varchar2(400) path '$.related_party', party_type varchar2(240) path '$.party_type',
+                                  party_type_code varchar2(30) path '$.party_type_code',
+                                  relationship_type varchar2(240) path '$.relationship_type',
                                   ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
-                                  end_date varchar2(20) path '$.end_date')) j
+                                  end_date varchar2(20) path '$.end_date', country varchar2(240) path '$.country',
+                                  birth_date varchar2(20) path '$.birth_date', id_number varchar2(100) path '$.id_number',
+                                  id_expiry varchar2(20) path '$.id_expiry', screening_id number path '$.screening_id',
+                                  results varchar2(240) path '$.results', conclusion varchar2(4000) path '$.conclusion',
+                                  source varchar2(1000) path '$.source', risk_tier varchar2(240) path '$.risk_tier')) j
                 ```
             pageItemsToSubmit: [
                 P0_SUMMARY_PARTY_ID
                 P0_REQUEST_ID
+                P0_CASE_ID
             ]
         }
         layout {
@@ -1259,6 +1300,20 @@ page 0 (
             }
         )
 
+        column LVL (
+            type: hidden
+            layout {
+                sequence: 6
+            }
+        )
+
+        column INDENT (
+            type: hidden
+            layout {
+                sequence: 7
+            }
+        )
+
         column RELATED_PARTY (
             type: plainText
             heading {
@@ -1270,8 +1325,15 @@ page 0 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <strong>#RELATED_PARTY#</strong>
+                    <div style="padding-left:#INDENT#rem"><strong>#RELATED_PARTY#</strong><div class="u-color-text-secondary">#PARTY_TYPE#</div></div>
                     ```
+            }
+        )
+
+        column PARTY_TYPE (
+            type: hidden
+            layout {
+                sequence: 11
             }
         )
 
@@ -1305,6 +1367,46 @@ page 0 (
             }
         )
 
+        column COUNTRY (
+            type: plainText
+            heading {
+                heading: Country / Nationality
+            }
+            layout {
+                sequence: 42
+            }
+        )
+
+        column BIRTH_DATE (
+            type: plainText
+            heading {
+                heading: Incorporation / Birth Date
+            }
+            layout {
+                sequence: 44
+            }
+        )
+
+        column ID_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration / ID No.
+            }
+            layout {
+                sequence: 46
+            }
+        )
+
+        column ID_EXPIRY (
+            type: plainText
+            heading {
+                heading: Document Expiry
+            }
+            layout {
+                sequence: 48
+            }
+        )
+
         column START_DATE (
             type: plainText
             heading {
@@ -1312,6 +1414,14 @@ page 0 (
             }
             layout {
                 sequence: 50
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID <> 211
+                    ```
             }
         )
 
@@ -1322,6 +1432,100 @@ page 0 (
             }
             layout {
                 sequence: 60
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID <> 211
+                    ```
+            }
+        )
+
+        column RESULTS (
+            type: plainText
+            heading {
+                heading: Results
+            }
+            layout {
+                sequence: 62
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column CONCLUSION (
+            type: plainText
+            heading {
+                heading: Conclusion
+            }
+            layout {
+                sequence: 64
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 66
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk Level
+            }
+            layout {
+                sequence: 68
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column ADD_OWNER_URL (
+            type: hidden
+            layout {
+                sequence: 69
+            }
+        )
+
+        column SCREEN_URL (
+            type: hidden
+            layout {
+                sequence: 69
             }
         )
 
@@ -1336,7 +1540,7 @@ page 0 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a> {endif/}{if ADD_OWNER_URL/}<a href="#ADD_OWNER_URL#">Add Owner</a> {endif/}{if SCREEN_URL/}<a href="#SCREEN_URL#">Screen</a>{endif/}
                     ```
             }
             serverSideCondition {
@@ -1344,7 +1548,7 @@ page 0 (
                 language: plsql
                 plsqlExpression:
                     ```plsql
-                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                     ```
             }
         )

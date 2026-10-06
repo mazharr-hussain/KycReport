@@ -1157,6 +1157,7 @@ page 211 (
                        xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as screening_type,
                        p.party_name,
                        xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as match_status,
+                       xxfnd_util_pkg.lookup_meaning('RISK_TIER', s.risk_tier) as risk_tier,
                        rtrim(case when s.pep_flag = 'Y' then 'PEP, ' end || case when s.sanctions_flag = 'Y' then 'Sanctions, ' end
                              || case when s.adverse_media_flag = 'Y' then 'Adverse media, ' end, ', ') as flags,
                        s.capture_method, s.screened_date, s.result_notes,
@@ -1249,6 +1250,16 @@ page 211 (
             }
         )
 
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk Level
+            }
+            layout {
+                sequence: 35
+            }
+        )
+
         column FLAGS (
             type: plainText
             heading {
@@ -1282,7 +1293,7 @@ page 211 (
         column RESULT_NOTES (
             type: plainText
             heading {
-                heading: Notes
+                heading: Conclusion
             }
             layout {
                 sequence: 80
@@ -2604,6 +2615,7 @@ page 211 (
                     end loop;
                     -- the party regions of the Global Page: Compliance edits through Parties - Manage (no request context)
                     :P0_REQUEST_ID := null;
+                    :P0_CASE_ID := :P211_CASE_ID;
                     select party_id into :P0_SUMMARY_PARTY_ID from xxcmp_cases where case_id = :P211_CASE_ID;
                     :P0_PARTY_DFF_CONTEXT := null;
                 end;
