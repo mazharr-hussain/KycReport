@@ -115,8 +115,23 @@ page 213 (
             sqlQuerySingleValue:
                 ```sql
                 -- the case's party (no choice on the screen)
-                select party_id from xxcmp_cases where case_id = :P213_CASE_ID
+                select coalesce(to_number(:P213_SCREEN_PARTY_ID), party_id) from xxcmp_cases where case_id = :P213_CASE_ID
                 ```
+        }
+    )
+
+    pageItem P213_SCREEN_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+        help {
+            helpText: The owner / related party to screen, from the Screen link of the case's Owners and Officers (empty = the case's party).
         }
     )
 
@@ -195,6 +210,81 @@ page 213 (
         default {
             type: static
             staticValue: NO_MATCH
+        }
+    )
+
+    pageItem P213_RISK_TIER (
+        type: selectList
+        label {
+            label: Risk Level
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'RISK_TIER' and enabled_flag = 'Y'
+                 order by display_sequence
+                ```
+            displayNullValue: true
+            nullDisplayValue: -
+        }
+        layout {
+            sequence: 35
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: RISK_TIER
+            dataType: varchar2
+        }
+        help {
+            helpText: The risk level of this party from the screening (shown per party in the case's Owners and Officers and in the report).
+        }
+    )
+
+    pageItem P213_PARTY_NAME (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 11
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select party_name || ' (' || party_number || ')' from xxcmp_parties where party_id = :P213_PARTY_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- only when an owner / related party is screened (the case's own party needs no label)
+                select 1 from xxcmp_cases where case_id = :P213_CASE_ID and party_id <> :P213_PARTY_ID
+                ```
         }
     )
 
@@ -341,7 +431,7 @@ page 213 (
     pageItem P213_RESULT_NOTES (
         type: textarea
         label {
-            label: Notes
+            label: Conclusion
             alignment: left
         }
         layout {

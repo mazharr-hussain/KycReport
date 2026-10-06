@@ -298,8 +298,11 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
     -- release 41: the due diligence type (lookup DUE_DILIGENCE_TYPE); ENHANCED_KYC_FLAG follows it (trigger XXCMP_CASES_DD)
     xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'DUE_DILIGENCE_TYPE', 'varchar2(30)');
+    -- release 42: the risk level of the screened party (lookup RISK_TIER); RESULT_NOTES is its conclusion
+    xxfnd_ddl_pkg.add_column('XXCMP_SCREENINGS', 'RISK_TIER', 'varchar2(30)');
 end;
 /
+comment on column xxcmp_screenings.risk_tier is 'Risk level of the screened party (lookup RISK_TIER). RESULT_NOTES = the conclusion, SOURCE_REFERENCE = the source, MATCH_STATUS = the results.';
 comment on column xxcmp_cases.due_diligence_type is 'Due diligence type (lookup DUE_DILIGENCE_TYPE: SIMPLIFIED, STANDARD, ENHANCED). ENHANCED_KYC_FLAG = Y exactly when ENHANCED (trigger XXCMP_CASES_DD).';
 comment on column xxcmp_requests.business_relationship is 'What the counterparty is to the company for this request (lookup BUSINESS_RELATIONSHIP: customer, vendor...). One per request; copied to the case.';
 comment on column xxcmp_requests.registration_type is 'Type of REGISTRATION_NUMBER: organisation lookup REGISTRATION_TYPE, individual lookup ID_DOCUMENT_TYPE.';

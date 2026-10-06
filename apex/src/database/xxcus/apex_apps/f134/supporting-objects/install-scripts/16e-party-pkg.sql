@@ -92,7 +92,13 @@ create or replace package xxcmp_party_pkg authid definer as
     function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2;
     -- Owners / officers of the party (both directions) when CAN_VIEW: JSON array [{"party_relationship_id",
     -- "direction","related_party","relationship_type","ownership_percentage","start_date","end_date"}].
-    function owners_json(p_party_id in number, p_request_id in number default null) return clob;
+    -- Owners and officers of the party as a tree (release 42): the parties that hold an interest in it (level 1), the
+    -- parties that hold an interest in those (level 2), and so on (at most 6 levels, no cycles), then the parties this
+    -- party holds an interest in (level 1 only). Each row: relationship, the related party's country / nationality,
+    -- incorporation date / date of birth, registration / ID number and the latest expiry date of its documents.
+    -- With P_CASE_ID: a first row for the case's party itself (level 0) and, on every row, the party's latest
+    -- screening in the case (results, conclusion, source, risk level).
+    function owners_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob;
     -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y.
     function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob;
     function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2;
@@ -386,28 +392,78 @@ create or replace package body xxcmp_party_pkg as
                     then 'Y' else 'N' end;
     end can_edit_details;
 
-    function owners_json(p_party_id in number, p_request_id in number default null) return clob is
+    function owners_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob is
         l_json clob;
     begin
         if can_view(p_party_id, p_request_id) = 'N' then
             return '[]';
         end if;
         xxfnd_vpd_pkg.begin_trusted;
+        with roots as (
+            -- the case's party itself (case screen only)
+            select 0 grp, 0 lvl, cast(null as number) rel_id, p.party_id, cast(null as number) parent_id,
+                   ':' || p.party_id || ':' path, cast('Party' as varchar2(400)) direction
+              from xxcmp_parties p
+             where p.party_id = p_party_id and p_case_id is not null
+            union all
+            -- the parties this party holds an interest in (one level)
+            select 2, 1, r.party_relationship_id, r.object_party_id, r.subject_party_id,
+                   ':' || p_party_id || ':' || r.object_party_id || ':', 'This party holds interest in'
+              from xxcmp_party_relationships r
+             where r.subject_party_id = p_party_id
+            union all
+            -- the parties that hold an interest in this party
+            select 1, 1, r.party_relationship_id, r.subject_party_id, r.object_party_id,
+                   ':' || p_party_id || ':' || r.subject_party_id || ':', 'Holds interest in this party'
+              from xxcmp_party_relationships r
+             where r.object_party_id = p_party_id
+        ), tree (grp, lvl, rel_id, party_id, parent_id, path, direction) as (
+            select grp, lvl, rel_id, party_id, parent_id, path, direction from roots
+            union all
+            -- ... and those that hold an interest in them
+            select t.grp, t.lvl + 1, r.party_relationship_id, r.subject_party_id, r.object_party_id,
+                   t.path || r.subject_party_id || ':', 'Holds interest in ' || '#PARENT#'
+              from tree t
+              join xxcmp_party_relationships r on r.object_party_id = t.party_id
+             where t.lvl between 1 and 5
+               and t.grp = 1
+               and instr(t.path, ':' || r.subject_party_id || ':') = 0
+        ) search depth first by grp, party_id set ord
         select json_arrayagg(json_object(
-                   'party_relationship_id' value r.party_relationship_id,
-                   'direction'             value case when r.object_party_id = p_party_id then 'Holds interest in this party'
-                                                      else 'This party holds interest in' end,
+                   'party_relationship_id' value t.rel_id,
+                   'grp'                   value t.grp,
+                   'lvl'                   value t.lvl,
+                   'direction'             value replace(t.direction, '#PARENT#', pp.party_name),
+                   'related_party_id'      value o.party_id,
                    'related_party'         value o.party_name || ' (' || o.party_number || ')',
+                   'party_type'            value xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', o.party_type),
+                   'party_type_code'       value o.party_type,
                    'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
                    'ownership_percentage'  value r.ownership_percentage,
                    'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
-                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'))
-                   order by r.end_date nulls first, o.party_name returning clob)
+                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'),
+                   'country'               value xxfnd_util_pkg.lookup_meaning('JURISDICTION', o.jurisdiction),
+                   'birth_date'            value to_char(o.incorporation_date, 'DD-MON-YYYY'),
+                   'id_number'             value o.registration_number,
+                   'id_expiry'             value (select to_char(max(d.expiry_date), 'DD-MON-YYYY')
+                                                    from xxfnd_attached_documents_v d
+                                                   where d.entity_name = 'XXCMP_PARTIES' and d.pk1_value = to_char(o.party_id)),
+                   'screening_id'          value s.screening_id,
+                   'results'               value xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status),
+                   'conclusion'            value s.result_notes,
+                   'source'                value s.source_reference,
+                   'risk_tier'             value xxfnd_util_pkg.lookup_meaning('RISK_TIER', s.risk_tier))
+                   order by t.ord returning clob)
           into l_json
-          from xxcmp_party_relationships r
-          join xxcmp_parties o
-            on o.party_id = case when r.object_party_id = p_party_id then r.subject_party_id else r.object_party_id end
-         where p_party_id in (r.object_party_id, r.subject_party_id);
+          from tree t
+          join xxcmp_parties o on o.party_id = t.party_id
+          left join xxcmp_parties pp on pp.party_id = t.parent_id
+          left join xxcmp_party_relationships r on r.party_relationship_id = t.rel_id
+          left join lateral (select x.screening_id, x.match_status, x.result_notes, x.source_reference, x.risk_tier
+                               from xxcmp_screenings x
+                              where p_case_id is not null and x.case_id = p_case_id and x.party_id = o.party_id
+                              order by x.screened_date desc nulls last, x.screening_id desc
+                              fetch first 1 row only) s on 1 = 1;
         xxfnd_vpd_pkg.end_trusted;
         return nvl(l_json, '[]');
     exception
