@@ -151,7 +151,7 @@ page 217 (
             sqlQuery:
                 ```sql
                 select c.decision || ' - risk ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
-                       || case when c.enhanced_kyc_flag = 'Y' then ' - Enhanced KYC' end || case when c.pep_flag = 'Y' then ' - PEP' end
+                       || ' - ' || xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) || case when c.pep_flag = 'Y' then ' - PEP' end
                        || ' - next review ' || to_char(c.next_review_date, 'DD-Mon-YYYY')
                   from xxcmp_cases c where c.case_id = :P217_CASE_ID
                 ```

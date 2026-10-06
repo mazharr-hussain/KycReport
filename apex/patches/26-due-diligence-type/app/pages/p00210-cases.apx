@@ -1,0 +1,532 @@
+page 210 (
+    name: Cases
+    alias: CASES
+    title: Cases
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The Compliance case workbench: open cases with their SLA status, and closed cases with their next review. Cases are opened when a request passes the document checklist, by a periodic review, or here with Create Case.
+            ```
+    }
+
+    region breadcrumb (
+        name: Cases
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Cases
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       xxfnd_ui_pkg.status_tone('CASE', q.case_status_code) as status_tone,
+                       xxfnd_ui_pkg.status_tone('RISK', q.risk_tier_code) as risk_tone,
+                       case q.sla_status when 'Overdue' then 'danger' when 'Due soon' then 'warning' when 'Closed' then 'neutral' else 'success' end as sla_tone,
+                       xxfnd_ui_pkg.person_name(q.assigned_to) as assigned_name,
+                       apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '211') as open_url
+                  from (
+                        select c.case_id,
+                               c.case_number,
+                               p.party_name,
+                               xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship) as business_relationship,
+                               xxfnd_util_pkg.lookup_meaning('CASE_STATUS', c.case_status) as case_status,
+                               c.case_status as case_status_code,
+                               c.risk_tier as risk_tier_code,
+                               c.assigned_to,
+                               xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
+                               xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) as kyc_level,
+                               c.sla_due_date,
+                               case when c.closed_date is not null then 'Closed'
+                                    when c.sla_due_date < trunc(sysdate) then 'Overdue'
+                                    when c.sla_due_date <= trunc(sysdate) + 2 then 'Due soon'
+                                    else 'On time' end as sla_status,
+                               r.request_number,
+                               xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type,
+                               c.next_review_date,
+                               c.creation_date
+                          from xxcmp_cases c
+                          join xxcmp_parties p on p.party_id = c.party_id
+                          join xxcmp_requests r on r.request_id = c.request_id
+                       ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column CASE_ID (
+            type: hidden
+            heading {
+                heading: Case Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column CASE_NUMBER (
+            type: plainText
+            heading {
+                heading: Case
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#CASE_NUMBER#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BUSINESS_RELATIONSHIP (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 145
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CASE_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#CASE_STATUS#</span>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SLA_STATUS (
+            type: plainText
+            heading {
+                heading: SLA
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#SLA_TONE#">#SLA_STATUS#</span>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SLA_DUE_DATE (
+            type: plainText
+            heading {
+                heading: SLA Due
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: plainText
+            heading {
+                heading: Assigned To
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-person" tabindex="0" data-user="#ASSIGNED_TO#">#ASSIGNED_NAME#</span>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RISK_TONE#">#RISK_TIER#</span>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column KYC_LEVEL (
+            type: plainText
+            heading {
+                heading: Due Diligence Type
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REQUEST_NUMBER (
+            type: plainText
+            heading {
+                heading: Request
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REQUEST_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEXT_REVIEW_DATE (
+            type: plainText
+            heading {
+                heading: Next Review
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Opened
+            }
+            layout {
+                sequence: 130
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column CASE_STATUS_CODE (
+            type: hidden
+            heading {
+                heading: Case Status Code
+            }
+            layout {
+                sequence: 301
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TIER_CODE (
+            type: hidden
+            heading {
+                heading: Risk Tier Code
+            }
+            layout {
+                sequence: 302
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            heading {
+                heading: Status Tone
+            }
+            layout {
+                sequence: 303
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TONE (
+            type: hidden
+            heading {
+                heading: Risk Tone
+            }
+            layout {
+                sequence: 304
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SLA_TONE (
+            type: hidden
+            heading {
+                heading: Sla Tone
+            }
+            layout {
+                sequence: 305
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ASSIGNED_NAME (
+            type: hidden
+            heading {
+                heading: Assigned Name
+            }
+            layout {
+                sequence: 306
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+
+        savedReport PRIMARY (
+            visibility: primaryDefault
+            view {
+                default: report
+            }
+
+            displayColumn CASE_NUMBER (
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn PARTY_NAME (
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn CASE_STATUS (
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn SLA_STATUS (
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn SLA_DUE_DATE (
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn ASSIGNED_TO (
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn RISK_TIER (
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn REQUEST_NUMBER (
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn CREATION_DATE (
+                layout {
+                    sequence: 9
+                }
+            )
+
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Case
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 216
+                clearCache: 216
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

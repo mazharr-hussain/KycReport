@@ -112,6 +112,9 @@ begin
     lt('UBO_STATUS', 'UBO Determination', 'S', 'KYC');
     lvs('UBO_STATUS', 'UBO=Ultimate beneficial owner|NOT_UBO=Not a UBO|NOT_YET_ASSESSED=Not yet assessed');
 
+    lt('DUE_DILIGENCE_TYPE', 'Due Diligence Types', 'S', 'KYC');
+    lvs('DUE_DILIGENCE_TYPE', 'SIMPLIFIED=Simplified KYC|STANDARD=Standard KYC|ENHANCED=Enhanced KYC');
+
     lt('RISK_TIER', 'Risk Tiers', 'S', 'KYC');
     lv('RISK_TIER', 'LOW', 'Low', 10, p_ar => 'منخفض');
     lv('RISK_TIER', 'MEDIUM', 'Medium', 20, p_ar => 'متوسط');
