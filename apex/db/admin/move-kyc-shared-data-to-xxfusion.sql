@@ -15,8 +15,10 @@
 --        2. the data moves to XXFUSION (xxfnd_share_pkg.import_schema: all keys kept, row counts compared);
 --        3. only then XXCUS's copy is dropped (tables, views, packages, types, sequences, jobs, flexfield views);
 --        4. a synonym in XXCUS for every shared object; 5. the foreign keys on the XXFUSION tables;
---        6. XXCUS's data security policies use XXFUSION.XXFND_VPD_PKG;
---        7. the flexfield _DFV views are regenerated in XXFUSION; XXCMP_SHARED_FKS is dropped; XXCUS recompiled.
+--        6. XXCUS's data security policies use XXFUSION.XXFND_VPD_PKG; XXFUSION gets the grants on XXCUS's own
+--           objects that the KYC import makes (script 19a);
+--        7. the flexfield _DFV views are regenerated in XXFUSION; XXCMP_SHARED_FKS is dropped; XXCUS and XXFUSION
+--           recompiled.
 --   XXCUS.XXFND_SCHEMA_RELEASES / XXFND_DDL_PKG stay (release tracking per schema).
 -- Safe to re-run after a failure (each step checks what is already done); on a moved XXCUS it changes nothing.
 --------------------------------------------------------------------------------
@@ -192,6 +194,17 @@ begin
                             policy_type     => dbms_rls.dynamic);
     end loop;
 
+    -- 6b. the shared code reaches XXCUS's own objects (approvals, flexfields, user renames, party rule): the grants
+    --     the KYC import also makes (KYC script 19a), so KYC works before its next import
+    for o in (select object_name, object_type from dba_objects
+               where owner = c_app and object_name like 'XXCMP\_%' escape '\'
+                 and object_type in ('TABLE', 'VIEW', 'PACKAGE') and status = 'VALID') loop
+        execute immediate case o.object_type when 'TABLE' then 'grant select, update on '
+                                             when 'VIEW'  then 'grant select on '
+                                             else 'grant execute on ' end
+                          || c_app || '.' || o.object_name || ' to ' || c_shared;
+    end loop;
+
     -- 7. flexfield views from the moved setup (an XXCMP_ table not yet granted to XXFUSION is generated when the
     --    KYC import has granted it: Descriptive Flexfields > Recreate view, or the next COMMON upgrade)
     execute immediate 'call ' || c_shared || '.xxfnd_dff_setup_pkg.generate_all_dfv_views()';
@@ -199,6 +212,8 @@ begin
     execute immediate 'drop table if exists xxcus.xxcmp_shared_fks purge';
     -- XXCUS's own code now compiles against the synonyms
     dbms_utility.compile_schema(c_app, compile_all => false);
+    -- and the shared code, invalidated by the table changes of the move (triggers, identity columns)
+    dbms_utility.compile_schema(c_shared, compile_all => false);
     dbms_output.put_line('Done: the shared data is in ' || c_shared || '; ' || c_app || ' uses synonyms. Now import KYC.');
 end;
 /
