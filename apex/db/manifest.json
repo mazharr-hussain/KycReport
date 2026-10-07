@@ -33,8 +33,7 @@
   "file": "01-common-tables-xxfnd-part-1-of-3.sql",
   "install_sequence": 10,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -42,8 +41,7 @@
   "file": "02-common-tables-xxfnd-part-2-of-3.sql",
   "install_sequence": 20,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -51,8 +49,7 @@
   "file": "03-common-tables-xxfnd-part-3-of-3.sql",
   "install_sequence": 30,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -66,8 +63,7 @@
   "install_sequence": 45,
   "upgrade_sequence": 8,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -76,8 +72,7 @@
   "install_sequence": 47,
   "upgrade_sequence": 9,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -87,8 +82,7 @@
   "upgrade_file": "05-core-packages-part-1-of-2-upgrade.sql",
   "upgrade_sequence": 10,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -97,8 +91,7 @@
   "install_sequence": 60,
   "upgrade_sequence": 20,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -117,8 +110,7 @@
   "install_sequence": 80,
   "upgrade_sequence": 40,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -127,8 +119,7 @@
   "install_sequence": 90,
   "upgrade_sequence": 50,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -137,8 +128,7 @@
   "install_sequence": 95,
   "upgrade_sequence": 55,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -147,8 +137,7 @@
   "install_sequence": 100,
   "upgrade_sequence": 60,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -157,8 +146,7 @@
   "install_sequence": 110,
   "upgrade_sequence": 70,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -167,8 +155,7 @@
   "install_sequence": 120,
   "upgrade_sequence": 80,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -177,8 +164,7 @@
   "install_sequence": 125,
   "upgrade_sequence": 85,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -187,8 +173,7 @@
   "install_sequence": 130,
   "upgrade_sequence": 90,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -197,8 +182,7 @@
   "install_sequence": 140,
   "upgrade_sequence": 100,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -207,8 +191,7 @@
   "install_sequence": 150,
   "upgrade_sequence": 110,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -223,8 +206,7 @@
   "install_sequence": 175,
   "upgrade_sequence": 135,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -325,8 +307,7 @@
   "install_sequence": 171,
   "upgrade_sequence": 131,
   "apps": [
-   "COMMON",
-   "KYC"
+   "COMMON"
   ]
  },
  {
@@ -358,6 +339,36 @@
   "file": "20-common-seed.sql",
   "install_sequence": 200,
   "upgrade_sequence": 160,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "03 Use the shared schema",
+  "file": "03-use-shared-schema.sql",
+  "install_sequence": 3,
+  "upgrade_sequence": 3
+ },
+ {
+  "name": "09c Shared objects formerly in KYC scripts",
+  "file": "09c-shared-objects-from-kyc-scripts.sql",
+  "install_sequence": 97,
+  "upgrade_sequence": 57,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "19a Grants to the shared schema",
+  "file": "19a-grants-to-shared-schema.sql",
+  "install_sequence": 193,
+  "upgrade_sequence": 153
+ },
+ {
+  "name": "19c Sharing with the application schemas",
+  "file": "19c-share-with-applications.sql",
+  "install_sequence": 198,
+  "upgrade_sequence": 158,
   "apps": [
    "COMMON"
   ]

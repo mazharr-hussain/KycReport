@@ -382,24 +382,9 @@ create or replace package body xxfnd_vpd_pkg as
     end policy;
 
     procedure apply_policies is
-        l_count pls_integer;
     begin
-        for t in (select distinct d.table_name from xxfnd_data_security_rules d
-                    join user_tables u on u.table_name = d.table_name) loop
-            select count(*) into l_count from user_policies
-             where object_name = t.table_name and policy_name = c_policy;
-            if l_count = 0 then
-                dbms_rls.add_policy(
-                    object_schema   => sys_context('USERENV', 'CURRENT_SCHEMA'),
-                    object_name     => t.table_name,
-                    policy_name     => c_policy,
-                    function_schema => sys_context('USERENV', 'CURRENT_SCHEMA'),
-                    policy_function => 'XXFND_VPD_PKG.POLICY',
-                    statement_types => 'SELECT,INSERT,UPDATE,DELETE',
-                    update_check    => true,
-                    policy_type     => dbms_rls.dynamic);
-            end if;
-        end loop;
+        -- release 54: the generator is invoker rights (xxfnd_schema_pkg); called here, it covers this schema
+        xxfnd_schema_pkg.apply_policies;
     end apply_policies;
 
 end xxfnd_vpd_pkg;

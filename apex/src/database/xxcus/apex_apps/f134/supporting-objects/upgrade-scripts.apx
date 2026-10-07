@@ -7,6 +7,15 @@ upgradeScript 00a-prerequisites-check (
     }
 )
 
+upgradeScript 03-use-the-shared-schema (
+    execution {
+        sequence: 3
+    }
+    script {
+        contentFile: 03-use-shared-schema.sql
+    }
+)
+
 upgradeScript 00-deployment-framework (
     execution {
         sequence: 5
@@ -14,41 +23,13 @@ upgradeScript 00-deployment-framework (
     script {
         contentFile: 00-deployment-framework.sql
     }
-)
-
-upgradeScript 04a-employees-fusion-user (
-    execution {
-        sequence: 8
-    }
-    script {
-        contentFile: 04a-employee-fusion-user.sql
-    }
-)
-
-upgradeScript 04b-applications-and-users (
-    execution {
-        sequence: 9
-    }
-    script {
-        contentFile: 04b-applications-and-users.sql
-    }
-)
-
-upgradeScript 05-core-packages-part-1-of-2 (
-    execution {
-        sequence: 10
-    }
-    script {
-        contentFile: 05-core-packages-part-1-of-2-upgrade.sql
-    }
-)
-
-upgradeScript 06-core-packages-part-2-of-2 (
-    execution {
-        sequence: 20
-    }
-    script {
-        contentFile: 06-core-packages-part-2-of-2.sql
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -59,95 +40,13 @@ upgradeScript 07-who-and-audit-triggers (
     script {
         contentFile: 07-who-and-audit-triggers.sql
     }
-)
-
-upgradeScript 08-row-rules (
-    execution {
-        sequence: 40
-    }
-    script {
-        contentFile: 08-row-rules.sql
-    }
-)
-
-upgradeScript 09-views (
-    execution {
-        sequence: 50
-    }
-    script {
-        contentFile: 09-views.sql
-    }
-)
-
-upgradeScript 09b-security-framework-objects (
-    execution {
-        sequence: 55
-    }
-    script {
-        contentFile: 09b-security-framework-objects.sql
-    }
-)
-
-upgradeScript 10-flexfield-runtime-part-1-of-2 (
-    execution {
-        sequence: 60
-    }
-    script {
-        contentFile: 10-flexfield-runtime-part-1-of-2.sql
-    }
-)
-
-upgradeScript 11-flexfield-runtime-part-2-of-2 (
-    execution {
-        sequence: 70
-    }
-    script {
-        contentFile: 11-flexfield-runtime-part-2-of-2.sql
-    }
-)
-
-upgradeScript 12-flexfield-setup (
-    execution {
-        sequence: 80
-    }
-    script {
-        contentFile: 12-flexfield-setup.sql
-    }
-)
-
-upgradeScript 13a-database-document-store (
-    execution {
-        sequence: 85
-    }
-    script {
-        contentFile: 13a-database-document-store.sql
-    }
-)
-
-upgradeScript 13-document-store (
-    execution {
-        sequence: 90
-    }
-    script {
-        contentFile: 13-document-store.sql
-    }
-)
-
-upgradeScript 14-attachments (
-    execution {
-        sequence: 100
-    }
-    script {
-        contentFile: 14-attachments.sql
-    }
-)
-
-upgradeScript 15-workflow (
-    execution {
-        sequence: 110
-    }
-    script {
-        contentFile: 15-workflow.sql
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -158,6 +57,14 @@ upgradeScript 16d-parties (
     script {
         contentFile: 16d-parties.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 16-kyc-rules (
@@ -166,6 +73,14 @@ upgradeScript 16-kyc-rules (
     }
     script {
         contentFile: 16-kyc-rules.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -176,6 +91,14 @@ upgradeScript 16e0-party-logic-specification (
     script {
         contentFile: 16e0-party-pkg-spec.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 16b-kyc-requests-and-cases (
@@ -184,6 +107,14 @@ upgradeScript 16b-kyc-requests-and-cases (
     }
     script {
         contentFile: 16b-kyc-requests-cases.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -194,6 +125,14 @@ upgradeScript 16c-monitoring (
     script {
         contentFile: 16c-monitoring.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 16e-party-logic (
@@ -202,6 +141,14 @@ upgradeScript 16e-party-logic (
     }
     script {
         contentFile: 16e-party-pkg.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -212,6 +159,14 @@ upgradeScript 16f-party-and-request-redesign (
     script {
         contentFile: 16f-party-request-redesign.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 16g-request-approval-paths (
@@ -220,6 +175,14 @@ upgradeScript 16g-request-approval-paths (
     }
     script {
         contentFile: 16g-approval-paths.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -230,14 +193,13 @@ upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     script {
         contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
     }
-)
-
-upgradeScript 16h-ui-helpers (
-    execution {
-        sequence: 131
-    }
-    script {
-        contentFile: 16h-ui-helpers.sql
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -248,14 +210,13 @@ upgradeScript 16i-request-ui (
     script {
         contentFile: 16i-request-ui.sql
     }
-)
-
-upgradeScript 16j-authentication-and-authorization (
-    execution {
-        sequence: 135
-    }
-    script {
-        contentFile: 16j-auth-pkg.sql
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -266,6 +227,14 @@ upgradeScript 18-seed-data-and-administrator-part-2-of-2 (
     script {
         contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 18b-security-framework-seed (
@@ -274,6 +243,14 @@ upgradeScript 18b-security-framework-seed (
     }
     script {
         contentFile: 18b-security-framework-seed.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -284,6 +261,14 @@ upgradeScript 18c-admin-console (
     script {
         contentFile: 18c-admin-console.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 18d-workflow-platform (
@@ -292,6 +277,14 @@ upgradeScript 18d-workflow-platform (
     }
     script {
         contentFile: 18d-workflow-platform.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -302,6 +295,14 @@ upgradeScript 18e-kyc-requests-and-cases-seed (
     script {
         contentFile: 18e-kyc-requests-cases.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 18f-monitoring-and-dashboard-seed (
@@ -310,6 +311,14 @@ upgradeScript 18f-monitoring-and-dashboard-seed (
     }
     script {
         contentFile: 18f-monitoring.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )
 
@@ -320,6 +329,31 @@ upgradeScript 18g-release-15-marker (
     script {
         contentFile: 18g-release-15.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
+)
+
+upgradeScript 19a-grants-to-the-shared-schema (
+    execution {
+        sequence: 153
+    }
+    script {
+        contentFile: 19a-grants-to-shared-schema.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 19-reporting-views-and-recompile (
@@ -329,6 +363,14 @@ upgradeScript 19-reporting-views-and-recompile (
     script {
         contentFile: 19-reporting-views-and-recompile.sql
     }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
+    }
 )
 
 upgradeScript 19b-enable-automations (
@@ -337,5 +379,13 @@ upgradeScript 19b-enable-automations (
     }
     script {
         contentFile: 19b-enable-automations.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+            ```
     }
 )

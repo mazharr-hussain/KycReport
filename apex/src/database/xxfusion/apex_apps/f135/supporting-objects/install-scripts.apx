@@ -220,6 +220,23 @@ installScript 09b-security-framework-objects (
     }
 )
 
+installScript 09c-shared-objects-formerly-in-kyc-scripts (
+    execution {
+        sequence: 97
+    }
+    script {
+        contentFile: 09c-shared-objects-from-kyc-scripts.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 10-flexfield-runtime-part-1-of-2 (
     execution {
         sequence: 100
@@ -396,6 +413,23 @@ installScript 19-reporting-views-and-recompile (
     }
     script {
         contentFile: 19-reporting-views-and-recompile.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 19c-sharing-with-the-application-schemas (
+    execution {
+        sequence: 198
+    }
+    script {
+        contentFile: 19c-share-with-applications.sql
     }
     serverSideCondition {
         type: expression

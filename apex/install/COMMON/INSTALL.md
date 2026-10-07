@@ -28,6 +28,10 @@ This install pack holds everything needed:
    Every script can be re-run; errors in later scripts of the failed run came from the same missing privilege.
 3. Sign in to COMMON. The user who installed it is the first Common Administrator.
 
+## Order with the business applications
+The shared XXFND_ objects live only in XXFUSION; KYC (XXCUS) reaches them through synonyms and grants. Always
+install / upgrade **COMMON first**, then KYC.
+
 ## Upgrade
 Import the newer zip over the existing COMMON application → **Install Supporting Objects: Yes** (runs the
 upgrade scripts; data is kept). The same check runs first.

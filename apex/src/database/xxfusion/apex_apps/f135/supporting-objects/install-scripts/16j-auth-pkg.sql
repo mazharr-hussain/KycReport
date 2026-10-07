@@ -173,7 +173,7 @@ create or replace package body xxfnd_auth_pkg as
     function party_details_editable return boolean is
         l_yn varchar2(1);
     begin
-        execute immediate 'begin :r := xxcmp_party_pkg.can_edit_details(:p, :q); end;'
+        execute immediate 'begin :r := ' || xxfnd_util_pkg.qualified('XXCMP_PARTY_PKG') || '.can_edit_details(:p, :q); end;'
             using out l_yn, to_number(v('P0_SUMMARY_PARTY_ID')), to_number(v('P0_REQUEST_ID'));
         return l_yn = 'Y';
     end party_details_editable;

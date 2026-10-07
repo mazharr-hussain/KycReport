@@ -1,0 +1,459 @@
+installScript 00a-prerequisites-check (
+    execution {
+        sequence: 1
+    }
+    script {
+        contentFile: 00a-prerequisites-check.sql
+    }
+)
+
+installScript 00b-common-parsing-schema-check (
+    execution {
+        sequence: 2
+    }
+    script {
+        contentFile: 00b-common-schema-check.sql
+    }
+)
+
+installScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 01-common-tables-xxfnd-part-1-of-3 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 01-common-tables-xxfnd-part-1-of-3.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 02-common-tables-xxfnd-part-2-of-3 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 02-common-tables-xxfnd-part-2-of-3.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 03-common-tables-xxfnd-part-3-of-3 (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 03-common-tables-xxfnd-part-3-of-3.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 04a-employees-fusion-user (
+    execution {
+        sequence: 45
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 04b-applications-and-users (
+    execution {
+        sequence: 47
+    }
+    script {
+        contentFile: 04b-applications-and-users.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 08-row-rules (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 09-views (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 09b-security-framework-objects (
+    execution {
+        sequence: 95
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 09c-shared-objects-formerly-in-kyc-scripts (
+    execution {
+        sequence: 97
+    }
+    script {
+        contentFile: 09c-shared-objects-from-kyc-scripts.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 12-flexfield-setup (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 13a-database-document-store (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 13-document-store (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 14-attachments (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 15-workflow (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 170
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 16h-ui-helpers (
+    execution {
+        sequence: 171
+    }
+    script {
+        contentFile: 16h-ui-helpers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 16j-authentication-and-authorization (
+    execution {
+        sequence: 175
+    }
+    script {
+        contentFile: 16j-auth-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 195
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 19c-sharing-with-the-application-schemas (
+    execution {
+        sequence: 198
+    }
+    script {
+        contentFile: 19c-share-with-applications.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 20-common-application-seed (
+    execution {
+        sequence: 200
+    }
+    script {
+        contentFile: 20-common-seed.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

@@ -260,7 +260,7 @@ create table if not exists xxcmp_doc_verifications (
     constraint xxcmp_doc_verifications_pk primary key (verification_id),
     constraint xxcmp_doc_verifications_uk1 unique (case_id, attached_document_id),
     constraint xxcmp_doc_verifications_fk1 foreign key (case_id) references xxcmp_cases (case_id),
-    constraint xxcmp_doc_verifications_fk2 foreign key (attached_document_id) references xxfnd_attached_documents (attached_document_id),
+    constraint xxcmp_doc_verifications_fk2 foreign key (attached_document_id) references xxfusion.xxfnd_attached_documents (attached_document_id),
     constraint xxcmp_doc_verifications_ck1 check (verification_status in ('VERIFIED','REJECTED','EXPIRED'))
 );
 comment on table xxcmp_doc_verifications is 'Whether each document attached to the party is genuine and current, as checked for this case.';
@@ -310,7 +310,7 @@ begin
     for t in (select column_value table_name from table(apex_t_varchar2(
                  'XXCMP_REQUESTS','XXCMP_CASES','XXCMP_REQUEST_ANSWERS','XXCMP_CASE_DECISIONS','XXCMP_SCREENINGS',
                  'XXCMP_DOC_VERIFICATIONS','XXCMP_UBO_DETERMINATIONS','XXCMP_CASE_NOTES'))) loop
-        xxfnd_util_pkg.create_who_trigger(t.table_name);
+        xxfnd_schema_pkg.create_who_trigger(t.table_name);
     end loop;
     -- release 26: the business relationship of the request goes on to its case
     xxfnd_ddl_pkg.add_column('XXCMP_CASES', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');

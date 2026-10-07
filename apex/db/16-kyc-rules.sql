@@ -30,14 +30,7 @@ begin
 end;
 /
 
-create or replace trigger xxfnd_int_purposes_mc
-    before insert or update on xxfnd_integration_purposes
-    for each row
-begin
-    xxfnd_approval_pkg.apply_rules(inserting, :old.approval_status, :new.approval_status,
-                                   :old.last_updated_by, :new.approved_by, :new.approved_date);
-end;
-/
+-- release 54: XXFND_INT_PURPOSES_MC (shared table) is created by script 09c (COMMON).
 
 -- An approved scoring change raises the questionnaire version, so responses
 -- record which version they were scored against.
