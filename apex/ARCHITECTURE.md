@@ -87,6 +87,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **Release 58 (patch 43):** COMMON application.apx no longer sets `databaseSession.parsingSchema` (suspected cause of the blank App Builder import page); the importer picks XXFUSION, 00b guards it. The ADMIN move script calls its dynamic procedures with CALL (no `begin ... end;` strings, which SQL worksheets split on).
 - **COMMON import note:** App Builder installs APEXlang through ORDS as the REST-enabled schema XXCUS; choosing XXFUSION fails (ORDS 400 "Not allowed to install in workspace ... or schema XXFUSION", blank page). Import with XXCUS, then set the parsing schema to XXFUSION and Install Supporting Objects (00b guards).
 - **Release 59 (COMMON only):** COMMON authentication = Oracle Database Accounts (as KYC); scripts 01-03 use `create table/index if not exists`, so Install Supporting Objects on an XXFUSION that already has the tables reports no ORA-00955.
+- **Release 60 (patch 44, COMMON only):** ADMIN script `db/admin/clean-common.sql` (remove COMMON app + XXFND_/_DFV objects, jobs, policies in XXFUSION; ORA-20905 if another schema depends on them). Script 05 calls XXFND_VPD_PKG and reads XXFND_DATA_SECURITY_RULES dynamically (both created later by 09b), so a fresh COMMON install compiles cleanly.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),

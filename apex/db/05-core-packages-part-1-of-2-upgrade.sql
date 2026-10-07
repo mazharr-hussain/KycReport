@@ -176,21 +176,26 @@ create or replace package body xxfnd_schema_pkg as
     end create_config_audit_triggers;
 
     procedure apply_policies is
-        l_owner varchar2(128);
+        type t_names is table of varchar2(128);
+        l_owner  varchar2(128);
+        l_tables t_names;
     begin
-        for t in (select distinct d.table_name from xxfnd_data_security_rules d
-                    join user_tables u on u.table_name = d.table_name) loop
+        -- release 59: dynamic, because the rules table (script 09b) is created after this package
+        execute immediate 'select distinct d.table_name from xxfnd_data_security_rules d '
+                       || 'join user_tables u on u.table_name = d.table_name'
+            bulk collect into l_tables;
+        for i in 1 .. l_tables.count loop
             select max(pf_owner) into l_owner from user_policies
-             where object_name = t.table_name and policy_name = c_policy;
+             where object_name = l_tables(i) and policy_name = c_policy;
             if l_owner is not null and l_owner <> $$PLSQL_UNIT_OWNER then
                 dbms_rls.drop_policy(object_schema => sys_context('USERENV', 'CURRENT_SCHEMA'),
-                                     object_name   => t.table_name, policy_name => c_policy);
+                                     object_name   => l_tables(i), policy_name => c_policy);
                 l_owner := null;
             end if;
             if l_owner is null then
                 dbms_rls.add_policy(
                     object_schema   => sys_context('USERENV', 'CURRENT_SCHEMA'),
-                    object_name     => t.table_name,
+                    object_name     => l_tables(i),
                     policy_name     => c_policy,
                     function_schema => $$PLSQL_UNIT_OWNER,
                     policy_function => 'XXFND_VPD_PKG.POLICY',
@@ -721,7 +726,7 @@ create or replace package body xxfnd_security_pkg as
         g_renaming := true;
         xxfnd_util_pkg.set_install_mode(true);
         xxfnd_util_pkg.set_preserve_who(true);    -- the rows keep their dates; only the user names change
-        xxfnd_vpd_pkg.begin_trusted;              -- every row, whatever the caller may see
+        execute immediate 'call xxfnd_vpd_pkg.begin_trusted()';   -- 09b creates XXFND_VPD_PKG later              -- every row, whatever the caller may see
         -- release 54: the tables of this schema and of every application schema that granted them
         for c in (select c.owner, c.table_name, c.column_name
                     from all_tab_columns c
@@ -761,13 +766,13 @@ create or replace package body xxfnd_security_pkg as
                     apex_debug.warn('rename_user: task %0 not moved from %1 to %2: %3', t.task_id, l_old, l_new, sqlerrm);
             end;
         end loop;
-        xxfnd_vpd_pkg.end_trusted;
+        execute immediate 'call xxfnd_vpd_pkg.end_trusted()';
         xxfnd_util_pkg.set_install_mode(false);
         xxfnd_util_pkg.set_preserve_who(false);
         g_renaming := false;
     exception
         when others then
-            xxfnd_vpd_pkg.end_trusted;
+            execute immediate 'call xxfnd_vpd_pkg.end_trusted()';
             xxfnd_util_pkg.set_install_mode(false);
             xxfnd_util_pkg.set_preserve_who(false);
             g_renaming := false;
