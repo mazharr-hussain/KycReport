@@ -40,7 +40,7 @@ app COMMON (
         timestampTimeZone: DS
     }
     authentication {
-        scheme: @oracle-apex-accounts
+        scheme: @oracle-database-accounts
     }
     authorization {
         scheme: @app-user
