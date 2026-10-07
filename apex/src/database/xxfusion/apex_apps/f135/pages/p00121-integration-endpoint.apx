@@ -1,0 +1,560 @@
+page 121 (
+    name: Integration Endpoint
+    alias: INTEGRATION-ENDPOINT
+    title: Integration Endpoint
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: An external system the platform can call.
+    }
+
+    region form (
+        name: Integration Endpoint
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_INTEGRATION_ENDPOINTS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P121_ENDPOINT_CODE (
+        type: textField
+        label {
+            label: Endpoint Code
+            alignment: left
+        }
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: ENDPOINT_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P121_SAVED = 'Y'
+                ```
+        }
+        help {
+            inlineHelpText: Upper case, no spaces. Cannot be changed once saved.
+        }
+    )
+
+    pageItem P121_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P121_SAVED
+                  from XXFND_INTEGRATION_ENDPOINTS
+                 where ENDPOINT_CODE = :P121_ENDPOINT_CODE;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P121_ENDPOINT_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: ENDPOINT_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the name.
+        }
+    )
+
+    pageItem P121_ENDPOINT_TYPE (
+        type: selectList
+        label {
+            label: Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-endpoint-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: ENDPOINT_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the type.
+        }
+    )
+
+    pageItem P121_BASE_URL (
+        type: textField
+        label {
+            label: Base URL
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: BASE_URL
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the base URL.
+        }
+    )
+
+    pageItem P121_WEB_CREDENTIAL_STATIC_ID (
+        type: textField
+        label {
+            label: Web Credential Static ID
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 255
+        }
+        source {
+            formRegion: @form
+            column: WEB_CREDENTIAL_STATIC_ID
+            dataType: varchar2
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText:
+                ```
+                Static ID of the APEX Web Credential (Shared Components > Workspace Utilities).
+                ```
+        }
+    )
+
+    pageItem P121_OAUTH_TOKEN_URL (
+        type: textField
+        label {
+            label: OAuth Token URL
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: OAUTH_TOKEN_URL
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the oAuth Token URL.
+        }
+    )
+
+    pageItem P121_OAUTH_SCOPE (
+        type: textField
+        label {
+            label: OAuth Scope
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: OAUTH_SCOPE
+            dataType: varchar2
+        }
+        help {
+            helpText:
+                ```
+                Record of the scope configured on the web credential, e.g. https://graph.microsoft.com/.default.
+                ```
+        }
+    )
+
+    pageItem P121_STATUS_CODE (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-endpoint-status
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: STATUS_CODE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: REGISTERED
+        }
+        help {
+            helpText: Only Active endpoints are called.
+        }
+    )
+
+    pageItem P121_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the description.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+)

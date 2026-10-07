@@ -1,0 +1,127 @@
+page 125 (
+    name: Transmission
+    alias: TRANSMISSION
+    title: Transmission
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        width: 900
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Request metadata and the response received.
+    }
+
+    region details (
+        name: Transmission
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: details
+        }
+    )
+
+    pageItem P125_TRANSMISSION_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @details
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P125_REQUEST_PAYLOAD (
+        type: textarea
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 10
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_payload from xxfnd_transmissions where transmission_id = :P125_TRANSMISSION_ID
+                ```
+            used: always
+        }
+        sessionState {
+            dataType: clob
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Enter the request.
+        }
+    )
+
+    pageItem P125_RESPONSE_PAYLOAD (
+        type: textarea
+        label {
+            label: Response
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 14
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select response_payload from xxfnd_transmissions where transmission_id = :P125_TRANSMISSION_ID
+                ```
+            used: always
+        }
+        sessionState {
+            dataType: clob
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Enter the response.
+        }
+    )
+
+)
