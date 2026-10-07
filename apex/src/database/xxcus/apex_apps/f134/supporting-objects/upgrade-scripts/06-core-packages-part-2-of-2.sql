@@ -1,12 +1,13 @@
 create or replace package body xxfnd_approval_pkg as
 
     function pk_column(p_table_name in varchar2) return varchar2 is
+        l_column xxfnd_config_tables.pk_column%type;
     begin
-        return case upper(p_table_name)
-                 when 'XXCMP_ANSWER_OPTIONS'       then 'ANSWER_OPTION_ID'
-                 when 'XXCMP_ATTACHMENT_RULES'     then 'ATTACHMENT_RULE_ID'
-                 when 'XXFND_INTEGRATION_PURPOSES' then 'PURPOSE_CODE'
-               end;
+        -- release 48: the maker-checker tables each application registered (XXFND_CONFIG_TABLES)
+        select max(pk_column) into l_column
+          from xxfnd_config_tables
+         where table_name = upper(p_table_name) and approval_flag = 'Y';
+        return l_column;
     end pk_column;
 
     function is_controlled(p_table_name in varchar2) return boolean is
@@ -20,9 +21,9 @@ create or replace package body xxfnd_approval_pkg as
         if not is_controlled(p_table_name) then
             raise_application_error(-20120, p_table_name || ' is not under maker-checker control.');
         end if;
-        -- Table and column names come from the whitelist in PK_COLUMN only.
-        execute immediate 'update ' || upper(p_table_name)
-                       || ' set approval_status = :s where ' || pk_column(p_table_name) || ' = :k'
+        -- Table and column names come from the registry (XXFND_CONFIG_TABLES) only.
+        execute immediate 'update ' || dbms_assert.sql_object_name(upper(p_table_name))
+                       || ' set approval_status = :s where ' || dbms_assert.simple_sql_name(pk_column(p_table_name)) || ' = :k'
             using p_status, p_pk_value;
         l_rows := sql%rowcount;
         if l_rows = 0 then
@@ -94,6 +95,33 @@ create or replace package body xxfnd_approval_pkg as
             p_approved_date := null;
         end if;
     end apply_rules;
+
+    function config_changes return xxfnd_config_change_tab pipelined is
+        l_cur  sys_refcursor;
+        l_rows xxfnd_config_change_tab;
+    begin
+        for v in (select distinct c.changes_view
+                    from xxfnd_config_tables c
+                   where c.approval_flag = 'Y' and c.changes_view is not null) loop
+            begin
+                open l_cur for 'select xxfnd_config_change_row(detail_pk, change_type, change_title, change_summary, '
+                            || 'submitted_by, submitted_date) from ' || dbms_assert.sql_object_name(v.changes_view);
+            exception
+                when others then
+                    -- a registered view that is not (yet) installed in this schema
+                    continue;
+            end;
+            loop
+                fetch l_cur bulk collect into l_rows limit 500;
+                for i in 1 .. l_rows.count loop
+                    pipe row (l_rows(i));
+                end loop;
+                exit when l_cur%notfound;
+            end loop;
+            close l_cur;
+        end loop;
+        return;
+    end config_changes;
 
 end xxfnd_approval_pkg;
 /

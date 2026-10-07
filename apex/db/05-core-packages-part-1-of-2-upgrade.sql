@@ -343,20 +343,14 @@ create or replace package body xxfnd_audit_pkg as
     end create_audit_trigger;
 
     procedure create_config_audit_triggers is
-        type t_names is table of varchar2(128);
-        l_tables t_names := t_names(
-            'XXFND_LOOKUP_TYPES','XXFND_LOOKUP_VALUES','XXFND_EMPLOYEES','XXFND_ROLES','XXFND_USER_ROLES',
-            'XXFND_SOD_RULES','XXFND_NOTIFICATION_TEMPLATES','XXFND_RETENTION_POLICIES',
-            'XXFND_INTEGRATION_ENDPOINTS','XXFND_INTEGRATION_PURPOSES',
-            'XXFND_DOCUMENT_ENTITIES','XXFND_DOCUMENT_CATEGORIES','XXFND_ATTACHMENT_FUNCTIONS',
-            'XXFND_ATTACHMENT_BLOCKS','XXFND_ATTACHMENT_BLK_ENTITIES','XXFND_DOC_CATEGORY_USAGES',
-            'XXFND_STORAGE_CONFIG','XXFND_WF_DELEGATIONS',
-            'XXFND_VALUE_SETS','XXFND_DF_FLEXFIELDS','XXFND_DF_CONTEXTS','XXFND_DF_SEGMENTS',
-            'XXCMP_QUESTIONNAIRES','XXCMP_QUESTIONS','XXCMP_ANSWER_OPTIONS','XXCMP_CONCLUSION_TEMPLATES',
-            'XXCMP_APPROVAL_MATRIX','XXCMP_ATTACHMENT_RULES');
     begin
-        for i in 1 .. l_tables.count loop
-            create_audit_trigger(l_tables(i));
+        -- release 48: the configuration tables each application registered (XXFND_CONFIG_TABLES), in this schema
+        for t in (select c.table_name
+                    from xxfnd_config_tables c
+                    join user_tables u on u.table_name = c.table_name
+                   where c.audit_flag = 'Y'
+                   order by c.table_name) loop
+            create_audit_trigger(t.table_name);
         end loop;
     end create_config_audit_triggers;
 
@@ -842,5 +836,9 @@ create or replace package xxfnd_approval_pkg authid definer as
                           p_old_last_updated in varchar2,
                           p_approved_by      in out varchar2,
                           p_approved_date    in out timestamp);
+
+    -- release 48: the pending changes of every application, one row per approval unit, from the views the
+    -- applications registered (XXFND_CONFIG_TABLES.CHANGES_VIEW). Read through XXFND_CONFIG_CHANGES_V.
+    function config_changes return xxfnd_config_change_tab pipelined;
 end xxfnd_approval_pkg;
 /

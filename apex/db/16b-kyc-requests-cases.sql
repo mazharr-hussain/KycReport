@@ -13,6 +13,24 @@
 --                             KYC_CASE APEX workflows
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
+-- release 48 (from 15): the requests for information follow APEX approval tasks (no item of the former engine)
+declare
+    l_count pls_integer;
+begin
+    select count(*) into l_count from user_constraints where constraint_name = 'XXCMP_RFIS_FK2';
+    if l_count > 0 then
+        execute immediate 'alter table xxcmp_rfis drop constraint xxcmp_rfis_fk2';
+    end if;
+    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'RESPONSE_TASK_ID', 'number');
+    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'REVIEW_TASK_ID', 'number');
+    select count(*) into l_count from user_tab_columns where table_name = 'XXCMP_RFIS' and column_name = 'WF_ITEM_ID';
+    if l_count > 0 then
+        execute immediate 'alter table xxcmp_rfis drop column wf_item_id';
+    end if;
+    execute immediate 'drop table if exists xxcmp_wf_activity_controls cascade constraints purge';
+end;
+/
+
 create sequence if not exists xxcmp_request_number_s start with 1 nocache;
 create sequence if not exists xxcmp_case_number_s start with 1 nocache;
 

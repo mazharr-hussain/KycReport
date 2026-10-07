@@ -257,6 +257,13 @@ begin
         rule(r.role_code, 'XXCMP_CASES', 'ALL_ROWS');
     end loop;
     rule('REQUESTER', 'XXCMP_REQUESTS', 'OWN_RECORDS', 'REQUESTER_USER_NAME');
+    -- release 48 (from 18b): compliance staff and administrators see every party and request for information;
+    -- a requester only the requests for information addressed to them
+    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+        rule(r.role_code, 'XXCMP_PARTIES', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
+    end loop;
+    rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))
@@ -300,5 +307,57 @@ exception
     when others then
         xxfnd_vpd_pkg.end_trusted;
         raise;
+end;
+/
+
+--------------------------------------------------------------------------------
+-- release 48: the KYC configuration tables in the shared registry (configuration audit, maker-checker) and the
+-- view of their pending changes (answer options are approved per question, rules row by row)
+--------------------------------------------------------------------------------
+create or replace view xxcmp_config_changes_v as
+select 'XXCMP_QUESTIONS:' || q.question_id                                   detail_pk,
+       'Risk scoring answers'                                                 change_type,
+       q.questionnaire_code || ' / ' || substr(q.question_text, 1, 200)       change_title,
+       listagg(nvl(ao.answer_label, ao.lookup_code) || ': ' || ao.risk_points || ' points'
+                 || case when ao.critical_flag = 'Y' then ', critical' end
+                 || case when ao.waiver_qualifying_flag = 'Y' then ', waiver' end, '; ')
+         within group (order by ao.display_sequence)                          change_summary,
+       max(ao.last_updated_by)                                                submitted_by,
+       max(ao.last_update_date)                                               submitted_date
+  from xxcmp_answer_options ao
+  join xxcmp_questions q on q.question_id = ao.question_id
+ where ao.approval_status = 'PENDING_APPROVAL'
+ group by q.question_id, q.questionnaire_code, q.question_text
+union all
+select 'XXCMP_ATTACHMENT_RULES:' || r.attachment_rule_id,
+       'Mandatory document rule',
+       r.entity_name || ' / ' || r.category_code,
+       nvl(r.jurisdiction, 'any jurisdiction') || ' / ' || nvl(r.entity_type, 'any entity type')
+         || ' / ' || case r.mandatory_flag when 'Y' then 'mandatory' else 'optional' end,
+       r.last_updated_by,
+       r.last_update_date
+  from xxcmp_attachment_rules r
+ where r.approval_status = 'PENDING_APPROVAL';
+comment on table xxcmp_config_changes_v is 'KYC configuration changes waiting for approval (registered changes view in XXFND_CONFIG_TABLES).';
+
+merge into xxfnd_config_tables t
+using (select 'XXCMP_QUESTIONNAIRES' table_name, 'N' approval_flag, null pk_column, null unit_table, null unit_key_column, null changes_view from dual
+       union all select 'XXCMP_QUESTIONS', 'N', null, null, null, null from dual
+       union all select 'XXCMP_ANSWER_OPTIONS', 'Y', 'ANSWER_OPTION_ID', 'XXCMP_QUESTIONS', 'QUESTION_ID', 'XXCMP_CONFIG_CHANGES_V' from dual
+       union all select 'XXCMP_CONCLUSION_TEMPLATES', 'N', null, null, null, null from dual
+       union all select 'XXCMP_APPROVAL_MATRIX', 'N', null, null, null, null from dual
+       union all select 'XXCMP_ATTACHMENT_RULES', 'Y', 'ATTACHMENT_RULE_ID', null, null, 'XXCMP_CONFIG_CHANGES_V' from dual) s
+   on (t.table_name = s.table_name)
+ when matched then update set t.approval_flag = s.approval_flag, t.pk_column = s.pk_column, t.unit_table = s.unit_table,
+                              t.unit_key_column = s.unit_key_column, t.changes_view = s.changes_view
+ when not matched then insert (table_name, application_id, audit_flag, approval_flag, pk_column, unit_table, unit_key_column,
+                               changes_view, created_by, creation_date, last_updated_by, last_update_date)
+                       values (s.table_name, (select application_id from xxfnd_applications where application_code = 'KYC'), 'Y',
+                               s.approval_flag, s.pk_column, s.unit_table, s.unit_key_column, s.changes_view,
+                               'INSTALL', systimestamp, 'INSTALL', systimestamp);
+commit;
+-- the configuration audit triggers of the KYC tables registered above
+begin
+    xxfnd_audit_pkg.create_config_audit_triggers;
 end;
 /
