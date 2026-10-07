@@ -150,6 +150,11 @@ create or replace package xxfnd_privilege_pkg authid definer as
     function has_any_privilege(p_user_name in varchar2 default null) return boolean;
     -- True when the user holds a privilege on any admin feature (Admin Console).
     function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean;
+    -- release 47: the running application (XXFND_APPLICATIONS) found by its APEX alias, else by its APEX ID;
+    -- null outside APEX.
+    function current_application_id return number;
+    -- Records the APEX ID of the running application in this environment (called at sign-in).
+    procedure sync_current_application;
     -- Colon-separated privilege codes of a role (shuttle value on the Role screen).
     function role_privilege_list(p_role_code in varchar2) return varchar2;
     -- Makes the role hold exactly the given privileges (colon-separated).
@@ -214,10 +219,32 @@ create or replace package body xxfnd_privilege_pkg as
                                   p_app_alias);
     end has_page_request_privilege;
 
+    function current_application_id return number is
+        l_id number;
+    begin
+        if v('APP_ID') is null then
+            return null;
+        end if;
+        select max(application_id) keep (dense_rank first order by case when upper(apex_app_alias) = upper(v('APP_ALIAS')) then 0 else 1 end)
+          into l_id
+          from xxfnd_applications
+         where upper(apex_app_alias) = upper(v('APP_ALIAS'))
+            or apex_application_id = to_number(v('APP_ID'));
+        return l_id;
+    end current_application_id;
+
+    procedure sync_current_application is
+    begin
+        update xxfnd_applications
+           set apex_application_id = to_number(v('APP_ID'))
+         where upper(apex_app_alias) = upper(v('APP_ALIAS'))
+           and decode(apex_application_id, to_number(v('APP_ID')), 0, 1) = 1;
+    end sync_current_application;
+
     function has_any_privilege(p_user_name in varchar2 default null) return boolean is
         l_count pls_integer;
         l_user  varchar2(255) := norm_user(p_user_name);
-        l_app   number := to_number(v('APP_ID'));
+        l_app   number := current_application_id;
     begin
         -- release 46: a privilege on a feature of the current application (any application outside APEX)
         select count(*) into l_count
@@ -234,6 +261,7 @@ create or replace package body xxfnd_privilege_pkg as
     function has_any_admin_privilege(p_user_name in varchar2 default null) return boolean is
         l_count pls_integer;
         l_user  varchar2(255) := norm_user(p_user_name);
+        l_app   number := current_application_id;
     begin
         select count(*) into l_count
           from xxfnd_user_roles_v ur
@@ -242,7 +270,7 @@ create or replace package body xxfnd_privilege_pkg as
           join xxfnd_features f         on f.feature_code = p.feature_code
          where ur.user_name = l_user and ur.active_flag = 'Y'
            and f.admin_flag = 'Y' and f.enabled_flag = 'Y'
-           and (to_number(v('APP_ID')) is null or f.application_id = to_number(v('APP_ID')))
+           and (l_app is null or f.application_id = l_app)
            and rownum = 1;
         return l_count > 0;
     end has_any_admin_privilege;

@@ -1,7 +1,9 @@
 --------------------------------------------------------------------------------
 -- 04b Applications and users - shared access module (release 46)
---   XXFND_APPLICATIONS: every APEX application that uses the shared access module. APPLICATION_ID is the APEX
---     application ID: the primary key, never changed; other tables refer to it (roles, features).
+--   XXFND_APPLICATIONS: every APEX application that uses the shared access module. APPLICATION_ID is an internal
+--     key (sequence), never changed, used by the foreign keys (roles, features). APPLICATION_CODE and the APEX alias
+--     are the same in every environment; APEX_APPLICATION_ID is the APEX ID in this environment (DEV / TEST / PROD
+--     may differ) and is kept up to date at sign-in (release 47).
 --   XXFND_USERS: the users of all applications. A user linked to an employee (USER_TYPE SSO) signs in with the
 --     identity domain only; a LOCAL user (no employee) has an Oracle APEX account (APEX keeps the password),
 --     created from the access console (XXFND_USER_PKG).
@@ -9,11 +11,14 @@
 --     trigger XXFND_USER_ROLES_USER fills USER_ID from it).
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
+create sequence if not exists xxfnd_applications_s start with 1000 nocache;
+
 create table if not exists xxfnd_applications (
-    application_id         number         not null,
+    application_id         number         default on null xxfnd_applications_s.nextval not null,
     application_code       varchar2(30)   not null,
     application_name       varchar2(240)  not null,
     apex_app_alias         varchar2(255),
+    apex_application_id    number,
     enabled_flag           varchar2(1)    default 'Y' not null,
     description            varchar2(1000),
     -- standard WHO columns
@@ -28,7 +33,7 @@ create table if not exists xxfnd_applications (
     constraint xxfnd_applications_ck1 check (enabled_flag in ('Y','N')),
     constraint xxfnd_applications_ck2 check (application_code = upper(application_code))
 );
-comment on table xxfnd_applications is 'Applications that use the shared access module (roles, features, users). APPLICATION_ID = the APEX application ID; never changed.';
+comment on table xxfnd_applications is 'Applications that use the shared access module (roles, features, users). APPLICATION_ID = internal key, never changed; APPLICATION_CODE / APEX_APP_ALIAS = the same in every environment; APEX_APPLICATION_ID = the APEX ID in this environment.';
 
 create or replace trigger xxfnd_applications_id
 before update of application_id on xxfnd_applications
@@ -83,6 +88,10 @@ declare
     end run;
 begin
     -- roles and grants of the shared module refer to the application and the user
+    -- release 47: internal key from the sequence; the APEX ID in its own column; the alias identifies the app
+    xxfnd_ddl_pkg.add_column('XXFND_APPLICATIONS', 'APEX_APPLICATION_ID', 'number');
+    run('alter table xxfnd_applications modify (application_id default on null xxfnd_applications_s.nextval)');
+    run('alter table xxfnd_applications add constraint xxfnd_applications_uk2 unique (apex_app_alias)');
     xxfnd_ddl_pkg.add_column('XXFND_ROLES', 'APPLICATION_ID', 'number');
     xxfnd_ddl_pkg.add_column('XXFND_USER_ROLES', 'USER_ID', 'number');
     run('alter table xxfnd_user_roles modify (employee_id null)');
@@ -102,13 +111,15 @@ begin
 end;
 /
 
--- the KYC application (APEX application 134)
+comment on column xxfnd_applications.apex_application_id is 'APEX application ID in this environment (may differ between DEV / TEST / PROD); set at sign-in from the alias.';
+
+-- the KYC application (found by its code and alias in every environment; the APEX ID is set at sign-in)
 merge into xxfnd_applications t
-using (select 134 application_id, 'KYC' application_code, 'KYC Compliance Platform' application_name, 'KYC' apex_app_alias from dual) s
-   on (t.application_id = s.application_id)
- when not matched then insert (application_id, application_code, application_name, apex_app_alias,
+using (select 'KYC' application_code, 'KYC Compliance Platform' application_name, 'KYC' apex_app_alias from dual) s
+   on (t.application_code = s.application_code)
+ when not matched then insert (application_code, application_name, apex_app_alias,
                                created_by, creation_date, last_updated_by, last_update_date)
-                       values (s.application_id, s.application_code, s.application_name, s.apex_app_alias,
+                       values (s.application_code, s.application_name, s.apex_app_alias,
                                'INSTALL', systimestamp, 'INSTALL', systimestamp);
 
 -- existing roles belong to the application of their code

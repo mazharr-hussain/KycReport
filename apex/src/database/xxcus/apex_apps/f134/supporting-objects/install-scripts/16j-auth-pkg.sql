@@ -72,6 +72,7 @@ create or replace package body xxfnd_auth_pkg as
 
     procedure post_auth_local is
     begin
+        xxfnd_privilege_pkg.sync_current_application;
         xxfnd_security_pkg.map_login_user;
         if login_type_enforced and user_type = 'SSO' then
             raise_application_error(-20066, 'Sign in with your company account (Sign in with SSO).');
@@ -151,6 +152,7 @@ create or replace package body xxfnd_auth_pkg as
         -- the identity-domain user name, before it is mapped to the employee's user name
         l_login varchar2(255) := v('APP_USER');
     begin
+        xxfnd_privilege_pkg.sync_current_application;
         xxfnd_security_pkg.map_login_user;
         if login_type_enforced and user_type = 'LOCAL' then
             raise_application_error(-20067, 'This user signs in with a user name and password, not the company account.');
