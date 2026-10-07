@@ -10,6 +10,15 @@
   ]
  },
  {
+  "name": "00b COMMON parsing schema check",
+  "file": "00b-common-schema-check.sql",
+  "install_sequence": 2,
+  "upgrade_sequence": 2,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "00 Deployment framework",
   "file": "00-deployment-framework.sql",
   "install_sequence": 5,

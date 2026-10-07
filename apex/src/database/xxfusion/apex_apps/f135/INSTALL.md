@@ -4,11 +4,16 @@ Everything needed is in this zip: the application, its database scripts (Support
 script `admin/create-xxfusion-schema.sql`.
 
 ## Steps
-1. **App Builder → Import** this zip into the workspace (XXCUS) → new application (any free ID) →
-   parsing schema **XXFUSION** → **Install Supporting Objects: Yes**.
-   - XXFUSION must be a schema of the workspace. If it is not offered as parsing schema, run
-     `admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if needed, grants and adds it to the workspace),
-     then import again.
+1. **App Builder → Import** this zip into the workspace (XXCUS) → new application (any free ID).
+   On the Install step set **Parsing Schema = XXFUSION**. The export already names XXFUSION, so it is preselected
+   when XXFUSION is a schema of the workspace. Do not leave it at the workspace default XXCUS.
+   Then set **Install Supporting Objects: Yes**.
+   - If XXFUSION is not in the list, run `admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if
+     needed, grants and adds it to the workspace), then import again.
+   - Imported with another parsing schema, the install does nothing except report **ORA-20901 ACTION NEEDED**
+     (script 00b). Fix it: **App Builder → COMMON → Edit Application Definition → Security → Database Session →
+     Parsing Schema = XXFUSION → Apply Changes**, then **Utilities → Supporting Objects → Install Supporting
+     Objects**.
 2. The first script, **00a Prerequisites check**, checks the privileges of XXFUSION. If one is missing the
    install reports **ORA-20900 ACTION NEEDED** with the exact statements, for example:
    ```

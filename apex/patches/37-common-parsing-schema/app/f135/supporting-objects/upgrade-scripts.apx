@@ -1,0 +1,374 @@
+upgradeScript 00a-prerequisites-check (
+    execution {
+        sequence: 1
+    }
+    script {
+        contentFile: 00a-prerequisites-check.sql
+    }
+)
+
+upgradeScript 00b-common-parsing-schema-check (
+    execution {
+        sequence: 2
+    }
+    script {
+        contentFile: 00b-common-schema-check.sql
+    }
+)
+
+upgradeScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 04a-employees-fusion-user (
+    execution {
+        sequence: 8
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 04b-applications-and-users (
+    execution {
+        sequence: 9
+    }
+    script {
+        contentFile: 04b-applications-and-users.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2-upgrade.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 08-row-rules (
+    execution {
+        sequence: 40
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 09-views (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 09b-security-framework-objects (
+    execution {
+        sequence: 55
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 12-flexfield-setup (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 13a-database-document-store (
+    execution {
+        sequence: 85
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 13-document-store (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 14-attachments (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 15-workflow (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 16h-ui-helpers (
+    execution {
+        sequence: 131
+    }
+    script {
+        contentFile: 16h-ui-helpers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 16j-authentication-and-authorization (
+    execution {
+        sequence: 135
+    }
+    script {
+        contentFile: 16j-auth-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 155
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 20-common-application-seed (
+    execution {
+        sequence: 160
+    }
+    script {
+        contentFile: 20-common-seed.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

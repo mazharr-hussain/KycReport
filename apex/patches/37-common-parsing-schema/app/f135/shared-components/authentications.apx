@@ -1,0 +1,42 @@
+authentication oracle-apex-accounts (
+    name: Oracle APEX Accounts
+    type: oracleApexAccounts
+    loginProcessing {
+        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_local
+    }
+)
+
+
+authentication oracle-database-accounts (
+    name: Oracle Database Accounts
+    type: databaseAccounts
+    loginProcessing {
+        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_local
+    }
+)
+
+
+authentication apex-fa-iabwbn-dev1-oauth (
+    name: APEX_FA_IABWBN-DEV1_OAUTH
+    type: socialSignIn
+    settings {
+        credentialStore: @apex-fa-iabwbn-dev1-dbms-cred
+        authProvider: openidConnect
+        discoveryUrl: #FA_IABWBN-DEV1_DISCOVERY_URL#
+        scope: profile,email,offline_access,groups,#FA_IABWBN-DEV1_OAUTH_SCOPE#
+        username: #sub#
+        convertUsernameToUpperCase: false
+        additionalUserAttrs: given_name,middle_name,family_name,locale,zoneinfo,email
+        mapAdditionalUserAttrsTo: G_GIVEN_NAME,G_MIDDLE_NAME,G_FAMILY_NAME,G_LOCALE,G_ZONEINFO,G_EMAIL
+        verifyAttrs: true
+    }
+    loginProcessing {
+        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_sso
+    }
+    comments {
+        comments:
+            ```
+            Created for federated authentication with the iabwbn-dev1 Fusion instance (same scheme as application 132). All logic is in XXFND_AUTH_PKG.
+            ```
+    }
+)

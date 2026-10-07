@@ -26,16 +26,25 @@ APPS = {
     'KYC':    (os.path.join(ROOT, 'src', 'database', 'xxcus', 'apex_apps', 'f134'), 'KYC-Compliance-Platform-APEXlang'),
     'COMMON': (os.path.join(ROOT, 'src', 'database', 'xxfusion', 'apex_apps', 'f135'), 'COMMON-Application-APEXlang'),
 }
+# Parsing schema an application must be installed in: its scripts (except the checks, file names 00a/00b) run only
+# there, so an import with the wrong parsing schema installs nothing and 00b says how to fix it.
+REQUIRED_SCHEMA = {'COMMON': 'XXFUSION'}
+CHECKS = ('00a-', '00b-')
 
 
 def ident(name):
     return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
 
-def component(kind, name, seq, content_file):
+def component(kind, name, seq, content_file, schema=None):
+    cond = ''
+    if schema and not content_file.startswith(CHECKS):
+        cond = ("    serverSideCondition {\n        type: expression\n        language: sql\n"
+                "        sqlExpression:\n            ```sql\n"
+                f"            sys_context('userenv', 'current_schema') = '{schema}'\n            ```\n    }}\n")
     return (f"{kind} {ident(name)} (\n"
             f"    execution {{\n        sequence: {seq}\n    }}\n"
-            f"    script {{\n        contentFile: {content_file}\n    }}\n)\n")
+            f"    script {{\n        contentFile: {content_file}\n    }}\n{cond})\n")
 
 
 def build(app):
@@ -53,11 +62,11 @@ def build(app):
             continue
         if e.get('install_sequence') is not None:
             shutil.copy(os.path.join(DB, e['file']), os.path.join(SO, 'install-scripts', e['file']))
-            inst.append((e['install_sequence'], component('installScript', e['name'], e['install_sequence'], e['file'])))
+            inst.append((e['install_sequence'], component('installScript', e['name'], e['install_sequence'], e['file'], REQUIRED_SCHEMA.get(app))))
         if e.get('upgrade_sequence') is not None:
             f = e.get('upgrade_file') or e['file']
             shutil.copy(os.path.join(DB, f), os.path.join(SO, 'upgrade-scripts', f))
-            upg.append((e['upgrade_sequence'], component('upgradeScript', e['name'], e['upgrade_sequence'], f)))
+            upg.append((e['upgrade_sequence'], component('upgradeScript', e['name'], e['upgrade_sequence'], f, REQUIRED_SCHEMA.get(app))))
     for fname, items in (('install-scripts.apx', inst), ('upgrade-scripts.apx', upg)):
         seqs = [s for s, _ in items]
         if len(seqs) != len(set(seqs)):

@@ -1,0 +1,35 @@
+authorization app-user (
+    name: Application User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('APP_USER');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this application. Ask an administrator to grant you a role.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-view (
+    name: Page - View
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_VIEW');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
