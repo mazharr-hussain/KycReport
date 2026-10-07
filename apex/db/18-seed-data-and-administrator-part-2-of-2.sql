@@ -8,8 +8,8 @@ declare
     begin
         merge into xxfnd_roles t using (select p_code role_code from dual) s on (t.role_code = s.role_code)
          -- insert only: administrators maintain roles on the Roles and Privileges screen
-         when not matched then insert (role_code, application_code, role_name, description, view_sensitive_flag)
-                               values (p_code, 'KYC', p_name, p_desc, p_sensitive);
+         when not matched then insert (role_code, application_code, application_id, role_name, description, view_sensitive_flag)
+                               values (p_code, 'KYC', 134, p_name, p_desc, p_sensitive);
     end role;
 
     procedure vset(p_code in varchar2, p_name in varchar2, p_validation in varchar2, p_format in varchar2,

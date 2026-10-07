@@ -404,25 +404,32 @@ create or replace package xxfnd_security_pkg authid definer as
 end xxfnd_security_pkg;
 /
 
+-- release 46: grants belong to the user (XXFND_USERS); an SSO user is linked to an employee, a LOCAL user is not
 create or replace view xxfnd_user_roles_v as
 select ur.user_role_id,
-       ur.employee_id,
-       e.user_name,
-       e.full_name,
-       e.source_type,
+       u.user_id,
+       u.employee_id,
+       u.user_name,
+       coalesce(e.full_name, u.full_name, u.user_name) full_name,
+       nvl(e.source_type, 'LOCAL') source_type,
+       u.user_type,
        ur.role_code,
        r.role_name,
        r.application_code,
+       r.application_id,
        ur.start_date_active,
        ur.end_date_active,
        ur.enabled_flag,
-       case when ur.enabled_flag = 'Y' and r.enabled_flag = 'Y' and e.enabled_flag = 'Y'
+       case when ur.enabled_flag = 'Y' and r.enabled_flag = 'Y' and u.enabled_flag = 'Y'
              and trunc(sysdate) between ur.start_date_active and nvl(ur.end_date_active, trunc(sysdate))
-             and trunc(sysdate) between e.start_date_active  and nvl(e.end_date_active,  trunc(sysdate))
+             and trunc(sysdate) between u.start_date_active  and nvl(u.end_date_active,  trunc(sysdate))
+             and (e.employee_id is null
+                  or (e.enabled_flag = 'Y' and trunc(sysdate) between e.start_date_active and nvl(e.end_date_active, trunc(sysdate))))
             then 'Y' else 'N' end active_flag
   from xxfnd_user_roles ur
-  join xxfnd_employees e on e.employee_id = ur.employee_id
-  join xxfnd_roles r     on r.role_code   = ur.role_code;
+  join xxfnd_users u          on u.user_id     = ur.user_id
+  left join xxfnd_employees e on e.employee_id = u.employee_id
+  join xxfnd_roles r          on r.role_code   = ur.role_code;
 
 create or replace package body xxfnd_security_pkg as
 
@@ -653,11 +660,13 @@ create or replace package body xxfnd_security_pkg as
         l_login varchar2(255) := upper(trim(v('APP_USER')));
         l_user  xxfnd_employees.user_name%type;
     begin
-        select max(user_name) keep (dense_rank first order by case when upper(user_name) = l_login then 0 else 1 end)
+        -- release 46: the users of the shared access module first, then the employees
+        select max(user_name) keep (dense_rank first order by src, case when user_name = l_login then 0 else 1 end)
           into l_user
-          from xxfnd_employees
-         where enabled_flag = 'Y'
-           and (upper(user_name) = l_login or upper(email_address) = l_login);
+          from (select 1 src, u.user_name, upper(u.email_address) email from xxfnd_users u where u.enabled_flag = 'Y'
+                union all
+                select 2, upper(e.user_name), upper(e.email_address) from xxfnd_employees e where e.enabled_flag = 'Y')
+         where user_name = l_login or email = l_login;
         if l_user is not null and upper(l_user) <> l_login then
             apex_custom_auth.set_user(upper(l_user));
         end if;

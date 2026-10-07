@@ -26,6 +26,18 @@ create table if not exists xxfnd_features (
 );
 comment on table xxfnd_features is 'Application features (one menu entry each). Privileges are granted per feature and action.';
 
+-- release 46: a feature belongs to one application (shared access module)
+declare
+begin
+    xxfnd_ddl_pkg.add_column('XXFND_FEATURES', 'APPLICATION_ID', 'number');
+    begin
+        execute immediate 'alter table xxfnd_features add constraint xxfnd_features_fk1 foreign key (application_id) references xxfnd_applications (application_id)';
+    exception when others then if sqlcode not in (-2275, -2264) then raise; end if;
+    end;
+end;
+/
+comment on column xxfnd_features.application_id is 'The application (XXFND_APPLICATIONS) the feature belongs to; its privileges and page mappings follow it.';
+
 create table if not exists xxfnd_privileges (
     privilege_code         varchar2(61)   not null,
     feature_code           varchar2(30)   not null,
@@ -205,11 +217,17 @@ create or replace package body xxfnd_privilege_pkg as
     function has_any_privilege(p_user_name in varchar2 default null) return boolean is
         l_count pls_integer;
         l_user  varchar2(255) := norm_user(p_user_name);
+        l_app   number := to_number(v('APP_ID'));
     begin
+        -- release 46: a privilege on a feature of the current application (any application outside APEX)
         select count(*) into l_count
           from xxfnd_user_roles_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
-         where ur.user_name = l_user and ur.active_flag = 'Y' and rownum = 1;
+          join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+          join xxfnd_features f         on f.feature_code = p.feature_code
+         where ur.user_name = l_user and ur.active_flag = 'Y' and f.enabled_flag = 'Y'
+           and (l_app is null or f.application_id = l_app)
+           and rownum = 1;
         return l_count > 0;
     end has_any_privilege;
 
@@ -223,7 +241,9 @@ create or replace package body xxfnd_privilege_pkg as
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
          where ur.user_name = l_user and ur.active_flag = 'Y'
-           and f.admin_flag = 'Y' and f.enabled_flag = 'Y' and rownum = 1;
+           and f.admin_flag = 'Y' and f.enabled_flag = 'Y'
+           and (to_number(v('APP_ID')) is null or f.application_id = to_number(v('APP_ID')))
+           and rownum = 1;
         return l_count > 0;
     end has_any_admin_privilege;
 

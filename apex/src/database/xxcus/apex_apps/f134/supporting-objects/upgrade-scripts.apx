@@ -16,6 +16,15 @@ upgradeScript 04a-employees-fusion-user (
     }
 )
 
+upgradeScript 04b-applications-and-users (
+    execution {
+        sequence: 9
+    }
+    script {
+        contentFile: 04b-applications-and-users.sql
+    }
+)
+
 upgradeScript 05-core-packages-part-1-of-2 (
     execution {
         sequence: 10
