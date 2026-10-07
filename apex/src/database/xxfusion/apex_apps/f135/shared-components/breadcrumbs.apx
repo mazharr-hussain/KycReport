@@ -142,4 +142,53 @@ breadcrumb breadcrumb (
         }
     )
 
+
+    entry lookup (
+        name: Lookup Type
+        pageNumber: 102
+        execution {
+            sequence: 120
+        }
+        appearance {
+            parentEntry: @lookups
+        }
+        link {
+            target: {
+                page: 102
+            }
+        }
+    )
+
+    entry lookups (
+        name: Lookups
+        pageNumber: 101
+        execution {
+            sequence: 110
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry templates (
+        name: Notification Templates
+        pageNumber: 109
+        execution {
+            sequence: 170
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 109
+            }
+        }
+    )
+
 )
