@@ -6,8 +6,8 @@ in the repository.
 
 ## Steps
 1. **App Builder → Import** the application zip into the workspace (XXCUS) → new application (any free ID).
-   On the Install step set **Parsing Schema = XXFUSION**. The export already names XXFUSION, so it is preselected
-   when XXFUSION is a schema of the workspace. Do not leave it at the workspace default XXCUS.
+   On the Install step set **Parsing Schema = XXFUSION** (pick it from the list; the default is the workspace's
+   XXCUS). Do not leave it at XXCUS.
    Then set **Install Supporting Objects: Yes**.
    - If XXFUSION is not in the list, run `apex/db/admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if
      needed, grants and adds it to the workspace), then import again.
