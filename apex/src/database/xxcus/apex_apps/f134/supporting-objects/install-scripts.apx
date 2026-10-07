@@ -1,3 +1,12 @@
+installScript 00a-prerequisites-check (
+    execution {
+        sequence: 1
+    }
+    script {
+        contentFile: 00a-prerequisites-check.sql
+    }
+)
+
 installScript 00-deployment-framework (
     execution {
         sequence: 5

@@ -1,5 +1,15 @@
 [
  {
+  "name": "00a Prerequisites check",
+  "file": "00a-prerequisites-check.sql",
+  "install_sequence": 1,
+  "upgrade_sequence": 1,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
+ },
+ {
   "name": "00 Deployment framework",
   "file": "00-deployment-framework.sql",
   "install_sequence": 5,

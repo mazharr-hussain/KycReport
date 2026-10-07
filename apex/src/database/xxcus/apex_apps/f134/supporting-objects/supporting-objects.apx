@@ -1,13 +1,4 @@
 supportingObject (
-    prerequisites {
-        systemPrivileges: [
-            createTable
-            createView
-            createProcedure
-            createTrigger
-            createSequence
-        ]
-    }
     installationMessages {
         welcome:
             ```
@@ -15,6 +6,7 @@ supportingObject (
             ```
         confirmation:
             ```
+            The first script checks the schema's privileges; if one is missing it stops with the exact statements to run as ADMIN (see INSTALL.md in the zip).
             Install the database objects now? Existing XXFND_/XXCMP_ tables are upgraded instead of recreated.
             ```
         installSuccess:
@@ -23,7 +15,7 @@ supportingObject (
             ```
         installFailure:
             ```
-            Installation failed. Check the script results, fix the cause and reinstall Supporting Objects; every script can be re-run.
+            Installation failed. If script 00a Prerequisites check failed (ORA-20900 ACTION NEEDED), its message lists the statements to run as ADMIN: run them, then come back and Install Supporting Objects again (Utilities > Supporting Objects). Otherwise check the script results, fix the cause and reinstall; every script can be re-run.
             ```
     }
     upgrade {
