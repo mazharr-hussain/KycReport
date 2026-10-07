@@ -9,7 +9,7 @@ which scripts run on install and/or upgrade and in which order:
 
 "upgrade_file" (optional) gives an upgrade-only variant; a script without "file" is upgrade-only.
 "apps" (optional, default ["KYC"]) lists the applications whose supporting objects run the script:
-KYC (app 134, schema XXCUS) and COMMON (schema XXFUS, the shared security / setup / workflow application).
+KYC (app 134, schema XXCUS) and COMMON (schema XXFUSION, the shared security / setup / workflow application).
 APEXlang reads install scripts from supporting-objects/install-scripts/ and upgrade scripts from
 supporting-objects/upgrade-scripts/, so this tool writes a copy into each folder it is used in.
 
@@ -24,7 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(ROOT, 'db')
 APPS = {
     'KYC':    (os.path.join(ROOT, 'src', 'database', 'xxcus', 'apex_apps', 'f134'), 'KYC-Compliance-Platform-APEXlang'),
-    'COMMON': (os.path.join(ROOT, 'src', 'database', 'xxfus', 'apex_apps', 'f135'), 'COMMON-Application-APEXlang'),
+    'COMMON': (os.path.join(ROOT, 'src', 'database', 'xxfusion', 'apex_apps', 'f135'), 'COMMON-Application-APEXlang'),
 }
 
 
