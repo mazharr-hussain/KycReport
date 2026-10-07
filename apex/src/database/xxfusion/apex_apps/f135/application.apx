@@ -47,9 +47,6 @@ app COMMON (
         runOnPublicPages: false
         sourceForRoleOrGroupSchemes: customCode
     }
-    databaseSession {
-        parsingSchema: XXFUSION
-    }
     sessionManagement {
         maxSessionIdleTime: 3600
         maxSessionLength: 28800

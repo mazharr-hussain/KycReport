@@ -136,7 +136,7 @@ begin
             continue when local_object(t.table_name);
             execute immediate 'grant select on ' || c_app || '.' || t.table_name || ' to ' || c_shared;
         end loop;
-        execute immediate 'begin ' || c_shared || '.xxfnd_share_pkg.import_schema(:s); end;' using c_app;
+        execute immediate 'call ' || c_shared || '.xxfnd_share_pkg.import_schema(:s)' using c_app;
 
         -- 3. only now: drop XXCUS's copy
         for j in (select job_name from dba_scheduler_jobs where owner = c_app and job_name like 'XXFND\_%' escape '\') loop
@@ -194,7 +194,7 @@ begin
 
     -- 7. flexfield views from the moved setup (an XXCMP_ table not yet granted to XXFUSION is generated when the
     --    KYC import has granted it: Descriptive Flexfields > Recreate view, or the next COMMON upgrade)
-    execute immediate 'begin ' || c_shared || '.xxfnd_dff_setup_pkg.generate_all_dfv_views; end;';
+    execute immediate 'call ' || c_shared || '.xxfnd_dff_setup_pkg.generate_all_dfv_views()';
     -- done: the work table goes
     execute immediate 'drop table if exists xxcus.xxcmp_shared_fks purge';
     -- XXCUS's own code now compiles against the synonyms
