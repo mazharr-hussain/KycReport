@@ -451,7 +451,7 @@ create or replace package body xxfnd_config_approval_pkg as
         l_keys apex_t_varchar2;
     begin
         execute immediate 'select to_char(' || dbms_assert.simple_sql_name(p_reg.pk_column) || ') from '
-                       || dbms_assert.sql_object_name(p_reg.table_name)
+                       || xxfnd_util_pkg.qualified(p_reg.table_name)
                        || ' where ' || dbms_assert.simple_sql_name(p_reg.unit_key_column) || ' = :k'
                        || ' and approval_status in (select column_value from table(:s))'
             bulk collect into l_keys using p_key, p_statuses;

@@ -37,7 +37,7 @@ create table if not exists xxcmp_approval_paths (
 );
 comment on table xxcmp_approval_paths is 'KYC request approval paths: one row per step; the path whose criteria match the request best applies.';
 begin
-    xxfnd_util_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
+    xxfnd_schema_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CURRENT_STEP',       'number');
     -- release 26: paths by business relationship (customer, vendor...)

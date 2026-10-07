@@ -5,6 +5,13 @@ This install pack holds everything needed:
   **Import this file**, not the pack itself (App Builder accepts only the application zip).
 - this INSTALL.md.
 
+## Before you start
+The shared objects (security, lookups, flexfields, attachments, workflow: `XXFND_`) live only in **XXFUSION**,
+installed by the **COMMON** application. XXCUS keeps the KYC objects (`XXCMP_`) and reaches the shared ones through
+synonyms. So **import COMMON first** (same release, parsing schema XXFUSION, Install Supporting Objects: Yes), then KYC.
+On the first KYC import of release 54 or later, KYC's own copy of the shared data moves to XXFUSION once (keys
+kept) and is replaced by synonyms.
+
 ## Steps
 1. **App Builder → Import** the application zip into the workspace (XXCUS) → **Replace Existing Application** (or a new
    application on a first install), parsing schema **XXCUS** → **Install Supporting Objects: Yes**.
@@ -17,3 +24,6 @@ This install pack holds everything needed:
    **App Builder → KYC Compliance Platform → Utilities → Supporting Objects → Install Supporting Objects**
    (or **Upgrade**). Every script can be re-run; errors in later scripts of the failed run came from the same
    missing privilege.
+3. If COMMON was not installed first, the install reports **ORA-20902 ACTION NEEDED** (script 03) and installs
+   nothing else. Import COMMON, then come back: **Utilities → Supporting Objects → Install Supporting Objects**
+   (or **Upgrade**).

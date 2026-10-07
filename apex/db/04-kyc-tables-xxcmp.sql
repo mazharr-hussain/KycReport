@@ -327,7 +327,7 @@ create table xxcmp_questions (
     object_version_number    number         default 1 not null,
     constraint xxcmp_questions_pk primary key (question_id),
     constraint xxcmp_questions_fk1 foreign key (questionnaire_code) references xxcmp_questionnaires (questionnaire_code),
-    constraint xxcmp_questions_fk2 foreign key (lookup_type) references xxfnd_lookup_types (lookup_type),
+    constraint xxcmp_questions_fk2 foreign key (lookup_type) references xxfusion.xxfnd_lookup_types (lookup_type),
     constraint xxcmp_questions_ck1 check (answer_type in ('SINGLE_SELECT','MULTI_SELECT','YES_NO','TEXT','NUMBER','DATE')),
     constraint xxcmp_questions_ck2 check (gate_question_flag in ('Y','N')),
     constraint xxcmp_questions_ck3 check (required_flag in ('Y','N')),
@@ -376,7 +376,7 @@ create table xxcmp_answer_options (
     constraint xxcmp_answer_options_pk primary key (answer_option_id),
     constraint xxcmp_answer_options_fk1 foreign key (question_id) references xxcmp_questions (question_id) on delete cascade,
     constraint xxcmp_answer_options_fk2 foreign key (lookup_type, lookup_code)
-        references xxfnd_lookup_values (lookup_type, lookup_code),
+        references xxfusion.xxfnd_lookup_values (lookup_type, lookup_code),
     constraint xxcmp_answer_options_ck1 check (critical_flag in ('Y','N')),
     constraint xxcmp_answer_options_ck2 check (waiver_qualifying_flag in ('Y','N')),
     constraint xxcmp_answer_options_ck3 check (enabled_flag in ('Y','N')),
@@ -420,8 +420,8 @@ create table xxcmp_approval_matrix (
     last_update_login        varchar2(255),
     object_version_number    number         default 1 not null,
     constraint xxcmp_approval_matrix_pk primary key (risk_tier),
-    constraint xxcmp_approval_matrix_fk1 foreign key (level1_role_code) references xxfnd_roles (role_code),
-    constraint xxcmp_approval_matrix_fk2 foreign key (level2_role_code) references xxfnd_roles (role_code),
+    constraint xxcmp_approval_matrix_fk1 foreign key (level1_role_code) references xxfusion.xxfnd_roles (role_code),
+    constraint xxcmp_approval_matrix_fk2 foreign key (level2_role_code) references xxfusion.xxfnd_roles (role_code),
     constraint xxcmp_approval_matrix_ck1 check (required_levels in (1,2)),
     constraint xxcmp_approval_matrix_ck2 check (
         (required_levels = 1 and level2_role_code is null) or
@@ -453,8 +453,8 @@ create table xxcmp_attachment_rules (
     last_update_login        varchar2(255),
     object_version_number    number         default 1 not null,
     constraint xxcmp_attachment_rules_pk primary key (attachment_rule_id),
-    constraint xxcmp_attachment_rules_fk1 foreign key (entity_name) references xxfnd_document_entities (entity_name),
-    constraint xxcmp_attachment_rules_fk2 foreign key (category_code) references xxfnd_document_categories (category_code),
+    constraint xxcmp_attachment_rules_fk1 foreign key (entity_name) references xxfusion.xxfnd_document_entities (entity_name),
+    constraint xxcmp_attachment_rules_fk2 foreign key (category_code) references xxfusion.xxfnd_document_categories (category_code),
     constraint xxcmp_attachment_rules_ck1 check (mandatory_flag in ('Y','N')),
     constraint xxcmp_attachment_rules_ck2 check (enabled_flag in ('Y','N')),
     constraint xxcmp_attachment_rules_ck3 check (approval_status in ('DRAFT','PENDING_APPROVAL','APPROVED','REJECTED'))
@@ -496,7 +496,7 @@ create table xxcmp_rfis (
     object_version_number    number         default 1 not null,
     constraint xxcmp_rfis_pk primary key (rfi_id),
     constraint xxcmp_rfis_uk1 unique (rfi_number),
-    constraint xxcmp_rfis_fk1 foreign key (entity_name) references xxfnd_document_entities (entity_name),
+    constraint xxcmp_rfis_fk1 foreign key (entity_name) references xxfusion.xxfnd_document_entities (entity_name),
     constraint xxcmp_rfis_fk3 foreign key (recipient_party_contact_id) references xxcmp_party_contacts (party_contact_id),
     constraint xxcmp_rfis_ck1 check (recipient_type in ('REQUESTING_DEPARTMENT','EXTERNAL_PARTY')),
     constraint xxcmp_rfis_ck2 check (continue_other_work_flag in ('Y','N')),

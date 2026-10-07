@@ -49,8 +49,9 @@ create or replace package body xxfnd_dff_setup_pkg as
                 return;
             end if;
             select count(*) into l_count
-              from user_tab_columns
-             where table_name = upper(p_table_name) and column_name = upper(p_column);
+              from all_tab_columns   -- release 54: the table may be in an application's schema
+             where owner = xxfnd_util_pkg.object_owner(p_table_name)
+               and table_name = upper(p_table_name) and column_name = upper(p_column);
             if l_count = 0 then
                 raise_application_error(-20210, 'Table ' || p_table_name || ' has no column ' || p_column || '.');
             end if;
@@ -80,7 +81,8 @@ create or replace package body xxfnd_dff_setup_pkg as
 
         select table_name into l_table from xxfnd_df_flexfields where descriptive_flexfield_code = p_dff_code;
         select count(*) into l_count
-          from user_tab_columns where table_name = l_table and column_name = p_column_name;
+          from all_tab_columns
+         where owner = xxfnd_util_pkg.object_owner(l_table) and table_name = l_table and column_name = p_column_name;
         if l_count = 0 then
             raise_application_error(-20212, 'Table ' || l_table || ' has no column ' || p_column_name || '.');
         end if;
@@ -137,14 +139,23 @@ create or replace package body xxfnd_dff_setup_pkg as
                       || dbms_assert.simple_sql_name(s.column_name) || ' end ' || l_name;
             end if;
         end loop;
-        l_sql := l_sql || ' from ' || dbms_assert.simple_sql_name(l_ff.table_name) || ' t';
+        l_sql := l_sql || ' from ' || xxfnd_util_pkg.qualified(l_ff.table_name) || ' t';
         execute immediate l_sql;
     end generate_dfv_view;
 
     procedure generate_all_dfv_views is
     begin
         for f in (select descriptive_flexfield_code from xxfnd_df_flexfields where enabled_flag = 'Y') loop
-            generate_dfv_view(f.descriptive_flexfield_code);
+            begin
+                generate_dfv_view(f.descriptive_flexfield_code);
+            exception
+                when others then
+                    -- release 54: an application table not (yet) granted to this schema - the view is generated
+                    -- on the next run (the application's install grants its tables, KYC script 19a)
+                    if sqlcode <> -20130 then
+                        raise;
+                    end if;
+            end;
         end loop;
     end generate_all_dfv_views;
 

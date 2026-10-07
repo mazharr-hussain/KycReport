@@ -126,7 +126,7 @@ create or replace package body xxfnd_dff_pkg as
             l_sql := l_sql || ', ''' || l_cols(i) || ''' value ' || canonical_expr(l_cols(i));
         end loop;
         l_sql := 'select json_object(' || l_sql || ' returning clob) from '
-                 || dbms_assert.simple_sql_name(p_ff.table_name)
+                 || xxfnd_util_pkg.qualified(p_ff.table_name)   -- release 54: the application's schema
                  || ' where ' || dbms_assert.simple_sql_name(p_ff.pk_column_name) || ' = :pk';
         begin
             execute immediate l_sql into l_json using p_pk_value;
@@ -666,7 +666,7 @@ create or replace package body xxfnd_dff_pkg as
                        else 'json_value(:j, ''$.' || l_cols(i) || ''' returning varchar2(150))'
                      end;
         end loop;
-        l_sql := 'update ' || dbms_assert.simple_sql_name(l_ff.table_name) || ' set ' || l_sql
+        l_sql := 'update ' || xxfnd_util_pkg.qualified(l_ff.table_name) || ' set ' || l_sql
               || ' where ' || dbms_assert.simple_sql_name(l_ff.pk_column_name) || ' = :pk';
 
         -- Named binds repeat; dynamic SQL binds by position, so use DBMS_SQL.

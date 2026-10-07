@@ -127,7 +127,7 @@ begin
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;
-    xxfnd_vpd_pkg.apply_policies;
+    xxfnd_schema_pkg.apply_policies;
 end;
 /
 

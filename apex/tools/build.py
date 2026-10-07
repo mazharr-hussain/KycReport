@@ -32,7 +32,11 @@ APPS = {
 # Parsing schema an application must be installed in: its scripts (except the checks, file names 00a/00b) run only
 # there, so an import with the wrong parsing schema installs nothing and 00b says how to fix it.
 REQUIRED_SCHEMA = {'COMMON': 'XXFUSION'}
-CHECKS = ('00a-', '00b-')
+# Object an application's scripts need before they run (release 54: KYC reaches the shared objects in XXFUSION; 03
+# says what to do when the COMMON application is not installed yet), and 03 must have moved the schema's own copy of
+# the shared tables; otherwise the scripts are skipped. Checks and 03 run regardless.
+REQUIRED_OBJECT = {'KYC': ('XXFUSION', 'XXFND_SHARE_PKG')}
+CHECKS = ('00a-', '00b-', '03-use-shared-schema')
 # ADMIN scripts shipped in an application's install pack (apex/db/admin/...)
 ADMIN_SCRIPTS = {'COMMON': ['create-xxfusion-schema.sql']}
 
@@ -41,12 +45,19 @@ def ident(name):
     return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
 
-def component(kind, name, seq, content_file, schema=None):
+def component(kind, name, seq, content_file, schema=None, needs=None):
     cond = ''
     if schema and not content_file.startswith(CHECKS):
         cond = ("    serverSideCondition {\n        type: expression\n        language: sql\n"
                 "        sqlExpression:\n            ```sql\n"
                 f"            sys_context('userenv', 'current_schema') = '{schema}'\n            ```\n    }}\n")
+    elif needs and not content_file.startswith(CHECKS):
+        cond = ("    serverSideCondition {\n        type: rowsReturned\n"
+                "        sqlQuery:\n            ```sql\n"
+                f"            select 1 from all_objects where owner = '{needs[0]}' and object_name = '{needs[1]}'\n"
+                # and this schema no longer has its own copy of the shared tables (03 moved it)
+                "               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')\n"
+                "            ```\n    }\n")
     return (f"{kind} {ident(name)} (\n"
             f"    execution {{\n        sequence: {seq}\n    }}\n"
             f"    script {{\n        contentFile: {content_file}\n    }}\n{cond})\n")
@@ -67,11 +78,11 @@ def build(app):
             continue
         if e.get('install_sequence') is not None:
             shutil.copy(os.path.join(DB, e['file']), os.path.join(SO, 'install-scripts', e['file']))
-            inst.append((e['install_sequence'], component('installScript', e['name'], e['install_sequence'], e['file'], REQUIRED_SCHEMA.get(app))))
+            inst.append((e['install_sequence'], component('installScript', e['name'], e['install_sequence'], e['file'], REQUIRED_SCHEMA.get(app), REQUIRED_OBJECT.get(app))))
         if e.get('upgrade_sequence') is not None:
             f = e.get('upgrade_file') or e['file']
             shutil.copy(os.path.join(DB, f), os.path.join(SO, 'upgrade-scripts', f))
-            upg.append((e['upgrade_sequence'], component('upgradeScript', e['name'], e['upgrade_sequence'], f, REQUIRED_SCHEMA.get(app))))
+            upg.append((e['upgrade_sequence'], component('upgradeScript', e['name'], e['upgrade_sequence'], f, REQUIRED_SCHEMA.get(app), REQUIRED_OBJECT.get(app))))
     for fname, items in (('install-scripts.apx', inst), ('upgrade-scripts.apx', upg)):
         seqs = [s for s, _ in items]
         if len(seqs) != len(set(seqs)):

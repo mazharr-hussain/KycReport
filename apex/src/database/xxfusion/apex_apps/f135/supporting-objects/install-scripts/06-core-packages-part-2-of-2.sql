@@ -22,7 +22,8 @@ create or replace package body xxfnd_approval_pkg as
             raise_application_error(-20120, p_table_name || ' is not under maker-checker control.');
         end if;
         -- Table and column names come from the registry (XXFND_CONFIG_TABLES) only.
-        execute immediate 'update ' || dbms_assert.sql_object_name(upper(p_table_name))
+        -- release 54: owner-qualified - KYC tables are in the KYC schema
+        execute immediate 'update ' || xxfnd_util_pkg.qualified(p_table_name)
                        || ' set approval_status = :s where ' || dbms_assert.simple_sql_name(pk_column(p_table_name)) || ' = :k'
             using p_status, p_pk_value;
         l_rows := sql%rowcount;
@@ -105,7 +106,7 @@ create or replace package body xxfnd_approval_pkg as
                    where c.approval_flag = 'Y' and c.changes_view is not null) loop
             begin
                 open l_cur for 'select xxfnd_config_change_row(detail_pk, change_type, change_title, change_summary, '
-                            || 'submitted_by, submitted_date) from ' || dbms_assert.sql_object_name(v.changes_view);
+                            || 'submitted_by, submitted_date) from ' || xxfnd_util_pkg.qualified(v.changes_view);
             exception
                 when others then
                     -- a registered view that is not (yet) installed in this schema

@@ -2,7 +2,7 @@ supportingObject (
     installationMessages {
         welcome:
             ```
-            Installs the KYC Compliance Platform database objects: XXFND_ shared components and XXCMP_ KYC objects, seed data, scheduler jobs and the first administrator.
+            Installs the KYC Compliance Platform objects (XXCMP_), their seed data and the synonyms to the shared XXFND_ objects in XXFUSION. Install or upgrade the COMMON application first.
             ```
         confirmation:
             ```
@@ -27,7 +27,7 @@ supportingObject (
     upgradeMessages {
         welcome:
             ```
-            Upgrades the KYC Compliance Platform packages, views, seed data and jobs. Tables and data are kept.
+            Upgrades the KYC Compliance Platform objects and seed data; tables and data are kept. The COMMON application must be upgraded first. On the first upgrade to release 54 the shared data moves to XXFUSION once.
             ```
         success:
             ```

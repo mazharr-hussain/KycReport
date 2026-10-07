@@ -283,7 +283,7 @@ begin
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;
-    xxfnd_vpd_pkg.apply_policies;
+    xxfnd_schema_pkg.apply_policies;
     xxfnd_ddl_pkg.mark_release('R13', 'Release 13: KYC requests and cases (intake, investigation, approval workflows)');
     commit;
 end;
@@ -358,6 +358,6 @@ using (select 'XXCMP_QUESTIONNAIRES' table_name, 'N' approval_flag, null pk_colu
 commit;
 -- the configuration audit triggers of the KYC tables registered above
 begin
-    xxfnd_audit_pkg.create_config_audit_triggers;
+    xxfnd_schema_pkg.create_config_audit_triggers;
 end;
 /
