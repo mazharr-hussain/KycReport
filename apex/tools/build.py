@@ -15,10 +15,9 @@ supporting-objects/upgrade-scripts/, so this tool writes a copy into each folder
 
 Usage:
   python3 apex/tools/build.py                 # regenerate apex/src/database/xxcus/apex_apps/f134/supporting-objects
-  python3 apex/tools/build.py --release 12    # ... and write, per application, the APEXlang zip
-                                              #     (apex/KYC-Compliance-Platform-APEXlang_12.zip, COMMON-...) and the
-                                              #     install pack (apex/KYC-Install-Pack_12.zip: that zip + install/<APP>/
-                                              #     INSTALL.md + ADMIN scripts). The APEXlang zip holds APEXlang files only:
+  python3 apex/tools/build.py --release 12    # ... and write, per application, the APEXlang zip, the
+                                              #     one package to import (apex/KYC-Compliance-Platform-APEXlang_12.zip,
+                                              #     COMMON-...). It holds APEXlang files only:
                                               #     App Builder's import wizard shows a blank page on any other file.
 """
 import argparse, json, os, re, shutil, zipfile
@@ -37,10 +36,8 @@ REQUIRED_SCHEMA = {'COMMON': 'XXFUSION'}
 # the shared tables; otherwise the scripts are skipped. Checks and 03 run regardless.
 REQUIRED_OBJECT = {'KYC': ('XXFUSION', 'XXFND_SHARE_PKG')}
 CHECKS = ('00a-', '00b-', '03-use-shared-schema')
-# Scripts run outside the import, shipped in an application's install pack (apex/db/<folder>/<file>):
-# admin = run as ADMIN; migrate = one-time steps run as the application's schema (release 55)
-PACK_SCRIPTS = {'COMMON': [('admin', 'create-xxfusion-schema.sql')],
-                'KYC': [('migrate', 'move-kyc-shared-data-to-xxfusion.sql')]}
+# release 56: one package per application - the APEXlang zip (App Builder imports only APEXlang files). INSTALL.md
+# and the ADMIN script stay in the repository: apex/install/<APP>/INSTALL.md, apex/db/admin/.
 
 
 def ident(name):
@@ -106,13 +103,6 @@ def release(app, n):
                 p = os.path.join(d, f)
                 z.write(p, os.path.relpath(p, src))
     print('wrote', target)
-    pack = os.path.join(ROOT, f'{app}-Install-Pack_{n}.zip')
-    with zipfile.ZipFile(pack, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.write(target, os.path.basename(target))
-        z.write(os.path.join(ROOT, 'install', app, 'INSTALL.md'), 'INSTALL.md')
-        for d, f in PACK_SCRIPTS.get(app, []):
-            z.write(os.path.join(DB, d, f), d + '/' + f)
-    print('wrote', pack)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,15 @@
 # COMMON application – installation
 
-This install pack holds everything needed:
-- `COMMON-Application-APEXlang_<N>.zip` - the application with its database scripts (Supporting Objects).
-  **Import this file**, not the pack itself (App Builder accepts only the application zip).
-- `admin/create-xxfusion-schema.sql` - the ADMIN script.
-- this INSTALL.md.
+One package: `COMMON-Application-APEXlang_<N>.zip` - the application with its database scripts (Supporting
+Objects). The ADMIN script, needed only when XXFUSION does not exist yet, is `apex/db/admin/create-xxfusion-schema.sql`
+in the repository.
 
 ## Steps
 1. **App Builder → Import** the application zip into the workspace (XXCUS) → new application (any free ID).
    On the Install step set **Parsing Schema = XXFUSION**. The export already names XXFUSION, so it is preselected
    when XXFUSION is a schema of the workspace. Do not leave it at the workspace default XXCUS.
    Then set **Install Supporting Objects: Yes**.
-   - If XXFUSION is not in the list, run `admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if
+   - If XXFUSION is not in the list, run `apex/db/admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if
      needed, grants and adds it to the workspace), then import again.
    - Imported with another parsing schema, the install does nothing except report **ORA-20901 ACTION NEEDED**
      (script 00b). Fix it: **App Builder → COMMON → Edit Application Definition → Security → Database Session →

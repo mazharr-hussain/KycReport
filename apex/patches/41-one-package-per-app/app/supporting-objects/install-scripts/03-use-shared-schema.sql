@@ -1,7 +1,5 @@
 --------------------------------------------------------------------------------
--- One-time move of KYC's shared data to XXFUSION (release 55). Run ONCE, separately, as XXCUS (SQL Workshop >
--- SQL Scripts, workspace schema XXCUS) after the COMMON import and BEFORE the KYC import. Only for an existing
--- KYC (installed before release 54); a new installation does not need it.
+-- 03 Use the shared schema (release 54). KYC only; runs first on install and on every upgrade.
 --   The shared XXFND_ objects live only in XXFUSION (the COMMON application's schema). This schema keeps its
 --   own XXCMP_ objects and reaches the shared ones through synonyms; XXFUSION grants what is needed
 --   (XXFND_SHARE_PKG, COMMON script 19c). The COMMON application must be installed / upgraded first.
@@ -13,7 +11,7 @@
 --   3. The foreign keys are re-created on the XXFUSION tables.
 --   4. Data security policies are re-pointed to XXFUSION.XXFND_VPD_PKG.
 --   XXFND_SCHEMA_RELEASES / XXFND_DDL_PKG stay local (script 00): release tracking per schema.
--- Idempotent; safe to re-run after a failure. The same steps 2-4 run again on every KYC import (script 03).
+-- Idempotent; safe to re-run after a failure.
 --------------------------------------------------------------------------------
 create table if not exists xxcmp_shared_fks (
     constraint_name  varchar2(128)  not null,
@@ -39,7 +37,7 @@ begin
             'ACTION NEEDED - the shared objects are not available in ' || c_shared || '. Nothing was installed.' || chr(10)
             || '1. Import the COMMON application (same release, parsing schema ' || c_shared
             || ', Install Supporting Objects: Yes).' || chr(10)
-            || '2. Run this script again.');
+            || '2. Come back: App Builder > KYC > Utilities > Supporting Objects > Install Supporting Objects (or Upgrade).');
     end if;
 
     -- 1. this schema's own copy of the shared objects
