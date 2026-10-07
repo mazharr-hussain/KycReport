@@ -49,9 +49,33 @@ create or replace package body xxfnd_auth_pkg as
     ----------------------------------------------------------------------------
     -- Authentication
     ----------------------------------------------------------------------------
+    -- release 46: each user signs in the way their type says (app setting LOGIN_TYPE_ENFORCED = Y):
+    -- SSO users (linked to an employee) with the company account only, LOCAL users with their APEX account only
+    function login_type_enforced return boolean is
+        l_value varchar2(30);
+    begin
+        begin
+            l_value := apex_app_setting.get_value('LOGIN_TYPE_ENFORCED');
+        exception
+            when others then
+                l_value := null;
+        end;
+        return upper(l_value) = 'Y';
+    end login_type_enforced;
+
+    function user_type return varchar2 is
+        l_type xxfnd_users.user_type%type;
+    begin
+        select max(user_type) into l_type from xxfnd_users where user_name = upper(v('APP_USER'));
+        return l_type;
+    end user_type;
+
     procedure post_auth_local is
     begin
         xxfnd_security_pkg.map_login_user;
+        if login_type_enforced and user_type = 'SSO' then
+            raise_application_error(-20066, 'Sign in with your company account (Sign in with SSO).');
+        end if;
     end post_auth_local;
 
     procedure load_user_roles(p_user_name in varchar2 default null) is
@@ -128,6 +152,9 @@ create or replace package body xxfnd_auth_pkg as
         l_login varchar2(255) := v('APP_USER');
     begin
         xxfnd_security_pkg.map_login_user;
+        if login_type_enforced and user_type = 'LOCAL' then
+            raise_application_error(-20067, 'This user signs in with a user name and password, not the company account.');
+        end if;
         load_user_roles(l_login);
     end post_auth_sso;
 
@@ -174,4 +201,173 @@ create or replace package body xxfnd_auth_pkg as
     end in_group;
 
 end xxfnd_auth_pkg;
+/
+
+--------------------------------------------------------------------------------
+-- XXFND_USER_PKG (release 46): users of the shared access module. A LOCAL user gets an Oracle APEX account
+-- (APEX keeps the password); the account is created / locked / reset here, from the access console, with the
+-- workspace-administrator rights the APEX API needs (the user's own session is detached for the call).
+--------------------------------------------------------------------------------
+create or replace package xxfnd_user_pkg authid definer as
+
+    -- An SSO user for an employee (returns the existing one when there is one).
+    function employee_user(p_employee_id in number) return number;
+
+    -- A LOCAL user with an Oracle APEX account. P_PASSWORD: the first password; the user changes it at first sign-in.
+    function create_local_user(p_user_name in varchar2,
+                               p_full_name in varchar2,
+                               p_email     in varchar2,
+                               p_password  in varchar2) return number;
+
+    -- New password for a LOCAL user (the user changes it at the next sign-in).
+    procedure reset_password(p_user_id in number, p_password in varchar2);
+
+    -- Enable / disable a user; a LOCAL user's APEX account is unlocked / locked with it.
+    procedure set_enabled(p_user_id in number, p_enabled in varchar2);
+
+    -- Y when the user is a LOCAL user (APEX account), N for SSO, null when unknown.
+    function is_local(p_user_name in varchar2) return varchar2;
+
+end xxfnd_user_pkg;
+/
+
+create or replace package body xxfnd_user_pkg as
+
+    -- only access administrators maintain users
+    procedure check_admin is
+    begin
+        if not xxfnd_privilege_pkg.has_privilege('USERS_ACCESS', 'MANAGE') then
+            raise_application_error(-20061, 'You are not allowed to maintain users.');
+        end if;
+    end check_admin;
+
+    -- runs P_ACTION on APEX accounts as the workspace: outside the signed-in user's APEX session
+    procedure apex_account(p_action    in varchar2,
+                           p_user_name in varchar2,
+                           p_full_name in varchar2 default null,
+                           p_email     in varchar2 default null,
+                           p_password  in varchar2 default null,
+                           p_locked    in varchar2 default null) is
+        l_sgid    number := apex_custom_auth.get_security_group_id;
+        l_session number := to_number(v('APP_SESSION'));
+        l_app     number := to_number(v('APP_ID'));
+        l_page    number := to_number(v('APP_PAGE_ID'));
+        l_err     varchar2(4000);
+        procedure do_it is
+            l_id number;
+        begin
+            case p_action
+                when 'CREATE' then
+                    apex_util.create_user(p_user_name                    => p_user_name,
+                                          p_first_name                   => p_full_name,
+                                          p_email_address                => p_email,
+                                          p_web_password                 => p_password,
+                                          p_change_password_on_first_use => 'Y');
+                when 'PASSWORD' then
+                    l_id := apex_util.get_user_id(p_user_name);
+                    apex_util.edit_user(p_user_id => l_id, p_user_name => p_user_name, p_web_password => p_password,
+                                        p_new_password => p_password, p_change_password_on_first_use => 'Y');
+                when 'LOCK' then
+                    l_id := apex_util.get_user_id(p_user_name);
+                    if p_locked = 'Y' then
+                        apex_util.lock_account(p_user_name => p_user_name);
+                    else
+                        apex_util.unlock_account(p_user_name => p_user_name);
+                    end if;
+            end case;
+        end do_it;
+    begin
+        if l_session is null then
+            -- outside APEX (scripts, jobs): the workspace is set by the caller
+            do_it;
+            return;
+        end if;
+        apex_session.detach;
+        begin
+            apex_util.set_security_group_id(l_sgid);
+            do_it;
+        exception
+            when others then
+                l_err := sqlerrm;
+        end;
+        apex_session.attach(p_app_id => l_app, p_page_id => l_page, p_session_id => l_session);
+        if l_err is not null then
+            raise_application_error(-20062, 'APEX account ' || p_user_name || ': ' || l_err);
+        end if;
+    end apex_account;
+
+    function employee_user(p_employee_id in number) return number is
+        l_id  xxfnd_users.user_id%type;
+        l_emp xxfnd_employees%rowtype;
+    begin
+        select max(user_id) into l_id from xxfnd_users where employee_id = p_employee_id;
+        if l_id is null then
+            check_admin;
+            select * into l_emp from xxfnd_employees where employee_id = p_employee_id;
+            insert into xxfnd_users (user_name, user_type, employee_id, full_name, email_address)
+            values (upper(l_emp.user_name), 'SSO', l_emp.employee_id, l_emp.full_name, l_emp.email_address)
+            returning user_id into l_id;
+        end if;
+        return l_id;
+    end employee_user;
+
+    function create_local_user(p_user_name in varchar2,
+                               p_full_name in varchar2,
+                               p_email     in varchar2,
+                               p_password  in varchar2) return number is
+        l_name  varchar2(255) := upper(trim(p_user_name));
+        l_id    number;
+        l_count pls_integer;
+    begin
+        check_admin;
+        if l_name is null or trim(p_password) is null then
+            raise_application_error(-20063, 'Enter the user name and the first password.');
+        end if;
+        select count(*) into l_count from xxfnd_employees where upper(user_name) = l_name or upper(email_address) = l_name;
+        if l_count > 0 then
+            raise_application_error(-20064, l_name || ' is an employee: create an SSO user for the employee instead.');
+        end if;
+        select count(*) into l_count from xxfnd_users where user_name = l_name;
+        if l_count > 0 then
+            raise_application_error(-20068, 'User ' || l_name || ' already exists.');
+        end if;
+        -- the APEX account first: it is the step that can fail (name taken, password rules)
+        apex_account('CREATE', l_name, trim(p_full_name), lower(trim(p_email)), p_password);
+        insert into xxfnd_users (user_name, user_type, full_name, email_address)
+        values (l_name, 'LOCAL', trim(p_full_name), lower(trim(p_email)))
+        returning user_id into l_id;
+        return l_id;
+    end create_local_user;
+
+    procedure reset_password(p_user_id in number, p_password in varchar2) is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        select * into l_user from xxfnd_users where user_id = p_user_id;
+        if l_user.user_type <> 'LOCAL' then
+            raise_application_error(-20065, l_user.user_name || ' signs in with the company account (SSO): no password here.');
+        end if;
+        apex_account('PASSWORD', l_user.user_name, p_password => p_password);
+    end reset_password;
+
+    procedure set_enabled(p_user_id in number, p_enabled in varchar2) is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        update xxfnd_users set enabled_flag = case when p_enabled = 'Y' then 'Y' else 'N' end
+         where user_id = p_user_id
+        returning user_id, user_name, user_type into l_user.user_id, l_user.user_name, l_user.user_type;
+        if l_user.user_type = 'LOCAL' then
+            apex_account('LOCK', l_user.user_name, p_locked => case when p_enabled = 'Y' then 'N' else 'Y' end);
+        end if;
+    end set_enabled;
+
+    function is_local(p_user_name in varchar2) return varchar2 is
+        l_type xxfnd_users.user_type%type;
+    begin
+        select max(user_type) into l_type from xxfnd_users where user_name = upper(trim(p_user_name));
+        return case l_type when 'LOCAL' then 'Y' when 'SSO' then 'N' end;
+    end is_local;
+
+end xxfnd_user_pkg;
 /

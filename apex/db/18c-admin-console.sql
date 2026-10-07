@@ -110,3 +110,7 @@ begin
     commit;
 end;
 /
+
+-- release 46: the features seeded here belong to the KYC application
+update xxfnd_features set application_id = 134 where application_id is null;
+commit;

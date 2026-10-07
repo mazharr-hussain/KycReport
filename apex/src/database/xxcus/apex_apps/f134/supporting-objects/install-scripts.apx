@@ -52,6 +52,15 @@ installScript 04a-employees-fusion-user (
     }
 )
 
+installScript 04b-applications-and-users (
+    execution {
+        sequence: 47
+    }
+    script {
+        contentFile: 04b-applications-and-users.sql
+    }
+)
+
 installScript 05-core-packages-part-1-of-2 (
     execution {
         sequence: 50

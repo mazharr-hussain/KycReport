@@ -32,6 +32,12 @@
   "upgrade_sequence": 8
  },
  {
+  "name": "04b Applications and users",
+  "file": "04b-applications-and-users.sql",
+  "install_sequence": 47,
+  "upgrade_sequence": 9
+ },
+ {
   "name": "05 Core packages - part 1 of 2",
   "file": "05-core-packages-part-1-of-2.sql",
   "install_sequence": 50,
