@@ -22,3 +22,15 @@ end;
 -- data security (VPD policies) and document hashing
 grant execute on sys.dbms_rls to xxfusion;
 grant execute on sys.dbms_crypto to xxfusion;
+-- REST-enable XXFUSION: App Builder installs an APEXlang application only into a REST-enabled parsing schema
+-- (otherwise the Import page goes blank when XXFUSION is chosen). Safe to re-run.
+begin
+    ords_admin.enable_schema(
+        p_enabled             => true,
+        p_schema              => 'XXFUSION',
+        p_url_mapping_type    => 'BASE_PATH',
+        p_url_mapping_pattern => 'xxfusion',
+        p_auto_rest_auth      => true);
+    commit;
+end;
+/
