@@ -13,3 +13,6 @@
 - Test only what the feature touches (its db test + browser test).
 - Layout: everything APEX lives under `apex/`, which is the SQLcl project root (`apex/.dbtools/`,
   `apex/src/database/xxcus/...`, `apex/dist/`); the APEX app is `apex/src/database/xxcus/apex_apps/f134`; `apex/db` holds the idempotent install/upgrade scripts (source of truth for DB).
+- Database: one APEX workspace (XXCUS). XXCUS is the workspace's default (primary) schema and the parsing schema
+  of the business apps (KYC = app 134); **XXFUSION** is the schema for Fusion web-service data and the COMMON
+  application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
