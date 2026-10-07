@@ -7,12 +7,29 @@ upgradeScript 00a-prerequisites-check (
     }
 )
 
+upgradeScript 00b-common-parsing-schema-check (
+    execution {
+        sequence: 2
+    }
+    script {
+        contentFile: 00b-common-schema-check.sql
+    }
+)
+
 upgradeScript 00-deployment-framework (
     execution {
         sequence: 5
     }
     script {
         contentFile: 00-deployment-framework.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -23,6 +40,14 @@ upgradeScript 04a-employees-fusion-user (
     script {
         contentFile: 04a-employee-fusion-user.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 04b-applications-and-users (
@@ -31,6 +56,14 @@ upgradeScript 04b-applications-and-users (
     }
     script {
         contentFile: 04b-applications-and-users.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -41,6 +74,14 @@ upgradeScript 05-core-packages-part-1-of-2 (
     script {
         contentFile: 05-core-packages-part-1-of-2-upgrade.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 06-core-packages-part-2-of-2 (
@@ -49,6 +90,14 @@ upgradeScript 06-core-packages-part-2-of-2 (
     }
     script {
         contentFile: 06-core-packages-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -59,6 +108,14 @@ upgradeScript 07-who-and-audit-triggers (
     script {
         contentFile: 07-who-and-audit-triggers.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 08-row-rules (
@@ -67,6 +124,14 @@ upgradeScript 08-row-rules (
     }
     script {
         contentFile: 08-row-rules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -77,6 +142,14 @@ upgradeScript 09-views (
     script {
         contentFile: 09-views.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 09b-security-framework-objects (
@@ -85,6 +158,14 @@ upgradeScript 09b-security-framework-objects (
     }
     script {
         contentFile: 09b-security-framework-objects.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -95,6 +176,14 @@ upgradeScript 10-flexfield-runtime-part-1-of-2 (
     script {
         contentFile: 10-flexfield-runtime-part-1-of-2.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 11-flexfield-runtime-part-2-of-2 (
@@ -103,6 +192,14 @@ upgradeScript 11-flexfield-runtime-part-2-of-2 (
     }
     script {
         contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -113,6 +210,14 @@ upgradeScript 12-flexfield-setup (
     script {
         contentFile: 12-flexfield-setup.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 13a-database-document-store (
@@ -121,6 +226,14 @@ upgradeScript 13a-database-document-store (
     }
     script {
         contentFile: 13a-database-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -131,6 +244,14 @@ upgradeScript 13-document-store (
     script {
         contentFile: 13-document-store.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 14-attachments (
@@ -139,6 +260,14 @@ upgradeScript 14-attachments (
     }
     script {
         contentFile: 14-attachments.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -149,6 +278,14 @@ upgradeScript 15-workflow (
     script {
         contentFile: 15-workflow.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
@@ -157,6 +294,14 @@ upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     }
     script {
         contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -167,6 +312,14 @@ upgradeScript 16h-ui-helpers (
     script {
         contentFile: 16h-ui-helpers.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 16j-authentication-and-authorization (
@@ -175,6 +328,14 @@ upgradeScript 16j-authentication-and-authorization (
     }
     script {
         contentFile: 16j-auth-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
 
@@ -185,6 +346,14 @@ upgradeScript 19-reporting-views-and-recompile (
     script {
         contentFile: 19-reporting-views-and-recompile.sql
     }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
 )
 
 upgradeScript 20-common-application-seed (
@@ -193,5 +362,13 @@ upgradeScript 20-common-application-seed (
     }
     script {
         contentFile: 20-common-seed.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
     }
 )
