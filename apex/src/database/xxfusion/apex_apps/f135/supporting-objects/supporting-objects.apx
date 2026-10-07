@@ -6,7 +6,7 @@ supportingObject (
             ```
         confirmation:
             ```
-            The first script checks the schema's privileges; if one is missing it stops with the exact statements to run as ADMIN (see INSTALL.md in the install pack).
+            The first script checks the schema's privileges; if one is missing it stops with the exact statements to run as ADMIN (see apex/install/COMMON/INSTALL.md).
             Install the database objects now? Existing XXFND_ tables are upgraded instead of recreated.
             ```
         installSuccess:
