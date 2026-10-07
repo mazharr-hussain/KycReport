@@ -183,7 +183,12 @@ create or replace package body xxfnd_auth_pkg as
         return case upper(p_scheme)
                    -- application level: at least one privilege through an active role
                    when 'KYC_USER'             then xxfnd_privilege_pkg.has_any_privilege
+                   -- release 61: COMMON - a privilege on a COMMON feature or any admin privilege (administrators
+                   -- of an application maintain its setup on the COMMON screens)
                    when 'APP_USER'             then xxfnd_privilege_pkg.has_any_privilege
+                                                    or xxfnd_admin_scope_pkg.administers_any = 'Y'
+                   -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
+                   when 'ADMIN_APP'            then xxfnd_admin_scope_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
                    -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
                    when 'PAGE_VIEW'            then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW')
                    when 'PAGE_CREATE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE')
@@ -192,6 +197,9 @@ create or replace package body xxfnd_auth_pkg as
                    when 'PAGE_SUBMIT'          then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
                    when 'WORKFLOW_ADMINISTER'  then xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE')
                    when 'ADMIN_AREA'           then xxfnd_privilege_pkg.has_any_admin_privilege
+                                                    -- release 61: in COMMON, administrators of any application
+                                                    or (upper(v('APP_ALIAS')) = 'COMMON'
+                                                        and xxfnd_admin_scope_pkg.administers_any = 'Y')
                    -- party detail dialogs (contact person, owner / officer): the page privilege or the requester
                    when 'PARTY_DETAILS_VIEW'   then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW') or party_details_editable
                    when 'PARTY_DETAILS_CREATE' then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE') or party_details_editable

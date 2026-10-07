@@ -1,3 +1,106 @@
 page 0 (
     name: Global Page
+
+    region admin-scope (
+        name: Application
+        type: staticContent
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: admin-scope
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- release 61: setup screens (Administration page group), unless another application opened COMMON for itself
+                select 1
+                  from apex_application_pages
+                 where application_id = :APP_ID
+                   and page_id = :APP_PAGE_ID
+                   and page_group = 'Administration'
+                   and nvl(:G_ADMIN_LOCK, 'N') <> 'Y'
+                ```
+        }
+    )
+
+    pageItem P0_ADMIN_APP (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @admin-scope
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: item
+            item: G_ADMIN_APP
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_name || ' (' || application_code || ')' as display_value,
+                       application_code                                     as return_value
+                  from xxfnd_admin_applications_v
+                 order by decode(application_code, 'COMMON', 1, 0), application_name
+                ```
+            displayNullValue: false
+        }
+        help {
+            helpText: The application whose setup you are maintaining. Only its rows are shown and new rows belong to it.
+        }
+    )
+
+    dynamicAction change-admin-app (
+        name: Change application
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P0_ADMIN_APP
+        }
+
+        action native-execute-plsql-code (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    :G_ADMIN_APP := xxfnd_admin_scope_pkg.default_application(:P0_ADMIN_APP);
+                    ```
+                itemsToSubmit: P0_ADMIN_APP
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: apex.navigation.redirect(window.location.href);
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+    )
 )

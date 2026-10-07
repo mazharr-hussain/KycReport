@@ -80,3 +80,29 @@ appItem G_EMAIL (
             ```
     }
 )
+
+appItem G_ADMIN_APP (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Application (code) the COMMON setup screens work for. Set by the selector or by the link from another application; SET_ADMIN_APP keeps it to an application the user administers.
+            ```
+    }
+)
+
+appItem G_ADMIN_LOCK (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Y when another application opened COMMON for its own application (G_ADMIN_APP): the application selector is hidden.
+            ```
+    }
+)

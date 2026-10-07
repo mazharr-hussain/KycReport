@@ -1,0 +1,20 @@
+appProcess SET_ADMIN_APP (
+    name: SET_ADMIN_APP
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 61: the application the setup screens work for - the requested one when the user administers it,
+            -- otherwise the first one the user administers (XXFND_ADMIN_SCOPE_PKG)
+            :G_ADMIN_APP := xxfnd_admin_scope_pkg.default_application(:G_ADMIN_APP);
+            ```
+    }
+    execution {
+        sequence: 10
+        point: beforeHeader
+    }
+    serverSideCondition {
+        type: userIsAuthenticated
+    }
+)

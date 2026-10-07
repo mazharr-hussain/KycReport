@@ -390,6 +390,23 @@ installScript 16h-ui-helpers (
     }
 )
 
+installScript 16i-administration-scope (
+    execution {
+        sequence: 174
+    }
+    script {
+        contentFile: 16i-admin-scope.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 16j-authentication-and-authorization (
     execution {
         sequence: 175
@@ -447,6 +464,23 @@ installScript 20-common-application-seed (
     }
     script {
         contentFile: 20-common-seed.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 21-common-administration-seed (
+    execution {
+        sequence: 210
+    }
+    script {
+        contentFile: 21-common-admin.sql
     }
     serverSideCondition {
         type: expression

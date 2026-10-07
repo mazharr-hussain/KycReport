@@ -2,7 +2,7 @@
 -- ADMIN SCRIPT: remove the COMMON application and every object it created in XXFUSION.
 --   Run as ADMIN in Database Actions > SQL with Run Script (F5). Used to start COMMON again from a clean schema.
 --   Other objects in XXFUSION (for example the Fusion web-service data) are kept: only XXFND_ objects, the
---   generated flexfield views (*_DFV), the XXFND_ scheduler jobs and the data security policies are removed.
+--   generated flexfield views (*_DFV), the XXFND_ scheduler jobs and the policies on XXFND_ tables are removed.
 --   1. PREVIEW - lists what is removed and what is kept. Changes nothing.
 --   2. CHECK   - stops with ORA-20905 and changes nothing while another schema still depends on these objects
 --               (synonyms or foreign keys to XXFUSION.XXFND_: an application whose shared data was already moved).
@@ -36,7 +36,6 @@ select object_type, object_name
 prompt ==== 2. CHECK and 3. CLEAN
 declare
     c_owner    constant varchar2(128) := 'XXFUSION';
-    c_policy   constant varchar2(30)  := 'XXFND_DATA_SECURITY';
     l_problems varchar2(4000);
     l_n        pls_integer := 0;
 
@@ -82,7 +81,7 @@ begin
 
     -- data security policies on XXFUSION tables
     for p in (select object_name, policy_name from dba_policies
-               where object_owner = c_owner and policy_name = c_policy) loop
+               where object_owner = c_owner and object_name like 'XXFND\_%' escape '\') loop
         dbms_rls.drop_policy(object_schema => c_owner, object_name => p.object_name, policy_name => p.policy_name);
         l_n := l_n + 1;
     end loop;

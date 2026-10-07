@@ -201,6 +201,15 @@
   "upgrade_sequence": 120
  },
  {
+  "name": "16i Administration scope",
+  "file": "16i-admin-scope.sql",
+  "install_sequence": 174,
+  "upgrade_sequence": 134,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "16j Authentication and authorization",
   "file": "16j-auth-pkg.sql",
   "install_sequence": 175,
@@ -339,6 +348,15 @@
   "file": "20-common-seed.sql",
   "install_sequence": 200,
   "upgrade_sequence": 160,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21 COMMON administration seed",
+  "file": "21-common-admin.sql",
+  "install_sequence": 210,
+  "upgrade_sequence": 170,
   "apps": [
    "COMMON"
   ]
