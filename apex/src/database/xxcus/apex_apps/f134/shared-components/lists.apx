@@ -319,14 +319,7 @@ list admin-basic-setup (
             -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
             select null                                  as lvl,
                    feature_name                          as label,
-                   case when exists (select 1 from apex_application_pages ap
-                                    where ap.application_id = :APP_ID and ap.page_id = home_page_id)
-                        then apex_page.get_url(p_page => home_page_id)
-                        -- release 68: the shared setup screens are in the COMMON application, opened for this application
-                        else apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                               p_items => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                               p_values => 'KYC,Y,' || home_page_id)
-                   end as target,
+                   xxfnd_admin_scope_pkg.setup_page_url(home_page_id) as target,
                    'NO'                                  as is_current,
                    icon_css                              as image,
                    null                                  as image_attribute,
@@ -348,14 +341,7 @@ list admin-workflow-integration (
             -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
             select null                                  as lvl,
                    feature_name                          as label,
-                   case when exists (select 1 from apex_application_pages ap
-                                    where ap.application_id = :APP_ID and ap.page_id = home_page_id)
-                        then apex_page.get_url(p_page => home_page_id)
-                        -- release 68: the shared setup screens are in the COMMON application, opened for this application
-                        else apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                               p_items => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                               p_values => 'KYC,Y,' || home_page_id)
-                   end as target,
+                   xxfnd_admin_scope_pkg.setup_page_url(home_page_id) as target,
                    'NO'                                  as is_current,
                    icon_css                              as image,
                    null                                  as image_attribute,
@@ -377,14 +363,7 @@ list admin-security (
             -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
             select null                                  as lvl,
                    feature_name                          as label,
-                   case when exists (select 1 from apex_application_pages ap
-                                    where ap.application_id = :APP_ID and ap.page_id = home_page_id)
-                        then apex_page.get_url(p_page => home_page_id)
-                        -- release 68: the shared setup screens are in the COMMON application, opened for this application
-                        else apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                               p_items => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                               p_values => 'KYC,Y,' || home_page_id)
-                   end as target,
+                   xxfnd_admin_scope_pkg.setup_page_url(home_page_id) as target,
                    'NO'                                  as is_current,
                    icon_css                              as image,
                    null                                  as image_attribute,
@@ -406,14 +385,7 @@ list admin-application (
             -- One entry per feature of this group that the user may open (see XXFND_ADMIN_MENU_V).
             select null                                  as lvl,
                    feature_name                          as label,
-                   case when exists (select 1 from apex_application_pages ap
-                                    where ap.application_id = :APP_ID and ap.page_id = home_page_id)
-                        then apex_page.get_url(p_page => home_page_id)
-                        -- release 68: the shared setup screens are in the COMMON application, opened for this application
-                        else apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                               p_items => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                               p_values => 'KYC,Y,' || home_page_id)
-                   end as target,
+                   xxfnd_admin_scope_pkg.setup_page_url(home_page_id) as target,
                    'NO'                                  as is_current,
                    icon_css                              as image,
                    null                                  as image_attribute,
@@ -433,15 +405,10 @@ list feature-tabs (
         sqlQuery:
             ```sql
             -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            -- release 68: a tab whose page is not in this application opens in COMMON (page 99, for this application)
             select null                                  as lvl,
                    fp.tab_label                          as label,
-                   case when exists (select 1 from apex_application_pages ap
-                                    where ap.application_id = :APP_ID and ap.page_id = fp.page_id)
-                        then apex_page.get_url(p_page => fp.page_id)
-                        else apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                               p_items => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                               p_values => 'KYC,Y,' || fp.page_id)
-                   end as target,
+                   xxfnd_admin_scope_pkg.setup_page_url(fp.page_id) as target,
                    case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
               from xxfnd_feature_pages fp
              where fp.app_alias = :APP_ALIAS
