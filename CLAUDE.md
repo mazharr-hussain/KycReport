@@ -16,3 +16,5 @@
 - Database: one APEX workspace (XXCUS). XXCUS is the workspace's default (primary) schema and the parsing schema
   of the business apps (KYC = app 134); **XXFUSION** is the schema for Fusion web-service data and the COMMON
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
+- **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
+  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it.
