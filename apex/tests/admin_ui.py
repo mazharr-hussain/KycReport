@@ -8,8 +8,18 @@ def login(pg,u):
     pg.goto(f'{ROOT}/r/xxcus/kyc/login'); pg.fill('#P9999_USERNAME',u); pg.fill('#P9999_PASSWORD','KycTest#2026')
     pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
     return re.search(r'session=(\d+)',pg.url).group(1)
+# release 68: the shared setup screens are in COMMON (app 135), opened for KYC (page 99 sets the scope once)
+COMMON_PAGES=set(range(101,116))|set(range(120,126))|set(range(130,138))|set(range(145,148))|set(range(150,154))|{180,181,182}
+scoped=set()
 def go(pg,s,page):
-    pg.goto(f'{ROOT}/f?p=134:{page}:{s}'); pg.wait_for_load_state('networkidle')
+    if page in COMMON_PAGES:
+        if s not in scoped:
+            pg.goto(f'{ROOT}/f?p=135:99:{s}::NO::G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE:KYC,Y,{page}'); pg.wait_for_load_state('networkidle')
+            scoped.add(s)
+        pg.goto(f'{ROOT}/f?p=135:{page}:{s}')
+    else:
+        pg.goto(f'{ROOT}/f?p=134:{page}:{s}')
+    pg.wait_for_load_state('networkidle')
 def dialog(pg):
     pg.wait_for_selector('iframe[title]')
     for _ in range(40):
