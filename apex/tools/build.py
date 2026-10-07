@@ -37,8 +37,10 @@ REQUIRED_SCHEMA = {'COMMON': 'XXFUSION'}
 # the shared tables; otherwise the scripts are skipped. Checks and 03 run regardless.
 REQUIRED_OBJECT = {'KYC': ('XXFUSION', 'XXFND_SHARE_PKG')}
 CHECKS = ('00a-', '00b-', '03-use-shared-schema')
-# ADMIN scripts shipped in an application's install pack (apex/db/admin/...)
-ADMIN_SCRIPTS = {'COMMON': ['create-xxfusion-schema.sql']}
+# Scripts run outside the import, shipped in an application's install pack (apex/db/<folder>/<file>):
+# admin = run as ADMIN; migrate = one-time steps run as the application's schema (release 55)
+PACK_SCRIPTS = {'COMMON': [('admin', 'create-xxfusion-schema.sql')],
+                'KYC': [('migrate', 'move-kyc-shared-data-to-xxfusion.sql')]}
 
 
 def ident(name):
@@ -108,8 +110,8 @@ def release(app, n):
     with zipfile.ZipFile(pack, 'w', zipfile.ZIP_DEFLATED) as z:
         z.write(target, os.path.basename(target))
         z.write(os.path.join(ROOT, 'install', app, 'INSTALL.md'), 'INSTALL.md')
-        for f in ADMIN_SCRIPTS.get(app, []):
-            z.write(os.path.join(DB, 'admin', f), 'admin/' + f)
+        for d, f in PACK_SCRIPTS.get(app, []):
+            z.write(os.path.join(DB, d, f), d + '/' + f)
     print('wrote', pack)
 
 
