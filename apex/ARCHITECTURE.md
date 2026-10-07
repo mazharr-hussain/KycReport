@@ -92,6 +92,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **Release 62 (patch 46, COMMON only):** security screens 103-108, 114-115, 180-182 copied from KYC; scoped by :G_ADMIN_APP (roles list/grid, SoD and data-security rules by role application, role default application, LOV roles/privileges). Tests admin_scope_test.sql, common_admin_ui.py.
 - **Release 63 (patch 47, COMMON only):** Lookups 101-102, Notification Templates 109-110 copied from KYC; scoped by the 16i policies (lookup types, templates).
 - **Release 64 (patch 48, COMMON only):** Value Sets 150-151, Descriptive Flexfields 152-153 copied from KYC; scoped by the 16i policies (value sets, flexfields).
+- **Release 65 (patch 49, COMMON only):** attachments setup 130-137 copied from KYC; scoped by the 16i policies (entities, categories, attachment functions, storage config). 138-139 stay KYC.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),

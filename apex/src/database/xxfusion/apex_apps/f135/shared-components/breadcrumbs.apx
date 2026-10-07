@@ -240,4 +240,85 @@ breadcrumb breadcrumb (
         }
     )
 
+
+    entry attach-function (
+        name: Attachment Page
+        pageNumber: 135
+        execution {
+            sequence: 270
+        }
+        appearance {
+            parentEntry: @attach-functions
+        }
+        link {
+            target: {
+                page: 135
+            }
+        }
+    )
+
+    entry attach-functions (
+        name: Attachment Pages
+        pageNumber: 134
+        execution {
+            sequence: 260
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 134
+            }
+        }
+    )
+
+    entry storage (
+        name: Document Storage
+        pageNumber: 136
+        execution {
+            sequence: 280
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 136
+            }
+        }
+    )
+
+    entry doc-categories (
+        name: Document Categories
+        pageNumber: 132
+        execution {
+            sequence: 250
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 132
+            }
+        }
+    )
+
+    entry doc-entities (
+        name: Document Entities
+        pageNumber: 130
+        execution {
+            sequence: 240
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 130
+            }
+        }
+    )
+
 )
