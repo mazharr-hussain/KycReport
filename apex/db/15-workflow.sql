@@ -32,9 +32,6 @@ begin
     end loop;
     run('drop package if exists xxfnd_wf_pkg');
     run('drop view if exists xxfnd_wf_items_v');
-    if exists_(q'[select count(*) from user_constraints where constraint_name = 'XXCMP_RFIS_FK2']') then
-        run('alter table xxcmp_rfis drop constraint xxcmp_rfis_fk2');
-    end if;
     if exists_(q'[select count(*) from user_constraints where constraint_name = 'XXFND_WF_DELEGATIONS_FK1']') then
         run('alter table xxfnd_wf_delegations drop constraint xxfnd_wf_delegations_fk1');
     end if;
@@ -45,13 +42,8 @@ begin
     end if;
     -- Item types of the former engine mean nothing to APEX task definitions.
     run(q'[update xxfnd_wf_delegations set task_definition = null where task_definition in ('RFI','KYC_CASE')]');
-    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'RESPONSE_TASK_ID', 'number');
-    xxfnd_ddl_pkg.add_column('XXCMP_RFIS', 'REVIEW_TASK_ID', 'number');
-    if exists_(q'[select count(*) from user_tab_columns where table_name = 'XXCMP_RFIS' and column_name = 'WF_ITEM_ID']') then
-        run('alter table xxcmp_rfis drop column wf_item_id');
-    end if;
     for t in (select column_value table_name
-                from table(apex_t_varchar2('XXCMP_WF_ACTIVITY_CONTROLS','XXFND_WF_NOTIFICATIONS','XXFND_WF_ACTIVITY_HISTORY',
+                from table(apex_t_varchar2('XXFND_WF_NOTIFICATIONS','XXFND_WF_ACTIVITY_HISTORY',
                                            'XXFND_WF_ITEMS','XXFND_WF_TRANSITIONS','XXFND_WF_ACTIVITIES',
                                            'XXFND_WF_PROCESSES','XXFND_WF_ITEM_TYPES'))) loop
         run('drop table if exists ' || t.table_name || ' cascade constraints purge');
@@ -425,9 +417,9 @@ end xxfnd_task_pkg;
 --------------------------------------------------------------------------------
 create or replace package xxfnd_config_approval_pkg authid definer as
     -- Submits a change for approval and creates its CONFIG_CHANGE approval task (one open
-    -- task per change). P_TABLE_NAME/P_KEY: XXCMP_ATTACHMENT_RULES / rule id,
-    -- XXFND_INTEGRATION_PURPOSES / purpose code, or XXCMP_QUESTIONS / question id for all
-    -- draft or rejected answer options of that question.
+    -- task per change). P_TABLE_NAME / P_KEY: a registered maker-checker table and its key, or a unit table
+    -- and its key for all draft or rejected rows of that unit (XXFND_CONFIG_TABLES, e.g. XXCMP_QUESTIONS /
+    -- question id = its answer options).
     procedure request(p_table_name in varchar2, p_key in varchar2);
     -- Task actions (the approver's session): apply or reject every row of the change.
     procedure approve(p_detail_pk in varchar2);
@@ -439,18 +431,43 @@ end xxfnd_config_approval_pkg;
 
 create or replace package body xxfnd_config_approval_pkg as
 
-    procedure rows_of(p_detail_pk in varchar2, p_table out varchar2, p_keys out apex_t_varchar2) is
-        l_table varchar2(128) := substr(p_detail_pk, 1, instr(p_detail_pk, ':') - 1);
-        l_key   varchar2(150) := substr(p_detail_pk, instr(p_detail_pk, ':') + 1);
+    -- release 48: the rows behind an approval unit come from the registry (XXFND_CONFIG_TABLES): a table approved
+    -- in units (UNIT_TABLE / UNIT_KEY_COLUMN, e.g. answer options of one question) or row by row.
+    function registered(p_unit in varchar2) return xxfnd_config_tables%rowtype is
+        l_row xxfnd_config_tables%rowtype;
     begin
-        if l_table = 'XXCMP_QUESTIONS' then
-            p_table := 'XXCMP_ANSWER_OPTIONS';
-            select to_char(answer_option_id) bulk collect into p_keys
-              from xxcmp_answer_options
-             where question_id = to_number(l_key) and approval_status = 'PENDING_APPROVAL';
+        select * into l_row
+          from xxfnd_config_tables
+         where approval_flag = 'Y' and nvl(unit_table, table_name) = upper(p_unit)
+           and rownum = 1;
+        return l_row;
+    exception
+        when no_data_found then
+            raise_application_error(-20124, p_unit || ' is not under maker-checker control.');
+    end registered;
+
+    function unit_rows(p_reg in xxfnd_config_tables%rowtype, p_key in varchar2, p_statuses in apex_t_varchar2)
+        return apex_t_varchar2 is
+        l_keys apex_t_varchar2;
+    begin
+        execute immediate 'select to_char(' || dbms_assert.simple_sql_name(p_reg.pk_column) || ') from '
+                       || dbms_assert.sql_object_name(p_reg.table_name)
+                       || ' where ' || dbms_assert.simple_sql_name(p_reg.unit_key_column) || ' = :k'
+                       || ' and approval_status in (select column_value from table(:s))'
+            bulk collect into l_keys using p_key, p_statuses;
+        return l_keys;
+    end unit_rows;
+
+    procedure rows_of(p_detail_pk in varchar2, p_table out varchar2, p_keys out apex_t_varchar2) is
+        l_unit varchar2(128) := substr(p_detail_pk, 1, instr(p_detail_pk, ':') - 1);
+        l_key  varchar2(150) := substr(p_detail_pk, instr(p_detail_pk, ':') + 1);
+        l_reg  xxfnd_config_tables%rowtype := registered(l_unit);
+    begin
+        p_table := l_reg.table_name;
+        if l_reg.unit_table is not null then
+            p_keys := unit_rows(l_reg, l_key, apex_t_varchar2('PENDING_APPROVAL'));
         else
-            p_table := l_table;
-            p_keys  := apex_t_varchar2(l_key);
+            p_keys := apex_t_varchar2(l_key);
         end if;
     end rows_of;
 
@@ -460,14 +477,17 @@ create or replace package body xxfnd_config_approval_pkg as
         l_type      varchar2(100);
         l_task_id   number;
         l_open      pls_integer;
+        l_reg       xxfnd_config_tables%rowtype;
+        l_keys      apex_t_varchar2;
     begin
-        if upper(p_table_name) = 'XXCMP_QUESTIONS' then
-            for r in (select answer_option_id from xxcmp_answer_options
-                       where question_id = to_number(p_key) and approval_status in ('DRAFT','REJECTED')) loop
-                xxfnd_approval_pkg.submit('XXCMP_ANSWER_OPTIONS', to_char(r.answer_option_id));
+        l_reg := registered(p_table_name);
+        if l_reg.unit_table is not null then
+            l_keys := unit_rows(l_reg, p_key, apex_t_varchar2('DRAFT', 'REJECTED'));
+            for i in 1 .. l_keys.count loop
+                xxfnd_approval_pkg.submit(l_reg.table_name, l_keys(i));
             end loop;
         else
-            xxfnd_approval_pkg.submit(upper(p_table_name), p_key);
+            xxfnd_approval_pkg.submit(l_reg.table_name, p_key);
         end if;
         select count(*) into l_open
           from apex_tasks

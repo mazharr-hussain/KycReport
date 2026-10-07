@@ -123,13 +123,7 @@ begin
             || 'DATA_SECURITY.VIEW,DATA_SECURITY.CREATE,DATA_SECURITY.MANAGE,'
             || 'APP_SETTINGS.VIEW,APP_SETTINGS.MANAGE,USAGE_FEEDBACK.VIEW,USAGE_FEEDBACK.MANAGE');
 
-    -- Row access: compliance staff and administrators see everything; a requester
-    -- sees only the requests for information addressed to them.
-    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
-        rule(r.role_code, 'XXCMP_PARTIES', 'ALL_ROWS');
-        rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
-    end loop;
-    rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+    -- release 48: the KYC row-access rules (parties, requests for information) are seeded by 18e
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;

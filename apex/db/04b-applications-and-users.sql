@@ -164,3 +164,83 @@ begin
     :new.user_id := l_user_id;
 end;
 /
+
+--------------------------------------------------------------------------------
+-- release 48: configuration tables of each application (shared module): which tables get the configuration
+-- audit trigger and which are under maker-checker (Config Change Approvals). Each application registers its own
+-- tables, so the shared code names no application table.
+--   PK_COLUMN       - key of a maker-checker row
+--   UNIT_TABLE / UNIT_KEY_COLUMN - rows approved together under one task (e.g. answer options of one question:
+--                     XXCMP_QUESTIONS / QUESTION_ID); null = each row on its own (unit = the table itself)
+--   CHANGES_VIEW    - the application's view of its pending changes, one row per approval unit, columns
+--                     DETAIL_PK ('<unit table>:<key>'), CHANGE_TYPE, CHANGE_TITLE, CHANGE_SUMMARY, SUBMITTED_BY,
+--                     SUBMITTED_DATE
+--------------------------------------------------------------------------------
+create table if not exists xxfnd_config_tables (
+    table_name             varchar2(128)  not null,
+    application_id         number         not null,
+    audit_flag             varchar2(1)    default 'Y' not null,
+    approval_flag          varchar2(1)    default 'N' not null,
+    pk_column              varchar2(128),
+    unit_table             varchar2(128),
+    unit_key_column        varchar2(128),
+    changes_view           varchar2(128),
+    description            varchar2(1000),
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxfnd_config_tables_pk primary key (table_name),
+    constraint xxfnd_config_tables_fk1 foreign key (application_id) references xxfnd_applications (application_id),
+    constraint xxfnd_config_tables_ck1 check (audit_flag in ('Y','N')),
+    constraint xxfnd_config_tables_ck2 check (approval_flag in ('Y','N')),
+    constraint xxfnd_config_tables_ck3 check (approval_flag = 'N' or (pk_column is not null and changes_view is not null)),
+    constraint xxfnd_config_tables_ck4 check (table_name = upper(table_name))
+);
+comment on table xxfnd_config_tables is 'Configuration tables per application: configuration audit (AUDIT_FLAG) and maker-checker approval (APPROVAL_FLAG, PK_COLUMN, UNIT_TABLE / UNIT_KEY_COLUMN, CHANGES_VIEW).';
+
+-- the common application (the shared module); its APEX ID is set when it is first used
+merge into xxfnd_applications t
+using (select 'COMMON' application_code, 'Common' application_name, 'COMMON' apex_app_alias from dual) s
+   on (t.application_code = s.application_code)
+ when not matched then insert (application_code, application_name, apex_app_alias, description,
+                               created_by, creation_date, last_updated_by, last_update_date)
+                       values (s.application_code, s.application_name, s.apex_app_alias,
+                               'Shared module: security, setup (lookups, flexfields, attachments), workflow.',
+                               'INSTALL', systimestamp, 'INSTALL', systimestamp);
+
+-- the shared configuration tables
+merge into xxfnd_config_tables t
+using (select column_value table_name
+         from table(apex_t_varchar2(
+              'XXFND_LOOKUP_TYPES','XXFND_LOOKUP_VALUES','XXFND_EMPLOYEES','XXFND_ROLES','XXFND_USER_ROLES',
+              'XXFND_SOD_RULES','XXFND_NOTIFICATION_TEMPLATES','XXFND_RETENTION_POLICIES',
+              'XXFND_INTEGRATION_ENDPOINTS','XXFND_INTEGRATION_PURPOSES',
+              'XXFND_DOCUMENT_ENTITIES','XXFND_DOCUMENT_CATEGORIES','XXFND_ATTACHMENT_FUNCTIONS',
+              'XXFND_ATTACHMENT_BLOCKS','XXFND_ATTACHMENT_BLK_ENTITIES','XXFND_DOC_CATEGORY_USAGES',
+              'XXFND_STORAGE_CONFIG','XXFND_WF_DELEGATIONS',
+              'XXFND_VALUE_SETS','XXFND_DF_FLEXFIELDS','XXFND_DF_CONTEXTS','XXFND_DF_SEGMENTS'))) s
+   on (t.table_name = s.table_name)
+ when not matched then insert (table_name, application_id, audit_flag, created_by, creation_date, last_updated_by, last_update_date)
+                       values (s.table_name, (select application_id from xxfnd_applications where application_code = 'COMMON'), 'Y',
+                               'INSTALL', systimestamp, 'INSTALL', systimestamp);
+update xxfnd_config_tables
+   set approval_flag = 'Y', pk_column = 'PURPOSE_CODE', changes_view = 'XXFND_INTEGRATION_CHANGES_V'
+ where table_name = 'XXFND_INTEGRATION_PURPOSES' and approval_flag = 'N';
+commit;
+
+-- release 48: one pending configuration change (approval unit) for XXFND_APPROVAL_PKG.CONFIG_CHANGES
+create or replace type xxfnd_config_change_row force as object (
+    detail_pk      varchar2(400),
+    change_type    varchar2(240),
+    change_title   varchar2(4000),
+    change_summary varchar2(4000),
+    submitted_by   varchar2(255),
+    submitted_date timestamp
+);
+/
+create or replace type xxfnd_config_change_tab force as table of xxfnd_config_change_row;
+/
