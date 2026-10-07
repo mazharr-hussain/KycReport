@@ -191,4 +191,53 @@ breadcrumb breadcrumb (
         }
     )
 
+
+    entry flexfield (
+        name: Descriptive Flexfield
+        pageNumber: 153
+        execution {
+            sequence: 350
+        }
+        appearance {
+            parentEntry: @flexfields
+        }
+        link {
+            target: {
+                page: 153
+            }
+        }
+    )
+
+    entry flexfields (
+        name: Descriptive Flexfields
+        pageNumber: 152
+        execution {
+            sequence: 340
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 152
+            }
+        }
+    )
+
+    entry value-sets (
+        name: Value Sets
+        pageNumber: 150
+        execution {
+            sequence: 330
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 150
+            }
+        }
+    )
+
 )

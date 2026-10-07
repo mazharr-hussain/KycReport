@@ -162,3 +162,105 @@ lov lov-lookup-types (
         display: DISPLAY_VALUE
     }
 )
+
+lov lov-df-default-type (
+    name: DF_DEFAULT_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'DF_DEFAULT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-dff-columns (
+    name: DFF RESERVED COLUMNS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select column_name as display_value, column_name as return_value
+              from user_tab_columns
+             where table_name = 'XXFND_ATTACHED_DOCUMENTS'
+               and regexp_like(column_name,
+                   '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$')
+             order by column_id
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-value-sets (
+    name: VALUE SETS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select value_set_name || ' (' || value_set_code || ')' as display_value, value_set_code as return_value
+              from xxfnd_value_sets
+             order by value_set_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-vs-format-type (
+    name: VS_FORMAT_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'VS_FORMAT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-vs-validation-type (
+    name: VS_VALIDATION_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'VS_VALIDATION_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
