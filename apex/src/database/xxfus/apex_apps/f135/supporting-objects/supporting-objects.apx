@@ -1,0 +1,45 @@
+supportingObject (
+    prerequisites {
+        systemPrivileges: [
+            createTable
+            createView
+            createProcedure
+            createTrigger
+            createSequence
+        ]
+    }
+    installationMessages {
+        welcome:
+            ```
+            Installs the shared XXFND_ database objects (security, flexfields, attachments, workflow), the common seed data and the first administrator into the parsing schema (XXFUS).
+            ```
+        confirmation:
+            ```
+            Install the database objects now? Existing XXFND_ tables are upgraded instead of recreated.
+            ```
+        installSuccess:
+            ```
+            Installed. You are the first Common Administrator.
+            ```
+        installFailure:
+            ```
+            Installation failed. Check the script results, fix the cause and reinstall Supporting Objects; every script can be re-run.
+            ```
+    }
+    upgrade {
+        upgradeWhenSqlQuery:
+            ```sql
+            select null from user_tables where table_name = 'XXFND_LOOKUP_TYPES'
+            ```
+    }
+    upgradeMessages {
+        welcome:
+            ```
+            Upgrades the shared packages, views and seed data. Tables and data are kept.
+            ```
+        success:
+            ```
+            Upgrade complete.
+            ```
+    }
+)

@@ -9,7 +9,7 @@
 --                         into the collection FA_USER_ROLES and become APEX dynamic groups (fa_get_user_roles).
 --   * Authorization: authorized(<scheme>) for every authorization scheme of the application; in_group for the
 --     Fusion / identity-domain groups of the signed-in user.
---   Runs after 16e (the party detail rules use XXCMP_PARTY_PKG).
+--   Shared by every application (COMMON installs it too); KYC-only rules call their packages dynamically.
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 create or replace package xxfnd_auth_pkg authid definer as
@@ -34,7 +34,7 @@ create or replace package xxfnd_auth_pkg authid definer as
     ----------------------------------------------------------------------------
     -- Authorization
     ----------------------------------------------------------------------------
-    -- One entry for the authorization schemes: KYC_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
+    -- One entry for the authorization schemes: KYC_USER / APP_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
     -- WORKFLOW_ADMINISTER, ADMIN_AREA, PARTY_DETAILS_VIEW, PARTY_DETAILS_CREATE, PARTY_DETAILS_MANAGE,
     -- PARTY_DETAILS_SUBMIT. Reads APP_PAGE_ID, REQUEST and the Global Page party context from session state.
     function authorized(p_scheme in varchar2) return boolean;
@@ -168,10 +168,14 @@ create or replace package body xxfnd_auth_pkg as
         return to_number(v('APP_PAGE_ID'));
     end page_id;
 
-    -- the requester working on the party their request created (Global Page context)
+    -- the requester working on the party their request created (Global Page context). Called dynamically:
+    -- the package is shared by every application and XXCMP_PARTY_PKG exists only where KYC is installed.
     function party_details_editable return boolean is
+        l_yn varchar2(1);
     begin
-        return xxcmp_party_pkg.can_edit_details(to_number(v('P0_SUMMARY_PARTY_ID')), to_number(v('P0_REQUEST_ID'))) = 'Y';
+        execute immediate 'begin :r := xxcmp_party_pkg.can_edit_details(:p, :q); end;'
+            using out l_yn, to_number(v('P0_SUMMARY_PARTY_ID')), to_number(v('P0_REQUEST_ID'));
+        return l_yn = 'Y';
     end party_details_editable;
 
     function authorized(p_scheme in varchar2) return boolean is
@@ -179,6 +183,7 @@ create or replace package body xxfnd_auth_pkg as
         return case upper(p_scheme)
                    -- application level: at least one privilege through an active role
                    when 'KYC_USER'             then xxfnd_privilege_pkg.has_any_privilege
+                   when 'APP_USER'             then xxfnd_privilege_pkg.has_any_privilege
                    -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
                    when 'PAGE_VIEW'            then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW')
                    when 'PAGE_CREATE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE')
