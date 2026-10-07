@@ -127,10 +127,12 @@ page 181 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select table_name as display_value, table_name as return_value
-                  from user_tables
-                 where table_name like 'XXCMP\_%' escape '\'
-                 order by table_name
+                select t.table_name as display_value, t.table_name as return_value
+                  from all_tables t
+                 -- release 68: the tables of the application in scope (its schema, granted to COMMON's schema)
+                 where t.owner = (select a.schema_name from xxfnd_applications a where a.application_code = :G_ADMIN_APP)
+                   and t.table_name not like 'XXFND\_%' escape '\'
+                 order by t.table_name
                 ```
             displayNullValue: true
             nullDisplayValue: - Select -
@@ -211,8 +213,9 @@ page 181 (
             sqlQuery:
                 ```sql
                 select column_name as display_value, column_name as return_value
-                  from user_tab_columns
-                 where table_name = :P181_TABLE_NAME
+                  from all_tab_columns
+                 where owner = (select a.schema_name from xxfnd_applications a where a.application_code = :G_ADMIN_APP)
+                   and table_name = :P181_TABLE_NAME
                    and data_type in ('VARCHAR2','CHAR','NUMBER')
                  order by column_id
                 ```

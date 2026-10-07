@@ -11,6 +11,12 @@ An existing KYC (installed before release 54) still has its own copy of the shar
 **one-time ADMIN activity**, not part of the package: run `apex/db/admin/move-kyc-shared-data-to-xxfusion.sql` once
 as ADMIN, after the COMMON import and before the KYC import (step 0).
 
+## Where the setup screens are (release 68)
+The shared setup screens (users and access, roles, lookups, notifications, flexfields, attachments setup,
+integration, workflow setup, audit log, retention) are in the **COMMON** application. KYC's Administration menu opens
+them in COMMON for KYC - same sign-in (workspace session sharing), only KYC's data. KYC's own setup screens (KYC
+rules, mandatory documents, approval matrix, alert rules, workflow monitor, settings) stay in KYC.
+
 ## Steps
 0. **Existing KYC only, once:** as **ADMIN** (Database Actions → SQL) run
    `apex/db/admin/move-kyc-shared-data-to-xxfusion.sql`. It first **validates** (XXFUSION ready, every shared table

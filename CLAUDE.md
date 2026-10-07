@@ -18,6 +18,6 @@
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
 - **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
   deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it.
-- **KYC frozen:** do not modify the KYC application (f134, its KYC-only db scripts, its zip) until the COMMON
-  application is finished, unless the user clearly instructs it. Build and release COMMON only
-  (`python3 apex/tools/build.py --release N --app COMMON`).
+- **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
+  COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
+  (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.

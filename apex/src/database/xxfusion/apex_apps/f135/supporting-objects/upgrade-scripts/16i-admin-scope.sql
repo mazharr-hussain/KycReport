@@ -48,6 +48,9 @@ create or replace package xxfnd_admin_scope_pkg authid definer as
     function scoped_tables return apex_t_varchar2;
     -- APEX application ID of an application (code; recorded at its sign-in), else the running application.
     function apex_app_id(p_application_code in varchar2) return number;
+    -- release 68: link to a setup page from a business application - the page in the running application when it
+    -- has it, otherwise the page in COMMON (entry page 99), opened for the running application (locked to it).
+    function setup_page_url(p_page_id in number) return varchar2;
 end xxfnd_admin_scope_pkg;
 /
 
@@ -169,6 +172,25 @@ create or replace package body xxfnd_admin_scope_pkg as
         select max(apex_application_id) into l_id from xxfnd_applications where application_code = upper(p_application_code);
         return coalesce(l_id, to_number(v('APP_ID')));
     end apex_app_id;
+
+    function setup_page_url(p_page_id in number) return varchar2 is
+        l_n    pls_integer;
+        l_code xxfnd_applications.application_code%type;
+    begin
+        if p_page_id is null then
+            return null;
+        end if;
+        select count(*) into l_n from apex_application_pages
+         where application_id = to_number(v('APP_ID')) and page_id = p_page_id;
+        if l_n > 0 then
+            return apex_page.get_url(p_page => p_page_id);
+        end if;
+        select max(application_code) into l_code from xxfnd_applications
+         where upper(apex_app_alias) = upper(v('APP_ALIAS'));
+        return apex_page.get_url(p_application => 'COMMON', p_page => 99,
+                                 p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
+                                 p_values => nvl(l_code, upper(v('APP_ALIAS'))) || ',Y,' || to_char(p_page_id));
+    end setup_page_url;
 
 end xxfnd_admin_scope_pkg;
 /
