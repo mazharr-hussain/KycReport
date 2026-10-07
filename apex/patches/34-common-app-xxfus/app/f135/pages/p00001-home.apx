@@ -1,0 +1,102 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Home
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Home
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region applications (
+        name: Applications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_code, application_name, apex_app_alias, apex_application_id
+                  from xxfnd_applications
+                 where enabled_flag = 'Y'
+                 order by application_name
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+
+        column APPLICATION_CODE (
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APPLICATION_NAME (
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX_APP_ALIAS (
+            heading {
+                heading: Alias
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column APEX_APPLICATION_ID (
+            heading {
+                heading: APEX ID
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+)

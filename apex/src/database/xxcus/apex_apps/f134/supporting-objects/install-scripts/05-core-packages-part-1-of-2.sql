@@ -394,7 +394,9 @@ create or replace package xxfnd_security_pkg authid definer as
     -- Used by the installer so someone can sign in and grant further access.
     procedure bootstrap_admin(p_user_name in varchar2,
                               p_full_name in varchar2 default null,
-                              p_email     in varchar2 default null);
+                              p_email     in varchar2 default null,
+                              -- release 49: the role to grant (COMMON grants its own administrator role)
+                              p_role_code in varchar2 default 'SYSTEM_ADMIN');
 end xxfnd_security_pkg;
 /
 
@@ -768,7 +770,8 @@ create or replace package body xxfnd_security_pkg as
 
     procedure bootstrap_admin(p_user_name in varchar2,
                               p_full_name in varchar2 default null,
-                              p_email     in varchar2 default null) is
+                              p_email     in varchar2 default null,
+                              p_role_code in varchar2 default 'SYSTEM_ADMIN') is
         l_user  varchar2(255) := upper(trim(p_user_name));
         l_email varchar2(320) := lower(trim(coalesce(p_email,
                                      case when instr(p_user_name, '@') > 0 then p_user_name end,
@@ -788,7 +791,7 @@ create or replace package body xxfnd_security_pkg as
                 returning employee_id into l_id;
         end;
         merge into xxfnd_user_roles t
-        using (select l_id employee_id, 'SYSTEM_ADMIN' role_code from dual) s
+        using (select l_id employee_id, p_role_code role_code from dual) s
            on (t.employee_id = s.employee_id and t.role_code = s.role_code and t.end_date_active is null)
          when matched then update set t.enabled_flag = 'Y'
          when not matched then insert (employee_id, role_code) values (s.employee_id, s.role_code);

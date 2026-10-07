@@ -8,19 +8,24 @@ which scripts run on install and/or upgrade and in which order:
    "install_sequence": 187, "upgrade_sequence": 147}
 
 "upgrade_file" (optional) gives an upgrade-only variant; a script without "file" is upgrade-only.
+"apps" (optional, default ["KYC"]) lists the applications whose supporting objects run the script:
+KYC (app 134, schema XXCUS) and COMMON (schema XXFUS, the shared security / setup / workflow application).
 APEXlang reads install scripts from supporting-objects/install-scripts/ and upgrade scripts from
 supporting-objects/upgrade-scripts/, so this tool writes a copy into each folder it is used in.
 
 Usage:
   python3 apex/tools/build.py                 # regenerate apex/src/database/xxcus/apex_apps/f134/supporting-objects
   python3 apex/tools/build.py --release 12    # ... and write apex/KYC-Compliance-Platform-APEXlang_12.zip
+                                              #     and apex/COMMON-Application-APEXlang_12.zip
 """
 import argparse, json, os, re, shutil, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(ROOT, 'db')
-APP = os.path.join(ROOT, 'src', 'database', 'xxcus', 'apex_apps', 'f134')
-SO = os.path.join(APP, 'supporting-objects')
+APPS = {
+    'KYC':    (os.path.join(ROOT, 'src', 'database', 'xxcus', 'apex_apps', 'f134'), 'KYC-Compliance-Platform-APEXlang'),
+    'COMMON': (os.path.join(ROOT, 'src', 'database', 'xxfus', 'apex_apps', 'f135'), 'COMMON-Application-APEXlang'),
+}
 
 
 def ident(name):
@@ -33,7 +38,8 @@ def component(kind, name, seq, content_file):
             f"    script {{\n        contentFile: {content_file}\n    }}\n)\n")
 
 
-def build():
+def build(app):
+    SO = os.path.join(APPS[app][0], 'supporting-objects')
     manifest = json.load(open(os.path.join(DB, 'manifest.json')))
     names = [e['name'] for e in manifest]
     if len(names) != len(set(names)):
@@ -43,6 +49,8 @@ def build():
         os.makedirs(os.path.join(SO, sub))
     inst, upg = [], []
     for e in manifest:
+        if app not in e.get('apps', ['KYC']):
+            continue
         if e.get('install_sequence') is not None:
             shutil.copy(os.path.join(DB, e['file']), os.path.join(SO, 'install-scripts', e['file']))
             inst.append((e['install_sequence'], component('installScript', e['name'], e['install_sequence'], e['file'])))
@@ -56,12 +64,12 @@ def build():
             raise SystemExit(f'duplicate sequence in {fname}: {sorted(seqs)}')
         with open(os.path.join(SO, fname), 'w') as out:
             out.write('\n'.join(c for _, c in sorted(items)))
-    print(f'{len(inst)} install scripts, {len(upg)} upgrade scripts')
+    print(f'{app}: {len(inst)} install scripts, {len(upg)} upgrade scripts')
 
 
-def release(n):
-    src = APP
-    target = os.path.join(ROOT, f'KYC-Compliance-Platform-APEXlang_{n}.zip')
+def release(app, n):
+    src = APPS[app][0]
+    target = os.path.join(ROOT, f'{APPS[app][1]}_{n}.zip')
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
         for d, dirs, files in os.walk(src):
             dirs[:] = sorted(x for x in dirs if not x.startswith('.'))
@@ -77,6 +85,7 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--release', type=int)
     a = ap.parse_args()
-    build()
-    if a.release:
-        release(a.release)
+    for app in APPS:
+        build(app)
+        if a.release:
+            release(app, a.release)

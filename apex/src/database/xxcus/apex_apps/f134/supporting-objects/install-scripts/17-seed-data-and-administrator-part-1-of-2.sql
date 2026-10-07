@@ -16,7 +16,16 @@ declare
     ----------------------------------------------------------------------------
     procedure lt(p_type in varchar2, p_meaning in varchar2, p_level in varchar2 default 'S',
                  p_app in varchar2 default null, p_desc in varchar2 default null) is
+        l_n pls_integer;
     begin
+        -- release 49: an application's own lookups are seeded only where that application is installed
+        -- (the COMMON schema gets the shared ones)
+        if p_app = 'KYC' then
+            select count(*) into l_n from user_tables where table_name = 'XXCMP_PARTIES';
+            if l_n = 0 then
+                return;
+            end if;
+        end if;
         merge into xxfnd_lookup_types t
         using (select p_type lookup_type from dual) s on (t.lookup_type = s.lookup_type)
          -- system lookups (S) belong to the application; E/U lookups to the administrators
@@ -30,7 +39,12 @@ declare
     procedure lv(p_type in varchar2, p_code in varchar2, p_meaning in varchar2, p_seq in number,
                  p_tag in varchar2 default null, p_ar in varchar2 default null,
                  p_parent_type in varchar2 default null, p_parent_code in varchar2 default null) is
+        l_n pls_integer;
     begin
+        select count(*) into l_n from xxfnd_lookup_types where lookup_type = p_type;
+        if l_n = 0 then
+            return;   -- the type was skipped by LT (another application's lookup)
+        end if;
         merge into xxfnd_lookup_values t
         using (select p_type lookup_type, p_code lookup_code from dual) s
            on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code)

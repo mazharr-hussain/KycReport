@@ -3,22 +3,38 @@
   "name": "00 Deployment framework",
   "file": "00-deployment-framework.sql",
   "install_sequence": 5,
-  "upgrade_sequence": 5
+  "upgrade_sequence": 5,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "01 Common tables - XXFND - part 1 of 3",
   "file": "01-common-tables-xxfnd-part-1-of-3.sql",
-  "install_sequence": 10
+  "install_sequence": 10,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "02 Common tables - XXFND - part 2 of 3",
   "file": "02-common-tables-xxfnd-part-2-of-3.sql",
-  "install_sequence": 20
+  "install_sequence": 20,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "03 Common tables - XXFND - part 3 of 3",
   "file": "03-common-tables-xxfnd-part-3-of-3.sql",
-  "install_sequence": 30
+  "install_sequence": 30,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "04 KYC tables - XXCMP",
@@ -29,92 +45,152 @@
   "name": "04a Employees - Fusion user",
   "file": "04a-employee-fusion-user.sql",
   "install_sequence": 45,
-  "upgrade_sequence": 8
+  "upgrade_sequence": 8,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "04b Applications and users",
   "file": "04b-applications-and-users.sql",
   "install_sequence": 47,
-  "upgrade_sequence": 9
+  "upgrade_sequence": 9,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "05 Core packages - part 1 of 2",
   "file": "05-core-packages-part-1-of-2.sql",
   "install_sequence": 50,
   "upgrade_file": "05-core-packages-part-1-of-2-upgrade.sql",
-  "upgrade_sequence": 10
+  "upgrade_sequence": 10,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "06 Core packages - part 2 of 2",
   "file": "06-core-packages-part-2-of-2.sql",
   "install_sequence": 60,
-  "upgrade_sequence": 20
+  "upgrade_sequence": 20,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "07 WHO and audit triggers",
   "file": "07-who-and-audit-triggers.sql",
   "install_sequence": 70,
-  "upgrade_sequence": 30
+  "upgrade_sequence": 30,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "08 Row rules",
   "file": "08-row-rules.sql",
   "install_sequence": 80,
-  "upgrade_sequence": 40
+  "upgrade_sequence": 40,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "09 Views",
   "file": "09-views.sql",
   "install_sequence": 90,
-  "upgrade_sequence": 50
+  "upgrade_sequence": 50,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "09b Security framework - objects",
   "file": "09b-security-framework-objects.sql",
   "install_sequence": 95,
-  "upgrade_sequence": 55
+  "upgrade_sequence": 55,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "10 Flexfield runtime - part 1 of 2",
   "file": "10-flexfield-runtime-part-1-of-2.sql",
   "install_sequence": 100,
-  "upgrade_sequence": 60
+  "upgrade_sequence": 60,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "11 Flexfield runtime - part 2 of 2",
   "file": "11-flexfield-runtime-part-2-of-2.sql",
   "install_sequence": 110,
-  "upgrade_sequence": 70
+  "upgrade_sequence": 70,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "12 Flexfield setup",
   "file": "12-flexfield-setup.sql",
   "install_sequence": 120,
-  "upgrade_sequence": 80
+  "upgrade_sequence": 80,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "13a Database document store",
   "file": "13a-database-document-store.sql",
   "install_sequence": 125,
-  "upgrade_sequence": 85
+  "upgrade_sequence": 85,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "13 Document store",
   "file": "13-document-store.sql",
   "install_sequence": 130,
-  "upgrade_sequence": 90
+  "upgrade_sequence": 90,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "14 Attachments",
   "file": "14-attachments.sql",
   "install_sequence": 140,
-  "upgrade_sequence": 100
+  "upgrade_sequence": 100,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "15 Workflow",
   "file": "15-workflow.sql",
   "install_sequence": 150,
-  "upgrade_sequence": 110
+  "upgrade_sequence": 110,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "16 KYC rules",
@@ -126,13 +202,21 @@
   "name": "16j Authentication and authorization",
   "file": "16j-auth-pkg.sql",
   "install_sequence": 175,
-  "upgrade_sequence": 135
+  "upgrade_sequence": 135,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "17 Seed data and administrator - part 1 of 2",
   "file": "17-seed-data-and-administrator-part-1-of-2.sql",
   "install_sequence": 170,
-  "upgrade_sequence": 130
+  "upgrade_sequence": 130,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "18 Seed data and administrator - part 2 of 2",
@@ -156,7 +240,11 @@
   "name": "19 Reporting views and recompile",
   "file": "19-reporting-views-and-recompile.sql",
   "install_sequence": 195,
-  "upgrade_sequence": 155
+  "upgrade_sequence": 155,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "18d Workflow platform",
@@ -216,7 +304,11 @@
   "name": "16h UI helpers",
   "file": "16h-ui-helpers.sql",
   "install_sequence": 171,
-  "upgrade_sequence": 131
+  "upgrade_sequence": 131,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
  },
  {
   "name": "16i Request UI",
@@ -241,5 +333,14 @@
   "file": "18g-release-15.sql",
   "install_sequence": 192,
   "upgrade_sequence": 152
+ },
+ {
+  "name": "20 COMMON application seed",
+  "file": "20-common-seed.sql",
+  "install_sequence": 200,
+  "upgrade_sequence": 160,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]
