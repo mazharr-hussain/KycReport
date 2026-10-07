@@ -109,8 +109,9 @@ def release(app, n):
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--release', type=int)
+    ap.add_argument('--app', choices=sorted(APPS), help='build only this application (default: all)')
     a = ap.parse_args()
-    for app in APPS:
+    for app in ([a.app] if a.app else APPS):
         build(app)
         if a.release:
             release(app, a.release)
