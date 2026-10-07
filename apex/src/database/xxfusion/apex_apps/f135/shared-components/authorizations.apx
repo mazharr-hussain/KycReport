@@ -33,3 +33,93 @@ authorization page-view (
         evaluationType: perPageView
     }
 )
+
+authorization page-create (
+    name: Page - Create
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-manage (
+    name: Page - Manage
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-submit (
+    name: Page - Submit
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_SUBMIT');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization admin-area (
+    name: Administration Area
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('ADMIN_AREA');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to Administration.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization admin-app (
+    name: Administration - Application in Scope
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- release 61: the application in scope (G_ADMIN_APP) is one the user administers (XXFND_ADMIN_SCOPE_PKG)
+            return xxfnd_auth_pkg.authorized('ADMIN_APP');
+            ```
+    }
+    error {
+        errorMessage: You do not administer this application.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

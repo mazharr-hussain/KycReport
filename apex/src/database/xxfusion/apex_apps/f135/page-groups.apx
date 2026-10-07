@@ -1,0 +1,7 @@
+pageGroup administration (
+    name: Administration
+)
+
+pageGroup features (
+    name: Application Features
+)

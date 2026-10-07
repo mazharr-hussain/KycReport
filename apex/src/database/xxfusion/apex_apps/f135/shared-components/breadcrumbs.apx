@@ -13,4 +13,20 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry admin (
+        name: Administration
+        pageNumber: 100
+        execution {
+            sequence: 100
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
 )
