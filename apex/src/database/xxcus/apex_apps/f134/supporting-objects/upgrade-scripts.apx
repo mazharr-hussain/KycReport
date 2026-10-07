@@ -232,6 +232,15 @@ upgradeScript 16i-request-ui (
     }
 )
 
+upgradeScript 16j-authentication-and-authorization (
+    execution {
+        sequence: 135
+    }
+    script {
+        contentFile: 16j-auth-pkg.sql
+    }
+)
+
 upgradeScript 18-seed-data-and-administrator-part-2-of-2 (
     execution {
         sequence: 140

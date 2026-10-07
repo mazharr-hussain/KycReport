@@ -4,8 +4,8 @@ authorization kyc-user (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Application-level check: the user holds at least one privilege through an active role.
-            return xxfnd_privilege_pkg.has_any_privilege;
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('KYC_USER');
             ```
     }
     error {
@@ -22,8 +22,8 @@ authorization page-view (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Generic page access: VIEW on the feature this page is mapped to (XXFND_FEATURE_PAGES).
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'VIEW');
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_VIEW');
             ```
     }
     error {
@@ -40,8 +40,8 @@ authorization page-create (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Create buttons: CREATE on the feature of the current page.
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'CREATE');
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_CREATE');
             ```
     }
     error {
@@ -58,8 +58,8 @@ authorization page-manage (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Save, delete and other change buttons: MANAGE on the feature of the current page.
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'MANAGE');
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_MANAGE');
             ```
     }
     error {
@@ -76,8 +76,8 @@ authorization page-submit (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Processes that change data: request CREATE needs CREATE, any other request needs MANAGE.
-            return xxfnd_privilege_pkg.has_page_request_privilege(:APP_PAGE_ID, :REQUEST);
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PAGE_SUBMIT');
             ```
     }
     error {
@@ -94,8 +94,8 @@ authorization workflow-administer (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Suspend, resume, move and cancel workflow items.
-            return xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE');
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('WORKFLOW_ADMINISTER');
             ```
     }
     error {
@@ -112,8 +112,8 @@ authorization admin-area (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- The Administration console opens for anyone holding a privilege on an admin feature.
-            return xxfnd_privilege_pkg.has_any_admin_privilege;
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('ADMIN_AREA');
             ```
     }
     error {
@@ -130,10 +130,8 @@ authorization party-details-view (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
-            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'VIEW')
-                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_VIEW');
             ```
     }
     error {
@@ -150,10 +148,8 @@ authorization party-details-create (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
-            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'CREATE')
-                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_CREATE');
             ```
     }
     error {
@@ -170,10 +166,8 @@ authorization party-details-manage (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
-            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
-            return xxfnd_privilege_pkg.has_page_privilege(:APP_PAGE_ID, 'MANAGE')
-                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_MANAGE');
             ```
     }
     error {
@@ -190,10 +184,8 @@ authorization party-details-submit (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- Party detail dialogs (contact person, owner / officer): the page privilege, or the requester working on
-            -- the party their request created (Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
-            return xxfnd_privilege_pkg.has_page_request_privilege(:APP_PAGE_ID, :REQUEST)
-                or xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y';
+            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
+            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_SUBMIT');
             ```
     }
     error {
