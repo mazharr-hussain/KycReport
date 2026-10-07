@@ -29,4 +29,117 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry roles (
+        name: Roles
+        pageNumber: 105
+        execution {
+            sequence: 150
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry delegations (
+        name: Delegations
+        pageNumber: 114
+        execution {
+            sequence: 200
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 114
+            }
+        }
+    )
+
+    entry data-security (
+        name: Data Security
+        pageNumber: 180
+        execution {
+            sequence: 156
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 180
+            }
+        }
+    )
+
+    entry privileges (
+        name: Privileges
+        pageNumber: 182
+        execution {
+            sequence: 152
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 182
+            }
+        }
+    )
+
+    entry employee (
+        name: Employee
+        pageNumber: 104
+        execution {
+            sequence: 140
+        }
+        appearance {
+            parentEntry: @employees
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry employees (
+        name: Employees and Access
+        pageNumber: 103
+        execution {
+            sequence: 130
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry sod (
+        name: Segregation of Duties
+        pageNumber: 107
+        execution {
+            sequence: 160
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 107
+            }
+        }
+    )
+
 )
