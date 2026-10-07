@@ -94,6 +94,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **Release 64 (patch 48, COMMON only):** Value Sets 150-151, Descriptive Flexfields 152-153 copied from KYC; scoped by the 16i policies (value sets, flexfields).
 - **Release 65 (patch 49, COMMON only):** attachments setup 130-137 copied from KYC; scoped by the 16i policies (entities, categories, attachment functions, storage config). 138-139 stay KYC.
 - **Release 66 (patch 50, COMMON only):** integration 120-125 copied from KYC; endpoints/purposes scoped by 16i policies; transmission log filtered through visible purposes.
+- **Release 67 (patch 51, COMMON only):** audit 111, retention 112-113, workflow setup 145-147, features 10020-10021, settings 10022-10023 copied from KYC. XXFND_ADMIN_SCOPE_PKG.APEX_APP_ID (APEX id of the application in scope) for build options, settings (change only for the running app, -20150) and LOV task definitions. Script 21 body moved to XXFND_SHARE_PKG.SEED_ADMIN (19c); import_schema calls seed_common + seed_admin. COMMON setup screens complete.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),

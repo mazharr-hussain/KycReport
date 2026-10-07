@@ -370,4 +370,101 @@ breadcrumb breadcrumb (
         }
     )
 
+
+    entry process-catalogue (
+        name: Process Catalogue
+        pageNumber: 147
+        execution {
+            sequence: 264
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 147
+            }
+        }
+    )
+
+    entry retention (
+        name: Retention Policies
+        pageNumber: 112
+        execution {
+            sequence: 190
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 112
+            }
+        }
+    )
+
+    entry app-settings (
+        name: Application Settings
+        pageNumber: 10022
+        execution {
+            sequence: 432
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10022
+            }
+        }
+    )
+
+    entry deadlines (
+        name: Deadlines and Escalation
+        pageNumber: 145
+        execution {
+            sequence: 262
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 145
+            }
+        }
+    )
+
+    entry features (
+        name: Feature Configuration
+        pageNumber: 10020
+        execution {
+            sequence: 430
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 10020
+            }
+        }
+    )
+
+    entry audit (
+        name: Audit Log
+        pageNumber: 111
+        execution {
+            sequence: 180
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 111
+            }
+        }
+    )
+
 )
