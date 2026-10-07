@@ -1,4 +1,4 @@
-create table xxfnd_df_contexts_tl (
+create table if not exists xxfnd_df_contexts_tl (
     descriptive_flexfield_code varchar2(60) not null,
     context_code           varchar2(80)   not null,
     language_code          varchar2(10)   not null,
@@ -16,7 +16,7 @@ create table xxfnd_df_contexts_tl (
         references xxfnd_df_contexts (descriptive_flexfield_code, context_code) on delete cascade
 );
 
-create table xxfnd_df_segments (
+create table if not exists xxfnd_df_segments (
     descriptive_flexfield_code varchar2(60) not null,
     context_code           varchar2(80)   not null,
     segment_code           varchar2(30)   not null,
@@ -53,11 +53,11 @@ create table xxfnd_df_segments (
     constraint xxfnd_df_segments_ck7 check (regexp_like(column_name,
         '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$'))
 );
-create index xxfnd_df_segments_n1 on xxfnd_df_segments (value_set_code);
+create index if not exists xxfnd_df_segments_n1 on xxfnd_df_segments (value_set_code);
 comment on table  xxfnd_df_segments is 'Segments (FND_DESCR_FLEX_COLUMN_USAGES): maps a field to one reserved column. XXFND_DFF_PKG also checks that the column family matches the value set format and that GLOBAL columns are not reused by other contexts.';
 comment on column xxfnd_df_segments.default_value is 'CONSTANT: the literal. SQL: a query returning one value; may reference :CONTEXT_CODE.';
 
-create table xxfnd_df_segments_tl (
+create table if not exists xxfnd_df_segments_tl (
     descriptive_flexfield_code varchar2(60) not null,
     context_code           varchar2(80)   not null,
     segment_code           varchar2(30)   not null,
