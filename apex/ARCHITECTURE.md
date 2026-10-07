@@ -79,6 +79,7 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - **Release 50 (patch 35):** script 00a-prerequisites-check (sequence 1, install + upgrade, both apps) checks the parsing schema's privileges / DBMS_RLS / DBMS_CRYPTO / quota and fails with ORA-20900 listing the ADMIN statements; supporting-objects prerequisites block removed; INSTALL.md in both app trees and admin/create-xxfus-schema.sql in COMMON are shipped inside the release zips.
 - **Release 51 (patch 36):** the COMMON schema is XXFUSION (a schema of the XXCUS workspace; XXCUS primary): parsing schema, source folder `src/database/xxfusion/apex_apps/f135`, ADMIN script `create-xxfusion-schema.sql`. Read XXFUS in releases 49–50 as XXFUSION.
 - **Release 52 (patch 37):** COMMON scripts carry a server-side condition current_schema = XXFUSION (build.py REQUIRED_SCHEMA; checks 00a/00b exempt); new COMMON-only script 00b-common-schema-check raises ORA-20901 with the fix when the parsing schema is not XXFUSION. Note: APEX supporting objects continue after a failed script, so guards must be conditions, not errors.
+- **Release 53 (patch 38):** application zips hold APEXlang files only (the App Builder import wizard shows a blank page on other files); build.py also writes <APP>-Install-Pack_N.zip = application zip + install/<APP>/INSTALL.md + ADMIN scripts from db/admin.
 
 ## Tooling
 - Page generators: `tools/pagekit.py` (shared helpers), `pages_chunk5.py` (200-217), `pages_chunk6.py` (220-230),

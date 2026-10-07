@@ -15,8 +15,11 @@ supporting-objects/upgrade-scripts/, so this tool writes a copy into each folder
 
 Usage:
   python3 apex/tools/build.py                 # regenerate apex/src/database/xxcus/apex_apps/f134/supporting-objects
-  python3 apex/tools/build.py --release 12    # ... and write apex/KYC-Compliance-Platform-APEXlang_12.zip
-                                              #     and apex/COMMON-Application-APEXlang_12.zip
+  python3 apex/tools/build.py --release 12    # ... and write, per application, the APEXlang zip
+                                              #     (apex/KYC-Compliance-Platform-APEXlang_12.zip, COMMON-...) and the
+                                              #     install pack (apex/KYC-Install-Pack_12.zip: that zip + install/<APP>/
+                                              #     INSTALL.md + ADMIN scripts). The APEXlang zip holds APEXlang files only:
+                                              #     App Builder's import wizard shows a blank page on any other file.
 """
 import argparse, json, os, re, shutil, zipfile
 
@@ -30,6 +33,8 @@ APPS = {
 # there, so an import with the wrong parsing schema installs nothing and 00b says how to fix it.
 REQUIRED_SCHEMA = {'COMMON': 'XXFUSION'}
 CHECKS = ('00a-', '00b-')
+# ADMIN scripts shipped in an application's install pack (apex/db/admin/...)
+ADMIN_SCRIPTS = {'COMMON': ['create-xxfusion-schema.sql']}
 
 
 def ident(name):
@@ -88,6 +93,13 @@ def release(app, n):
                 p = os.path.join(d, f)
                 z.write(p, os.path.relpath(p, src))
     print('wrote', target)
+    pack = os.path.join(ROOT, f'{app}-Install-Pack_{n}.zip')
+    with zipfile.ZipFile(pack, 'w', zipfile.ZIP_DEFLATED) as z:
+        z.write(target, os.path.basename(target))
+        z.write(os.path.join(ROOT, 'install', app, 'INSTALL.md'), 'INSTALL.md')
+        for f in ADMIN_SCRIPTS.get(app, []):
+            z.write(os.path.join(DB, 'admin', f), 'admin/' + f)
+    print('wrote', pack)
 
 
 if __name__ == '__main__':

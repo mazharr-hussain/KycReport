@@ -1,10 +1,13 @@
 # COMMON application – installation
 
-Everything needed is in this zip: the application, its database scripts (Supporting Objects) and the ADMIN
-script `admin/create-xxfusion-schema.sql`.
+This install pack holds everything needed:
+- `COMMON-Application-APEXlang_<N>.zip` - the application with its database scripts (Supporting Objects).
+  **Import this file**, not the pack itself (App Builder accepts only the application zip).
+- `admin/create-xxfusion-schema.sql` - the ADMIN script.
+- this INSTALL.md.
 
 ## Steps
-1. **App Builder → Import** this zip into the workspace (XXCUS) → new application (any free ID).
+1. **App Builder → Import** the application zip into the workspace (XXCUS) → new application (any free ID).
    On the Install step set **Parsing Schema = XXFUSION**. The export already names XXFUSION, so it is preselected
    when XXFUSION is a schema of the workspace. Do not leave it at the workspace default XXCUS.
    Then set **Install Supporting Objects: Yes**.
