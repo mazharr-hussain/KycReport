@@ -321,4 +321,53 @@ breadcrumb breadcrumb (
         }
     )
 
+
+    entry purposes (
+        name: Integration Purposes
+        pageNumber: 122
+        execution {
+            sequence: 220
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 122
+            }
+        }
+    )
+
+    entry endpoints (
+        name: Integration Endpoints
+        pageNumber: 120
+        execution {
+            sequence: 210
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 120
+            }
+        }
+    )
+
+    entry transmissions (
+        name: Transmission Log
+        pageNumber: 124
+        execution {
+            sequence: 230
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 124
+            }
+        }
+    )
+
 )
