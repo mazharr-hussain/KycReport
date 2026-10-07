@@ -117,6 +117,12 @@
   "upgrade_sequence": 120
  },
  {
+  "name": "16j Authentication and authorization",
+  "file": "16j-auth-pkg.sql",
+  "install_sequence": 175,
+  "upgrade_sequence": 135
+ },
+ {
   "name": "17 Seed data and administrator - part 1 of 2",
   "file": "17-seed-data-and-administrator-part-1-of-2.sql",
   "install_sequence": 170,

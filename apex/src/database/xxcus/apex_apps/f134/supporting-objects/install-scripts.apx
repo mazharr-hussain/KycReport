@@ -268,6 +268,15 @@ installScript 16i-request-ui (
     }
 )
 
+installScript 16j-authentication-and-authorization (
+    execution {
+        sequence: 175
+    }
+    script {
+        contentFile: 16j-auth-pkg.sql
+    }
+)
+
 installScript 18-seed-data-and-administrator-part-2-of-2 (
     execution {
         sequence: 180
