@@ -187,6 +187,15 @@ installScript 16-kyc-rules (
     }
 )
 
+installScript 16e0-party-logic-specification (
+    execution {
+        sequence: 164
+    }
+    script {
+        contentFile: 16e0-party-pkg-spec.sql
+    }
+)
+
 installScript 16b-kyc-requests-and-cases (
     execution {
         sequence: 165

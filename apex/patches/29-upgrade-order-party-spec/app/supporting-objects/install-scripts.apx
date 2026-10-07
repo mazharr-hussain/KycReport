@@ -1,0 +1,350 @@
+installScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+)
+
+installScript 01-common-tables-xxfnd-part-1-of-3 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 01-common-tables-xxfnd-part-1-of-3.sql
+    }
+)
+
+installScript 02-common-tables-xxfnd-part-2-of-3 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 02-common-tables-xxfnd-part-2-of-3.sql
+    }
+)
+
+installScript 03-common-tables-xxfnd-part-3-of-3 (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 03-common-tables-xxfnd-part-3-of-3.sql
+    }
+)
+
+installScript 04-kyc-tables-xxcmp (
+    execution {
+        sequence: 40
+    }
+    script {
+        contentFile: 04-kyc-tables-xxcmp.sql
+    }
+)
+
+installScript 04a-employees-fusion-user (
+    execution {
+        sequence: 45
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+)
+
+installScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2.sql
+    }
+)
+
+installScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+)
+
+installScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+)
+
+installScript 08-row-rules (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+)
+
+installScript 09-views (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+)
+
+installScript 09b-security-framework-objects (
+    execution {
+        sequence: 95
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+)
+
+installScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+)
+
+installScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+)
+
+installScript 12-flexfield-setup (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+)
+
+installScript 13a-database-document-store (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+)
+
+installScript 13-document-store (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+)
+
+installScript 14-attachments (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+)
+
+installScript 15-workflow (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+)
+
+installScript 16d-parties (
+    execution {
+        sequence: 158
+    }
+    script {
+        contentFile: 16d-parties.sql
+    }
+)
+
+installScript 16-kyc-rules (
+    execution {
+        sequence: 160
+    }
+    script {
+        contentFile: 16-kyc-rules.sql
+    }
+)
+
+installScript 16e0-party-logic-specification (
+    execution {
+        sequence: 164
+    }
+    script {
+        contentFile: 16e0-party-pkg-spec.sql
+    }
+)
+
+installScript 16b-kyc-requests-and-cases (
+    execution {
+        sequence: 165
+    }
+    script {
+        contentFile: 16b-kyc-requests-cases.sql
+    }
+)
+
+installScript 16c-monitoring (
+    execution {
+        sequence: 166
+    }
+    script {
+        contentFile: 16c-monitoring.sql
+    }
+)
+
+installScript 16e-party-logic (
+    execution {
+        sequence: 167
+    }
+    script {
+        contentFile: 16e-party-pkg.sql
+    }
+)
+
+installScript 16f-party-and-request-redesign (
+    execution {
+        sequence: 168
+    }
+    script {
+        contentFile: 16f-party-request-redesign.sql
+    }
+)
+
+installScript 16g-request-approval-paths (
+    execution {
+        sequence: 169
+    }
+    script {
+        contentFile: 16g-approval-paths.sql
+    }
+)
+
+installScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 170
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+)
+
+installScript 16h-ui-helpers (
+    execution {
+        sequence: 171
+    }
+    script {
+        contentFile: 16h-ui-helpers.sql
+    }
+)
+
+installScript 16i-request-ui (
+    execution {
+        sequence: 172
+    }
+    script {
+        contentFile: 16i-request-ui.sql
+    }
+)
+
+installScript 18-seed-data-and-administrator-part-2-of-2 (
+    execution {
+        sequence: 180
+    }
+    script {
+        contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
+    }
+)
+
+installScript 18b-security-framework-seed (
+    execution {
+        sequence: 185
+    }
+    script {
+        contentFile: 18b-security-framework-seed.sql
+    }
+)
+
+installScript 18c-admin-console (
+    execution {
+        sequence: 187
+    }
+    script {
+        contentFile: 18c-admin-console.sql
+    }
+)
+
+installScript 18d-workflow-platform (
+    execution {
+        sequence: 188
+    }
+    script {
+        contentFile: 18d-workflow-platform.sql
+    }
+)
+
+installScript 18e-kyc-requests-and-cases-seed (
+    execution {
+        sequence: 189
+    }
+    script {
+        contentFile: 18e-kyc-requests-cases.sql
+    }
+)
+
+installScript 18f-monitoring-and-dashboard-seed (
+    execution {
+        sequence: 191
+    }
+    script {
+        contentFile: 18f-monitoring.sql
+    }
+)
+
+installScript 18g-release-15-marker (
+    execution {
+        sequence: 192
+    }
+    script {
+        contentFile: 18g-release-15.sql
+    }
+)
+
+installScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 195
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+)
+
+installScript 19b-enable-automations (
+    execution {
+        sequence: 196
+    }
+    script {
+        contentFile: 19b-enable-automations.sql
+    }
+)
