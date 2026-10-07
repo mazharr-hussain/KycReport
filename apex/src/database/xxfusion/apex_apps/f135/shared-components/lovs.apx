@@ -114,7 +114,7 @@ lov lov-task-definitions (
             ```sql
             select name as display_value, static_id as return_value
               from apex_appl_taskdefs
-             where application_id = :APP_ID
+             where application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP)   -- the application in scope
              order by name
             ```
     }
@@ -436,6 +436,48 @@ lov lov-endpoint-type (
                    lookup_code as return_value
               from xxfnd_lookup_values_vl
              where lookup_type = 'ENDPOINT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-jurisdiction (
+    name: JURISDICTION
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'JURISDICTION'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-retention-action (
+    name: RETENTION_ACTION
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'RETENTION_ACTION'
                and active_flag = 'Y'
              order by display_sequence, meaning
             ```

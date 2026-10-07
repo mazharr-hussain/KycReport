@@ -46,6 +46,8 @@ create or replace package xxfnd_admin_scope_pkg authid definer as
     function policy_change(p_schema in varchar2, p_object in varchar2) return varchar2;
     -- The setup tables scoped by application (policies and the default-application trigger).
     function scoped_tables return apex_t_varchar2;
+    -- APEX application ID of an application (code; recorded at its sign-in), else the running application.
+    function apex_app_id(p_application_code in varchar2) return number;
 end xxfnd_admin_scope_pkg;
 /
 
@@ -160,6 +162,13 @@ create or replace package body xxfnd_admin_scope_pkg as
                                'XXFND_DOCUMENT_CATEGORIES', 'XXFND_ATTACHMENT_FUNCTIONS', 'XXFND_DF_FLEXFIELDS',
                                'XXFND_VALUE_SETS', 'XXFND_RETENTION_POLICIES', 'XXFND_STORAGE_CONFIG');
     end scoped_tables;
+
+    function apex_app_id(p_application_code in varchar2) return number is
+        l_id number;
+    begin
+        select max(apex_application_id) into l_id from xxfnd_applications where application_code = upper(p_application_code);
+        return coalesce(l_id, to_number(v('APP_ID')));
+    end apex_app_id;
 
 end xxfnd_admin_scope_pkg;
 /
