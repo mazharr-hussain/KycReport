@@ -151,6 +151,15 @@ upgradeScript 16-kyc-rules (
     }
 )
 
+upgradeScript 16e0-party-logic-specification (
+    execution {
+        sequence: 124
+    }
+    script {
+        contentFile: 16e0-party-pkg-spec.sql
+    }
+)
+
 upgradeScript 16b-kyc-requests-and-cases (
     execution {
         sequence: 125

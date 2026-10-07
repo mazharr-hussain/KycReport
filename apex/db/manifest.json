@@ -153,6 +153,12 @@
   "upgrade_sequence": 148
  },
  {
+  "name": "16e0 Party logic - specification",
+  "file": "16e0-party-pkg-spec.sql",
+  "install_sequence": 164,
+  "upgrade_sequence": 124
+ },
+ {
   "name": "16b KYC requests and cases",
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,

@@ -1,0 +1,314 @@
+upgradeScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+)
+
+upgradeScript 04a-employees-fusion-user (
+    execution {
+        sequence: 8
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+)
+
+upgradeScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2-upgrade.sql
+    }
+)
+
+upgradeScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+)
+
+upgradeScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+)
+
+upgradeScript 08-row-rules (
+    execution {
+        sequence: 40
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+)
+
+upgradeScript 09-views (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+)
+
+upgradeScript 09b-security-framework-objects (
+    execution {
+        sequence: 55
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+)
+
+upgradeScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+)
+
+upgradeScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+)
+
+upgradeScript 12-flexfield-setup (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+)
+
+upgradeScript 13a-database-document-store (
+    execution {
+        sequence: 85
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+)
+
+upgradeScript 13-document-store (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+)
+
+upgradeScript 14-attachments (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+)
+
+upgradeScript 15-workflow (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+)
+
+upgradeScript 16d-parties (
+    execution {
+        sequence: 118
+    }
+    script {
+        contentFile: 16d-parties.sql
+    }
+)
+
+upgradeScript 16-kyc-rules (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: 16-kyc-rules.sql
+    }
+)
+
+upgradeScript 16e0-party-logic-specification (
+    execution {
+        sequence: 124
+    }
+    script {
+        contentFile: 16e0-party-pkg-spec.sql
+    }
+)
+
+upgradeScript 16b-kyc-requests-and-cases (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 16b-kyc-requests-cases.sql
+    }
+)
+
+upgradeScript 16c-monitoring (
+    execution {
+        sequence: 126
+    }
+    script {
+        contentFile: 16c-monitoring.sql
+    }
+)
+
+upgradeScript 16e-party-logic (
+    execution {
+        sequence: 127
+    }
+    script {
+        contentFile: 16e-party-pkg.sql
+    }
+)
+
+upgradeScript 16f-party-and-request-redesign (
+    execution {
+        sequence: 128
+    }
+    script {
+        contentFile: 16f-party-request-redesign.sql
+    }
+)
+
+upgradeScript 16g-request-approval-paths (
+    execution {
+        sequence: 129
+    }
+    script {
+        contentFile: 16g-approval-paths.sql
+    }
+)
+
+upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+)
+
+upgradeScript 16h-ui-helpers (
+    execution {
+        sequence: 131
+    }
+    script {
+        contentFile: 16h-ui-helpers.sql
+    }
+)
+
+upgradeScript 16i-request-ui (
+    execution {
+        sequence: 132
+    }
+    script {
+        contentFile: 16i-request-ui.sql
+    }
+)
+
+upgradeScript 18-seed-data-and-administrator-part-2-of-2 (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
+    }
+)
+
+upgradeScript 18b-security-framework-seed (
+    execution {
+        sequence: 145
+    }
+    script {
+        contentFile: 18b-security-framework-seed.sql
+    }
+)
+
+upgradeScript 18c-admin-console (
+    execution {
+        sequence: 147
+    }
+    script {
+        contentFile: 18c-admin-console.sql
+    }
+)
+
+upgradeScript 18d-workflow-platform (
+    execution {
+        sequence: 148
+    }
+    script {
+        contentFile: 18d-workflow-platform.sql
+    }
+)
+
+upgradeScript 18e-kyc-requests-and-cases-seed (
+    execution {
+        sequence: 149
+    }
+    script {
+        contentFile: 18e-kyc-requests-cases.sql
+    }
+)
+
+upgradeScript 18f-monitoring-and-dashboard-seed (
+    execution {
+        sequence: 151
+    }
+    script {
+        contentFile: 18f-monitoring.sql
+    }
+)
+
+upgradeScript 18g-release-15-marker (
+    execution {
+        sequence: 152
+    }
+    script {
+        contentFile: 18g-release-15.sql
+    }
+)
+
+upgradeScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 155
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+)
+
+upgradeScript 19b-enable-automations (
+    execution {
+        sequence: 156
+    }
+    script {
+        contentFile: 19b-enable-automations.sql
+    }
+)
