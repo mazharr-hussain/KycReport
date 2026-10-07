@@ -27,6 +27,8 @@ in the repository.
 3. Sign in to COMMON. The user who installed it is the first Common Administrator.
 
 ## Order with the business applications
+Order: COMMON → (once) the ADMIN move script → KYC. Since release 68 KYC opens the shared setup screens in COMMON.
+
 The shared XXFND_ objects live only in XXFUSION; KYC (XXCUS) reaches them through synonyms and grants. Always
 install / upgrade **COMMON first**, then KYC.
 
