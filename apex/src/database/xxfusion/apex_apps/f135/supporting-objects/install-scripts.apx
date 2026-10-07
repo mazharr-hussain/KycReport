@@ -1,0 +1,224 @@
+installScript 00a-prerequisites-check (
+    execution {
+        sequence: 1
+    }
+    script {
+        contentFile: 00a-prerequisites-check.sql
+    }
+)
+
+installScript 00-deployment-framework (
+    execution {
+        sequence: 5
+    }
+    script {
+        contentFile: 00-deployment-framework.sql
+    }
+)
+
+installScript 01-common-tables-xxfnd-part-1-of-3 (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 01-common-tables-xxfnd-part-1-of-3.sql
+    }
+)
+
+installScript 02-common-tables-xxfnd-part-2-of-3 (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: 02-common-tables-xxfnd-part-2-of-3.sql
+    }
+)
+
+installScript 03-common-tables-xxfnd-part-3-of-3 (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: 03-common-tables-xxfnd-part-3-of-3.sql
+    }
+)
+
+installScript 04a-employees-fusion-user (
+    execution {
+        sequence: 45
+    }
+    script {
+        contentFile: 04a-employee-fusion-user.sql
+    }
+)
+
+installScript 04b-applications-and-users (
+    execution {
+        sequence: 47
+    }
+    script {
+        contentFile: 04b-applications-and-users.sql
+    }
+)
+
+installScript 05-core-packages-part-1-of-2 (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: 05-core-packages-part-1-of-2.sql
+    }
+)
+
+installScript 06-core-packages-part-2-of-2 (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: 06-core-packages-part-2-of-2.sql
+    }
+)
+
+installScript 07-who-and-audit-triggers (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: 07-who-and-audit-triggers.sql
+    }
+)
+
+installScript 08-row-rules (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: 08-row-rules.sql
+    }
+)
+
+installScript 09-views (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 09-views.sql
+    }
+)
+
+installScript 09b-security-framework-objects (
+    execution {
+        sequence: 95
+    }
+    script {
+        contentFile: 09b-security-framework-objects.sql
+    }
+)
+
+installScript 10-flexfield-runtime-part-1-of-2 (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: 10-flexfield-runtime-part-1-of-2.sql
+    }
+)
+
+installScript 11-flexfield-runtime-part-2-of-2 (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: 11-flexfield-runtime-part-2-of-2.sql
+    }
+)
+
+installScript 12-flexfield-setup (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: 12-flexfield-setup.sql
+    }
+)
+
+installScript 13a-database-document-store (
+    execution {
+        sequence: 125
+    }
+    script {
+        contentFile: 13a-database-document-store.sql
+    }
+)
+
+installScript 13-document-store (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 13-document-store.sql
+    }
+)
+
+installScript 14-attachments (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: 14-attachments.sql
+    }
+)
+
+installScript 15-workflow (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: 15-workflow.sql
+    }
+)
+
+installScript 17-seed-data-and-administrator-part-1-of-2 (
+    execution {
+        sequence: 170
+    }
+    script {
+        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
+    }
+)
+
+installScript 16h-ui-helpers (
+    execution {
+        sequence: 171
+    }
+    script {
+        contentFile: 16h-ui-helpers.sql
+    }
+)
+
+installScript 16j-authentication-and-authorization (
+    execution {
+        sequence: 175
+    }
+    script {
+        contentFile: 16j-auth-pkg.sql
+    }
+)
+
+installScript 19-reporting-views-and-recompile (
+    execution {
+        sequence: 195
+    }
+    script {
+        contentFile: 19-reporting-views-and-recompile.sql
+    }
+)
+
+installScript 20-common-application-seed (
+    execution {
+        sequence: 200
+    }
+    script {
+        contentFile: 20-common-seed.sql
+    }
+)

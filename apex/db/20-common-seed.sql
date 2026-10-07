@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- 20 COMMON application seed (release 49). Installed by the COMMON application only.
---   The COMMON application (code and alias COMMON) runs on the XXFUS schema and holds what every
+--   The COMMON application (code and alias COMMON) runs on the XXFUSION schema and holds what every
 --   application shares: security, flexfield and attachment setup, workflow. Its own access:
 --     role    COMMON_ADMIN  - administers the shared setup
 --     feature COMMON_HOME   - the home page (page 1)
