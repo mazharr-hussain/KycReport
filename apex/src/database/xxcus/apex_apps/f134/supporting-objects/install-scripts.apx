@@ -28,7 +28,8 @@ installScript 00-deployment-framework (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -45,7 +46,8 @@ installScript 04-kyc-tables-xxcmp (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -62,7 +64,8 @@ installScript 07-who-and-audit-triggers (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -79,7 +82,8 @@ installScript 16d-parties (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -96,7 +100,8 @@ installScript 16-kyc-rules (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -113,7 +118,8 @@ installScript 16e0-party-logic-specification (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -130,7 +136,8 @@ installScript 16b-kyc-requests-and-cases (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -147,7 +154,8 @@ installScript 16c-monitoring (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -164,7 +172,8 @@ installScript 16e-party-logic (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -181,7 +190,8 @@ installScript 16f-party-and-request-redesign (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -198,7 +208,8 @@ installScript 16g-request-approval-paths (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -215,7 +226,8 @@ installScript 17-seed-data-and-administrator-part-1-of-2 (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -232,7 +244,8 @@ installScript 16i-request-ui (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -249,7 +262,8 @@ installScript 18-seed-data-and-administrator-part-2-of-2 (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -266,7 +280,8 @@ installScript 18b-security-framework-seed (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -283,7 +298,8 @@ installScript 18c-admin-console (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -300,7 +316,8 @@ installScript 18d-workflow-platform (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -317,7 +334,8 @@ installScript 18e-kyc-requests-and-cases-seed (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -334,7 +352,8 @@ installScript 18f-monitoring-and-dashboard-seed (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -351,7 +370,8 @@ installScript 18g-release-15-marker (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -368,7 +388,8 @@ installScript 19a-grants-to-the-shared-schema (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -385,7 +406,8 @@ installScript 19-reporting-views-and-recompile (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )
@@ -402,7 +424,8 @@ installScript 19b-enable-automations (
         sqlQuery:
             ```sql
             select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
             ```
     }
 )

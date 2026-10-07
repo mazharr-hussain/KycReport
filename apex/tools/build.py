@@ -51,11 +51,12 @@ def component(kind, name, seq, content_file, schema=None, needs=None):
                 "        sqlExpression:\n            ```sql\n"
                 f"            sys_context('userenv', 'current_schema') = '{schema}'\n            ```\n    }}\n")
     elif needs and not content_file.startswith(CHECKS):
+        # and the one-time move (ADMIN script move-kyc-shared-data-to-xxfusion.sql) is finished
         cond = ("    serverSideCondition {\n        type: rowsReturned\n"
                 "        sqlQuery:\n            ```sql\n"
                 f"            select 1 from all_objects where owner = '{needs[0]}' and object_name = '{needs[1]}'\n"
-                # and this schema no longer has its own copy of the shared tables (03 moved it)
-                "               and not exists (select 1 from user_tables where table_name = 'XXFND_LOOKUP_TYPES')\n"
+                "               and not exists (select 1 from user_tables\n"
+                "                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))\n"
                 "            ```\n    }\n")
     return (f"{kind} {ident(name)} (\n"
             f"    execution {{\n        sequence: {seq}\n    }}\n"
