@@ -1,0 +1,125 @@
+lov lov-employee-source (
+    name: EMPLOYEE_SOURCE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'EMPLOYEE_SOURCE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-employees (
+    name: EMPLOYEES BY USER NAME
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select full_name || ' (' || user_name || ')' as display_value,
+                   user_name as return_value
+              from xxfnd_employees
+             where enabled_flag = 'Y'
+             order by full_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-privileges (
+    name: PRIVILEGES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select f.feature_name || ' - ' || initcap(p.action_code) as display_value,
+                   p.privilege_code as return_value
+              from xxfnd_privileges p
+              join xxfnd_features f on f.feature_code = p.feature_code
+             where f.enabled_flag = 'Y'
+               -- the features of the application in scope and the admin features
+               and (f.admin_flag = 'Y'
+                    or f.application_id = (select a.application_id from xxfnd_applications a
+                                            where a.application_code = :G_ADMIN_APP))
+             order by f.display_sequence, decode(p.action_code, 'VIEW', 1, 'CREATE', 2, 3)
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-roles (
+    name: ROLES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select role_name as display_value, role_code as return_value
+              from xxfnd_roles
+             where enabled_flag = 'Y'
+               and application_code = :G_ADMIN_APP   -- the application in scope (COMMON setup screens)
+             order by role_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-sod-scope (
+    name: SOD_SCOPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'SOD_SCOPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-task-definitions (
+    name: TASK DEFINITIONS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select name as display_value, static_id as return_value
+              from apex_appl_taskdefs
+             where application_id = :APP_ID
+             order by name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
