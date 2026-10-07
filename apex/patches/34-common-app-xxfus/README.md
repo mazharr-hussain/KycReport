@@ -22,8 +22,10 @@ for users; it still uses its own XXFND_ copy in XXCUS until step 3 moves the dat
 - `tools/build.py` builds both applications' supporting objects and release zips.
 
 ## Deploy – two application imports
-1. Once per environment, as ADMIN: run `db/admin/create-xxfus-schema.sql` (it asks for the XXFUS password, the
-   tablespace – `DATA` on ATP – and the workspace).
+1. XXFUS is already a schema of the XXCUS workspace (XXCUS stays the primary schema), so no new user or
+   workspace change is needed. Only check, as ADMIN, that XXFUS has the grants at the end of
+   `db/admin/create-xxfus-schema.sql`: `execute on DBMS_RLS` and `DBMS_CRYPTO`, plus create table / view /
+   procedure / trigger / type / sequence / job. The script is safe to re-run on an existing XXFUS.
 2. **App Builder → Import** `COMMON-Application-APEXlang_49.zip` → new application (any free ID) → parsing schema
    **XXFUS** → **Install Supporting Objects: Yes**.
 3. **App Builder → Import** `KYC-Compliance-Platform-APEXlang_49.zip` → **Replace Existing Application** 134 →

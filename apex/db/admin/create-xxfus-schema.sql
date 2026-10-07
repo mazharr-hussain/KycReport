@@ -1,4 +1,5 @@
 -- One-time DBA step (run as ADMIN on ATP / SYS locally) before importing the COMMON app.
+-- Where XXFUS already exists and is a schema of the workspace, only the grants matter; the rest is skipped.
 -- Creates the XXFUS schema (Fusion web-service data and every shared object) and adds it
 -- to the APEX workspace so the COMMON app can parse as XXFUS. Safe to re-run.
 -- Prompts for: xxfus_password, tablespace (DATA on ATP), workspace (the APEX workspace of the apps).
