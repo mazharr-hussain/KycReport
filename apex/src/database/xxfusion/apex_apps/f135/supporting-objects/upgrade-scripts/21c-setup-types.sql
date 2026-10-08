@@ -142,7 +142,7 @@ create or replace package body xxfnd_setup_type_pkg as
                 for each row
             begin
                 -- release 73 (21c): the level the setup type is kept at (XXFND_SETUP_TYPES)
-                if inserting or decode(:new.application_code, :old.application_code, 0, 1) = 1 then
+                if inserting or nvl(:new.application_code, ''#'') <> nvl(:old.application_code, ''#'') then
                     xxfnd_setup_type_pkg.check_level(''' || t.table_name || ''', :new.application_code);
                 end if;
             end;';

@@ -69,9 +69,10 @@ create or replace package body xxfnd_workflow_switch_pkg as
 
     function workflow_enabled(p_process_code in varchar2, p_application_code in varchar2 default null) return varchar2 is
         l_flag xxfnd_workflow_processes.workflow_enabled_flag%type;
+        l_app  xxfnd_applications.application_code%type := app_code(p_application_code);
     begin
         select max(workflow_enabled_flag) into l_flag from xxfnd_workflow_processes
-         where application_code = app_code(p_application_code) and process_code = upper(p_process_code);
+         where application_code = l_app and process_code = upper(p_process_code);
         return nvl(l_flag, 'Y');
     end workflow_enabled;
 
