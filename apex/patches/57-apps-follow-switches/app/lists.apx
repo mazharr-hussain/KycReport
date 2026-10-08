@@ -1,0 +1,596 @@
+list navigation-bar (
+    name: Navigation Bar
+
+    entry feedback (
+        label: Feedback
+        icon {
+            imageIconCssClasses: fa-comment-o
+        }
+        layout {
+            sequence: 5
+        }
+        link {
+            target: {
+                page: 10050
+                items: {
+                    P10050_PAGE_ID: &APP_PAGE_ID.
+                }
+                clearCache: 10050
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Feedback') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry customize (
+        label: Customize
+        layout {
+            sequence: 15
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: #customize-theme
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Theme Style Selection') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry about (
+        label: About
+        layout {
+            sequence: 18
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                page: 10010
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - About Page') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry --- (
+        label: ---
+        layout {
+            sequence: 20
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+
+    entry home (
+        label: Home
+        icon {
+            imageIconCssClasses: fa-home
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry worklist (
+        label: My Tasks
+        icon {
+            imageIconCssClasses: fa-inbox
+        }
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 40
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(40, 'VIEW')
+                ```
+        }
+    )
+
+    entry kyc-requests (
+        label: KYC Requests
+        icon {
+            imageIconCssClasses: fa-file-text-o
+        }
+        layout {
+            sequence: 25
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(200, 'VIEW')
+                ```
+        }
+    )
+
+    entry parties (
+        label: Parties
+        icon {
+            imageIconCssClasses: fa-building-o
+        }
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 20
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(20, 'VIEW')
+                ```
+        }
+    )
+
+    entry cases (
+        label: Cases
+        icon {
+            imageIconCssClasses: fa-briefcase
+        }
+        layout {
+            sequence: 35
+        }
+        link {
+            target: {
+                page: 210
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(210, 'VIEW')
+                ```
+        }
+    )
+
+    entry monitoring (
+        label: Monitoring Watchlist
+        icon {
+            imageIconCssClasses: fa-eye
+        }
+        layout {
+            sequence: 40
+        }
+        link {
+            target: {
+                page: 220
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(220, 'VIEW')
+                ```
+        }
+    )
+
+    entry dashboard (
+        label: Executive Dashboard
+        icon {
+            imageIconCssClasses: fa-area-chart
+        }
+        layout {
+            sequence: 50
+        }
+        link {
+            target: {
+                page: 230
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_page_privilege(230, 'VIEW')
+                ```
+        }
+    )
+
+    entry administration (
+        label: Administration
+        icon {
+            imageIconCssClasses: fa-gear
+        }
+        layout {
+            sequence: 90
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_any_admin_privilege
+                ```
+        }
+    )
+
+)
+
+list admin-basic-setup (
+    name: Administration - Basic Setup
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open and that has a page in this application
+            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
+             where m.feature_group = 'BASIC_SETUP'
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)
+
+list admin-workflow-integration (
+    name: Administration - Workflow and Integration
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open and that has a page in this application
+            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
+             where m.feature_group = 'WORKFLOW_INTEGRATION'
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)
+
+list admin-security (
+    name: Administration - Security
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open and that has a page in this application
+            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
+             where m.feature_group = 'SECURITY'
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)
+
+list admin-application (
+    name: Administration - Application
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- One entry per feature of this group that the user may open and that has a page in this application
+            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
+             where m.feature_group = 'APPLICATION'
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)
+
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   xxfnd_admin_scope_pkg.setup_page_url(fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               -- release 72: only tabs whose page is in this application
+               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y'
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
+)
+
+list activity-menu (
+    name: Activity Reports
+
+    entry top-users (
+        label: Top Users
+        icon {
+            imageIconCssClasses: fa-users
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 10031
+            }
+        }
+    )
+
+    entry app-errors (
+        label: Application Errors
+        icon {
+            imageIconCssClasses: fa-warning
+        }
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 10032
+            }
+        }
+    )
+
+    entry page-performance (
+        label: Page Performance
+        icon {
+            imageIconCssClasses: fa-clock-o
+        }
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 10033
+            }
+        }
+    )
+
+)
+
+list request-wizard (
+    name: Request Wizard
+
+    entry step-1 (
+        label: Counterparty
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry step-party (
+        label: Party Details
+        layout {
+            sequence: 15
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Questionnaire
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review and Submit
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)
+
+list party-wizard (
+    name: Party Wizard
+
+    entry step-1 (
+        label: Party Information
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Party Details
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 21
+            }
+        }
+    )
+)

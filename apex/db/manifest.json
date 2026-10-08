@@ -392,6 +392,15 @@
   ]
  },
  {
+  "name": "09d Application functions - table and package",
+  "file": "09d-application-functions.sql",
+  "install_sequence": 98,
+  "upgrade_sequence": 58,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "19a Grants to the shared schema",
   "file": "19a-grants-to-shared-schema.sql",
   "install_sequence": 193,

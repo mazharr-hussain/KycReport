@@ -237,6 +237,23 @@ installScript 09c-shared-objects-formerly-in-kyc-scripts (
     }
 )
 
+installScript 09d-application-functions-table-and-package (
+    execution {
+        sequence: 98
+    }
+    script {
+        contentFile: 09d-application-functions.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 10-flexfield-runtime-part-1-of-2 (
     execution {
         sequence: 100

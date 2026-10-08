@@ -41,3 +41,9 @@ rules, mandatory documents, approval matrix, alert rules, workflow monitor, sett
 4. If COMMON was not installed first, the install reports **ORA-20902 ACTION NEEDED** (script 03) and installs
    nothing else. Import COMMON, then come back: **Utilities → Supporting Objects → Install Supporting Objects**
    (or **Upgrade**).
+
+## Shared setup (release 72)
+The shared setup (lookups, flexfields, attachments, notifications, roles and users, data security...) is maintained by IT
+in the COMMON application, which only IT can open. IT switches on which common functions KYC may use (COMMON >
+Administration > Applications > KYC); a function switched off disappears from KYC. KYC's Administration keeps only
+KYC's own setup screens.
