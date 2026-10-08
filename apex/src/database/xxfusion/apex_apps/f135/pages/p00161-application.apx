@@ -512,7 +512,7 @@ page 161 (
                     ```sql
                     select feature_name as display_value, feature_code as return_value
                       from xxfnd_features
-                     where admin_flag = 'Y'
+                     where feature_code in (select column_value from table(xxfnd_app_function_pkg.common_functions))
                      order by display_sequence
                     ```
             }
@@ -600,6 +600,12 @@ page 161 (
             htmlDomId: overview
         }
         componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
             showNullValuesAs: -
         }
         messages {

@@ -1,10 +1,9 @@
 --------------------------------------------------------------------------------
 -- 21b Application functions (release 72). COMMON only (XXFUSION), after 21.
 --   IT registers the applications (XXFND_APPLICATIONS, page 160/161) and switches on, per application, the common
---   functions it may use (XXFND_APPLICATION_FUNCTIONS). The functions are the COMMON admin features
---   (XXFND_FEATURES.ADMIN_FLAG = Y: Lookups, Flexfields, Attachments, Notifications, Retention, Workflow Setup,
---   Integrations, Users & Access, Roles & Privileges, Data Security, Audit Log, Application Settings); a feature
---   added there can be switched on too.
+--   functions it may use (XXFND_APPLICATION_FUNCTIONS). The functions are the admin features with a COMMON setup
+--   page (Lookups, Flexfields, Attachments, Notifications, Retention, Workflow Setup, Integrations, Users and Access,
+--   Roles and Privileges, Data Security, Audit Log, Application Settings); a feature added there gets a switch too.
 --   XXFND_APP_FUNCTION_PKG.IS_ENABLED(application, function) - Y / N - is what an application asks before it
 --   shows or runs a common function; the COMMON setup forms list only applications with the function on.
 -- Idempotent (release 69 rule: CREATE_TABLE only when missing; changes as checked steps).
@@ -42,6 +41,8 @@ create or replace package xxfnd_app_function_pkg authid definer as
     -- One row per common function for the application (switched off), so IT only flips switches. Also called for
     -- every registered application by this script.
     procedure ensure_rows(p_application_code in varchar2);
+    -- The common functions: the admin features with a COMMON setup page (not Applications itself).
+    function common_functions return apex_t_varchar2;
     -- Registration (page 161): grants on the shared objects to the application's schema and the function rows.
     procedure register_application(p_application_code in varchar2);
 end xxfnd_app_function_pkg;
@@ -69,13 +70,23 @@ create or replace package body xxfnd_app_function_pkg as
         return is_enabled(nvl(l_code, upper(v('APP_ALIAS'))), p_feature_code);
     end is_enabled;
 
+    function common_functions return apex_t_varchar2 is
+        l_codes apex_t_varchar2;
+    begin
+        -- the admin features with a COMMON setup page (not the registration itself)
+        select distinct f.feature_code bulk collect into l_codes
+          from xxfnd_features f
+          join xxfnd_feature_pages fp on fp.feature_code = f.feature_code and fp.app_alias = 'COMMON'
+         where f.admin_flag = 'Y' and f.feature_code <> 'APPLICATIONS';
+        return l_codes;
+    end common_functions;
+
     procedure ensure_rows(p_application_code in varchar2) is
     begin
         insert into xxfnd_application_functions (application_code, feature_code, enabled_flag)
         select upper(p_application_code), f.feature_code, 'N'
           from xxfnd_features f
-         where f.admin_flag = 'Y'
-           and f.feature_code <> 'APPLICATIONS'
+         where f.feature_code in (select column_value from table(common_functions))
            and not exists (select 1 from xxfnd_application_functions x
                             where x.application_code = upper(p_application_code) and x.feature_code = f.feature_code);
     end ensure_rows;
@@ -101,6 +112,9 @@ declare
 begin
     xxfnd_util_pkg.set_install_mode(true);
     select count(*) into l_new from xxfnd_application_functions;
+    -- not a common function (any more): no switch
+    delete from xxfnd_application_functions
+     where feature_code not in (select column_value from table(xxfnd_app_function_pkg.common_functions));
     for a in (select application_code from xxfnd_applications) loop
         xxfnd_app_function_pkg.ensure_rows(a.application_code);
     end loop;

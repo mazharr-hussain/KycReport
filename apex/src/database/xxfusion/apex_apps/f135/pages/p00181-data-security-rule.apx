@@ -228,7 +228,7 @@ page 181 (
             nullDisplayValue: - Select -
         }
         cascadingLov {
-            parentItems: P181_TABLE_NAME
+            parentItems: P181_TABLE_NAME,P181_ROLE_CODE
         }
         layout {
             sequence: 40

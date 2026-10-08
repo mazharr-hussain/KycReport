@@ -440,3 +440,20 @@ upgradeScript 21-common-administration-seed (
             ```
     }
 )
+
+upgradeScript 21b-application-functions (
+    execution {
+        sequence: 171
+    }
+    script {
+        contentFile: 21b-application-functions.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

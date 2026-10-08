@@ -186,6 +186,9 @@ page 160 (
 
         column APPLICATION_ID (
             type: hidden
+            heading {
+                heading: Id
+            }
             layout {
                 sequence: 80
             }
@@ -196,6 +199,9 @@ page 160 (
 
         column OPEN_URL (
             type: hidden
+            heading {
+                heading: Open Url
+            }
             layout {
                 sequence: 90
             }

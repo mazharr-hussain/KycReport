@@ -1,4 +1,4 @@
-# Patch 56 – COMMON for IT, every application on the setup screens, Administration tree (release 71: COMMON only)
+# Patch 56 – COMMON for IT, every application on the setup screens, Administration tree, applications and their common functions (release 71: COMMON only)
 
 ## What changes
 - **COMMON is for IT only.** Only users with the role Common Administrator (COMMON_ADMIN) can sign in and use it;
@@ -13,7 +13,17 @@
 - **Navigation menu:** Home and an **Administration** tree - Basic Setup, Workflow & Integration, Security,
   Application - with every component opening directly.
 
-## Database (COMMON: 16i, 16j - re-run on upgrade)
+- **Applications** (Administration > Application > Applications, pages 160/161): IT registers an application (code,
+  name, APEX application, schema), which gives its schema the grants on the shared objects. Each application has a
+  switch per **common function** (Lookups, Flexfields, Attachments, Notifications, Retention, Workflow Setup,
+  Integrations, Users & Access, Roles & Privileges, Data Security, Audit Log, Application Settings): a new application
+  starts with all off; KYC and COMMON start with all on (nothing changes for them). The **Setup Overview** shows, per
+  function, whether it is on, how many setup rows the application has, and opens the screen filtered to it.
+- Setup forms offer an application only when the page's function is switched on for it.
+
+## Database (COMMON: 16i, 16j, 19c, new 21b - re-run on upgrade)
+- 21b: XXFND_APPLICATION_FUNCTIONS and XXFND_APP_FUNCTION_PKG (IS_ENABLED - what an application asks before it
+  shows or runs a common function; used by KYC from the next release).
 - 16i: the scope policies become a view filter for IT (no rows for anyone else); default ALL.
 - 16j: COMMON sign-in and Administration = Common Administrator.
 
