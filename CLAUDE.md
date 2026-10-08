@@ -18,6 +18,15 @@
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
 - **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
   deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it.
+- **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
+  confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
+- **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes
+  and comments, only when it is missing (`XXFND_DDL_PKG.CREATE_TABLE`); an existing table is left as it is. Every
+  change to an existing object is a checked step in a later numbered script (`XXFND_DDL_PKG.ADD_COLUMN`,
+  `DROP_COLUMN`, `ADD_CONSTRAINT`, `DROP_CONSTRAINT`, `ENSURE_INDEX`, `DROP_INDEX`, `ENSURE_SEQUENCE`), listed for
+  install and upgrade, so every database gets exactly what it is missing and a re-run does nothing. Never edit a base
+  CREATE to change an existing table. Test every release with a fresh install, an install over existing objects,
+  an upgrade, a re-run, and the App Builder import screen.
 - **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.
