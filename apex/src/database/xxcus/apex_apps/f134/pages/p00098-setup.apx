@@ -1,0 +1,93 @@
+page 98 (
+    name: Setup
+    alias: SETUP
+    title: &P98_TITLE.
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 1200
+        height: 760
+        chained: false
+    }
+    security {
+        authorizationScheme: @admin-area
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: A common setup screen IT lets this application's administrators maintain, for this application only.
+    }
+
+    region setup (
+        name: Setup
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 73: the COMMON screen of the function (delegated administration), in this application's
+                -- session (shared sign-in), for this application only (COMMON page 99: G_ADMIN_APP, G_ADMIN_LOCK)
+                declare
+                    l_code xxfnd_applications.application_code%type;
+                    l_page xxfnd_features.home_page_id%type;
+                begin
+                    if xxfnd_admin_scope_pkg.delegated_url(:P98_FEATURE) is null then
+                        return '<p>This setup is not managed in this application.</p>';
+                    end if;
+                    select max(application_code) into l_code from xxfnd_applications
+                     where upper(apex_app_alias) = upper(:APP_ALIAS);
+                    select max(home_page_id) into l_page from xxfnd_features where feature_code = upper(:P98_FEATURE);
+                    return '<iframe class="kyc-setup-frame" title="' || apex_escape.html_attribute(:P98_TITLE) || '" src="'
+                        || apex_escape.html_attribute(apex_page.get_url(p_application => 'COMMON', p_page => 99,
+                               p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
+                               p_values => l_code || ',Y,' || to_char(l_page)))
+                        || '" style="width:100%;height:660px;border:0"></iframe>';
+                end;
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P98_FEATURE (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @setup
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P98_TITLE (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @setup
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select feature_name from xxfnd_features where feature_code = upper(:P98_FEATURE)
+                ```
+            used: always
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+)

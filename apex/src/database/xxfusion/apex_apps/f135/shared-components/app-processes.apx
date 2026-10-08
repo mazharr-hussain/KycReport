@@ -5,9 +5,9 @@ appProcess SET_ADMIN_APP (
         language: plsql
         plsqlCode:
             ```plsql
-            -- release 61: the application the setup screens work for - the requested one when the user administers it,
-            -- otherwise the first one the user administers (XXFND_ADMIN_SCOPE_PKG)
-            :G_ADMIN_APP := xxfnd_admin_scope_pkg.default_application(:G_ADMIN_APP);
+            -- release 73: no application filter - every application (ALL), unless an application opened a setup
+            -- screen for itself (delegated: G_ADMIN_LOCK = Y, page 99)
+            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_admin_scope_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
             ```
     }
     execution {

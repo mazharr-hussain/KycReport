@@ -39,38 +39,6 @@ page 10022 (
         }
     )
 
-    region choose-application (
-        name: Choose an Application
-        type: staticContent
-        source {
-            htmlCode:
-                ```html
-                <p>These settings belong to one application. Choose it in the Application selector above.</p>
-                ```
-        }
-        layout {
-            sequence: 15
-            slot: BODY
-        }
-        appearance {
-            template: @/alert
-            templateOptions: [
-                #DEFAULT#
-                t-Alert--info
-                t-Alert--horizontal
-                t-Alert--defaultIcons
-            ]
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :G_ADMIN_APP = 'ALL'   -- release 71: no single application chosen
-                ```
-        }
-    )
-
     region report (
         name: Application Settings
         type: interactiveReport
@@ -79,13 +47,17 @@ page 10022 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select s.name,
+                -- release 73: every registered application (no application filter)
+                select a.application_code,
+                       s.name,
                        s.value,
                        s.comments,
                        s.is_required,
-                       apex_page.get_url(p_page => 10023, p_items => 'P10023_NAME', p_values => s.name, p_clear_cache => '10023') as open_url
+                       apex_page.get_url(p_page => 10023, p_items => 'P10023_APPLICATION_CODE,P10023_NAME',
+                                         p_values => a.application_code || ',' || s.name, p_clear_cache => '10023') as open_url
                   from apex_application_settings s
-                 where s.application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP)
+                  join xxfnd_applications a on a.apex_application_id = s.application_id
+                 where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
                 ```
         }
         layout {
@@ -117,6 +89,19 @@ page 10022 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column NAME (
             type: plainText

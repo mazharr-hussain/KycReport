@@ -184,6 +184,14 @@ page 106 (
         validation {
             valueRequired: true
         }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
+        }
         source {
             formRegion: @form
             column: APPLICATION_CODE

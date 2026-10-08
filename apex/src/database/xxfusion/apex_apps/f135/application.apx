@@ -56,7 +56,7 @@ app COMMON (
         checksumSalt: 29C4B123A65CB0DFF9F412D4E8AA0BA2E82573C69B40FAAFCA8B80C41D184012
     }
     security {
-        embedInFrames: deny
+        embedInFrames: allowSameOrigin
         htmlEscapingMode: extended
     }
     runtime {

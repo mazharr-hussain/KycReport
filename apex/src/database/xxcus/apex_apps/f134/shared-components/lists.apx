@@ -320,7 +320,9 @@ list admin-basic-setup (
             -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
             select null                                    as lvl,
                    m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
+                   -- release 73: a common function IT lets this application manage opens in its Setup dialog (page 98)
+                   case when t.page_id is not null then apex_page.get_url(p_page => t.page_id)
+                        else xxfnd_admin_scope_pkg.delegated_url(m.feature_code) end as target,
                    'NO'                                    as is_current,
                    m.icon_css                              as image,
                    null                                    as image_attribute,
@@ -334,7 +336,7 @@ list admin-basic-setup (
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
                               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'BASIC_SETUP'
-               and t.page_id is not null
+               and (t.page_id is not null or xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null)
              order by m.display_sequence
             ```
     }
@@ -350,7 +352,9 @@ list admin-workflow-integration (
             -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
             select null                                    as lvl,
                    m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
+                   -- release 73: a common function IT lets this application manage opens in its Setup dialog (page 98)
+                   case when t.page_id is not null then apex_page.get_url(p_page => t.page_id)
+                        else xxfnd_admin_scope_pkg.delegated_url(m.feature_code) end as target,
                    'NO'                                    as is_current,
                    m.icon_css                              as image,
                    null                                    as image_attribute,
@@ -364,7 +368,7 @@ list admin-workflow-integration (
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
                               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'WORKFLOW_INTEGRATION'
-               and t.page_id is not null
+               and (t.page_id is not null or xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null)
              order by m.display_sequence
             ```
     }
@@ -380,7 +384,9 @@ list admin-security (
             -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
             select null                                    as lvl,
                    m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
+                   -- release 73: a common function IT lets this application manage opens in its Setup dialog (page 98)
+                   case when t.page_id is not null then apex_page.get_url(p_page => t.page_id)
+                        else xxfnd_admin_scope_pkg.delegated_url(m.feature_code) end as target,
                    'NO'                                    as is_current,
                    m.icon_css                              as image,
                    null                                    as image_attribute,
@@ -394,7 +400,7 @@ list admin-security (
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
                               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'SECURITY'
-               and t.page_id is not null
+               and (t.page_id is not null or xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null)
              order by m.display_sequence
             ```
     }
@@ -410,7 +416,9 @@ list admin-application (
             -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
             select null                                    as lvl,
                    m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
+                   -- release 73: a common function IT lets this application manage opens in its Setup dialog (page 98)
+                   case when t.page_id is not null then apex_page.get_url(p_page => t.page_id)
+                        else xxfnd_admin_scope_pkg.delegated_url(m.feature_code) end as target,
                    'NO'                                    as is_current,
                    m.icon_css                              as image,
                    null                                    as image_attribute,
@@ -424,7 +432,7 @@ list admin-application (
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
                               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'APPLICATION'
-               and t.page_id is not null
+               and (t.page_id is not null or xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null)
              order by m.display_sequence
             ```
     }

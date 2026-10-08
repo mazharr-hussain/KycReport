@@ -196,6 +196,11 @@ create or replace package body xxcmp_approval_pkg as
         for h in (select l_req.submitted_date as at_time, l_req.requester_user_name as by_user, 'Submitted' as action, null as text
                     from dual where l_req.submitted_date is not null
                   union all
+                  -- release 73: approval workflow switched off for the process
+                  select null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
+                         cast(l_req.auto_approved_date as timestamp), null
+                    from dual where l_req.auto_approved_date is not null
+                  union all
                   select cast(h.event_timestamp as timestamp), h.event_creator,
                          nvl(h.outcome, h.event_type) || nvl2(t.subject, ' - ' || t.subject, null), null
                     from apex_task_history h
@@ -324,10 +329,15 @@ create or replace package body xxcmp_approval_pkg as
             pipe row (xxcmp_history_row(d.level_no, 'Approval level ' || d.level_no, who('ROLE', d.role_code, null),
                                         initcap(d.outcome), d.decided_by, d.at_time, d.comments));
         end loop;
+        if l_case.auto_approved_date is not null then
+            -- release 73: approval workflow switched off for the process
+            pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
+                                        cast(l_case.auto_approved_date as timestamp), null));
+        end if;
         if l_case.case_status = 'INVESTIGATION' then
             pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
         end if;
-        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL') then
+        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL') and l_case.auto_approved_date is null then
             select max(required_levels), max(level1_role_code), max(level2_role_code) into l_levels, l_role1, l_role2
               from xxcmp_approval_matrix
              where risk_tier = case when l_case.enhanced_kyc_flag = 'Y' then 'HIGH' else nvl(l_case.risk_tier, 'HIGH') end;

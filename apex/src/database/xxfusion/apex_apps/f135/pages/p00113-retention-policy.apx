@@ -88,7 +88,7 @@ page 113 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: Shared (every application)
+            nullDisplayValue: All applications (instance)
         }
         layout {
             sequence: 15
@@ -99,6 +99,14 @@ page 113 (
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
         }
         source {
             formRegion: @form
@@ -114,15 +122,32 @@ page 113 (
                 ```
         }
         help {
-            inlineHelpText: Empty: shared by every application.
+            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
         }
     )
 
     pageItem P113_TABLE_NAME (
-        type: textField
+        type: selectList
         label {
             label: Table
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.table_name as display_value, t.table_name as return_value
+                  from xxfnd_setup_tables_v t
+                 -- release 73: the tables of the row's application (all applications: every registered one) and the shared ones
+                 where :P113_APPLICATION_CODE is null or t.application_code = :P113_APPLICATION_CODE or t.application_code is null
+                 group by t.table_name
+                 order by t.table_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P113_APPLICATION_CODE
         }
         layout {
             sequence: 10
@@ -136,7 +161,6 @@ page 113 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -144,7 +168,7 @@ page 113 (
             dataType: varchar2
         }
         help {
-            helpText: Enter the table.
+            helpText: Choose the table.
         }
     )
 

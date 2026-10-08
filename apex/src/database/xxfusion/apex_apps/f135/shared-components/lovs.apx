@@ -500,19 +500,16 @@ lov lov-applications (
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- release 71: the registered applications (COMMON setup forms: the application a row belongs to)
+            -- release 73: the registered applications a row of this page's setup type may belong to (XXFND_SETUP_TYPES;
+            -- COMMON is the instance: the empty value "All applications (instance)"); delegated: its own application only
             select a.application_name || ' (' || a.application_code || ')' as display_value,
                    a.application_code as return_value
               from xxfnd_applications a
              where a.enabled_flag = 'Y'
-               -- release 72: only applications with this page's common function switched on (pages without one: all)
-               and (not exists (select 1 from xxfnd_feature_pages fp
-                                 where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID)
-                    or exists (select 1 from xxfnd_application_functions af
-                                 join xxfnd_feature_pages fp on fp.feature_code = af.feature_code
-                                where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID
-                                  and af.application_code = a.application_code and af.enabled_flag = 'Y'))
-             order by decode(a.application_code, 'COMMON', 1, 0), a.application_name
+               and a.application_code <> 'COMMON'
+               and xxfnd_setup_type_pkg.app_allowed(xxfnd_setup_type_pkg.page_type(:APP_PAGE_ID), a.application_code) = 'Y'
+               and (nvl(:G_ADMIN_APP, 'ALL') = 'ALL' or a.application_code = :G_ADMIN_APP)
+             order by a.application_name
             ```
     }
     columnMapping {

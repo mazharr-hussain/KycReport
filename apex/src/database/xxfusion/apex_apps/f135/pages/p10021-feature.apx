@@ -52,6 +52,18 @@ page 10021 (
         }
     )
 
+    pageItem P10021_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @feature
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P10021_BUILD_OPTION_ID (
         type: hidden
         layout {
@@ -88,7 +100,7 @@ page 10021 (
             sqlQuery:
                 ```sql
                 select build_option_name from apex_application_build_options
-                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP) and build_option_id = :P10021_BUILD_OPTION_ID
+                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:P10021_APPLICATION_CODE) and build_option_id = :P10021_BUILD_OPTION_ID
                 ```
             used: always
         }
@@ -126,7 +138,7 @@ page 10021 (
             sqlQuery:
                 ```sql
                 select upper(build_option_status) from apex_application_build_options
-                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP) and build_option_id = :P10021_BUILD_OPTION_ID
+                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:P10021_APPLICATION_CODE) and build_option_id = :P10021_BUILD_OPTION_ID
                 ```
             used: always
         }
@@ -203,7 +215,7 @@ page 10021 (
             plsqlCode:
                 ```plsql
                 apex_util.set_build_option_status(
-                    p_application_id => xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP),
+                    p_application_id => xxfnd_admin_scope_pkg.apex_app_id(:P10021_APPLICATION_CODE),
                     p_id             => :P10021_BUILD_OPTION_ID,
                     p_build_status   => :P10021_STATUS);
                 ```
