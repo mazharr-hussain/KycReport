@@ -23,7 +23,7 @@ with sync_playwright() as p:
         bad=[w for w in ('ORA-','error occurred','do not have access','not found','Page not available') if w in body]
         check(not bad, f'ADMIN page {n}: {pg.title()} {bad or ""}')
         if n==100:
-            check(pg.query_selector('#P0_ADMIN_APP') is not None, 'page 100 shows the application selector')
+            check(pg.query_selector('#P0_ADMIN_APP') is None, 'page 100 has no application selector (release 73)')
             links=[a.inner_text().split('\n')[0] for a in pg.query_selector_all('.t-MediaList-item a, .t-MediaList-title')]
             print('  menu:', links)
     pg2=b.new_page(); login(pg2,OTHER); body=open_page(pg2, 100)

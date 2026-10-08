@@ -215,7 +215,7 @@ create or replace package body xxfnd_share_pkg as
         pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
         pages('DATA_SECURITY',    '180|181');
         pages('AUDIT_LOG',        '111');
-        pages('APPLICATIONS',     '160|161');
+        pages('APPLICATIONS',     '160=Applications|162=Setup Types|161|163');   -- release 73: Setup Types
         pages('APP_SETTINGS',     '10022=Settings|10020=Optional Features|10021|10023');
 
         -- the Common Administrator holds every admin privilege
