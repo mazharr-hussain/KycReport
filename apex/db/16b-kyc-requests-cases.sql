@@ -297,8 +297,10 @@ begin
         q'~check (beneficial_owner_flag in ('Y','N'))~');
     xxfnd_ddl_pkg.add_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK7',
         q'~check (beneficial_owner_flag = 'N' or ubo_basis in ('OWNERSHIP','CONTROL','FALLBACK'))~');
-    -- the beneficial owners determined so far on cases become marks on the relationships (once: only unmarked rows)
-    update xxcmp_party_relationships r
+    -- the beneficial owners determined so far on cases become marks on the relationships (once: only unmarked rows;
+    -- dynamic: the columns are added in this block)
+    execute immediate q'~
+update xxcmp_party_relationships r
        set (r.beneficial_owner_flag, r.ubo_basis, r.ubo_notes) =
            (select 'Y', max(u.basis) keep (dense_rank last order by u.creation_date),
                    max(u.notes) keep (dense_rank last order by u.creation_date)
@@ -308,7 +310,7 @@ begin
      where r.beneficial_owner_flag = 'N'
        and exists (select 1 from xxcmp_ubo_determinations u
                      join xxcmp_cases c on c.case_id = u.case_id
-                    where u.owner_party_id = r.subject_party_id and c.party_id = r.object_party_id);
+                    where u.owner_party_id = r.subject_party_id and c.party_id = r.object_party_id)~';
     commit;
 end;
 /

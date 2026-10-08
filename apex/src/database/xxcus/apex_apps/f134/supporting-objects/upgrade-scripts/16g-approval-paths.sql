@@ -197,8 +197,7 @@ create or replace package body xxcmp_approval_pkg as
                     from dual where l_req.submitted_date is not null
                   union all
                   -- release 73: approval workflow switched off for the process
-                  select null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
-                         cast(l_req.auto_approved_date as timestamp), null
+                  select cast(l_req.auto_approved_date as timestamp), 'System', xxfnd_workflow_switch_pkg.c_auto_approved, null
                     from dual where l_req.auto_approved_date is not null
                   union all
                   select cast(h.event_timestamp as timestamp), h.event_creator,
@@ -239,6 +238,11 @@ create or replace package body xxcmp_approval_pkg as
                          l_req.requester_user_name as action_by, cast(l_req.submitted_date as timestamp) as action_date,
                          null as comments
                     from dual where l_req.submitted_date is not null
+                  union all
+                  -- release 73: approval workflow switched off for the process
+                  select null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
+                         cast(l_req.auto_approved_date as timestamp), null
+                    from dual where l_req.auto_approved_date is not null
                   union all
                   select null, regexp_substr(t.subject, '^[^:]+'), t.actual_owner,
                          case h.event_type_code when 'COMPLETE'     then nvl(h.outcome, 'Completed')
