@@ -333,6 +333,13 @@ comment on column xxcmp_requests.registration_type is 'Type of REGISTRATION_NUMB
 --------------------------------------------------------------------------------
 -- Requests
 --------------------------------------------------------------------------------
+-- the approval path columns the request package uses (also added by 16g; checked, release 69)
+begin
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
+    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CURRENT_STEP',       'number');
+end;
+/
+
 create or replace package xxcmp_request_pkg authid definer as
 
     -- Requester questionnaire for a party type (PERSON -> INDIVIDUAL, ORGANIZATION -> CORPORATE).

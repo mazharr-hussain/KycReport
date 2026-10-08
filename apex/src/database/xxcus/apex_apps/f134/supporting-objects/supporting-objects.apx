@@ -21,7 +21,7 @@ supportingObject (
     upgrade {
         upgradeWhenSqlQuery:
             ```sql
-            select null from user_tables where table_name = 'XXFND_LOOKUP_TYPES'
+            select null from user_tables where table_name = 'XXCMP_PARTIES'
             ```
     }
     upgradeMessages {
