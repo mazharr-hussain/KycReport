@@ -336,7 +336,7 @@ create or replace package body xxcmp_approval_pkg as
         if l_case.auto_approved_date is not null then
             -- release 73: approval workflow switched off for the process
             pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
-                                        cast(l_case.auto_approved_date as timestamp), null));
+                                        l_case.auto_approved_date, null));
         end if;
         if l_case.case_status = 'INVESTIGATION' then
             pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
