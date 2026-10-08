@@ -51,6 +51,8 @@ create or replace package xxfnd_admin_scope_pkg authid definer as
     -- release 68: link to a setup page from a business application - the page in the running application when it
     -- has it, otherwise the page in COMMON (entry page 99), opened for the running application (locked to it).
     function setup_page_url(p_page_id in number) return varchar2;
+    -- release 72: Y when the running application has the page (menus show only an application's own pages).
+    function local_page(p_page_id in number) return varchar2;
 end xxfnd_admin_scope_pkg;
 /
 
@@ -191,6 +193,14 @@ create or replace package body xxfnd_admin_scope_pkg as
                                  p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
                                  p_values => nvl(l_code, upper(v('APP_ALIAS'))) || ',Y,' || to_char(p_page_id));
     end setup_page_url;
+
+    function local_page(p_page_id in number) return varchar2 is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from apex_application_pages
+         where application_id = to_number(v('APP_ID')) and page_id = p_page_id;
+        return case when l_n > 0 then 'Y' else 'N' end;
+    end local_page;
 
 end xxfnd_admin_scope_pkg;
 /

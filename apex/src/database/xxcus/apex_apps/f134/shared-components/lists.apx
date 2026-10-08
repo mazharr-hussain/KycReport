@@ -331,9 +331,8 @@ list admin-basic-setup (
                                       case when fp.page_id = m.home_page_id then 0 else 1 end,
                                       fp.tab_sequence nulls last, fp.page_id) as page_id
                              from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'BASIC_SETUP'
                and t.page_id is not null
              order by m.display_sequence
@@ -362,9 +361,8 @@ list admin-workflow-integration (
                                       case when fp.page_id = m.home_page_id then 0 else 1 end,
                                       fp.tab_sequence nulls last, fp.page_id) as page_id
                              from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'WORKFLOW_INTEGRATION'
                and t.page_id is not null
              order by m.display_sequence
@@ -393,9 +391,8 @@ list admin-security (
                                       case when fp.page_id = m.home_page_id then 0 else 1 end,
                                       fp.tab_sequence nulls last, fp.page_id) as page_id
                              from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'SECURITY'
                and t.page_id is not null
              order by m.display_sequence
@@ -424,9 +421,8 @@ list admin-application (
                                       case when fp.page_id = m.home_page_id then 0 else 1 end,
                                       fp.tab_sequence nulls last, fp.page_id) as page_id
                              from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
              where m.feature_group = 'APPLICATION'
                and t.page_id is not null
              order by m.display_sequence
@@ -449,7 +445,7 @@ list feature-tabs (
              where fp.app_alias = :APP_ALIAS
                and fp.tab_label is not null
                -- release 72: only tabs whose page is in this application
-               and exists (select 1 from apex_application_pages ap where ap.application_id = :APP_ID and ap.page_id = fp.page_id)
+               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y'
                and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
                                        where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
              order by fp.tab_sequence
