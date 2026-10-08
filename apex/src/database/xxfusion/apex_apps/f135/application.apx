@@ -62,7 +62,7 @@ app COMMON (
     runtime {
         allowFeedback: false
         logging: true
-        compatibilityMode: 24.2
+        compatibilityMode: 26.1
     }
     comments {
         comments:
