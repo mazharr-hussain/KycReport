@@ -45,7 +45,8 @@ page 132 (
                        apex_page.get_url(p_page => 133, p_items => 'P133_CATEGORY_CODE', p_values => to_char(q.category_code), p_clear_cache => '133') as open_url
                   from (
 
-                            select c.category_code, c.category_name,
+                            select nvl(c.application_code, 'Shared') as application_code,
+                                   c.category_code, c.category_name,
                                    xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', c.default_datatype_code) as default_datatype,
                                    c.has_expiry_flag, c.max_age_days, c.enabled_flag, c.start_date_active, c.end_date_active
                               from xxfnd_document_categories_vl c
@@ -81,6 +82,19 @@ page 132 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column CATEGORY_CODE (
             type: plainText

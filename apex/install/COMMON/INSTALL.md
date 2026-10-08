@@ -24,7 +24,8 @@ in the repository.
    Run them as **ADMIN** (Database Actions → SQL), then come back:
    **App Builder → COMMON → Utilities → Supporting Objects → Install Supporting Objects**.
    Every script can be re-run; errors in later scripts of the failed run came from the same missing privilege.
-3. Sign in to COMMON. The user who installed it is the first Common Administrator.
+3. Sign in to COMMON. The user who installed it is the first Common Administrator. COMMON is for IT only (release 71):
+   only users with the role Common Administrator (COMMON_ADMIN) can sign in; give it to the IT administrators.
 
 ## Order with the business applications
 Order: COMMON → (once) the ADMIN move script → KYC. Since release 68 KYC opens the shared setup screens in COMMON.

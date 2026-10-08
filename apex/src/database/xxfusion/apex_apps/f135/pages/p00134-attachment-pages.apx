@@ -51,7 +51,8 @@ page 134 (
                        apex_page.get_url(p_page => 135, p_items => 'P135_FUNCTION_CODE', p_values => to_char(q.function_code), p_clear_cache => '135') as open_url
                   from (
 
-                            select f.function_code, f.function_name, f.apex_app_alias, f.apex_page_id, f.enabled_flag,
+                            select nvl(f.application_code, 'Shared') as application_code,
+                                   f.function_code, f.function_name, f.apex_app_alias, f.apex_page_id, f.enabled_flag,
                                    (select count(*) from xxfnd_attachment_blocks b where b.function_code = f.function_code) as regions
                               from xxfnd_attachment_functions f
                 ) q
@@ -86,6 +87,19 @@ page 134 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column FUNCTION_CODE (
             type: plainText

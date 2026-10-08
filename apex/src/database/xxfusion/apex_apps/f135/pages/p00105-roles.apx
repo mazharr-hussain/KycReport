@@ -48,7 +48,7 @@ page 105 (
                             select r.role_code, r.role_name, r.application_code, r.description, r.view_sensitive_flag, r.enabled_flag,
                                    (select count(*) from xxfnd_user_roles_v v where v.role_code = r.role_code and v.active_flag = 'Y') as holders
                               from xxfnd_roles r
-                             where r.application_code = :G_ADMIN_APP   -- the application in scope
+                             where (:G_ADMIN_APP = 'ALL' or r.application_code = :G_ADMIN_APP)   -- the application filter (ALL: every application)
                 ) q
                 ```
         }

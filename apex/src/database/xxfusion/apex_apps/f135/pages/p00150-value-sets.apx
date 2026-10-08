@@ -51,7 +51,8 @@ page 150 (
                        apex_page.get_url(p_page => 151, p_items => 'P151_VALUE_SET_CODE', p_values => to_char(q.value_set_code), p_clear_cache => '151') as open_url
                   from (
 
-                            select v.value_set_code, v.value_set_name,
+                            select nvl(v.application_code, 'Shared') as application_code,
+                                   v.value_set_code, v.value_set_name,
                                    xxfnd_util_pkg.lookup_meaning('VS_VALIDATION_TYPE', v.validation_type) as validation_type,
                                    xxfnd_util_pkg.lookup_meaning('VS_FORMAT_TYPE', v.format_type) as format_type,
                                    v.maximum_size, v.lookup_type, v.parent_value_set_code
@@ -88,6 +89,19 @@ page 150 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column VALUE_SET_CODE (
             type: plainText

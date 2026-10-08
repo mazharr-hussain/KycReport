@@ -161,10 +161,15 @@ page 106 (
     )
 
     pageItem P106_APPLICATION_CODE (
-        type: textField
+        type: selectList
         label {
-            label: Application Code
+            label: Application
             alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-applications
+            displayNullValue: false
         }
         layout {
             sequence: 20
@@ -178,7 +183,6 @@ page 106 (
         }
         validation {
             valueRequired: true
-            maxLength: 30
         }
         source {
             formRegion: @form
@@ -186,11 +190,15 @@ page 106 (
             dataType: varchar2
         }
         default {
-            type: static
-            staticValue: &G_ADMIN_APP.
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nullif(:G_ADMIN_APP, 'ALL')
+                ```
         }
         help {
-            helpText: Enter the application Code.
+            inlineHelpText: The application the role belongs to.
         }
     )
 

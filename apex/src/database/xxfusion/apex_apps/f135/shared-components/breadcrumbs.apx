@@ -159,6 +159,33 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry applications (
+        name: Applications
+        pageNumber: 160
+        execution {
+            sequence: 400
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 160
+            }
+        }
+    )
+
+    entry application (
+        name: Application
+        pageNumber: 161
+        execution {
+            sequence: 401
+        }
+        appearance {
+            parentEntry: @applications
+        }
+    )
+
     entry lookups (
         name: Lookups
         pageNumber: 101

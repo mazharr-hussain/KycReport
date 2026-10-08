@@ -48,7 +48,8 @@ page 152 (
                        apex_page.get_url(p_page => 153, p_items => 'P153_DESCRIPTIVE_FLEXFIELD_CODE', p_values => to_char(q.descriptive_flexfield_code), p_clear_cache => '153') as open_url
                   from (
 
-                            select f.descriptive_flexfield_code,
+                            select nvl(f.application_code, 'Shared') as application_code,
+                                   f.descriptive_flexfield_code,
                                    (select t.flexfield_name from xxfnd_df_flexfields_tl t
                                      where t.descriptive_flexfield_code = f.descriptive_flexfield_code and t.language_code = 'en') as flexfield_name,
                                    f.table_name, f.context_reference_column, f.enabled_flag,
@@ -87,6 +88,19 @@ page 152 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column DESCRIPTIVE_FLEXFIELD_CODE (
             type: plainText
