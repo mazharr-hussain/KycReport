@@ -269,6 +269,12 @@
   "upgrade_sequence": 124
  },
  {
+  "name": "16g0 Approval paths - package specification",
+  "file": "16g0-approval-pkg-spec.sql",
+  "install_sequence": 163,
+  "upgrade_sequence": 123
+ },
+ {
   "name": "16b KYC requests and cases",
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,

@@ -106,6 +106,24 @@ installScript 16-kyc-rules (
     }
 )
 
+installScript 16g0-approval-paths-package-specification (
+    execution {
+        sequence: 163
+    }
+    script {
+        contentFile: 16g0-approval-pkg-spec.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 installScript 16e0-party-logic-specification (
     execution {
         sequence: 164

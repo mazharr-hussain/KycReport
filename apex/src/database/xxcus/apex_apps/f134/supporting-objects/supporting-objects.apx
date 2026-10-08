@@ -21,7 +21,6 @@ supportingObject (
     upgrade {
         upgradeWhenSqlQuery:
             ```sql
-            -- an existing KYC install (its own table; the shared XXFND_ tables live in XXFUSION since release 54)
             select null from user_tables where table_name = 'XXCMP_PARTIES'
             ```
     }
