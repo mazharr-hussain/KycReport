@@ -62,7 +62,7 @@ page 0 (
                   from apex_application_pages
                  where application_id = :APP_ID
                    and page_id = :APP_PAGE_ID
-                   and page_group = 'Administration'
+                   and page_group in ('Administration', 'Application Features')   -- release 71: also feature configuration / settings
                    and nvl(:G_ADMIN_LOCK, 'N') <> 'Y'
                 ```
         }
@@ -92,15 +92,18 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select application_name || ' (' || application_code || ')' as display_value,
-                       application_code                                     as return_value
-                  from xxfnd_admin_applications_v
-                 order by decode(application_code, 'COMMON', 1, 0), application_name
+                select display_value, return_value
+                  from (select 'All applications' as display_value, 'ALL' as return_value, 0 as seq, null as sort_name from dual
+                        union all
+                        select application_name || ' (' || application_code || ')', application_code,
+                               decode(application_code, 'COMMON', 2, 1), application_name
+                          from xxfnd_admin_applications_v)
+                 order by seq, sort_name
                 ```
             displayNullValue: false
         }
         help {
-            helpText: The application whose setup you are maintaining. Only its rows are shown and new rows belong to it.
+            helpText: All applications, or one application: then only its rows and the shared rows are shown, and new rows belong to it.
         }
     )
 

@@ -39,6 +39,38 @@ page 10022 (
         }
     )
 
+    region choose-application (
+        name: Choose an Application
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>These settings belong to one application. Choose it in the Application selector above.</p>
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--info
+                t-Alert--horizontal
+                t-Alert--defaultIcons
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_APP = 'ALL'   -- release 71: no single application chosen
+                ```
+        }
+    )
+
     region report (
         name: Application Settings
         type: interactiveReport

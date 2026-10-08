@@ -64,45 +64,68 @@ list navigation-bar (
 
 list navigation-menu (
     name: Navigation Menu
-
-    entry home (
-        label: Home
-        icon {
-            imageIconCssClasses: fa-home
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 1
-            }
-        }
-    )
-
-    entry administration (
-        label: Administration
-        icon {
-            imageIconCssClasses: fa-gear
-        }
-        layout {
-            sequence: 90
-        }
-        link {
-            target: {
-                page: 100
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_admin_scope_pkg.administers_any = 'Y'
-                ```
-        }
-    )
-
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 71: Home, then the Administration tree - its groups and every component (feature) that has a
+            -- page in this application, opening the component directly.
+            with feat as (
+                select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
+                  from xxfnd_admin_menu_v m
+                  cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                          case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                          fp.tab_sequence nulls last, fp.page_id) as page_id
+                                 from xxfnd_feature_pages fp
+                                 join apex_application_pages ap
+                                   on ap.application_id = :APP_ID and ap.page_id = fp.page_id
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                 where t.page_id is not null),
+            cur as (
+                select max(fp.feature_code) as feature_code
+                  from xxfnd_feature_pages fp
+                 where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID),
+            nodes as (
+                select 'HOME' as id, cast(null as varchar2(40)) as parent_id, 'Home' as label,
+                       apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 10 as seq,
+                       case when :APP_PAGE_ID = 1 then 'YES' else 'NO' end as is_current
+                  from dual
+                union all
+                select 'ADMIN', null, 'Administration', apex_page.get_url(p_page => 100), 'fa-gear', 90,
+                       case when :APP_PAGE_ID = 100 then 'YES' else 'NO' end
+                  from dual
+                 where xxfnd_admin_scope_pkg.administers_any = 'Y'
+                union all
+                select distinct 'G_' || f.feature_group, 'ADMIN',
+                       decode(f.feature_group, 'BASIC_SETUP', 'Basic Setup',
+                                               'WORKFLOW_INTEGRATION', 'Workflow ' || chr(38) || ' Integration',
+                                               'SECURITY', 'Security',
+                                               'APPLICATION', 'Application',
+                                               initcap(replace(f.feature_group, '_', ' '))),
+                       null,
+                       decode(f.feature_group, 'BASIC_SETUP', 'fa-wrench', 'WORKFLOW_INTEGRATION', 'fa-sitemap',
+                                               'SECURITY', 'fa-shield', 'fa-cube'),
+                       decode(f.feature_group, 'BASIC_SETUP', 1, 'WORKFLOW_INTEGRATION', 2, 'SECURITY', 3, 4),
+                       'NO'
+                  from feat f
+                union all
+                select 'F_' || f.feature_code, 'G_' || f.feature_group, f.feature_name,
+                       apex_page.get_url(p_page => f.page_id), f.icon_css, f.display_sequence,
+                       case when f.feature_code = (select feature_code from cur) then 'YES' else 'NO' end
+                  from feat f)
+            select level  as lvl,
+                   label,
+                   target,
+                   is_current,
+                   image,
+                   null   as image_attribute,
+                   null   as image_alt
+              from nodes
+             start with parent_id is null
+            connect by prior id = parent_id
+             order siblings by seq, label
+            ```
+    }
 )
 
 list admin-basic-setup (

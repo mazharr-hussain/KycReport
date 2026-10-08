@@ -368,6 +368,15 @@
   ]
  },
  {
+  "name": "21b Application functions",
+  "file": "21b-application-functions.sql",
+  "install_sequence": 211,
+  "upgrade_sequence": 171,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "03 Use the shared schema",
   "file": "03-use-shared-schema.sql",
   "install_sequence": 3,

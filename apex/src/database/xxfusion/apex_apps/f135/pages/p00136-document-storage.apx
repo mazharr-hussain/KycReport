@@ -51,7 +51,8 @@ page 136 (
                        apex_page.get_url(p_page => 137, p_items => 'P137_STORAGE_CONFIG_ID', p_values => to_char(q.storage_config_id), p_clear_cache => '137') as open_url
                   from (
 
-                            select s.storage_config_id,
+                            select nvl(s.application_code, 'Shared') as application_code,
+                                   s.storage_config_id,
                                    nvl(s.entity_name, 'Any') as entity_name,
                                    nvl(s.category_code, 'Any') as category_code,
                                    xxfnd_util_pkg.lookup_meaning('STORAGE_TYPE', s.storage_type) as storage_type,
@@ -89,6 +90,19 @@ page 136 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column STORAGE_CONFIG_ID (
             type: hidden

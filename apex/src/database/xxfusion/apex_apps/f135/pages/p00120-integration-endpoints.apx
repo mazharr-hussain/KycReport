@@ -51,7 +51,8 @@ page 120 (
                        apex_page.get_url(p_page => 121, p_items => 'P121_ENDPOINT_CODE', p_values => to_char(q.endpoint_code), p_clear_cache => '121') as open_url
                   from (
 
-                            select e.endpoint_code, e.endpoint_name,
+                            select nvl(e.application_code, 'Shared') as application_code,
+                                   e.endpoint_code, e.endpoint_name,
                                    xxfnd_util_pkg.lookup_meaning('ENDPOINT_TYPE', e.endpoint_type) as endpoint_type,
                                    e.base_url, e.web_credential_static_id,
                                    xxfnd_util_pkg.lookup_meaning('ENDPOINT_STATUS', e.status_code) as status_code
@@ -88,6 +89,19 @@ page 120 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column ENDPOINT_CODE (
             type: plainText

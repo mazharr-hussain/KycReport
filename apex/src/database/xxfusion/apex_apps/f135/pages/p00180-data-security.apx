@@ -65,7 +65,7 @@ page 180 (
                                    d.enabled_flag
                               from xxfnd_data_security_rules d
                               join xxfnd_roles r on r.role_code = d.role_code
-                             where r.application_code = :G_ADMIN_APP   -- the application in scope
+                             where (:G_ADMIN_APP = 'ALL' or r.application_code = :G_ADMIN_APP)   -- the application filter (ALL: every application)
                 ) q
                 ```
         }

@@ -198,6 +198,9 @@ create or replace package body xxfnd_share_pkg as
                 'fa-lock',       'Which rows each role can see.');
         feature('AUDIT_LOG',        'Audit Log',                     'SECURITY', 340, 'VIEW', 111,
                 'fa-history',    'Who changed what and when.');
+        -- release 72: register applications and switch their common functions on (IT)
+        feature('APPLICATIONS',     'Applications',                  'APPLICATION', 400, 'VIEW,CREATE,MANAGE', 160,
+                'fa-cubes',      'Registered applications, the common functions switched on for each, their setup.');
         feature('APP_SETTINGS',     'Application Settings',          'APPLICATION', 410, 'VIEW,MANAGE', 10022,
                 'fa-sliders',    'Application settings and optional features.');
 
@@ -212,6 +215,7 @@ create or replace package body xxfnd_share_pkg as
         pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
         pages('DATA_SECURITY',    '180|181');
         pages('AUDIT_LOG',        '111');
+        pages('APPLICATIONS',     '160|161');
         pages('APP_SETTINGS',     '10022=Settings|10020=Optional Features|10021|10023');
 
         -- the Common Administrator holds every admin privilege

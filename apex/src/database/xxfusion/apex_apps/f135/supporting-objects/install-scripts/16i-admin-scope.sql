@@ -37,11 +37,11 @@ create or replace package xxfnd_admin_scope_pkg authid definer as
     function can_administer(p_application_code in varchar2, p_user_name in varchar2 default null) return varchar2;
     -- Y when the user administers at least one application (may use the COMMON application).
     function administers_any(p_user_name in varchar2 default null) return varchar2;
-    -- The application a COMMON screen opens with: the requested one when allowed, otherwise the first allowed one.
+    -- The application filter a COMMON screen opens with (release 71): the requested application, else ALL.
     function default_application(p_requested in varchar2 default null) return varchar2;
     -- DBMS_RLS policy functions (policy XXFND_ADMIN_SCOPE on the setup tables with APPLICATION_CODE). Only inside the
-    -- COMMON application: rows of the application in scope (G_ADMIN_APP) and the shared rows (read-only unless the
-    -- scope is COMMON). Other applications and code outside APEX are not restricted.
+    -- COMMON application (release 71: IT only): nothing for anyone but a Common Administrator; G_ADMIN_APP = ALL:
+    -- every row; one application: its rows and the shared rows. Other applications and code outside APEX: no limit.
     function policy_read(p_schema in varchar2, p_object in varchar2) return varchar2;
     function policy_change(p_schema in varchar2, p_object in varchar2) return varchar2;
     -- The setup tables scoped by application (policies and the default-application trigger).
@@ -114,16 +114,14 @@ create or replace package body xxfnd_admin_scope_pkg as
     end administers_any;
 
     function default_application(p_requested in varchar2 default null) return varchar2 is
-        l_code xxfnd_applications.application_code%type;
+        l_n pls_integer;
     begin
-        if p_requested is not null and can_administer(p_requested) = 'Y' then
-            return upper(p_requested);
+        -- release 71: ALL (every application) unless a registered application is requested
+        if p_requested is null or upper(p_requested) = 'ALL' then
+            return 'ALL';
         end if;
-        select min(application_code) keep (dense_rank first order by decode(application_code, 'COMMON', 1, 0), application_code)
-          into l_code
-          from xxfnd_applications
-         where enabled_flag = 'Y' and can_administer(application_code) = 'Y';
-        return l_code;
+        select count(*) into l_n from xxfnd_applications where application_code = upper(p_requested);
+        return case when l_n > 0 then upper(p_requested) else 'ALL' end;
     end default_application;
 
     function in_common return boolean is
@@ -131,30 +129,29 @@ create or replace package body xxfnd_admin_scope_pkg as
         return nvl(upper(v('APP_ALIAS')), '#') = 'COMMON';   -- false (not null) outside APEX
     end in_common;
 
-    function policy_read(p_schema in varchar2, p_object in varchar2) return varchar2 is
+    -- release 71: COMMON is for IT (Common Administrator) only. G_ADMIN_APP is a view filter there: ALL (default) =
+    -- every application's rows, one application = its rows and the shared rows.
+    function scope_predicate return varchar2 is
         l_app varchar2(30) := upper(v('G_ADMIN_APP'));
     begin
         if not in_common then
             return null;
-        elsif l_app is null then
+        elsif is_common_admin <> 'Y' then
             return '1 = 0';
-        elsif l_app = 'COMMON' then
-            return 'application_code is null or application_code = ''COMMON''';
+        elsif l_app is null or l_app = 'ALL' then
+            return null;
         end if;
         return 'application_code is null or application_code = ' || dbms_assert.enquote_literal(l_app);
+    end scope_predicate;
+
+    function policy_read(p_schema in varchar2, p_object in varchar2) return varchar2 is
+    begin
+        return scope_predicate;
     end policy_read;
 
     function policy_change(p_schema in varchar2, p_object in varchar2) return varchar2 is
-        l_app varchar2(30) := upper(v('G_ADMIN_APP'));
     begin
-        if not in_common then
-            return null;
-        elsif l_app is null then
-            return '1 = 0';
-        elsif l_app = 'COMMON' then
-            return 'application_code is null or application_code = ''COMMON''';
-        end if;
-        return 'application_code = ' || dbms_assert.enquote_literal(l_app);
+        return scope_predicate;
     end policy_change;
 
     function scoped_tables return apex_t_varchar2 is
@@ -169,6 +166,9 @@ create or replace package body xxfnd_admin_scope_pkg as
     function apex_app_id(p_application_code in varchar2) return number is
         l_id number;
     begin
+        if upper(p_application_code) = 'ALL' then
+            return null;   -- release 71: no single application chosen
+        end if;
         select max(apex_application_id) into l_id from xxfnd_applications where application_code = upper(p_application_code);
         return coalesce(l_id, to_number(v('APP_ID')));
     end apex_app_id;
@@ -234,7 +234,7 @@ begin
             when (new.application_code is null)
         begin
             -- release 61 (16i): a row created on a COMMON setup screen belongs to the application in scope
-            if upper(v(''APP_ALIAS'')) = ''COMMON'' and nvl(upper(v(''G_ADMIN_APP'')), ''COMMON'') <> ''COMMON'' then
+            if upper(v(''APP_ALIAS'')) = ''COMMON'' and nvl(upper(v(''G_ADMIN_APP'')), ''COMMON'') not in (''COMMON'', ''ALL'') then
                 :new.application_code := upper(v(''G_ADMIN_APP''));
             end if;
         end;';

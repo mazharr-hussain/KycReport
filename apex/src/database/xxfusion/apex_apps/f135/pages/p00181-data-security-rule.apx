@@ -129,13 +129,17 @@ page 181 (
                 ```sql
                 select t.table_name as display_value, t.table_name as return_value
                   from all_tables t
-                 -- release 68: the tables of the application in scope (its schema, granted to COMMON's schema)
-                 where t.owner = (select a.schema_name from xxfnd_applications a where a.application_code = :G_ADMIN_APP)
+                 -- release 71: the tables of the role's application (its schema, granted to COMMON's schema)
+                 where t.owner = (select a.schema_name from xxfnd_applications a
+                                 where a.application_code = (select r.application_code from xxfnd_roles r where r.role_code = :P181_ROLE_CODE))
                    and t.table_name not like 'XXFND\_%' escape '\'
                  order by t.table_name
                 ```
             displayNullValue: true
             nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P181_ROLE_CODE
         }
         layout {
             sequence: 20
@@ -214,7 +218,8 @@ page 181 (
                 ```sql
                 select column_name as display_value, column_name as return_value
                   from all_tab_columns
-                 where owner = (select a.schema_name from xxfnd_applications a where a.application_code = :G_ADMIN_APP)
+                 where owner = (select a.schema_name from xxfnd_applications a
+                                 where a.application_code = (select r.application_code from xxfnd_roles r where r.role_code = :P181_ROLE_CODE))
                    and table_name = :P181_TABLE_NAME
                    and data_type in ('VARCHAR2','CHAR','NUMBER')
                  order by column_id
@@ -223,7 +228,7 @@ page 181 (
             nullDisplayValue: - Select -
         }
         cascadingLov {
-            parentItems: P181_TABLE_NAME
+            parentItems: P181_TABLE_NAME,P181_ROLE_CODE
         }
         layout {
             sequence: 40

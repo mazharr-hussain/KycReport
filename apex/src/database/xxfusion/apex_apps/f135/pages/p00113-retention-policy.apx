@@ -78,6 +78,46 @@ page 113 (
         }
     )
 
+    pageItem P113_APPLICATION_CODE (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-applications
+            displayNullValue: true
+            nullDisplayValue: Shared (every application)
+        }
+        layout {
+            sequence: 15
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_CODE
+            dataType: varchar2
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nullif(:G_ADMIN_APP, 'ALL')
+                ```
+        }
+        help {
+            inlineHelpText: Empty: shared by every application.
+        }
+    )
+
     pageItem P113_TABLE_NAME (
         type: textField
         label {

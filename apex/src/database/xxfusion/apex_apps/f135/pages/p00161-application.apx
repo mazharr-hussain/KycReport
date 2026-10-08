@@ -1,0 +1,759 @@
+page 161 (
+    name: Application
+    alias: APPLICATION
+    title: Application
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: onlyForSuccess
+    }
+    help {
+        helpText: Register an application that uses the common setup, switch on the common functions it may use and see its setup per function.
+    }
+
+    region breadcrumb (
+        name: Application
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region form (
+        name: Application
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_APPLICATIONS
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    pageItem P161_APPLICATION_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_ID
+            dataType: number
+            primaryKey: true
+        }
+    )
+
+    pageItem P161_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P161_SAVED
+                  from xxfnd_applications
+                 where application_id = :P161_APPLICATION_ID;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P161_APPLICATION_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P161_SAVED = 'Y'
+                ```
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: Short code of the application, the same in every environment (for example KYC). Upper case; cannot be changed later.
+        }
+    )
+
+    pageItem P161_APPLICATION_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Name of the application.
+        }
+    )
+
+    pageItem P161_APEX_APPLICATION_ID (
+        type: selectList
+        label {
+            label: APEX Application
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_name || ' (' || application_id || ')' as display_value, application_id as return_value
+                  from apex_applications
+                 where workspace = (select workspace from apex_applications where application_id = :APP_ID)
+                 order by application_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        source {
+            formRegion: @form
+            column: APEX_APPLICATION_ID
+            dataType: number
+        }
+        help {
+            helpText: The APEX application in this workspace (its ID in this environment; the alias is taken from it).
+        }
+    )
+
+    pageItem P161_APEX_APP_ALIAS (
+        type: hidden
+        layout {
+            sequence: 35
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: APEX_APP_ALIAS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P161_SCHEMA_NAME (
+        type: selectList
+        label {
+            label: Schema
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select username as display_value, username as return_value
+                  from all_users
+                 where oracle_maintained = 'N'
+                 order by username
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: SCHEMA_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Database schema of the application's own objects; it receives the grants on the shared objects.
+        }
+    )
+
+    pageItem P161_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        help {
+            helpText: A disabled application is kept with its data but cannot be chosen on the setup screens.
+        }
+    )
+
+    pageItem P161_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @form
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 160
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Register
+        layout {
+            sequence: 20
+            region: @form
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P161_SAVED, 'N') = 'N'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @form
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region functions (
+        name: Common Functions
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select af.application_code, af.feature_code, af.enabled_flag
+                  from xxfnd_application_functions af
+                 where af.application_code = :P161_APPLICATION_CODE
+                ```
+            pageItemsToSubmit: P161_APPLICATION_CODE
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: functions
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @FEATURE_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 2
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPLICATION_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column FEATURE_CODE (
+            type: selectList
+            heading {
+                heading: Common Function
+            }
+            layout {
+                sequence: 20
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select feature_name as display_value, feature_code as return_value
+                      from xxfnd_features
+                     where feature_code in (select column_value from table(xxfnd_app_function_pkg.common_functions))
+                     order by display_sequence
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FEATURE_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Switched On
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+        )
+    )
+
+    region overview (
+        name: Setup Overview
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select f.feature_name as function_name,
+                       case af.enabled_flag when 'Y' then 'On' else 'Off' end as status,
+                       case f.feature_code
+                            when 'LOOKUPS'          then (select count(*) from xxfnd_lookup_types x where x.application_code = af.application_code)
+                            when 'FLEXFIELDS'       then (select count(*) from xxfnd_df_flexfields x where x.application_code = af.application_code)
+                                                       + (select count(*) from xxfnd_value_sets x where x.application_code = af.application_code)
+                            when 'ATTACHMENTS'      then (select count(*) from xxfnd_document_categories x where x.application_code = af.application_code)
+                                                       + (select count(*) from xxfnd_document_entities x where x.application_code = af.application_code)
+                                                       + (select count(*) from xxfnd_attachment_functions x where x.application_code = af.application_code)
+                                                       + (select count(*) from xxfnd_storage_config x where x.application_code = af.application_code)
+                            when 'NOTIFICATIONS'    then (select count(*) from xxfnd_notification_templates x where x.application_code = af.application_code)
+                            when 'RETENTION'        then (select count(*) from xxfnd_retention_policies x where x.application_code = af.application_code)
+                            when 'WORKFLOW_SETUP'   then (select count(*) from apex_appl_taskdefs t
+                                                           join xxfnd_applications a on a.apex_application_id = t.application_id
+                                                          where a.application_code = af.application_code)
+                            when 'INTEGRATIONS'     then (select count(*) from xxfnd_integration_endpoints x where x.application_code = af.application_code)
+                                                       + (select count(*) from xxfnd_integration_purposes x where x.application_code = af.application_code)
+                            when 'USERS_ACCESS'     then (select count(distinct u.user_name) from xxfnd_user_roles_v u
+                                                           join xxfnd_roles r on r.role_code = u.role_code
+                                                          where r.application_code = af.application_code and u.active_flag = 'Y')
+                            when 'ROLES_PRIVILEGES' then (select count(*) from xxfnd_roles r where r.application_code = af.application_code)
+                            when 'DATA_SECURITY'    then (select count(*) from xxfnd_data_security_rules d
+                                                           join xxfnd_roles r on r.role_code = d.role_code
+                                                          where r.application_code = af.application_code)
+                            when 'APP_SETTINGS'     then (select count(*) from apex_application_settings s
+                                                           join xxfnd_applications a on a.apex_application_id = s.application_id
+                                                          where a.application_code = af.application_code)
+                       end as setup_rows,
+                       apex_page.get_url(p_page => f.home_page_id, p_items => 'G_ADMIN_APP',
+                                         p_values => af.application_code) as open_url
+                  from xxfnd_application_functions af
+                  join xxfnd_features f on f.feature_code = af.feature_code
+                 where af.application_code = :P161_APPLICATION_CODE
+                 order by f.display_sequence
+                ```
+            pageItemsToSubmit: P161_APPLICATION_CODE
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: overview
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+
+        column FUNCTION_NAME (
+            type: plainText
+            heading {
+                heading: Common Function
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#FUNCTION_NAME#</a>
+                    ```
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Switched On
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SETUP_ROWS (
+            type: plainText
+            heading {
+                heading: Setup Rows
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process set-alias (
+        name: Code and APEX alias
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P161_APPLICATION_CODE := upper(trim(:P161_APPLICATION_CODE));
+                select max(alias) into :P161_APEX_APP_ALIAS
+                  from apex_applications where application_id = :P161_APEX_APPLICATION_ID;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process register (
+        name: Grants and function switches
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 72: the schema's grants on the shared objects and one switch per common function (off)
+                xxfnd_app_function_pkg.register_application(:P161_APPLICATION_CODE);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-functions (
+        name: Save function switches
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @functions
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)

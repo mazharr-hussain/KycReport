@@ -54,7 +54,7 @@ page 107 (
                               from xxfnd_sod_rules s
                               join xxfnd_roles r1 on r1.role_code = s.role_code_1
                               join xxfnd_roles r2 on r2.role_code = s.role_code_2
-                             where :G_ADMIN_APP in (r1.application_code, r2.application_code)   -- the application in scope
+                             where (:G_ADMIN_APP = 'ALL' or :G_ADMIN_APP in (r1.application_code, r2.application_code))   -- the application filter
                 ) q
                 ```
         }

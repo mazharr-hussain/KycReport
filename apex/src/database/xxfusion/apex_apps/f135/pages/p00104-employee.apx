@@ -531,7 +531,7 @@ page 104 (
                   from xxfnd_user_roles ur
                  where ur.employee_id = :P104_EMPLOYEE_ID
                    -- the roles of the application in scope
-                   and ur.role_code in (select r.role_code from xxfnd_roles r where r.application_code = :G_ADMIN_APP)
+                   and ur.role_code in (select r.role_code from xxfnd_roles r where :G_ADMIN_APP = 'ALL' or r.application_code = :G_ADMIN_APP)
                 ```
             pageItemsToSubmit: P104_EMPLOYEE_ID
         }

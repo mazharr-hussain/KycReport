@@ -45,7 +45,8 @@ page 112 (
                        apex_page.get_url(p_page => 113, p_items => 'P113_RETENTION_POLICY_ID', p_values => to_char(q.retention_policy_id), p_clear_cache => '113') as open_url
                   from (
 
-                            select r.retention_policy_id, r.table_name,
+                            select nvl(r.application_code, 'Shared') as application_code,
+                                   r.retention_policy_id, r.table_name,
                                    nvl(xxfnd_util_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'All') as jurisdiction,
                                    r.retention_years,
                                    xxfnd_util_pkg.lookup_meaning('RETENTION_ACTION', r.action_at_expiry) as action_at_expiry,
@@ -83,6 +84,19 @@ page 112 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column RETENTION_POLICY_ID (
             type: hidden

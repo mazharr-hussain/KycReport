@@ -51,7 +51,8 @@ page 130 (
                        apex_page.get_url(p_page => 131, p_items => 'P131_ENTITY_NAME', p_values => to_char(q.entity_name), p_clear_cache => '131') as open_url
                   from (
 
-                            select e.entity_name, e.user_entity_name, e.table_name, e.pk1_column, e.pk2_column, e.enabled_flag
+                            select nvl(e.application_code, 'Shared') as application_code,
+                                   e.entity_name, e.user_entity_name, e.table_name, e.pk1_column, e.pk2_column, e.enabled_flag
                               from xxfnd_document_entities_vl e
                 ) q
                 ```
@@ -85,6 +86,19 @@ page 130 (
                 html
             ]
         }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
 
         column ENTITY_NAME (
             type: plainText
