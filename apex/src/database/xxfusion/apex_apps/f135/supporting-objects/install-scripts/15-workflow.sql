@@ -119,7 +119,8 @@ create or replace package body xxfnd_notify_pkg as
         l_body    clob;
         l_mail_id number;
     begin
-        if p_to is null or l_from is null then
+        if p_to is null or l_from is null
+           or xxfnd_app_function_pkg.is_enabled('NOTIFICATIONS') = 'N' then   -- release 72: switched off (COMMON)
             return;
         end if;
         begin

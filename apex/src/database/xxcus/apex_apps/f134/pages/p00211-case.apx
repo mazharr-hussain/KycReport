@@ -1451,6 +1451,7 @@ page 211 (
             plsqlExpression:
                 ```plsql
                 :P211_SECTION in ('DOCUMENTS', 'REVIEW')
+                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
 

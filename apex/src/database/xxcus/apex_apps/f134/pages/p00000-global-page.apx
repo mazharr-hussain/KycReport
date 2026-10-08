@@ -1843,6 +1843,7 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
         componentAppearance {
@@ -2133,6 +2134,7 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
         componentAppearance {

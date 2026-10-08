@@ -186,6 +186,23 @@ upgradeScript 09c-shared-objects-formerly-in-kyc-scripts (
     }
 )
 
+upgradeScript 09d-application-functions-table-and-package (
+    execution {
+        sequence: 58
+    }
+    script {
+        contentFile: 09d-application-functions.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 10-flexfield-runtime-part-1-of-2 (
     execution {
         sequence: 60

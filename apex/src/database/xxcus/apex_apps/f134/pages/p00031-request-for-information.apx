@@ -632,8 +632,13 @@ page 31 (
             whenNoDataFound: No attachments yet.
         }
         serverSideCondition {
-            type: itemIsNotNull
-            item: P31_RFI_ID
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null
+                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
+                ```
         }
 
         column ATTACHED_DOCUMENT_ID (

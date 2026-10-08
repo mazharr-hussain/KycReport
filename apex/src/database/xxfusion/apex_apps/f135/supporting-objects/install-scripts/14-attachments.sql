@@ -147,6 +147,10 @@ create or replace package body xxfnd_attach_pkg as
                               p_action           in varchar2) return varchar2 is
         l_flag varchar2(1);
     begin
+        -- release 72: attachments switched off for the running application (COMMON Applications)
+        if xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'N' then
+            return 'N';
+        end if;
         select case upper(p_action)
                  when 'INSERT' then be.insert_allowed_flag
                  when 'UPDATE' then be.update_allowed_flag
