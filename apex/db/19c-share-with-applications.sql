@@ -32,7 +32,8 @@ create or replace package body xxfnd_share_pkg as
 
     function is_local(p_object_name in varchar2) return boolean is
     begin
-        return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG');
+        -- release 73: the setup forms' table / column lists read ALL_TABLES (not grantable on); COMMON's own
+        return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_SETUP_TABLES_V', 'XXFND_SETUP_COLUMNS_V');
     end is_local;
 
     procedure run(p_sql in varchar2) is

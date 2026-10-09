@@ -239,6 +239,7 @@ page 153 (
         }
         cascadingLov {
             parentItems: P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 40
@@ -294,6 +295,7 @@ page 153 (
         }
         cascadingLov {
             parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 50
@@ -341,6 +343,7 @@ page 153 (
         }
         cascadingLov {
             parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 60
@@ -392,6 +395,7 @@ page 153 (
         }
         cascadingLov {
             parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 70

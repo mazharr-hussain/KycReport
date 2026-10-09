@@ -148,6 +148,7 @@ page 113 (
         }
         cascadingLov {
             parentItems: P113_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 10

@@ -42,9 +42,11 @@ page 98 (
                      where upper(apex_app_alias) = upper(:APP_ALIAS);
                     select max(home_page_id) into l_page from xxfnd_features where feature_code = upper(:P98_FEATURE);
                     return '<iframe class="kyc-setup-frame" title="' || apex_escape.html_attribute(:P98_TITLE) || '" src="'
+                        -- a plain URL (inside a dialog APEX_PAGE.GET_URL would otherwise return "close the dialog and go")
                         || apex_escape.html_attribute(apex_page.get_url(p_application => 'COMMON', p_page => 99,
                                p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                               p_values => l_code || ',Y,' || to_char(l_page)))
+                               p_values => l_code || ',Y,' || to_char(l_page),
+                               p_plain_url => true))
                         || '" style="width:100%;height:660px;border:0"></iframe>';
                 end;
                 ```

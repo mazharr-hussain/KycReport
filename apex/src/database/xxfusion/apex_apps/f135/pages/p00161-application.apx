@@ -586,8 +586,7 @@ page 161 (
                 select t.setup_type_name,
                        (select count(*) from xxfnd_setup_rows_v r
                          where r.setup_type_code = t.setup_type_code and r.application_code = :P161_APPLICATION_CODE) as setup_rows,
-                       apex_page.get_url(p_page => t.list_page_id, p_clear_cache => to_char(t.list_page_id),
-                                         p_request => 'IR[report]_RR',
+                       apex_page.get_url(p_page => t.list_page_id, p_clear_cache => to_char(t.list_page_id) || ',RIR',
                                          p_items => case when t.table_name is not null then 'IR[report]EQ_APPLICATION_CODE' end,
                                          p_values => case when t.table_name is not null then :P161_APPLICATION_CODE end) as open_url,
                        case when t.form_page_id is not null and (t.table_name is not null or t.setup_type_code in ('SEGREGATION_OF_DUTIES', 'DATA_SECURITY'))
@@ -727,6 +726,13 @@ page 161 (
                 t-Report--horizontalBorders
             ]
             showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
         }
         messages {
             whenNoDataFound: This application has no setup of its own yet.

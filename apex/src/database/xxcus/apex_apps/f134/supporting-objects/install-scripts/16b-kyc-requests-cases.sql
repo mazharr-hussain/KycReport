@@ -295,8 +295,10 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_PARTY_RELATIONSHIPS', 'UBO_NOTES', 'varchar2(4000)');
     xxfnd_ddl_pkg.add_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK6',
         q'~check (beneficial_owner_flag in ('Y','N'))~');
-    xxfnd_ddl_pkg.add_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK7',
-        q'~check (beneficial_owner_flag = 'N' or ubo_basis in ('OWNERSHIP','CONTROL','FALLBACK'))~');
+    -- a beneficial owner needs its basis (CK7 let an empty basis through: NULL passes a check, replaced by CK8)
+    xxfnd_ddl_pkg.drop_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK7');
+    xxfnd_ddl_pkg.add_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK8',
+        q'~check (beneficial_owner_flag = 'N' or (ubo_basis is not null and ubo_basis in ('OWNERSHIP','CONTROL','FALLBACK')))~');
     -- the beneficial owners determined so far on cases become marks on the relationships (once: only unmarked rows;
     -- dynamic: the columns are added in this block)
     execute immediate q'~

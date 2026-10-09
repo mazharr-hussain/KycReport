@@ -21,6 +21,9 @@ page 99 (
             sequence: 10
             slot: BODY
         }
+        security {
+            sessionStateProtection: unrestricted
+        }
     )
 
     process open (
