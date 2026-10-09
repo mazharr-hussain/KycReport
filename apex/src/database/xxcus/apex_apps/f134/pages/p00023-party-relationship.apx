@@ -73,6 +73,9 @@ page 23 (
             dataType: number
             primaryKey: true
         }
+        sessionState {
+            storage: session
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
