@@ -27,6 +27,14 @@
   install and upgrade, so every database gets exactly what it is missing and a re-run does nothing. Never edit a base
   CREATE to change an existing table. Test every release with a fresh install, an install over existing objects,
   an upgrade, a re-run, and the App Builder import screen.
+- **Golden rule: one package per component, business logic in its own place.** Each component has its own package
+  (request logic in the request package, case logic in the case package, party logic in the party package, and so on);
+  a component never holds another component's logic. When one component needs another's logic, it calls that
+  component's procedure / function - never a copy - so each rule lives in one place and is shared. Logic common to
+  every component (e.g. workflow start / end / state, the RFI workflow and its loop, tasks, notifications) lives once in
+  COMMON; what is specific to a component (its screens, its validations, invoking the common workflow, its own rules)
+  stays in that component's package. Keep shared things common to avoid duplication, and component things separate
+  for better management. Changes to this structure still follow the issues, plan and approval rule.
 - **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.
