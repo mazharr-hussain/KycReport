@@ -17,7 +17,9 @@
   of the business apps (KYC = app 134); **XXFUSION** is the schema for Fusion web-service data and the COMMON
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
 - **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
-  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it.
+  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it. The repository is connected
+  to Netlify, so every push to a branch with an open PR and every merge to main starts a Netlify build: **no push and
+  no merge at all (zero) until the user clearly says to push.** Commit locally only; do not report Netlify comments.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
   confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
 - **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes
