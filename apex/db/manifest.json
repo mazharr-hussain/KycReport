@@ -377,6 +377,15 @@
   ]
  },
  {
+  "name": "21c Setup types",
+  "file": "21c-setup-types.sql",
+  "install_sequence": 212,
+  "upgrade_sequence": 172,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "03 Use the shared schema",
   "file": "03-use-shared-schema.sql",
   "install_sequence": 3,
@@ -396,6 +405,15 @@
   "file": "09d-application-functions.sql",
   "install_sequence": 98,
   "upgrade_sequence": 58,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09e Workflow and e-mail switches",
+  "file": "09e-workflow-switches.sql",
+  "install_sequence": 99,
+  "upgrade_sequence": 59,
   "apps": [
    "COMMON"
   ]

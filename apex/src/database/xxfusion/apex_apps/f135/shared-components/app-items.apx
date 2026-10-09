@@ -89,7 +89,7 @@ appItem G_ADMIN_APP (
     comments {
         comments:
             ```
-            Application (code) the COMMON setup screens work for. Set by the selector or by the link from another application; SET_ADMIN_APP keeps it to an application the user administers.
+            Application (code) the COMMON setup screens work for: ALL (every application), or the application that opened a setup screen for itself (page 99, G_ADMIN_LOCK = Y).
             ```
     }
 )
@@ -102,7 +102,7 @@ appItem G_ADMIN_LOCK (
     comments {
         comments:
             ```
-            Y when another application opened COMMON for its own application (G_ADMIN_APP): the application selector is hidden.
+            Y when another application opened a COMMON setup screen for its own application (G_ADMIN_APP): delegated mode.
             ```
     }
 )

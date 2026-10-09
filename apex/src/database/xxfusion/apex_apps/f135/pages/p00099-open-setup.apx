@@ -7,7 +7,7 @@ page 99 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @admin-area
+        authorizationScheme: @app-user
         pageAccessProtection: unrestricted
         formAutoComplete: false
     }
@@ -20,6 +20,9 @@ page 99 (
         layout {
             sequence: 10
             slot: BODY
+        }
+        security {
+            sessionStateProtection: unrestricted
         }
     )
 

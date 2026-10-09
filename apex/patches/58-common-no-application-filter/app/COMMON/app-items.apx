@@ -1,0 +1,108 @@
+appItem G_GIVEN_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's given_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_MIDDLE_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's middle_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_FAMILY_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's family_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_LOCALE (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's locale (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_ZONEINFO (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's zoneinfo (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_EMAIL (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's email (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+appItem G_ADMIN_APP (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Application (code) the COMMON setup screens work for: ALL (every application), or the application that opened a setup screen for itself (page 99, G_ADMIN_LOCK = Y).
+            ```
+    }
+)
+
+appItem G_ADMIN_LOCK (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Y when another application opened a COMMON setup screen for its own application (G_ADMIN_APP): delegated mode.
+            ```
+    }
+)

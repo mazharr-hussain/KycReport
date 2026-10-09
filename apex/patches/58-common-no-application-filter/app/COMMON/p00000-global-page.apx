@@ -1,0 +1,73 @@
+page 0 (
+    name: Global Page
+
+    region feature-tabs (
+        name: Feature Tabs
+        type: list
+        source {
+            list: @feature-tabs
+        }
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/tabs
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: feature-tabs
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- Only on a tab page of a feature that has more than one tab.
+                select 1
+                  from xxfnd_feature_pages c
+                 where c.app_alias = :APP_ALIAS
+                   and c.page_id   = :APP_PAGE_ID
+                   and c.tab_label is not null
+                   and (select count(*) from xxfnd_feature_pages t
+                         where t.app_alias = c.app_alias and t.feature_code = c.feature_code
+                           and t.tab_label is not null) > 1
+                ```
+        }
+    )
+
+    region delegated-mode (
+        name: Delegated Mode
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <style>
+                /* release 73: a COMMON screen shown inside another application (its Setup dialog): no COMMON header or menu */
+                .t-Header, .t-Body-nav, .t-Footer, #t_Body_nav { display: none !important; }
+                .t-Body, .t-Body-main, .t-Body-content { margin-left: 0 !important; padding-top: 0 !important; }
+                .t-Body-contentInner { padding-top: 0 !important; }
+                </style>
+                ```
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'
+                ```
+        }
+    )
+)

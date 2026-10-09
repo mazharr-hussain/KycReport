@@ -179,7 +179,7 @@ page 153 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: Shared (every application)
+            nullDisplayValue: All applications (instance)
         }
         layout {
             sequence: 15
@@ -190,6 +190,14 @@ page 153 (
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
         }
         source {
             formRegion: @form
@@ -205,15 +213,33 @@ page 153 (
                 ```
         }
         help {
-            inlineHelpText: Empty: shared by every application.
+            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
         }
     )
 
     pageItem P153_TABLE_NAME (
-        type: textField
+        type: selectList
         label {
             label: Table
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.table_name as display_value, t.table_name as return_value
+                  from xxfnd_setup_tables_v t
+                 -- release 73: the tables of the row's application (all applications: every registered one) and the shared ones
+                 where :P153_APPLICATION_CODE is null or t.application_code = :P153_APPLICATION_CODE or t.application_code is null
+                 group by t.table_name
+                 order by t.table_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 40
@@ -227,7 +253,6 @@ page 153 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -243,15 +268,34 @@ page 153 (
                 ```
         }
         help {
-            helpText: Enter the table.
+            helpText: Choose the table.
         }
     )
 
     pageItem P153_PK_COLUMN_NAME (
-        type: textField
+        type: selectList
         label {
             label: Primary Key Column
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P153_TABLE_NAME
+                   and (:P153_APPLICATION_CODE is null or c.application_code = :P153_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 50
@@ -265,7 +309,6 @@ page 153 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -273,15 +316,34 @@ page 153 (
             dataType: varchar2
         }
         help {
-            helpText: Enter the primary Key Column.
+            helpText: Choose the primary Key Column.
         }
     )
 
     pageItem P153_CONTEXT_COLUMN_NAME (
-        type: textField
+        type: selectList
         label {
             label: Context Column
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P153_TABLE_NAME
+                   and (:P153_APPLICATION_CODE is null or c.application_code = :P153_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 60
@@ -295,7 +357,6 @@ page 153 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -307,15 +368,34 @@ page 153 (
             staticValue: ATTRIBUTE_CATEGORY
         }
         help {
-            helpText: Enter the context Column.
+            helpText: Choose the context Column.
         }
     )
 
     pageItem P153_CONTEXT_REFERENCE_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Derive Context From Column
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P153_TABLE_NAME
+                   and (:P153_APPLICATION_CODE is null or c.application_code = :P153_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P153_TABLE_NAME,P153_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 70
@@ -326,9 +406,6 @@ page 153 (
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 128
         }
         source {
             formRegion: @form

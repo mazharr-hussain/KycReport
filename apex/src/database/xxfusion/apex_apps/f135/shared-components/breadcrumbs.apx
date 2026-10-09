@@ -186,6 +186,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry setup-types (
+        name: Setup Types
+        pageNumber: 162
+        execution {
+            sequence: 402
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 162
+            }
+        }
+    )
+
     entry lookups (
         name: Lookups
         pageNumber: 101

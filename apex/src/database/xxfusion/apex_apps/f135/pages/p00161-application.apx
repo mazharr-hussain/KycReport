@@ -300,6 +300,36 @@ page 161 (
         }
     )
 
+    pageItem P161_EMAIL_ENABLED_FLAG (
+        type: switch
+        label {
+            label: E-mail
+            alignment: left
+        }
+        layout {
+            sequence: 55
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        source {
+            formRegion: @form
+            column: EMAIL_ENABLED_FLAG
+            dataType: varchar2
+        }
+        help {
+            helpText: Off - no e-mail is sent for this application (tasks and in-application notifications continue).
+        }
+    )
+
     pageItem P161_DESCRIPTION (
         type: textarea
         label {
@@ -406,14 +436,14 @@ page 161 (
     )
 
     region functions (
-        name: Common Functions
+        name: Managed in the Application
         type: interactiveGrid
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select af.application_code, af.feature_code, af.enabled_flag
+                select af.application_code, af.feature_code, af.managed_in_app_flag
                   from xxfnd_application_functions af
                  where af.application_code = :P161_APPLICATION_CODE
                 ```
@@ -471,7 +501,7 @@ page 161 (
             )
 
             displayColumn (
-                column: @ENABLED_FLAG
+                column: @MANAGED_IN_APP_FLAG
                 layout {
                     sequence: 2
                 }
@@ -527,17 +557,17 @@ page 161 (
             }
         )
 
-        column ENABLED_FLAG (
+        column MANAGED_IN_APP_FLAG (
             type: switch
             heading {
-                heading: Switched On
+                heading: Managed in the Application
             }
             layout {
                 sequence: 30
             }
             source {
                 type: databaseColumn
-                databaseColumn: ENABLED_FLAG
+                databaseColumn: MANAGED_IN_APP_FLAG
                 dataType: varchar2
             }
         )
@@ -551,40 +581,24 @@ page 161 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select f.feature_name as function_name,
-                       case af.enabled_flag when 'Y' then 'On' else 'Off' end as status,
-                       case f.feature_code
-                            when 'LOOKUPS'          then (select count(*) from xxfnd_lookup_types x where x.application_code = af.application_code)
-                            when 'FLEXFIELDS'       then (select count(*) from xxfnd_df_flexfields x where x.application_code = af.application_code)
-                                                       + (select count(*) from xxfnd_value_sets x where x.application_code = af.application_code)
-                            when 'ATTACHMENTS'      then (select count(*) from xxfnd_document_categories x where x.application_code = af.application_code)
-                                                       + (select count(*) from xxfnd_document_entities x where x.application_code = af.application_code)
-                                                       + (select count(*) from xxfnd_attachment_functions x where x.application_code = af.application_code)
-                                                       + (select count(*) from xxfnd_storage_config x where x.application_code = af.application_code)
-                            when 'NOTIFICATIONS'    then (select count(*) from xxfnd_notification_templates x where x.application_code = af.application_code)
-                            when 'RETENTION'        then (select count(*) from xxfnd_retention_policies x where x.application_code = af.application_code)
-                            when 'WORKFLOW_SETUP'   then (select count(*) from apex_appl_taskdefs t
-                                                           join xxfnd_applications a on a.apex_application_id = t.application_id
-                                                          where a.application_code = af.application_code)
-                            when 'INTEGRATIONS'     then (select count(*) from xxfnd_integration_endpoints x where x.application_code = af.application_code)
-                                                       + (select count(*) from xxfnd_integration_purposes x where x.application_code = af.application_code)
-                            when 'USERS_ACCESS'     then (select count(distinct u.user_name) from xxfnd_user_roles_v u
-                                                           join xxfnd_roles r on r.role_code = u.role_code
-                                                          where r.application_code = af.application_code and u.active_flag = 'Y')
-                            when 'ROLES_PRIVILEGES' then (select count(*) from xxfnd_roles r where r.application_code = af.application_code)
-                            when 'DATA_SECURITY'    then (select count(*) from xxfnd_data_security_rules d
-                                                           join xxfnd_roles r on r.role_code = d.role_code
-                                                          where r.application_code = af.application_code)
-                            when 'APP_SETTINGS'     then (select count(*) from apex_application_settings s
-                                                           join xxfnd_applications a on a.apex_application_id = s.application_id
-                                                          where a.application_code = af.application_code)
-                       end as setup_rows,
-                       apex_page.get_url(p_page => f.home_page_id, p_items => 'G_ADMIN_APP',
-                                         p_values => af.application_code) as open_url
-                  from xxfnd_application_functions af
-                  join xxfnd_features f on f.feature_code = af.feature_code
-                 where af.application_code = :P161_APPLICATION_CODE
-                 order by f.display_sequence
+                -- release 73: every setup type this application may keep rows for (XXFND_SETUP_TYPES), its rows, the list
+                -- (filtered to the application) and Add (a new row for the application)
+                select t.setup_type_name,
+                       (select count(*) from xxfnd_setup_rows_v r
+                         where r.setup_type_code = t.setup_type_code and r.application_code = :P161_APPLICATION_CODE) as setup_rows,
+                       apex_page.get_url(p_page => t.list_page_id, p_clear_cache => to_char(t.list_page_id) || ',RIR',
+                                         p_items => case when t.table_name is not null then 'IR[report]EQ_APPLICATION_CODE' end,
+                                         p_values => case when t.table_name is not null then :P161_APPLICATION_CODE end) as open_url,
+                       case when t.form_page_id is not null and (t.table_name is not null or t.setup_type_code in ('SEGREGATION_OF_DUTIES', 'DATA_SECURITY'))
+                            then apex_page.get_url(p_page => t.form_page_id, p_clear_cache => to_char(t.form_page_id),
+                                                   p_items => case when t.table_name is not null then 'P' || t.form_page_id || '_APPLICATION_CODE' end,
+                                                   p_values => case when t.table_name is not null then :P161_APPLICATION_CODE end)
+                       end as add_url,
+                       case when t.form_page_id is not null and (t.table_name is not null or t.setup_type_code in ('SEGREGATION_OF_DUTIES', 'DATA_SECURITY'))
+                            then 'Add' end as add_label
+                  from xxfnd_setup_types t
+                 where xxfnd_setup_type_pkg.app_allowed(t.setup_type_code, :P161_APPLICATION_CODE) = 'Y'
+                 order by t.display_sequence
                 ```
             pageItemsToSubmit: P161_APPLICATION_CODE
         }
@@ -609,17 +623,17 @@ page 161 (
             showNullValuesAs: -
         }
         messages {
-            whenNoDataFound: No data found.
+            whenNoDataFound: No setup type is available for this application.
         }
         serverSideCondition {
             type: itemIsNotNull
             item: P161_SAVED
         }
 
-        column FUNCTION_NAME (
+        column SETUP_TYPE_NAME (
             type: plainText
             heading {
-                heading: Common Function
+                heading: Setup Type
             }
             layout {
                 sequence: 10
@@ -627,28 +641,34 @@ page 161 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#OPEN_URL#">#FUNCTION_NAME#</a>
+                    <a href="#OPEN_URL#">#SETUP_TYPE_NAME#</a>
                     ```
-            }
-        )
-
-        column STATUS (
-            type: plainText
-            heading {
-                heading: Switched On
-            }
-            layout {
-                sequence: 20
             }
         )
 
         column SETUP_ROWS (
             type: plainText
             heading {
-                heading: Setup Rows
+                heading: Rows
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ADD_LABEL (
+            type: plainText
+            heading {
+                heading: Add
             }
             layout {
                 sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#ADD_URL#" class="t-Button t-Button--small t-Button--noUI">#ADD_LABEL#</a>
+                    ```
             }
         )
 
@@ -656,6 +676,102 @@ page 161 (
             type: hidden
             layout {
                 sequence: 40
+            }
+        )
+
+        column ADD_URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region setup-rows (
+        name: Setup
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 73: every setup row of the application, each opening its form (Edit)
+                select t.setup_type_name,
+                       r.row_name,
+                       apex_page.get_url(p_page => t.form_page_id, p_clear_cache => to_char(t.form_page_id),
+                                         p_items => r.form_item, p_values => r.row_key) as edit_url
+                  from xxfnd_setup_rows_v r
+                  join xxfnd_setup_types t on t.setup_type_code = r.setup_type_code
+                 where r.application_code = :P161_APPLICATION_CODE
+                 order by t.display_sequence, r.row_name
+                ```
+            pageItemsToSubmit: P161_APPLICATION_CODE
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: setup-rows
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: This application has no setup of its own yet.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+
+        column SETUP_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Setup Type
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ROW_NAME (
+            type: plainText
+            heading {
+                heading: Setup
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#ROW_NAME#</a>
+                    ```
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 30
             }
         )
     )

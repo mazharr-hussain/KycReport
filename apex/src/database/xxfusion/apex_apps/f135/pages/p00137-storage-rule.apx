@@ -88,7 +88,7 @@ page 137 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: Shared (every application)
+            nullDisplayValue: All applications (instance)
         }
         layout {
             sequence: 15
@@ -99,6 +99,14 @@ page 137 (
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
         }
         source {
             formRegion: @form
@@ -114,7 +122,7 @@ page 137 (
                 ```
         }
         help {
-            inlineHelpText: Empty: shared by every application.
+            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
         }
     )
 

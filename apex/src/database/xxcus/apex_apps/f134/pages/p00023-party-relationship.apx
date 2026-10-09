@@ -108,11 +108,13 @@ page 23 (
                 select party_name || ' (' || party_number || ')' as display_value, party_id as return_value
                   from xxcmp_parties
                  where enabled_flag = 'Y'
+                   and party_id <> nvl(to_number(:P23_OBJECT_PARTY_ID), -1)   -- release 73: never the party itself
                 union
                 select j.party_name || ' (' || j.party_number || ')', j.party_id
                   from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
                                   party_name varchar2(360) path '$.party_name')) j
+                 where j.party_id <> nvl(to_number(:P23_OBJECT_PARTY_ID), -1)
                  order by 1
                 ```
             displayNullValue: false
@@ -294,6 +296,100 @@ page 23 (
         }
         help {
             helpText: Choose the end Date.
+        }
+    )
+
+    pageItem P23_BENEFICIAL_OWNER_FLAG (
+        type: switch
+        label {
+            label: Beneficial Owner
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: BENEFICIAL_OWNER_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: N
+        }
+        help {
+            helpText: On when this owner / officer is a beneficial owner of the party; then give the basis.
+        }
+    )
+
+    pageItem P23_UBO_BASIS (
+        type: selectList
+        label {
+            label: Beneficial Ownership Basis
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'UBO_BASIS' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: UBO_BASIS
+            dataType: varchar2
+        }
+        help {
+            helpText: Ownership, control or fallback (senior managing official). Required for a beneficial owner.
+        }
+    )
+
+    pageItem P23_UBO_NOTES (
+        type: textarea
+        label {
+            label: Beneficial Ownership Notes
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @form
+            column: UBO_NOTES
+            dataType: varchar2
         }
     )
 
@@ -576,6 +672,9 @@ page 23 (
                 ```plsql
                 if nvl(:P23_OWNER_SELECTION, 'EXISTING') = 'EXISTING' and :P23_SUBJECT_PARTY_ID is null then
                     return 'Choose the owner / officer.';
+                elsif nvl(:P23_OWNER_SELECTION, 'EXISTING') = 'EXISTING' and :P23_SUBJECT_PARTY_ID = :P23_OBJECT_PARTY_ID then
+                    -- release 73: XXCMP_PARTY_REL_CK1 - a party cannot own itself or be its own officer
+                    return 'A party cannot be its own owner / officer. Choose another party.';
                 elsif :P23_OWNER_SELECTION = 'NEW' then
                     -- the new owner / officer: the rules of the common party form
                     return xxcmp_party_pkg.party_error(null, :P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_JURISDICTION,
@@ -592,6 +691,76 @@ page 23 (
             type: requestIsContainedInValue
             value: CREATE,SAVE
         }
+    )
+
+    validation ubo-basis (
+        name: Basis of a beneficial owner
+        execution {
+            sequence: 7
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 73: a beneficial owner needs its basis (XXCMP_PARTY_REL_CK8)
+                if :P23_BENEFICIAL_OWNER_FLAG = 'Y' and :P23_UBO_BASIS is null then
+                    return 'Choose the beneficial ownership basis.';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P23_UBO_BASIS
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    dynamicAction show-ubo (
+        name: Show the beneficial ownership fields
+        execution {
+            sequence: 30
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P23_BENEFICIAL_OWNER_FLAG
+        }
+        clientSideCondition {
+            type: item=value
+            item: P23_BENEFICIAL_OWNER_FLAG
+            value: Y
+        }
+
+        action show-ubo-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P23_UBO_BASIS,P23_UBO_NOTES
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-ubo-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P23_UBO_BASIS,P23_UBO_NOTES
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
     )
 
     validation relationship-rules (

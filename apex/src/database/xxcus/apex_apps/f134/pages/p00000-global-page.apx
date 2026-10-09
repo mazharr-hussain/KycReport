@@ -1214,13 +1214,13 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.start_date, j.end_date,
+                select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.beneficial_owner, j.start_date, j.end_date,
                        case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
                   from json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID), '$[*]'
                          columns (party_relationship_id number path '$.party_relationship_id', direction varchar2(100) path '$.direction',
                                   related_party varchar2(400) path '$.related_party', relationship_type varchar2(240) path '$.relationship_type',
                                   ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
-                                  end_date varchar2(20) path '$.end_date')) j
+                                  end_date varchar2(20) path '$.end_date', beneficial_owner varchar2(200) path '$.beneficial_owner')) j
                 ```
             pageItemsToSubmit: [
                 P0_SUMMARY_PARTY_ID
@@ -1318,6 +1318,16 @@ page 0 (
             }
             layout {
                 sequence: 40
+            }
+        )
+
+        column BENEFICIAL_OWNER (
+            type: plainText
+            heading {
+                heading: Beneficial Owner
+            }
+            layout {
+                sequence: 45
             }
         )
 
@@ -1843,7 +1853,6 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
-                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
         componentAppearance {
@@ -2134,7 +2143,6 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
-                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
         componentAppearance {

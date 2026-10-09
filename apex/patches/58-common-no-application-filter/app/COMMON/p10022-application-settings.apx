@@ -1,0 +1,204 @@
+page 10022 (
+    name: Application Settings
+    alias: APPLICATION-SETTINGS
+    title: Application Settings
+    pageGroup: @features
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Values the application reads at run time (sender address, Fusion connection). Changing them needs no deployment.
+            ```
+    }
+
+    region breadcrumb (
+        name: Application Settings
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Application Settings
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 73: every registered application (no application filter)
+                select a.application_code,
+                       s.name,
+                       s.value,
+                       s.comments,
+                       s.is_required,
+                       apex_page.get_url(p_page => 10023, p_items => 'P10023_APPLICATION_CODE,P10023_NAME',
+                                         p_values => a.application_code || ',' || s.name, p_clear_cache => '10023') as open_url
+                  from apex_application_settings s
+                  join xxfnd_applications a on a.apex_application_id = s.application_id
+                 where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NAME (
+            type: plainText
+            heading {
+                heading: Setting
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column IS_REQUIRED (
+            type: plainText
+            heading {
+                heading: Required
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

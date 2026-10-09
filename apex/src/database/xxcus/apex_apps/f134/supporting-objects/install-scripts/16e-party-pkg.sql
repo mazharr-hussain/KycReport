@@ -277,7 +277,10 @@ create or replace package body xxcmp_party_pkg as
                    'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
                    'ownership_percentage'  value r.ownership_percentage,
                    'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
-                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'))
+                   'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'),
+                   -- release 73: beneficial owner, marked on the relationship
+                   'beneficial_owner'      value case when r.beneficial_owner_flag = 'Y'
+                                                      then 'Yes - ' || xxfnd_util_pkg.lookup_meaning('UBO_BASIS', r.ubo_basis) end)
                    order by r.end_date nulls first, o.party_name returning clob)
           into l_json
           from xxcmp_party_relationships r

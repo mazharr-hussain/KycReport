@@ -173,7 +173,7 @@ page 131 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: Shared (every application)
+            nullDisplayValue: All applications (instance)
         }
         layout {
             sequence: 15
@@ -184,6 +184,14 @@ page 131 (
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
         }
         source {
             formRegion: @form
@@ -199,15 +207,33 @@ page 131 (
                 ```
         }
         help {
-            inlineHelpText: Empty: shared by every application.
+            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
         }
     )
 
     pageItem P131_TABLE_NAME (
-        type: textField
+        type: selectList
         label {
             label: Table
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.table_name as display_value, t.table_name as return_value
+                  from xxfnd_setup_tables_v t
+                 -- release 73: the tables of the row's application (all applications: every registered one) and the shared ones
+                 where :P131_APPLICATION_CODE is null or t.application_code = :P131_APPLICATION_CODE or t.application_code is null
+                 group by t.table_name
+                 order by t.table_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 20
@@ -221,7 +247,6 @@ page 131 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -229,15 +254,34 @@ page 131 (
             dataType: varchar2
         }
         help {
-            helpText: Enter the table.
+            helpText: Choose the table.
         }
     )
 
     pageItem P131_PK1_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Key Column 1
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P131_TABLE_NAME
+                   and (:P131_APPLICATION_CODE is null or c.application_code = :P131_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_TABLE_NAME,P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 30
@@ -251,7 +295,6 @@ page 131 (
         }
         validation {
             valueRequired: true
-            maxLength: 128
         }
         source {
             formRegion: @form
@@ -259,15 +302,34 @@ page 131 (
             dataType: varchar2
         }
         help {
-            helpText: Enter the key Column 1.
+            helpText: Choose the key Column 1.
         }
     )
 
     pageItem P131_PK2_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Key Column 2
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P131_TABLE_NAME
+                   and (:P131_APPLICATION_CODE is null or c.application_code = :P131_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_TABLE_NAME,P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 40
@@ -279,24 +341,40 @@ page 131 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 128
-        }
         source {
             formRegion: @form
             column: PK2_COLUMN
             dataType: varchar2
         }
         help {
-            helpText: Enter the key Column 2.
+            helpText: Choose the key Column 2.
         }
     )
 
     pageItem P131_PK3_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Key Column 3
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P131_TABLE_NAME
+                   and (:P131_APPLICATION_CODE is null or c.application_code = :P131_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_TABLE_NAME,P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 50
@@ -308,24 +386,40 @@ page 131 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 128
-        }
         source {
             formRegion: @form
             column: PK3_COLUMN
             dataType: varchar2
         }
         help {
-            helpText: Enter the key Column 3.
+            helpText: Choose the key Column 3.
         }
     )
 
     pageItem P131_PK4_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Key Column 4
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P131_TABLE_NAME
+                   and (:P131_APPLICATION_CODE is null or c.application_code = :P131_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_TABLE_NAME,P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 60
@@ -337,24 +431,40 @@ page 131 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 128
-        }
         source {
             formRegion: @form
             column: PK4_COLUMN
             dataType: varchar2
         }
         help {
-            helpText: Enter the key Column 4.
+            helpText: Choose the key Column 4.
         }
     )
 
     pageItem P131_PK5_COLUMN (
-        type: textField
+        type: selectList
         label {
             label: Key Column 5
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 -- release 73: the columns of the table chosen
+                 where c.table_name = :P131_TABLE_NAME
+                   and (:P131_APPLICATION_CODE is null or c.application_code = :P131_APPLICATION_CODE or c.application_code is null)
+                 group by c.column_name
+                 order by min(c.column_id)
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P131_TABLE_NAME,P131_APPLICATION_CODE
+            parentRequired: false
         }
         layout {
             sequence: 70
@@ -366,16 +476,13 @@ page 131 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 128
-        }
         source {
             formRegion: @form
             column: PK5_COLUMN
             dataType: varchar2
         }
         help {
-            helpText: Enter the key Column 5.
+            helpText: Choose the key Column 5.
         }
     )
 

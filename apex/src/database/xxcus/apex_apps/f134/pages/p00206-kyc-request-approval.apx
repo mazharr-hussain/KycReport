@@ -867,10 +867,7 @@ page 206 (
             plsqlFunctionBody:
                 ```plsql
                 -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                -- the question goes to the requester: not offered when the approver is the requester
-                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
-                    return false;
-                end if;
+                -- the question goes to the requester (release 73: also when the approver is the requester)
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -902,10 +899,7 @@ page 206 (
             plsqlFunctionBody:
                 ```plsql
                 -- the document checklist task of this request (the page also opens from the Counterparty Match task)
-                -- the question goes to the requester: not offered when the approver is the requester
-                if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
-                    return false;
-                end if;
+                -- the question goes to the requester (release 73: also when the approver is the requester)
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -1233,9 +1227,12 @@ page 206 (
                     apex_human_task.claim_task(p_task_id => :P206_TASK_ID);
                 end loop;
                 if xxcmp_request_pkg.can_request_info(:P206_TASK_ID) = 'N' then
-                    raise_application_error(-20624, 'You are the requester of this request: there is nobody else to ask. Approve or reject it.');
+                    -- release 73: the approver is the requester (APEX cannot ask the initiator from the initiator):
+                    -- the request goes back to the requester with the question; resubmitting starts the approval again
+                    xxcmp_request_pkg.return_for_info(:P206_REQUEST_ID, :P206_TASK_ID, :P206_COMMENT);
+                else
+                    apex_human_task.request_more_information(p_task_id => :P206_TASK_ID, p_text => :P206_COMMENT);
                 end if;
-                apex_human_task.request_more_information(p_task_id => :P206_TASK_ID, p_text => :P206_COMMENT);
                 ```
         }
         execution {
@@ -1243,7 +1240,7 @@ page 206 (
             point: processing
         }
         successMessage {
-            successMessage: Information requested: the requester answers in My Tasks, then the task comes back to you.
+            successMessage: Information requested: the requester answers, then the request comes back for approval.
         }
         serverSideCondition {
             type: expression

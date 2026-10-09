@@ -637,7 +637,6 @@ page 31 (
             plsqlExpression:
                 ```plsql
                 :P31_RFI_ID is not null
-                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
 

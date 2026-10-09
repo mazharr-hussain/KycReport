@@ -105,22 +105,27 @@ create or replace package xxfnd_notify_pkg authid definer as
     -- Sends notification template P_TEMPLATE_CODE (in the user's language when translated)
     -- to P_TO, replacing #TOKEN# placeholders from the JSON object P_TOKENS.
     -- Does nothing when the template is disabled or the MAIL_FROM application setting is empty.
-    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null);
+    -- release 73: nor when e-mail is off for the instance, the application or the workflow process
+    -- (P_PROCESS_CODE, XXFND_WORKFLOW_SWITCH_PKG.EMAIL_ENABLED).
+    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null,
+                   p_process_code in varchar2 default null);
     -- Same, once per application user (comma-separated user names) that has an e-mail address.
-    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null);
+    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null,
+                            p_process_code in varchar2 default null);
 end xxfnd_notify_pkg;
 /
 
 create or replace package body xxfnd_notify_pkg as
 
-    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null) is
+    procedure send(p_template_code in varchar2, p_to in varchar2, p_tokens in clob default null,
+                   p_process_code in varchar2 default null) is
         l_from    varchar2(320) := apex_app_setting.get_value('MAIL_FROM');
         l_subject varchar2(4000);
         l_body    clob;
         l_mail_id number;
     begin
         if p_to is null or l_from is null
-           or xxfnd_app_function_pkg.is_enabled('NOTIFICATIONS') = 'N' then   -- release 72: switched off (COMMON)
+           or xxfnd_workflow_switch_pkg.email_enabled(p_process_code) = 'N' then   -- release 73: e-mail switched off
             return;
         end if;
         begin
@@ -147,14 +152,15 @@ create or replace package body xxfnd_notify_pkg as
                          p_body_html => l_body);
     end send;
 
-    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null) is
+    procedure send_to_users(p_template_code in varchar2, p_user_names in varchar2, p_tokens in clob default null,
+                            p_process_code in varchar2 default null) is
     begin
         for u in (select distinct e.email_address
                     from xxfnd_employees e
                    where e.user_name in (select upper(trim(column_value)) from table(apex_string.split(p_user_names, ',')))
                      and e.enabled_flag = 'Y'
                      and e.email_address is not null) loop
-            send(p_template_code, u.email_address, p_tokens);
+            send(p_template_code, u.email_address, p_tokens, p_process_code);
         end loop;
     end send_to_users;
 
@@ -374,7 +380,8 @@ create or replace package body xxfnd_task_pkg as
           left join xxfnd_task_settings s on s.task_definition = t.task_def_static_id
          where t.task_id = p_task_id;
         if l_flag = 'Y' then
-            xxfnd_notify_pkg.send_to_users('TASK_ASSIGNED', potential_owners(p_task_id), task_tokens(p_task_id));
+            xxfnd_notify_pkg.send_to_users('TASK_ASSIGNED', potential_owners(p_task_id), task_tokens(p_task_id),
+                                           xxfnd_workflow_switch_pkg.process_of_task(p_task_id));
         end if;
     end notify_created;
 
@@ -391,7 +398,8 @@ create or replace package body xxfnd_task_pkg as
                      and systimestamp >= k.due_on - numtodsinterval(s.reminder_days_before, 'DAY')
                      and systimestamp < k.due_on
                      and not exists (select 1 from xxfnd_task_alerts a where a.task_id = k.task_id and a.alert_type = 'REMINDER')) loop
-            xxfnd_notify_pkg.send_to_users('TASK_REMINDER', nvl(t.actual_owner, potential_owners(t.task_id)), task_tokens(t.task_id));
+            xxfnd_notify_pkg.send_to_users('TASK_REMINDER', nvl(t.actual_owner, potential_owners(t.task_id)), task_tokens(t.task_id),
+                                           xxfnd_workflow_switch_pkg.process_of_task(t.task_id));
             insert into xxfnd_task_alerts (task_id, alert_type) values (t.task_id, 'REMINDER');
         end loop;
         -- Escalation of overdue tasks to the escalation role.
@@ -403,7 +411,8 @@ create or replace package body xxfnd_task_pkg as
                      and s.escalation_role_code is not null
                      and k.due_on < systimestamp
                      and not exists (select 1 from xxfnd_task_alerts a where a.task_id = k.task_id and a.alert_type = 'ESCALATION')) loop
-            xxfnd_notify_pkg.send_to_users('TASK_ESCALATED', users_in_role(t.escalation_role_code), task_tokens(t.task_id));
+            xxfnd_notify_pkg.send_to_users('TASK_ESCALATED', users_in_role(t.escalation_role_code), task_tokens(t.task_id),
+                                           xxfnd_workflow_switch_pkg.process_of_task(t.task_id));
             insert into xxfnd_task_alerts (task_id, alert_type) values (t.task_id, 'ESCALATION');
         end loop;
         -- Forget alerts of tasks that no longer exist.

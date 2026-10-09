@@ -390,10 +390,6 @@ create or replace package body xxfnd_dff_pkg as
         l_ro      boolean := p_read_only = 'Y';
         l_shown   pls_integer := 0;
     begin
-        -- release 72: flexfields switched off for the running application (COMMON Applications)
-        if xxfnd_app_function_pkg.is_enabled('FLEXFIELDS') = 'N' then
-            return null;
-        end if;
         if l_ff.descriptive_flexfield_code is null then
             return '';
         end if;
@@ -584,9 +580,6 @@ create or replace package body xxfnd_dff_pkg as
         l_segs    t_segments;
         l_error   varchar2(4000);
     begin
-        if xxfnd_app_function_pkg.is_enabled('FLEXFIELDS') = 'N' then
-            return null;   -- release 72: switched off, nothing to validate
-        end if;
         if l_ff.descriptive_flexfield_code is null then
             return null;
         end if;
@@ -632,9 +625,6 @@ create or replace package body xxfnd_dff_pkg as
         l_sql     varchar2(32767);
         l_value   varchar2(4000);
     begin
-        if xxfnd_app_function_pkg.is_enabled('FLEXFIELDS') = 'N' then
-            return;   -- release 72: switched off, nothing to save
-        end if;
         if l_ff.descriptive_flexfield_code is null or p_pk_value is null then
             return;
         end if;

@@ -34,5 +34,12 @@ The shared XXFND_ objects live only in XXFUSION; KYC (XXCUS) reaches them throug
 install / upgrade **COMMON first**, then KYC.
 
 ## Upgrade
-Import the newer zip over the existing COMMON application → **Install Supporting Objects: Yes** (runs the
-upgrade scripts; data is kept). The same check runs first.
+Import the newer zip over the existing COMMON application the same way as step 1: **Parsing Schema = XXCUS**,
+**Install Supporting Objects: No**; then **Edit Application Definition → Security → Parsing Schema = XXFUSION →
+Apply Changes**, then **Utilities → Supporting Objects → Install Supporting Objects** (runs the upgrade scripts;
+data is kept). The same prerequisites check runs first.
+
+Delegated administration (release 73): IT can let an application's administrators maintain a common function for
+their application (COMMON → Applications → the application → Managed in the Application). They open it from their
+own application's Administration menu, in a dialog, signed in through the shared session - not by signing in to
+COMMON.

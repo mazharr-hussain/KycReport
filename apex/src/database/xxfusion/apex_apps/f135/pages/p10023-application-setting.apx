@@ -52,6 +52,18 @@ page 10023 (
         }
     )
 
+    pageItem P10023_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @setting
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P10023_NAME (
         type: hidden
         layout {
@@ -88,7 +100,7 @@ page 10023 (
             sqlQuery:
                 ```sql
                 select name || ' - ' || comments from apex_application_settings
-                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP) and name = :P10023_NAME
+                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:P10023_APPLICATION_CODE) and name = :P10023_NAME
                 ```
             used: always
         }
@@ -118,7 +130,7 @@ page 10023 (
             sqlQuery:
                 ```sql
                 select value from apex_application_settings
-                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP) and name = :P10023_NAME
+                 where application_id = xxfnd_admin_scope_pkg.apex_app_id(:P10023_APPLICATION_CODE) and name = :P10023_NAME
                 ```
             used: always
         }
@@ -195,8 +207,8 @@ page 10023 (
             plsqlCode:
                 ```plsql
                 -- release 67: APEX changes the settings of the running application only
-                if xxfnd_admin_scope_pkg.apex_app_id(:G_ADMIN_APP) <> :APP_ID then
-                    raise_application_error(-20150, 'Change the settings of ' || :G_ADMIN_APP
+                if xxfnd_admin_scope_pkg.apex_app_id(:P10023_APPLICATION_CODE) <> :APP_ID then
+                    raise_application_error(-20150, 'Change the settings of ' || :P10023_APPLICATION_CODE
                         || ' in that application (Administration > Application Settings).');
                 end if;
                 apex_app_setting.set_value(p_name => :P10023_NAME, p_value => :P10023_VALUE);

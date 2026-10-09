@@ -91,6 +91,7 @@ create or replace package body xxcmp_request_ui_pkg as
             fld('Requested by', xxfnd_ui_pkg.person_html(r.requester_user_name), true);
             fld('Submitted', to_char(r.submitted_date, 'DD-MON-YYYY HH24:MI'));
             fld('Last action', to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI'));
+            fld('Status', xxfnd_ui_pkg.status_badge('REQUEST', r.request_status), true);   -- release 73
             if l_case.case_id is not null then
                 fld('Case', case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
                                  then '<a href="' || apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID',

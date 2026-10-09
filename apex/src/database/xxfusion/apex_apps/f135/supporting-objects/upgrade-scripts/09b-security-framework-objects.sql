@@ -239,6 +239,15 @@ create or replace package body xxfnd_privilege_pkg as
            set apex_application_id = to_number(v('APP_ID'))
          where upper(apex_app_alias) = upper(v('APP_ALIAS'))
            and decode(apex_application_id, to_number(v('APP_ID')), 0, 1) = 1;
+        -- release 73: every other registered application too (from its alias), so its APEX ID is known before
+        -- its own first sign-in
+        update xxfnd_applications a
+           set a.apex_application_id = (select max(x.application_id) from apex_applications x
+                                         where upper(x.alias) = upper(a.apex_app_alias))
+         where upper(a.apex_app_alias) <> upper(nvl(v('APP_ALIAS'), '#'))
+           and exists (select 1 from apex_applications x where upper(x.alias) = upper(a.apex_app_alias))
+           and decode(a.apex_application_id, (select max(x.application_id) from apex_applications x
+                                               where upper(x.alias) = upper(a.apex_app_alias)), 0, 1) = 1;
     end sync_current_application;
 
     function has_any_privilege(p_user_name in varchar2 default null) return boolean is

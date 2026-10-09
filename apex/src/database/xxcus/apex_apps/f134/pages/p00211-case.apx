@@ -457,6 +457,9 @@ page 211 (
             dataType: number
             primaryKey: true
         }
+        sessionState {
+            storage: session
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
@@ -484,6 +487,9 @@ page 211 (
             formRegion: @case
             column: PARTY_ID
             dataType: number
+        }
+        sessionState {
+            storage: session
         }
     )
 
@@ -1451,7 +1457,6 @@ page 211 (
             plsqlExpression:
                 ```plsql
                 :P211_SECTION in ('DOCUMENTS', 'REVIEW')
-                and xxfnd_app_function_pkg.is_enabled('ATTACHMENTS') = 'Y'   -- release 72: switched on for KYC (COMMON)
                 ```
         }
 
@@ -1565,135 +1570,6 @@ page 211 (
             type: hidden
             layout {
                 sequence: 110
-            }
-        )
-
-    )
-
-    region ubos (
-        name: Beneficial Owners
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select u.ubo_id, p.party_name,
-                       xxfnd_util_pkg.lookup_meaning('UBO_BASIS', u.basis) as basis,
-                       u.ownership_percentage, u.notes, u.created_by,
-                       apex_page.get_url(p_page => 214, p_items => 'P214_UBO_ID,P214_CASE_ID', p_values => to_char(u.ubo_id) || ',' || :P211_CASE_ID, p_clear_cache => '214') as open_url
-                  from xxcmp_ubo_determinations u
-                  join xxcmp_parties p on p.party_id = u.owner_party_id
-                 where u.case_id = :P211_CASE_ID
-                 order by u.ownership_percentage desc nulls last
-                ```
-            pageItemsToSubmit: P211_CASE_ID
-        }
-        layout {
-            sequence: 60
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: ubos
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        messages {
-            whenNoDataFound: No beneficial owner determined yet.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P211_SECTION in ('PARTY', 'REVIEW')
-                ```
-        }
-
-        column UBO_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-        )
-
-        column PARTY_NAME (
-            type: plainText
-            heading {
-                heading: Beneficial Owner
-            }
-            layout {
-                sequence: 20
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    <a href="#OPEN_URL#">#PARTY_NAME#</a>
-                    ```
-            }
-        )
-
-        column BASIS (
-            type: plainText
-            heading {
-                heading: Basis
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column OWNERSHIP_PERCENTAGE (
-            type: plainText
-            heading {
-                heading: Ownership %
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column NOTES (
-            type: plainText
-            heading {
-                heading: Notes
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Determined By
-            }
-            layout {
-                sequence: 60
-            }
-        )
-
-        column OPEN_URL (
-            type: hidden
-            layout {
-                sequence: 70
             }
         )
 
@@ -2357,41 +2233,6 @@ page 211 (
         }
     )
 
-    button add-ubo (
-        buttonName: ADD_UBO
-        label: Add Beneficial Owner
-        layout {
-            sequence: 5
-            region: @ubos
-            slot: EDIT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 214
-                items: {
-                    P214_CASE_ID: &P211_CASE_ID.
-                }
-                clearCache: 214
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: rowsReturned
-            sqlQuery:
-                ```sql
-                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
-                ```
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
     button party_documents-add (
         buttonName: PARTY_DOCUMENTS_ADD
         label: Add Document
@@ -2557,30 +2398,6 @@ page 211 (
         )
 
     )
-    dynamicAction refresh-ubos (
-        name: Refresh ubos
-        execution {
-            sequence: 50
-        }
-        when {
-            event: apexafterclosedialog
-            selectionType: region
-            region: @ubos
-        }
-
-        action refresh-ubos-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @ubos
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
     dynamicAction refresh-party_documents (
         name: Refresh party_documents
         execution {
@@ -2697,7 +2514,11 @@ page 211 (
                     -- the party regions of the Global Page: Compliance edits through Parties - Manage (no request context)
                     :P0_REQUEST_ID := null;
                     :P0_CASE_ID := :P211_CASE_ID;
-                    select party_id into :P0_SUMMARY_PARTY_ID from xxcmp_cases where case_id = :P211_CASE_ID;
+                    -- release 73: a case the user cannot see (data security) or that does not exist: a clear message, not ORA-01403
+                    select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_cases where case_id = :P211_CASE_ID;
+                    if :P0_SUMMARY_PARTY_ID is null then
+                        raise_application_error(-20611, 'Case not found, or you are not allowed to see it.');
+                    end if;
                     :P0_PARTY_DFF_CONTEXT := null;
                 end;
                 ```

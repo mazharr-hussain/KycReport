@@ -32,7 +32,8 @@ create or replace package body xxfnd_share_pkg as
 
     function is_local(p_object_name in varchar2) return boolean is
     begin
-        return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG');
+        -- release 73: the setup forms' table / column lists read ALL_TABLES (not grantable on); COMMON's own
+        return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_SETUP_TABLES_V', 'XXFND_SETUP_COLUMNS_V');
     end is_local;
 
     procedure run(p_sql in varchar2) is
@@ -215,7 +216,7 @@ create or replace package body xxfnd_share_pkg as
         pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
         pages('DATA_SECURITY',    '180|181');
         pages('AUDIT_LOG',        '111');
-        pages('APPLICATIONS',     '160|161');
+        pages('APPLICATIONS',     '160=Applications|162=Setup Types|161|163');   -- release 73: Setup Types
         pages('APP_SETTINGS',     '10022=Settings|10020=Optional Features|10021|10023');
 
         -- the Common Administrator holds every admin privilege

@@ -254,6 +254,23 @@ installScript 09d-application-functions-table-and-package (
     }
 )
 
+installScript 09e-workflow-and-e-mail-switches (
+    execution {
+        sequence: 99
+    }
+    script {
+        contentFile: 09e-workflow-switches.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 10-flexfield-runtime-part-1-of-2 (
     execution {
         sequence: 100
@@ -515,6 +532,23 @@ installScript 21b-application-functions (
     }
     script {
         contentFile: 21b-application-functions.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 21c-setup-types (
+    execution {
+        sequence: 212
+    }
+    script {
+        contentFile: 21c-setup-types.sql
     }
     serverSideCondition {
         type: expression
