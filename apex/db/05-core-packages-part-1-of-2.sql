@@ -928,5 +928,15 @@ create or replace package xxfnd_approval_pkg authid definer as
     -- release 48: the pending changes of every application, one row per approval unit, from the views the
     -- applications registered (XXFND_CONFIG_TABLES.CHANGES_VIEW). Read through XXFND_CONFIG_CHANGES_V.
     function config_changes return xxfnd_config_change_tab pipelined;
+    -- release 74 (one package per component): the approval task of a change (was XXFND_CONFIG_APPROVAL_PKG).
+    -- Submits a change for approval and creates its CONFIG_CHANGE approval task (one open task per change).
+    -- P_TABLE_NAME / P_KEY: a registered maker-checker table and its key, or a unit table and its key for all draft
+    -- or rejected rows of that unit (XXFND_CONFIG_TABLES, e.g. XXCMP_QUESTIONS / question id = its answer options).
+    procedure request(p_table_name in varchar2, p_key in varchar2);
+    -- Task actions (the approver's session): apply or reject every row of the change.
+    procedure approve_change(p_detail_pk in varchar2);
+    procedure reject_change(p_detail_pk in varchar2, p_reason in varchar2);
+    -- Y while the change behind a task is still waiting for approval.
+    function is_pending(p_detail_pk in varchar2) return varchar2;
 end xxfnd_approval_pkg;
 /

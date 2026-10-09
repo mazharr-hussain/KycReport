@@ -926,7 +926,7 @@ page 162 (
             plsqlCode:
                 ```plsql
                 -- All draft or rejected answers of this question become one approval task.
-                xxfnd_config_approval_pkg.request('XXCMP_QUESTIONS', :P162_QUESTION_ID);
+                xxfnd_approval_pkg.request('XXCMP_QUESTIONS', :P162_QUESTION_ID);
                 ```
         }
         execution {

@@ -28,7 +28,7 @@ begin
     insert into xxcmp_attachment_rules (entity_name, category_code, jurisdiction, mandatory_flag, priority)
     values ('XXCMP_PARTIES', (select min(category_code) from xxfnd_document_categories), 'QB', 'Y', 50)
     returning attachment_rule_id into l_rule;
-    xxfnd_config_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
+    xxfnd_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
     commit;
     apex_session.delete_session;
     dbms_output.put_line('rfi=' || l_rfi || ' rule=' || l_rule);

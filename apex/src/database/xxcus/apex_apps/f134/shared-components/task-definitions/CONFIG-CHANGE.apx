@@ -48,7 +48,7 @@ taskDefinition CONFIG_CHANGE (
         name: Apply the change
         type: executeCode
         source {
-            plsqlCode: xxfnd_config_approval_pkg.approve(:APEX$TASK_PK);
+            plsqlCode: xxfnd_approval_pkg.approve_change(:APEX$TASK_PK);
         }
         execution {
             onEvent: complete
@@ -61,7 +61,7 @@ taskDefinition CONFIG_CHANGE (
         name: Reject the change
         type: executeCode
         source {
-            plsqlCode: xxfnd_config_approval_pkg.reject(:APEX$TASK_PK, xxfnd_task_pkg.last_comment(:APEX$TASK_ID));
+            plsqlCode: xxfnd_approval_pkg.reject_change(:APEX$TASK_PK, xxfnd_task_pkg.last_comment(:APEX$TASK_ID));
         }
         execution {
             onEvent: complete

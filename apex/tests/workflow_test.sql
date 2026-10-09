@@ -129,7 +129,7 @@ begin
     insert into xxcmp_attachment_rules (entity_name, category_code, jurisdiction, mandatory_flag, priority)
     values ('XXCMP_PARTIES', (select min(category_code) from xxfnd_document_categories), 'QA', 'Y', 50)
     returning attachment_rule_id into l_rule;
-    xxfnd_config_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
+    xxfnd_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
     commit;
     select max(task_id) into l_task from apex_tasks
      where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXCMP_ATTACHMENT_RULES:' || l_rule;
