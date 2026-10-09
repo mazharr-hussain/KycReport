@@ -35,6 +35,10 @@
   COMMON; what is specific to a component (its screens, its validations, invoking the common workflow, its own rules)
   stays in that component's package. Keep shared things common to avoid duplication, and component things separate
   for better management. Changes to this structure still follow the issues, plan and approval rule.
+- **Golden rule: no HTML in PL/SQL.** Build the UI with APEX components (classic / interactive reports, cards,
+  template components, forms, display items, standard region templates) fed by SQL; packages return data, not markup.
+  HTML is generated in PL/SQL only when no APEX component can do the job, and then the reason is written in a comment
+  next to it.
 - **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.
