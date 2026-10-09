@@ -23,7 +23,7 @@ appProcess DOWNLOAD_DOCUMENT (
                                                    = nvl(d.base_document_id, d.document_id))
                      where d.document_id = :G_DOCUMENT_ID
                        and (   (ad.entity_name = 'XXCMP_RFIS'
-                                and exists (select 1 from xxcmp_rfis r
+                                and exists (select 1 from xxfnd_rfis r
                                              where to_char(r.rfi_id) = ad.pk1_value
                                                and upper(r.recipient_user_name) = :APP_USER))
                             or (ad.entity_name = 'XXCMP_REQUESTS'

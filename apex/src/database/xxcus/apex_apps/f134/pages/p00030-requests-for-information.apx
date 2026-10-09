@@ -57,16 +57,15 @@ page 30 (
                            r.pk1_value,
                            xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) as rfi_category,
                            xxfnd_util_pkg.lookup_meaning('RFI_RECIPIENT_TYPE', r.recipient_type) as recipient_type,
-                           coalesce(r.recipient_user_name,
-                                    (select c.contact_name || ' ' || c.email from xxcmp_party_contacts c
-                                      where c.party_contact_id = r.recipient_party_contact_id)) as recipient,
+                           coalesce(r.recipient_user_name, trim(r.recipient_name || ' ' || r.recipient_email)) as recipient,
                            xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status) as rfi_status,
                            r.rfi_status as rfi_status_code,
                            r.due_date,
                            r.responded_date,
                            r.created_by,
                            r.creation_date
-                      from xxcmp_rfis r   -- rows filtered by data security (XXFND_VPD_PKG)
+                      from xxfnd_rfis r   -- the common RFIs (release 74); rows filtered by data security (XXFND_VPD_PKG)
+                     where r.application_code = 'KYC'
                 ) q
                 ```
         }

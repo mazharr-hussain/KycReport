@@ -80,8 +80,8 @@ page 1 (
                             apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_SLA_STATUS', p_values => 'Overdue'),
                             'fa-clock-o', 'danger'));
                     end if;
-                    select count(*) into l_n from xxcmp_rfis
-                     where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
+                    select count(*) into l_n from xxfnd_rfis
+                     where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED')
                        and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER));
                     add(xxfnd_ui_pkg.kpi_card('Open RFIs', l_n, apex_page.get_url(p_page => 30), 'fa-comments-o', 'warning'));
                     return l_html || '</div>';
@@ -135,7 +135,7 @@ page 1 (
                             when r.due_date < trunc(sysdate) + 2 then 'warning' end,
                        cast(r.creation_date as date),
                        cast(r.due_date as timestamp with time zone)
-                  from xxcmp_rfis r
+                  from xxfnd_rfis r
                  where upper(r.recipient_user_name) = upper(:APP_USER)
                    and r.rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
                    and r.responded_date is null

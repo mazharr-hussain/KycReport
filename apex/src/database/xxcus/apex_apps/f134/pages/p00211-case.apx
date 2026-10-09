@@ -1597,7 +1597,7 @@ page 211 (
                            xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status), r.created_by,
                            to_char(r.creation_date, 'DD-MON-YYYY HH24:MI'), r.creation_date,
                            apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31')
-                      from xxcmp_rfis r
+                      from xxfnd_rfis r
                      where (r.entity_name = 'XXCMP_CASES' and r.pk1_value = :P211_CASE_ID)
                         or (r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = (select to_char(request_id) from xxcmp_cases where case_id = :P211_CASE_ID))
                 )

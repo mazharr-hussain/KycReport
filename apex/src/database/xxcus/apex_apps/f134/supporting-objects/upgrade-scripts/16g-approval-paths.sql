@@ -215,12 +215,13 @@ create or replace package body xxcmp_approval_pkg as
                      and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
                   union all
                   select r.creation_date, r.created_by, 'Information requested', r.description
-                    from xxcmp_rfis r
+                    from xxfnd_rfis r
                    where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
                   union all
-                  select r.responded_date, r.recipient_user_name, 'Information submitted', null
-                    from xxcmp_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id) and r.responded_date is not null
+                  select coalesce(r.responded_date, r.resolved_date), r.recipient_user_name, 'Information submitted', null
+                    from xxfnd_rfis r
+                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                     and coalesce(r.responded_date, r.resolved_date) is not null and r.rfi_status <> 'CANCELLED'
                   union all
                   select l_req.completed_date, l_req.last_updated_by,
                          initcap(l_req.request_status), l_req.match_note
@@ -273,19 +274,21 @@ create or replace package body xxcmp_approval_pkg as
                   -- release 73: questions returned to the requester by an approver who is the requester (return_for_info)
                   select null, 'Approval', null, 'Information requested', r.created_by, cast(r.creation_date as timestamp),
                          r.description
-                    from xxcmp_rfis r
+                    from xxfnd_rfis r
                    where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
                   union all
-                  select null, 'Request', null, 'Information submitted', r.recipient_user_name, cast(r.responded_date as timestamp), null
-                    from xxcmp_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id) and r.responded_date is not null
+                  select null, 'Request', null, 'Information submitted', r.recipient_user_name,
+                         cast(coalesce(r.responded_date, r.resolved_date) as timestamp), null
+                    from xxfnd_rfis r
+                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                     and coalesce(r.responded_date, r.resolved_date) is not null and r.rfi_status <> 'CANCELLED'
                   union all
                   select null, 'Request', null, 'Withdrawn', l_req.requester_user_name, cast(w.last_updated_on as timestamp), null
                     from apex_workflows w
                    where w.detail_pk = to_char(p_request_id) and w.state_code = 'TERMINATED'
                      and not (l_req.request_status = 'CANCELLED'
                               and abs(cast(w.last_updated_on as date) - cast(l_req.completed_date as date)) < 1 / 1440)
-                     and not exists (select 1 from xxcmp_rfis r
+                     and not exists (select 1 from xxfnd_rfis r
                                       where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
                                         and abs(cast(w.last_updated_on as date) - cast(r.creation_date as date)) < 1 / 1440)
                   union all

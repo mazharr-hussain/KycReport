@@ -586,6 +586,17 @@ create or replace package xxcmp_case_pkg authid definer as
     procedure reject_case(p_case_id in number);
 
     -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
+    -- release 74: an RFI raised from a case (or its request / party) - the case gives the recipient (a user, or a
+    -- contact person of the party: name and e-mail), then starts the common RFI workflow and e-mails the recipient.
+    procedure raise_rfi(p_entity_name      in varchar2,
+                        p_pk1_value        in varchar2,
+                        p_recipient_type   in varchar2,
+                        p_recipient_user   in varchar2,
+                        p_party_contact_id in number,
+                        p_rfi_category     in varchar2,
+                        p_description      in varchar2,
+                        p_continue_work    in varchar2,
+                        p_due_date         in date);
     procedure apply_screening(p_case_id in number);
 
     -- Case screen (211, release 27): the sections an officer works through, in order.
@@ -1251,9 +1262,13 @@ create or replace package body xxcmp_request_pkg as
         update xxcmp_requests
            set request_status = 'IN_PROGRESS', submitted_date = systimestamp, last_action_date = sysdate
          where request_id = p_request_id;
-        -- release 73: the requester's answer to a question returned by the approver (return_for_info)
-        update xxcmp_rfis set rfi_status = 'RESOLVED', responded_date = systimestamp, resolved_date = systimestamp
-         where entity_name = 'XXCMP_REQUESTS' and pk1_value = to_char(p_request_id) and rfi_status = 'WAITING_FOR_INFORMATION';
+        -- release 73: the requester's answer to a question returned by the approver (return_for_info) is the resubmitted
+        -- request (release 74: the common RFI)
+        for f in (select rfi_id from xxfnd_rfis
+                   where entity_name = 'XXCMP_REQUESTS' and pk1_value = to_char(p_request_id)
+                     and rfi_status = 'WAITING_FOR_INFORMATION') loop
+            xxfnd_rfi_pkg.resolve(f.rfi_id, 'RESOLVED', 'Answered by submitting the request again.');
+        end loop;
         if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'N' then
             -- release 73: approval workflow switched off - auto-approved: the steps of KYC_REQUEST without the approval
             update xxcmp_requests set auto_approved_date = systimestamp where request_id = p_request_id;
@@ -1362,6 +1377,8 @@ create or replace package body xxcmp_request_pkg as
 
     procedure return_for_info(p_request_id in number, p_task_id in number, p_comment in varchar2) is
         l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_rfi_id number;
+        l_token  varchar2(64);
     begin
         if p_comment is null then
             raise_application_error(-20625, 'Enter the information you need from the requester.');
@@ -1373,10 +1390,12 @@ create or replace package body xxcmp_request_pkg as
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         begin
-            insert into xxcmp_rfis (entity_name, pk1_value, recipient_type, recipient_user_name, rfi_category,
-                                    description, continue_other_work_flag, rfi_status)
-            values ('XXCMP_REQUESTS', to_char(p_request_id), 'REQUESTING_DEPARTMENT', upper(l_req.requester_user_name),
-                    'CLARIFICATION', substr(p_comment, 1, 4000), 'N', 'WAITING_FOR_INFORMATION');
+            -- the question is a common RFI to the requester, answered by resubmitting the request (no response task)
+            xxfnd_rfi_pkg.create_rfi(p_entity_name => 'XXCMP_REQUESTS', p_pk1_value => to_char(p_request_id),
+                                     p_recipient_type => 'USER', p_rfi_category => 'CLARIFICATION',
+                                     p_description => substr(p_comment, 1, 4000), p_continue_other_work => 'Y',
+                                     p_recipient_user_name => l_req.requester_user_name, p_with_tasks => 'N',
+                                     p_rfi_id => l_rfi_id, p_token => l_token);
             xxfnd_workflow_pkg.end_process(l_req.workflow_id);
             update xxcmp_requests set request_status = 'INFO_NEEDED', last_action_date = sysdate
              where request_id = p_request_id;
@@ -1393,7 +1412,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         select count(*) into l_count from xxcmp_requests r
          where r.request_id = p_request_id and r.request_status = 'INFO_NEEDED'
-           and exists (select 1 from xxcmp_rfis f
+           and exists (select 1 from xxfnd_rfis f
                         where f.entity_name = 'XXCMP_REQUESTS' and f.pk1_value = to_char(r.request_id)
                           and f.rfi_status = 'WAITING_FOR_INFORMATION');
         return case when l_count > 0 then 'Y' else 'N' end;
@@ -1900,9 +1919,9 @@ create or replace package body xxcmp_case_pkg as
         if l_count = 0 then
             return 'Record at least one screening.';
         end if;
-        select count(*) into l_count from xxcmp_rfis
+        select count(*) into l_count from xxfnd_rfis
          where entity_name = 'XXCMP_CASES' and pk1_value = to_char(p_case_id)
-           and continue_other_work_flag = 'N' and rfi_status in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING');
+           and continue_other_work_flag = 'N' and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED');
         if l_count > 0 then
             return 'A request for information that pauses the case is still open.';
         end if;
@@ -2055,6 +2074,49 @@ create or replace package body xxcmp_case_pkg as
             raise;
     end reject_case;
 
+    procedure raise_rfi(p_entity_name      in varchar2,
+                        p_pk1_value        in varchar2,
+                        p_recipient_type   in varchar2,
+                        p_recipient_user   in varchar2,
+                        p_party_contact_id in number,
+                        p_rfi_category     in varchar2,
+                        p_description      in varchar2,
+                        p_continue_work    in varchar2,
+                        p_due_date         in date) is
+        l_name   xxcmp_party_contacts.contact_name%type;
+        l_email  xxcmp_party_contacts.email%type;
+        l_rfi_id number;
+        l_token  varchar2(64);
+    begin
+        if p_recipient_type in ('EXTERNAL_PARTY', 'EXTERNAL') then
+            select max(contact_name), max(email) into l_name, l_email
+              from xxcmp_party_contacts where party_contact_id = p_party_contact_id;
+            if l_email is null then
+                raise_application_error(-20509, 'The contact person has no e-mail address: add one before sending the request.');
+            end if;
+        end if;
+        xxfnd_rfi_pkg.create_rfi(
+            p_entity_name         => p_entity_name,
+            p_pk1_value           => p_pk1_value,
+            p_recipient_type      => case when p_recipient_type in ('EXTERNAL_PARTY', 'EXTERNAL') then 'EXTERNAL' else 'USER' end,
+            p_rfi_category        => p_rfi_category,
+            p_description         => p_description,
+            p_continue_other_work => p_continue_work,
+            p_due_date            => p_due_date,
+            p_recipient_user_name => case when p_recipient_type not in ('EXTERNAL_PARTY', 'EXTERNAL') then p_recipient_user end,
+            p_recipient_name      => l_name,
+            p_recipient_email     => l_email,
+            p_recipient_reference => to_char(p_party_contact_id),
+            p_application_code    => 'KYC',
+            p_rfi_id              => l_rfi_id,
+            p_token               => l_token);
+        -- an external person answers on the public page 33 with the one-time token
+        xxfnd_rfi_pkg.send_email(l_rfi_id,
+            case when l_token is not null
+                 then apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN', p_values => l_token,
+                                        p_absolute_url => true) end);
+    end raise_rfi;
+
     procedure apply_screening(p_case_id in number) is
         l_pep pls_integer;
         l_hit pls_integer;
@@ -2117,9 +2179,9 @@ create or replace package body xxcmp_case_pkg as
             when 'RISK' then
                 return case when l_case.risk_tier is not null then 'DONE' else 'TODO' end;
             when 'NOTES' then
-                select count(*) into l_count from xxcmp_rfis
+                select count(*) into l_count from xxfnd_rfis
                  where entity_name = 'XXCMP_CASES' and pk1_value = to_char(p_case_id)
-                   and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING');
+                   and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED');
                 return case when l_count > 0 then 'WARN' else 'DONE' end;
             when 'REVIEW' then
                 return case when l_case.case_status <> 'INVESTIGATION' or submit_error(p_case_id) is null then 'DONE' else 'TODO' end;

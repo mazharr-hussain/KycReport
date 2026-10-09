@@ -45,7 +45,7 @@ page 31 (
         source {
             location: localDatabase
             type: tableView
-            tableName: XXCMP_RFIS
+            tableName: XXFND_RFIS
         }
         layout {
             sequence: 20
@@ -381,7 +381,7 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                not (upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING'))
+                not (upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING','RESPONDED'))
                 ```
         }
         help {
@@ -418,7 +418,7 @@ page 31 (
     pageItem P31_RESOLUTION_NOTES (
         type: textarea
         label {
-            label: Resolution Notes
+            label: Notes / New Question
             alignment: left
         }
         layout {
@@ -539,7 +539,7 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING','RESPONDED')
                 ```
         }
     )
@@ -569,6 +569,191 @@ page 31 (
                 xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
                 ```
         }
+    )
+
+    button ask-again (
+        buttonName: ASK_AGAIN
+        label: Ask Again
+        layout {
+            sequence: 35
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 74: the same RFI loops - a new round with the question in Resolution Notes
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    region rounds (
+        name: Questions and Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select round_no, question, xxfnd_ui_pkg.person_name(asked_by) as asked_by, asked_date,
+                       response_text, responded_by, responded_date,
+                       initcap(replace(review_outcome, '_', ' ')) as review_outcome, review_notes,
+                       xxfnd_ui_pkg.person_name(reviewed_by) as reviewed_by, reviewed_date
+                  from xxfnd_rfi_rounds
+                 where rfi_id = :P31_RFI_ID
+                 order by round_no
+                ```
+            pageItemsToSubmit: P31_RFI_ID
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        messages {
+            whenNoDataFound: No question yet.
+        }
+
+        column ROUND_NO (
+            type: plainText
+            heading {
+                heading: Round
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column QUESTION (
+            type: plainText
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ASKED_BY (
+            type: plainText
+            heading {
+                heading: Asked By
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ASKED_DATE (
+            type: plainText
+            heading {
+                heading: Asked
+            }
+            layout {
+                sequence: 40
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column RESPONSE_TEXT (
+            type: plainText
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column RESPONDED_BY (
+            type: plainText
+            heading {
+                heading: Answered By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column RESPONDED_DATE (
+            type: plainText
+            heading {
+                heading: Answered
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column REVIEW_OUTCOME (
+            type: plainText
+            heading {
+                heading: Review
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column REVIEW_NOTES (
+            type: plainText
+            heading {
+                heading: Review Notes
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column REVIEWED_BY (
+            type: plainText
+            heading {
+                heading: Reviewed By
+            }
+            layout {
+                sequence: 100
+            }
+        )
+
+        column REVIEWED_DATE (
+            type: plainText
+            heading {
+                heading: Reviewed
+            }
+            layout {
+                sequence: 110
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
     )
 
     region rfi_attachments (
@@ -971,7 +1156,7 @@ page 31 (
             language: plsql
             plsqlCode:
                 ```plsql
-                xxcmp_kyc_pkg.respond(:P31_RFI_ID, :P31_RESPONSE_TEXT);
+                xxfnd_rfi_pkg.respond(:P31_RFI_ID, :P31_RESPONSE_TEXT);
                 ```
         }
         execution {
@@ -993,7 +1178,7 @@ page 31 (
             language: plsql
             plsqlCode:
                 ```plsql
-                xxcmp_kyc_pkg.resolve(:P31_RFI_ID, :P31_NEW_STATUS, :P31_RESOLUTION_NOTES);
+                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, :P31_NEW_STATUS, :P31_RESOLUTION_NOTES);
                 ```
         }
         execution {
@@ -1005,6 +1190,40 @@ page 31 (
         }
         serverSideCondition {
             whenButtonPressed: @resolve
+        }
+    )
+
+    process ask-again-rfi (
+        name: Ask again
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the same RFI goes back to the recipient with a new question (Resolution Notes)
+                declare
+                    l_token varchar2(64);
+                begin
+                    if trim(:P31_RESOLUTION_NOTES) is null then
+                        xxfnd_error_pkg.raise_error('XXFND_RFI_QUESTION_REQUIRED');
+                    end if;
+                    l_token := xxfnd_rfi_pkg.ask_again(:P31_RFI_ID, :P31_RESOLUTION_NOTES);
+                    xxfnd_rfi_pkg.send_email(:P31_RFI_ID,
+                        case when l_token is not null
+                             then apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN',
+                                                    p_values => l_token, p_absolute_url => true) end);
+                end;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Asked again: the recipient answers the new question.
+        }
+        serverSideCondition {
+            whenButtonPressed: @ask-again
         }
     )
 

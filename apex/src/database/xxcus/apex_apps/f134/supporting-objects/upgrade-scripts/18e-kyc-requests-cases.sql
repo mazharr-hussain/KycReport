@@ -264,6 +264,11 @@ begin
         rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
     end loop;
     rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+    -- release 74: the common RFI table, same access
+    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+        rule(r.role_code, 'XXFND_RFIS', 'ALL_ROWS');
+    end loop;
+    rule('REQUESTER', 'XXFND_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))

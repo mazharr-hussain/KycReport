@@ -373,6 +373,23 @@ upgradeScript 15b-common-workflow-runtime (
     }
 )
 
+upgradeScript 15c-request-for-information-workflow (
+    execution {
+        sequence: 113
+    }
+    script {
+        contentFile: 15c-rfi-workflow.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 130

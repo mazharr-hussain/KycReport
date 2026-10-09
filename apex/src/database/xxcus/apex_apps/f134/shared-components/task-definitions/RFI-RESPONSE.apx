@@ -11,7 +11,7 @@ taskDefinition RFI_RESPONSE (
             -- always one row (a delegate may not see the RFI itself)
             select nvl(r.rfi_number, 'RFI ' || :APEX$TASK_PK) as rfi_number, r.description, r.due_date
               from dual
-              left join xxcmp_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
+              left join xxfnd_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
             ```
     }
     advanced {
@@ -25,7 +25,7 @@ taskDefinition RFI_RESPONSE (
         vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
     }
     comments {
-        comments: The requesting department answers a request for information. Created by XXCMP_KYC_PKG.CREATE_RFI; completed by XXCMP_KYC_PKG.RESPOND.
+        comments: The requesting department answers a request for information. Created by XXFND_RFI_PKG.CREATE_RFI; completed by XXFND_RFI_PKG.RESPOND.
     }
 
     action notify-owners (
@@ -43,7 +43,7 @@ taskDefinition RFI_RESPONSE (
     participant (
         value {
             type: expression
-            plsqlExpression: xxcmp_kyc_pkg.rfi_recipient(to_number(:APEX$TASK_PK))
+            plsqlExpression: xxfnd_rfi_pkg.recipient(to_number(:APEX$TASK_PK))
         }
     )
 

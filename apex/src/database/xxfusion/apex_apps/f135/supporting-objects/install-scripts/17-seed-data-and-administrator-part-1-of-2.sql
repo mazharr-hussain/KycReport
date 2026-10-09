@@ -175,12 +175,14 @@ begin
         || '|SOURCE_OF_FUNDS=Source of funds or wealth|OTHER=Other');
 
     lt('RFI_RECIPIENT_TYPE', 'RFI Recipient Types', 'S', 'KYC');
-    lvs('RFI_RECIPIENT_TYPE', 'REQUESTING_DEPARTMENT=Requesting department|EXTERNAL_PARTY=External party');
+    lvs('RFI_RECIPIENT_TYPE', 'REQUESTING_DEPARTMENT=Requesting department|EXTERNAL_PARTY=External party'
+        -- release 74: the common RFI (XXFND_RFIS) - a user of the application or an external person
+        || '|USER=User (answers in My Tasks)|EXTERNAL=External person (answers through the e-mailed link)');
 
     lt('RFI_STATUS', 'RFI Status', 'S', 'KYC');
     lvs('RFI_STATUS', 'WAITING_FOR_INFORMATION=Waiting for information|ON_HOLD_PENDING=On hold - pending'
         || '|ON_HOLD_INVESTIGATION=On hold - investigation|RESOLVED=Resolved|REJECTED_RETURNED=Rejected / returned'
-        || '|CANCELLED=Cancelled');
+        || '|CANCELLED=Cancelled|RESPONDED=Answered - waiting for review');
 
     lt('INTEGRATION_PURPOSE', 'Integration Purposes', 'E');
     lvs('INTEGRATION_PURPOSE', 'SCREENING=Sanctions / PEP / adverse media screening|DOC_AUTHENTICITY=Document authenticity check'

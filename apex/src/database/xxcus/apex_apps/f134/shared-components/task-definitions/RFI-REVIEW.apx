@@ -11,7 +11,7 @@ taskDefinition RFI_REVIEW (
             -- always one row (a delegate may not see the RFI itself)
             select nvl(r.rfi_number, 'RFI ' || :APEX$TASK_PK) as rfi_number, r.description, r.responded_date
               from dual
-              left join xxcmp_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
+              left join xxfnd_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
             ```
     }
     advanced {
@@ -25,7 +25,7 @@ taskDefinition RFI_REVIEW (
         vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
     }
     comments {
-        comments: The Compliance team reviews an answer (internal or through the emailed link). Completed by XXCMP_KYC_PKG.RESOLVE.
+        comments: The Compliance team reviews an answer (internal or through the emailed link). Completed by XXFND_RFI_PKG.RESOLVE / ASK_AGAIN.
     }
 
     action notify-owners (

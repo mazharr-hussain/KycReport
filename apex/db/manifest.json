@@ -204,6 +204,15 @@
   ]
  },
  {
+  "name": "15c Request for Information workflow",
+  "file": "15c-rfi-workflow.sql",
+  "install_sequence": 153,
+  "upgrade_sequence": 113,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
@@ -288,6 +297,12 @@
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,
   "upgrade_sequence": 125
+ },
+ {
+  "name": "16k KYC RFIs use the common RFI workflow",
+  "file": "16k-rfi-to-common.sql",
+  "install_sequence": 173,
+  "upgrade_sequence": 133
  },
  {
   "name": "18e KYC requests and cases - seed",
