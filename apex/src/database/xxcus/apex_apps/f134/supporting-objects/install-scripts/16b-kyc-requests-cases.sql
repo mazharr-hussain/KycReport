@@ -508,6 +508,12 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Y when the approver may use Request Information on the task: the question goes to the task's initiator (the
     -- requester), so an approver who is also the requester cannot ask (APEX refuses REQUEST_INFO_NOT_AUTHORIZED).
     function can_request_info(p_task_id in number) return varchar2;
+    -- release 73: Request Information when the approver is the requester (APEX cannot ask the task initiator's
+    -- own question back): the question is recorded (XXCMP_RFIS), the approval ends and the request goes back to
+    -- the requester (Information needed); resubmitting starts the approval again.
+    procedure return_for_info(p_request_id in number, p_task_id in number, p_comment in varchar2);
+    -- Y when the request was returned to the requester by return_for_info and waits to be submitted again.
+    function returned_for_info(p_request_id in number) return varchar2;
     procedure withdraw(p_request_id in number);
 
     -- Document checklist task events: Compliance asked the requester for information / the requester answered.
@@ -1182,7 +1188,7 @@ create or replace package body xxcmp_request_pkg as
         l_error   varchar2(4000);
         l_docs    varchar2(4000);
     begin
-        if l_req.request_status <> 'DRAFT' then
+        if l_req.request_status <> 'DRAFT' and returned_for_info(p_request_id) = 'N' then
             return 'This request has already been submitted.';
         end if;
         select count(*) into l_missing
@@ -1245,6 +1251,9 @@ create or replace package body xxcmp_request_pkg as
         update xxcmp_requests
            set request_status = 'IN_PROGRESS', submitted_date = systimestamp, last_action_date = sysdate
          where request_id = p_request_id;
+        -- release 73: the requester's answer to a question returned by the approver (return_for_info)
+        update xxcmp_rfis set rfi_status = 'RESOLVED', responded_date = systimestamp, resolved_date = systimestamp
+         where entity_name = 'XXCMP_REQUESTS' and pk1_value = to_char(p_request_id) and rfi_status = 'WAITING_FOR_INFORMATION';
         if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'N' then
             -- release 73: approval workflow switched off - auto-approved: the steps of KYC_REQUEST without the approval
             update xxcmp_requests set auto_approved_date = systimestamp where request_id = p_request_id;
@@ -1373,6 +1382,51 @@ create or replace package body xxcmp_request_pkg as
             xxfnd_vpd_pkg.end_trusted;
             raise;
     end set_status;
+
+    procedure return_for_info(p_request_id in number, p_task_id in number, p_comment in varchar2) is
+        l_req   xxcmp_requests%rowtype := get_request(p_request_id);
+        l_state varchar2(30);
+    begin
+        if p_comment is null then
+            raise_application_error(-20625, 'Enter the information you need from the requester.');
+        elsif l_req.request_status <> 'IN_PROGRESS' then
+            raise_application_error(-20625, 'Request ' || l_req.request_number || ' is not waiting for approval.');
+        elsif not (apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_approve)
+                   or apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_claim)) then
+            raise_application_error(-20625, 'You are not an approver of request ' || l_req.request_number || '.');
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            insert into xxcmp_rfis (entity_name, pk1_value, recipient_type, recipient_user_name, rfi_category,
+                                    description, continue_other_work_flag, rfi_status)
+            values ('XXCMP_REQUESTS', to_char(p_request_id), 'REQUESTING_DEPARTMENT', upper(l_req.requester_user_name),
+                    'CLARIFICATION', substr(p_comment, 1, 4000), 'N', 'WAITING_FOR_INFORMATION');
+            if l_req.workflow_id is not null then
+                select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
+                if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
+                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
+                end if;
+            end if;
+            update xxcmp_requests set request_status = 'INFO_NEEDED', last_action_date = sysdate
+             where request_id = p_request_id;
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+    end return_for_info;
+
+    function returned_for_info(p_request_id in number) return varchar2 is
+        l_count pls_integer;
+    begin
+        select count(*) into l_count from xxcmp_requests r
+         where r.request_id = p_request_id and r.request_status = 'INFO_NEEDED'
+           and exists (select 1 from xxcmp_rfis f
+                        where f.entity_name = 'XXCMP_REQUESTS' and f.pk1_value = to_char(r.request_id)
+                          and f.rfi_status = 'WAITING_FOR_INFORMATION');
+        return case when l_count > 0 then 'Y' else 'N' end;
+    end returned_for_info;
 
     procedure info_requested(p_request_id in number) is
     begin

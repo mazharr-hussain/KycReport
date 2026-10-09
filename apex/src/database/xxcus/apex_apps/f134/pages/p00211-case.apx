@@ -457,6 +457,9 @@ page 211 (
             dataType: number
             primaryKey: true
         }
+        sessionState {
+            storage: session
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
@@ -484,6 +487,9 @@ page 211 (
             formRegion: @case
             column: PARTY_ID
             dataType: number
+        }
+        sessionState {
+            storage: session
         }
     )
 

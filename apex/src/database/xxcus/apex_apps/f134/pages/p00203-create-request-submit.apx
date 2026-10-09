@@ -300,7 +300,9 @@ page 203 (
             plsqlExpression:
                 ```plsql
                 -- a request in Information Needed is answered on the request page (Respond), not submitted again
+                -- release 73: a request returned by an approver who is the requester is submitted again
                 xxcmp_request_pkg.stage(:P203_REQUEST_ID) = xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'DRAFT')
+                or xxcmp_request_pkg.returned_for_info(:P203_REQUEST_ID) = 'Y'
                 ```
         }
         security {
