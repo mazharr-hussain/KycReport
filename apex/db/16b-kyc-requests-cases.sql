@@ -1266,10 +1266,7 @@ create or replace package body xxcmp_request_pkg as
             return;
         end if;
         xxcmp_approval_pkg.start_path(p_request_id);
-        l_wf := apex_workflow.start_workflow(
-                    p_application_id => v('APP_ID'),
-                    p_static_id      => 'KYC_REQUEST',
-                    p_detail_pk      => to_char(p_request_id));
+        l_wf := xxfnd_workflow_pkg.start_process('KYC_REQUEST', to_char(p_request_id));
         update xxcmp_requests set workflow_id = l_wf where request_id = p_request_id;
     end submit;
 
@@ -1294,26 +1291,12 @@ create or replace package body xxcmp_request_pkg as
     procedure cancel(p_request_id in number, p_reason in varchar2 default null) is
         l_error varchar2(4000) := cancel_error(p_request_id);
         l_req   xxcmp_requests%rowtype := get_request(p_request_id);
-        l_state varchar2(30);
     begin
         if l_error is not null then
             raise_application_error(-20623, l_error);
         end if;
         -- the running workflow and its open task end with the request
-        if l_req.workflow_id is not null then
-            select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
-            if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
-                xxfnd_vpd_pkg.begin_trusted;
-                begin
-                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
-                exception
-                    when others then
-                        xxfnd_vpd_pkg.end_trusted;
-                        raise;
-                end;
-                xxfnd_vpd_pkg.end_trusted;
-            end if;
-        end if;
+        xxfnd_workflow_pkg.end_process(l_req.workflow_id);
         update xxcmp_requests
            set request_status = 'CANCELLED', completed_date = systimestamp, last_action_date = sysdate,
                match_note = nvl(substr(p_reason, 1, 1000), match_note)
@@ -1347,19 +1330,13 @@ create or replace package body xxcmp_request_pkg as
     procedure withdraw(p_request_id in number) is
         l_error varchar2(4000) := withdraw_error(p_request_id);
         l_req   xxcmp_requests%rowtype := get_request(p_request_id);
-        l_state varchar2(30);
     begin
         if l_error is not null then
             raise_application_error(-20623, l_error);
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         begin
-            if l_req.workflow_id is not null then
-                select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
-                if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
-                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
-                end if;
-            end if;
+            xxfnd_workflow_pkg.end_process(l_req.workflow_id);
             update xxcmp_requests
                set request_status = 'DRAFT', approval_path_name = null, current_step = null, last_action_date = sysdate
              where request_id = p_request_id;
@@ -1385,7 +1362,6 @@ create or replace package body xxcmp_request_pkg as
 
     procedure return_for_info(p_request_id in number, p_task_id in number, p_comment in varchar2) is
         l_req   xxcmp_requests%rowtype := get_request(p_request_id);
-        l_state varchar2(30);
     begin
         if p_comment is null then
             raise_application_error(-20625, 'Enter the information you need from the requester.');
@@ -1401,12 +1377,7 @@ create or replace package body xxcmp_request_pkg as
                                     description, continue_other_work_flag, rfi_status)
             values ('XXCMP_REQUESTS', to_char(p_request_id), 'REQUESTING_DEPARTMENT', upper(l_req.requester_user_name),
                     'CLARIFICATION', substr(p_comment, 1, 4000), 'N', 'WAITING_FOR_INFORMATION');
-            if l_req.workflow_id is not null then
-                select max(state_code) into l_state from apex_workflows where workflow_id = l_req.workflow_id;
-                if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
-                    apex_workflow.terminate(p_instance_id => l_req.workflow_id);
-                end if;
-            end if;
+            xxfnd_workflow_pkg.end_process(l_req.workflow_id);
             update xxcmp_requests set request_status = 'INFO_NEEDED', last_action_date = sysdate
              where request_id = p_request_id;
         exception
@@ -1667,12 +1638,8 @@ create or replace package body xxcmp_case_pkg as
         update xxcmp_requests set request_status = 'APPROVED', completed_date = systimestamp, last_action_date = sysdate
          where request_id = p_request_id;
         update xxcmp_parties set party_status = 'APPROVED' where party_id = l_req.party_id and party_status = 'PENDING';
-        l_wf := apex_workflow.start_workflow(
-                    p_application_id => v('APP_ID'),
-                    p_static_id      => 'KYC_CASE',
-                    -- the requester (or whoever opened a manual case) initiates; separation of duties excludes them
-                    p_initiator      => coalesce(l_req.requester_user_name, nullif(v('APP_USER'), 'nobody')),
-                    p_detail_pk      => to_char(l_id));
+        -- the requester (or whoever opened a manual case) initiates; separation of duties excludes them
+        l_wf := xxfnd_workflow_pkg.start_process('KYC_CASE', to_char(l_id), l_req.requester_user_name);
         update xxcmp_cases set workflow_id = l_wf where case_id = l_id;
         xxfnd_vpd_pkg.end_trusted;
         return l_id;
@@ -1792,7 +1759,6 @@ create or replace package body xxcmp_case_pkg as
 
     procedure withdraw(p_case_id in number, p_reason in varchar2) is
         l_case  xxcmp_cases%rowtype;
-        l_state varchar2(30);
         l_wf    number;
         l_init  varchar2(255);
     begin
@@ -1806,22 +1772,13 @@ create or replace package body xxcmp_case_pkg as
         l_case := get_case(p_case_id);
         insert into xxcmp_case_decisions (case_id, level_no, role_code, decided_by, outcome, comments)
         values (p_case_id, nvl(l_case.current_level, 1), null, xxfnd_util_pkg.current_user, 'WITHDRAWN', substr(p_reason, 1, 4000));
-        if l_case.workflow_id is not null then
-            select max(state_code) into l_state from apex_workflows where workflow_id = l_case.workflow_id;
-            if l_state in ('ACTIVE', 'SUSPENDED', 'FAULTED') then
-                apex_workflow.terminate(p_instance_id => l_case.workflow_id);
-            end if;
-        end if;
+        xxfnd_workflow_pkg.end_process(l_case.workflow_id);
         update xxcmp_cases
            set case_status = 'INVESTIGATION', current_level = null, investigation_completed_date = null
          where case_id = p_case_id;
         -- a fresh KYC_CASE workflow: the investigation task goes back to the assignee
         select max(requester_user_name) into l_init from xxcmp_requests where request_id = l_case.request_id;
-        l_wf := apex_workflow.start_workflow(
-                    p_application_id => v('APP_ID'),
-                    p_static_id      => 'KYC_CASE',
-                    p_initiator      => coalesce(l_init, nullif(v('APP_USER'), 'nobody')),
-                    p_detail_pk      => to_char(p_case_id));
+        l_wf := xxfnd_workflow_pkg.start_process('KYC_CASE', to_char(p_case_id), l_init);
         update xxcmp_cases set workflow_id = l_wf where case_id = p_case_id;
         xxfnd_vpd_pkg.end_trusted;
     exception

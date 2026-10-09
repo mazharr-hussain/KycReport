@@ -28,6 +28,10 @@ app KYC (
         listTemplate: @/navigation-bar
         templateOptions: #DEFAULT#
     }
+    errorHandling {
+        defaultDisplayLocation: inlineWithFieldAndInNotification
+        errorHandlingFunctionName: xxfnd_error_pkg.apex_error_handler
+    }
     userInterface {
         currentTheme: @universal-theme
         globalPage: 0

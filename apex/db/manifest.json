@@ -195,6 +195,15 @@
   ]
  },
  {
+  "name": "15b Common workflow runtime",
+  "file": "15b-workflow-runtime.sql",
+  "install_sequence": 152,
+  "upgrade_sequence": 112,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
@@ -414,6 +423,15 @@
   "file": "09e-workflow-switches.sql",
   "install_sequence": 99,
   "upgrade_sequence": 59,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09f Central error handling",
+  "file": "09f-error-handling.sql",
+  "install_sequence": 92,
+  "upgrade_sequence": 52,
   "apps": [
    "COMMON"
   ]
