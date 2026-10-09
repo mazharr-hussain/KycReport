@@ -1,0 +1,519 @@
+lov lov-employee-source (
+    name: EMPLOYEE_SOURCE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'EMPLOYEE_SOURCE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-employees (
+    name: EMPLOYEES BY USER NAME
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select full_name || ' (' || user_name || ')' as display_value,
+                   user_name as return_value
+              from xxfnd_employees
+             where enabled_flag = 'Y'
+             order by full_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-privileges (
+    name: PRIVILEGES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select f.feature_name || ' - ' || initcap(p.action_code) as display_value,
+                   p.privilege_code as return_value
+              from xxfnd_privileges p
+              join xxfnd_features f on f.feature_code = p.feature_code
+             where f.enabled_flag = 'Y'
+               -- the features of the application in scope and the admin features
+               and (f.admin_flag = 'Y'
+                    or :G_ADMIN_APP = 'ALL'
+                    or f.application_id = (select a.application_id from xxfnd_applications a
+                                            where a.application_code = :G_ADMIN_APP))
+             order by f.display_sequence, decode(p.action_code, 'VIEW', 1, 'CREATE', 2, 3)
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-roles (
+    name: ROLES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select role_name || case when :G_ADMIN_APP = 'ALL' then ' (' || application_code || ')' end as display_value,
+                   role_code as return_value
+              from xxfnd_roles
+             where enabled_flag = 'Y'
+               and (:G_ADMIN_APP = 'ALL' or application_code = :G_ADMIN_APP)   -- the application filter (COMMON)
+             order by role_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-sod-scope (
+    name: SOD_SCOPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'SOD_SCOPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-task-definitions (
+    name: TASK DEFINITIONS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select t.name || case when :G_ADMIN_APP = 'ALL' then ' (' || a.application_code || ')' end as display_value,
+                   t.static_id as return_value
+              from apex_appl_taskdefs t
+              join xxfnd_applications a on a.apex_application_id = t.application_id
+             -- release 71: the application chosen, or every registered application (ALL)
+             where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+             order by 1
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-customization-level (
+    name: CUSTOMIZATION_LEVEL
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'CUSTOMIZATION_LEVEL'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-lookup-types (
+    name: LOOKUP TYPES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning || ' (' || lookup_type || ')' as display_value, lookup_type as return_value
+              from xxfnd_lookup_types
+             order by lookup_type
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-df-default-type (
+    name: DF_DEFAULT_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'DF_DEFAULT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-dff-columns (
+    name: DFF RESERVED COLUMNS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select column_name as display_value, column_name as return_value
+              from user_tab_columns
+             where table_name = 'XXFND_ATTACHED_DOCUMENTS'
+               and regexp_like(column_name,
+                   '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$')
+             order by column_id
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-value-sets (
+    name: VALUE SETS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select value_set_name || ' (' || value_set_code || ')' as display_value, value_set_code as return_value
+              from xxfnd_value_sets
+             order by value_set_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-vs-format-type (
+    name: VS_FORMAT_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'VS_FORMAT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-vs-validation-type (
+    name: VS_VALIDATION_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'VS_VALIDATION_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-categories (
+    name: DOCUMENT CATEGORIES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select category_name as display_value, category_code as return_value
+              from xxfnd_document_categories_vl
+             where enabled_flag = 'Y'
+             order by category_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-doc-datatype (
+    name: DOC_DATATYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'DOC_DATATYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-endpoints (
+    name: INTEGRATION ENDPOINTS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select endpoint_name || ' (' || endpoint_code || ')' as display_value, endpoint_code as return_value
+              from xxfnd_integration_endpoints
+             order by endpoint_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-entities (
+    name: DOCUMENT ENTITIES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select user_entity_name || ' (' || entity_name || ')' as display_value, entity_name as return_value
+              from xxfnd_document_entities_vl
+             order by user_entity_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-storage-type (
+    name: STORAGE_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'STORAGE_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-approval-status (
+    name: APPROVAL_STATUS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'APPROVAL_STATUS'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-capture-method (
+    name: CAPTURE_METHOD
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'CAPTURE_METHOD'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-endpoint-status (
+    name: ENDPOINT_STATUS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'ENDPOINT_STATUS'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-endpoint-type (
+    name: ENDPOINT_TYPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'ENDPOINT_TYPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-jurisdiction (
+    name: JURISDICTION
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'JURISDICTION'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-retention-action (
+    name: RETENTION_ACTION
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'RETENTION_ACTION'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-applications (
+    name: APPLICATIONS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 73: the registered applications a row of this page's setup type may belong to (XXFND_SETUP_TYPES;
+            -- COMMON is the instance: the empty value "All applications (instance)"); delegated: its own application only
+            select a.application_name || ' (' || a.application_code || ')' as display_value,
+                   a.application_code as return_value
+              from xxfnd_applications a
+             where a.enabled_flag = 'Y'
+               and a.application_code <> 'COMMON'
+               and xxfnd_setup_type_pkg.app_allowed(xxfnd_setup_type_pkg.page_type(:APP_PAGE_ID), a.application_code) = 'Y'
+               and (nvl(:G_ADMIN_APP, 'ALL') = 'ALL' or a.application_code = :G_ADMIN_APP)
+             order by a.application_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

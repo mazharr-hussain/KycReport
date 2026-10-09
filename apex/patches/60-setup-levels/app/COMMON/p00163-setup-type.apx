@@ -1,0 +1,423 @@
+page 163 (
+    name: Setup Type
+    alias: SETUP-TYPE
+    title: Setup Type
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: The level this kind of setup is kept at and the applications it may be kept for.
+    }
+
+    region form (
+        name: Setup Type
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_SETUP_TYPES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P163_SETUP_TYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: SETUP_TYPE_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P163_SETUP_TYPE_NAME (
+        type: displayOnly
+        label {
+            label: Setup Type
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: SETUP_TYPE_NAME
+            dataType: varchar2
+            queryOnly: true
+        }
+    )
+
+    pageItem P163_ALLOWED_LEVEL (
+        type: radioGroup
+        label {
+            label: Kept At
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select display_value, return_value
+                  from (select 'All applications (instance) only' as display_value, 'I' as return_value, 1 as seq from dual union all
+                        select 'Application only', 'A', 2 from dual union all
+                        select 'All applications (instance) or an application', 'B', 3 from dual)
+                 order by seq
+                ```
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: ALLOWED_LEVEL
+            dataType: varchar2
+        }
+        help {
+            helpText: Instance only - one setup for all applications. Application only - each row belongs to one application. Either - all applications, or an application of its own.
+        }
+    )
+
+    pageItem P163_ALL_APPLICATIONS_FLAG (
+        type: switch
+        label {
+            label: Every Application
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ALL_APPLICATIONS_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: On - every registered application may keep its own rows. Off - only the applications chosen below.
+        }
+    )
+
+    pageItem P163_APPLICATIONS (
+        type: shuttle
+        label {
+            label: Applications
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_name || ' (' || application_code || ')' as display_value, application_code as return_value
+                  from xxfnd_applications
+                 where application_code <> 'COMMON'
+                 order by application_name
+                ```
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQueryMultipleValues
+            sqlQuery:
+                ```sql
+                select application_code from xxfnd_setup_type_apps where setup_type_code = :P163_SETUP_TYPE_CODE
+                ```
+            used: always
+        }
+        help {
+            helpText: The applications that may keep rows of this setup type (when Every Application is off).
+        }
+    )
+
+    pageItem P163_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 400
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P163_SETUP_TYPE_CODE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction show-applications (
+        name: Show applications
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P163_ALLOWED_LEVEL,P163_ALL_APPLICATIONS_FLAG
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P163_ALLOWED_LEVEL.value !== 'I' && apex.items.P163_ALL_APPLICATIONS_FLAG.value !== 'Y'
+        }
+
+        action show-applications-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P163_APPLICATIONS
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-applications-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P163_APPLICATIONS
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-applications (
+        name: Save the applications
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 73: the applications of the setup type (only used when Every Application is off)
+                delete from xxfnd_setup_type_apps where setup_type_code = :P163_SETUP_TYPE_CODE;
+                if :P163_ALLOWED_LEVEL <> 'I' and :P163_ALL_APPLICATIONS_FLAG = 'N' then
+                    insert into xxfnd_setup_type_apps (setup_type_code, application_code)
+                    select :P163_SETUP_TYPE_CODE, column_value from table(apex_string.split(:P163_APPLICATIONS, ':'))
+                     where column_value is not null;
+                end if;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+)
