@@ -220,7 +220,7 @@ breadcrumb breadcrumb (
     )
 
     entry approval-matrix (
-        name: Approval Matrix
+        name: SAR Gate
         pageNumber: 165
         execution {
             sequence: 400
@@ -231,22 +231,6 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 165
-            }
-        }
-    )
-
-    entry request-approval-paths (
-        name: Request Approval Paths
-        pageNumber: 166
-        execution {
-            sequence: 405
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 166
             }
         }
     )

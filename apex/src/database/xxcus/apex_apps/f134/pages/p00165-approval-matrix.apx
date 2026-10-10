@@ -1,7 +1,7 @@
 page 165 (
-    name: Approval Matrix
+    name: SAR Gate
     alias: APPROVAL-MATRIX
-    title: Approval Matrix
+    title: SAR Gate
     pageGroup: @administration
     appearance {
         pageTemplate: @/standard
@@ -13,11 +13,11 @@ page 165 (
         formAutoComplete: false
     }
     help {
-        helpText: How many approval levels each risk tier needs and which roles approve. Enhanced KYC always follows the High row.
+        helpText: Per risk tier, whether a case must record its suspicious activity report (SAR) decision before approval (Enhanced KYC always does). Who approves a case is set in COMMON > Approval Setup (release 74).
     }
 
     region breadcrumb (
-        name: Approval Matrix
+        name: SAR Gate
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
@@ -37,7 +37,7 @@ page 165 (
     )
 
     region matrix (
-        name: Approval Matrix
+        name: SAR Gate by Risk Tier
         type: interactiveGrid
         source {
             location: localDatabase
@@ -62,9 +62,7 @@ page 165 (
         edit {
             enabled: true
             allowedOperations: [
-                add
                 update
-                delete
             ]
         }
         pagination {
@@ -105,26 +103,8 @@ page 165 (
                 }
             )
 
-            displayColumn (
-                column: @REQUIRED_LEVELS
-                layout {
-                    sequence: 3
-                }
-            )
 
-            displayColumn (
-                column: @LEVEL1_ROLE_CODE
-                layout {
-                    sequence: 4
-                }
-            )
 
-            displayColumn (
-                column: @LEVEL2_ROLE_CODE
-                layout {
-                    sequence: 5
-                }
-            )
 
             displayColumn (
                 column: @SAR_GATE_FLAG
@@ -169,18 +149,15 @@ page 165 (
                 dataType: varchar2
                 primaryKey: true
             }
+            readOnly {
+                type: always
+            }
         )
 
         column REQUIRED_LEVELS (
-            type: numberField
-            heading {
-                heading: Levels
-            }
+            type: hidden
             layout {
                 sequence: 30
-            }
-            validation {
-                valueRequired: true
             }
             source {
                 type: databaseColumn
@@ -190,19 +167,9 @@ page 165 (
         )
 
         column LEVEL1_ROLE_CODE (
-            type: selectList
-            heading {
-                heading: Level 1 Role
-            }
+            type: hidden
             layout {
                 sequence: 40
-            }
-            lov {
-                type: sharedComponent
-                lov: @lov-roles
-            }
-            validation {
-                valueRequired: true
             }
             source {
                 type: databaseColumn
@@ -212,16 +179,9 @@ page 165 (
         )
 
         column LEVEL2_ROLE_CODE (
-            type: selectList
-            heading {
-                heading: Level 2 Role
-            }
+            type: hidden
             layout {
                 sequence: 50
-            }
-            lov {
-                type: sharedComponent
-                lov: @lov-roles
             }
             source {
                 type: databaseColumn

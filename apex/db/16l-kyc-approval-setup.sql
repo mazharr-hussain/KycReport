@@ -157,3 +157,18 @@ exception
         raise;
 end;
 /
+
+-- KYC's own approval pages give way to the common Approval Setup: Approval Paths (166) is removed, the Approval Matrix
+-- (165) keeps only the SAR gate
+begin
+    xxfnd_util_pkg.set_install_mode(true);
+    delete from xxfnd_feature_pages where app_alias = 'KYC' and page_id = 166;
+    update xxfnd_feature_pages set tab_label = 'SAR Gate' where app_alias = 'KYC' and page_id = 165 and tab_label is not null;
+    commit;
+    xxfnd_util_pkg.set_install_mode(false);
+exception
+    when others then
+        xxfnd_util_pkg.set_install_mode(false);
+        raise;
+end;
+/
