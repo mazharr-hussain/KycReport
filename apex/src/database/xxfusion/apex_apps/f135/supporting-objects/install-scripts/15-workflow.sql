@@ -539,6 +539,12 @@ create or replace package body xxfnd_approval_pkg as
             return;
         end if;
 
+        -- release 74: install and upgrade scripts (no APEX session) may also set a row back to approved (a seed fix)
+        if p_new_status = 'APPROVED' and not xxfnd_util_pkg.in_apex_session then
+            p_approved_by   := nvl(p_approved_by, l_user);
+            p_approved_date := nvl(p_approved_date, systimestamp);
+            return;
+        end if;
         if p_new_status = 'APPROVED' and nvl(p_old_status, '#') <> 'APPROVED' then
             if p_old_status <> 'PENDING_APPROVAL' then
                 raise_application_error(-20123, 'Only a change that is pending approval can be approved.');

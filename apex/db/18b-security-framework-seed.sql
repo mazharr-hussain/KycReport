@@ -92,7 +92,7 @@ begin
     pages('CASES',            '32');
     pages('LOOKUPS',          '101,102');
     pages('FLEXFIELDS',       '150,151,152,153');
-    pages('KYC_RULES',        '160,161,162,163,164');
+    pages('KYC_RULES',        '160,161,162,163,164,167');
     pages('ATTACHMENTS',      '130,131,132,133,134,135,136,137,138,139');
     pages('NOTIFICATIONS',    '109,110');
     pages('RETENTION',        '112,113');

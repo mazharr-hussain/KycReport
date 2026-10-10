@@ -88,6 +88,24 @@ upgradeScript 16-kyc-rules (
     }
 )
 
+upgradeScript 16u0-kyc-risk-model-package-specification (
+    execution {
+        sequence: 121
+    }
+    script {
+        contentFile: 16u0-risk-pkg-spec.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 upgradeScript 16g0-approval-paths-package-specification (
     execution {
         sequence: 123
@@ -346,6 +364,24 @@ upgradeScript 18-seed-data-and-administrator-part-2-of-2 (
     }
     script {
         contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
+upgradeScript 16u-kyc-risk-model-tables-package-body-starting-model-with-the-fatf-lists (
+    execution {
+        sequence: 141
+    }
+    script {
+        contentFile: 16u-risk-model.sql
     }
     serverSideCondition {
         type: rowsReturned

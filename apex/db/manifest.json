@@ -305,6 +305,12 @@
   "upgrade_sequence": 124
  },
  {
+  "name": "16u0 KYC risk model package specification",
+  "file": "16u0-risk-pkg-spec.sql",
+  "install_sequence": 161,
+  "upgrade_sequence": 121
+ },
+ {
   "name": "16g0 Approval paths - package specification",
   "file": "16g0-approval-pkg-spec.sql",
   "install_sequence": 163,
@@ -345,6 +351,12 @@
   "file": "16s-case-pkg.sql",
   "install_sequence": 179,
   "upgrade_sequence": 139
+ },
+ {
+  "name": "16u KYC risk model (tables, package body, starting model with the FATF lists)",
+  "file": "16u-risk-model.sql",
+  "install_sequence": 181,
+  "upgrade_sequence": 141
  },
  {
   "name": "18e KYC requests and cases - seed",

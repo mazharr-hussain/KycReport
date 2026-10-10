@@ -219,6 +219,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry risk-model (
+        name: Risk Model
+        pageNumber: 167
+        execution {
+            sequence: 405
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 167
+            }
+        }
+    )
+
     entry approval-matrix (
         name: SAR Gate
         pageNumber: 165

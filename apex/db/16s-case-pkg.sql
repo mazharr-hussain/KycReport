@@ -451,6 +451,8 @@ create or replace package body xxcmp_case_pkg as
         if l_error is not null then
             raise_application_error(-20613, l_error);
         end if;
+        -- release 74 (R16): the risk score behind the case is kept for the approvers (approved risk model)
+        xxcmp_risk_pkg.calculate(p_case_id);
         -- completing the investigation task moves the KYC_CASE workflow on
         xxfnd_task_pkg.complete_open('CASE_INVESTIGATION', to_char(p_case_id));
     end submit_for_approval;
@@ -558,8 +560,7 @@ create or replace package body xxcmp_case_pkg as
         l_case   xxcmp_cases%rowtype := get_case(p_case_id);
         l_months number;
     begin
-        select max(to_number(tag default null on conversion error)) into l_months
-          from xxfnd_lookup_values where lookup_type = 'RISK_TIER' and lookup_code = l_case.risk_tier;
+        l_months := xxcmp_risk_pkg.review_months(l_case.risk_tier);     -- release 74: the risk model's review interval
         if l_case.pep_flag = 'Y' then
             l_months := least(nvl(l_months, 12), param('PEP_REVIEW_MONTHS', 12));
         end if;

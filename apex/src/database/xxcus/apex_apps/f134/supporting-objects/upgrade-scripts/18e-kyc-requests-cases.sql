@@ -213,6 +213,11 @@ begin
     lvs('REGISTRY_CHECK_RESULT', 'MATCH=Matches the party record|MISMATCH=Differs from the party record|NOT_FOUND=Not found in the registry');
     lt('REGISTRATION_STATUS', 'Registry Statuses');
     lvs('REGISTRATION_STATUS', 'ACTIVE=Active|SUSPENDED=Suspended|IN_LIQUIDATION=In liquidation|DISSOLVED=Dissolved|UNKNOWN=Unknown');
+    lt('RISK_COUNTRY_LIST', 'Risk Country Lists');
+    lvs('RISK_COUNTRY_LIST', 'FATF_BLACK=FATF black list (call for action)|FATF_GREY=FATF grey list (increased monitoring)'
+        || '|INTERNAL=Company high-risk list');
+    lt('RISK_FACTOR_TYPE', 'Risk Factor Types');
+    lvs('RISK_FACTOR_TYPE', 'FLAG=Points when it applies|SCORE=Percentage of the questionnaire score');
     lt('DATA_SOURCE', 'Data Sources');
     lvs('DATA_SOURCE', 'MANUAL=Entered by hand|API=From the provider');
     -- release 74 (R14, R19): FIU / goAML reports and guided source of funds / wealth (16s)
@@ -324,6 +329,11 @@ begin
         rule(r.role_code, 'XXCMP_CASE_FUNDS', 'ALL_ROWS');
         -- release 74 (R27): e-mails with outside parties (COMMON XXFND_COMMUNICATIONS)
         rule(r.role_code, 'XXFND_COMMUNICATIONS', 'ALL_ROWS');
+        -- release 74 (R16): the risk model and the case scores
+        rule(r.role_code, 'XXCMP_RISK_FACTORS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_RISK_COUNTRIES', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_RISK_TIERS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_CASE_RISK_SCORES', 'ALL_ROWS');
     end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
@@ -398,7 +408,32 @@ select 'XXCMP_ATTACHMENT_RULES:' || r.attachment_rule_id,
        r.last_updated_by,
        r.last_update_date
   from xxcmp_attachment_rules r
- where r.approval_status = 'PENDING_APPROVAL';
+ where r.approval_status = 'PENDING_APPROVAL'
+union all
+-- release 74 (R16): risk model changes, one approval per table
+select 'XXCMP_RISK_FACTOR_SET:KYC', 'Risk model factors', 'Risk factors',
+       listagg(f.factor_name || ': ' || f.points || case when f.enabled_flag = 'N' then ' (off)' end
+               || nvl2(f.force_tier, ', forces ' || f.force_tier, null), '; ') within group (order by f.display_sequence),
+       max(f.last_updated_by), max(f.last_update_date)
+  from xxcmp_risk_factors f
+ where f.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0
+union all
+select 'XXCMP_RISK_COUNTRY_SET:KYC', 'Risk model country lists', 'Country lists',
+       listagg(c.list_code || ' ' || c.country_code || case when c.enabled_flag = 'N' then ' (removed)' end, '; ')
+         within group (order by c.list_code, c.country_code),
+       max(c.last_updated_by), max(c.last_update_date)
+  from xxcmp_risk_countries c
+ where c.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0
+union all
+select 'XXCMP_RISK_TIER_SET:KYC', 'Risk model tiers', 'Risk tiers',
+       listagg(t.risk_tier || ' from ' || t.min_score || ', review ' || t.review_months || ' months', '; ')
+         within group (order by t.min_score),
+       max(t.last_updated_by), max(t.last_update_date)
+  from xxcmp_risk_tiers t
+ where t.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0;
 comment on table xxcmp_config_changes_v is 'KYC configuration changes waiting for approval (registered changes view in XXFND_CONFIG_TABLES).';
 
 merge into xxfnd_config_tables t
@@ -407,7 +442,11 @@ using (select 'XXCMP_QUESTIONNAIRES' table_name, 'N' approval_flag, null pk_colu
        union all select 'XXCMP_ANSWER_OPTIONS', 'Y', 'ANSWER_OPTION_ID', 'XXCMP_QUESTIONS', 'QUESTION_ID', 'XXCMP_CONFIG_CHANGES_V' from dual
        union all select 'XXCMP_CONCLUSION_TEMPLATES', 'N', null, null, null, null from dual
        union all select 'XXCMP_APPROVAL_MATRIX', 'N', null, null, null, null from dual
-       union all select 'XXCMP_ATTACHMENT_RULES', 'Y', 'ATTACHMENT_RULE_ID', null, null, 'XXCMP_CONFIG_CHANGES_V' from dual) s
+       union all select 'XXCMP_ATTACHMENT_RULES', 'Y', 'ATTACHMENT_RULE_ID', null, null, 'XXCMP_CONFIG_CHANGES_V' from dual
+       -- release 74 (R16): the risk model; each table is one approval unit (all its changed rows together)
+       union all select 'XXCMP_RISK_FACTORS', 'Y', 'FACTOR_CODE', 'XXCMP_RISK_FACTOR_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual
+       union all select 'XXCMP_RISK_COUNTRIES', 'Y', 'RISK_COUNTRY_ID', 'XXCMP_RISK_COUNTRY_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual
+       union all select 'XXCMP_RISK_TIERS', 'Y', 'RISK_TIER', 'XXCMP_RISK_TIER_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual) s
    on (t.table_name = s.table_name)
  when matched then update set t.approval_flag = s.approval_flag, t.pk_column = s.pk_column, t.unit_table = s.unit_table,
                               t.unit_key_column = s.unit_key_column, t.changes_view = s.changes_view

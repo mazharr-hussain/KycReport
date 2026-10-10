@@ -4555,4 +4555,171 @@ page 211 (
 
     )
 
+    region risk-score (
+        name: Risk Score &P211_RISK_SCORE_TEXT.
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R16): how the risk score is made up - live (approved model) while the case is investigated,
+                -- as kept at submission once it is with the approvers
+                select rownum as seq, x.factor_name, x.detail, x.points, x.force_tier
+                  from (select j.factor_name, j.detail, j.points, j.force_tier
+                          from json_table(xxcmp_risk_pkg.breakdown_json(to_number(:P211_CASE_ID)), '$[*]'
+                                   columns (factor_name varchar2(200)  path '$.factor_name',
+                                            detail      varchar2(1000) path '$.detail',
+                                            points      number         path '$.points',
+                                            force_tier  varchar2(30)   path '$.force_tier')) j
+                         where xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                        union all
+                        select f.factor_name, s.detail, s.points, s.force_tier
+                          from xxcmp_case_risk_scores s
+                          left join xxcmp_risk_factors f on f.factor_code = s.factor_code
+                         where s.case_id = :P211_CASE_ID and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N') x
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 54
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: risk_score
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No risk factor applies.
+        }
+        comments {
+            comments: Release 74 (R16): the configurable risk model (page 167) suggests the tier; the officer still classifies the case.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column FACTOR_NAME (
+            type: plainText
+            heading {
+                heading: Factor
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#FACTOR_NAME#</strong>
+                    ```
+            }
+        )
+
+        column DETAIL (
+            type: plainText
+            heading {
+                heading: Why
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column POINTS (
+            type: plainText
+            heading {
+                heading: Points
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FORCE_TIER (
+            type: plainText
+            heading {
+                heading: Forces Tier
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+    )
+
+    pageItem P211_RISK_SCORE_TEXT (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @risk-score
+            slot: regionBody
+        }
+    )
+
+    process risk-score-text (
+        name: Risk score and suggested tier
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R16): the region title - total score, the tier the model suggests, the officer's tier
+                declare
+                    l_tier varchar2(30) := xxcmp_risk_pkg.suggested_tier(:P211_CASE_ID);
+                    l_case varchar2(30);
+                begin
+                    select max(risk_tier) into l_case from xxcmp_cases where case_id = :P211_CASE_ID;
+                    :P211_RISK_SCORE_TEXT := xxcmp_risk_pkg.score(:P211_CASE_ID) || ' · suggested tier '
+                        || nvl(xxfnd_util_pkg.lookup_meaning('RISK_TIER', l_tier), '-')
+                        || case when l_case is not null and l_case <> nvl(l_tier, '#')
+                                then ' · classified ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', l_case) end;
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+    )
+
 )
