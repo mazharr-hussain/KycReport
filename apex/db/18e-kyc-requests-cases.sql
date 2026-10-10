@@ -202,6 +202,8 @@ begin
     -- release 74 (R14): party verifications (16n), recorded by hand; the registry check is filled by a provider later
     entity('XXCMP_PARTY_ID_VERIFICATIONS', 'ID Verification', 'ID_VERIFICATION_ID');
     entity('XXCMP_PARTY_REGISTRY_CHECKS', 'Registry Check', 'REGISTRY_CHECK_ID');
+    -- release 74 (R27): attachments of the e-mails sent or recorded on the RFI and Notes screens
+    entity('XXFND_COMMUNICATIONS', 'E-mail', 'COMMUNICATION_ID');
     lt('ID_VERIFICATION_METHOD', 'ID Verification Methods');
     lvs('ID_VERIFICATION_METHOD', 'ORIGINAL_SEEN=Original seen in person|CERTIFIED_COPY=Certified copy|VIDEO_CALL=Video call'
         || '|GOVERNMENT_PORTAL=Government portal checked by hand');
@@ -259,7 +261,7 @@ begin
     for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 204, 205, 206))) loop
         page('KYC_REQUESTS', p.page_id);
     end loop;
-    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217, 218, 219))) loop
+    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 34))) loop
         page('CASES', p.page_id);
     end loop;
     -- Attachments on the request (wizard step 3 and the request page) and the party documents on the case.
@@ -320,6 +322,8 @@ begin
         rule(r.role_code, 'XXCMP_PARTY_REGISTRY_CHECKS', 'ALL_ROWS');
         rule(r.role_code, 'XXCMP_FIU_REPORTS', 'ALL_ROWS');
         rule(r.role_code, 'XXCMP_CASE_FUNDS', 'ALL_ROWS');
+        -- release 74 (R27): e-mails with outside parties (COMMON XXFND_COMMUNICATIONS)
+        rule(r.role_code, 'XXFND_COMMUNICATIONS', 'ALL_ROWS');
     end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.

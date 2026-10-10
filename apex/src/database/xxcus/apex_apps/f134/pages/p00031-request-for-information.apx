@@ -1329,4 +1329,321 @@ and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
         }
     )
 
+    region emails (
+        name: E-mails
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R27): e-mails with outside people kept with the record (COMMON XXFND_COMMUNICATIONS)
+                select c.communication_id,
+                       case c.direction when 'OUT' then 'Sent' else 'Received' end as direction,
+                       case c.direction when 'OUT' then c.to_address || nvl2(c.cc_address, ' (cc ' || c.cc_address || ')', null)
+                            else c.from_address end as counterpart,
+                       c.subject,
+                       dbms_lob.substr(c.body, 600, 1) as body_text,
+                       xxfnd_util_pkg.lookup_meaning('COMMUNICATION_STATUS', c.status) as status,
+                       case c.status when 'SENT' then 'success' when 'RECEIVED' then 'info' when 'FAILED' then 'danger' else 'warning' end as status_tone,
+                       to_char(c.communication_date, 'DD-MON-YYYY HH24:MI') as sent_on,
+                       c.communication_date,
+                       xxfnd_ui_pkg.person_name(c.recorded_by) as recorded_by,
+                       (select count(*) from xxfnd_attached_documents_v a
+                         where a.entity_name = 'XXFND_COMMUNICATIONS' and a.pk1_value = to_char(c.communication_id)) as attachments
+                  from xxfnd_communications c
+                 where c.rfi_id = :P31_RFI_ID
+                ```
+            pageItemsToSubmit: [
+                P31_RFI_ID
+            ]
+        }
+        layout {
+            sequence: 80
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: emails
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No e-mails yet.
+        }
+        comments {
+            comments: Release 74 (R27): e-mails sent to or received from outside people, kept with the record; sent through APEX mail now, Outlook later.
+        }
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--neutral">#DIRECTION#</span> <strong>#SUBJECT#</strong><br><span class="u-color-subtle">#COUNTERPART#</span>
+                    ```
+            }
+        )
+
+        column BODY_TEXT (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS#</span>
+                    ```
+            }
+        )
+
+        column SENT_ON (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RECORDED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ATTACHMENTS (
+            type: plainText
+            heading {
+                heading: Files
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMUNICATION_ID (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column COUNTERPART (
+            type: hidden
+            layout {
+                sequence: 71
+            }
+        )
+
+        column SUBJECT (
+            type: hidden
+            layout {
+                sequence: 72
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 73
+            }
+        )
+
+        column COMMUNICATION_DATE (
+            type: hidden
+            layout {
+                sequence: 74
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+    )
+
+    button send-email (
+        buttonName: SEND_EMAIL
+        label: Send E-mail
+        layout {
+            sequence: 10
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-send
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 34
+                items: {
+                    P34_ENTITY_NAME: &P31_ENTITY_NAME.
+                    P34_PK1_VALUE: &P31_PK1_VALUE.
+                    P34_RFI_ID: &P31_RFI_ID.
+                    P34_PARTY_ID: &P31_PARTY_ID.
+                    P34_DIRECTION: OUT
+                }
+                clearCache: 34
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    button record-email (
+        buttonName: RECORD_EMAIL
+        label: Record Received E-mail
+        layout {
+            sequence: 20
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-inbox
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 34
+                items: {
+                    P34_ENTITY_NAME: &P31_ENTITY_NAME.
+                    P34_PK1_VALUE: &P31_PK1_VALUE.
+                    P34_RFI_ID: &P31_RFI_ID.
+                    P34_PARTY_ID: &P31_PARTY_ID.
+                    P34_DIRECTION: IN
+                }
+                clearCache: 34
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    dynamicAction refresh-emails (
+        name: Refresh e-mails
+        execution {
+            sequence: 70
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @emails
+        }
+
+        action refresh-emails-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @emails
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    pageItem P31_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 90
+            region: @emails
+            slot: regionBody
+        }
+    )
+
+    process party-of-rfi (
+        name: The party of the RFI's record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R27): its contact persons are offered when an e-mail is sent from the RFI
+                select case :P31_ENTITY_NAME
+                           when 'XXCMP_PARTIES' then to_number(:P31_PK1_VALUE)
+                           when 'XXCMP_CASES' then (select max(party_id) from xxcmp_cases where case_id = to_number(:P31_PK1_VALUE))
+                           when 'XXCMP_REQUESTS' then (select max(party_id) from xxcmp_requests where request_id = to_number(:P31_PK1_VALUE))
+                       end
+                  into :P31_PARTY_ID
+                  from dual;
+                ```
+        }
+        execution {
+            sequence: 90
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_PK1_VALUE
+        }
+    )
+
 )

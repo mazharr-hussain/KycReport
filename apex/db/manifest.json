@@ -195,6 +195,15 @@
   ]
  },
  {
+  "name": "15e Communications (e-mail with outside parties)",
+  "file": "15e-communications.sql",
+  "install_sequence": 151,
+  "upgrade_sequence": 111,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "15b Common workflow runtime",
   "file": "15b-workflow-runtime.sql",
   "install_sequence": 152,

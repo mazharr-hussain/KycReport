@@ -356,6 +356,23 @@ upgradeScript 15-workflow (
     }
 )
 
+upgradeScript 15e-communications-e-mail-with-outside-parties (
+    execution {
+        sequence: 111
+    }
+    script {
+        contentFile: 15e-communications.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 15b-common-workflow-runtime (
     execution {
         sequence: 112

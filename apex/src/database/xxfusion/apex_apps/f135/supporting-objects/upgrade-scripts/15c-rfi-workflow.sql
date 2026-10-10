@@ -450,6 +450,15 @@ create or replace package body xxfnd_rfi_pkg as
                          p_subj      => dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
                          p_body      => to_clob(l_rfi.description),
                          p_body_html => xxfnd_util_pkg.replace_tokens(l_body, l_tokens));
+        -- release 74 (R27): an e-mail to an outside person is kept with the record's communications; the one-time
+        -- response link is masked (only its hash is stored with the RFI)
+        if l_rfi.recipient_type = 'EXTERNAL' then
+            l_json.put('RESPONSE_URL', '[secure response link]');
+            l_tokens := l_json.to_clob;
+            xxfnd_communication_pkg.record_sent(l_rfi.application_code, l_rfi.entity_name, l_rfi.pk1_value, l_to,
+                                                dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
+                                                xxfnd_util_pkg.replace_tokens(l_body, l_tokens), l_rfi.rfi_id, l_mail_id);
+        end if;
     end send_email;
 
     function open_count(p_entity_name in varchar2, p_pk1_value in varchar2) return number is

@@ -407,6 +407,23 @@ installScript 15-workflow (
     }
 )
 
+installScript 15e-communications-e-mail-with-outside-parties (
+    execution {
+        sequence: 151
+    }
+    script {
+        contentFile: 15e-communications.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 15b-common-workflow-runtime (
     execution {
         sequence: 152
