@@ -210,7 +210,8 @@ create or replace package body xxfnd_share_pkg as
         pages('ATTACHMENTS',      '132=Categories|136=Storage|130=Registration|134=Attachment Pages|131|133|135|137');
         pages('NOTIFICATIONS',    '109|110');
         pages('RETENTION',        '112|113');
-        pages('WORKFLOW_SETUP',   '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|115|146');
+        -- release 74: Approval Setup (148, 149)
+        pages('WORKFLOW_SETUP',   '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|148=Approval Setup|115|146|149');
         pages('INTEGRATIONS',     '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
         pages('USERS_ACCESS',     '103|104');
         pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
