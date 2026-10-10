@@ -37,7 +37,7 @@ with sync_playwright() as p:
     pg.click(f'#t_Body_content a:has-text("{rfi[-1][0]}")'); pg.wait_for_load_state('networkidle')
     out.append(f'  opens: {pg.url.split("/kyc/")[1].split("?")[0]}, RFI number shown: {rfi[-1][0].split(": ")[1] in pg.inner_text("body")}')
     pg.fill('#P31_RESPONSE_TEXT', 'UI test answer ' + time.strftime('%H:%M:%S'))
-    pg.click('button:has-text("Send Response")'); pg.wait_for_load_state('networkidle')
+    pg.click('button:has-text("Submit Information")'); pg.wait_for_load_state('networkidle')
     msg = pg.query_selector('.t-Alert-title, .t-Alert-content, #t_Alert_Success')
     out.append(f'  respond -> {msg.inner_text().strip()[:60] if msg else "no message"}')
     tasks = my_tasks(pg, s)

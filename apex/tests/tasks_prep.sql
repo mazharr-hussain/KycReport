@@ -18,9 +18,9 @@ begin
     commit;
     apex_session.delete_session;
     apex_session.create_session(l_app, 1, 'OFFICER1');
-    xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'REQUESTING_DEPARTMENT', l_cat,
+    xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'UI test: please confirm the registered address.', 'Y', trunc(sysdate) + 5,
-                             p_recipient_user_name => 'REQ1', p_rfi_id => l_rfi, p_token => l_token);
+                             p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_token);
     commit;
     apex_session.delete_session;
     apex_session.create_session(l_app, 1, 'MGR1');
