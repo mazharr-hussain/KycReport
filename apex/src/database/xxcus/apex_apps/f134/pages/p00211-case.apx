@@ -123,7 +123,7 @@ page 211 (
                 ```sql
                 select rownum as seq, h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
-                  from table(xxcmp_approval_pkg.case_history_rows(to_number(:P211_CASE_ID))) h
+                  from table(xxcmp_case_pkg.case_history_rows(to_number(:P211_CASE_ID))) h
                  order by seq
                 ```
             pageItemsToSubmit: P211_CASE_ID

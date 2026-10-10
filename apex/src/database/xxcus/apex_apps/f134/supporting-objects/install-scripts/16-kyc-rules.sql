@@ -4,7 +4,8 @@
 --   * maker-checker triggers on the three controlled configuration tables
 --   * party / RFI numbering
 --   * ownership-cycle check on party relationships
---   * XXCMP_KYC_PKG: mandatory-document resolution, party match check, RFI
+--   * XXCMP_DOC_RULE_PKG (was XXCMP_KYC_PKG): mandatory-document resolution (release 74: party matching is in
+--     XXCMP_PARTY_PKG, RFIs in COMMON XXFND_RFI_PKG)
 -- Depends on 03 (approval, security), 07 (attachments), 08 (workflow).
 -- Needs: grant execute on dbms_crypto to <parsing schema>  (RFI tokens).
 --------------------------------------------------------------------------------
@@ -112,9 +113,9 @@ end xxcmp_party_rel_cycle;
 /
 
 --==============================================================================
--- XXCMP_KYC_PKG
+-- XXCMP_DOC_RULE_PKG (release 74: the document rules component; was XXCMP_KYC_PKG)
 --==============================================================================
-create or replace package xxcmp_kyc_pkg authid definer as
+create or replace package xxcmp_doc_rule_pkg authid definer as
 
     -- Document categories required for a record, from approved rules; the most
     -- specific rule per category wins (jurisdiction + entity type, then either,
@@ -134,10 +135,10 @@ create or replace package xxcmp_kyc_pkg authid definer as
 
     -- release 74: requests for information are the common RFI workflow (XXFND_RFI_PKG, COMMON 15c).
 
-end xxcmp_kyc_pkg;
+end xxcmp_doc_rule_pkg;
 /
 
-create or replace package body xxcmp_kyc_pkg as
+create or replace package body xxcmp_doc_rule_pkg as
 
     function mandatory_categories(p_entity_name  in varchar2,
                                   p_jurisdiction in varchar2,
@@ -186,5 +187,14 @@ create or replace package body xxcmp_kyc_pkg as
         return l_missing;
     end missing_categories;
 
-end xxcmp_kyc_pkg;
+end xxcmp_doc_rule_pkg;
+/
+
+-- release 74: the former XXCMP_KYC_PKG (document rules now XXCMP_DOC_RULE_PKG; party matching in XXCMP_PARTY_PKG;
+-- RFIs in COMMON) is dropped when it is still there
+begin
+    for o in (select object_name from user_objects where object_name = 'XXCMP_KYC_PKG' and object_type = 'PACKAGE') loop
+        execute immediate 'drop package xxcmp_kyc_pkg';
+    end loop;
+end;
 /

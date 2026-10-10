@@ -2123,12 +2123,36 @@ page 0 (
 
     region record-header (
         name: Request Header
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return '<div class="kyc-hcard">' || xxcmp_request_ui_pkg.header_html(to_number(:P0_REQUEST_ID)) || '</div>';
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the header card from data (no HTML from PL/SQL); data security applies
+                select r.request_number || ' · ' || r.party_name as title,
+                       xxfnd_ui_pkg.status_label('REQUEST', r.request_status) as status_label,
+                       xxfnd_ui_pkg.status_tone('REQUEST', r.request_status) as status_tone,
+                       case when xxcmp_request_pkg.kyc_required(r.request_id) = 'Yes' then 'KYC required' end as kyc_label,
+                       case when r.intake_score is not null
+                            then 'Score ' || r.intake_score || case when r.intake_critical_flag = 'Y' then ' · critical answer' end
+                       end as score_label,
+                       case when r.intake_critical_flag = 'Y' then 'danger' else 'neutral' end as score_tone,
+                       (select max(c.case_number) from xxcmp_cases c where c.request_id = r.request_id) as case_number,
+                       rtrim(xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
+                             || nvl2(r.business_relationship, ' · ' || xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), null)
+                             || nvl2(r.requesting_department, ' · ' || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department), null),
+                             ' ·') as type_line,
+                       r.requester_user_name as requester,
+                       xxfnd_ui_pkg.person_name(r.requester_user_name) as requester_name,
+                       w.pending_user,
+                       xxfnd_ui_pkg.person_name(w.pending_user) as pending_name,
+                       case when w.pending_user is not null then to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI') end as since
+                  from xxcmp_requests r
+                 cross apply (select case when r.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED')
+                                          then xxcmp_request_pkg.pending_with(r.request_id) end as pending_user
+                                from dual) w
+                 where r.request_id = :P0_REQUEST_ID
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -2153,24 +2177,132 @@ page 0 (
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
-        comments {
-            comments: UI/UX standard header card of a request (xxcmp_request_ui_pkg.header_html); kyc-app.js builds the section menu from the regions under it.
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+            ]
         }
+        heading {
+            type: none
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+        comments {
+            comments: UI/UX standard header card of a request. Release 74: SQL data and the column's HTML template (kyc-hcard classes); kyc-app.js builds the section menu from the regions under it.
+        }
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Request
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <div class="kyc-hcard"><div class="kyc-hcard-top"><span class="kyc-hcard-title">#TITLE#</span><span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS_LABEL#</span>{if KYC_LABEL/}<span class="kyc-badge kyc-badge--warning">#KYC_LABEL#</span>{endif/}{if SCORE_LABEL/}<span class="kyc-badge kyc-badge--#SCORE_TONE#">#SCORE_LABEL#</span>{endif/}{if CASE_NUMBER/}<span class="kyc-badge kyc-badge--info">#CASE_NUMBER#</span>{endif/}</div><div class="kyc-hcard-line">#TYPE_LINE# · requested by <span class="kyc-person" tabindex="0" data-user="#REQUESTER#">#REQUESTER_NAME#</span></div>{if PENDING_USER/}<div class="kyc-hcard-line">Waiting for <b><span class="kyc-person" tabindex="0" data-user="#PENDING_USER#">#PENDING_NAME#</span></b>{if SINCE/} since #SINCE#{endif/}</div>{endif/}</div>
+                    ```
+            }
+        )
+
+        column STATUS_LABEL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column KYC_LABEL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column SCORE_LABEL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SCORE_TONE (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CASE_NUMBER (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column TYPE_LINE (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column REQUESTER (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+        column REQUESTER_NAME (
+            type: hidden
+            layout {
+                sequence: 100
+            }
+        )
+
+        column PENDING_USER (
+            type: hidden
+            layout {
+                sequence: 110
+            }
+        )
+
+        column PENDING_NAME (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column SINCE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
     )
 
     region request-answers (
         name: Questionnaire
-        type: dynamicContent
-        source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_request_ui_pkg.answers_html(to_number(:P0_REQUEST_ID));
-                ```
-            pageItemsToSubmit: [
-                P0_REQUEST_ID
-            ]
-        }
+        type: staticContent
         layout {
             sequence: 31
             slot: BODY
@@ -2190,6 +2322,185 @@ page 0 (
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
+        comments {
+            comments: Release 74 (R11): the requester's answers as standard reports - the score badges and the question / answer list.
+        }
+    )
+
+    region request-answers-score (
+        name: Questionnaire Score
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(sum(nvl(o.risk_points, 0)), 0) as risk_points,
+                       count(case when o.critical_flag = 'Y' then 1 end) as critical_answers,
+                       count(case when nvl(o.risk_points, 0) > 0 and nvl(o.critical_flag, 'N') = 'N' then 1 end) as risk_answers
+                  from xxcmp_request_answers a
+                  left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
+                having count(*) > 0
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @request-answers
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/badge-list
+            templateOptions: [
+                #DEFAULT#
+                t-BadgeList--flex
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: No answers yet.
+        }
+
+        column RISK_POINTS (
+            type: plainText
+            heading {
+                heading: Risk Points
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CRITICAL_ANSWERS (
+            type: plainText
+            heading {
+                heading: Critical Answers
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RISK_ANSWERS (
+            type: plainText
+            heading {
+                heading: Risk Answers
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    region request-answers-list (
+        name: Questionnaire Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.display_sequence,
+                       q.question_text,
+                       nvl(coalesce(o.answer_label, a.answer_text), '-') as answer,
+                       case when o.critical_flag = 'Y' then 'Critical' when nvl(o.risk_points, 0) > 0 then 'Risk' end as flag,
+                       case when o.critical_flag = 'Y' then 'danger' else 'warning' end as flag_tone
+                  from xxcmp_request_answers a
+                  join xxcmp_questions q on q.question_id = a.question_id
+                  left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            parentRegion: @request-answers
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 500
+        }
+        messages {
+            whenNoDataFound: No answers yet.
+        }
+
+        column DISPLAY_SEQUENCE (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column QUESTION_TEXT (
+            type: plainText
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ANSWER (
+            type: plainText
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#ANSWER#</strong>{if FLAG/} <span class="kyc-badge kyc-badge--#FLAG_TONE#">#FLAG#</span>{endif/}
+                    ```
+            }
+        )
+
+        column FLAG (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FLAG_TONE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
     )
 
     region request-documents (

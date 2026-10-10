@@ -10,6 +10,8 @@ create or replace package xxfnd_ui_pkg authid definer as
     -- DOCUMENT, RISK, RFI
     function status_tone(p_object in varchar2, p_code in varchar2) return varchar2;
 
+    -- the lookup meaning of a status code (data; release 74: the screens show it with their own badge template)
+    function status_label(p_object in varchar2, p_code in varchar2) return varchar2;
     -- badge with the lookup meaning of the code
     function status_badge(p_object in varchar2, p_code in varchar2) return varchar2;
 
@@ -73,7 +75,7 @@ create or replace package body xxfnd_ui_pkg as
         end;
     end status_tone;
 
-    function status_badge(p_object in varchar2, p_code in varchar2) return varchar2 is
+    function status_label(p_object in varchar2, p_code in varchar2) return varchar2 is
         l_type varchar2(30);
     begin
         if p_code is null then
@@ -89,7 +91,12 @@ create or replace package body xxfnd_ui_pkg as
                       when 'RISK'      then 'RISK_TIER'
                       when 'RFI'       then 'RFI_STATUS'
                   end;
-        return badge(nvl(xxfnd_util_pkg.lookup_meaning(l_type, p_code), p_code), status_tone(p_object, p_code));
+        return nvl(xxfnd_util_pkg.lookup_meaning(l_type, p_code), p_code);
+    end status_label;
+
+    function status_badge(p_object in varchar2, p_code in varchar2) return varchar2 is
+    begin
+        return badge(status_label(p_object, p_code), status_tone(p_object, p_code));
     end status_badge;
 
     function person_name(p_user_name in varchar2) return varchar2 is

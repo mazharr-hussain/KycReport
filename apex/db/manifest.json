@@ -326,6 +326,18 @@
   "upgrade_sequence": 137
  },
  {
+  "name": "16r KYC request package body",
+  "file": "16r-request-pkg.sql",
+  "install_sequence": 178,
+  "upgrade_sequence": 138
+ },
+ {
+  "name": "16s KYC case package body",
+  "file": "16s-case-pkg.sql",
+  "install_sequence": 179,
+  "upgrade_sequence": 139
+ },
+ {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,

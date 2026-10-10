@@ -60,12 +60,22 @@ page 206 (
 
     region request-details (
         name: Request
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_request_ui_pkg.details_html(to_number(:P206_REQUEST_ID));
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
+                select j.label, j.value, j.tone, j.url, j.user_name, j.seq, j.group_name
+                  from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P206_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    user_name  varchar2(255)  path '$.user_name')) j
                 ```
             pageItemsToSubmit: [
                 P206_REQUEST_ID
@@ -82,6 +92,85 @@ page 206 (
         advanced {
             htmlDomId: request_details
         }
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endif/}
+                    ```
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column USER_NAME (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
     )
 
     region buttons (
@@ -197,7 +286,7 @@ page 206 (
                                             and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P206_REQUEST_ID)
                                               or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P206_REQUEST_ID))))
                             then 'Present' else 'Missing' end as status
-                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
+                  from table(xxcmp_doc_rule_pkg.mandatory_categories('XXCMP_PARTIES',
                                  (select jurisdiction from xxcmp_requests where request_id = :P206_REQUEST_ID),
                                  (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P206_REQUEST_ID))) c
                 ```

@@ -6,6 +6,9 @@
 --   wins, then the lowest PRIORITY. Each step is approved by a role or a named user.
 --   XXCMP_APPROVAL_PKG: the path of a request, the current step's approvers, the path and history
 --   shown on the request screens. The KYC_REQUEST workflow (1.3) runs one approval task per step.
+--   Release 74: the approvers come from the common Approval Setup (type KYC_REQUEST, COMMON 15d); XXCMP_APPROVAL_PATHS
+--   is kept unchanged as history (page 166 removed). Request only (R6): the case history is in XXCMP_CASE_PKG; the
+--   HTML functions path_html / history_html are gone (R11) - the screens use HISTORY_ROWS in a standard report.
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 create table if not exists xxcmp_approval_paths (
@@ -134,85 +137,6 @@ create or replace package body xxcmp_approval_pkg as
             raise;
     end next_step;
 
-    function who(p_type in varchar2, p_role in varchar2, p_user in varchar2) return varchar2 is
-        l_name xxfnd_roles.role_name%type;
-    begin
-        if p_type = 'USER' then
-            return p_user;
-        end if;
-        select max(role_name) into l_name from xxfnd_roles where role_code = p_role;
-        return nvl(l_name, p_role);
-    end who;
-
-    function path_html(p_request_id in number) return clob is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_path varchar2(100) := nvl(l_req.approval_path_name, path_for(p_request_id));
-        l_html clob := '<ol class="kyc-path">';
-        l_state varchar2(30);
-        l_attrs apex_t_varchar2 := attributes(l_req);
-    begin
-        if l_req.request_status = 'DRAFT' then
-            l_html := '<p>Expected approval path (' || apex_escape.html(l_path) || '):</p>' || l_html;
-        end if;
-        for s in (select * from table(xxfnd_approval_rule_pkg.steps(c_type, to_char(p_request_id), l_attrs))
-                   order by position) loop
-            l_state := case when l_req.request_status in ('DRAFT', 'CANCELLED') then null
-                            when l_req.request_status = 'APPROVED' or s.step_state = 'DONE' then 'Approved'
-                            when s.step_state = 'CURRENT' and l_req.request_status = 'REJECTED' then 'Rejected'
-                            when s.step_state = 'CURRENT' then 'Pending'
-                            else 'Waiting' end;
-            l_html := l_html || '<li><strong>' || apex_escape.html(s.step_name) || '</strong> - '
-                      || apex_escape.html(xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name))
-                      || nvl2(l_state, ' <span class="u-color-subtle">(' || l_state || ')</span>', null) || '</li>';
-        end loop;
-        return l_html || '</ol>';
-    end path_html;
-
-    function history_html(p_request_id in number) return clob is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_html clob;
-    begin
-        l_html := '<table class="t-Report-report"><thead><tr><th>Date</th><th>By</th><th>Action</th><th>Comments</th></tr></thead><tbody>';
-        for h in (select l_req.submitted_date as at_time, l_req.requester_user_name as by_user, 'Submitted' as action, null as text
-                    from dual where l_req.submitted_date is not null
-                  union all
-                  -- release 73: approval workflow switched off for the process
-                  select cast(l_req.auto_approved_date as timestamp), 'System', xxfnd_workflow_switch_pkg.c_auto_approved, null
-                    from dual where l_req.auto_approved_date is not null
-                  union all
-                  select cast(h.event_timestamp as timestamp), h.event_creator,
-                         nvl(h.outcome, h.event_type) || nvl2(t.subject, ' - ' || t.subject, null), null
-                    from apex_task_history h
-                    join apex_tasks t on t.task_id = h.task_id
-                   where t.detail_pk = to_char(p_request_id)
-                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
-                     and h.event_type_code in ('COMPLETE', 'REQUEST_INFO', 'SUBMIT_INFO', 'CLAIM', 'CANCEL', 'DELEGATE')
-                  union all
-                  select cast(c.created_on as timestamp), c.created_by, 'Comment', c.text
-                    from apex_task_comments c
-                    join apex_tasks t on t.task_id = c.task_id
-                   where t.detail_pk = to_char(p_request_id)
-                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
-                  union all
-                  select r.creation_date, r.created_by, 'Information requested', r.description
-                    from xxfnd_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
-                  union all
-                  select coalesce(r.responded_date, r.resolved_date), r.recipient_user_name, 'Information submitted', null
-                    from xxfnd_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
-                     and coalesce(r.responded_date, r.resolved_date) is not null and r.rfi_status <> 'CANCELLED'
-                  union all
-                  select l_req.completed_date, l_req.last_updated_by,
-                         initcap(l_req.request_status), l_req.match_note
-                    from dual where l_req.request_status in ('CANCELLED') and l_req.completed_date is not null
-                   order by 1) loop
-            l_html := l_html || '<tr><td>' || to_char(h.at_time, 'DD-MON-YYYY HH24:MI') || '</td><td>' || apex_escape.html(h.by_user)
-                      || '</td><td>' || apex_escape.html(h.action) || '</td><td>' || apex_escape.html(h.text) || '</td></tr>';
-        end loop;
-        return l_html || '</tbody></table>';
-    end history_html;
-
     function history_rows(p_request_id in number) return xxcmp_history_tab pipelined is
         l_req    xxcmp_requests%rowtype;
         l_path   varchar2(100);
@@ -305,63 +229,6 @@ create or replace package body xxcmp_approval_pkg as
         end if;
         return;
     end history_rows;
-
-    function case_history_rows(p_case_id in number) return xxcmp_history_tab pipelined is
-        l_case   xxcmp_cases%rowtype;
-        l_done   number;
-        l_attrs  apex_t_varchar2;
-    begin
-        if p_case_id is null then
-            return;
-        end if;
-        xxfnd_vpd_pkg.begin_trusted;
-        select * into l_case from xxcmp_cases where case_id = p_case_id;
-        xxfnd_vpd_pkg.end_trusted;
-        pipe row (xxcmp_history_row(null, 'Case opened', null, 'Opened',
-                                    case when lower(l_case.created_by) = 'nobody' then 'System' else l_case.created_by end,
-                                    l_case.creation_date, null));
-        for h in (select cast(h.event_timestamp as timestamp) as at_time, h.event_creator,
-                         case h.event_type_code when 'COMPLETE' then 'Submitted for approval' when 'CLAIM' then 'Claimed'
-                                                when 'DELEGATE' then 'Delegated' end as action
-                    from apex_task_history h
-                    join apex_tasks t on t.task_id = h.task_id
-                   where t.detail_pk = to_char(p_case_id) and t.task_def_static_id = 'CASE_INVESTIGATION'
-                     and h.event_type_code in ('COMPLETE', 'CLAIM', 'DELEGATE')
-                   order by h.event_timestamp) loop
-            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, h.action, h.event_creator, h.at_time, null));
-        end loop;
-        for d in (select level_no, role_code, decided_by, outcome, cast(decision_date as timestamp) as at_time, comments
-                    from xxcmp_case_decisions where case_id = p_case_id order by decision_date) loop
-            pipe row (xxcmp_history_row(d.level_no, 'Approval level ' || d.level_no, who('ROLE', d.role_code, null),
-                                        initcap(d.outcome), d.decided_by, d.at_time, d.comments));
-        end loop;
-        if l_case.auto_approved_date is not null then
-            -- release 73: approval workflow switched off for the process
-            pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
-                                        l_case.auto_approved_date, null));
-        end if;
-        if l_case.case_status = 'INVESTIGATION' then
-            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
-        end if;
-        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION') and l_case.auto_approved_date is null then
-            -- release 74: the levels to come from the Approval Setup (transaction type KYC_CASE)
-            select count(*) into l_done from xxcmp_case_decisions where case_id = p_case_id and outcome = 'APPROVED';
-            l_attrs := xxcmp_case_pkg.case_attributes(l_case);
-            for s in (select * from table(xxfnd_approval_rule_pkg.steps('KYC_CASE', to_char(p_case_id), l_attrs))
-                       where position > l_done order by position) loop
-                pipe row (xxcmp_history_row(s.position, s.step_name,
-                                            xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name),
-                                            case when l_case.case_status = 'INVESTIGATION' then 'Expected'
-                                                 when s.position = l_done + 1 then 'Pending' else 'Waiting' end,
-                                            null, null, null));
-            end loop;
-        end if;
-        return;
-    exception
-        when no_data_found then
-            xxfnd_vpd_pkg.end_trusted;
-            return;
-    end case_history_rows;
 
 end xxcmp_approval_pkg;
 /

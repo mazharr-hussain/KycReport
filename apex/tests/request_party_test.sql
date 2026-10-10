@@ -41,6 +41,13 @@ declare
     begin
         return regexp_substr(substr(p_sqlerrm, 12), '[^' || chr(10) || ']+');
     end;
+    function history_has(p_req number, p_action varchar2 default null, p_step varchar2 default null) return boolean is
+        l number;
+    begin
+        select count(*) into l from table(xxcmp_approval_pkg.history_rows(p_req))
+         where (p_action is null or action = p_action) and (p_step is null or step_name = p_step);
+        return l > 0;
+    end;
     function exists_withdrawn(p_req number) return boolean is
         l number;
     begin
@@ -180,7 +187,7 @@ begin
     select count(*) into l_cnt from apex_workflows where workflow_id = l_r.workflow_id and state_code in ('ACTIVE', 'SUSPENDED');
     ok('withdrawn: back to Draft, workflow ended, the party stays editable',
        l_r.request_status = 'DRAFT' and l_cnt = 0 and xxcmp_request_pkg.party_editable(l_req) = 'Y');
-    ok('history shows the withdraw', dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req), 'Submitted') > 0
+    ok('history shows the withdraw', history_has(l_req, 'Submitted')
        and exists_withdrawn(l_req));
     xxcmp_request_pkg.cancel(l_req, 'Not needed any more');
     commit;
@@ -222,7 +229,7 @@ begin
     save_org(l_req2, 'Path Org ' || l_tag, 'PA-' || l_tag);
     ok('the path with the most matching criteria applies', xxcmp_approval_pkg.path_for(l_req2) = 'Test ' || l_tag);
     ok('before submit: the expected path lists both steps',
-       dbms_lob.instr(xxcmp_approval_pkg.path_html(l_req2), 'Finance sign-off') > 0);
+       history_has(l_req2, p_step => 'Finance sign-off'));
     xxcmp_approval_pkg.start_path(l_req2);
     ok('step 1: approved by the role (' || xxcmp_approval_pkg.step_approvers(l_req2) || ')',
        xxcmp_approval_pkg.step_name(l_req2) = 'Compliance check' and instr(xxcmp_approval_pkg.step_approvers(l_req2), 'OFFICER1') > 0);
@@ -266,7 +273,7 @@ begin
     select count(*) into l_cnt from xxcmp_cases where request_id = l_req2 and business_relationship = 'VENDOR';
     ok('the case carries the business relationship of the request', l_cnt = 1);
     ok('history shows the submit and the approvals',
-       dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req2), 'Submitted') > 0);
+       history_has(l_req2, 'Submitted'));
     delete from xxfnd_approval_rules where rule_id = l_rule;
     commit;
     apex_session.delete_session;
