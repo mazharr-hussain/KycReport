@@ -8,13 +8,12 @@
 
 ## Files
 - `db/09b-security-framework-objects.sql`
-- `db/15e-communications.sql`
 - `db/16v-performance.sql`
 
 Files shared with other release 74 parts are listed once, in the patch of their latest change.
 
 ## Deploy (release 74, in this order)
-The release zips carry every patch of release 74 (65-74); deploy them once, not patch by patch.
+The release zips carry every patch of release 74 (65-75); deploy them once, not patch by patch.
 1. COMMON: import `COMMON-Application-APEXlang_74.zip` over COMMON with **Parsing Schema = XXCUS** and
    **Install Supporting Objects: No**; then Edit Application Definition > Security > **Parsing Schema = XXFUSION** >
    Apply Changes; then Utilities > Supporting Objects > **Install Supporting Objects** (upgrade scripts; data kept).

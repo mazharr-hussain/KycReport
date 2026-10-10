@@ -8,6 +8,7 @@
 --   approvals already running continue at the same step. Afterwards the rules are maintained in COMMON > Approval
 --   Setup (or delegated to KYC); a re-run changes nothing.
 --   XXCMP_APPROVAL_PATHS / XXCMP_APPROVAL_MATRIX are kept unchanged (the matrix still holds the SAR gate).
+-- Install: after the seed (18, 18b), which creates the matrix, the paths and the roles on a new database.
 -- Idempotent.
 --------------------------------------------------------------------------------
 declare

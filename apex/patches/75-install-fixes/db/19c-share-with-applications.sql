@@ -103,6 +103,14 @@ create or replace package body xxfnd_share_pkg as
     merge into xxfnd_role_privileges t using (select 'COMMON_ADMIN' rc, 'COMMON_HOME.VIEW' pc from dual) s
        on (t.role_code = s.rc and t.privilege_code = s.pc)
      when not matched then insert (role_code, privilege_code) values (s.rc, s.pc);
+    -- release 74: Common administrators see every common RFI (15c) and e-mail (15e); each application adds its own
+    -- roles' rules. Here, after the role exists (a fresh install runs 15c / 15e before the role is created).
+    merge into xxfnd_data_security_rules t
+    using (select 'XXFND_RFIS' tb from dual union all select 'XXFND_COMMUNICATIONS' from dual) s
+       on (t.role_code = 'COMMON_ADMIN' and t.table_name = s.tb and t.rule_type = 'ALL_ROWS')
+     when not matched then insert (role_code, table_name, rule_type) values ('COMMON_ADMIN', s.tb, 'ALL_ROWS');
+    commit;
+    xxfnd_schema_pkg.apply_policies;
 
     -- first administrator
     l_user := sys_context('APEX$SESSION', 'APP_USER');
