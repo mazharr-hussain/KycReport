@@ -359,6 +359,12 @@
   "upgrade_sequence": 141
  },
  {
+  "name": "16v KYC performance (foreign key and data security indexes)",
+  "file": "16v-performance.sql",
+  "install_sequence": 182,
+  "upgrade_sequence": 142
+ },
+ {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,

@@ -412,6 +412,24 @@ installScript 16u-kyc-risk-model-tables-package-body-starting-model-with-the-fat
     }
 )
 
+installScript 16v-kyc-performance-foreign-key-and-data-security-indexes (
+    execution {
+        sequence: 182
+    }
+    script {
+        contentFile: 16v-performance.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 installScript 18b-security-framework-seed (
     execution {
         sequence: 185

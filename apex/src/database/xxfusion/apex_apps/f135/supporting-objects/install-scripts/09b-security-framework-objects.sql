@@ -322,12 +322,23 @@ create or replace package xxfnd_vpd_pkg authid definer as
     -- (e.g. a validated RFI response token). Always paired with end_trusted.
     procedure begin_trusted;
     procedure end_trusted;
+    -- Release 74 (R23): the predicate of a user and table is kept for a few seconds in the APEX session (a report
+    -- that calls a function per row runs the policy once, not once per row). CLEAR_CACHE forgets it at once.
+    procedure clear_cache;
 end xxfnd_vpd_pkg;
 /
 
 create or replace package body xxfnd_vpd_pkg as
     g_trusted pls_integer := 0;
     c_policy  constant varchar2(30) := 'XXFND_DATA_SECURITY';
+    -- predicate cache (R23): key APEX session : user : table; an entry lives c_cache_ttl hundredths of a second, so a
+    -- change of roles or rules applies within seconds even where the package state outlives the request
+    c_cache_ttl constant pls_integer := 500;
+    type t_entry is record (predicate varchar2(32767), stamp pls_integer);
+    type t_cache is table of t_entry index by varchar2(400);
+    g_cache t_cache;
+
+    procedure clear_cache is begin g_cache.delete; end clear_cache;
 
     procedure begin_trusted is begin g_trusted := g_trusted + 1; end begin_trusted;
     procedure end_trusted   is begin g_trusted := greatest(g_trusted - 1, 0); end end_trusted;
@@ -355,10 +366,12 @@ create or replace package body xxfnd_vpd_pkg as
         return l_list;
     end delegators;
 
+    function predicate(p_user in varchar2, p_object in varchar2) return varchar2;
+
     function policy(p_schema in varchar2, p_object in varchar2) return varchar2 is
         l_user      varchar2(255) := upper(sys_context('APEX$SESSION', 'APP_USER'));
+        l_key       varchar2(400);
         l_predicate varchar2(32767);
-        l_part      varchar2(4000);
     begin
         -- Install scripts, scheduler jobs and developer sessions run without an APEX user. APEX runs
         -- workflow activities and automations in scheduler background jobs (as NOBODY): system work too.
@@ -366,6 +379,21 @@ create or replace package body xxfnd_vpd_pkg as
         if l_user is null or g_trusted > 0 or sys_context('USERENV', 'BG_JOB_ID') is not null then
             return null;
         end if;
+        l_key := substr(sys_context('APEX$SESSION', 'APP_SESSION') || ':' || l_user || ':' || upper(p_object), 1, 400);
+        if g_cache.exists(l_key) and abs(dbms_utility.get_time - g_cache(l_key).stamp) < c_cache_ttl then
+            return g_cache(l_key).predicate;
+        end if;
+        l_predicate := predicate(l_user, p_object);
+        g_cache(l_key).predicate := l_predicate;
+        g_cache(l_key).stamp := dbms_utility.get_time;
+        return l_predicate;
+    end policy;
+
+    function predicate(p_user in varchar2, p_object in varchar2) return varchar2 is
+        l_user      varchar2(255) := p_user;
+        l_predicate varchar2(32767);
+        l_part      varchar2(4000);
+    begin
         for r in (select distinct d.rule_type, d.column_name, d.value_list
                     from xxfnd_data_security_rules d
                     join xxfnd_user_roles_v ur on ur.role_code = d.role_code
@@ -388,7 +416,7 @@ create or replace package body xxfnd_vpd_pkg as
         end loop;
         -- No rule for this user and table: deny.
         return nvl(l_predicate, '1 = 0');
-    end policy;
+    end predicate;
 
     procedure apply_policies is
     begin
