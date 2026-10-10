@@ -373,12 +373,12 @@ upgradeScript 15b-common-workflow-runtime (
     }
 )
 
-upgradeScript 15c-request-for-information-workflow (
+upgradeScript 15d-approval-setup (
     execution {
         sequence: 113
     }
     script {
-        contentFile: 15c-rfi-workflow.sql
+        contentFile: 15d-approval-setup.sql
     }
     serverSideCondition {
         type: expression
@@ -390,12 +390,12 @@ upgradeScript 15c-request-for-information-workflow (
     }
 )
 
-upgradeScript 15d-approval-setup (
+upgradeScript 15c-request-for-information-workflow (
     execution {
         sequence: 114
     }
     script {
-        contentFile: 15d-approval-setup.sql
+        contentFile: 15c-rfi-workflow.sql
     }
     serverSideCondition {
         type: expression

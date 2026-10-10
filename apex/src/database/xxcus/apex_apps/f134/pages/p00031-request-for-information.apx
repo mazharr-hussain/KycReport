@@ -354,7 +354,7 @@ page 31 (
     pageItem P31_RESPONSE_TEXT (
         type: textarea
         label {
-            label: Response
+            label: Information Provided
             alignment: left
         }
         layout {
@@ -381,7 +381,9 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                not (upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING','RESPONDED'))
+                not (-- release 74: the person (or one of the people) the RFI is waiting for
+instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0
+and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING'))
                 ```
         }
         help {
@@ -418,7 +420,7 @@ page 31 (
     pageItem P31_RESOLUTION_NOTES (
         type: textarea
         label {
-            label: Notes / New Question
+            label: Comments
             alignment: left
         }
         layout {
@@ -453,28 +455,38 @@ page 31 (
         }
     )
 
-    pageItem P31_NEW_STATUS (
-        type: selectList
+    pageItem P31_APPROVAL_TYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @rfi
+            slot: regionBody
+        }
+        source {
+            formRegion: @rfi
+            column: APPROVAL_TYPE_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_ADD_PERSON (
+        type: popupLov
         label {
-            label: Set Status
+            label: Add Person
             alignment: left
         }
         lov {
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select meaning as display_value, lookup_code as return_value
-                  from xxfnd_lookup_values_vl
-                 where lookup_type = 'RFI_STATUS'
-                   and lookup_code in ('RESOLVED','REJECTED_RETURNED','CANCELLED','ON_HOLD_INVESTIGATION')
-                   and active_flag = 'Y'
-                 order by display_sequence
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxfnd_employees
+                 where user_name is not null
+                 order by 1
                 ```
-            displayNullValue: true
-            nullDisplayValue: - Select -
         }
         layout {
-            sequence: 130
+            sequence: 140
             region: @rfi
             slot: regionBody
             alignment: left
@@ -488,11 +500,11 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                :P31_APPROVAL_TYPE_CODE is not null and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
                 ```
         }
         help {
-            helpText: Choose the set Status.
+            helpText: Someone else who should also provide information; they answer after the current person. The Comments say why.
         }
     )
 
@@ -519,7 +531,7 @@ page 31 (
 
     button respond (
         buttonName: RESPOND
-        label: Send Response
+        label: Submit Information
         layout {
             sequence: 20
             region: @rfi
@@ -539,14 +551,16 @@ page 31 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                upper(:P31_RECIPIENT_USER_NAME) = :APP_USER and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING','RESPONDED')
+                -- release 74: the person (or one of the people) the RFI is waiting for
+instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0
+and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
                 ```
         }
     )
 
     button resolve (
         buttonName: RESOLVE
-        label: Update Status
+        label: Accept Information
         layout {
             sequence: 30
             region: @rfi
@@ -573,7 +587,7 @@ page 31 (
 
     button ask-again (
         buttonName: ASK_AGAIN
-        label: Ask Again
+        label: Request More Information
         layout {
             sequence: 35
             region: @rfi
@@ -594,6 +608,66 @@ page 31 (
                 ```plsql
                 -- release 74: the same RFI loops - a new round with the question in Resolution Notes
                 xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    button cancel-rfi (
+        buttonName: CANCEL_RFI
+        label: Cancel Request
+        layout {
+            sequence: 40
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Cancel this request for information?
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    button add-person (
+        buttonName: ADD_PERSON
+        label: Add Person
+        layout {
+            sequence: 50
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 74: an ad-hoc person to provide information too (Approval Setup: after the current one)
+                :P31_APPROVAL_TYPE_CODE is not null and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                     or instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0)
                 ```
         }
     )
@@ -1090,27 +1164,6 @@ page 31 (
         }
     )
 
-    validation VAL_STATUS_GIVEN (
-        name: Status chosen
-        execution {
-            sequence: 20
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return case when :P31_NEW_STATUS is null then 'Choose the new status.' end;
-                ```
-        }
-        error {
-            associatedItem: @P31_NEW_STATUS
-        }
-        serverSideCondition {
-            whenButtonPressed: @resolve
-        }
-    )
-
     process open-from-task (
         name: Open from task
         type: executeCode
@@ -1178,7 +1231,7 @@ page 31 (
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, :P31_NEW_STATUS, :P31_RESOLUTION_NOTES);
+                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, 'RESOLVED', :P31_RESOLUTION_NOTES);
                 ```
         }
         execution {
@@ -1186,7 +1239,7 @@ page 31 (
             point: processing
         }
         successMessage {
-            successMessage: Status updated.
+            successMessage: Information accepted: the request for information is resolved.
         }
         serverSideCondition {
             whenButtonPressed: @resolve
@@ -1224,6 +1277,55 @@ page 31 (
         }
         serverSideCondition {
             whenButtonPressed: @ask-again
+        }
+    )
+
+    process cancel-rfi (
+        name: Cancel the request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, 'CANCELLED', :P31_RESOLUTION_NOTES);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        successMessage {
+            successMessage: Request for information cancelled.
+        }
+        serverSideCondition {
+            whenButtonPressed: @cancel-rfi
+        }
+    )
+
+    process add-person (
+        name: Add a person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if :P31_ADD_PERSON is null then
+                    xxfnd_error_pkg.raise_error('XXFND_APPROVAL_APPROVER_REQUIRED');
+                end if;
+                -- the button is offered to the people it waits for and to Compliance (CASES - Manage)
+                xxfnd_approval_rule_pkg.add_approver(:P31_APPROVAL_TYPE_CODE, :P31_RFI_ID, 'USER', p_user_name => :P31_ADD_PERSON,
+                                                     p_position => 'NEXT', p_comment => :P31_RESOLUTION_NOTES, p_force => 'Y');
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Person added: they provide information after the current person.
+        }
+        serverSideCondition {
+            whenButtonPressed: @add-person
         }
     )
 

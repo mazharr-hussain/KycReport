@@ -586,8 +586,9 @@ create or replace package xxcmp_case_pkg authid definer as
     procedure reject_case(p_case_id in number);
 
     -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
-    -- release 74: an RFI raised from a case (or its request / party) - the case gives the recipient (a user, or a
-    -- contact person of the party: name and e-mail), then starts the common RFI workflow and e-mails the recipient.
+    -- release 74: an RFI raised from a case (or its request / party) - its own workflow process (common RFI).
+    -- p_recipient_type SETUP (default): the providers come from the Approval Setup (CASE_RFI, default the requester);
+    -- REQUESTING_DEPARTMENT: a named user; EXTERNAL_PARTY: a contact person of the party (name and e-mail).
     -- release 74: the attributes the Approval Setup tests for a case (transaction type KYC_CASE)
     function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2;
     procedure raise_rfi(p_entity_name      in varchar2,
@@ -2128,7 +2129,38 @@ create or replace package body xxcmp_case_pkg as
         l_email  xxcmp_party_contacts.email%type;
         l_rfi_id number;
         l_token  varchar2(64);
+        l_case   xxcmp_cases%rowtype;
+        l_req    varchar2(255);
     begin
+        -- release 74 (default): who provides the information comes from the Approval Setup (CASE_RFI: the requester
+        -- of the case unless a rule says otherwise); the same workflow options apply (ad-hoc provider, ask again)
+        if p_recipient_type = 'SETUP' then
+            xxfnd_vpd_pkg.begin_trusted;
+            if p_entity_name = 'XXCMP_CASES' then
+                l_case := get_case(to_number(p_pk1_value));
+                select max(requester_user_name) into l_req from xxcmp_requests where request_id = l_case.request_id;
+            elsif p_entity_name = 'XXCMP_REQUESTS' then
+                select max(requester_user_name) into l_req from xxcmp_requests where request_id = to_number(p_pk1_value);
+            end if;
+            xxfnd_vpd_pkg.end_trusted;
+            xxfnd_rfi_pkg.create_rfi(
+                p_entity_name         => p_entity_name,
+                p_pk1_value           => p_pk1_value,
+                p_recipient_type      => 'USER',
+                p_rfi_category        => p_rfi_category,
+                p_description         => p_description,
+                p_continue_other_work => p_continue_work,
+                p_due_date            => p_due_date,
+                p_recipient_user_name => l_req,
+                p_application_code    => 'KYC',
+                p_approval_type       => 'CASE_RFI',
+                p_attributes          => apex_t_varchar2('RFI_CATEGORY=' || p_rfi_category, 'RISK_TIER=' || l_case.risk_tier),
+                p_requester           => l_req,
+                p_rfi_id              => l_rfi_id,
+                p_token               => l_token);
+            xxfnd_rfi_pkg.send_email(l_rfi_id);
+            return;
+        end if;
         if p_recipient_type in ('EXTERNAL_PARTY', 'EXTERNAL') then
             select max(contact_name), max(email) into l_name, l_email
               from xxcmp_party_contacts where party_contact_id = p_party_contact_id;

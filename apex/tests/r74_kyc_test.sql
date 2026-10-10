@@ -134,6 +134,44 @@ begin
         xxfnd_vpd_pkg.end_trusted;
         rollback;
     end;
+
+    -- case RFI: its own process; the provider comes from the Approval Setup (CASE_RFI: the requester), ad-hoc person
+    declare
+        l_req  varchar2(255);
+        l_rfi2 number;
+        l_st   varchar2(30);
+    begin
+        apex_session.create_session(l_app, 1, 'OFFICER1');
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(c.case_id) keep (dense_rank last order by c.case_id), max(q.requester_user_name) keep (dense_rank last order by c.case_id)
+          into l_case, l_req
+          from xxcmp_cases c join xxcmp_requests q on q.request_id = c.request_id
+         where c.case_status = 'INVESTIGATION' and q.requester_user_name in ('REQ1', 'REQ2');
+        xxfnd_vpd_pkg.end_trusted;
+        if l_case is null then
+            dbms_output.put_line('SKIP no case of REQ1 / REQ2 under investigation');
+        else
+            xxcmp_case_pkg.raise_rfi('XXCMP_CASES', to_char(l_case), 'SETUP', null, null, 'CLARIFICATION',
+                                     'Confirm the shareholder register', 'Y', null);
+            select max(rfi_id) into l_rfi2 from xxfnd_rfis where entity_name = 'XXCMP_CASES' and pk1_value = to_char(l_case);
+            ok('case RFI as set up: the requester provides the information (' || xxfnd_rfi_pkg.recipient(l_rfi2) || ')',
+               xxfnd_rfi_pkg.recipient(l_rfi2) = l_req);
+            xxfnd_approval_rule_pkg.add_approver('CASE_RFI', to_char(l_rfi2), 'USER', p_user_name => 'OFFICER1',
+                                                 p_comment => 'Also from Officer1', p_force => 'Y');
+            apex_session.create_session(l_app, 1, l_req);
+            xxfnd_rfi_pkg.respond(l_rfi2, 'Register attached');
+            select rfi_status into l_st from xxfnd_rfis where rfi_id = l_rfi2;
+            ok('after the requester, the added person answers (' || xxfnd_rfi_pkg.recipient(l_rfi2) || ', ' || l_st || ')',
+               xxfnd_rfi_pkg.recipient(l_rfi2) = 'OFFICER1' and l_st = 'WAITING_FOR_INFORMATION');
+            apex_session.create_session(l_app, 1, 'OFFICER1');
+            xxfnd_rfi_pkg.respond(l_rfi2, 'Checked');
+            select rfi_status into l_st from xxfnd_rfis where rfi_id = l_rfi2;
+            select count(*) into l_n from apex_tasks where task_def_static_id = 'RFI_REVIEW' and detail_pk = to_char(l_rfi2)
+               and state_code in ('UNASSIGNED', 'ASSIGNED');
+            ok('then it goes to review (' || l_st || ')', l_st = 'RESPONDED' and l_n = 1);
+        end if;
+        rollback;
+    end;
 end;
 /
 exit

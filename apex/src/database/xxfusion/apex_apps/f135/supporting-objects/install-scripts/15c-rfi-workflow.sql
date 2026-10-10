@@ -23,6 +23,7 @@ begin
     recipient_name           varchar2(360),
     recipient_email          varchar2(320),
     recipient_reference      varchar2(150),
+    approval_type_code       varchar2(30),
     rfi_category             varchar2(30)   not null,
     description              varchar2(4000) not null,
     continue_other_work_flag varchar2(1)    default 'Y' not null,
@@ -62,6 +63,8 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_rfis.recipient_reference is 'The application''s own key of the recipient (KYC: party contact ID).'~');
     end if;
     xxfnd_schema_pkg.create_who_trigger('XXFND_RFIS');
+    -- who provides the information can come from the Approval Setup (e.g. CASE_RFI: the requester by default)
+    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'APPROVAL_TYPE_CODE', 'varchar2(30)');
 
     if xxfnd_ddl_pkg.create_table('XXFND_RFI_ROUNDS', q'~create table xxfnd_rfi_rounds (
     rfi_id                 number         not null,
@@ -125,8 +128,13 @@ create or replace package xxfnd_rfi_pkg authid definer as
                          p_recipient_reference in varchar2 default null,
                          p_application_code    in varchar2 default null,
                          p_with_tasks          in varchar2 default 'Y',
+                         p_approval_type       in varchar2 default null,
+                         p_attributes          in apex_t_varchar2 default null,
+                         p_requester           in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2);
+    -- p_approval_type: who provides the information comes from that Approval Setup type (p_attributes, p_requester);
+    -- each provider answers in turn (ad-hoc providers can be added), then the answer is reviewed.
     -- p_with_tasks N: the application collects the answer in its own way (e.g. the requester resubmits a returned
     -- request) and resolves the RFI itself; no response task is created.
     -- Participant of the RFI_RESPONSE task: the user the RFI is addressed to.
@@ -206,8 +214,13 @@ create or replace package body xxfnd_rfi_pkg as
                          p_recipient_reference in varchar2 default null,
                          p_application_code    in varchar2 default null,
                          p_with_tasks          in varchar2 default 'Y',
+                         p_approval_type       in varchar2 default null,
+                         p_attributes          in apex_t_varchar2 default null,
+                         p_requester           in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2) is
+        l_rule  varchar2(100);
+        l_users varchar2(4000);
         l_app xxfnd_applications.application_code%type := app_code(p_application_code);
     begin
         xxfnd_util_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
@@ -225,6 +238,14 @@ create or replace package body xxfnd_rfi_pkg as
         returning rfi_id into p_rfi_id;
         insert into xxfnd_rfi_rounds (rfi_id, round_no, question, asked_by)
         values (p_rfi_id, 1, p_description, xxfnd_util_pkg.current_user);
+        if p_approval_type is not null then
+            l_rule  := xxfnd_approval_rule_pkg.start_approval(p_approval_type, to_char(p_rfi_id), p_attributes, p_requester);
+            l_users := xxfnd_approval_rule_pkg.current_approvers(p_approval_type, to_char(p_rfi_id));
+            update xxfnd_rfis
+               set approval_type_code = upper(p_approval_type),
+                   recipient_user_name = case when instr(l_users, ',') = 0 then l_users else recipient_user_name end
+             where rfi_id = p_rfi_id;
+        end if;
         -- a user answers in My Tasks; an external person through the e-mailed link (no account, no task)
         if p_recipient_type = 'USER' then
             if nvl(p_with_tasks, 'Y') = 'Y' then
@@ -237,8 +258,12 @@ create or replace package body xxfnd_rfi_pkg as
 
     function recipient(p_rfi_id in number) return varchar2 is
         l_user xxfnd_rfis.recipient_user_name%type;
+        l_type xxfnd_rfis.approval_type_code%type;
     begin
-        select max(recipient_user_name) into l_user from xxfnd_rfis where rfi_id = p_rfi_id;
+        select max(recipient_user_name), max(approval_type_code) into l_user, l_type from xxfnd_rfis where rfi_id = p_rfi_id;
+        if l_type is not null then
+            return xxfnd_approval_rule_pkg.current_approvers(l_type, to_char(p_rfi_id));
+        end if;
         return l_user;
     end recipient;
 
@@ -251,18 +276,29 @@ create or replace package body xxfnd_rfi_pkg as
         merge into xxfnd_rfi_rounds d
         using (select p_rfi.rfi_id rfi_id, p_rfi.round_no round_no from dual) s
            on (d.rfi_id = s.rfi_id and d.round_no = s.round_no)
-         when matched then update set d.response_text = p_response_text, d.responded_by = p_by,
+         when matched then update set d.response_text = case when d.response_text is null then p_response_text
+                                                             else d.response_text || chr(10) || p_by || ': ' || p_response_text end,
+                                      d.responded_by = case when d.responded_by is null then p_by
+                                                            else d.responded_by || ', ' || p_by end,
                                       d.responded_date = systimestamp
          when not matched then insert (rfi_id, round_no, question, response_text, responded_by, responded_date)
                                values (s.rfi_id, s.round_no, p_rfi.description, p_response_text, p_by, systimestamp);
-        start_review(p_rfi.rfi_id);
+        -- providers from the Approval Setup answer in turn: the next one, else the review
+        if p_rfi.approval_type_code is not null
+           and xxfnd_approval_rule_pkg.next_step(p_rfi.approval_type_code, to_char(p_rfi.rfi_id)) = 'Y' then
+            update xxfnd_rfis set rfi_status = 'WAITING_FOR_INFORMATION' where rfi_id = p_rfi.rfi_id;
+            open_response(p_rfi.rfi_id);
+        else
+            start_review(p_rfi.rfi_id);
+        end if;
     end record_answer;
 
     procedure respond(p_rfi_id in number, p_response_text in clob) is
         l_rfi xxfnd_rfis%rowtype;
     begin
         select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id for update;
-        if l_rfi.recipient_type <> 'USER' or upper(l_rfi.recipient_user_name) <> upper(xxfnd_util_pkg.current_user) then
+        if l_rfi.recipient_type <> 'USER'
+           or instr(',' || recipient(p_rfi_id) || ',', ',' || upper(xxfnd_util_pkg.current_user) || ',') = 0 then
             raise_application_error(-20502, 'This request for information is not addressed to you.');
         end if;
         if l_rfi.rfi_status not in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED') then
@@ -325,6 +361,14 @@ create or replace package body xxfnd_rfi_pkg as
          where rfi_id = p_rfi_id;
         insert into xxfnd_rfi_rounds (rfi_id, round_no, question, asked_by)
         values (p_rfi_id, l_rfi.round_no + 1, substr(p_question, 1, 4000), xxfnd_util_pkg.current_user);
+        if l_rfi.approval_type_code is not null then
+            -- the same providers again, from the first one
+            update xxfnd_approval_txns
+               set approval_status = 'IN_PROGRESS',
+                   current_seq = (select min(step_seq) from xxfnd_approval_txn_steps
+                                   where approval_type_code = l_rfi.approval_type_code and txn_id = to_char(p_rfi_id))
+             where approval_type_code = l_rfi.approval_type_code and txn_id = to_char(p_rfi_id);
+        end if;
         if l_rfi.recipient_type = 'USER' then
             open_response(p_rfi_id);
         else

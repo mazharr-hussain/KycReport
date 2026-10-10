@@ -195,6 +195,8 @@ window.kycQuestionnaire = (function ($) {
         e.preventDefault();
         apex.item(pageItem("DECISION")).setValue(m[1]);
         $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
+        // release 74: Add Approver picks the person who approves next
+        $("#" + pageItem("ADD_USER") + "_CONTAINER").toggle(m[1] === "ADD_APPROVER");
         apex.message.clearErrors();
         dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
         apex.theme.openRegion("decision_dialog");
@@ -203,6 +205,12 @@ window.kycQuestionnaire = (function ($) {
     $(document).on("click", "button.kyc-decide-confirm", function (e) {
         var comment = pageItem("COMMENT");
         e.preventDefault();
+        if ($v(pageItem("DECISION")) === "ADD_APPROVER" && $.trim($v(pageItem("ADD_USER"))) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: pageItem("ADD_USER"),
+                                       message: "Choose the approver to add.", unsafe: false }]);
+            return;
+        }
         if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {
             apex.message.clearErrors();
             apex.message.showErrors([{ type: "error", location: "inline", pageItem: comment,

@@ -39,7 +39,7 @@ begin
     page('WORKFLOW_MONITOR', 44, 'Workflows', 20);
     page('WORKFLOW_MONITOR', 45);
     -- Workflow Setup tabs.
-    page('WORKFLOW_SETUP', 165, 'Approval Matrix', 10);
+    page('WORKFLOW_SETUP', 165, 'SAR Gate', 10);
     page('WORKFLOW_SETUP', 114, 'Delegations', 20);
     page('WORKFLOW_SETUP', 115);
     page('WORKFLOW_SETUP', 145, 'Deadlines ' || chr(38) || ' Escalation', 30);

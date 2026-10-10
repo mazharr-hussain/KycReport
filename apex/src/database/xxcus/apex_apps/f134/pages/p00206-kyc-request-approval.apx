@@ -909,6 +909,130 @@ page 206 (
         }
     )
 
+    button add-approver (
+        buttonName: ADD_APPROVER
+        label: Add Approver
+        layout {
+            sequence: 25
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ADD_APPROVER
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                if xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', :P206_REQUEST_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                             and state_code in ('ASSIGNED', 'UNASSIGNED')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button add-approver-top (
+        buttonName: ADD_APPROVER_TOP
+        label: Add Approver
+        layout {
+            sequence: 45
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ADD_APPROVER
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                if xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', :P206_REQUEST_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                             and state_code in ('ASSIGNED', 'UNASSIGNED')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button submit-info (
+        buttonName: SUBMIT_INFO
+        label: Submit Information
+        layout {
+            sequence: 35
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-SUBMIT_INFO
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the requester answers the approver's question on the same screen
+                return :P206_INFO_TASK_ID is not null;
+                ```
+        }
+    )
+
+    button submit-info-top (
+        buttonName: SUBMIT_INFO_TOP
+        label: Submit Information
+        layout {
+            sequence: 47
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-SUBMIT_INFO
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the requester answers the approver's question on the same screen
+                return :P206_INFO_TASK_ID is not null;
+                ```
+        }
+    )
+
     button open-case (
         buttonName: OPEN_CASE
         label: Open Case
@@ -995,6 +1119,78 @@ page 206 (
         }
         help {
             helpText: Recorded on the task; required when rejecting or requesting information.
+        }
+    )
+
+    pageItem P206_ADD_USER (
+        type: popupLov
+        label {
+            label: Approver to Add
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxfnd_employees
+                 where user_name is not null
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 5
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Release 74: the person who approves next, after you (the Comment says why).
+        }
+    )
+
+    pageItem P206_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: a document that goes with your comment (kept with the request's documents).
+        }
+    )
+
+    pageItem P206_INFO_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @decision-dialog
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
         }
     )
 
@@ -1119,6 +1315,26 @@ page 206 (
         }
     )
 
+    process find-info-task (
+        name: The requester's open question
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: an approver asked the requester for information: the requester answers here (Submit Information)
+                select max(t.task_id) into :P206_INFO_TASK_ID
+                  from apex_tasks t
+                 where t.detail_pk = :P206_REQUEST_ID and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                   and t.state_code = 'INFO_REQUESTED' and upper(t.initiator) = upper(:APP_USER);
+                ```
+        }
+        execution {
+            sequence: 8
+            point: beforeHeader
+        }
+    )
+
     process load-case (
         name: Load case
         type: executeCode
@@ -1156,8 +1372,12 @@ page 206 (
             point: processing
         }
         serverSideCondition {
-            type: itemIsNotNull
-            item: P206_COMMENT
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO')
+                ```
         }
     )
 
@@ -1248,6 +1468,100 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'CONFIRM' and :P206_DECISION = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    process add-approver (
+        name: Add an approver
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if :P206_ADD_USER is null then
+                    xxfnd_error_pkg.raise_error('XXFND_APPROVAL_APPROVER_REQUIRED');
+                end if;
+                xxfnd_approval_rule_pkg.add_approver('KYC_REQUEST', :P206_REQUEST_ID, 'USER', p_user_name => :P206_ADD_USER,
+                                                     p_position => 'NEXT', p_comment => :P206_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Approver added: they approve after you.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'ADD_APPROVER'
+                ```
+        }
+    )
+
+    process submit-info (
+        name: Submit information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- the task goes back to the approver; the request is In Progress again (task action)
+                apex_human_task.submit_information(p_task_id => :P206_INFO_TASK_ID, p_text => :P206_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 60
+            point: processing
+        }
+        successMessage {
+            successMessage: Information submitted: the request is back with the approver.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'SUBMIT_INFO' and :P206_INFO_TASK_ID is not null
+                ```
+        }
+    )
+
+    process attach-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_REQUESTS',
+                                p_pk1_value      => :P206_REQUEST_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P206_FILE,
+                                p_title          => initcap(replace(:P206_DECISION, '_', ' ')) || ' - ' || :APP_USER,
+                                p_description    => substr(:P206_COMMENT, 1, 4000),
+                                p_page_id        => 206);
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_FILE is not null
                 ```
         }
     )

@@ -424,12 +424,12 @@ installScript 15b-common-workflow-runtime (
     }
 )
 
-installScript 15c-request-for-information-workflow (
+installScript 15d-approval-setup (
     execution {
         sequence: 153
     }
     script {
-        contentFile: 15c-rfi-workflow.sql
+        contentFile: 15d-approval-setup.sql
     }
     serverSideCondition {
         type: expression
@@ -441,12 +441,12 @@ installScript 15c-request-for-information-workflow (
     }
 )
 
-installScript 15d-approval-setup (
+installScript 15c-request-for-information-workflow (
     execution {
         sequence: 154
     }
     script {
-        contentFile: 15d-approval-setup.sql
+        contentFile: 15c-rfi-workflow.sql
     }
     serverSideCondition {
         type: expression
