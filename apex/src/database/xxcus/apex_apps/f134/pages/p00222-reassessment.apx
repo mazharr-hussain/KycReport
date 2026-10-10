@@ -60,21 +60,26 @@ page 222 (
 
     region party_card (
         name: Party
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                declare
-                    l_party_id number;
-                begin
-                    select max(party_id) into l_party_id from (
-                        select party_id from xxcmp_cases where case_id = :P222_CASE_ID
-                    );
-                    return xxcmp_party_pkg.card_html(l_party_id);
-                end;
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name
+                  from json_table(xxcmp_party_pkg.card_json((select max(c.party_id) from xxcmp_cases c where c.case_id = :P222_CASE_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    meta       varchar2(1000) path '$.meta',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url')) j
+                 order by j.seq
                 ```
-            pageItemsToSubmit: P222_CASE_ID
+            pageItemsToSubmit: [
+                P222_CASE_ID
+            ]
         }
         layout {
             sequence: 5
@@ -87,6 +92,85 @@ page 222 (
         advanced {
             htmlDomId: party_card
         }
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: No party linked yet.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}#VALUE#{endif/}{endif/}{if META/} <span class="kyc-f-meta">#META#</span>{endif/}
+                    ```
+            }
+        )
+
+        column META (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
     )
 
     pageItem P222_CASE_ID (

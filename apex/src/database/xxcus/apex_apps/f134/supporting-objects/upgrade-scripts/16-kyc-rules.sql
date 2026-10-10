@@ -129,17 +129,8 @@ create or replace package xxcmp_kyc_pkg authid definer as
                                 p_jurisdiction in varchar2,
                                 p_entity_type  in varchar2) return apex_t_varchar2;
 
-    -- Existing party that is certainly the same one (registration number +
-    -- jurisdiction for organisations; name + date of birth for persons), or null.
-    function exact_party_match(p_party_type          in varchar2,
-                               p_party_name          in varchar2,
-                               p_registration_number in varchar2 default null,
-                               p_jurisdiction        in varchar2 default null,
-                               p_date_of_birth       in date     default null) return number;
-
-    -- 0-100 similarity of two names after normalisation (case, punctuation,
-    -- common legal suffixes). Used by the Possible Matches region.
-    function name_similarity(p_name_1 in varchar2, p_name_2 in varchar2) return number deterministic;
+    -- release 74: party matching (name similarity) is in the party package (XXCMP_PARTY_PKG); the unused
+    -- exact_party_match is gone (XXCMP_PARTY_PKG.EXACT_PARTY_NUMBER is the duplicate check).
 
     -- release 74: requests for information are the common RFI workflow (XXFND_RFI_PKG, COMMON 15c).
 
@@ -194,48 +185,6 @@ create or replace package body xxcmp_kyc_pkg as
         end loop;
         return l_missing;
     end missing_categories;
-
-    function normalise(p_name in varchar2) return varchar2 is
-        l_name varchar2(4000) := ' ' || upper(p_name) || ' ';
-    begin
-        l_name := regexp_replace(l_name, '[^A-Z0-9 ]', ' ');
-        l_name := regexp_replace(l_name, ' (LTD|LIMITED|LLC|INC|INCORPORATED|CORP|CORPORATION|CO|COMPANY|PLC|SA|AG|GMBH|WLL|FZE|FZCO|FZ LLC|BV|NV) ', ' ');
-        return trim(regexp_replace(l_name, ' +', ' '));
-    end normalise;
-
-    function name_similarity(p_name_1 in varchar2, p_name_2 in varchar2) return number deterministic is
-    begin
-        if p_name_1 is null or p_name_2 is null then
-            return 0;
-        end if;
-        return utl_match.jaro_winkler_similarity(normalise(p_name_1), normalise(p_name_2));
-    end name_similarity;
-
-    function exact_party_match(p_party_type          in varchar2,
-                               p_party_name          in varchar2,
-                               p_registration_number in varchar2 default null,
-                               p_jurisdiction        in varchar2 default null,
-                               p_date_of_birth       in date     default null) return number is
-        l_id number;
-    begin
-        if p_party_type = 'ORGANIZATION' and p_registration_number is not null then
-            select min(party_id) into l_id
-              from xxcmp_parties
-             where party_type = 'ORGANIZATION'
-               and upper(replace(registration_number, ' ')) = upper(replace(p_registration_number, ' '))
-               and nvl(jurisdiction, '#') = nvl(p_jurisdiction, '#')
-               and enabled_flag = 'Y';
-        elsif p_party_type = 'PERSON' and p_date_of_birth is not null then
-            select min(party_id) into l_id
-              from xxcmp_parties
-             where party_type = 'PERSON'
-               and incorporation_date = p_date_of_birth      -- an individual's date of birth
-               and upper(party_name) = upper(p_party_name)
-               and enabled_flag = 'Y';
-        end if;
-        return l_id;
-    end exact_party_match;
-
 
 end xxcmp_kyc_pkg;
 /

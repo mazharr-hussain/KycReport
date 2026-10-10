@@ -414,7 +414,7 @@ page 21 (
                                case when p.registration_number is not null
                                      and upper(replace(p.registration_number, ' ')) = upper(replace(me.registration_number, ' '))
                                     then 'Y' else 'N' end as same_registration,
-                               xxcmp_kyc_pkg.name_similarity(p.party_name, me.party_name) as similarity
+                               xxcmp_party_pkg.name_similarity(p.party_name, me.party_name) as similarity
                           from xxcmp_parties me
                           join xxcmp_parties p
                             on p.party_id <> me.party_id and p.party_type = me.party_type and p.enabled_flag = 'Y'

@@ -667,7 +667,7 @@ page 0 (
                 select j.party_id, j.party_number, j.registration_type, j.registration_number,
                        j.party_name, j.country, j.status, j.score, j.reg_match, j.reasons,
                        case when :APP_PAGE_ID = 201 then 'Use this party' end as use_party
-                  from json_table(xxcmp_request_pkg.party_candidates_json(:P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_REGISTRATION_NUMBER,
+                  from json_table(xxcmp_party_pkg.party_candidates_json(:P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_REGISTRATION_NUMBER,
                                       to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_JURISDICTION, to_number(:P0_PARTY_ID)), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
                                   registration_type varchar2(240) path '$.registration_type',
@@ -841,12 +841,22 @@ page 0 (
 
     region party-summary (
         name: Party
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_party_pkg.summary_html(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID));
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name
+                  from json_table(xxcmp_party_pkg.card_json(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    meta       varchar2(1000) path '$.meta',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url')) j
+                 order by j.seq
                 ```
             pageItemsToSubmit: [
                 P0_REQUEST_ID
@@ -872,9 +882,88 @@ page 0 (
                 (:APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
                 ```
         }
-        comments {
-            comments: Common Party region (Global Page): the party in full on the party and request screens (no party status on a request).
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
         }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: No party linked yet.
+        }
+        comments {
+            comments: Common Party region (Global Page): the party in full on the party and request screens (no party status on a request). Release 74: data from XXCMP_PARTY_PKG.CARD_JSON, shown with the standard Value Attribute Pairs report.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}#VALUE#{endif/}{endif/}{if META/} <span class="kyc-f-meta">#META#</span>{endif/}
+                    ```
+            }
+        )
+
+        column META (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
     )
 
 
@@ -2556,6 +2645,534 @@ page 0 (
             execution {
                 sequence: 10
                 fireOnInit: true
+            }
+        )
+
+    )
+
+    region party-id-verifications (
+        name: ID Verifications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): identity document checks of the individual (manual)
+                select v.id_verification_id,
+                       xxfnd_util_pkg.lookup_meaning('ID_DOCUMENT_TYPE', v.document_type) as document_type,
+                       v.document_number,
+                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', v.issuing_country) as issuing_country,
+                       v.expiry_date,
+                       xxfnd_util_pkg.lookup_meaning('ID_VERIFICATION_METHOD', v.verification_method) as verification_method,
+                       xxfnd_util_pkg.lookup_meaning('ID_VERIFICATION_RESULT', v.verification_result) as verification_result,
+                       decode(v.verification_result, 'VERIFIED', 'success', 'NOT_VERIFIED', 'danger', 'warning') as result_tone,
+                       xxfnd_ui_pkg.person_name(v.verified_by) as verified_by,
+                       v.verified_date,
+                       case when (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y' then apex_page.get_url(p_page => 26, p_items => 'P26_ID_VERIFICATION_ID,P26_PARTY_ID,P26_CASE_ID', p_values => to_char(v.id_verification_id) || ',' || :P0_SUMMARY_PARTY_ID || ',' || v.case_id, p_clear_cache => '26') end as edit_url
+                  from xxcmp_party_id_verifications v
+                 where v.party_id = :P0_SUMMARY_PARTY_ID
+                 order by v.verified_date desc, v.id_verification_id desc
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_id_verifications
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') and xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) = 'PERSON'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: No identity document checked yet.
+        }
+        comments {
+            comments: Release 74 (R14): identity document checks of an individual, recorded by hand (Compliance only).
+        }
+
+        column ID_VERIFICATION_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column DOCUMENT_TYPE (
+            type: plainText
+            heading {
+                heading: Document
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#DOCUMENT_TYPE#</strong> #DOCUMENT_NUMBER#
+                    ```
+            }
+        )
+
+        column DOCUMENT_NUMBER (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+        )
+
+        column ISSUING_COUNTRY (
+            type: plainText
+            heading {
+                heading: Issued By
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column VERIFICATION_METHOD (
+            type: plainText
+            heading {
+                heading: How Checked
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VERIFICATION_RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RESULT_TONE#">#VERIFICATION_RESULT#</span>
+                    ```
+            }
+        )
+
+        column RESULT_TONE (
+            type: hidden
+            layout {
+                sequence: 55
+            }
+        )
+
+        column VERIFIED_BY (
+            type: plainText
+            heading {
+                heading: Checked By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column VERIFIED_DATE (
+            type: plainText
+            heading {
+                heading: Checked On
+            }
+            layout {
+                sequence: 70
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+        )
+
+    )
+
+    button add-id-verification (
+        buttonName: ADD_ID_VERIFICATION
+        label: Add ID Verification
+        layout {
+            sequence: 10
+            region: @party-id-verifications
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 26
+                items: {
+                    P26_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                    P26_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 26
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-id-verifications (
+        name: Refresh id verifications
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-id-verifications
+        }
+
+        action refresh-party-id-verifications-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-id-verifications
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region party-registry-checks (
+        name: Registry Checks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): company registry (KYB) checks of the organisation (manual now, from a provider later)
+                select r.registry_check_id,
+                       r.registry_name,
+                       r.external_reference,
+                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', r.source) as source,
+                       xxfnd_util_pkg.lookup_meaning('REGISTRATION_STATUS', r.registration_status) as registration_status,
+                       xxfnd_util_pkg.lookup_meaning('REGISTRY_CHECK_RESULT', r.check_result) as check_result,
+                       decode(r.check_result, 'MATCH', 'success', 'MISMATCH', 'danger', 'warning') as result_tone,
+                       xxfnd_ui_pkg.person_name(r.checked_by) as checked_by,
+                       r.checked_date,
+                       case when r.source = 'API' then nvl(xxfnd_ui_pkg.person_name(r.reviewed_by), 'Not reviewed') end as reviewed_by,
+                       case r.changed_by_person_flag when 'Y' then 'Changed by a person' end as changed,
+                       case when (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y' then apex_page.get_url(p_page => 27, p_items => 'P27_REGISTRY_CHECK_ID,P27_PARTY_ID,P27_CASE_ID', p_values => to_char(r.registry_check_id) || ',' || :P0_SUMMARY_PARTY_ID || ',' || r.case_id, p_clear_cache => '27') end as edit_url
+                  from xxcmp_party_registry_checks r
+                 where r.party_id = :P0_SUMMARY_PARTY_ID
+                 order by r.checked_date desc, r.registry_check_id desc
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_registry_checks
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') and xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) = 'ORGANIZATION'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: No registry check yet.
+        }
+        comments {
+            comments: Release 74 (R14): company registry (KYB) checks of an organisation - by hand now, from a registry provider later (Compliance only).
+        }
+
+        column REGISTRY_CHECK_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column REGISTRY_NAME (
+            type: plainText
+            heading {
+                heading: Registry
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#REGISTRY_NAME#</strong> #EXTERNAL_REFERENCE#
+                    ```
+            }
+        )
+
+        column EXTERNAL_REFERENCE (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    #SOURCE#{if CHANGED/} <span class="kyc-badge kyc-badge--neutral">#CHANGED#</span>{endif/}
+                    ```
+            }
+        )
+
+        column REGISTRATION_STATUS (
+            type: plainText
+            heading {
+                heading: Registry Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column CHECK_RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RESULT_TONE#">#CHECK_RESULT#</span>
+                    ```
+            }
+        )
+
+        column RESULT_TONE (
+            type: hidden
+            layout {
+                sequence: 45
+            }
+        )
+
+        column CHECKED_BY (
+            type: plainText
+            heading {
+                heading: Checked By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CHECKED_DATE (
+            type: plainText
+            heading {
+                heading: Checked On
+            }
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+        column REVIEWED_BY (
+            type: plainText
+            heading {
+                heading: Reviewed By
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CHANGED (
+            type: hidden
+            layout {
+                sequence: 75
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+        )
+
+    )
+
+    button add-registry-check (
+        buttonName: ADD_REGISTRY_CHECK
+        label: Add Registry Check
+        layout {
+            sequence: 10
+            region: @party-registry-checks
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 27
+                items: {
+                    P27_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                    P27_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 27
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-registry-checks (
+        name: Refresh registry checks
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-registry-checks
+        }
+
+        action refresh-party-registry-checks-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-registry-checks
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
             }
         )
 

@@ -199,6 +199,20 @@ begin
 
     entity('XXCMP_REQUESTS', 'KYC Request', 'REQUEST_ID');
     entity('XXCMP_CASES', 'Case', 'CASE_ID');
+    -- release 74 (R14): party verifications (16n), recorded by hand; the registry check is filled by a provider later
+    entity('XXCMP_PARTY_ID_VERIFICATIONS', 'ID Verification', 'ID_VERIFICATION_ID');
+    entity('XXCMP_PARTY_REGISTRY_CHECKS', 'Registry Check', 'REGISTRY_CHECK_ID');
+    lt('ID_VERIFICATION_METHOD', 'ID Verification Methods');
+    lvs('ID_VERIFICATION_METHOD', 'ORIGINAL_SEEN=Original seen in person|CERTIFIED_COPY=Certified copy|VIDEO_CALL=Video call'
+        || '|GOVERNMENT_PORTAL=Government portal checked by hand');
+    lt('ID_VERIFICATION_RESULT', 'ID Verification Results');
+    lvs('ID_VERIFICATION_RESULT', 'VERIFIED=Verified|NOT_VERIFIED=Not verified|INCONCLUSIVE=Inconclusive');
+    lt('REGISTRY_CHECK_RESULT', 'Registry Check Results');
+    lvs('REGISTRY_CHECK_RESULT', 'MATCH=Matches the party record|MISMATCH=Differs from the party record|NOT_FOUND=Not found in the registry');
+    lt('REGISTRATION_STATUS', 'Registry Statuses');
+    lvs('REGISTRATION_STATUS', 'ACTIVE=Active|SUSPENDED=Suspended|IN_LIQUIDATION=In liquidation|DISSOLVED=Dissolved|UNKNOWN=Unknown');
+    lt('DATA_SOURCE', 'Data Sources');
+    lvs('DATA_SOURCE', 'MANUAL=Entered by hand|API=From the provider');
 
     starter_questions;
     -- Sections for the starter questions (only where an administrator has not set one).
@@ -272,6 +286,11 @@ begin
         rule(r.role_code, 'XXFND_RFIS', 'ALL_ROWS');
     end loop;
     rule('REQUESTER', 'XXFND_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+    -- release 74 (R14): party verifications - the Compliance team (requesters do not see them)
+    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+        rule(r.role_code, 'XXCMP_PARTY_ID_VERIFICATIONS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_PARTY_REGISTRY_CHECKS', 'ALL_ROWS');
+    end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))

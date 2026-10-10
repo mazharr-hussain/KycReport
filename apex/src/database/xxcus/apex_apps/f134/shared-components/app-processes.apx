@@ -60,7 +60,7 @@ appProcess PARTY_MATCHES (
         plsqlCode:
             ```plsql
             -- Similar parties for the party form (Global Page dialog before saving): JSON array, strongest first.
-            htp.p(xxcmp_request_pkg.party_candidates_json(apex_application.g_x01, apex_application.g_x02, apex_application.g_x03,
+            htp.p(xxcmp_party_pkg.party_candidates_json(apex_application.g_x01, apex_application.g_x02, apex_application.g_x03,
                                                          to_date(apex_application.g_x04), apex_application.g_x05,
                                                          to_number(apex_application.g_x06)));
             ```

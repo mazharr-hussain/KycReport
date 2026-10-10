@@ -458,26 +458,7 @@ create or replace package xxcmp_request_pkg authid definer as
     -- (new counterparty, not merged into an existing party). The party status does not decide it.
     function party_editable(p_request_id in number) return varchar2;
 
-    -- Parties a requester may choose from (requesters cannot read the party master itself): approved, enabled
-    -- parties of the type (null = both types) with number, name and country only. JSON array [{"party_id","party_number","party_name","country"}].
-    function party_directory_json(p_party_type in varchar2) return clob;
-
-    -- Possible existing parties for a counterparty, strongest first (at most 10). Matching: same registration / ID
-    -- number; name similarity; same incorporation / birth date; same country. 100 = same number and country.
-    -- JSON array [{"party_id","party_number","registration_number","party_name","country","score","reg_match",
-    --              "reasons","exact","status"}]; reg_match = 0-100 similarity of the numbers.
-    function party_candidates_json(p_party_type          in varchar2,
-                                   p_party_name          in varchar2,
-                                   p_registration_number in varchar2,
-                                   p_date                in date,
-                                   p_country             in varchar2,
-                                   p_exclude_party_id    in number default null) return clob;
-    function party_candidate_count(p_party_type          in varchar2,
-                                   p_party_name          in varchar2,
-                                   p_registration_number in varchar2,
-                                   p_date                in date,
-                                   p_country             in varchar2,
-                                   p_exclude_party_id    in number default null) return number;
+    -- release 74: the party directory and party matching are in the party package (XXCMP_PARTY_PKG).
     -- The same for a saved request, without its own party (Compliance merges a duplicate from the request page).
     function request_candidates_json(p_request_id in number) return clob;
     -- Y while an older request (workflow 1.1) still waits for Compliance's match decision.
@@ -966,105 +947,10 @@ create or replace package body xxcmp_request_pkg as
             return 'N';
     end party_editable;
 
-    function party_directory_json(p_party_type in varchar2) return clob is
-        l_json clob;
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
-                                         'party_name' value party_name,
-                                         'country' value xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction))
-                             order by party_name returning clob)
-          into l_json
-          from xxcmp_parties
-         where (party_type = p_party_type or p_party_type is null) and enabled_flag = 'Y' and party_status = 'APPROVED';
-        xxfnd_vpd_pkg.end_trusted;
-        return nvl(l_json, '[]');
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end party_directory_json;
-
-    function party_candidates_json(p_party_type          in varchar2,
-                                   p_party_name          in varchar2,
-                                   p_registration_number in varchar2,
-                                   p_date                in date,
-                                   p_country             in varchar2,
-                                   p_exclude_party_id    in number default null) return clob is
-        l_json clob;
-        l_id   varchar2(100) := upper(regexp_replace(p_registration_number, '[^[:alnum:]]', ''));
-    begin
-        if trim(p_party_name) is null and l_id is null then
-            return '[]';
-        end if;
-        xxfnd_vpd_pkg.begin_trusted;    -- the whole party master, but only safe columns leave this function
-        select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
-                                         'registration_type' value registration_type,
-                                         'registration_number' value registration_number,
-                                         'party_name' value party_name, 'country' value country,
-                                         'score' value score, 'reg_match' value reg_match, 'reasons' value reasons,
-                                         'exact' value case when id_hit = 'Y' and country_hit = 'Y' then 'Y' else 'N' end,
-                                         'status' value status)
-                             order by score desc, party_name returning clob)
-          into l_json
-          from (select m.*,
-                       case when id_hit = 'Y' and country_hit = 'Y' then 100
-                            when id_hit = 'Y' then 90
-                            else least(89, round(similarity * 0.7 + case when date_hit = 'Y' then 20 else 0 end
-                                                                + case when country_hit = 'Y' then 10 else 0 end)) end as score,
-                       case when l_id is not null and party_id_number is not null
-                            then round(utl_match.edit_distance_similarity(party_id_number, l_id)) end as reg_match,
-                       rtrim(case when id_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'REGISTRATION_NUMBER')) || '; ' end
-                             || case when similarity >= 70 then 'Name ' || round(similarity) || '% similar; ' end
-                             || case when date_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'INCORPORATION_DATE')) || '; ' end
-                             || case when country_hit = 'Y' then 'Same ' || lower(xxcmp_party_pkg.field_label(p_party_type, 'JURISDICTION')) || '; ' end,
-                             '; ') as reasons
-                  from (select p.party_id, p.party_number, p.party_name, p.registration_number,
-                               xxfnd_util_pkg.lookup_meaning(xxcmp_party_pkg.registration_lookup(p.party_type),
-                                                             p.registration_type) as registration_type,
-                               xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as status,
-                               upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) as party_id_number,
-                               xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,
-                               case when l_id is not null
-                                     and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
-                                    then 'Y' else 'N' end as id_hit,
-                               case when trim(p_party_name) is not null
-                                    then xxcmp_kyc_pkg.name_similarity(p.party_name, p_party_name) else 0 end as similarity,
-                               case when p_date is not null and p_date = p.incorporation_date then 'Y' else 'N' end as date_hit,
-                               case when p_country is not null and p.jurisdiction = p_country then 'Y' else 'N' end as country_hit
-                          from xxcmp_parties p
-                         where p.party_type = p_party_type
-                           and p.enabled_flag = 'Y'
-                           and p.party_status not in ('REJECTED', 'CANCELLED')
-                           and p.party_id <> nvl(p_exclude_party_id, -1)) m
-                 where id_hit = 'Y'
-                    or similarity >= 85
-                    or (similarity >= 70 and date_hit = 'Y')
-                 order by score desc
-                 fetch first 10 rows only);
-        xxfnd_vpd_pkg.end_trusted;
-        return nvl(l_json, '[]');
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end party_candidates_json;
-
-    function party_candidate_count(p_party_type          in varchar2,
-                                   p_party_name          in varchar2,
-                                   p_registration_number in varchar2,
-                                   p_date                in date,
-                                   p_country             in varchar2,
-                                   p_exclude_party_id    in number default null) return number is
-    begin
-        return json_array_t.parse(party_candidates_json(p_party_type, p_party_name, p_registration_number,
-                                                        p_date, p_country, p_exclude_party_id)).get_size;
-    end party_candidate_count;
-
     function request_candidates_json(p_request_id in number) return clob is
         l_req xxcmp_requests%rowtype := get_request(p_request_id);
     begin
-        return party_candidates_json(l_req.party_type, l_req.party_name, l_req.registration_number,
+        return xxcmp_party_pkg.party_candidates_json(l_req.party_type, l_req.party_name, l_req.registration_number,
                                      l_req.incorporation_date, l_req.jurisdiction, l_req.party_id);
     end request_candidates_json;
 
