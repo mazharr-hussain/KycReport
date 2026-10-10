@@ -1525,7 +1525,13 @@ page 211 (
                        xxfnd_util_pkg.lookup_meaning('RISK_TIER', s.risk_tier) as risk_tier,
                        rtrim(case when s.pep_flag = 'Y' then 'PEP, ' end || case when s.sanctions_flag = 'Y' then 'Sanctions, ' end
                              || case when s.adverse_media_flag = 'Y' then 'Adverse media, ' end, ', ') as flags,
-                       s.capture_method, s.screened_date, s.result_notes,
+                       -- release 74 (R14): by hand or from the provider; a provider's result shows whether a person reviewed it
+                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', s.capture_method)
+                       || case when s.capture_method = 'API' then
+                              case when s.reviewed_by is null then ' · not reviewed'
+                                   else ' · reviewed by ' || xxfnd_ui_pkg.person_name(s.reviewed_by) end
+                              || case when s.changed_by_person_flag = 'Y' then ' · changed by a person' end end as capture_method,
+                       s.screened_date, s.result_notes,
                        apex_page.get_url(p_page => 213, p_items => 'P213_SCREENING_ID,P213_CASE_ID', p_values => to_char(s.screening_id) || ',' || :P211_CASE_ID, p_clear_cache => '213') as open_url
                   from xxcmp_screenings s
                   join xxcmp_parties p on p.party_id = s.party_id
@@ -1638,7 +1644,7 @@ page 211 (
         column CAPTURE_METHOD (
             type: plainText
             heading {
-                heading: Captured
+                heading: Source
             }
             layout {
                 sequence: 60
@@ -3779,6 +3785,495 @@ page 211 (
         security {
             authorizationScheme: @page-submit
         }
+    )
+
+    region case-funds (
+        name: Source of Funds and Wealth
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R19): guided source of funds / wealth - each source with the evidence expected and seen
+                select f.case_funds_id,
+                       xxfnd_util_pkg.lookup_meaning('FUNDS_TYPE', f.funds_type) as funds_type,
+                       xxfnd_util_pkg.lookup_meaning('FUNDS_CATEGORY', f.category) as category,
+                       ltrim(to_char(f.amount, 'FM999G999G999G990D00') || ' ' || f.currency_code) as amount,
+                       xxcmp_case_pkg.expected_evidence_text(f.category) as expected,
+                       xxfnd_util_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', f.evidence_type) as evidence,
+                       ltrim(f.bank_name || nvl2(f.account_reference, ' · ' || f.account_reference, null)
+                             || nvl2(f.period_from, ' · ' || to_char(f.period_from, 'DD-MON-YYYY') || ' - ' || to_char(f.period_to, 'DD-MON-YYYY'), null), ' ·') as bank_data,
+                       case when f.verified_flag = 'Y' then 'Verified' when f.evidence_type is null then 'Evidence missing' else 'To verify' end as state,
+                       case when f.verified_flag = 'Y' then 'success' when f.evidence_type is null then 'danger' else 'warning' end as state_tone,
+                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', f.source) as source,
+                       f.creation_date,
+                       apex_page.get_url(p_page => 218, p_items => 'P218_CASE_FUNDS_ID,P218_CASE_ID,P218_PARTY_ID',
+                                         p_values => to_char(f.case_funds_id) || ',' || f.case_id || ',' || f.party_id, p_clear_cache => '218') as open_url
+                  from xxcmp_case_funds f
+                 where f.case_id = :P211_CASE_ID
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 55
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_funds
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No source of funds or wealth recorded yet.
+        }
+        comments {
+            comments: Release 74 (R19): guided source of funds / wealth - the evidence expected for each source, the evidence and bank data seen (by hand now, from a bank data provider later).
+        }
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#"><strong>#CATEGORY#</strong></a><br><span class="u-color-subtle">#FUNDS_TYPE#</span>
+                    ```
+            }
+        )
+
+        column AMOUNT (
+            type: plainText
+            heading {
+                heading: Amount
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column EXPECTED (
+            type: plainText
+            heading {
+                heading: Evidence Expected
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EVIDENCE (
+            type: plainText
+            heading {
+                heading: Evidence Seen
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column BANK_DATA (
+            type: plainText
+            heading {
+                heading: Bank Data
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 60
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATE_TONE#">#STATE#</span>
+                    ```
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CASE_FUNDS_ID (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column FUNDS_TYPE (
+            type: hidden
+            layout {
+                sequence: 81
+            }
+        )
+
+        column STATE_TONE (
+            type: hidden
+            layout {
+                sequence: 82
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 83
+            }
+        )
+
+        column CREATION_DATE (
+            type: hidden
+            layout {
+                sequence: 84
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+    )
+
+    button add-funds (
+        buttonName: ADD_FUNDS
+        label: Add Source
+        layout {
+            sequence: 5
+            region: @case-funds
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 218
+                items: {
+                    P218_CASE_ID: &P211_CASE_ID.
+                    P218_PARTY_ID: &P211_PARTY_ID.
+                }
+                clearCache: 218
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction refresh-case-funds (
+        name: Refresh case-funds
+        execution {
+            sequence: 45
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @case-funds
+        }
+
+        action refresh-case-funds-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @case-funds
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region case-fiu-reports (
+        name: FIU Reports (goAML)
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): FIU / goAML reports of the case (filed by hand now)
+                select r.fiu_report_id,
+                       xxfnd_util_pkg.lookup_meaning('FIU_REPORT_TYPE', r.report_type) as report_type,
+                       xxfnd_util_pkg.lookup_meaning('FIU_REPORT_STATUS', r.report_status) as report_status,
+                       decode(r.report_status, 'FILED', 'success', 'APPROVED', 'info', 'CANCELLED', 'neutral', 'warning') as status_tone,
+                       xxfnd_ui_pkg.person_name(r.prepared_by) as prepared_by,
+                       xxfnd_ui_pkg.person_name(r.approved_by) as approved_by,
+                       r.goaml_reference,
+                       r.filed_date,
+                       r.creation_date,
+                       apex_page.get_url(p_page => 219, p_items => 'P219_FIU_REPORT_ID,P219_CASE_ID,P219_PARTY_ID',
+                                         p_values => to_char(r.fiu_report_id) || ',' || r.case_id || ',' || r.party_id, p_clear_cache => '219') as open_url
+                  from xxcmp_fiu_reports r
+                 where r.case_id = :P211_CASE_ID
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 56
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_fiu_reports
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW') and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No FIU report.
+        }
+        comments {
+            comments: Release 74 (R14): suspicious transaction / activity reports to the FIU - prepared, approved by a second person, filed in goAML by hand (a goAML integration later).
+        }
+
+        column REPORT_TYPE (
+            type: plainText
+            heading {
+                heading: Report
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#"><strong>#REPORT_TYPE#</strong></a>
+                    ```
+            }
+        )
+
+        column REPORT_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#REPORT_STATUS#</span>
+                    ```
+            }
+        )
+
+        column PREPARED_BY (
+            type: plainText
+            heading {
+                heading: Prepared By
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column GOAML_REFERENCE (
+            type: plainText
+            heading {
+                heading: goAML Reference
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column FILED_DATE (
+            type: plainText
+            heading {
+                heading: Filed On
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column FIU_REPORT_ID (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 71
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 72
+            }
+        )
+
+        column CREATION_DATE (
+            type: hidden
+            layout {
+                sequence: 73
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+    )
+
+    button add-fiu-report (
+        buttonName: ADD_FIU_REPORT
+        label: Raise FIU Report
+        layout {
+            sequence: 5
+            region: @case-fiu-reports
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 219
+                items: {
+                    P219_CASE_ID: &P211_CASE_ID.
+                    P219_PARTY_ID: &P211_PARTY_ID.
+                }
+                clearCache: 219
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW') and xxcmp_case_pkg.fiu_editable(null, :P211_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-case-fiu-reports (
+        name: Refresh case-fiu-reports
+        execution {
+            sequence: 45
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @case-fiu-reports
+        }
+
+        action refresh-case-fiu-reports-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @case-fiu-reports
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
 )

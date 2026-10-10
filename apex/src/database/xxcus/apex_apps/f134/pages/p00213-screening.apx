@@ -487,6 +487,179 @@ page 213 (
         }
     )
 
+    pageItem P213_ENDPOINT_CODE (
+        type: displayOnly
+        label {
+            label: Provider
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: ENDPOINT_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P213_ENDPOINT_CODE
+        }
+        help {
+            helpText: Release 74: the screening provider that returned this result (COMMON Integration setup). Empty for a screening recorded by hand.
+        }
+    )
+
+    pageItem P213_ORIGINAL_RESPONSE (
+        type: displayOnly
+        label {
+            label: Provider Response
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: ORIGINAL_RESPONSE
+            dataType: clob
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P213_ENDPOINT_CODE
+        }
+        help {
+            helpText: The provider's result as received, kept unchanged; the fields above can be corrected by a person.
+        }
+    )
+
+    pageItem P213_REVIEWED_BY (
+        type: displayOnly
+        label {
+            label: Reviewed By
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: REVIEWED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P213_ENDPOINT_CODE
+        }
+    )
+
+    button review (
+        buttonName: REVIEW
+        label: Mark as Reviewed
+        layout {
+            sequence: 35
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P213_ENDPOINT_CODE is not null and :P213_REVIEWED_BY is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process review-screening (
+        name: Reviewed by a person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R14): a person confirms a result from the screening provider
+                xxcmp_case_pkg.review_screening(:P213_SCREENING_ID);
+                ```
+        }
+        execution {
+            sequence: 15
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REVIEW
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process screening-saved (
+        name: Changed by a person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R14): a provider result a person changed is marked (its original response stays unchanged)
+                xxcmp_case_pkg.screening_saved(:P213_SCREENING_ID);
+                ```
+        }
+        execution {
+            sequence: 16
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
     button cancel (
         buttonName: CANCEL
         label: Cancel
@@ -673,7 +846,7 @@ page 213 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+            value: CREATE,SAVE,DELETE,REVIEW
         }
     )
 

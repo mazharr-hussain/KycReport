@@ -615,6 +615,27 @@ create or replace package xxcmp_case_pkg authid definer as
     -- "link_text","user_name"}]; a missing required value has tone "missing" and links (url, link_text) to its section.
     function case_summary_json(p_case_id in number, p_task_id in number default null) return clob;
 
+    -- release 74 (R14): screening by hand now, by a provider later. A person saved a provider row: it is marked as
+    -- changed by a person (the original response stays unchanged); a person confirms a provider row (reviewed by).
+    procedure screening_saved(p_screening_id in number);
+    procedure review_screening(p_screening_id in number);
+    -- release 74 (R14): FIU / goAML reports of the case. Prepared by the officer; approved by another Compliance
+    -- manager (not the preparer); filed with the goAML reference and date. P_ACTION: APPROVE, FILE, CANCEL.
+    function fiu_report_error(p_case_id in number, p_report_type in varchar2, p_grounds in varchar2) return varchar2;
+    -- Y when the user may create (no report yet) or change (Draft) a report: Cases Create, any case status (the
+    -- suspicion is often decided at approval).
+    function fiu_editable(p_fiu_report_id in number, p_case_id in number) return varchar2;
+    function fiu_action_allowed(p_fiu_report_id in number, p_action in varchar2) return varchar2;
+    procedure fiu_action(p_fiu_report_id in number, p_action in varchar2, p_reference in varchar2 default null,
+                         p_filed_date in date default null);
+    -- release 74 (R19): guided source of funds / wealth. The evidence expected for a category (lookup FUNDS_CATEGORY
+    -- tag, codes of FUNDS_EVIDENCE_TYPE), its meanings for the screen, the check of a line and its verification.
+    function expected_evidence(p_category in varchar2) return varchar2;
+    function expected_evidence_text(p_category in varchar2) return varchar2;
+    function funds_error(p_case_id in number, p_funds_type in varchar2, p_category in varchar2, p_evidence_type in varchar2,
+                         p_amount in number, p_period_from in date, p_period_to in date) return varchar2;
+    procedure verify_funds(p_case_funds_id in number);
+
 end xxcmp_case_pkg;
 /
 

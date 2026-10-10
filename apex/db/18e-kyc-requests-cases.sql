@@ -213,6 +213,34 @@ begin
     lvs('REGISTRATION_STATUS', 'ACTIVE=Active|SUSPENDED=Suspended|IN_LIQUIDATION=In liquidation|DISSOLVED=Dissolved|UNKNOWN=Unknown');
     lt('DATA_SOURCE', 'Data Sources');
     lvs('DATA_SOURCE', 'MANUAL=Entered by hand|API=From the provider');
+    -- release 74 (R14, R19): FIU / goAML reports and guided source of funds / wealth (16s)
+    lt('FIU_REPORT_TYPE', 'FIU Report Types');
+    lvs('FIU_REPORT_TYPE', 'STR=Suspicious transaction report|SAR=Suspicious activity report');
+    lt('FIU_REPORT_STATUS', 'FIU Report Statuses');
+    lvs('FIU_REPORT_STATUS', 'DRAFT=Draft|APPROVED=Approved|FILED=Filed with the FIU|CANCELLED=Cancelled');
+    lt('FUNDS_TYPE', 'Source of Funds / Wealth');
+    lvs('FUNDS_TYPE', 'SOF=Source of funds (this relationship)|SOW=Source of wealth (overall)');
+    lt('FUNDS_EVIDENCE_TYPE', 'Source of Funds Evidence');
+    lvs('FUNDS_EVIDENCE_TYPE', 'BANK_STATEMENT=Bank statement|PAYSLIP=Payslip|EMPLOYMENT_LETTER=Employment letter'
+        || '|AUDITED_ACCOUNTS=Audited accounts|TAX_RETURN=Tax return|SALE_AGREEMENT=Sale agreement|WILL_PROBATE=Will / probate'
+        || '|INVESTMENT_STATEMENT=Investment statement|LOAN_AGREEMENT=Loan agreement|SHAREHOLDER_FUNDING=Shareholder funding evidence'
+        || '|OTHER=Other');
+    -- the tag lists the evidence expected for each source (the form guides the officer with it)
+    lt('FUNDS_CATEGORY', 'Source of Funds Categories');
+    lvs('FUNDS_CATEGORY', 'SALARY=Salary / employment income=PAYSLIP,BANK_STATEMENT,EMPLOYMENT_LETTER'
+        || '|BUSINESS_INCOME=Business income / trading=AUDITED_ACCOUNTS,BANK_STATEMENT,TAX_RETURN'
+        || '|CAPITAL=Shareholder capital=SHAREHOLDER_FUNDING,BANK_STATEMENT'
+        || '|SALE_OF_ASSETS=Sale of assets=SALE_AGREEMENT,BANK_STATEMENT'
+        || '|INVESTMENTS=Investments=INVESTMENT_STATEMENT,BANK_STATEMENT'
+        || '|INHERITANCE=Inheritance / gift=WILL_PROBATE,BANK_STATEMENT'
+        || '|LOAN=Loan / financing=LOAN_AGREEMENT,BANK_STATEMENT'
+        || '|OTHER=Other');
+    merge into xxfnd_integration_purposes t
+    using (select 'BANK_DATA' code, 'Bank data for source of funds' name from dual
+           union all select 'GOAML_FILING', 'FIU goAML filing' from dual) s
+       on (t.purpose_code = s.code)
+     when not matched then insert (purpose_code, application_code, purpose_name, capture_method, approval_status)
+                           values (s.code, 'KYC', s.name, 'MANUAL', 'APPROVED');
 
     starter_questions;
     -- Sections for the starter questions (only where an administrator has not set one).
@@ -231,7 +259,7 @@ begin
     for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 204, 205, 206))) loop
         page('KYC_REQUESTS', p.page_id);
     end loop;
-    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217))) loop
+    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217, 218, 219))) loop
         page('CASES', p.page_id);
     end loop;
     -- Attachments on the request (wizard step 3 and the request page) and the party documents on the case.
@@ -290,6 +318,8 @@ begin
     for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
         rule(r.role_code, 'XXCMP_PARTY_ID_VERIFICATIONS', 'ALL_ROWS');
         rule(r.role_code, 'XXCMP_PARTY_REGISTRY_CHECKS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_FIU_REPORTS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_CASE_FUNDS', 'ALL_ROWS');
     end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
