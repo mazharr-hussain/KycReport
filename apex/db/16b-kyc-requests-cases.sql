@@ -577,6 +577,14 @@ create or replace package xxcmp_case_pkg authid definer as
     -- Approval (CASE_APPROVAL task actions and the decision page).
     function approval_error(p_case_id in number) return varchar2;
     procedure record_decision(p_case_id in number, p_outcome in varchar2, p_comments in varchar2, p_task_id in number);
+    -- CASE_APPROVAL task events: the approver asked the requester for information (Pending Information) / the
+    -- requester submitted it (Pending Approval again).
+    procedure info_requested(p_case_id in number);
+    procedure info_submitted(p_case_id in number);
+    -- The requester answers a case approver's question on their request screen (they cannot open cases): the case
+    -- approval task of the request waiting for the current user's information, and the request of a case.
+    function info_task(p_request_id in number) return number;
+    function request_of(p_case_id in number) return number;
     function next_review_date(p_case_id in number) return date;
 
     -- Workflow steps (KYC_CASE).
@@ -1323,10 +1331,8 @@ create or replace package body xxcmp_request_pkg as
     end cancel;
 
     function can_request_info(p_task_id in number) return varchar2 is
-        l_initiator apex_tasks.initiator%type;
     begin
-        select max(initiator) into l_initiator from apex_tasks where task_id = p_task_id;
-        return case when l_initiator is not null and upper(l_initiator) <> upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
+        return xxfnd_task_pkg.can_request_info(p_task_id);
     end can_request_info;
 
     function withdraw_error(p_request_id in number) return varchar2 is
@@ -1770,7 +1776,7 @@ create or replace package body xxcmp_case_pkg as
         l_case xxcmp_cases%rowtype;
     begin
         select * into l_case from xxcmp_cases where case_id = p_case_id;
-        return case when l_case.case_status = 'PENDING_APPROVAL'
+        return case when l_case.case_status in ('PENDING_APPROVAL', 'PENDING_INFORMATION')
                          and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
                               or upper(l_case.assigned_to) = upper(xxfnd_util_pkg.current_user))
                     then 'Y' else 'N' end;
@@ -2013,6 +2019,55 @@ create or replace package body xxcmp_case_pkg as
         end if;
         return null;
     end approval_error;
+
+    procedure set_approval_status(p_case_id in number, p_from in varchar2, p_to in varchar2) is
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_cases set case_status = p_to where case_id = p_case_id and case_status = p_from;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end set_approval_status;
+
+    procedure info_requested(p_case_id in number) is
+    begin
+        set_approval_status(p_case_id, 'PENDING_APPROVAL', 'PENDING_INFORMATION');
+    end info_requested;
+
+    procedure info_submitted(p_case_id in number) is
+    begin
+        set_approval_status(p_case_id, 'PENDING_INFORMATION', 'PENDING_APPROVAL');
+    end info_submitted;
+
+    function info_task(p_request_id in number) return number is
+        l_task_id number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        for c in (select case_id from xxcmp_cases where request_id = p_request_id and case_status = 'PENDING_INFORMATION') loop
+            l_task_id := nvl(l_task_id, xxfnd_task_pkg.info_task('CASE_APPROVAL', to_char(c.case_id)));
+        end loop;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_task_id;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end info_task;
+
+    function request_of(p_case_id in number) return number is
+        l_request_id number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(request_id) into l_request_id from xxcmp_cases where case_id = p_case_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_request_id;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end request_of;
 
     procedure record_decision(p_case_id in number, p_outcome in varchar2, p_comments in varchar2, p_task_id in number) is
         l_case xxcmp_cases%rowtype;

@@ -158,8 +158,11 @@ begin
     lt('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources');
     lvs('KYC_TRIGGER_SOURCE', 'MANUAL=Manual|SCHEDULED=Scheduled|EVENT_DRIVEN=Event driven');
     lt('KYC_REQUEST_STATUS', 'KYC Request Status');
-    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Information Needed|APPROVED=Approved'
+    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Pending Information|APPROVED=Approved'
         || '|REJECTED=Rejected|CANCELLED=Cancelled');
+    -- release 74: an approver's request for information leaves the request Pending Information
+    update xxfnd_lookup_values set meaning = 'Pending Information'
+     where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code = 'INFO_NEEDED' and meaning = 'Information Needed';
     -- release 23: Submitted and Completed became In Progress and Approved
     update xxfnd_lookup_values set enabled_flag = 'N'
      where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code in ('SUBMITTED', 'COMPLETED') and enabled_flag = 'Y';
@@ -175,7 +178,7 @@ begin
     lt('KYC_INTAKE_OUTCOME', 'KYC Intake Outcomes');
     lvs('KYC_INTAKE_OUTCOME', 'NOT_REQUIRED=KYC not required|AUTO_APPROVED=Auto-approved|ASSIGNED=Assigned to Compliance');
     lt('CASE_STATUS', 'Case Status');
-    lvs('CASE_STATUS', 'INVESTIGATION=Under investigation|PENDING_APPROVAL=Pending approval|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
+    lvs('CASE_STATUS', 'INVESTIGATION=Under investigation|PENDING_APPROVAL=Pending approval|PENDING_INFORMATION=Pending information|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
     lt('SCREENING_TYPE', 'Screening Types');
     lvs('SCREENING_TYPE', 'REGISTRY=Registry check|SANCTIONS=Sanctions|PEP=Politically exposed person|ADVERSE_MEDIA=Adverse media');
     lt('SCREENING_MATCH_STATUS', 'Screening Match Status');

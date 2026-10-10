@@ -199,6 +199,13 @@ create or replace package xxfnd_task_pkg authid definer as
     -- Most recent comment on a task (e.g. the reason given when rejecting).
     function last_comment(p_task_id in number) return varchar2;
 
+    -- Request Information on an approval notification goes to the task initiator (the requester); APEX does not let
+    -- the initiator ask themselves. Y when the current user can ask the initiator of this task.
+    function can_request_info(p_task_id in number) return varchar2;
+    -- The open task of a definition for a record waiting for the current user's information (INFO_REQUESTED, the
+    -- user is its initiator): the requester answers it with Submit Information on the same notification screen.
+    function info_task(p_task_definition in varchar2, p_detail_pk in varchar2) return number;
+
     -- Task vacation rule procedure (set on every task definition): while a delegation in
     -- XXFND_WF_DELEGATIONS is active, the delegate is offered the delegator's tasks too.
     procedure vacation_rule(p_param  in  apex_human_task.t_vacation_rule_input,
@@ -306,6 +313,24 @@ create or replace package body xxfnd_task_pkg as
          where task_id = p_task_id;
         return l_text;
     end last_comment;
+
+    function can_request_info(p_task_id in number) return varchar2 is
+        l_initiator apex_tasks.initiator%type;
+    begin
+        select max(initiator) into l_initiator from apex_tasks where task_id = p_task_id;
+        return case when l_initiator is not null and upper(l_initiator) <> upper(xxfnd_util_pkg.current_user)
+                    then 'Y' else 'N' end;
+    end can_request_info;
+
+    function info_task(p_task_definition in varchar2, p_detail_pk in varchar2) return number is
+        l_task_id number;
+    begin
+        select max(task_id) into l_task_id
+          from apex_tasks
+         where task_def_static_id = p_task_definition and detail_pk = p_detail_pk
+           and state_code = 'INFO_REQUESTED' and upper(initiator) = upper(xxfnd_util_pkg.current_user);
+        return l_task_id;
+    end info_task;
 
     procedure vacation_rule(p_param  in  apex_human_task.t_vacation_rule_input,
                             p_result out apex_human_task.t_vacation_rule_result) is

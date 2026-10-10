@@ -283,7 +283,7 @@ create or replace package body xxcmp_monitor_pkg as
            and a.case_id is not null
            and not exists (select 1 from xxcmp_watchlist_v w where w.case_id = a.case_id)
            and not exists (select 1 from xxcmp_cases c where c.case_id = a.case_id
-                            and c.case_status in ('INVESTIGATION','PENDING_APPROVAL'));
+                            and c.case_status in ('INVESTIGATION','PENDING_APPROVAL','PENDING_INFORMATION'));
 
         for r in (select * from xxcmp_alert_rules where enabled_flag = 'Y' order by rule_code) loop
             begin

@@ -172,6 +172,34 @@ begin
         end if;
         rollback;
     end;
+
+    -- case approval: Request Information leaves the case Pending Information, Submit Information brings it back
+    declare
+        l_c  number;
+        l_st varchar2(30);
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(case_id) into l_c from xxcmp_cases where case_status = 'INVESTIGATION';
+        update xxcmp_cases set case_status = 'PENDING_APPROVAL' where case_id = l_c;
+        xxcmp_case_pkg.info_requested(l_c);
+        select case_status into l_st from xxcmp_cases where case_id = l_c;
+        ok('case approval: information requested - case ' || l_st, l_st = 'PENDING_INFORMATION');
+        xxcmp_case_pkg.info_submitted(l_c);
+        select case_status into l_st from xxcmp_cases where case_id = l_c;
+        ok('case approval: information submitted - case ' || l_st, l_st = 'PENDING_APPROVAL');
+        xxcmp_case_pkg.info_submitted(l_c);
+        select case_status into l_st from xxcmp_cases where case_id = l_c;
+        ok('submitting twice changes nothing (' || l_st || ')', l_st = 'PENDING_APPROVAL');
+        select meaning into l_st from xxfnd_lookup_values where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code = 'INFO_NEEDED';
+        ok('request status INFO_NEEDED reads ' || l_st, l_st = 'Pending Information');
+        xxfnd_vpd_pkg.end_trusted;
+        rollback;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            rollback;
+            raise;
+    end;
 end;
 /
 exit

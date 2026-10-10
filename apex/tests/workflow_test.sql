@@ -68,11 +68,11 @@ begin
     ------------------------------------------------------------------ RFI flow
     session_as('OFFICER1');
     apex_app_setting.set_value('MAIL_FROM', 'kyc@example.com');
-    xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'REQUESTING_DEPARTMENT', l_cat,
+    xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Please send the signed board resolution.', 'Y', trunc(sysdate) + 5,
-                             p_recipient_user_name => 'REQ1', p_rfi_id => l_rfi, p_token => l_token);
+                             p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_token);
     commit;
-    select response_task_id into l_task from xxcmp_rfis where rfi_id = l_rfi;
+    select response_task_id into l_task from xxfnd_rfis where rfi_id = l_rfi;
     ok('RFI to REQ1 creates an RFI_RESPONSE task (' || l_task || ')', l_task is not null);
     select count(*) into l_cnt from apex_task_participants where task_id = l_task and participant = 'REQ1' and participant_type = 'POTENTIAL_OWNER';
     ok('REQ1 is its potential owner', l_cnt = 1);
@@ -86,16 +86,16 @@ begin
     ok('REQ2 does not: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) = 0);
 
     session_as('REQ1');
-    xxcmp_kyc_pkg.respond(l_rfi, to_clob('Attached, signed on 1 Sept.'));
+    xxfnd_rfi_pkg.respond(l_rfi, to_clob('Attached, signed on 1 Sept.'));
     commit;
     select state_code into l_state from apex_tasks where task_id = l_task;
     ok('responding completes the RFI_RESPONSE task: ' || l_state, l_state = 'COMPLETED');
-    select review_task_id into l_task from xxcmp_rfis where rfi_id = l_rfi;
+    select review_task_id into l_task from xxfnd_rfis where rfi_id = l_rfi;
     ok('and creates an RFI_REVIEW task (' || l_task || ')', l_task is not null);
 
     session_as('OFFICER1');
     ok('OFFICER1 sees the review: ' || my_tasks('RFI_REVIEW'), instr(my_tasks('RFI_REVIEW'), to_char(l_task)) > 0);
-    xxcmp_kyc_pkg.resolve(l_rfi, 'RESOLVED', 'Complete.');
+    xxfnd_rfi_pkg.resolve(l_rfi, 'RESOLVED', 'Complete.');
     commit;
     select state_code into l_state from apex_tasks where task_id = l_task;
     ok('resolving completes the RFI_REVIEW task: ' || l_state, l_state = 'COMPLETED');
@@ -103,20 +103,20 @@ begin
     ------------------------------------------------------------ delegation
     insert into xxfnd_wf_delegations (delegator_user_name, delegate_user_name, start_date, end_date, reason)
     values ('REQ1', 'REQ2', trunc(sysdate), trunc(sysdate) + 7, 'Annual leave');
-    xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'REQUESTING_DEPARTMENT', l_cat,
+    xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Second request while REQ1 is away.', 'Y', trunc(sysdate) + 5,
-                             p_recipient_user_name => 'REQ1', p_rfi_id => l_rfi2, p_token => l_token);
+                             p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi2, p_token => l_token);
     commit;
-    select response_task_id into l_task from xxcmp_rfis where rfi_id = l_rfi2;
+    select response_task_id into l_task from xxfnd_rfis where rfi_id = l_rfi2;
     select listagg(participant, ',') within group (order by participant) into l_list
       from apex_task_participants where task_id = l_task and participant_type = 'POTENTIAL_OWNER';
     ok('delegation REQ1 -> REQ2 adds REQ2 as owner: ' || l_list, l_list = 'REQ1,REQ2');
     session_as('REQ2');
-    select count(*) into l_cnt from xxcmp_rfis where rfi_id = l_rfi2;
+    select count(*) into l_cnt from xxfnd_rfis where rfi_id = l_rfi2;
     ok('the delegate REQ2 can see the delegated RFI (data security)', l_cnt = 1);
     ok('and has the task in My Tasks: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) > 0);
     session_as('OFFICER1');
-    xxcmp_kyc_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');
+    xxfnd_rfi_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');
     commit;
     select state_code into l_state from apex_tasks where task_id = l_task;
     ok('cancelling the RFI cancels its task: ' || l_state, l_state = 'CANCELED' or l_state = 'CANCELLED');
@@ -149,10 +149,10 @@ begin
     ------------------------------------------------------------ deadlines
     session_as('OFFICER1');
     update xxfnd_task_settings set reminder_days_before = 30 where task_definition = 'RFI_RESPONSE';
-    xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'REQUESTING_DEPARTMENT', l_cat,
+    xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Deadline test.', 'Y', trunc(sysdate) + 5,
-                             p_recipient_user_name => 'REQ1', p_rfi_id => l_rfi2, p_token => l_token);
-    select response_task_id into l_task from xxcmp_rfis where rfi_id = l_rfi2;
+                             p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi2, p_token => l_token);
+    select response_task_id into l_task from xxfnd_rfis where rfi_id = l_rfi2;
     xxfnd_task_pkg.process_deadlines;
     xxfnd_task_pkg.process_deadlines;   -- second run must not send again
     select count(*) into l_cnt from xxfnd_task_alerts where task_id = l_task and alert_type = 'REMINDER';
@@ -160,7 +160,7 @@ begin
     select count(*) into l_cnt from apex_mail_queue where mail_subj like 'Reminder:%';
     ok('reminder e-mail queued: ' || l_cnt, l_cnt >= 1);
     update xxfnd_task_settings set reminder_days_before = 2 where task_definition = 'RFI_RESPONSE';
-    xxcmp_kyc_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');
+    xxfnd_rfi_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');
     commit;
     apex_session.delete_session;
 end;

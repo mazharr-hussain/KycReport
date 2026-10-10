@@ -197,6 +197,8 @@ window.kycQuestionnaire = (function ($) {
         $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
         // release 74: Add Approver picks the person who approves next
         $("#" + pageItem("ADD_USER") + "_CONTAINER").toggle(m[1] === "ADD_APPROVER");
+        // release 74: Submit Information shows the approver's question
+        $("#" + pageItem("INFO_QUESTION") + "_CONTAINER").toggle(m[1] === "SUBMIT_INFO");
         apex.message.clearErrors();
         dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
         apex.theme.openRegion("decision_dialog");

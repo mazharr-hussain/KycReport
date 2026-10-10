@@ -2890,6 +2890,118 @@ page 211 (
         }
     )
 
+    pageItem P211_DEC_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: a document that goes with your comment (kept with the case's documents).
+        }
+    )
+
+    pageItem P211_DEC_ADD_USER (
+        type: popupLov
+        label {
+            label: Approver to Add
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxfnd_employees
+                 where user_name is not null
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 130
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Release 74: for Add Approver - the person who approves next, after you (the Comment says why).
+        }
+    )
+
+    validation decision-info-question (
+        name: Information to request
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_COMMENT is null then 'Enter the information you need from the requester.' end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_COMMENT
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    validation decision-add-user (
+        name: Approver to add
+        execution {
+            sequence: 40
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_ADD_USER is null then xxfnd_error_pkg.message('XXFND_APPROVAL_APPROVER_REQUIRED') end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_ADD_USER
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'ADD_APPROVER'
+                ```
+        }
+    )
+
     validation decision-reject-reason (
         name: Reason for rejection
         execution {
@@ -3000,8 +3112,12 @@ page 211 (
             point: processing
         }
         serverSideCondition {
-            type: itemIsNotNull
-            item: P211_DEC_COMMENT
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_DEC_COMMENT is not null and :REQUEST in ('APPROVE', 'APPROVE_TOP', 'REJECT', 'REJECT_TOP', 'ADD_APPROVER')
+                ```
         }
     )
 
@@ -3048,6 +3164,160 @@ page 211 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: REJECT,REJECT_TOP
+        }
+    )
+
+    process attach-decision-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_CASES',
+                                p_pk1_value      => :P211_CASE_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P211_DEC_FILE,
+                                p_title          => initcap(replace(replace(:REQUEST, '_TOP'), '_', ' ')) || ' - ' || :APP_USER,
+                                p_description    => substr(:P211_DEC_COMMENT, 1, 4000),
+                                p_page_id        => 211);
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_DEC_FILE is not null and :REQUEST in ('APPROVE', 'APPROVE_TOP', 'REJECT', 'REJECT_TOP', 'REQUEST_INFO', 'ADD_APPROVER')
+                ```
+        }
+    )
+
+    process request-info (
+        name: Request information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the question goes to the requester (task initiator); the case is Pending Information
+                -- until they submit it (task actions)
+                for t in (select 1 from apex_tasks where task_id = :P211_TASK_ID and state_code = 'UNASSIGNED') loop
+                    apex_human_task.claim_task(p_task_id => :P211_TASK_ID);
+                end loop;
+                apex_human_task.request_more_information(p_task_id => :P211_TASK_ID, p_text => :P211_DEC_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 35
+            point: processing
+        }
+        successMessage {
+            successMessage: Information requested: the case is Pending Information until the requester answers.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    process add-approver (
+        name: Add an approver
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                xxfnd_approval_rule_pkg.add_approver('KYC_CASE', :P211_CASE_ID, 'USER', p_user_name => :P211_DEC_ADD_USER,
+                                                     p_position => 'NEXT', p_comment => :P211_DEC_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 36
+            point: processing
+        }
+        successMessage {
+            successMessage: Approver added: they approve after you.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'ADD_APPROVER'
+                ```
+        }
+    )
+
+    button request-info (
+        buttonName: REQUEST_INFO
+        label: Request Information
+        layout {
+            sequence: 22
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                and xxfnd_task_pkg.can_request_info(:P211_TASK_ID) = 'Y'
+                ```
+        }
+    )
+
+    button add-approver (
+        buttonName: ADD_APPROVER
+        label: Add Approver
+        layout {
+            sequence: 24
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                and xxfnd_approval_rule_pkg.is_started('KYC_CASE', :P211_CASE_ID) = 'Y'
+                ```
         }
     )
 

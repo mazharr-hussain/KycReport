@@ -708,6 +708,10 @@ page 206 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
+                -- release 74: also for the requester answering an approver's question (Submit Information)
+                if :P206_INFO_TASK_ID is not null then
+                    return true;
+                end if;
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -1182,6 +1186,31 @@ page 206 (
         }
     )
 
+    pageItem P206_INFO_QUESTION (
+        type: displayOnly
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 4
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P206_INFO_TASK_ID
+        }
+    )
+
     pageItem P206_INFO_TASK_ID (
         type: hidden
         layout {
@@ -1272,12 +1301,20 @@ page 206 (
             language: plsql
             plsqlCode:
                 ```plsql
-                select to_number(detail_pk) into :P206_REQUEST_ID
-                  from table ( apex_human_task.get_tasks (
-                                   p_context        => 'SINGLE_TASK',
-                                   p_task_id        => :P206_TASK_ID,
-                                   p_application_id => :APP_ID ) )
-                 where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');
+                declare
+                    l_def apex_tasks.task_def_static_id%type;
+                    l_pk  apex_tasks.detail_pk%type;
+                begin
+                    select task_def_static_id, detail_pk into l_def, l_pk
+                      from table ( apex_human_task.get_tasks (
+                                       p_context        => 'SINGLE_TASK',
+                                       p_task_id        => :P206_TASK_ID,
+                                       p_application_id => :APP_ID ) )
+                     where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH', 'CASE_APPROVAL');
+                    -- release 74: a case approver asked the requester for information: answered on the request
+                    :P206_REQUEST_ID := case when l_def = 'CASE_APPROVAL' then xxcmp_case_pkg.request_of(to_number(l_pk))
+                                             else to_number(l_pk) end;
+                end;
                 ```
         }
         execution {
@@ -1323,10 +1360,9 @@ page 206 (
             plsqlCode:
                 ```plsql
                 -- release 74: an approver asked the requester for information: the requester answers here (Submit Information)
-                select max(t.task_id) into :P206_INFO_TASK_ID
-                  from apex_tasks t
-                 where t.detail_pk = :P206_REQUEST_ID and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
-                   and t.state_code = 'INFO_REQUESTED' and upper(t.initiator) = upper(:APP_USER);
+                :P206_INFO_TASK_ID := nvl(xxfnd_task_pkg.info_task('DOC_CHECKLIST_REVIEW', :P206_REQUEST_ID),
+                                          xxcmp_case_pkg.info_task(:P206_REQUEST_ID));
+                :P206_INFO_QUESTION := xxfnd_task_pkg.last_comment(:P206_INFO_TASK_ID);
                 ```
         }
         execution {

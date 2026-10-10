@@ -190,6 +190,9 @@ create or replace package body xxcmp_request_ui_pkg as
                        || case when l_owner is not null then ' with <b>' || xxfnd_ui_pkg.person_html(l_owner) || '</b>' end
                        || case when l_since is not null then ' since ' || to_char(l_since, 'DD-MON-YYYY HH24:MI') end
                        || ' · the case is read only</div>';
+            elsif c.case_status = 'PENDING_INFORMATION' then
+                l_html := l_html || '<div class="kyc-hcard-line">Pending information from the requester (level '
+                       || nvl(c.current_level, 1) || ') · the case is read only</div>';
             end if;
         end loop;
         return l_html;

@@ -52,7 +52,7 @@ create or replace package body xxfnd_ui_pkg as
                             when 'REJECTED' then 'danger' else 'neutral' end
             when 'CASE' then
                 case p_code when 'INVESTIGATION' then 'info' when 'PENDING_APPROVAL' then 'warning'
-                            when 'APPROVED' then 'success' when 'REJECTED' then 'danger' else 'neutral' end
+                            when 'PENDING_INFORMATION' then 'warning' when 'APPROVED' then 'success' when 'REJECTED' then 'danger' else 'neutral' end
             when 'MATCH' then
                 case p_code when 'SELECTED' then 'success' when 'NEW' then 'info'
                             when 'PENDING' then 'warning' else 'neutral' end

@@ -343,7 +343,7 @@ create or replace package body xxcmp_approval_pkg as
         if l_case.case_status = 'INVESTIGATION' then
             pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
         end if;
-        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL') and l_case.auto_approved_date is null then
+        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION') and l_case.auto_approved_date is null then
             -- release 74: the levels to come from the Approval Setup (transaction type KYC_CASE)
             select count(*) into l_done from xxcmp_case_decisions where case_id = p_case_id and outcome = 'APPROVED';
             l_attrs := xxcmp_case_pkg.case_attributes(l_case);

@@ -320,6 +320,12 @@
   "upgrade_sequence": 136
  },
  {
+  "name": "16m KYC case status Pending Information",
+  "file": "16m-case-pending-information.sql",
+  "install_sequence": 177,
+  "upgrade_sequence": 137
+ },
+ {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,

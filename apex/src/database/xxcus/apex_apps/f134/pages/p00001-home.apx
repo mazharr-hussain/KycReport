@@ -60,7 +60,7 @@ page 1 (
                             'fa-file-text-o', 'info'));
                         select count(*) into l_n from xxcmp_requests
                          where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED';
-                        add(xxfnd_ui_pkg.kpi_card('Information needed', l_n,
+                        add(xxfnd_ui_pkg.kpi_card('Pending information', l_n,
                             apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
                                               p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
                             'fa-question-circle-o', 'warning'));
@@ -71,7 +71,7 @@ page 1 (
                     add(xxfnd_ui_pkg.kpi_card('Pending my approval', l_n, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'warning'));
                     if xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then
                         select count(*) into l_n from xxcmp_cases
-                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL');
+                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION');
                         add(xxfnd_ui_pkg.kpi_card('My open cases', l_n,
                             apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_ASSIGNED_TO', p_values => upper(:APP_USER)),
                             'fa-folder-open-o', 'info'));
@@ -125,6 +125,22 @@ page 1 (
                                    p_context        => 'MY_TASKS',
                                    p_application_id => :APP_ID ) ) t
                  where t.state_code in ('UNASSIGNED', 'ASSIGNED')
+                union all
+                -- release 74: an approver asked me (the requester) for information: answered on the request screen
+                select apex_page.get_url(p_page => 206, p_items => 'P206_TASK_ID', p_values => to_char(t.task_id), p_clear_cache => '206'),
+                       t.subject,
+                       'Information requested',
+                       'warning',
+                       to_char(t.due_on, 'DD-MON-YYYY'),
+                       case when t.due_on < systimestamp then 'danger'
+                            when t.due_on < systimestamp + 2 then 'warning' end,
+                       cast(t.last_updated_on as date),
+                       t.due_on
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'INITIATED_BY_ME',
+                                   p_application_id => :APP_ID ) ) t
+                 where t.state_code = 'INFO_REQUESTED'
+                   and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL')
                 union all
                 select apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31'),
                        r.rfi_number || ' - ' || nvl(xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),

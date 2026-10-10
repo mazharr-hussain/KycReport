@@ -48,7 +48,7 @@ page 230 (
             sqlQuery:
                 ```sql
                 select (select count(*) from xxcmp_requests where request_status in ('IN_PROGRESS','INFO_NEEDED')) as open_requests,
-                       (select count(*) from xxcmp_cases where case_status in ('INVESTIGATION','PENDING_APPROVAL')) as open_cases,
+                       (select count(*) from xxcmp_cases where case_status in ('INVESTIGATION','PENDING_APPROVAL','PENDING_INFORMATION')) as open_cases,
                        (select count(*) from xxcmp_cases where case_status = 'INVESTIGATION' and sla_due_date < trunc(sysdate)) as past_sla,
                        (select count(*) from xxcmp_watchlist_v where review_status in ('DUE','IN_REVIEW')) as reviews_due,
                        (select count(*) from xxcmp_watchlist_v where review_status = 'OVERDUE') as reviews_overdue,
