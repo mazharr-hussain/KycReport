@@ -206,8 +206,8 @@
  {
   "name": "15c Request for Information workflow",
   "file": "15c-rfi-workflow.sql",
-  "install_sequence": 153,
-  "upgrade_sequence": 113,
+  "install_sequence": 154,
+  "upgrade_sequence": 114,
   "apps": [
    "COMMON"
   ]
@@ -215,8 +215,8 @@
  {
   "name": "15d Approval Setup",
   "file": "15d-approval-setup.sql",
-  "install_sequence": 154,
-  "upgrade_sequence": 114,
+  "install_sequence": 153,
+  "upgrade_sequence": 113,
   "apps": [
    "COMMON"
   ]

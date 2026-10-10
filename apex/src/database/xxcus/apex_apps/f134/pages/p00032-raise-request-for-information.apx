@@ -83,8 +83,14 @@ page 32 (
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-rfi-recipient-type
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d, r from (select 'As set up (Approval Setup - by default the requester)' d, 'SETUP' r, 1 s from dual
+                                  union all
+                                  select 'A colleague I choose', 'REQUESTING_DEPARTMENT', 2 from dual)
+                 order by s
+                ```
         }
         layout {
             sequence: 10
@@ -101,10 +107,10 @@ page 32 (
         }
         default {
             type: static
-            staticValue: REQUESTING_DEPARTMENT
+            staticValue: SETUP
         }
         help {
-            helpText: Choose the send To.
+            helpText: Who provides the information. As set up - the providers from COMMON > Approval Setup (process Case request for information; by default the requester of the case). A colleague - a person you choose.
         }
     )
 
@@ -322,7 +328,7 @@ page 32 (
         )
 
         action recipient-fields-show-f (
-            action: show
+            action: hide
             affectedElements {
                 selectionType: items
                 items: P32_PARTY_CONTACT_ID
