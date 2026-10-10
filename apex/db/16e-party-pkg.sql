@@ -405,11 +405,11 @@ create or replace package body xxcmp_party_pkg as
                             and xxcmp_request_pkg.party_editable(p_request_id) = 'Y';
     begin
         if p_party_id is null and not l_req_ok and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'CREATE') then
-            raise_application_error(-20701, 'You are not allowed to create parties.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_CREATE_NOT_ALLOWED');
         elsif p_party_id is not null and not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
-            raise_application_error(-20706, 'You are not allowed to change parties.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_CHANGE_NOT_ALLOWED');
         elsif p_party_id is not null and is_enabled(p_party_id) = 'N' and nvl(p_enabled_flag, 'N') = 'N' then
-            raise_application_error(-20707, 'A disabled or merged party cannot be changed.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_DISABLED');
         end if;
         l_error := party_error(p_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
                                p_entity_type, p_incorporation_date, p_email, p_phone, 'N', p_match_ack, p_registration_type);
@@ -618,7 +618,7 @@ create or replace package body xxcmp_party_pkg as
     procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2) is
     begin
         if can_edit_details(p_party_id, p_request_id) = 'N' then
-            raise_application_error(-20706, 'You are not allowed to change this party.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_THIS_NOT_ALLOWED');
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         xxfnd_dff_pkg.save('XXCMP_PARTIES', to_char(p_party_id), p_values_json, p_context_code, party_type(p_party_id));
@@ -724,16 +724,16 @@ create or replace package body xxcmp_party_pkg as
         l_into xxcmp_parties%rowtype;
     begin
         if not xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
-            raise_application_error(-20711, 'Only Compliance can merge parties.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_MERGE_NOT_ALLOWED');
         elsif p_from_party_id is null or p_into_party_id is null or p_from_party_id = p_into_party_id then
-            raise_application_error(-20712, 'Choose another party to merge into.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_MERGE_TARGET');
         end if;
         select * into l_from from xxcmp_parties where party_id = p_from_party_id for update;
         select * into l_into from xxcmp_parties where party_id = p_into_party_id for update;
         if l_from.party_type <> l_into.party_type then
-            raise_application_error(-20713, 'An organisation cannot be merged into an individual, or the reverse.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_MERGE_TYPE');
         elsif l_from.enabled_flag = 'N' or l_into.enabled_flag = 'N' then
-            raise_application_error(-20714, 'Both parties must be enabled.');
+            xxfnd_error_pkg.raise_error('KYC_PARTY_MERGE_DISABLED');
         end if;
 
         -- everything recorded against the duplicate now belongs to the kept party

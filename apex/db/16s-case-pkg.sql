@@ -207,10 +207,10 @@ create or replace package body xxcmp_case_pkg as
     begin
         select * into l_case from xxcmp_cases where case_id = p_case_id;
         if can_assign(p_case_id) = 'N' then
-            raise_application_error(-20611, 'Only a case under investigation can be reassigned, by Compliance management or its assignee.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_REASSIGN_NOT_ALLOWED');
         end if;
         if p_user_name is null then
-            raise_application_error(-20611, 'Select the officer.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_REQUIRED');
         end if;
         update xxcmp_cases set assigned_to = upper(p_user_name) where case_id = p_case_id;
         -- the open investigation task follows the case
@@ -255,10 +255,10 @@ create or replace package body xxcmp_case_pkg as
         l_init  varchar2(255);
     begin
         if can_withdraw(p_case_id) = 'N' then
-            raise_application_error(-20615, 'Only a case waiting for approval can be withdrawn, by its officer or Compliance management.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_WITHDRAW_NOT_ALLOWED');
         end if;
         if trim(p_reason) is null then
-            raise_application_error(-20615, 'Enter the reason for withdrawing the case from approval.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_WITHDRAW_REASON');
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         l_case := get_case(p_case_id);
@@ -300,7 +300,7 @@ create or replace package body xxcmp_case_pkg as
         return l_row;
     exception
         when no_data_found then
-            raise_application_error(-20612, 'The approval matrix has no row for risk tier ' || p_case.risk_tier || '.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_NO_MATRIX_ROW', apex_t_varchar2(p_case.risk_tier));
     end matrix;
 
     -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE)
@@ -684,7 +684,7 @@ create or replace package body xxcmp_case_pkg as
             select max(contact_name), max(email) into l_name, l_email
               from xxcmp_party_contacts where party_contact_id = p_party_contact_id;
             if l_email is null then
-                raise_application_error(-20509, 'The contact person has no e-mail address: add one before sending the request.');
+                xxfnd_error_pkg.raise_error('KYC_CASE_CONTACT_NO_EMAIL');
             end if;
         end if;
         xxfnd_rfi_pkg.create_rfi(
@@ -983,7 +983,7 @@ create or replace package body xxcmp_case_pkg as
              where fiu_report_id = p_fiu_report_id;
         elsif p_action = 'FILE' then
             if trim(p_reference) is null or p_filed_date is null then
-                raise_application_error(-20616, 'Enter the goAML reference and the date the report was filed.');
+                xxfnd_error_pkg.raise_error('KYC_CASE_FIU_FILING');
             end if;
             update xxcmp_fiu_reports set report_status = 'FILED', goaml_reference = trim(p_reference), filed_date = p_filed_date,
                                          filed_by = xxfnd_util_pkg.current_user
@@ -1033,7 +1033,7 @@ create or replace package body xxcmp_case_pkg as
         update xxcmp_case_funds set verified_flag = 'Y', verified_by = xxfnd_util_pkg.current_user, verified_date = trunc(sysdate)
          where case_funds_id = p_case_funds_id and evidence_type is not null;
         if sql%rowcount = 0 then
-            raise_application_error(-20617, 'Record the evidence seen before marking the source as verified.');
+            xxfnd_error_pkg.raise_error('KYC_CASE_FUNDS_EVIDENCE');
         end if;
     end verify_funds;
 

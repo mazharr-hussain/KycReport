@@ -63,6 +63,9 @@ create or replace package xxfnd_error_pkg authid definer as
     function message(p_code in varchar2, p_values in apex_t_varchar2 default null) return varchar2;
     -- Raises the catalogue message (its error number, else -20000). An unknown code raises the code itself.
     procedure raise_error(p_code in varchar2, p_values in apex_t_varchar2 default null);
+    -- An application registers its own messages (English); an existing text (perhaps changed by the business) is kept.
+    procedure register_message(p_code in varchar2, p_text in varchar2, p_error_number in number default null,
+                               p_language in varchar2 default 'en');
     -- Logs the current error (sqlcode, sqlerrm, backtrace, call stack) with the place it happened; returns the
     -- reference. Autonomous: the log row stays even when the caller rolls back.
     function log_error(p_component in varchar2, p_message in varchar2 default null) return number;
@@ -105,6 +108,16 @@ create or replace package body xxfnd_error_pkg as
         select max(error_number) into l_number from xxfnd_messages where message_code = upper(p_code);
         raise_application_error(nvl(l_number, -20000), message(p_code, p_values));
     end raise_error;
+
+    procedure register_message(p_code in varchar2, p_text in varchar2, p_error_number in number default null,
+                               p_language in varchar2 default 'en') is
+    begin
+        merge into xxfnd_messages t
+        using (select upper(p_code) message_code, lower(p_language) language_code from dual) s
+           on (t.message_code = s.message_code and t.language_code = s.language_code)
+         when not matched then insert (message_code, language_code, message_text, error_number)
+                               values (s.message_code, s.language_code, p_text, p_error_number);
+    end register_message;
 
     function write_log(p_component in varchar2, p_code in number, p_message in varchar2, p_info in clob,
                        p_backtrace in clob, p_stack in clob) return number is

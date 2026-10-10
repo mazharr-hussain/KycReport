@@ -226,11 +226,11 @@ create or replace package body xxcmp_request_pkg as
             l_old := get_request(p_request_id);
             if l_old.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
                or upper(l_old.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
-                raise_application_error(-20612, 'Request ' || l_old.request_number || ' can no longer be changed.');
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_LOCKED', apex_t_varchar2(l_old.request_number));
             elsif l_old.request_status = 'INFO_NEEDED'
                   and (p_party_selection <> l_old.party_selection
                        or (p_party_selection = 'EXISTING' and p_party_id <> l_old.party_id)) then
-                raise_application_error(-20617, 'The counterparty of a submitted request cannot be replaced.');
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_PARTY_FIXED');
             end if;
         end if;
         l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
@@ -265,7 +265,7 @@ create or replace package body xxcmp_request_pkg as
             if l_old.party_selection = 'NEW' and party_status(l_old.party_id) = 'PENDING' then
                 l_party_id := l_old.party_id;
             elsif l_old.party_selection = 'NEW' and l_old.party_id is not null then
-                raise_application_error(-20618, 'The party of this request has been approved: Compliance maintains it.');
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_PARTY_APPROVED');
             end if;
             l_new := l_party_id is null;
             xxcmp_party_pkg.put_party(l_party_id, p_party_type, p_party_name, p_jurisdiction, p_registration_number,
@@ -459,7 +459,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         select request_status into l_status from xxcmp_requests where request_id = p_request_id;
         if l_status not in ('DRAFT', 'INFO_NEEDED') then
-            raise_application_error(-20613, 'The request has been submitted; its answers can no longer be changed.');
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_ANSWERS_LOCKED');
         end if;
         for j in (select q, o, t from json_table(nvl(p_answers, '[]'), '$[*]'
                           columns (q number path '$.q', o number path '$.o', t varchar2(4000) path '$.t'))) loop
@@ -469,7 +469,7 @@ create or replace package body xxcmp_request_pkg as
                  where a.request_id = p_request_id and a.respondent_type = 'REQUESTER' and a.question_id = j.q;
             exception
                 when no_data_found then
-                    raise_application_error(-20614, 'Question ' || j.q || ' does not belong to this request.');
+                    xxfnd_error_pkg.raise_error('KYC_REQUEST_QUESTION_UNKNOWN', apex_t_varchar2(j.q));
             end;
             l_option := null;
             l_text   := null;
@@ -479,12 +479,12 @@ create or replace package body xxcmp_request_pkg as
                       from xxcmp_answer_options
                      where answer_option_id = j.o and question_id = j.q and approval_status = 'APPROVED' and enabled_flag = 'Y';
                     if l_option is null then
-                        raise_application_error(-20615, 'Answer ' || j.o || ' is not an option of question ' || j.q || '.');
+                        xxfnd_error_pkg.raise_error('KYC_REQUEST_OPTION_UNKNOWN', apex_t_varchar2(j.o, j.q));
                     end if;
                 end if;
             elsif l_type = 'NUMBER' and trim(j.t) is not null
                   and validate_conversion(trim(j.t) as number) = 0 then
-                raise_application_error(-20616, 'Enter a number for: ' || j.t);
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_NUMBER_EXPECTED', apex_t_varchar2(j.t));
             else
                 l_text := trim(j.t);
             end if;
@@ -682,12 +682,12 @@ create or replace package body xxcmp_request_pkg as
         l_token  varchar2(64);
     begin
         if p_comment is null then
-            raise_application_error(-20625, 'Enter the information you need from the requester.');
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_INFO_TEXT');
         elsif l_req.request_status <> 'IN_PROGRESS' then
-            raise_application_error(-20625, 'Request ' || l_req.request_number || ' is not waiting for approval.');
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_NOT_IN_APPROVAL', apex_t_varchar2(l_req.request_number));
         elsif not (apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_approve)
                    or apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_claim)) then
-            raise_application_error(-20625, 'You are not an approver of request ' || l_req.request_number || '.');
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_NOT_APPROVER', apex_t_varchar2(l_req.request_number));
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         begin
