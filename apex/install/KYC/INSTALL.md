@@ -47,3 +47,10 @@ The shared setup (lookups, flexfields, attachments, notifications, roles and use
 in the COMMON application, which only IT can open. IT switches on which common functions KYC may use (COMMON >
 Administration > Applications > KYC); a function switched off disappears from KYC. KYC's Administration keeps only
 KYC's own setup screens.
+
+## Install or upgrade from SQL Developer Web (release 74)
+Instead of the import step: after the COMMON script of the same release, as **ADMIN**, Database Actions → SQL → open
+`KYC-Compliance-Platform-SQL-Install_<N>.sql` → **Run Script (F5)**. The script sets the workspace (XXCUS), the
+application ID (134) and the parsing schema (XXCUS), runs the supporting objects (install scripts on a new database,
+upgrade scripts on an existing one; data kept) and installs the application. Release 74 needs no new database
+privilege.

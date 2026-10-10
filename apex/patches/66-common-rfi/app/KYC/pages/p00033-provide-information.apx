@@ -1,0 +1,257 @@
+page 33 (
+    name: Provide Information
+    alias: PROVIDE-INFORMATION
+    title: Provide Information
+    pageGroup: @rfi
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authentication: public
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText: Secure page for an external party to answer a request for information.
+    }
+    comments {
+        comments:
+            ```
+            Security review: public on purpose so an external party without an account can answer a request for information. Access is controlled by the one-time token (random 256-bit, stored only as a SHA-256 hash, expires the day after the due date, cleared after use). Arguments cannot carry a session checksum because the link is opened in a new session.
+            ```
+    }
+
+    region breadcrumb (
+        name: Provide Information
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region respond (
+        name: Provide Information
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: respond
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P33_DONE
+        }
+    )
+
+    region thanks (
+        name: Thank You
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Your response has been received. You may close this page.</p>
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: thanks
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P33_DONE
+        }
+    )
+
+    pageItem P33_TOKEN (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @respond
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: carries the one-time token from the emailed link; no same-page dynamic action changes it. Only its SHA-256 hash is stored; XXCMP_KYC_PKG.RESPOND_BY_TOKEN rejects unknown, used or expired tokens.
+                ```
+        }
+    )
+
+    pageItem P33_DONE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @respond
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P33_RESPONSE (
+        type: textarea
+        label {
+            label: Your Response
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 8
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Enter the your Response.
+        }
+    )
+
+    pageItem P33_FILE (
+        type: fileUpload
+        label {
+            label: Supporting Document
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop the file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Upload the supporting Document.
+        }
+    )
+
+    pageItem P33_UPLOAD_RULES (
+        type: displayOnly
+        label {
+            label: Accepted Files
+            alignment: left
+        }
+        layout {
+            sequence: 21
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_attach_pkg.upload_rules_text(33, 'RFI_RESPONSE') from dual
+                ```
+            used: always
+        }
+    )
+
+    button submit (
+        buttonName: SUBMIT
+        label: Submit Response
+        layout {
+            sequence: 10
+            region: @respond
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process submit-response (
+        name: Submit response
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_rfi_id number;
+                    l_att_id number;
+                begin
+                    l_rfi_id := xxfnd_rfi_pkg.respond_by_token(:P33_TOKEN, :P33_RESPONSE);
+                    if :P33_FILE is not null then
+                        l_att_id := xxfnd_attach_pkg.add_file(
+                            p_entity_name    => 'XXCMP_RFIS',
+                            p_pk1_value      => to_char(l_rfi_id),
+                            p_category_code  => 'RFI_RESPONSE',
+                            p_temp_file_name => :P33_FILE,
+                            p_page_id        => 33);
+                    end if;
+                    :P33_DONE  := 'Y';
+                    :P33_TOKEN := null;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit
+        }
+    )
+
+)

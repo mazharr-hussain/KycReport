@@ -1,0 +1,1649 @@
+page 31 (
+    name: Request for Information
+    alias: REQUEST-FOR-INFORMATION
+    title: Request for Information
+    pageGroup: @rfi
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText: The recipient answers here; the Compliance team reviews the answer and closes the request.
+    }
+
+    region breadcrumb (
+        name: Request for Information
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region rfi (
+        name: Request
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_RFIS
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: rfi
+        }
+    )
+
+    pageItem P31_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @rfi
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P31_RFI_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @rfi
+            slot: regionBody
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P31_RFI_NUMBER (
+        type: displayOnly
+        label {
+            label: RFI
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_NUMBER
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_ENTITY_NAME (
+        type: displayOnly
+        label {
+            label: Record Type
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: ENTITY_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_PK1_VALUE (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: PK1_VALUE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_RFI_CATEGORY (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-category
+        }
+        layout {
+            sequence: 40
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_CATEGORY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the category.
+        }
+    )
+
+    pageItem P31_RECIPIENT_TYPE (
+        type: selectList
+        label {
+            label: Recipient Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-recipient-type
+        }
+        layout {
+            sequence: 50
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RECIPIENT_TYPE
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the recipient Type.
+        }
+    )
+
+    pageItem P31_RECIPIENT_USER_NAME (
+        type: displayOnly
+        label {
+            label: Recipient
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RECIPIENT_USER_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_DESCRIPTION (
+        type: displayOnly
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_DUE_DATE (
+        type: displayOnly
+        label {
+            label: Due Date
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: DUE_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P31_RFI_STATUS (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-status
+        }
+        layout {
+            sequence: 90
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @rfi
+            column: RFI_STATUS
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+        help {
+            helpText: Choose the status.
+        }
+    )
+
+    pageItem P31_RESPONSE_TEXT (
+        type: textarea
+        label {
+            label: Information Provided
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 6
+        }
+        source {
+            formRegion: @rfi
+            column: RESPONSE_TEXT
+            dataType: clob
+        }
+        sessionState {
+            dataType: clob
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not (-- release 74: the person (or one of the people) the RFI is waiting for
+instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0
+and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING'))
+                ```
+        }
+        help {
+            helpText: Enter the response.
+        }
+    )
+
+    pageItem P31_RESPONDED_DATE (
+        type: displayOnly
+        label {
+            label: Responded On
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @rfi
+            column: RESPONDED_DATE
+            dataType: timestamp
+        }
+    )
+
+    pageItem P31_RESOLUTION_NOTES (
+        type: textarea
+        label {
+            label: Comments
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @rfi
+            column: RESOLUTION_NOTES
+            dataType: varchar2
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                not xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                ```
+        }
+        help {
+            helpText: Enter the resolution Notes.
+        }
+    )
+
+    pageItem P31_APPROVAL_TYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @rfi
+            slot: regionBody
+        }
+        source {
+            formRegion: @rfi
+            column: APPROVAL_TYPE_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_ADD_PERSON (
+        type: popupLov
+        label {
+            label: Add Person
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxfnd_employees
+                 where user_name is not null
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 140
+            region: @rfi
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_APPROVAL_TYPE_CODE is not null and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                ```
+        }
+        help {
+            helpText: Someone else who should also provide information; they answer after the current person. The Comments say why.
+        }
+    )
+
+    button back (
+        buttonName: BACK
+        label: Back
+        layout {
+            sequence: 10
+            region: @rfi
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 30
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button respond (
+        buttonName: RESPOND
+        label: Submit Information
+        layout {
+            sequence: 20
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 74: the person (or one of the people) the RFI is waiting for
+instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0
+and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                ```
+        }
+    )
+
+    button resolve (
+        buttonName: RESOLVE
+        label: Accept Information
+        layout {
+            sequence: 30
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    button ask-again (
+        buttonName: ASK_AGAIN
+        label: Request More Information
+        layout {
+            sequence: 35
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 74: the same RFI loops - a new round with the question in Resolution Notes
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    button cancel-rfi (
+        buttonName: CANCEL_RFI
+        label: Cancel Request
+        layout {
+            sequence: 40
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Cancel this request for information?
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE') and :P31_RFI_STATUS not in ('RESOLVED','REJECTED_RETURNED','CANCELLED')
+                ```
+        }
+    )
+
+    button add-person (
+        buttonName: ADD_PERSON
+        label: Add Person
+        layout {
+            sequence: 50
+            region: @rfi
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 74: an ad-hoc person to provide information too (Approval Setup: after the current one)
+                :P31_APPROVAL_TYPE_CODE is not null and :P31_RFI_STATUS in ('WAITING_FOR_INFORMATION','ON_HOLD_PENDING')
+                and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                     or instr(',' || xxfnd_rfi_pkg.recipient(:P31_RFI_ID) || ',', ',' || :APP_USER || ',') > 0)
+                ```
+        }
+    )
+
+    region rounds (
+        name: Questions and Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select round_no, question, xxfnd_ui_pkg.person_name(asked_by) as asked_by, asked_date,
+                       response_text, responded_by, responded_date,
+                       initcap(replace(review_outcome, '_', ' ')) as review_outcome, review_notes,
+                       xxfnd_ui_pkg.person_name(reviewed_by) as reviewed_by, reviewed_date
+                  from xxfnd_rfi_rounds
+                 where rfi_id = :P31_RFI_ID
+                 order by round_no
+                ```
+            pageItemsToSubmit: P31_RFI_ID
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        messages {
+            whenNoDataFound: No question yet.
+        }
+
+        column ROUND_NO (
+            type: plainText
+            heading {
+                heading: Round
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column QUESTION (
+            type: plainText
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ASKED_BY (
+            type: plainText
+            heading {
+                heading: Asked By
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ASKED_DATE (
+            type: plainText
+            heading {
+                heading: Asked
+            }
+            layout {
+                sequence: 40
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column RESPONSE_TEXT (
+            type: plainText
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column RESPONDED_BY (
+            type: plainText
+            heading {
+                heading: Answered By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column RESPONDED_DATE (
+            type: plainText
+            heading {
+                heading: Answered
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column REVIEW_OUTCOME (
+            type: plainText
+            heading {
+                heading: Review
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column REVIEW_NOTES (
+            type: plainText
+            heading {
+                heading: Review Notes
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column REVIEWED_BY (
+            type: plainText
+            heading {
+                heading: Reviewed By
+            }
+            layout {
+                sequence: 100
+            }
+        )
+
+        column REVIEWED_DATE (
+            type: plainText
+            heading {
+                heading: Reviewed
+            }
+            layout {
+                sequence: 110
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+    )
+
+    region rfi_attachments (
+        name: Attachments
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id,
+                       a.document_id,
+                       a.title,
+                       a.category_name,
+                       xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', a.datatype_code) as datatype,
+                       a.version_number,
+                       a.document_date,
+                       a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       xxfnd_util_pkg.lookup_meaning('UPLOAD_STATUS', a.upload_status) as upload_status,
+                       case when a.datatype_code = 'FILE' then 'Download'
+                            when a.datatype_code = 'WEB_PAGE' then 'Open link' end as open_label,
+                       case when a.datatype_code = 'WEB_PAGE' then a.url end as url,
+                       a.datatype_code,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id)) end as download_url,
+                       a.created_by,
+                       a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_RFIS'
+                   and a.pk1_value   = :P31_RFI_ID
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: P31_RFI_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rfi_attachments
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No attachments yet.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null
+                ```
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TITLE (
+            type: link
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    page: 91
+                    items: {
+                        P91_ATTACHED_DOCUMENT_ID: #ATTACHED_DOCUMENT_ID#
+                        P91_SOURCE_PAGE: 31
+                        P91_SOURCE_REGION: rfi_attachments
+                    }
+                    clearCache: 91
+                }
+                linkText: #TITLE#
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DATATYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Issued
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 80
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="u-danger-text">#EXPIRED#</span>
+                    ```
+            }
+        )
+
+        column UPLOAD_STATUS (
+            type: plainText
+            heading {
+                heading: Storage
+            }
+            layout {
+                sequence: 100
+            }
+        )
+
+        column OPEN_LABEL (
+            type: plainText
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 110
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if DATATYPE_CODE/}{case DATATYPE_CODE/}{when FILE/}<a href="#DOWNLOAD_URL#">#OPEN_LABEL#</a>{when WEB_PAGE/}<a href="#URL#" target="_blank" rel="noopener">#OPEN_LABEL#</a>{endcase/}{endif/}
+                    ```
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 125
+            }
+        )
+
+        column DATATYPE_CODE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 140
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 150
+            }
+            appearance {
+            }
+        )
+
+    )
+
+    button rfi_attachments-add (
+        buttonName: RFI_ATTACHMENTS_ADD
+        label: Add Attachment
+        layout {
+            sequence: 10
+            region: @rfi_attachments
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-paperclip
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 90
+                items: {
+                    P90_ENTITY_NAME: XXCMP_RFIS
+                    P90_PK1_VALUE: &P31_RFI_ID.
+                    P90_SOURCE_PAGE: 31
+                    P90_SOURCE_REGION: rfi_attachments
+                }
+                clearCache: 90
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 31, 'rfi_attachments', 'XXCMP_RFIS', 'INSERT') = 'Y' and :P31_RFI_ID is not null
+                ```
+        }
+    )
+
+    dynamicAction refresh-rfi_attachments (
+        name: Refresh rfi_attachments
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @rfi_attachments
+        }
+
+        action refresh-rfi_attachments-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rfi_attachments
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation VAL_RESPONSE_GIVEN (
+        name: Response entered
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P31_RESPONSE_TEXT is null then 'Enter your response.' end;
+                ```
+        }
+        error {
+            associatedItem: @P31_RESPONSE_TEXT
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process open-from-task (
+        name: Open from task
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- Opened from My Tasks (RFI_RESPONSE / RFI_REVIEW): the task's record, only if
+                -- the user may see the task.
+                select to_number(detail_pk)
+                  into :P31_RFI_ID
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'SINGLE_TASK',
+                                   p_task_id        => :P31_TASK_ID,
+                                   p_application_id => :APP_ID ) )
+                 where task_def_static_id in ('RFI_RESPONSE','RFI_REVIEW');
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_TASK_ID
+        }
+    )
+
+    process initialize-rfi (
+        name: Initialize rfi
+        type: formInitialization
+        formRegion: @rfi
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process respond-rfi (
+        name: Send response
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_rfi_pkg.respond(:P31_RFI_ID, :P31_RESPONSE_TEXT);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Response sent to the Compliance team.
+        }
+        serverSideCondition {
+            whenButtonPressed: @respond
+        }
+    )
+
+    process resolve-rfi (
+        name: Update status
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, 'RESOLVED', :P31_RESOLUTION_NOTES);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Information accepted: the request for information is resolved.
+        }
+        serverSideCondition {
+            whenButtonPressed: @resolve
+        }
+    )
+
+    process ask-again-rfi (
+        name: Ask again
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the same RFI goes back to the recipient with a new question (Resolution Notes)
+                declare
+                    l_token varchar2(64);
+                begin
+                    if trim(:P31_RESOLUTION_NOTES) is null then
+                        xxfnd_error_pkg.raise_error('XXFND_RFI_QUESTION_REQUIRED');
+                    end if;
+                    l_token := xxfnd_rfi_pkg.ask_again(:P31_RFI_ID, :P31_RESOLUTION_NOTES);
+                    xxfnd_rfi_pkg.send_email(:P31_RFI_ID,
+                        case when l_token is not null
+                             then apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN',
+                                                    p_values => l_token, p_absolute_url => true) end);
+                end;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Asked again: the recipient answers the new question.
+        }
+        serverSideCondition {
+            whenButtonPressed: @ask-again
+        }
+    )
+
+    process cancel-rfi (
+        name: Cancel the request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_rfi_pkg.resolve(:P31_RFI_ID, 'CANCELLED', :P31_RESOLUTION_NOTES);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        successMessage {
+            successMessage: Request for information cancelled.
+        }
+        serverSideCondition {
+            whenButtonPressed: @cancel-rfi
+        }
+    )
+
+    process add-person (
+        name: Add a person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if :P31_ADD_PERSON is null then
+                    xxfnd_error_pkg.raise_error('XXFND_APPROVAL_APPROVER_REQUIRED');
+                end if;
+                -- the button is offered to the people it waits for and to Compliance (CASES - Manage)
+                xxfnd_approval_rule_pkg.add_approver(:P31_APPROVAL_TYPE_CODE, :P31_RFI_ID, 'USER', p_user_name => :P31_ADD_PERSON,
+                                                     p_position => 'NEXT', p_comment => :P31_RESOLUTION_NOTES, p_force => 'Y');
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Person added: they provide information after the current person.
+        }
+        serverSideCondition {
+            whenButtonPressed: @add-person
+        }
+    )
+
+    region emails (
+        name: E-mails
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R27): e-mails with outside people kept with the record (COMMON XXFND_COMMUNICATIONS)
+                select c.communication_id,
+                       case c.direction when 'OUT' then 'Sent' else 'Received' end as direction,
+                       case c.direction when 'OUT' then c.to_address || nvl2(c.cc_address, ' (cc ' || c.cc_address || ')', null)
+                            else c.from_address end as counterpart,
+                       c.subject,
+                       dbms_lob.substr(c.body, 600, 1) as body_text,
+                       xxfnd_util_pkg.lookup_meaning('COMMUNICATION_STATUS', c.status) as status,
+                       case c.status when 'SENT' then 'success' when 'RECEIVED' then 'info' when 'FAILED' then 'danger' else 'warning' end as status_tone,
+                       to_char(c.communication_date, 'DD-MON-YYYY HH24:MI') as sent_on,
+                       c.communication_date,
+                       xxfnd_ui_pkg.person_name(c.recorded_by) as recorded_by,
+                       (select count(*) from xxfnd_attached_documents_v a
+                         where a.entity_name = 'XXFND_COMMUNICATIONS' and a.pk1_value = to_char(c.communication_id)) as attachments
+                  from xxfnd_communications c
+                 where c.rfi_id = :P31_RFI_ID
+                ```
+            pageItemsToSubmit: [
+                P31_RFI_ID
+            ]
+        }
+        layout {
+            sequence: 80
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: emails
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No e-mails yet.
+        }
+        comments {
+            comments: Release 74 (R27): e-mails sent to or received from outside people, kept with the record; sent through APEX mail now, Outlook later.
+        }
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--neutral">#DIRECTION#</span> <strong>#SUBJECT#</strong><br><span class="u-color-subtle">#COUNTERPART#</span>
+                    ```
+            }
+        )
+
+        column BODY_TEXT (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS#</span>
+                    ```
+            }
+        )
+
+        column SENT_ON (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RECORDED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ATTACHMENTS (
+            type: plainText
+            heading {
+                heading: Files
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMUNICATION_ID (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column COUNTERPART (
+            type: hidden
+            layout {
+                sequence: 71
+            }
+        )
+
+        column SUBJECT (
+            type: hidden
+            layout {
+                sequence: 72
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 73
+            }
+        )
+
+        column COMMUNICATION_DATE (
+            type: hidden
+            layout {
+                sequence: 74
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+    )
+
+    button send-email (
+        buttonName: SEND_EMAIL
+        label: Send E-mail
+        layout {
+            sequence: 10
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-send
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 34
+                items: {
+                    P34_ENTITY_NAME: &P31_ENTITY_NAME.
+                    P34_PK1_VALUE: &P31_PK1_VALUE.
+                    P34_RFI_ID: &P31_RFI_ID.
+                    P34_PARTY_ID: &P31_PARTY_ID.
+                    P34_DIRECTION: OUT
+                }
+                clearCache: 34
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    button record-email (
+        buttonName: RECORD_EMAIL
+        label: Record Received E-mail
+        layout {
+            sequence: 20
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-inbox
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 34
+                items: {
+                    P34_ENTITY_NAME: &P31_ENTITY_NAME.
+                    P34_PK1_VALUE: &P31_PK1_VALUE.
+                    P34_RFI_ID: &P31_RFI_ID.
+                    P34_PARTY_ID: &P31_PARTY_ID.
+                    P34_DIRECTION: IN
+                }
+                clearCache: 34
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P31_RFI_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    dynamicAction refresh-emails (
+        name: Refresh e-mails
+        execution {
+            sequence: 70
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @emails
+        }
+
+        action refresh-emails-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @emails
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    pageItem P31_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 90
+            region: @emails
+            slot: regionBody
+        }
+    )
+
+    process party-of-rfi (
+        name: The party of the RFI's record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R27): its contact persons are offered when an e-mail is sent from the RFI
+                select case :P31_ENTITY_NAME
+                           when 'XXCMP_PARTIES' then to_number(:P31_PK1_VALUE)
+                           when 'XXCMP_CASES' then (select max(party_id) from xxcmp_cases where case_id = to_number(:P31_PK1_VALUE))
+                           when 'XXCMP_REQUESTS' then (select max(party_id) from xxcmp_requests where request_id = to_number(:P31_PK1_VALUE))
+                       end
+                  into :P31_PARTY_ID
+                  from dual;
+                ```
+        }
+        execution {
+            sequence: 90
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_PK1_VALUE
+        }
+    )
+
+)

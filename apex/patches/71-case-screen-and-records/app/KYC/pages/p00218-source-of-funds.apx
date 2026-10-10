@@ -1,0 +1,838 @@
+page 218 (
+    name: Source of Funds
+    alias: SOURCE-OF-FUNDS
+    title: Source of Funds / Wealth
+    pageGroup: @kyc
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Guided source of funds and wealth: choose where the money comes from; the evidence expected for it is shown; record the evidence and the bank data seen (typed by hand now, from a bank data provider later), then mark it verified.
+    }
+
+    region form (
+        name: Source of Funds / Wealth
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_CASE_FUNDS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P218_CASE_FUNDS_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: CASE_FUNDS_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P218_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P218_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: CASE_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P218_FUNDS_TYPE (
+        type: radioGroup
+        label {
+            label: Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'FUNDS_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: FUNDS_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: SOF
+        }
+        help {
+            helpText: Source of funds: where the money for this relationship comes from. Source of wealth: how the party built its overall wealth.
+        }
+    )
+
+    pageItem P218_CATEGORY (
+        type: selectList
+        label {
+            label: Where the Money Comes From
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'FUNDS_CATEGORY' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CATEGORY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P218_EXPECTED (
+        type: displayOnly
+        label {
+            label: Evidence Expected
+            alignment: left
+        }
+        layout {
+            sequence: 25
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_case_pkg.expected_evidence_text(:P218_CATEGORY)
+                ```
+            used: always
+        }
+        help {
+            helpText: The documents that usually prove this source; the evidence below should be one of them.
+        }
+    )
+
+    pageItem P218_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P218_AMOUNT (
+        type: numberField
+        label {
+            label: Amount
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: AMOUNT
+            dataType: number
+        }
+    )
+
+    pageItem P218_CURRENCY_CODE (
+        type: textField
+        label {
+            label: Currency
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 3
+        }
+        source {
+            formRegion: @form
+            column: CURRENCY_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: ISO code, e.g. AED, USD.
+        }
+    )
+
+    pageItem P218_EVIDENCE_TYPE (
+        type: selectList
+        label {
+            label: Evidence Seen
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'FUNDS_EVIDENCE_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: EVIDENCE_TYPE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P218_BANK_NAME (
+        type: textField
+        label {
+            label: Bank
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: BANK_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Bank data is typed by hand now; a bank data provider can fill it later.
+        }
+    )
+
+    pageItem P218_ACCOUNT_REFERENCE (
+        type: textField
+        label {
+            label: Account (last digits)
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+        source {
+            formRegion: @form
+            column: ACCOUNT_REFERENCE
+            dataType: varchar2
+        }
+        help {
+            helpText: Keep only the last digits of the account or IBAN.
+        }
+    )
+
+    pageItem P218_PERIOD_FROM (
+        type: datePicker
+        label {
+            label: Statement From
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: PERIOD_FROM
+            dataType: date
+        }
+    )
+
+    pageItem P218_PERIOD_TO (
+        type: datePicker
+        label {
+            label: Statement To
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: PERIOD_TO
+            dataType: date
+        }
+    )
+
+    pageItem P218_NOTES (
+        type: textarea
+        label {
+            label: Notes
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @form
+            column: NOTES
+            dataType: varchar2
+        }
+    )
+
+    pageItem P218_SOURCE (
+        type: displayOnly
+        label {
+            label: Source
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: SOURCE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: MANUAL
+        }
+        settings {
+            sendOnPageSubmit: true
+        }
+    )
+
+    pageItem P218_VERIFIED_BY (
+        type: displayOnly
+        label {
+            label: Verified By
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: VERIFIED_BY
+            dataType: varchar2
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P218_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 900
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: the copy or the extract that was checked (kept with this record).
+        }
+    )
+
+    validation rules (
+        name: Rules
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_case_pkg.funds_error(:P218_CASE_ID, :P218_FUNDS_TYPE, :P218_CATEGORY, :P218_EVIDENCE_TYPE,
+                           to_number(:P218_AMOUNT), to_date(:P218_PERIOD_FROM, :APP_NLS_DATE_FORMAT),
+                           to_date(:P218_PERIOD_TO, :APP_NLS_DATE_FORMAT));
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P218_CASE_FUNDS_ID is null and xxcmp_case_pkg.is_editable(:P218_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P218_CASE_FUNDS_ID is not null and xxcmp_case_pkg.is_editable(:P218_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button verify (
+        buttonName: VERIFY
+        label: Mark as Verified
+        layout {
+            sequence: 35
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P218_CASE_FUNDS_ID is not null and :P218_VERIFIED_BY is null and xxcmp_case_pkg.is_editable(:P218_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction expected-evidence (
+        name: Evidence expected for the source
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P218_CATEGORY
+        }
+
+        action expected-evidence-set (
+            action: setValue
+            settings {
+                type: plsqlExpression
+                plsqlExpression:
+                    ```plsql
+                    xxcmp_case_pkg.expected_evidence_text(:P218_CATEGORY)
+                    ```
+                itemsToSubmit: P218_CATEGORY
+            }
+            affectedElements {
+                selectionType: items
+                items: P218_EXPECTED
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process verify-funds (
+        name: Verified
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.verify_funds(:P218_CASE_FUNDS_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: VERIFY
+        }
+    )
+
+    process attach-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_CASE_FUNDS',
+                                p_pk1_value      => :P218_CASE_FUNDS_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P218_FILE,
+                                p_title          => 'Source of Funds / Wealth',
+                                p_page_id        => 218);
+                end;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P218_FILE is not null and :REQUEST in ('CREATE', 'SAVE')
+                ```
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,VERIFY
+        }
+    )
+
+)

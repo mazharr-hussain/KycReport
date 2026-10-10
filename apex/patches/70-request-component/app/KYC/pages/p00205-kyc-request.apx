@@ -1,0 +1,449 @@
+page 205 (
+    name: KYC Request
+    alias: KYC-REQUEST
+    title: KYC Request
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A KYC request, read only: where it stands, the party and its details, the answers, the documents and the approval history. Edit (top right, for the requester while the request is Draft, Information Needed or Rejected) opens the request wizard; Withdraw is on the KYC Requests list; approvers decide from their task.
+            ```
+    }
+
+    region breadcrumb (
+        name: KYC Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region request (
+        name: Request Items
+        type: staticContent
+        layout {
+            sequence: 19
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region request-details (
+        name: Request
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
+                select j.label, j.value, j.tone, j.url, j.user_name, j.seq, j.group_name
+                  from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P205_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    user_name  varchar2(255)  path '$.user_name')) j
+                ```
+            pageItemsToSubmit: [
+                P205_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_details
+        }
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endif/}
+                    ```
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column USER_NAME (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+
+
+    pageItem P205_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_REQUEST_NUMBER (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    region checklist (
+        name: Document Checklist
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_value as category_code,
+                       (select nvl(tl.category_name, dc.category_name) from xxfnd_document_categories dc
+                          left join xxfnd_document_categories_tl tl on tl.category_code = dc.category_code and tl.language_code = xxfnd_util_pkg.current_lang
+                         where dc.category_code = c.column_value) as category,
+                       case when exists (select 1 from xxfnd_attached_documents_v a
+                                          where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                            and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P205_REQUEST_ID)
+                                              or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P205_REQUEST_ID))))
+                            then 'Present' else 'Missing' end as status
+                  from table(xxcmp_doc_rule_pkg.mandatory_categories('XXCMP_PARTIES',
+                                 (select jurisdiction from xxcmp_requests where request_id = :P205_REQUEST_ID),
+                                 (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P205_REQUEST_ID))) c
+                ```
+            pageItemsToSubmit: P205_REQUEST_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: checklist
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No mandatory documents are configured for this counterparty.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Mandatory Document
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P205_REQUEST_ID.
+                }
+                clearCache: 201,202,203,204
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- same rule as Edit on the KYC Requests list: the requester, while the request can change
+                select 1
+                  from xxcmp_requests r
+                 where r.request_id = :P205_REQUEST_ID
+                   and upper(r.requester_user_name) = upper(:APP_USER)
+                   and r.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+                ```
+        }
+    )
+
+    button open-case (
+        buttonName: OPEN_CASE
+        label: Open Case
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 211
+                items: {
+                    P211_CASE_ID: &P205_CASE_ID.
+                }
+                clearCache: 211
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_CASE_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+    )
+
+    process load-case (
+        name: Load case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select max(case_id) into :P205_CASE_ID from xxcmp_cases where request_id = :P205_REQUEST_ID;
+                -- the breadcrumb shows the request number before the page items are rendered
+                select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                -- the common Party / Approval Path / History regions (Global Page)
+                :P0_REQUEST_ID := :P205_REQUEST_ID;
+                :P0_SUMMARY_PARTY_ID := :P205_PARTY_ID;
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
+)

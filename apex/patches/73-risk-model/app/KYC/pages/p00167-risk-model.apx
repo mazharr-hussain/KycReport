@@ -1,0 +1,1039 @@
+page 167 (
+    name: Risk Model
+    alias: RISK-MODEL
+    title: Risk Model
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Release 74 (R16): the risk model that suggests each case's risk tier - its factors, the country lists (FATF black and grey lists, company list) and the tier thresholds with their review intervals. Business users change it; another person approves every change (My Tasks) before it scores cases. The impact of pending changes is shown first.
+    }
+
+    region breadcrumb (
+        name: Risk Model
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    button submit-changes (
+        buttonName: SUBMIT_CHANGES
+        label: Submit Changes for Approval
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_risk_pkg.has_pending_changes = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process submit-changes (
+        name: Submit the changes for approval
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_risk_pkg.submit_changes;
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Submitted: another person approves the changes in My Tasks.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit-changes
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region impact (
+        name: Impact of the Changes
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R24): the open cases whose score or suggested tier would change once the changes are approved
+                select j.case_number, j.party_name, j.current_score, j.current_tier, j.proposed_score, j.proposed_tier
+                  from json_table(xxcmp_risk_pkg.impact_json, '$[*]'
+                           columns (case_number    varchar2(30)  path '$.case_number',
+                                    party_name     varchar2(400) path '$.party_name',
+                                    current_score  number        path '$.current_score',
+                                    current_tier   varchar2(30)  path '$.current_tier',
+                                    proposed_score number        path '$.proposed_score',
+                                    proposed_tier  varchar2(30)  path '$.proposed_tier')) j
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: impact
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_risk_pkg.has_pending_changes = 'Y'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: The changes do not change the score or the suggested tier of any open case.
+        }
+        comments {
+            comments: Before approving or submitting a change, see which open cases it affects: their score and suggested tier with the model in use and with the change.
+        }
+
+        column CASE_NUMBER (
+            type: plainText
+            heading {
+                heading: Case
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column CURRENT_SCORE (
+            type: plainText
+            heading {
+                heading: Score Now
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column CURRENT_TIER (
+            type: plainText
+            heading {
+                heading: Tier Now
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PROPOSED_SCORE (
+            type: plainText
+            heading {
+                heading: Score After
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column PROPOSED_TIER (
+            type: plainText
+            heading {
+                heading: Tier After
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+    )
+
+    region factors (
+        name: Risk Factors
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select factor_code, factor_name, description, factor_type, points, force_tier, enabled_flag, display_sequence,
+                       approved_points, approval_status
+                  from xxcmp_risk_factors
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: factors
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No risk factors.
+        }
+        toolbar {
+            controls: [
+                searchField
+                actionsMenu
+                saveButton
+            ]
+        }
+        comments {
+            comments: What adds to a cases risk score. A change applies once another person approves it; until then the approved values are used.
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @FACTOR_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @FACTOR_TYPE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @POINTS
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @FORCE_TIER
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_POINTS
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 8
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 1
+            }
+        )
+
+        column FACTOR_CODE (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FACTOR_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column FACTOR_NAME (
+            type: displayOnly
+            heading {
+                heading: Factor
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FACTOR_NAME
+                dataType: varchar2
+            }
+        )
+
+        column DESCRIPTION (
+            type: displayOnly
+            heading {
+                heading: When It Applies
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+        )
+
+        column FACTOR_TYPE (
+            type: selectList
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'RISK_FACTOR_TYPE'
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FACTOR_TYPE
+                dataType: varchar2
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column POINTS (
+            type: numberField
+            heading {
+                heading: Points / %
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: POINTS
+                dataType: number
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column FORCE_TIER (
+            type: selectList
+            heading {
+                heading: Forces Tier
+            }
+            layout {
+                sequence: 50
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'RISK_TIER' and enabled_flag = 'Y' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FORCE_TIER
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: selectList
+            heading {
+                heading: In Use
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'YES_NO' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column APPROVED_POINTS (
+            type: displayOnly
+            heading {
+                heading: Approved Points
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVED_POINTS
+                dataType: number
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: selectList
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 80
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'APPROVAL_STATUS' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVAL_STATUS
+                dataType: varchar2
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+
+    )
+
+    process save-factors (
+        name: Save risk factors
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @factors
+        execution {
+            sequence: 20
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region countries (
+        name: Country Lists
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select risk_country_id, list_code, country_code, source_reference, enabled_flag, approved_enabled_flag, approval_status
+                  from xxcmp_risk_countries
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: countries
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No countries.
+        }
+        toolbar {
+            controls: [
+                searchField
+                actionsMenu
+                saveButton
+            ]
+        }
+        comments {
+            comments: The FATF black and grey lists and the company list. Keep the FATF lists current after each FATF plenary (fatf-gafi.org); take a country off a list with On the List = No.
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @LIST_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @COUNTRY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @SOURCE_REFERENCE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_ENABLED_FLAG
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 6
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 1
+            }
+        )
+
+        column RISK_COUNTRY_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RISK_COUNTRY_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LIST_CODE (
+            type: selectList
+            heading {
+                heading: List
+            }
+            layout {
+                sequence: 10
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'RISK_COUNTRY_LIST' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LIST_CODE
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column COUNTRY_CODE (
+            type: selectList
+            heading {
+                heading: Country
+            }
+            layout {
+                sequence: 20
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'JURISDICTION' order by meaning
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: COUNTRY_CODE
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column SOURCE_REFERENCE (
+            type: textField
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SOURCE_REFERENCE
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: selectList
+            heading {
+                heading: On the List
+            }
+            layout {
+                sequence: 40
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'YES_NO' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+        column APPROVED_ENABLED_FLAG (
+            type: displayOnly
+            heading {
+                heading: Approved
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVED_ENABLED_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: selectList
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'APPROVAL_STATUS' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVAL_STATUS
+                dataType: varchar2
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+    )
+
+    process save-countries (
+        name: Save country lists
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @countries
+        execution {
+            sequence: 30
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region tiers (
+        name: Risk Tiers
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select risk_tier, min_score, review_months, approved_min_score, approved_review_months, approval_status
+                  from xxcmp_risk_tiers
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tiers
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No tiers.
+        }
+        toolbar {
+            controls: [
+                searchField
+                actionsMenu
+                saveButton
+            ]
+        }
+        comments {
+            comments: The score from which each tier is suggested, and how often a party of that tier is reviewed.
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @RISK_TIER
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @MIN_SCORE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @REVIEW_MONTHS
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_MIN_SCORE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_REVIEW_MONTHS
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 6
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 1
+            }
+        )
+
+        column RISK_TIER (
+            type: selectList
+            heading {
+                heading: Tier
+            }
+            layout {
+                sequence: 10
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'RISK_TIER' and enabled_flag = 'Y' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RISK_TIER
+                dataType: varchar2
+                primaryKey: true
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column MIN_SCORE (
+            type: numberField
+            heading {
+                heading: From Score
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: MIN_SCORE
+                dataType: number
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column REVIEW_MONTHS (
+            type: numberField
+            heading {
+                heading: Review Every (Months)
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: REVIEW_MONTHS
+                dataType: number
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column APPROVED_MIN_SCORE (
+            type: displayOnly
+            heading {
+                heading: Approved From
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVED_MIN_SCORE
+                dataType: number
+            }
+        )
+
+        column APPROVED_REVIEW_MONTHS (
+            type: displayOnly
+            heading {
+                heading: Approved Months
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVED_REVIEW_MONTHS
+                dataType: number
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: selectList
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values where lookup_type = 'APPROVAL_STATUS' order by display_sequence
+                    ```
+                displayNullValue: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVAL_STATUS
+                dataType: varchar2
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+    )
+
+    process save-tiers (
+        name: Save risk tiers
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @tiers
+        execution {
+            sequence: 40
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+)

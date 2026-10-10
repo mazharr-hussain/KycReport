@@ -1,0 +1,788 @@
+page 27 (
+    name: Registry Check
+    alias: REGISTRY-CHECK
+    title: Registry Check
+    pageGroup: @parties
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: A company registry (KYB) check of the organisation: what the registry holds against the party record. Entered by hand now; once a registry provider is set up in COMMON, the provider fills it and a person reviews it.
+    }
+
+    region form (
+        name: Registry Check
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_PARTY_REGISTRY_CHECKS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P27_REGISTRY_CHECK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: REGISTRY_CHECK_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P27_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: PARTY_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P27_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: CASE_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P27_SOURCE (
+        type: displayOnly
+        label {
+            label: Source
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: SOURCE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: MANUAL
+        }
+        settings {
+            sendOnPageSubmit: true
+        }
+        help {
+            helpText: Entered by hand, or from the registry provider once the integration is set up (the provider data is kept unchanged in the original response).
+        }
+    )
+
+    pageItem P27_REGISTRY_NAME (
+        type: textField
+        label {
+            label: Registry
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: REGISTRY_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: The registry that was searched, for example the Ministry of Economy commercial register.
+        }
+    )
+
+    pageItem P27_EXTERNAL_REFERENCE (
+        type: textField
+        label {
+            label: Registry Reference
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: EXTERNAL_REFERENCE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_REGISTERED_NAME (
+        type: textField
+        label {
+            label: Registered Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 400
+        }
+        source {
+            formRegion: @form
+            column: REGISTERED_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_REGISTRATION_NUMBER (
+        type: textField
+        label {
+            label: Registration No.
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+        source {
+            formRegion: @form
+            column: REGISTRATION_NUMBER
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_REGISTRATION_STATUS (
+        type: selectList
+        label {
+            label: Registry Status
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'REGISTRATION_STATUS' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: REGISTRATION_STATUS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_INCORPORATION_DATE (
+        type: datePicker
+        label {
+            label: Incorporation Date
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: INCORPORATION_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P27_REGISTERED_ADDRESS (
+        type: textarea
+        label {
+            label: Registered Address
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: REGISTERED_ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_OFFICERS_SUMMARY (
+        type: textarea
+        label {
+            label: Directors and Officers
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @form
+            column: OFFICERS_SUMMARY
+            dataType: varchar2
+        }
+        help {
+            helpText: As listed in the registry.
+        }
+    )
+
+    pageItem P27_OWNERS_SUMMARY (
+        type: textarea
+        label {
+            label: Shareholders
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @form
+            column: OWNERS_SUMMARY
+            dataType: varchar2
+        }
+        help {
+            helpText: As listed in the registry; record the owners themselves in Owners and Officers.
+        }
+    )
+
+    pageItem P27_CHECK_RESULT (
+        type: selectList
+        label {
+            label: Result
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'REGISTRY_CHECK_RESULT' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 100
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CHECK_RESULT
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_CHECKED_BY (
+        type: displayOnly
+        label {
+            label: Checked By
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: CHECKED_BY
+            dataType: varchar2
+        }
+        default {
+            type: item
+            item: APP_USER
+        }
+        settings {
+            sendOnPageSubmit: true
+        }
+    )
+
+    pageItem P27_CHECKED_DATE (
+        type: datePicker
+        label {
+            label: Checked On
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CHECKED_DATE
+            dataType: date
+        }
+        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                select trunc(sysdate) from dual
+                ```
+        }
+    )
+
+    pageItem P27_NOTES (
+        type: textarea
+        label {
+            label: Notes
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @form
+            column: NOTES
+            dataType: varchar2
+        }
+    )
+
+    pageItem P27_ENDPOINT_CODE (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: ENDPOINT_CODE
+            dataType: varchar2
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P27_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 900
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: the copy or the extract that was checked (kept with this record).
+        }
+    )
+
+    validation rules (
+        name: Rules
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.registry_check_error(:P27_PARTY_ID, :P27_SOURCE, :P27_ENDPOINT_CODE, :P27_CHECK_RESULT);
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P27_REGISTRY_CHECK_ID is null and xxcmp_party_pkg.can_record_verification(:P27_PARTY_ID, :P27_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P27_REGISTRY_CHECK_ID is not null and xxcmp_party_pkg.can_record_verification(:P27_PARTY_ID, :P27_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process changed-by-person (
+        name: Changed by a person
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- a check from the provider that a person changed is marked (the original response stays unchanged)
+                xxcmp_party_pkg.registry_check_saved(:P27_REGISTRY_CHECK_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+    process attach-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_PARTY_REGISTRY_CHECKS',
+                                p_pk1_value      => :P27_REGISTRY_CHECK_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P27_FILE,
+                                p_title          => 'Registry Check',
+                                p_page_id        => 27);
+                end;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P27_FILE is not null and :REQUEST in ('CREATE', 'SAVE')
+                ```
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+)

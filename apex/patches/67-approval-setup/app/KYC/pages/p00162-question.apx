@@ -1,0 +1,947 @@
+page 162 (
+    name: Question
+    alias: QUESTION
+    title: Question
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: onlyForSuccess
+    }
+    help {
+        helpText: Scoring changes need a second person's approval. Only approved answers are used; each case keeps the points it was scored with.
+    }
+
+    region breadcrumb (
+        name: Question
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region form (
+        name: Question
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_QUESTIONS
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    pageItem P162_QUESTION_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: QUESTION_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P162_QUESTIONNAIRE_CODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: QUESTIONNAIRE_CODE
+            dataType: varchar2
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P162_SECTION_NAME (
+        type: textField
+        label {
+            label: Section
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: SECTION_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the section.
+        }
+    )
+
+    pageItem P162_QUESTION_TEXT (
+        type: textarea
+        label {
+            label: Question
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            valueRequired: true
+            maxLength: 2000
+        }
+        source {
+            formRegion: @form
+            column: QUESTION_TEXT
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the question.
+        }
+    )
+
+    pageItem P162_ANSWER_TYPE (
+        type: selectList
+        label {
+            label: Answer Type
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-qa-answer-type
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: ANSWER_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the answer Type.
+        }
+    )
+
+    pageItem P162_LOOKUP_TYPE (
+        type: selectList
+        label {
+            label: Answers From Lookup
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-lookup-types
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: LOOKUP_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choice questions can take their answers from a lookup type.
+        }
+    )
+
+    pageItem P162_GATE_QUESTION_FLAG (
+        type: switch
+        label {
+            label: Applicability Gate
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: GATE_QUESTION_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: N
+        }
+        help {
+            helpText:
+                ```
+                Gates are evaluated before scoring: when every gate is answered its waiver-qualifying way, KYC is not required.
+                ```
+        }
+    )
+
+    pageItem P162_REQUIRED_FLAG (
+        type: switch
+        label {
+            label: Required
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: REQUIRED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the required.
+        }
+    )
+
+    pageItem P162_DISPLAY_SEQUENCE (
+        type: numberField
+        label {
+            label: Sequence
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: DISPLAY_SEQUENCE
+            dataType: number
+        }
+        help {
+            helpText: Enter the sequence.
+        }
+    )
+
+    pageItem P162_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    pageItem P162_CHANGE_REASON (
+        type: textField
+        label {
+            label: Reason for Change
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Recorded in the audit log with scoring changes.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Back
+        layout {
+            sequence: 10
+            region: @form
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 161
+                items: {
+                    P161_QUESTIONNAIRE_CODE: &P162_QUESTIONNAIRE_CODE.
+                }
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 20
+            region: @form
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P162_QUESTION_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @form
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P162_QUESTION_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button submit-approval (
+        buttonName: SUBMIT_APPROVAL
+        label: Submit Answer Changes for Approval
+        layout {
+            sequence: 40
+            region: @form
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_answer_options
+                 where question_id = :P162_QUESTION_ID and approval_status in ('DRAFT','REJECTED')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region answers (
+        name: Answers and Scoring
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select o.answer_option_id, o.question_id, o.lookup_type, o.lookup_code, o.answer_label, o.risk_points,
+                       o.critical_flag, o.waiver_qualifying_flag, o.display_sequence, o.enabled_flag,
+                       o.approval_status, o.approved_by
+                  from xxcmp_answer_options o
+                 where o.question_id = :P162_QUESTION_ID
+                ```
+            pageItemsToSubmit: P162_QUESTION_ID
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: answers
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P162_QUESTION_ID
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @LOOKUP_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ANSWER_LABEL
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @RISK_POINTS
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CRITICAL_FLAG
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @WAIVER_QUALIFYING_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @APPROVED_BY
+                layout {
+                    sequence: 10
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column ANSWER_OPTION_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ANSWER_OPTION_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column QUESTION_ID (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: QUESTION_ID
+                dataType: number
+            }
+            default {
+                type: item
+                item: P162_QUESTION_ID
+            }
+        )
+
+        column LOOKUP_TYPE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_TYPE
+                dataType: varchar2
+            }
+            default {
+                type: item
+                item: P162_LOOKUP_TYPE
+            }
+        )
+
+        column LOOKUP_CODE (
+            type: selectList
+            heading {
+                heading: Lookup Answer
+            }
+            layout {
+                sequence: 50
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select meaning as display_value, lookup_code as return_value
+                      from xxfnd_lookup_values_vl
+                     where lookup_type = (select lookup_type from xxcmp_questions where question_id = :P162_QUESTION_ID)
+                     order by display_sequence
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LOOKUP_CODE
+                dataType: varchar2
+            }
+        )
+
+        column ANSWER_LABEL (
+            type: textField
+            heading {
+                heading: Answer Text
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 240
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ANSWER_LABEL
+                dataType: varchar2
+            }
+        )
+
+        column RISK_POINTS (
+            type: numberField
+            heading {
+                heading: Risk Points
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RISK_POINTS
+                dataType: number
+            }
+            default {
+                type: static
+                staticValue: 0
+            }
+        )
+
+        column CRITICAL_FLAG (
+            type: switch
+            heading {
+                heading: Critical
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CRITICAL_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: N
+            }
+        )
+
+        column WAIVER_QUALIFYING_FLAG (
+            type: switch
+            heading {
+                heading: Waiver
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: WAIVER_QUALIFYING_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: N
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: selectList
+            heading {
+                heading: Approval
+            }
+            layout {
+                sequence: 120
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-approval-status
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVAL_STATUS
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: DRAFT
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column APPROVED_BY (
+            type: textField
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVED_BY
+                dataType: varchar2
+                queryOnly: true
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process set-change-reason (
+        name: Set change reason
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_audit_pkg.set_change_reason(:P162_CHANGE_REASON);
+                ```
+        }
+        execution {
+            sequence: 1
+            point: processing
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-answers (
+        name: Save answers
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @answers
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process submit-answers (
+        name: Submit answer changes
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- All draft or rejected answers of this question become one approval task.
+                xxfnd_approval_pkg.request('XXCMP_QUESTIONS', :P162_QUESTION_ID);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Answer changes submitted for approval.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)

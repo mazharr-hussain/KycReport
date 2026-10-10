@@ -1,0 +1,227 @@
+page 165 (
+    name: SAR Gate
+    alias: APPROVAL-MATRIX
+    title: SAR Gate
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Per risk tier, whether a case must record its suspicious activity report (SAR) decision before approval (Enhanced KYC always does). Who approves a case is set in COMMON > Approval Setup (release 74).
+    }
+
+    region breadcrumb (
+        name: SAR Gate
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region matrix (
+        name: SAR Gate by Risk Tier
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select m.risk_tier, m.required_levels, m.level1_role_code, m.level2_role_code, m.sar_gate_flag
+                  from xxcmp_approval_matrix m
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: matrix
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @RISK_TIER
+                layout {
+                    sequence: 2
+                }
+            )
+
+
+
+
+            displayColumn (
+                column: @SAR_GATE_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column RISK_TIER (
+            type: selectList
+            heading {
+                heading: Risk Tier
+            }
+            layout {
+                sequence: 20
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-risk-tier
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RISK_TIER
+                dataType: varchar2
+                primaryKey: true
+            }
+            readOnly {
+                type: always
+            }
+        )
+
+        column REQUIRED_LEVELS (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: REQUIRED_LEVELS
+                dataType: number
+            }
+        )
+
+        column LEVEL1_ROLE_CODE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LEVEL1_ROLE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column LEVEL2_ROLE_CODE (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LEVEL2_ROLE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column SAR_GATE_FLAG (
+            type: switch
+            heading {
+                heading: SAR Gate
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SAR_GATE_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: N
+            }
+        )
+
+    )
+
+    process save-matrix (
+        name: Save matrix
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @matrix
+        execution {
+            sequence: 10
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)
