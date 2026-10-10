@@ -265,6 +265,12 @@
   ]
  },
  {
+  "name": "19a Grants to the shared schema (before the seed)",
+  "file": "19a-grants-to-shared-schema.sql",
+  "install_sequence": 175,
+  "upgrade_sequence": 135
+ },
+ {
   "name": "18 Seed data and administrator - part 2 of 2",
   "file": "18-seed-data-and-administrator-part-2-of-2.sql",
   "install_sequence": 180,

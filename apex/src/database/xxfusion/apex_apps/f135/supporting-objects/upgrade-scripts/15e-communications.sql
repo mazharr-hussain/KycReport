@@ -258,13 +258,9 @@ begin
        on (t.purpose_code = s.purpose_code)
      when not matched then insert (purpose_code, application_code, purpose_name, capture_method, approval_status)
                            values ('EMAIL_SYNC', null, 'E-mail with outside parties (Outlook)', 'MANUAL', 'APPROVED');
-    merge into xxfnd_data_security_rules d
-    using (select 'COMMON_ADMIN' rc, 'XXFND_COMMUNICATIONS' tn from dual) s
-       on (d.role_code = s.rc and d.table_name = s.tn and d.rule_type = 'ALL_ROWS')
-     when not matched then insert (role_code, table_name, rule_type) values (s.rc, s.tn, 'ALL_ROWS');
+    -- data security: the Common administrators' rule is seeded by XXFND_SHARE_PKG.SEED_COMMON (19c, run by 20, after the role); applications add theirs
     commit;
     xxfnd_util_pkg.set_install_mode(false);
-    xxfnd_schema_pkg.apply_policies;
 exception
     when others then
         xxfnd_util_pkg.set_install_mode(false);

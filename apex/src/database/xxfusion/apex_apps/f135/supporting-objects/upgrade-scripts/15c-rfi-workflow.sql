@@ -89,13 +89,7 @@ begin
     xxfnd_ddl_pkg.ensure_sequence('XXFND_RFI_S', 'create sequence xxfnd_rfi_s');
     xxfnd_ddl_pkg.ensure_sequence('XXFND_RFI_NUMBER_S', 'create sequence xxfnd_rfi_number_s');
 
-    -- data security: Common administrators see every RFI; each application adds its own roles' rules (KYC: 18e)
-    merge into xxfnd_data_security_rules t
-    using (select 'COMMON_ADMIN' r, 'XXFND_RFIS' tb, 'ALL_ROWS' ty from dual) s
-       on (t.role_code = s.r and t.table_name = s.tb and t.rule_type = s.ty)
-     when not matched then insert (role_code, table_name, rule_type) values (s.r, s.tb, s.ty);
-    commit;
-    xxfnd_schema_pkg.apply_policies;
+    -- data security: the Common administrators' rule is seeded by XXFND_SHARE_PKG.SEED_COMMON (19c, run by 20, after the role); applications add theirs (KYC: 18e)
 end;
 /
 
