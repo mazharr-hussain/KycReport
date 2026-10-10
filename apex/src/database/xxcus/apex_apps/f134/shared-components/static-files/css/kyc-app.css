@@ -91,7 +91,7 @@
 .a-GV-cell { font-size: .875rem; padding-top: .75rem; padding-bottom: .75rem; vertical-align: top; }
 .kyc-meta { display: block; font-size: .75rem; color: var(--kyc-muted); }
 
-/* ---- 9 status badges (xxfnd_ui_pkg.badge / status_badge) ---- */
+/* ---- 9 status badges (column templates; tone from xxfnd_ui_pkg.status_tone) ---- */
 .kyc-badge { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .625rem; border-radius: 999px;
              font-size: .75rem; font-weight: 700; line-height: 1.4; white-space: nowrap; }
 .kyc-badge--neutral { background: var(--kyc-neutral-bg); color: var(--kyc-neutral); }
@@ -101,7 +101,7 @@
 .kyc-badge--danger  { background: var(--kyc-danger-bg);  color: var(--kyc-danger); }
 .kyc-badge:empty, .kyc-person:empty { display: none; }
 
-/* ---- people: employee name with a hover card (xxfnd_ui_pkg.person_html) ---- */
+/* ---- people: employee name with a hover card (column templates; kyc-app.js kycPerson builds the card from PERSON_CARD JSON) ---- */
 .kyc-person { position: relative; border-bottom: 1px dotted currentColor; cursor: default; }
 .kyc-person--system { border-bottom: 0; color: var(--kyc-muted); }
 .kyc-person-card { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 1000; min-width: 16rem;
@@ -131,7 +131,7 @@
 .kyc-actionbar { position: sticky; bottom: 0; z-index: 50; background: #fff;
                  border-top: 1px solid var(--kyc-border); box-shadow: 0 -2px 8px rgba(0, 0, 0, .06); }
 
-/* ---- 8 KPI cards (xxfnd_ui_pkg.kpi_card): whole card is the link ---- */
+/* ---- 8 KPI cards (release 29; release 74: the home tiles use the standard Cards report): whole card is the link ---- */
 .kyc-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 .kyc-kpi { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.25rem; background: #fff; color: var(--kyc-text);
            border: 1px solid var(--kyc-border); border-top: 4px solid var(--kyc-neutral); border-radius: 8px;

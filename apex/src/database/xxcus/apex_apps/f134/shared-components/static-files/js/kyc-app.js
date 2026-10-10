@@ -55,8 +55,16 @@ window.kycQuestionnaire = (function ($) {
     "use strict";
     $(document).on("mouseenter focusin", ".kyc-person[data-user]:not([data-loaded])", function () {
         var el = $(this).attr("data-loaded", "Y");
-        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "text" })
-            .done(function (html) { el.append(html); });
+        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "json" })
+            .done(function (p) {
+                // release 74: the server returns data; the card is built here (escaped)
+                if (!p || !p.user_name) { return; }
+                var esc = apex.util.escapeHTML, rows = [["Name", p.name], ["Employee no.", p.employee_number],
+                                                         ["Department", p.department], ["User name", p.user_name]];
+                el.append('<span class="kyc-person-card" role="tooltip"><table>' + rows.map(function (r) {
+                    return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1] || "-") + '</td></tr>';
+                }).join("") + '</table></span>');
+            });
     });
 })(apex.jQuery);
 

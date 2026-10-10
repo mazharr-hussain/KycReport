@@ -86,19 +86,10 @@ page 211 (
     )
 
     region section-nav (
-        name: Sections
-        type: dynamicContent
+        name: Sections · progress &P211_PROGRESS.
+        type: list
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_case_pkg.nav_html(:P211_CASE_ID, :P211_SECTION, :P211_TASK_ID);
-                ```
-            pageItemsToSubmit: [
-                P211_CASE_ID
-                P211_SECTION
-                P211_TASK_ID
-            ]
+            list: @case-sections
         }
         layout {
             sequence: 10
@@ -108,8 +99,24 @@ page 211 (
             template: @/standard
             templateOptions: #DEFAULT#
         }
+        componentAppearance {
+            listTemplate: @/links-list
+            templateOptions: [
+                #DEFAULT#
+                t-LinksList--showIcons
+            ]
+        }
         advanced {
             htmlDomId: case_sections
+        }
+    )
+
+    pageItem P211_PROGRESS (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @section-nav
+            slot: regionBody
         }
     )
 
@@ -340,12 +347,48 @@ page 211 (
 
     region case-header (
         name: Case Header
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return '<div class="kyc-hcard">' || xxcmp_request_ui_pkg.case_header_html(to_number(:P211_CASE_ID)) || '</div>';
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R7, R11): the case header card from data (no HTML from PL/SQL); data security applies
+                select c.case_number || ' · ' || p.party_name as title,
+                       xxfnd_ui_pkg.status_label('CASE', c.case_status) as status_label,
+                       xxfnd_ui_pkg.status_tone('CASE', c.case_status) as status_tone,
+                       xxfnd_ui_pkg.status_label('RISK', c.risk_tier) as risk_label,
+                       xxfnd_ui_pkg.status_tone('RISK', c.risk_tier) as risk_tone,
+                       case when c.enhanced_kyc_flag = 'Y' then 'Enhanced KYC' end as edd_label,
+                       case when c.pep_flag = 'Y' then 'PEP' end as pep_label,
+                       case when c.closed_date is null then
+                           case when c.sla_due_date < trunc(sysdate) then 'Overdue'
+                                when c.sla_due_date <= trunc(sysdate) + 2 then 'Due soon' else 'On time' end
+                           || ' · SLA ' || to_char(c.sla_due_date, 'DD-MON-YYYY') end as sla_label,
+                       case when c.sla_due_date < trunc(sysdate) then 'danger'
+                            when c.sla_due_date <= trunc(sysdate) + 2 then 'warning' else 'success' end as sla_tone,
+                       ltrim(xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction)
+                             || nvl2(c.business_relationship, ' · ' || xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship), null)
+                             || nvl2(r.request_number, ' · request ' || r.request_number, null), ' ·') as info_line,
+                       c.assigned_to,
+                       nvl(xxfnd_ui_pkg.person_name(c.assigned_to), 'nobody') as assigned_name,
+                       case c.case_status
+                           when 'PENDING_APPROVAL' then 'Pending approval (level ' || nvl(c.current_level, 1) || ')'
+                           when 'PENDING_INFORMATION' then 'Pending information from the requester (level ' || nvl(c.current_level, 1) || ')'
+                       end as pending_line,
+                       a.owner as approver,
+                       xxfnd_ui_pkg.person_name(a.owner) as approver_name,
+                       to_char(a.since, 'DD-MON-YYYY HH24:MI') as approver_since
+                  from xxcmp_cases c
+                  join xxcmp_parties p on p.party_id = c.party_id
+                  left join xxcmp_requests r on r.request_id = c.request_id
+                 outer apply (select max(t.actual_owner) keep (dense_rank last order by t.created_on) as owner,
+                                     max(t.created_on) as since
+                                from apex_tasks t
+                               where t.detail_pk = to_char(c.case_id) and t.task_def_static_id = 'CASE_APPROVAL'
+                                 and t.state_code in ('UNASSIGNED', 'ASSIGNED')
+                                 and c.case_status = 'PENDING_APPROVAL') a
+                 where c.case_id = :P211_CASE_ID
                 ```
             pageItemsToSubmit: [
                 P211_CASE_ID
@@ -362,16 +405,166 @@ page 211 (
         advanced {
             htmlDomId: case_header
         }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+            ]
+        }
+        heading {
+            type: none
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: The case is not available.
+        }
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Case
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <div class="kyc-hcard"><div class="kyc-hcard-top"><span class="kyc-hcard-title">#TITLE#</span><span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS_LABEL#</span>{if RISK_LABEL/}<span class="kyc-badge kyc-badge--#RISK_TONE#">#RISK_LABEL#</span>{endif/}{if EDD_LABEL/}<span class="kyc-badge kyc-badge--warning">#EDD_LABEL#</span>{endif/}{if PEP_LABEL/}<span class="kyc-badge kyc-badge--danger">#PEP_LABEL#</span>{endif/}{if SLA_LABEL/}<span class="kyc-badge kyc-badge--#SLA_TONE#">#SLA_LABEL#</span>{endif/}</div><div class="kyc-hcard-line">#INFO_LINE# · assigned to {if ASSIGNED_TO/}<span class="kyc-person" tabindex="0" data-user="#ASSIGNED_TO#">#ASSIGNED_NAME#</span>{else/}<span class="u-color-subtle">nobody</span>{endif/}</div>{if PENDING_LINE/}<div class="kyc-hcard-line">#PENDING_LINE#{if APPROVER/} with <b><span class="kyc-person" tabindex="0" data-user="#APPROVER#">#APPROVER_NAME#</span></b>{endif/}{if APPROVER_SINCE/} since #APPROVER_SINCE#{endif/} · the case is read only</div>{endif/}</div>
+                    ```
+            }
+        )
+
+        column STATUS_LABEL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column RISK_LABEL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RISK_TONE (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EDD_LABEL (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column PEP_LABEL (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column SLA_LABEL (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column SLA_TONE (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+        column INFO_LINE (
+            type: hidden
+            layout {
+                sequence: 100
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: hidden
+            layout {
+                sequence: 110
+            }
+        )
+
+        column ASSIGNED_NAME (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column PENDING_LINE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+        column APPROVER (
+            type: hidden
+            layout {
+                sequence: 140
+            }
+        )
+
+        column APPROVER_NAME (
+            type: hidden
+            layout {
+                sequence: 150
+            }
+        )
+
+        column APPROVER_SINCE (
+            type: hidden
+            layout {
+                sequence: 160
+            }
+        )
+
     )
 
     region case-summary (
         name: &P211_SECTION_LABEL.
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_request_ui_pkg.case_summary_html(to_number(:P211_CASE_ID), to_number(:P211_TASK_ID));
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R7, R11): the case summary as data (XXCMP_CASE_PKG.CASE_SUMMARY_JSON)
+                select j.label, j.value, j.tone, j.url, j.link_text, j.user_name, j.seq, j.group_name
+                  from json_table(xxcmp_case_pkg.case_summary_json(to_number(:P211_CASE_ID), to_number(:P211_TASK_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    link_text  varchar2(200)  path '$.link_text',
+                                    user_name  varchar2(255)  path '$.user_name')) j
                 ```
             pageItemsToSubmit: [
                 P211_CASE_ID
@@ -397,6 +590,92 @@ page 211 (
                 :P211_SECTION in ('SUMMARY', 'REVIEW') or (:P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N')
                 ```
         }
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: The case is not available.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {case TONE/}{when missing/}<span class="kyc-missing">#VALUE# – <a href="#URL#">#LINK_TEXT#</a></span>{otherwise/}{if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endcase/}
+                    ```
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column LINK_TEXT (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column USER_NAME (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
     )
 
     pageItem P211_SECTION (
@@ -2505,6 +2784,7 @@ page 211 (
                     end if;
                     :P211_SECTION := nvl(:P211_SECTION, 'SUMMARY');
                     :P211_SECTION_LABEL := xxfnd_util_pkg.lookup_meaning('CASE_SECTION', :P211_SECTION);
+                    :P211_PROGRESS := xxcmp_case_pkg.section_progress(:P211_CASE_ID);
                     :P211_NEXT_SECTION := :P211_SECTION;
                     for i in 1 .. l_list.count - 1 loop
                         if l_list(i) = :P211_SECTION then

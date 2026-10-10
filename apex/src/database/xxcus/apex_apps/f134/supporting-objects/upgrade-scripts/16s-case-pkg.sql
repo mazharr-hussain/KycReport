@@ -687,33 +687,81 @@ create or replace package body xxcmp_case_pkg as
         end case;
     end section_state;
 
-    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob is
-        l_html  clob := '<ul class="kyc-case-nav">';
+    function sections return varchar2 is
+    begin
+        return c_sections;
+    end sections;
+
+    function case_summary_json(p_case_id in number, p_task_id in number default null) return clob is
+        l_rows json_array_t := json_array_t();
+        l_seq  pls_integer := 0;
+
+        procedure fld(p_group in varchar2, p_label in varchar2, p_value in varchar2, p_tone in varchar2 default null,
+                      p_url in varchar2 default null, p_link_text in varchar2 default null, p_user in varchar2 default null) is
+            l_row json_object_t := json_object_t();
+        begin
+            if p_value is not null then
+                l_seq := l_seq + 10;
+                l_row.put('group_name', p_group);
+                l_row.put('seq', l_seq);
+                l_row.put('label', p_label);
+                l_row.put('value', p_value);
+                l_row.put('tone', p_tone);
+                l_row.put('url', p_url);
+                l_row.put('link_text', p_link_text);
+                l_row.put('user_name', p_user);
+                l_rows.append(l_row);
+            end if;
+        end fld;
+
+        procedure missing(p_label in varchar2, p_text in varchar2, p_section in varchar2) is
+        begin
+            fld('Assessment', p_label, p_text, 'missing',
+                apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                  p_values => p_case_id || ',' || p_task_id || ',' || p_section),
+                xxfnd_util_pkg.lookup_meaning('CASE_SECTION', p_section));
+        end missing;
+    begin
+        for c in (select c.*, r.request_number, xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type
+                    from xxcmp_cases c
+                    left join xxcmp_requests r on r.request_id = c.request_id
+                   where c.case_id = p_case_id) loop     -- data security applies
+            fld('Case', 'Request', c.request_number || nvl2(c.request_type, ' · ' || c.request_type, null));
+            fld('Case', 'Business relationship', xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship));
+            fld('Case', 'Assigned to', nvl(xxfnd_ui_pkg.person_name(c.assigned_to), 'Nobody'), null, null, null, c.assigned_to);
+            fld('Case', 'Opened', to_char(c.creation_date, 'DD-MON-YYYY'));
+            fld('Case', 'SLA due', to_char(c.sla_due_date, 'DD-MON-YYYY'));
+            fld('Case', 'Closed', to_char(c.closed_date, 'DD-MON-YYYY'));
+            if c.risk_tier is not null then
+                fld('Assessment', 'Risk classification', xxfnd_ui_pkg.status_label('RISK', c.risk_tier),
+                    xxfnd_ui_pkg.status_tone('RISK', c.risk_tier));
+            else
+                missing('Risk classification', 'Not classified', 'RISK');
+            end if;
+            fld('Assessment', 'Due Diligence Type', xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type),
+                case when c.enhanced_kyc_flag = 'Y' then 'warning' end);
+            fld('Assessment', 'PEP', case when c.pep_flag = 'Y' then 'Yes' else 'No' end,
+                case when c.pep_flag = 'Y' then 'danger' end);
+            fld('Assessment', 'Next review', to_char(c.next_review_date, 'DD-MON-YYYY'));
+            fld('Assessment', 'Report conclusion', c.report_conclusion);
+            fld('Assessment', 'Next steps', c.next_steps);
+            fld('Assessment', 'Conditions', c.conditions);
+        end loop;
+        return l_rows.to_clob;
+    end case_summary_json;
+
+    function section_progress(p_case_id in number) return varchar2 is
         l_done  pls_integer := 0;
         l_total pls_integer := 0;
-        l_state varchar2(10);
-        l_n     pls_integer := 0;
     begin
         for s in (select column_value code from table(apex_string.split(c_sections, ':'))) loop
-            l_n     := l_n + 1;
             l_total := l_total + 1;
-            l_state := section_state(p_case_id, s.code);
-            if l_state = 'DONE' then
+            if section_state(p_case_id, s.code) = 'DONE' then
                 l_done := l_done + 1;
             end if;
-            l_html := l_html || '<li class="kyc-case-nav-item' || case when s.code = p_section then ' is-current' end
-                      || ' is-' || lower(l_state) || '"><a href="'
-                      || apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
-                                           p_values => p_case_id || ',' || p_task_id || ',' || s.code)
-                      || '"><span class="kyc-case-nav-icon fa ' || case when s.code = p_section then 'fa-dot-circle-o'
-                                                                       when l_state = 'DONE' then 'fa-check-circle'
-                                                                       when l_state = 'WARN' then 'fa-exclamation-triangle'
-                                                                       else 'fa-circle-o' end
-                      || '" aria-hidden="true"></span> ' || l_n || ' '
-                      || apex_escape.html(xxfnd_util_pkg.lookup_meaning('CASE_SECTION', s.code)) || '</a></li>';
         end loop;
-        return l_html || '</ul><p class="kyc-case-nav-progress">Progress ' || l_done || ' / ' || l_total || '</p>';
-    end nav_html;
+        return l_done || ' / ' || l_total;
+    end section_progress;
 
     function case_history_rows(p_case_id in number) return xxcmp_history_tab pipelined is
         l_case   xxcmp_cases%rowtype;

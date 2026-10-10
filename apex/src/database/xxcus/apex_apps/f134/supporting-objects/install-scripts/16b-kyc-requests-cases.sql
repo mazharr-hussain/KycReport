@@ -606,8 +606,14 @@ create or replace package xxcmp_case_pkg authid definer as
     c_sections constant varchar2(200) := 'SUMMARY:PARTY:TREE:SCREENING:DOCUMENTS:RISK:NOTES:REVIEW';
     -- DONE, TODO or WARN (an open request for information) for one section.
     function section_state(p_case_id in number, p_section in varchar2) return varchar2;
-    -- The section list with each section's state and the progress; links open the section (P211_SECTION).
-    function nav_html(p_case_id in number, p_section in varchar2, p_task_id in number default null) return clob;
+    -- release 74 (R5, R11): data for the case screen's section menu (dynamic list CASE-SECTIONS on page 211), no HTML.
+    -- The sections in order (c_sections, for SQL) and the progress "done / total".
+    function sections return varchar2;
+    function section_progress(p_case_id in number) return varchar2;
+    -- The case summary (Summary, Review, and Risk when read only) for the standard Value Attribute Pairs report (R7, R11:
+    -- moved from the request UI package, data only): JSON array [{"group_name","seq","label","value","tone","url",
+    -- "link_text","user_name"}]; a missing required value has tone "missing" and links (url, link_text) to its section.
+    function case_summary_json(p_case_id in number, p_task_id in number default null) return clob;
 
 end xxcmp_case_pkg;
 /

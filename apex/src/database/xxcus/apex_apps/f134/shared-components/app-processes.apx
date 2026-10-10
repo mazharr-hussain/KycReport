@@ -81,8 +81,8 @@ appProcess PERSON_CARD (
         language: plsql
         plsqlCode:
             ```plsql
-            -- Hover card of an employee for list cells (kyc-app.js kycPerson): x01 = user name; returns the card HTML.
-            htp.p(xxfnd_ui_pkg.person_card(apex_application.g_x01));
+            -- Hover card of an employee for list cells (kyc-app.js kycPerson builds it): x01 = user name; returns JSON.
+            htp.p(nvl(xxfnd_ui_pkg.person_json(apex_application.g_x01), '{}'));
             ```
     }
     execution {
