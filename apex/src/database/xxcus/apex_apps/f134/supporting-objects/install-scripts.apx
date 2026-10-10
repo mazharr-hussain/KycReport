@@ -322,24 +322,6 @@ installScript 19a-grants-to-the-shared-schema-before-the-seed (
     }
 )
 
-installScript 16l-kyc-approvals-in-the-common-approval-setup (
-    execution {
-        sequence: 176
-    }
-    script {
-        contentFile: 16l-kyc-approval-setup.sql
-    }
-    serverSideCondition {
-        type: rowsReturned
-        sqlQuery:
-            ```sql
-            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables
-                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
-            ```
-    }
-)
-
 installScript 16m-kyc-case-status-pending-information (
     execution {
         sequence: 177
@@ -454,6 +436,24 @@ installScript 18b-security-framework-seed (
     }
     script {
         contentFile: 18b-security-framework-seed.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
+installScript 16l-kyc-approvals-in-the-common-approval-setup (
+    execution {
+        sequence: 186
+    }
+    script {
+        contentFile: 16l-kyc-approval-setup.sql
     }
     serverSideCondition {
         type: rowsReturned

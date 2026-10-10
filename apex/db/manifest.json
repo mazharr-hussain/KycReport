@@ -337,7 +337,7 @@
  {
   "name": "16l KYC approvals in the common Approval Setup",
   "file": "16l-kyc-approval-setup.sql",
-  "install_sequence": 176,
+  "install_sequence": 186,
   "upgrade_sequence": 136
  },
  {
