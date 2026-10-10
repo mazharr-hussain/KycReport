@@ -390,6 +390,23 @@ upgradeScript 15c-request-for-information-workflow (
     }
 )
 
+upgradeScript 15d-approval-setup (
+    execution {
+        sequence: 114
+    }
+    script {
+        contentFile: 15d-approval-setup.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 17-seed-data-and-administrator-part-1-of-2 (
     execution {
         sequence: 130

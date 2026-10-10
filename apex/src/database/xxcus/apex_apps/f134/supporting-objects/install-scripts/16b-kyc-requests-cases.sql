@@ -588,6 +588,8 @@ create or replace package xxcmp_case_pkg authid definer as
     -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
     -- release 74: an RFI raised from a case (or its request / party) - the case gives the recipient (a user, or a
     -- contact person of the party: name and e-mail), then starts the common RFI workflow and e-mails the recipient.
+    -- release 74: the attributes the Approval Setup tests for a case (transaction type KYC_CASE)
+    function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2;
     procedure raise_rfi(p_entity_name      in varchar2,
                         p_pk1_value        in varchar2,
                         p_recipient_type   in varchar2,
@@ -1792,6 +1794,7 @@ create or replace package body xxcmp_case_pkg as
         insert into xxcmp_case_decisions (case_id, level_no, role_code, decided_by, outcome, comments)
         values (p_case_id, nvl(l_case.current_level, 1), null, xxfnd_util_pkg.current_user, 'WITHDRAWN', substr(p_reason, 1, 4000));
         xxfnd_workflow_pkg.end_process(l_case.workflow_id);
+        xxfnd_approval_rule_pkg.cancel('KYC_CASE', to_char(p_case_id));
         update xxcmp_cases
            set case_status = 'INVESTIGATION', current_level = null, investigation_completed_date = null
          where case_id = p_case_id;
@@ -1829,18 +1832,38 @@ create or replace package body xxcmp_case_pkg as
             raise_application_error(-20612, 'The approval matrix has no row for risk tier ' || p_case.risk_tier || '.');
     end matrix;
 
-    function required_levels(p_case_id in number) return number is
-        l_case xxcmp_cases%rowtype := get_case(p_case_id);
-        l_m    xxcmp_approval_matrix%rowtype := matrix(l_case);
+    -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE)
+    function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2 is
+        l_party_type xxcmp_parties.party_type%type;
     begin
-        return case when l_case.enhanced_kyc_flag = 'Y' then greatest(l_m.required_levels, 2) else l_m.required_levels end;
+        select max(party_type) into l_party_type from xxcmp_parties where party_id = p_case.party_id;
+        return apex_t_varchar2('RISK_TIER=' || p_case.risk_tier, 'ENHANCED_KYC=' || nvl(p_case.enhanced_kyc_flag, 'N'),
+                               'PARTY_TYPE=' || l_party_type, 'BUSINESS_RELATIONSHIP=' || p_case.business_relationship);
+    end case_attributes;
+
+    function level_step(p_case_id in number, p_level in number) return xxfnd_approval_step_row is
+        l_attrs apex_t_varchar2 := case_attributes(get_case(p_case_id));
+        l_step  xxfnd_approval_step_row;
+    begin
+        for s in (select value(t) v from table(xxfnd_approval_rule_pkg.steps('KYC_CASE', to_char(p_case_id), l_attrs)) t
+                   where t.position = p_level) loop
+            l_step := s.v;
+        end loop;
+        return l_step;
+    end level_step;
+
+    function required_levels(p_case_id in number) return number is
+        l_attrs apex_t_varchar2 := case_attributes(get_case(p_case_id));
+        l_n     number;
+    begin
+        select count(*) into l_n from table(xxfnd_approval_rule_pkg.steps('KYC_CASE', to_char(p_case_id), l_attrs));
+        return l_n;
     end required_levels;
 
     function level_role(p_case_id in number, p_level in number) return varchar2 is
-        l_m xxcmp_approval_matrix%rowtype := matrix(get_case(p_case_id));
+        l_step xxfnd_approval_step_row := level_step(p_case_id, p_level);
     begin
-        return case p_level when 1 then l_m.level1_role_code
-                            else nvl(l_m.level2_role_code, 'HEAD_OF_COMPLIANCE') end;
+        return case when l_step is not null and l_step.approver_type = 'ROLE' then l_step.role_code end;
     end level_role;
 
     function sar_gate(p_case_id in number) return varchar2 is
@@ -1872,6 +1895,7 @@ create or replace package body xxcmp_case_pkg as
     end prior_actors;
 
     function level_approvers(p_case_id in number) return varchar2 is
+        l_step  xxfnd_approval_step_row;
         l_case  xxcmp_cases%rowtype;
         l_role  varchar2(30);
         l_prior apex_t_varchar2;
@@ -1882,6 +1906,17 @@ create or replace package body xxcmp_case_pkg as
         l_case  := get_case(p_case_id);
         l_role  := level_role(p_case_id, l_case.current_level);
         l_prior := prior_actors(p_case_id);
+        -- release 74: a level for a named user (or the requester) from the Approval Setup
+        if l_role is null then
+            l_step := level_step(p_case_id, l_case.current_level);
+            if l_step.approver_type = 'USER' then
+                l_out := upper(l_step.user_name);
+            elsif l_step.approver_type = 'REQUESTER' then
+                select max(upper(requester_user_name)) into l_out from xxcmp_requests where request_id = l_case.request_id;
+            end if;
+            xxfnd_vpd_pkg.end_trusted;
+            return l_out;
+        end if;
         for u in (select distinct ur.user_name from xxfnd_user_roles_v ur
                    where ur.role_code = l_role and ur.active_flag = 'Y'
                    order by ur.user_name) loop
@@ -1980,6 +2015,7 @@ create or replace package body xxcmp_case_pkg as
 
     procedure record_decision(p_case_id in number, p_outcome in varchar2, p_comments in varchar2, p_task_id in number) is
         l_case xxcmp_cases%rowtype;
+        l_more varchar2(1);
     begin
         xxfnd_vpd_pkg.begin_trusted;
         l_case := get_case(p_case_id);
@@ -1988,6 +2024,8 @@ create or replace package body xxcmp_case_pkg as
                 xxfnd_util_pkg.current_user, p_outcome, p_comments, p_task_id);
         if p_outcome = 'APPROVED' then
             update xxcmp_cases set current_level = current_level + 1 where case_id = p_case_id;
+            -- keep the Approval Setup's pointer with the level (N after the last level: the workflow approves next)
+            l_more := xxfnd_approval_rule_pkg.next_step('KYC_CASE', to_char(p_case_id));
         end if;
         xxfnd_vpd_pkg.end_trusted;
     exception
@@ -2009,8 +2047,11 @@ create or replace package body xxcmp_case_pkg as
     end next_review_date;
 
     procedure start_approval(p_case_id in number) is
+        l_rule varchar2(100);
     begin
         xxfnd_vpd_pkg.begin_trusted;
+        l_rule := xxfnd_approval_rule_pkg.start_approval('KYC_CASE', to_char(p_case_id), case_attributes(get_case(p_case_id)),
+                                                         null);
         update xxcmp_cases
            set case_status = 'PENDING_APPROVAL', current_level = 1, investigation_completed_date = systimestamp,
                -- release 73: approval workflow switched off - the workflow (version 1.1) approves the case next

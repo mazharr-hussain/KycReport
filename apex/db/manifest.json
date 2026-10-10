@@ -213,6 +213,15 @@
   ]
  },
  {
+  "name": "15d Approval Setup",
+  "file": "15d-approval-setup.sql",
+  "install_sequence": 154,
+  "upgrade_sequence": 114,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
@@ -303,6 +312,12 @@
   "file": "16k-rfi-to-common.sql",
   "install_sequence": 173,
   "upgrade_sequence": 133
+ },
+ {
+  "name": "16l KYC approvals in the common Approval Setup",
+  "file": "16l-kyc-approval-setup.sql",
+  "install_sequence": 176,
+  "upgrade_sequence": 136
  },
  {
   "name": "18e KYC requests and cases - seed",

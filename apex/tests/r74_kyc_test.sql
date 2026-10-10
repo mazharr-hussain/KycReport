@@ -94,6 +94,46 @@ begin
     xxfnd_vpd_pkg.end_trusted;
     ok('every earlier RFI is in the common table with its number', l_n = 0);
     rollback;
+
+    -- Approval Setup (AME style): request and case approvers from rules, ad-hoc approver
+    declare
+        l_req   number;
+        l_names varchar2(4000);
+        l_lv    number;
+        l_tier  varchar2(30);
+    begin
+        apex_session.create_session(l_app, 1, 'OFFICER1');
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(request_id) into l_req from xxcmp_requests where request_status = 'IN_PROGRESS';
+        ok('request approvers come from the Approval Setup',
+           xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(l_req)) = 'Y'
+           and xxcmp_approval_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));
+        select max(case_id) keep (dense_rank last order by case_id), max(risk_tier) keep (dense_rank last order by case_id)
+          into l_case, l_tier from xxcmp_cases where case_status = 'INVESTIGATION' and risk_tier is not null;
+        if l_case is null then
+            dbms_output.put_line('SKIP no case with a risk tier under investigation');
+        else
+            l_lv := xxcmp_case_pkg.required_levels(l_case);
+            ok('case levels from the matching rule (' || l_lv || ' for tier ' || l_tier || ')', l_lv >= 1);
+            xxcmp_case_pkg.start_approval(l_case);
+            xxfnd_approval_rule_pkg.add_approver('KYC_CASE', to_char(l_case), 'ROLE', 'HEAD_OF_COMPLIANCE',
+                                                 p_comment => 'Large exposure', p_force => 'Y');
+            ok('an ad-hoc approver adds a level (' || l_lv || ' -> ' || xxcmp_case_pkg.required_levels(l_case) || ')',
+               xxcmp_case_pkg.required_levels(l_case) = l_lv + 1);
+            select count(*) into l_n from table(xxfnd_approval_rule_pkg.steps('KYC_CASE', to_char(l_case)))
+             where source = 'ADHOC' and position = 2;
+            ok('added right after the current approver', l_n = 1);
+            begin
+                apex_session.create_session(l_app, 1, 'REQ2');
+                xxfnd_approval_rule_pkg.add_approver('KYC_CASE', to_char(l_case), 'USER', p_user_name => 'REQ2');
+                ok('only the requester or the current approver may add an approver', false);
+            exception when others then
+                ok('only the requester or the current approver may add an approver', sqlcode = -20533);
+            end;
+        end if;
+        xxfnd_vpd_pkg.end_trusted;
+        rollback;
+    end;
 end;
 /
 exit
