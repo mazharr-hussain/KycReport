@@ -104,7 +104,10 @@ begin
     begin
         apex_session.create_session(l_app, 1, 'OFFICER1');
         xxfnd_vpd_pkg.begin_trusted;
-        select max(request_id) into l_req from xxcmp_requests where request_status = 'IN_PROGRESS';
+        -- release 76 (T-01): the newest request whose approval is in progress (not just any request In Progress)
+        select max(r.request_id) into l_req from xxcmp_requests r
+         where r.request_status = 'IN_PROGRESS'
+           and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(r.request_id)) = 'Y';
         ok('request approvers come from the Approval Setup',
            xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(l_req)) = 'Y'
            and xxcmp_approval_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));

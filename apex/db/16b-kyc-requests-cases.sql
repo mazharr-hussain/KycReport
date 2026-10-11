@@ -591,6 +591,9 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Workflow steps (KYC_CASE).
     procedure start_approval(p_case_id in number);
+    -- Release 76 (A-11): Y when the case goes to its approvers - the approval workflow is on and the matching Approval
+    -- Setup rule has steps (a rule without steps approves the case at once). The KYC_CASE workflow (version 1.3) asks it.
+    function approval_required(p_case_id in number) return varchar2;
     function has_next_level(p_case_id in number) return varchar2;
     procedure approve_case(p_case_id in number);
     procedure reject_case(p_case_id in number);

@@ -558,6 +558,7 @@ create or replace package body xxcmp_request_pkg as
     procedure submit(p_request_id in number) is
         l_error varchar2(4000) := submit_error(p_request_id);
         l_wf    number;
+        l_auto  boolean;
     begin
         if l_error is not null then
             raise_application_error(-20601, l_error);
@@ -572,7 +573,17 @@ create or replace package body xxcmp_request_pkg as
                      and rfi_status = 'WAITING_FOR_INFORMATION') loop
             xxfnd_rfi_pkg.resolve(f.rfi_id, 'RESOLVED', 'Answered by submitting the request again.');
         end loop;
-        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'N' then
+        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'Y' then
+            -- release 76 (A-11): the Approval Setup rule - no rule or a step nobody can approve stops the submit with its
+            -- message; a rule without steps approves the request at once, like the switched-off approval below
+            xxcmp_approval_pkg.start_path(p_request_id);
+            xxfnd_vpd_pkg.begin_trusted;       -- the approval steps are not the requester's to see
+            l_auto := xxfnd_approval_rule_pkg.step_count('KYC_REQUEST', to_char(p_request_id)) = 0;
+            xxfnd_vpd_pkg.end_trusted;
+        else
+            l_auto := true;
+        end if;
+        if l_auto then
             -- release 73: approval workflow switched off - auto-approved: the steps of KYC_REQUEST without the approval
             update xxcmp_requests set auto_approved_date = systimestamp where request_id = p_request_id;
             evaluate(p_request_id);
@@ -583,7 +594,6 @@ create or replace package body xxcmp_request_pkg as
             end if;
             return;
         end if;
-        xxcmp_approval_pkg.start_path(p_request_id);
         l_wf := xxfnd_workflow_pkg.start_process('KYC_REQUEST', to_char(p_request_id));
         update xxcmp_requests set workflow_id = l_wf where request_id = p_request_id;
     end submit;

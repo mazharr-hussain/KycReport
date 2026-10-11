@@ -2,7 +2,7 @@ workflow KYC_CASE (
     name: KYC Case
     title: KYC case &APEX$WORKFLOW_DETAIL_PK.
     comments {
-        comments: Module 2: investigation by the officer, then one or two approval levels from the approval matrix (risk tier; Enhanced KYC needs two); approval or rejection closes the case and completes the request. Release 73 (version 1.1): with the workflow switched off for the process (COMMON Workflow Processes) the case is auto-approved after the investigation. Release 74 (version 1.2): any number of approval levels from the common Approval Setup (transaction type KYC_CASE, ad-hoc approvers included): the approval task repeats while a level is left.
+        comments: Module 2: investigation by the officer, then one or two approval levels from the approval matrix (risk tier; Enhanced KYC needs two); approval or rejection closes the case and completes the request. Release 73 (version 1.1): with the workflow switched off for the process (COMMON Workflow Processes) the case is auto-approved after the investigation. Release 74 (version 1.2): any number of approval levels from the common Approval Setup (transaction type KYC_CASE, ad-hoc approvers included): the approval task repeats while a level is left. Release 76 (version 1.3): a matching rule without steps approves the case at once, like the switched-off workflow (XXCMP_CASE_PKG.APPROVAL_REQUIRED).
     }
 
     version 1.0 (
@@ -768,7 +768,7 @@ workflow KYC_CASE (
     )
     version 1.2 (
         settings {
-            state: active
+            state: inactive
         }
 
         activity Start (
@@ -842,6 +842,330 @@ workflow KYC_CASE (
             condition {
                 conditionType: functionBody
                 plsqlFunctionBody: return xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y';
+            }
+            layout {
+                sequence: 35
+            }
+            advanced {
+                diagram: {"position":{"x":400,"y":340},"z":35}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @Level1
+                }
+            )
+
+            connection (
+                name: No - auto-approved
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @ApproveCase
+                }
+            )
+
+        )
+
+        activity Level1 (
+            name: Approval level
+            type: humanTaskCreate
+            humanTask {
+                definition: @CASE_APPROVAL
+                taskIdItem: V_LEVEL1_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            result {
+                outcome: V_LEVEL1_OUTCOME
+                owner: V_LEVEL1_APPROVER
+            }
+            layout {
+                sequence: 40
+            }
+            advanced {
+                diagram: {"position":{"x":600,"y":180},"z":40}
+            }
+
+            connection (
+                name: Decided
+                activity {
+                    to: @Level1Outcome
+                }
+            )
+
+        )
+
+        activity Level1Outcome (
+            name: Level 1 approved?
+            type: switch
+            switch {
+                type: checkWorkflowVar
+            }
+            compare {
+                compareVar: V_LEVEL1_OUTCOME
+            }
+            layout {
+                sequence: 50
+            }
+            advanced {
+                diagram: {"position":{"x":800,"y":180},"z":50}
+            }
+
+            connection (
+                name: Approved
+                execution {
+                    sequence: 10
+                }
+                condition {
+                    operator: =
+                    value: APPROVED
+                }
+                activity {
+                    to: @MoreLevels
+                }
+            )
+
+            connection (
+                name: Rejected
+                execution {
+                    sequence: 20
+                }
+                condition {
+                    operator: =
+                    value: REJECTED
+                }
+                activity {
+                    to: @RejectCase
+                }
+            )
+
+        )
+
+        activity MoreLevels (
+            name: Another level required?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxcmp_case_pkg.has_next_level(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+            }
+            layout {
+                sequence: 60
+            }
+            advanced {
+                diagram: {"position":{"x":1000,"y":120},"z":60}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @Level1
+                }
+            )
+
+            connection (
+                name: No
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @ApproveCase
+                }
+            )
+
+        )
+
+        activity ApproveCase (
+            name: Approve and close case
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_case_pkg.approve_case(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 90
+            }
+            advanced {
+                diagram: {"position":{"x":1400,"y":200},"z":90}
+            }
+
+            connection (
+                name: Done
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity RejectCase (
+            name: Reject and close case
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_case_pkg.reject_case(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 100
+            }
+            advanced {
+                diagram: {"position":{"x":1000,"y":320},"z":100}
+            }
+
+            connection (
+                name: Done
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity End (
+            name: End
+            type: workflowEnd
+            layout {
+                sequence: 110
+            }
+            advanced {
+                diagram: {"position":{"x":1600,"y":200},"z":110}
+            }
+
+        )
+
+        variable V_INVESTIGATION_TASK_ID (
+            label {
+                label: Investigation task
+            }
+        )
+
+        variable V_LEVEL1_TASK_ID (
+            label {
+                label: Level 1 task
+            }
+        )
+
+        variable V_LEVEL1_OUTCOME (
+            label {
+                label: Level 1 outcome
+            }
+        )
+
+        variable V_LEVEL1_APPROVER (
+            label {
+                label: Level 1 approver
+            }
+        )
+
+        variable V_LEVEL2_TASK_ID (
+            label {
+                label: Level 2 task
+            }
+        )
+
+        variable V_LEVEL2_OUTCOME (
+            label {
+                label: Level 2 outcome
+            }
+        )
+
+        variable V_LEVEL2_APPROVER (
+            label {
+                label: Level 2 approver
+            }
+        )
+
+        participant (
+            name: Workflow administrators
+            type: admin
+            value {
+                type: expression
+                plsqlExpression: xxfnd_task_pkg.business_admins
+            }
+        )
+
+    )
+    version 1.3 (
+        settings {
+            state: active
+        }
+
+        activity Start (
+            name: Start
+            type: workflowStart
+            layout {
+                sequence: 10
+            }
+            advanced {
+                diagram: {"position":{"x":60,"y":200},"z":10}
+            }
+
+            connection (
+                name: Investigate
+                activity {
+                    to: @Investigate
+                }
+            )
+
+        )
+
+        activity Investigate (
+            name: Investigation
+            type: humanTaskCreate
+            humanTask {
+                definition: @CASE_INVESTIGATION
+                taskIdItem: V_INVESTIGATION_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            layout {
+                sequence: 20
+            }
+            advanced {
+                diagram: {"position":{"x":200,"y":180},"z":20}
+            }
+
+            connection (
+                name: Submitted
+                activity {
+                    to: @StartApproval
+                }
+            )
+
+        )
+
+        activity StartApproval (
+            name: Start approval
+            type: executeCode
+            source {
+                plsqlCode: xxcmp_case_pkg.start_approval(:APEX$WORKFLOW_DETAIL_PK);
+            }
+            layout {
+                sequence: 30
+            }
+            advanced {
+                diagram: {"position":{"x":400,"y":180},"z":30}
+            }
+
+            connection (
+                name: Approval
+                activity {
+                    to: @ApprovalOn
+                }
+            )
+
+        )
+
+        activity ApprovalOn (
+            name: Approval needed?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxcmp_case_pkg.approval_required(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
             }
             layout {
                 sequence: 35

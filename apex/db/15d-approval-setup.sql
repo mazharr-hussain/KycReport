@@ -189,8 +189,14 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
                             p_description in varchar2 default null, p_attributes in apex_t_varchar2 default null);
     -- The rule a transaction matches. p_attributes: 'CODE=value' items.
     function matching_rule(p_type in varchar2, p_attributes in apex_t_varchar2) return number;
+    -- Release 76 (A-11): why a transaction could not start its approval, or null. No matching rule (XXFND_APPROVAL_NO_RULE),
+    -- or a step of the matching rule that nobody can approve: no active user holds its role (XXFND_APPROVAL_NO_APPROVER).
+    -- A component calls it on Submit, so the user gets the message instead of a workflow that faults later.
+    function approval_error(p_type in varchar2, p_attributes in apex_t_varchar2) return varchar2;
     -- Starts the approval of a transaction: copies the matching rule's approvers; returns the rule name.
-    -- A transaction already started is started again (a resubmitted request).
+    -- A transaction already started is started again (a resubmitted request). Release 76: a rule without steps is the
+    -- deliberate "no approval" rule - the approval is complete at once (STEP_COUNT = 0, the component approves it);
+    -- APPROVAL_ERROR is raised as an error.
     function start_approval(p_type in varchar2, p_txn_id in varchar2, p_attributes in apex_t_varchar2,
                             p_requester in varchar2) return varchar2;
     -- Y while the transaction has an approval in progress.
@@ -285,7 +291,7 @@ create or replace package body xxfnd_approval_rule_pkg as
           into l_rule
           from xxfnd_approval_rules r
          where r.approval_type_code = upper(p_type) and r.enabled_flag = 'Y'
-           and exists (select 1 from xxfnd_approval_rule_steps s where s.rule_id = r.rule_id)
+           -- release 76 (A-11): a rule without steps matches too (the deliberate "no approval" rule)
            and not exists (select 1 from xxfnd_approval_rule_conds c
                             where c.rule_id = r.rule_id
                               and not exists (select 1 from xxfnd_approval_rule_conds c2
@@ -295,14 +301,33 @@ create or replace package body xxfnd_approval_rule_pkg as
         return l_rule;
     end matching_rule;
 
+    function approval_error(p_type in varchar2, p_attributes in apex_t_varchar2) return varchar2 is
+        l_rule number := matching_rule(p_type, p_attributes);
+    begin
+        if l_rule is null then
+            return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_RULE', apex_t_varchar2(p_type));
+        end if;
+        for s in (select step_name, role_code from xxfnd_approval_rule_steps
+                   where rule_id = l_rule and approver_type = 'ROLE' order by step_no) loop
+            if xxfnd_task_pkg.users_in_role(s.role_code) is null then
+                return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_APPROVER',
+                                               apex_t_varchar2(s.step_name, approver_label('ROLE', s.role_code, null)));
+            end if;
+        end loop;
+        return null;
+    end approval_error;
+
     function start_approval(p_type in varchar2, p_txn_id in varchar2, p_attributes in apex_t_varchar2,
                             p_requester in varchar2) return varchar2 is
         l_rule  number := matching_rule(p_type, p_attributes);
         l_name  xxfnd_approval_rules.rule_name%type;
         l_first number;
+        l_error varchar2(4000) := approval_error(p_type, p_attributes);
     begin
         if l_rule is null then
             xxfnd_error_pkg.raise_error('XXFND_APPROVAL_NO_RULE', apex_t_varchar2(p_type));
+        elsif l_error is not null then
+            raise_application_error(-20535, l_error);
         end if;
         select rule_name into l_name from xxfnd_approval_rules where rule_id = l_rule;
         delete from xxfnd_approval_txns where approval_type_code = upper(p_type) and txn_id = p_txn_id;
@@ -315,7 +340,9 @@ create or replace package body xxfnd_approval_rule_pkg as
           from xxfnd_approval_rule_steps where rule_id = l_rule;
         select min(step_seq) into l_first from xxfnd_approval_txn_steps
          where approval_type_code = upper(p_type) and txn_id = p_txn_id;
-        update xxfnd_approval_txns set current_seq = l_first
+        update xxfnd_approval_txns
+           set current_seq = l_first,
+               approval_status = case when l_first is null then 'COMPLETED' else approval_status end   -- release 76
          where approval_type_code = upper(p_type) and txn_id = p_txn_id;
         return l_name;
     end start_approval;
@@ -462,7 +489,9 @@ merge into xxfnd_messages d
 using (select 'XXFND_APPROVAL_NO_RULE' code, 'No approval rule applies to this {1} transaction. Ask the administrator to add a rule in Approval Setup.' txt, -20531 num from dual
        union all select 'XXFND_APPROVAL_NOT_IN_PROGRESS', 'This approval is not in progress.', -20532 from dual
        union all select 'XXFND_APPROVAL_ADD_NOT_ALLOWED', 'Only the requester or the current approver can add an approver.', -20533 from dual
-       union all select 'XXFND_APPROVAL_APPROVER_REQUIRED', 'Choose the role or the user to add as approver.', -20534 from dual) s
+       union all select 'XXFND_APPROVAL_APPROVER_REQUIRED', 'Choose the role or the user to add as approver.', -20534 from dual
+       -- release 76 (A-11)
+       union all select 'XXFND_APPROVAL_NO_APPROVER', 'The approval step "{1}" has no approver: no active user holds the role {2}. Ask the administrator to give the role to a user or to change the rule in Approval Setup.', -20535 from dual) s
    on (d.message_code = s.code and d.language_code = 'en')
  when not matched then insert (message_code, language_code, message_text, error_number) values (s.code, 'en', s.txt, s.num);
 commit;

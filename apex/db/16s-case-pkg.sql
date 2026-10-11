@@ -483,8 +483,25 @@ create or replace package body xxcmp_case_pkg as
                 return 'Enhanced KYC: answer the source of funds and source of wealth questions.';
             end if;
         end if;
+        -- release 76 (A-11): the Approval Setup rule must have an approver for every step (or no step at all)
+        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y' then
+            return xxfnd_approval_rule_pkg.approval_error('KYC_CASE', case_attributes(l_case));
+        end if;
         return null;
     end submit_error;
+
+    function approval_required(p_case_id in number) return varchar2 is
+        l_steps number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_steps := xxfnd_approval_rule_pkg.step_count('KYC_CASE', to_char(p_case_id));
+        xxfnd_vpd_pkg.end_trusted;
+        return case when xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y' and l_steps > 0 then 'Y' else 'N' end;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end approval_required;
 
     procedure submit_for_approval(p_case_id in number) is
         l_error varchar2(4000) := submit_error(p_case_id);
@@ -617,7 +634,10 @@ create or replace package body xxcmp_case_pkg as
         update xxcmp_cases
            set case_status = 'PENDING_APPROVAL', current_level = 1, investigation_completed_date = systimestamp,
                -- release 73: approval workflow switched off - the workflow (version 1.1) approves the case next
-               auto_approved_date = case when xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'N' then systimestamp end
+               -- release 76 (A-11): or the matching rule has no steps (APPROVAL_REQUIRED = N)
+               auto_approved_date = case when xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'N'
+                                           or xxfnd_approval_rule_pkg.step_count('KYC_CASE', to_char(p_case_id)) = 0
+                                         then systimestamp end
          where case_id = p_case_id;
         xxfnd_vpd_pkg.end_trusted;
     exception
