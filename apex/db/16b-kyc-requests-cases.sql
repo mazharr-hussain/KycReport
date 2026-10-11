@@ -403,6 +403,10 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
     -- department of the employee profile (when the profile has one).
     function can_choose_department return varchar2;
+    -- Release 76: the requesting departments the user's data security allows (rule "column in list" on
+    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT, e.g. role Requesting Entity - Finance): null = any department,
+    -- '#NONE' = none; Create Request lists them and SAVE_REQUEST refuses any other (KYC_REQUEST_DEPT_NOT_ALLOWED).
+    function allowed_departments return varchar2;
 
     -- The rules of Create Request step 1 (null = acceptable): EXISTING needs an approved party; NEW follows the
     -- common party form (XXCMP_PARTY_PKG.PARTY_ERROR); the business justification is required.

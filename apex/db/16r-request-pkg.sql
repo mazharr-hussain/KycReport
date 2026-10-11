@@ -142,6 +142,11 @@ create or replace package body xxcmp_request_pkg as
         return l_code;
     end default_department;
 
+    function allowed_departments return varchar2 is
+    begin
+        return xxfnd_vpd_pkg.allowed_values('XXCMP_REQUESTS', 'REQUESTING_DEPARTMENT');
+    end allowed_departments;
+
     function can_choose_department return varchar2 is
     begin
         return case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then 'Y' else 'N' end;
@@ -253,6 +258,18 @@ create or replace package body xxcmp_request_pkg as
         if can_choose_department = 'N' and default_department is not null then
             l_dept := default_department;
         end if;
+        -- release 76: only the departments the user's data security allows (Level 1 / Compliance: any)
+        declare
+            l_allowed varchar2(4000) := allowed_departments;
+        begin
+            if l_allowed = '#NONE' then
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_DEPARTMENT');
+            elsif l_allowed is not null and l_dept is not null
+                  and l_dept not member of apex_string.split(l_allowed, ',') then
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED',
+                    apex_t_varchar2(xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', l_dept)));
+            end if;
+        end;
 
         if p_party_selection = 'EXISTING' then
             l_party_id := p_party_id;

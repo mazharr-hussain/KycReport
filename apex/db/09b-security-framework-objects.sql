@@ -325,6 +325,10 @@ create or replace package xxfnd_vpd_pkg authid definer as
     -- Release 74 (R23): the predicate of a user and table is kept for a few seconds in the APEX session (a report
     -- that calls a function per row runs the policy once, not once per row). CLEAR_CACHE forgets it at once.
     procedure clear_cache;
+    -- Release 76: the values of P_COLUMN in P_TABLE the user's data security allows, for a form's list of values and
+    -- the save check: null = every value (a rule for all rows or for the user's own records), otherwise the
+    -- comma-separated values of the user's "column in list" rules on that column ('#NONE' when no rule gives any).
+    function allowed_values(p_table in varchar2, p_column in varchar2, p_user in varchar2 default null) return varchar2;
 end xxfnd_vpd_pkg;
 /
 
@@ -417,6 +421,24 @@ create or replace package body xxfnd_vpd_pkg as
         -- No rule for this user and table: deny.
         return nvl(l_predicate, '1 = 0');
     end predicate;
+
+    function allowed_values(p_table in varchar2, p_column in varchar2, p_user in varchar2 default null) return varchar2 is
+        l_user varchar2(255) := upper(nvl(p_user, xxfnd_util_pkg.current_user));
+        l_list varchar2(32767);
+    begin
+        for r in (select distinct d.rule_type, d.column_name, d.value_list
+                    from xxfnd_data_security_rules d
+                    join xxfnd_user_roles_v ur on ur.role_code = d.role_code
+                   where ur.user_name = l_user and ur.active_flag = 'Y'
+                     and d.enabled_flag = 'Y' and d.table_name = upper(p_table)) loop
+            if r.rule_type in ('ALL_ROWS', 'OWN_RECORDS') then
+                return null;
+            elsif r.rule_type = 'COLUMN_IN_LIST' and upper(r.column_name) = upper(p_column) then
+                l_list := l_list || case when l_list is not null then ',' end || r.value_list;
+            end if;
+        end loop;
+        return nvl(l_list, '#NONE');
+    end allowed_values;
 
     procedure apply_policies is
     begin

@@ -145,9 +145,12 @@ page 201 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select meaning as display_value, lookup_code as return_value
+                select meaning as display_value, lookup_code as return_value   -- release 76: the departments data security allows
                   from xxfnd_lookup_values
                  where lookup_type = 'REQUESTING_DEPARTMENT' and enabled_flag = 'Y'
+                   and (xxcmp_request_pkg.allowed_departments is null
+                        or lookup_code in (select column_value
+                                             from apex_string.split(xxcmp_request_pkg.allowed_departments, ',')))
                  order by display_sequence, meaning
                 ```
             displayNullValue: true
@@ -170,7 +173,12 @@ page 201 (
             type: sqlQuerySingleValue
             sqlQuerySingleValue:
                 ```sql
-                select xxcmp_request_pkg.default_department from dual
+                select case   -- release 76: the only department data security allows, else the employee profile's
+                       when xxcmp_request_pkg.allowed_departments <> '#NONE'
+                                 and instr(xxcmp_request_pkg.allowed_departments, ',') = 0
+                            then xxcmp_request_pkg.allowed_departments
+                            else xxcmp_request_pkg.default_department end
+                  from dual
                 ```
         }
         readOnly {
@@ -182,7 +190,7 @@ page 201 (
                 ```
         }
         help {
-            helpText: The department of your employee profile. Compliance can raise requests for any department.
+            helpText: The departments you may raise requests for (your Requesting Entity roles), or the department of your employee profile. Level 1 approvers and Compliance can raise requests for any department.
         }
     )
 

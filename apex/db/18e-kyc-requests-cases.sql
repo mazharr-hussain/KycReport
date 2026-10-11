@@ -483,6 +483,9 @@ begin
     xxfnd_error_pkg.register_message('KYC_REQUEST_INFO_TEXT', 'Enter the information you need from the requester.', -20625);
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_IN_APPROVAL', 'Request {1} is not waiting for approval.', -20625);
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_APPROVER', 'You are not an approver of request {1}.', -20625);
+    -- release 76: requesting departments from data security
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NO_DEPARTMENT', 'No requesting department is set up for you. Ask the administrator to give you a Requesting Entity role.', -20626);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_DEPT_NOT_ALLOWED', 'You cannot raise requests for {1}. Choose one of your departments.', -20626);
     xxfnd_error_pkg.register_message('KYC_CASE_REASSIGN_NOT_ALLOWED', 'Only a case under investigation can be reassigned, by Compliance management or its assignee.', -20611);
     xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_REQUIRED', 'Select the officer.', -20611);
     -- release 75: the officer chosen for a case must be an active Compliance officer, manager or head of Compliance
