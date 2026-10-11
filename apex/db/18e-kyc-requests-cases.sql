@@ -337,6 +337,8 @@ begin
     end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
+    -- Release 76: only on the first install (R13 not yet marked) - the console decides afterwards
+    if not xxfnd_ddl_pkg.release_applied('R13') then
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))
               union all
               select s.column_value, p.column_value
@@ -346,6 +348,7 @@ begin
            on (t.role_code = s.role_code and t.privilege_code = s.privilege_code)
          when not matched then insert (role_code, privilege_code) values (s.role_code, s.privilege_code);
     end loop;
+    end if;
 
     task_setting('COUNTERPARTY_MATCH', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance decides whether a new counterparty is an existing party.');
     task_setting('DOC_CHECKLIST_REVIEW', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance checks the documents of a request before investigation.');

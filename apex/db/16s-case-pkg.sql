@@ -199,9 +199,9 @@ create or replace package body xxcmp_case_pkg as
         l_case xxcmp_cases%rowtype;
     begin
         select * into l_case from xxcmp_cases where case_id = p_case_id;
+        -- release 76: the Case Assignment privilege (Level 1 approvers), no longer Cases - Manage or the assignee
         return case when l_case.case_status = 'INVESTIGATION'
-                         and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
-                              or upper(l_case.assigned_to) = upper(xxfnd_util_pkg.current_user))
+                         and xxfnd_privilege_pkg.has_privilege('CASE_ASSIGNMENT', 'MANAGE')
                          and task_admin(p_case_id) = 'Y'
                     then 'Y' else 'N' end;
     exception
@@ -328,8 +328,8 @@ create or replace package body xxcmp_case_pkg as
         l_list varchar2(32767);
     begin
         select listagg(distinct column_value, ',') within group (order by column_value) into l_list
-          from apex_string.split(xxfnd_task_pkg.business_admins || ',' || xxfnd_task_pkg.users_with_privilege('CASES', 'MANAGE')
-                                 || ',' || investigation_owners(p_case_id), ',')
+          from apex_string.split(xxfnd_task_pkg.business_admins
+                                 || ',' || xxfnd_task_pkg.users_with_privilege('CASE_ASSIGNMENT', 'MANAGE'), ',')
          where column_value is not null;
         return l_list;
     end investigation_admins;

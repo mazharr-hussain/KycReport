@@ -872,7 +872,7 @@ create or replace package body xxcmp_request_pkg as
         return case when l_req.request_status in ('IN_PROGRESS', 'APPROVED') and l_req.intake_outcome = 'ASSIGNED'
                          and l_req.workflow_id is not null
                          and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(p_request_id)) = 'N'
-                         and xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
+                         and xxfnd_privilege_pkg.has_privilege('CASE_ASSIGNMENT', 'MANAGE')
                     then 'Y' else 'N' end;
     exception
         when no_data_found then

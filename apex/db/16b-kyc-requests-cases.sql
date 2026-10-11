@@ -519,7 +519,7 @@ create or replace package xxcmp_request_pkg authid definer as
     function opens_case_on_approval(p_request_id in number) return varchar2;
     -- Release 76: Assign Case on the request (205, opened right after the approval that opens the case). Y when the user
     -- may give the request's case to an officer: the case exists and XXCMP_CASE_PKG.CAN_ASSIGN, or the approval is
-    -- complete and the workflow is about to open the case (Manage on Cases).
+    -- complete and the workflow is about to open the case (Case Assignment privilege).
     function can_assign_case(p_request_id in number) return varchar2;
     -- Gives the request's case to the officer: XXCMP_CASE_PKG.ASSIGN when the case exists, else the officer is kept on the
     -- request and OPEN_CASE creates the case for them (the request row is locked, so the two never cross).
@@ -552,8 +552,8 @@ create or replace package xxcmp_case_pkg authid definer as
     function create_manual_case(p_party_id in number, p_justification in varchar2) return number;
 
     procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
-    -- Assign / Assign to me on the case screen: Manage on Cases, or the current assignee; release 75: and a business
-    -- administrator of the open investigation task (APEX lets only them move it to another officer).
+    -- Assign on the case and request screens: the Case Assignment privilege (release 76; before: Manage on Cases or the
+    -- assignee) and a business administrator of the open investigation task (APEX lets only them move it).
     function can_assign(p_case_id in number) return varchar2;
     -- Release 75: Y when the user may be given a case (an active Compliance officer, manager or head of Compliance):
     -- the list of officers on the Assign screens and the check of a chosen officer.
@@ -566,8 +566,8 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Task participants.
     function investigation_owners(p_case_id in number) return varchar2;
-    -- Release 75: business administrators of the investigation task - the workflow administrators, Manage on Cases
-    -- and the case's assignee, who may give the case (and its task) to another officer.
+    -- Release 75: business administrators of the investigation task - the workflow administrators and (release 76) the
+    -- holders of Case Assignment, who may give the case (and its task) to another officer.
     function investigation_admins(p_case_id in number) return varchar2;
     function level_approvers(p_case_id in number) return varchar2;
 

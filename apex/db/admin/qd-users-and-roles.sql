@@ -14,7 +14,9 @@
 --        CFERREIRA   Compliance Officer (Contributor), Compliance Manager (Level 1), Head of Compliance (Level 2)
 --        LBUZWAIR    Compliance Officer (Contributor), Compliance Manager (Level 1)
 --        SSADASIVAN_DORSCH, HALSAHLAWI  Compliance Officer (Contributor)
---   3. KYC request approval (Approval Setup, KYC_REQUEST): the Compliance review step goes to Level 1
+--   3. Contributors (Compliance Officer) lose Case Assignment and KYC Requests - Create (Level 1 assigns cases and
+--      raises requests on behalf of any department).
+--   4. KYC request approval (Approval Setup, KYC_REQUEST): the Compliance review step goes to Level 1
 --      (Compliance Manager) instead of the Compliance Officer.
 -- The users are created through XXFND_USER_PKG (as on the Users screen) in an APEX session of a user who holds
 -- USERS_ACCESS.MANAGE.
@@ -112,6 +114,12 @@ begin
     usr('LBUZWAIR', 'Latifa Buzwair', 'lbuzwair@qataridiar.com', 'COMPLIANCE_OFFICER,COMPLIANCE_MANAGER');
     usr('SSADASIVAN_DORSCH', 'Sandeep Sadasivan', 'ssadasivan_dorsch@qataridiar.com', 'COMPLIANCE_OFFICER');
     usr('HALSAHLAWI', 'Hissa AlSahlawi', 'halsahlawi@qataridiar.com', 'COMPLIANCE_OFFICER');
+
+    -- Contributors (Compliance Officer) neither assign cases nor raise requests: Level 1 does (a privilege can be given
+    -- back to a role or user in the console later; upgrades do not re-grant it)
+    delete from xxfnd_role_privileges
+     where role_code = 'COMPLIANCE_OFFICER' and privilege_code in ('CASE_ASSIGNMENT.MANAGE', 'KYC_REQUESTS.CREATE');
+    dbms_output.put_line('privileges removed from the Contributor role: ' || sql%rowcount);
 
     -- request approval by Level 1 (Compliance Manager)
     update xxfnd_approval_rule_steps s
