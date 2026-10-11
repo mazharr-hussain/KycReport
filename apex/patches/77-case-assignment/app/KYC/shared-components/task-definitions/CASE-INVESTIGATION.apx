@@ -1,0 +1,58 @@
+taskDefinition CASE_INVESTIGATION (
+    name: Case Investigation
+    type: action
+    task {
+        subject: Investigate &CASE_NUMBER. - &PARTY_NAME.
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select nvl(c.case_number, 'Case ' || :APEX$TASK_PK) as case_number, p.party_name
+              from dual
+              left join xxcmp_cases c on c.case_id = to_number(:APEX$TASK_PK)
+              left join xxcmp_parties p on p.party_id = c.party_id
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 211
+            items: {
+                P211_TASK_ID: &TASK_ID.
+            }
+            clearCache: 211
+        }
+        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+    }
+    comments {
+        comments: The officer investigates the case (screening, documents, UBO, findings, risk classification) and submits it for approval, which completes this task. Created by the KYC_CASE workflow.
+    }
+
+    action notify-owners (
+        name: Notify potential owners
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxcmp_case_pkg.investigation_owners(to_number(:APEX$TASK_PK))
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxcmp_case_pkg.investigation_admins(to_number(:APEX$TASK_PK))
+        }
+    )
+
+)

@@ -809,11 +809,28 @@ create or replace package body xxcmp_request_pkg as
     end close_without_case;
 
     procedure open_case(p_request_id in number) is
-        l_case number;
+        l_case     number;
+        l_assignee xxcmp_requests.case_assignee%type;
     begin
-        l_case := xxcmp_case_pkg.create_case(p_request_id);
+        -- release 75: the officer chosen on the approval (null: the approver, as before)
+        select max(case_assignee) into l_assignee from xxcmp_requests where request_id = p_request_id;
+        l_case := xxcmp_case_pkg.create_case(p_request_id, l_assignee);
         close_without_case(p_request_id);      -- Compliance approved the request: the request and its party are Approved
     end open_case;
+
+    procedure set_case_assignee(p_request_id in number, p_user_name in varchar2) is
+    begin
+        if p_user_name is not null and xxcmp_case_pkg.is_case_officer(p_user_name) = 'N' then
+            xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_INVALID');
+        end if;
+        update xxcmp_requests set case_assignee = upper(p_user_name) where request_id = p_request_id;
+    end set_case_assignee;
+
+    function opens_case_on_approval(p_request_id in number) return varchar2 is
+    begin
+        return case when outcome(p_request_id) = 'ASSIGNED' and xxcmp_approval_pkg.is_last_step(p_request_id) = 'Y'
+                    then 'Y' else 'N' end;
+    end opens_case_on_approval;
 
     function create_case_request(p_party_id in number, p_justification in varchar2, p_business_relationship in varchar2)
         return number is
