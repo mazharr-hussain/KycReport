@@ -1,7 +1,7 @@
 """Release 75 in the browser (KYC). Layout: the home tiles are Metric Cards, the request and case summaries are the KYC Field
-Grid (group titles, 3 columns), screenshots kept for a look. Case assignment at request level: Approve on the approval
-screen (206) asks for the case officer when the approval opens the case (default: the approver), the case goes to the
-officer chosen; Assign Case on the approved request (205) gives the case to another officer.
+Grid (group titles, 3 columns), screenshots kept for a look. Case assignment at request level (release 76): Approve on
+the approval screen (206) keeps the common dialog; when the approval opens the case, the request (205) opens with Assign
+Case and the case goes to the officer chosen; Assign Case on the approved request gives the case to another officer.
 Usage: r75_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local;
 SHOTS env var: the screenshot folder, default <temp>/r75_shots)"""
 import os, re, subprocess, sys, tempfile, time
@@ -109,22 +109,31 @@ with sync_playwright() as p:
        all(re.search(r'\d', t) for t in pg.locator('#home_kpis .a-CardView-item, #home_kpis li').all_inner_texts()))
     shot(pg, 'r75_home.png')
 
-    # ------------------------------------------------------------ B1: Approve asks for the case officer
+    # ------------------------------------------------------------ B1 (release 76): Approve, then the request's Assign Case
     open_task(pg, s, rno)
     ok('approval: the request summary is a Field Grid with group titles',
        pg.locator('.kyc-fieldgrid').count() > 0 and pg.locator('.kyc-fieldgrid .kyc-group-title').count() > 0)
     shot(pg, 'r75_206.png')
     pg.locator('#decision_buttons button', has_text=re.compile(r'^\s*Approve\s*$')).first.click()
     pg.locator('#decision_dialog').wait_for(state='visible')
-    officer = pg.locator('#P206_CASE_ASSIGNEE')
-    ok('Approve: the popup asks for the case officer', officer.is_visible())
-    ok('Approve: the approver is the default officer: ' + officer.input_value(), officer.input_value() == 'OFFICER1')
-    names = [o.strip() for o in pg.locator('#P206_CASE_ASSIGNEE option').all_inner_texts()]
-    ok(f'Approve: only Compliance officers are offered ({len(names) - 1})', len(names) > 2)
-    officer.select_option('MGR1')
-    shot(pg, 'r75_206_approve.png')
+    ok('Approve: the common approval dialog has no case officer field', pg.locator('#P206_CASE_ASSIGNEE').count() == 0)
     with pg.expect_navigation(timeout=120000):
         pg.locator('#decision_dialog button.kyc-decide-confirm').click()
+    pg.wait_for_load_state('networkidle')
+    dlg = pg.locator('#assign_dialog')
+    try:
+        dlg.wait_for(state='visible', timeout=15000)
+    except Exception:
+        pass
+    ok('after the approval: the request opens with Assign Case (page 205)',
+       ':205:' in pg.url or 'kyc-request' in pg.url or pg.locator('#P205_ASSIGN_TO').count() == 1)
+    ok('Assign Case is open at once', dlg.is_visible())
+    names = [o.strip() for o in pg.locator('#P205_ASSIGN_TO option').all_inner_texts()]
+    ok(f'Assign Case: only Compliance officers are offered ({len(names) - 1})', len(names) > 2)
+    shot(pg, 'r75_205_after_approve.png')
+    pg.select_option('#P205_ASSIGN_TO', 'MGR1')
+    with pg.expect_navigation(timeout=60000):
+        pg.locator('.ui-dialog:has(#assign_dialog) button:has-text("Assign"), #assign_dialog button:has-text("Assign")').last.click()
     pg.wait_for_load_state('networkidle')
     case = None
     for _ in range(30):

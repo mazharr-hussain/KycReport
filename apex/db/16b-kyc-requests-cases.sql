@@ -513,6 +513,13 @@ create or replace package xxcmp_request_pkg authid definer as
     procedure set_case_assignee(p_request_id in number, p_user_name in varchar2);
     -- Y when approving the current step opens the case (the last approval step of a request that needs KYC).
     function opens_case_on_approval(p_request_id in number) return varchar2;
+    -- Release 76: Assign Case on the request (205, opened right after the approval that opens the case). Y when the user
+    -- may give the request's case to an officer: the case exists and XXCMP_CASE_PKG.CAN_ASSIGN, or the approval is
+    -- complete and the workflow is about to open the case (Manage on Cases).
+    function can_assign_case(p_request_id in number) return varchar2;
+    -- Gives the request's case to the officer: XXCMP_CASE_PKG.ASSIGN when the case exists, else the officer is kept on the
+    -- request and OPEN_CASE creates the case for them (the request row is locked, so the two never cross).
+    procedure assign_case(p_request_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
     -- The in-progress request behind a case Compliance opens by hand for a party (XXCMP_CASE_PKG.CREATE_MANUAL_CASE).
     function create_case_request(p_party_id in number, p_justification in varchar2, p_business_relationship in varchar2)
         return number;

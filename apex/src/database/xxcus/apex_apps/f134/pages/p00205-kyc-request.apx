@@ -242,6 +242,21 @@ page 205 (
         }
     )
 
+    pageItem P205_OPEN_ASSIGN (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        comments {
+            comments: Release 76: Y when the approver comes from the approval that opened the case - Assign Case opens at once.
+        }
+    )
+
     pageItem P205_CASE_ID (
         type: hidden
         layout {
@@ -485,8 +500,9 @@ page 205 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                -- release 75 (B2): the approved request's case, for whoever may assign it on the case screen
-                :P205_CASE_ID is not null and xxcmp_case_pkg.can_assign(:P205_CASE_ID) = 'Y'
+                -- release 75 (B2): the approved request's case, for whoever may assign it on the case screen;
+                -- release 76: also right after the approval, while the workflow opens the case
+                xxcmp_request_pkg.can_assign_case(to_number(:P205_REQUEST_ID)) = 'Y'
                 ```
         }
     )
@@ -528,6 +544,11 @@ page 205 (
         appearance {
             template: @/required-above
             templateOptions: #DEFAULT#
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression: case when xxcmp_case_pkg.is_case_officer(:APP_USER) = 'Y' then upper(:APP_USER) end
         }
     )
 
@@ -572,6 +593,36 @@ page 205 (
         }
     )
 
+    dynamicAction open-assign-after-approval (
+        name: Open Assign Case after the approval
+        execution {
+            sequence: 5
+        }
+        when {
+            event: ready
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_OPEN_ASSIGN = 'Y' and xxcmp_request_pkg.can_assign_case(to_number(:P205_REQUEST_ID)) = 'Y'
+                ```
+        }
+
+        action open-assign-dialog (
+            action: openRegion
+            affectedElements {
+                selectionType: region
+                region: @assign-dialog
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
     process assign-case (
         name: Assign case
         type: executeCode
@@ -579,8 +630,10 @@ page 205 (
             language: plsql
             plsqlCode:
                 ```plsql
-                -- release 75 (B2): the case logic stays in the case package
-                xxcmp_case_pkg.assign(:P205_CASE_ID, :P205_ASSIGN_TO, :P205_ASSIGN_COMMENT);
+                -- release 76: the request package gives the case to the officer (XXCMP_CASE_PKG.ASSIGN when the case
+                -- exists, else the case is created for them)
+                xxcmp_request_pkg.assign_case(to_number(:P205_REQUEST_ID), :P205_ASSIGN_TO, :P205_ASSIGN_COMMENT);
+                :P205_OPEN_ASSIGN := null;
                 :P205_ASSIGN_TO := null;
                 :P205_ASSIGN_COMMENT := null;
                 ```
