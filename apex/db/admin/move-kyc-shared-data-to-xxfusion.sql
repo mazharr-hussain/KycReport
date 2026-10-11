@@ -70,6 +70,9 @@ begin
                    where owner = c_app and object_name like 'XXFND\_%' escape '\'
                      and object_type in ('VIEW', 'PACKAGE', 'PROCEDURE', 'FUNCTION', 'TYPE', 'TABLE', 'SEQUENCE')
                      and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG')
+                     -- retired by a later release (dropped without a replacement of the same name):
+                     -- release 74 XXFND_CONFIG_APPROVAL_PKG -> XXFND_APPROVAL_PKG
+                     and object_name not in ('XXFND_CONFIG_APPROVAL_PKG')
                      -- flexfield views are generated from the flexfield setup (step 7), not copied
                      and not (object_type = 'VIEW' and object_name like '%\_DFV' escape '\')
                      and not exists (select 1 from dba_objects a

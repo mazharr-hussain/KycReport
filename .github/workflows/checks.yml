@@ -1,0 +1,62 @@
+# Release 74 (A-03): checks on every pull request and push. Nothing is deployed.
+#   - build: the supporting objects generated from apex/db are up to date (apex/tools/build.py, then no diff)
+#   - session state: hidden form items used by refreshed regions are kept in session (apex/tools/check_session_state.py)
+#   - manifest: every script listed exists
+#   - APEXlang: both applications validate (SQLcl `apex validate`, no database needed)
+# Database install / upgrade and browser tests need an Oracle database with APEX 26.1; they run in the release test
+# environment (see apex/tests) until such an image is available to GitHub Actions.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Supporting objects are generated from apex/db
+        run: |
+          python3 apex/tools/build.py
+          git diff --exit-code -- apex/src || (echo "::error::Run python3 apex/tools/build.py and commit the result"; exit 1)
+      - name: Session state check
+        run: python3 apex/tools/check_session_state.py
+      - name: Every manifest script exists
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys
+          missing = [e['file'] for e in json.load(open('apex/db/manifest.json'))
+                     if not os.path.exists(os.path.join('apex/db', e['file']))]
+          print('missing:', missing or 'none')
+          sys.exit(1 if missing else 0)
+          EOF
+
+  apexlang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install SQLcl
+        run: |
+          curl -sSL -o sqlcl.zip https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip
+          unzip -q sqlcl.zip
+      - name: Validate the APEXlang applications
+        run: |
+          for app in apex/src/database/xxcus/apex_apps/f134 apex/src/database/xxfusion/apex_apps/f135; do
+            out=$(printf "apex validate -input %s\nexit\n" "$PWD/$app" | sqlcl/bin/sql -S /nolog 2>&1)
+            echo "$out"
+            echo "$out" | grep -q "Validation successful" || exit 1
+          done

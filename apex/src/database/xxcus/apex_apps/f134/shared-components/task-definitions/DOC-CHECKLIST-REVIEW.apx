@@ -43,7 +43,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
     )
 
     action info-requested (
-        name: Request is Information Needed
+        name: Request is Pending Information
         type: executeCode
         source {
             plsqlCode: xxcmp_request_pkg.info_requested(:APEX$TASK_PK);

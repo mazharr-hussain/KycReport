@@ -126,15 +126,56 @@ create or replace package xxcmp_party_pkg authid definer as
     -- Y when the party exists and is enabled (a merged or disabled party is not edited or merged again).
     function is_enabled(p_party_id in number) return varchar2;
 
-    -- The common Party card (HTML) shown on every screen that shows a party: number, name, type, registration /
-    -- identity, country, main contact details, primary contact person, party status and next KYC date. Follows
-    -- data security: a user who may not see the party gets a short note instead.
-    -- P_LINK = N: the party number without the link to the Party page (screens that already show the party in full).
-    function card_html(p_party_id in number, p_show_status in varchar2 default 'Y', p_link in varchar2 default 'Y') return clob;
-    -- The party's details, shown in full (Global Page region Party on the request and party screens), without the
-    -- party status. Shown to users with PARTIES.VIEW, and to anyone for the party of a request they can see or for an
-    -- approved party.
-    function summary_html(p_party_id in number, p_request_id in number default null) return clob;
+    -- The common Party card shown on every screen that shows a party: number, name, type, registration / identity,
+    -- country, main contact details, primary contact person, party status and next KYC date. Follows data security.
+    -- release 74 (R11): data only - the screens show it with a standard report (Global Page region Party, page 222).
+    -- JSON array of fields [{"group_name","seq","label","value","meta","tone","url"}] in the groups Party (name,
+    -- number, status), Identity, Contact and KYC. P_REQUEST_ID: the party of that request - shown to anyone who can
+    -- see the request, without the party status and KYC dates; a user who cannot see the party gets one note field.
+    function card_json(p_party_id in number, p_request_id in number default null, p_show_status in varchar2 default 'Y') return clob;
+
+    -- release 74 (from the request and KYC rules packages): party directory and matching.
+    -- 0-100 similarity of two names after normalisation (case, punctuation, common legal suffixes).
+    function name_similarity(p_name_1 in varchar2, p_name_2 in varchar2) return number deterministic;
+    -- Parties a requester may choose from (requesters cannot read the party master itself): approved, enabled
+    -- parties of the type (null = both types) with number, name and country only. JSON array [{"party_id","party_number","party_name","country"}].
+    function party_directory_json(p_party_type in varchar2) return clob;
+
+    -- Possible existing parties for a counterparty, strongest first (at most 10). Matching: same registration / ID
+    -- number; name similarity; same incorporation / birth date; same country. 100 = same number and country.
+    -- JSON array [{"party_id","party_number","registration_number","party_name","country","score","reg_match",
+    --              "reasons","exact","status"}]; reg_match = 0-100 similarity of the numbers.
+    function party_candidates_json(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return clob;
+    function party_candidate_count(p_party_type          in varchar2,
+                                   p_party_name          in varchar2,
+                                   p_registration_number in varchar2,
+                                   p_date                in date,
+                                   p_country             in varchar2,
+                                   p_exclude_party_id    in number default null) return number;
+
+    -- Party type (ORGANIZATION / PERSON) of a party, or null (only the type is read past data security).
+    function party_type(p_party_id in number) return varchar2;
+    -- release 74 (R14): party verifications (identity document checks, company registry / KYB checks).
+    -- Y when the user may record one for the party (Parties Create; from a case only while it is investigated).
+    function can_record_verification(p_party_id in number, p_case_id in number default null) return varchar2;
+    function id_verification_error(p_party_id        in number,
+                                   p_document_number in varchar2,
+                                   p_issue_date      in date,
+                                   p_expiry_date     in date,
+                                   p_result          in varchar2) return varchar2;
+    function registry_check_error(p_party_id      in number,
+                                  p_source        in varchar2,
+                                  p_endpoint_code in varchar2,
+                                  p_check_result  in varchar2) return varchar2;
+    -- A person saved a registry check: a row from the provider is marked as changed by a person.
+    procedure registry_check_saved(p_registry_check_id in number);
+    -- A person confirms a registry check from the provider (reviewed by / date).
+    procedure review_registry_check(p_registry_check_id in number);
 
 end xxcmp_party_pkg;
 /

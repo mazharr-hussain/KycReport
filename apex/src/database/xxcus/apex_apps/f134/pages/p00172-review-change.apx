@@ -269,7 +269,7 @@ page 172 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'N'
+                xxfnd_approval_pkg.is_pending(:P172_DETAIL_PK) = 'N'
                 and apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_cancel)
                 ```
         }
@@ -426,7 +426,7 @@ page 172 (
             type: expression
             plsqlExpression:
                 ```plsql
-                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
+                xxfnd_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
                 and (apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_reject)
                      or apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```
@@ -454,7 +454,7 @@ page 172 (
             type: expression
             plsqlExpression:
                 ```plsql
-                xxfnd_config_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
+                xxfnd_approval_pkg.is_pending(:P172_DETAIL_PK) = 'Y'
                 and (apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P172_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
                 ```

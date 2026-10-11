@@ -304,6 +304,9 @@ create or replace package body xxfnd_dff_pkg as
 
     ----------------------------------------------------------------------------
     -- render
+    -- HTML in PL/SQL on purpose (golden rule exception): the flexfield segments are setup rows defined at run
+    -- time (any number, type and list per context), so no fixed APEX page items or report columns can show them;
+    -- no APEX component renders a field set defined at run time. Values are escaped; xxfnd-dff.js binds them.
     ----------------------------------------------------------------------------
     function field_html(p_seg        in t_segment,
                         p_value      in varchar2,

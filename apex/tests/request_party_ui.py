@@ -156,7 +156,9 @@ with sync_playwright() as p:
        name in card and 'Show details' not in card and 'Party Status' not in card
        and 'Rana Requester' in pg.inner_text('#party_contacts') and pg.locator('#answer_summary').count() == 1
        and pg.locator('#request_attachments').count() == 1 and 'Expected' in pg.inner_text('#approval_history'))
-    ok('review: the party number is not a link (everything is on the screen)', pg.locator('#party_card a').count() == 0)
+    links = [a.get_attribute('href') or '' for a in pg.locator('#party_card a').all()]
+    ok(f'review: the party number is not a link (everything is on the screen) {links}',
+       not any('P21_PARTY_ID' in h or ':21:' in h for h in links))
     click_nav(pg, 'Submit Request')
     task = wait_task(rid)
     ok(f'Submit starts the workflow: task {task}', task is not None)

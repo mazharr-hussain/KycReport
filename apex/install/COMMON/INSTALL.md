@@ -43,3 +43,10 @@ Delegated administration (release 73): IT can let an application's administrator
 their application (COMMON → Applications → the application → Managed in the Application). They open it from their
 own application's Administration menu, in a dialog, signed in through the shared session - not by signing in to
 COMMON.
+
+## Install or upgrade from SQL Developer Web (release 74)
+Instead of the import steps above: as **ADMIN**, Database Actions → SQL → open
+`COMMON-Application-SQL-Install_<N>.sql` → **Run Script (F5)**. The script sets the workspace (XXCUS), the application
+ID (135) and the parsing schema (**XXFUSION** - no manual switch), runs the supporting objects (install scripts on a
+new database, upgrade scripts on an existing one; data kept) and installs the application. Then run the KYC script of
+the same release. Release 74 needs no new database privilege.

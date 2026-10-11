@@ -666,3 +666,33 @@ list party-wizard (
         }
     )
 )
+
+list case-sections (
+    name: Case Sections
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 74 (R5, R11): the case screen's section menu as a dynamic list (was HTML from PL/SQL); the state of
+            -- each section (done / warning / to do) from XXCMP_CASE_PKG.SECTION_STATE, shown as the icon and item class
+            select null as lvl,
+                   s.n || ' ' || xxfnd_util_pkg.lookup_meaning('CASE_SECTION', s.code) as label,
+                   apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                     p_values => :P211_CASE_ID || ',' || :P211_TASK_ID || ',' || s.code) as target,
+                   case when s.code = :P211_SECTION then 'YES' else 'NO' end as is_current,
+                   case when s.code = :P211_SECTION then 'fa-dot-circle-o'
+                        when s.state = 'DONE' then 'fa-check-circle'
+                        when s.state = 'WARN' then 'fa-exclamation-triangle'
+                        else 'fa-circle-o' end as image,
+                   null as image_attribute,
+                   null as image_alt,
+                   null as a01,
+                   null as a02,
+                   'kyc-case-nav-item is-' || lower(s.state) || case when s.code = :P211_SECTION then ' is-current' end as a03
+              from (select t.column_value as code, rownum as n,
+                           xxcmp_case_pkg.section_state(:P211_CASE_ID, t.column_value) as state
+                      from table(apex_string.split(xxcmp_case_pkg.sections, ':')) t) s
+             order by s.n
+            ```
+    }
+)

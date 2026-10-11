@@ -382,7 +382,7 @@ page 201 (
                 ```sql
                 select j.party_name || ' (' || j.party_number || nvl2(j.country, ', ' || j.country, null) || ')' as display_value,
                        j.party_id as return_value
-                  from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]'
+                  from json_table(xxcmp_party_pkg.party_directory_json(null), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
                                   party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country')) j
                  order by j.party_name

@@ -92,8 +92,18 @@ def build(app):
     print(f'{app}: {len(inst)} install scripts, {len(upg)} upgrade scripts')
 
 
+def set_version(app, n):
+    # release 74: the application version (footer, #APP_VERSION#) is the release number
+    p = os.path.join(APPS[app][0], 'application.apx')
+    s = open(p).read()
+    s2 = re.sub(r'(?m)^(    version: ).*$', rf'\g<1>Release {n}', s, count=1)
+    if s2 != s:
+        open(p, 'w').write(s2)
+
+
 def release(app, n):
     src = APPS[app][0]
+    set_version(app, n)
     target = os.path.join(ROOT, f'{APPS[app][1]}_{n}.zip')
     with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
         for d, dirs, files in os.walk(src):

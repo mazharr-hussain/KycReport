@@ -15,6 +15,7 @@ declare
     l_task   number;
     l_txt    varchar2(4000);
     l_r      xxcmp_requests%rowtype;
+    l_rule   number;
 
     procedure ok(p_label varchar2, p_cond boolean) is
     begin
@@ -39,6 +40,13 @@ declare
     function err(p_sqlerrm varchar2) return varchar2 is
     begin
         return regexp_substr(substr(p_sqlerrm, 12), '[^' || chr(10) || ']+');
+    end;
+    function history_has(p_req number, p_action varchar2 default null, p_step varchar2 default null) return boolean is
+        l number;
+    begin
+        select count(*) into l from table(xxcmp_approval_pkg.history_rows(p_req))
+         where (p_action is null or action = p_action) and (p_step is null or step_name = p_step);
+        return l > 0;
     end;
     function exists_withdrawn(p_req number) return boolean is
         l number;
@@ -100,8 +108,9 @@ begin
                                              null, null, 'Why', p_registration_type => 'TRADE_LICENCE');
     ok('an email or a phone is required: ' || l_txt, l_txt = 'Enter an email or a phone number.');
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'Other ' || l_tag, 'AE', 'app ' || lower(l_tag), 'LLC',
-                                             null, 'x@example.com', null, 'Why', p_registration_type => 'TRADE_LICENCE');
-    ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this registration no. and country: use that party.');
+                                             null, 'x@example.com', null, 'Why', p_registration_type => 'COMMERCIAL_REGISTRATION',
+                                             p_business_relationship => 'VENDOR');
+    ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this %: use that party.');
 
     ---------------------------------------------------------------- a new counterparty becomes a Pending party
     save_org(l_req, 'Draft Org ' || l_tag, null, 'Y');
@@ -111,7 +120,7 @@ begin
     ok('Save as Draft creates the request and a Pending party: ' || l_r.request_number || ' / ' || status(l_party),
        l_r.request_status = 'DRAFT' and l_party is not null and status(l_party) = 'PENDING');
     select count(*) into l_cnt
-      from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]' columns (party_id number path '$.party_id'))
+      from json_table(xxcmp_party_pkg.party_directory_json(null), '$[*]' columns (party_id number path '$.party_id'))
      where party_id = l_party;
     ok('a Pending party cannot be chosen as an existing party', l_cnt = 0);
     save_org(l_req, 'Draft Org ' || l_tag, 'DR-' || l_tag);
@@ -157,7 +166,7 @@ begin
     ---------------------------------------------------------------- Information Needed and back
     xxcmp_request_pkg.info_requested(l_req);
     ok('Information Needed: ' || xxcmp_request_pkg.stage(l_req) || ', with ' || xxcmp_request_pkg.pending_with(l_req),
-       xxcmp_request_pkg.stage(l_req) = 'Information Needed' and xxcmp_request_pkg.pending_with(l_req) = 'REQ1');
+       xxcmp_request_pkg.stage(l_req) = 'Pending Information' and xxcmp_request_pkg.pending_with(l_req) = 'REQ1');
     ok('the requester may edit it while Information Needed', xxcmp_request_pkg.is_editable(l_req) = 'Y'
        and xxcmp_request_pkg.party_editable(l_req) = 'Y');
     begin
@@ -178,7 +187,7 @@ begin
     select count(*) into l_cnt from apex_workflows where workflow_id = l_r.workflow_id and state_code in ('ACTIVE', 'SUSPENDED');
     ok('withdrawn: back to Draft, workflow ended, the party stays editable',
        l_r.request_status = 'DRAFT' and l_cnt = 0 and xxcmp_request_pkg.party_editable(l_req) = 'Y');
-    ok('history shows the withdraw', dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req), 'Submitted') > 0
+    ok('history shows the withdraw', history_has(l_req, 'Submitted')
        and exists_withdrawn(l_req));
     xxcmp_request_pkg.cancel(l_req, 'Not needed any more');
     commit;
@@ -208,15 +217,19 @@ begin
        xxcmp_request_pkg.stage(l_req2) = 'Approved' and status(l_party) = 'APPROVED');
     commit;
 
-    ---------------------------------------------------------------- approval path from setup (release 24)
-    insert into xxcmp_approval_paths (path_name, party_type, jurisdiction, priority, step_sequence, step_name, approver_type, role_code, user_name)
-    select 'Test ' || l_tag, 'ORGANIZATION', 'AE', 1, 1, 'Compliance check', 'ROLE', 'COMPLIANCE_OFFICER', null from dual union all
-    select 'Test ' || l_tag, 'ORGANIZATION', 'AE', 1, 2, 'Finance sign-off', 'USER', null, 'REQ1' from dual;
+    ---------------------------------------------------------------- approval path from setup (release 74: the common Approval Setup)
+    insert into xxfnd_approval_rules (approval_type_code, rule_name, priority)
+    values ('KYC_REQUEST', 'Test ' || l_tag, 1) returning rule_id into l_rule;
+    insert into xxfnd_approval_rule_conds (rule_id, attribute_code, attribute_value)
+    select l_rule, 'PARTY_TYPE', 'ORGANIZATION' from dual union all select l_rule, 'JURISDICTION', 'AE' from dual;
+    insert into xxfnd_approval_rule_steps (rule_id, step_no, step_name, approver_type, role_code, user_name)
+    select l_rule, 1, 'Compliance check', 'ROLE', 'COMPLIANCE_OFFICER', null from dual union all
+    select l_rule, 2, 'Finance sign-off', 'USER', null, 'REQ1' from dual;
     l_req2 := null;
     save_org(l_req2, 'Path Org ' || l_tag, 'PA-' || l_tag);
     ok('the path with the most matching criteria applies', xxcmp_approval_pkg.path_for(l_req2) = 'Test ' || l_tag);
     ok('before submit: the expected path lists both steps',
-       dbms_lob.instr(xxcmp_approval_pkg.path_html(l_req2), 'Finance sign-off') > 0);
+       history_has(l_req2, p_step => 'Finance sign-off'));
     xxcmp_approval_pkg.start_path(l_req2);
     ok('step 1: approved by the role (' || xxcmp_approval_pkg.step_approvers(l_req2) || ')',
        xxcmp_approval_pkg.step_name(l_req2) = 'Compliance check' and instr(xxcmp_approval_pkg.step_approvers(l_req2), 'OFFICER1') > 0);
@@ -260,8 +273,8 @@ begin
     select count(*) into l_cnt from xxcmp_cases where request_id = l_req2 and business_relationship = 'VENDOR';
     ok('the case carries the business relationship of the request', l_cnt = 1);
     ok('history shows the submit and the approvals',
-       dbms_lob.instr(xxcmp_approval_pkg.history_html(l_req2), 'Submitted') > 0);
-    delete from xxcmp_approval_paths where path_name = 'Test ' || l_tag;
+       history_has(l_req2, 'Submitted'));
+    delete from xxfnd_approval_rules where rule_id = l_rule;
     commit;
     apex_session.delete_session;
 end;

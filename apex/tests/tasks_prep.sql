@@ -18,9 +18,9 @@ begin
     commit;
     apex_session.delete_session;
     apex_session.create_session(l_app, 1, 'OFFICER1');
-    xxcmp_kyc_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'REQUESTING_DEPARTMENT', l_cat,
+    xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'UI test: please confirm the registered address.', 'Y', trunc(sysdate) + 5,
-                             p_recipient_user_name => 'REQ1', p_rfi_id => l_rfi, p_token => l_token);
+                             p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_token);
     commit;
     apex_session.delete_session;
     apex_session.create_session(l_app, 1, 'MGR1');
@@ -28,7 +28,7 @@ begin
     insert into xxcmp_attachment_rules (entity_name, category_code, jurisdiction, mandatory_flag, priority)
     values ('XXCMP_PARTIES', (select min(category_code) from xxfnd_document_categories), 'QB', 'Y', 50)
     returning attachment_rule_id into l_rule;
-    xxfnd_config_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
+    xxfnd_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
     commit;
     apex_session.delete_session;
     dbms_output.put_line('rfi=' || l_rfi || ' rule=' || l_rule);

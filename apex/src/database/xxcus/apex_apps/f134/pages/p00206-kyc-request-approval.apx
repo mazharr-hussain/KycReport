@@ -60,12 +60,22 @@ page 206 (
 
     region request-details (
         name: Request
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return xxcmp_request_ui_pkg.details_html(to_number(:P206_REQUEST_ID));
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
+                select j.label, j.value, j.tone, j.url, j.user_name, j.seq, j.group_name
+                  from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P206_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    user_name  varchar2(255)  path '$.user_name')) j
                 ```
             pageItemsToSubmit: [
                 P206_REQUEST_ID
@@ -82,6 +92,85 @@ page 206 (
         advanced {
             htmlDomId: request_details
         }
+        componentAppearance {
+            template: @/value-attribute-pairs-row
+            templateOptions: [
+                #DEFAULT#
+                t-AVPList--leftAligned
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 100
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Label
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VALUE (
+            type: plainText
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endif/}
+                    ```
+            }
+        )
+
+        column TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column USER_NAME (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column GROUP_NAME (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
     )
 
     region buttons (
@@ -197,7 +286,7 @@ page 206 (
                                             and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P206_REQUEST_ID)
                                               or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P206_REQUEST_ID))))
                             then 'Present' else 'Missing' end as status
-                  from table(xxcmp_kyc_pkg.mandatory_categories('XXCMP_PARTIES',
+                  from table(xxcmp_doc_rule_pkg.mandatory_categories('XXCMP_PARTIES',
                                  (select jurisdiction from xxcmp_requests where request_id = :P206_REQUEST_ID),
                                  (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P206_REQUEST_ID))) c
                 ```
@@ -708,6 +797,10 @@ page 206 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
+                -- release 74: also for the requester answering an approver's question (Submit Information)
+                if :P206_INFO_TASK_ID is not null then
+                    return true;
+                end if;
                 for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
                     return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                         or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
@@ -909,6 +1002,130 @@ page 206 (
         }
     )
 
+    button add-approver (
+        buttonName: ADD_APPROVER
+        label: Add Approver
+        layout {
+            sequence: 25
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ADD_APPROVER
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                if xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', :P206_REQUEST_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                             and state_code in ('ASSIGNED', 'UNASSIGNED')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button add-approver-top (
+        buttonName: ADD_APPROVER_TOP
+        label: Add Approver
+        layout {
+            sequence: 45
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ADD_APPROVER
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                if xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', :P206_REQUEST_ID) = 'N' then
+                    return false;
+                end if;
+                for t in (select 1 from apex_tasks where task_id = :P206_TASK_ID and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                             and state_code in ('ASSIGNED', 'UNASSIGNED')) loop
+                    return apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                        or apex_human_task.is_allowed(p_task_id => :P206_TASK_ID, p_operation => apex_human_task.c_task_op_claim);
+                end loop;
+                return false;
+                ```
+        }
+    )
+
+    button submit-info (
+        buttonName: SUBMIT_INFO
+        label: Submit Information
+        layout {
+            sequence: 35
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-SUBMIT_INFO
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the requester answers the approver's question on the same screen
+                return :P206_INFO_TASK_ID is not null;
+                ```
+        }
+    )
+
+    button submit-info-top (
+        buttonName: SUBMIT_INFO_TOP
+        label: Submit Information
+        layout {
+            sequence: 47
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-SUBMIT_INFO
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- release 74: the requester answers the approver's question on the same screen
+                return :P206_INFO_TASK_ID is not null;
+                ```
+        }
+    )
+
     button open-case (
         buttonName: OPEN_CASE
         label: Open Case
@@ -998,6 +1215,103 @@ page 206 (
         }
     )
 
+    pageItem P206_ADD_USER (
+        type: popupLov
+        label {
+            label: Approver to Add
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxfnd_employees
+                 where user_name is not null
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 5
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Release 74: the person who approves next, after you (the Comment says why).
+        }
+    )
+
+    pageItem P206_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: a document that goes with your comment (kept with the request's documents).
+        }
+    )
+
+    pageItem P206_INFO_QUESTION (
+        type: displayOnly
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 4
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P206_INFO_TASK_ID
+        }
+    )
+
+    pageItem P206_INFO_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @decision-dialog
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     button confirm (
         buttonName: CONFIRM
         label: Confirm
@@ -1076,12 +1390,20 @@ page 206 (
             language: plsql
             plsqlCode:
                 ```plsql
-                select to_number(detail_pk) into :P206_REQUEST_ID
-                  from table ( apex_human_task.get_tasks (
-                                   p_context        => 'SINGLE_TASK',
-                                   p_task_id        => :P206_TASK_ID,
-                                   p_application_id => :APP_ID ) )
-                 where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH');
+                declare
+                    l_def apex_tasks.task_def_static_id%type;
+                    l_pk  apex_tasks.detail_pk%type;
+                begin
+                    select task_def_static_id, detail_pk into l_def, l_pk
+                      from table ( apex_human_task.get_tasks (
+                                       p_context        => 'SINGLE_TASK',
+                                       p_task_id        => :P206_TASK_ID,
+                                       p_application_id => :APP_ID ) )
+                     where task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH', 'CASE_APPROVAL');
+                    -- release 74: a case approver asked the requester for information: answered on the request
+                    :P206_REQUEST_ID := case when l_def = 'CASE_APPROVAL' then xxcmp_case_pkg.request_of(to_number(l_pk))
+                                             else to_number(l_pk) end;
+                end;
                 ```
         }
         execution {
@@ -1116,6 +1438,25 @@ page 206 (
         serverSideCondition {
             type: itemIsNull
             item: P206_TASK_ID
+        }
+    )
+
+    process find-info-task (
+        name: The requester's open question
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: an approver asked the requester for information: the requester answers here (Submit Information)
+                :P206_INFO_TASK_ID := nvl(xxfnd_task_pkg.info_task('DOC_CHECKLIST_REVIEW', :P206_REQUEST_ID),
+                                          xxcmp_case_pkg.info_task(:P206_REQUEST_ID));
+                :P206_INFO_QUESTION := xxfnd_task_pkg.last_comment(:P206_INFO_TASK_ID);
+                ```
+        }
+        execution {
+            sequence: 8
+            point: beforeHeader
         }
     )
 
@@ -1156,8 +1497,12 @@ page 206 (
             point: processing
         }
         serverSideCondition {
-            type: itemIsNotNull
-            item: P206_COMMENT
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO')
+                ```
         }
     )
 
@@ -1248,6 +1593,100 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'CONFIRM' and :P206_DECISION = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    process add-approver (
+        name: Add an approver
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if :P206_ADD_USER is null then
+                    xxfnd_error_pkg.raise_error('XXFND_APPROVAL_APPROVER_REQUIRED');
+                end if;
+                xxfnd_approval_rule_pkg.add_approver('KYC_REQUEST', :P206_REQUEST_ID, 'USER', p_user_name => :P206_ADD_USER,
+                                                     p_position => 'NEXT', p_comment => :P206_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Approver added: they approve after you.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'ADD_APPROVER'
+                ```
+        }
+    )
+
+    process submit-info (
+        name: Submit information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- the task goes back to the approver; the request is In Progress again (task action)
+                apex_human_task.submit_information(p_task_id => :P206_INFO_TASK_ID, p_text => :P206_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 60
+            point: processing
+        }
+        successMessage {
+            successMessage: Information submitted: the request is back with the approver.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'SUBMIT_INFO' and :P206_INFO_TASK_ID is not null
+                ```
+        }
+    )
+
+    process attach-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_REQUESTS',
+                                p_pk1_value      => :P206_REQUEST_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P206_FILE,
+                                p_title          => initcap(replace(:P206_DECISION, '_', ' ')) || ' - ' || :APP_USER,
+                                p_description    => substr(:P206_COMMENT, 1, 4000),
+                                p_page_id        => 206);
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_FILE is not null
                 ```
         }
     )

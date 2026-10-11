@@ -41,51 +41,54 @@ page 1 (
 
     region home-kpis (
         name: My Work
-        type: dynamicContent
+        type: classicReport
         source {
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                declare
-                    l_html clob;
-                    l_n    number;
-                    procedure add(p_html in varchar2) is begin l_html := l_html || p_html; end;
-                begin
-                    l_html := '<div class="kyc-kpis">';
-                    if xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW') then
-                        select count(*) into l_n from xxcmp_requests
-                         where upper(requester_user_name) = upper(:APP_USER) and request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED');
-                        add(xxfnd_ui_pkg.kpi_card('My open requests', l_n,
-                            apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_REQUESTER_USER_NAME', p_values => :APP_USER),
-                            'fa-file-text-o', 'info'));
-                        select count(*) into l_n from xxcmp_requests
-                         where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED';
-                        add(xxfnd_ui_pkg.kpi_card('Information needed', l_n,
-                            apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
-                                              p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
-                            'fa-question-circle-o', 'warning'));
-                    end if;
-                    select count(*) into l_n from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
-                     where state_code in ('ASSIGNED', 'UNASSIGNED')
-                       and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH');
-                    add(xxfnd_ui_pkg.kpi_card('Pending my approval', l_n, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'warning'));
-                    if xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then
-                        select count(*) into l_n from xxcmp_cases
-                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL');
-                        add(xxfnd_ui_pkg.kpi_card('My open cases', l_n,
-                            apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_ASSIGNED_TO', p_values => upper(:APP_USER)),
-                            'fa-folder-open-o', 'info'));
-                        select count(*) into l_n from xxcmp_cases where closed_date is null and sla_due_date < trunc(sysdate);
-                        add(xxfnd_ui_pkg.kpi_card('Overdue cases', l_n,
-                            apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_SLA_STATUS', p_values => 'Overdue'),
-                            'fa-clock-o', 'danger'));
-                    end if;
-                    select count(*) into l_n from xxcmp_rfis
-                     where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
-                       and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER));
-                    add(xxfnd_ui_pkg.kpi_card('Open RFIs', l_n, apex_page.get_url(p_page => 30), 'fa-comments-o', 'warning'));
-                    return l_html || '</div>';
-                end;
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the KPI tiles from SQL, shown with the standard Cards report (was HTML from PL/SQL)
+                select k.seq, k.card_title, k.card_text, null as card_subtext, k.card_link, k.card_icon,
+                       case when k.cnt = 0 then 'u-color-neutral' else k.card_color end as card_color
+                  from (
+                select 10 as seq, 'My open requests' as card_title, cnt as card_text, cnt,
+                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_REQUESTER_USER_NAME', p_values => :APP_USER) as card_link,
+                       'fa-file-text-o' as card_icon, 'u-info' as card_color
+                  from (select count(*) cnt from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED'))
+                 where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
+                union all
+                select 20, 'Pending information', cnt, cnt,
+                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
+                                         p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
+                       'fa-question-circle-o', 'u-warning'
+                  from (select count(*) cnt from xxcmp_requests
+                         where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED')
+                 where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
+                union all
+                select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'u-warning'
+                  from (select count(*) cnt from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
+                         where state_code in ('ASSIGNED', 'UNASSIGNED')
+                           and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH'))
+                union all
+                select 40, 'My open cases', cnt, cnt,
+                       apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_ASSIGNED_TO', p_values => upper(:APP_USER)),
+                       'fa-folder-open-o', 'u-info'
+                  from (select count(*) cnt from xxcmp_cases
+                         where upper(assigned_to) = upper(:APP_USER) and case_status in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION'))
+                 where xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                union all
+                select 50, 'Overdue cases', cnt, cnt,
+                       apex_page.get_url(p_page => 210, p_request => 'RIR', p_items => 'IR_SLA_STATUS', p_values => 'Overdue'),
+                       'fa-clock-o', 'u-danger'
+                  from (select count(*) cnt from xxcmp_cases where closed_date is null and sla_due_date < trunc(sysdate))
+                 where xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                union all
+                select 60, 'Open RFIs', cnt, cnt, apex_page.get_url(p_page => 30), 'fa-comments-o', 'u-warning'
+                  from (select count(*) cnt from xxfnd_rfis
+                         where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED')
+                           and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER)))
+                       ) k
                 ```
         }
         layout {
@@ -102,6 +105,94 @@ page 1 (
         comments {
             comments: Count cards of the user's open work (data security applies); each opens the matching list, filtered. A card shows only with the privilege of the screen it opens. Zero counts are grey.
         }
+        componentAppearance {
+            template: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--compact
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Report--hideNoPagination
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: Nothing to show.
+        }
+
+        column CARD_TITLE (
+            type: plainText
+            heading {
+                heading: Card Title
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CARD_TEXT (
+            type: plainText
+            heading {
+                heading: Card Text
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column CARD_SUBTEXT (
+            type: plainText
+            heading {
+                heading: Card Subtext
+            }
+            layout {
+                sequence: 25
+            }
+        )
+
+        column CARD_LINK (
+            type: plainText
+            heading {
+                heading: Card Link
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column CARD_ICON (
+            type: plainText
+            heading {
+                heading: Card Icon
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CARD_COLOR (
+            type: plainText
+            heading {
+                heading: Card Color
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
     )
 
     region my-tasks (
@@ -126,6 +217,22 @@ page 1 (
                                    p_application_id => :APP_ID ) ) t
                  where t.state_code in ('UNASSIGNED', 'ASSIGNED')
                 union all
+                -- release 74: an approver asked me (the requester) for information: answered on the request screen
+                select apex_page.get_url(p_page => 206, p_items => 'P206_TASK_ID', p_values => to_char(t.task_id), p_clear_cache => '206'),
+                       t.subject,
+                       'Information requested',
+                       'warning',
+                       to_char(t.due_on, 'DD-MON-YYYY'),
+                       case when t.due_on < systimestamp then 'danger'
+                            when t.due_on < systimestamp + 2 then 'warning' end,
+                       cast(t.last_updated_on as date),
+                       t.due_on
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'INITIATED_BY_ME',
+                                   p_application_id => :APP_ID ) ) t
+                 where t.state_code = 'INFO_REQUESTED'
+                   and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL')
+                union all
                 select apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31'),
                        r.rfi_number || ' - ' || nvl(xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),
                        'Information request',
@@ -135,7 +242,7 @@ page 1 (
                             when r.due_date < trunc(sysdate) + 2 then 'warning' end,
                        cast(r.creation_date as date),
                        cast(r.due_date as timestamp with time zone)
-                  from xxcmp_rfis r
+                  from xxfnd_rfis r
                  where upper(r.recipient_user_name) = upper(:APP_USER)
                    and r.rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
                    and r.responded_date is null

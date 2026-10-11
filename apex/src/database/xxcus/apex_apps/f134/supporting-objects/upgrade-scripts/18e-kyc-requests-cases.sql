@@ -158,8 +158,11 @@ begin
     lt('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources');
     lvs('KYC_TRIGGER_SOURCE', 'MANUAL=Manual|SCHEDULED=Scheduled|EVENT_DRIVEN=Event driven');
     lt('KYC_REQUEST_STATUS', 'KYC Request Status');
-    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Information Needed|APPROVED=Approved'
+    lvs('KYC_REQUEST_STATUS', 'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Pending Information|APPROVED=Approved'
         || '|REJECTED=Rejected|CANCELLED=Cancelled');
+    -- release 74: an approver's request for information leaves the request Pending Information
+    update xxfnd_lookup_values set meaning = 'Pending Information'
+     where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code = 'INFO_NEEDED' and meaning = 'Information Needed';
     -- release 23: Submitted and Completed became In Progress and Approved
     update xxfnd_lookup_values set enabled_flag = 'N'
      where lookup_type = 'KYC_REQUEST_STATUS' and lookup_code in ('SUBMITTED', 'COMPLETED') and enabled_flag = 'Y';
@@ -175,7 +178,7 @@ begin
     lt('KYC_INTAKE_OUTCOME', 'KYC Intake Outcomes');
     lvs('KYC_INTAKE_OUTCOME', 'NOT_REQUIRED=KYC not required|AUTO_APPROVED=Auto-approved|ASSIGNED=Assigned to Compliance');
     lt('CASE_STATUS', 'Case Status');
-    lvs('CASE_STATUS', 'INVESTIGATION=Under investigation|PENDING_APPROVAL=Pending approval|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
+    lvs('CASE_STATUS', 'INVESTIGATION=Under investigation|PENDING_APPROVAL=Pending approval|PENDING_INFORMATION=Pending information|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
     lt('SCREENING_TYPE', 'Screening Types');
     lvs('SCREENING_TYPE', 'REGISTRY=Registry check|SANCTIONS=Sanctions|PEP=Politically exposed person|ADVERSE_MEDIA=Adverse media');
     lt('SCREENING_MATCH_STATUS', 'Screening Match Status');
@@ -196,6 +199,55 @@ begin
 
     entity('XXCMP_REQUESTS', 'KYC Request', 'REQUEST_ID');
     entity('XXCMP_CASES', 'Case', 'CASE_ID');
+    -- release 74 (R14): party verifications (16n), recorded by hand; the registry check is filled by a provider later
+    entity('XXCMP_PARTY_ID_VERIFICATIONS', 'ID Verification', 'ID_VERIFICATION_ID');
+    entity('XXCMP_PARTY_REGISTRY_CHECKS', 'Registry Check', 'REGISTRY_CHECK_ID');
+    -- release 74 (R27): attachments of the e-mails sent or recorded on the RFI and Notes screens
+    entity('XXFND_COMMUNICATIONS', 'E-mail', 'COMMUNICATION_ID');
+    lt('ID_VERIFICATION_METHOD', 'ID Verification Methods');
+    lvs('ID_VERIFICATION_METHOD', 'ORIGINAL_SEEN=Original seen in person|CERTIFIED_COPY=Certified copy|VIDEO_CALL=Video call'
+        || '|GOVERNMENT_PORTAL=Government portal checked by hand');
+    lt('ID_VERIFICATION_RESULT', 'ID Verification Results');
+    lvs('ID_VERIFICATION_RESULT', 'VERIFIED=Verified|NOT_VERIFIED=Not verified|INCONCLUSIVE=Inconclusive');
+    lt('REGISTRY_CHECK_RESULT', 'Registry Check Results');
+    lvs('REGISTRY_CHECK_RESULT', 'MATCH=Matches the party record|MISMATCH=Differs from the party record|NOT_FOUND=Not found in the registry');
+    lt('REGISTRATION_STATUS', 'Registry Statuses');
+    lvs('REGISTRATION_STATUS', 'ACTIVE=Active|SUSPENDED=Suspended|IN_LIQUIDATION=In liquidation|DISSOLVED=Dissolved|UNKNOWN=Unknown');
+    lt('RISK_COUNTRY_LIST', 'Risk Country Lists');
+    lvs('RISK_COUNTRY_LIST', 'FATF_BLACK=FATF black list (call for action)|FATF_GREY=FATF grey list (increased monitoring)'
+        || '|INTERNAL=Company high-risk list');
+    lt('RISK_FACTOR_TYPE', 'Risk Factor Types');
+    lvs('RISK_FACTOR_TYPE', 'FLAG=Points when it applies|SCORE=Percentage of the questionnaire score');
+    lt('DATA_SOURCE', 'Data Sources');
+    lvs('DATA_SOURCE', 'MANUAL=Entered by hand|API=From the provider');
+    -- release 74 (R14, R19): FIU / goAML reports and guided source of funds / wealth (16s)
+    lt('FIU_REPORT_TYPE', 'FIU Report Types');
+    lvs('FIU_REPORT_TYPE', 'STR=Suspicious transaction report|SAR=Suspicious activity report');
+    lt('FIU_REPORT_STATUS', 'FIU Report Statuses');
+    lvs('FIU_REPORT_STATUS', 'DRAFT=Draft|APPROVED=Approved|FILED=Filed with the FIU|CANCELLED=Cancelled');
+    lt('FUNDS_TYPE', 'Source of Funds / Wealth');
+    lvs('FUNDS_TYPE', 'SOF=Source of funds (this relationship)|SOW=Source of wealth (overall)');
+    lt('FUNDS_EVIDENCE_TYPE', 'Source of Funds Evidence');
+    lvs('FUNDS_EVIDENCE_TYPE', 'BANK_STATEMENT=Bank statement|PAYSLIP=Payslip|EMPLOYMENT_LETTER=Employment letter'
+        || '|AUDITED_ACCOUNTS=Audited accounts|TAX_RETURN=Tax return|SALE_AGREEMENT=Sale agreement|WILL_PROBATE=Will / probate'
+        || '|INVESTMENT_STATEMENT=Investment statement|LOAN_AGREEMENT=Loan agreement|SHAREHOLDER_FUNDING=Shareholder funding evidence'
+        || '|OTHER=Other');
+    -- the tag lists the evidence expected for each source (the form guides the officer with it)
+    lt('FUNDS_CATEGORY', 'Source of Funds Categories');
+    lvs('FUNDS_CATEGORY', 'SALARY=Salary / employment income=PAYSLIP,BANK_STATEMENT,EMPLOYMENT_LETTER'
+        || '|BUSINESS_INCOME=Business income / trading=AUDITED_ACCOUNTS,BANK_STATEMENT,TAX_RETURN'
+        || '|CAPITAL=Shareholder capital=SHAREHOLDER_FUNDING,BANK_STATEMENT'
+        || '|SALE_OF_ASSETS=Sale of assets=SALE_AGREEMENT,BANK_STATEMENT'
+        || '|INVESTMENTS=Investments=INVESTMENT_STATEMENT,BANK_STATEMENT'
+        || '|INHERITANCE=Inheritance / gift=WILL_PROBATE,BANK_STATEMENT'
+        || '|LOAN=Loan / financing=LOAN_AGREEMENT,BANK_STATEMENT'
+        || '|OTHER=Other');
+    merge into xxfnd_integration_purposes t
+    using (select 'BANK_DATA' code, 'Bank data for source of funds' name from dual
+           union all select 'GOAML_FILING', 'FIU goAML filing' from dual) s
+       on (t.purpose_code = s.code)
+     when not matched then insert (purpose_code, application_code, purpose_name, capture_method, approval_status)
+                           values (s.code, 'KYC', s.name, 'MANUAL', 'APPROVED');
 
     starter_questions;
     -- Sections for the starter questions (only where an administrator has not set one).
@@ -214,7 +266,7 @@ begin
     for p in (select column_value page_id from table(apex_t_number(200, 201, 202, 203, 204, 205, 206))) loop
         page('KYC_REQUESTS', p.page_id);
     end loop;
-    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217))) loop
+    for p in (select column_value page_id from table(apex_t_number(210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 34))) loop
         page('CASES', p.page_id);
     end loop;
     -- Attachments on the request (wizard step 3 and the request page) and the party documents on the case.
@@ -264,6 +316,25 @@ begin
         rule(r.role_code, 'XXCMP_RFIS',    'ALL_ROWS');
     end loop;
     rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+    -- release 74: the common RFI table, same access
+    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+        rule(r.role_code, 'XXFND_RFIS', 'ALL_ROWS');
+    end loop;
+    rule('REQUESTER', 'XXFND_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
+    -- release 74 (R14): party verifications - the Compliance team (requesters do not see them)
+    for r in (select column_value role_code from table(apex_string.split(c_staff || ',SYSTEM_ADMIN', ','))) loop
+        rule(r.role_code, 'XXCMP_PARTY_ID_VERIFICATIONS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_PARTY_REGISTRY_CHECKS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_FIU_REPORTS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_CASE_FUNDS', 'ALL_ROWS');
+        -- release 74 (R27): e-mails with outside parties (COMMON XXFND_COMMUNICATIONS)
+        rule(r.role_code, 'XXFND_COMMUNICATIONS', 'ALL_ROWS');
+        -- release 74 (R16): the risk model and the case scores
+        rule(r.role_code, 'XXCMP_RISK_FACTORS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_RISK_COUNTRIES', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_RISK_TIERS', 'ALL_ROWS');
+        rule(r.role_code, 'XXCMP_CASE_RISK_SCORES', 'ALL_ROWS');
+    end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))
@@ -337,7 +408,32 @@ select 'XXCMP_ATTACHMENT_RULES:' || r.attachment_rule_id,
        r.last_updated_by,
        r.last_update_date
   from xxcmp_attachment_rules r
- where r.approval_status = 'PENDING_APPROVAL';
+ where r.approval_status = 'PENDING_APPROVAL'
+union all
+-- release 74 (R16): risk model changes, one approval per table
+select 'XXCMP_RISK_FACTOR_SET:KYC', 'Risk model factors', 'Risk factors',
+       listagg(f.factor_name || ': ' || f.points || case when f.enabled_flag = 'N' then ' (off)' end
+               || nvl2(f.force_tier, ', forces ' || f.force_tier, null), '; ') within group (order by f.display_sequence),
+       max(f.last_updated_by), max(f.last_update_date)
+  from xxcmp_risk_factors f
+ where f.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0
+union all
+select 'XXCMP_RISK_COUNTRY_SET:KYC', 'Risk model country lists', 'Country lists',
+       listagg(c.list_code || ' ' || c.country_code || case when c.enabled_flag = 'N' then ' (removed)' end, '; ')
+         within group (order by c.list_code, c.country_code),
+       max(c.last_updated_by), max(c.last_update_date)
+  from xxcmp_risk_countries c
+ where c.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0
+union all
+select 'XXCMP_RISK_TIER_SET:KYC', 'Risk model tiers', 'Risk tiers',
+       listagg(t.risk_tier || ' from ' || t.min_score || ', review ' || t.review_months || ' months', '; ')
+         within group (order by t.min_score),
+       max(t.last_updated_by), max(t.last_update_date)
+  from xxcmp_risk_tiers t
+ where t.approval_status = 'PENDING_APPROVAL'
+having count(*) > 0;
 comment on table xxcmp_config_changes_v is 'KYC configuration changes waiting for approval (registered changes view in XXFND_CONFIG_TABLES).';
 
 merge into xxfnd_config_tables t
@@ -346,7 +442,11 @@ using (select 'XXCMP_QUESTIONNAIRES' table_name, 'N' approval_flag, null pk_colu
        union all select 'XXCMP_ANSWER_OPTIONS', 'Y', 'ANSWER_OPTION_ID', 'XXCMP_QUESTIONS', 'QUESTION_ID', 'XXCMP_CONFIG_CHANGES_V' from dual
        union all select 'XXCMP_CONCLUSION_TEMPLATES', 'N', null, null, null, null from dual
        union all select 'XXCMP_APPROVAL_MATRIX', 'N', null, null, null, null from dual
-       union all select 'XXCMP_ATTACHMENT_RULES', 'Y', 'ATTACHMENT_RULE_ID', null, null, 'XXCMP_CONFIG_CHANGES_V' from dual) s
+       union all select 'XXCMP_ATTACHMENT_RULES', 'Y', 'ATTACHMENT_RULE_ID', null, null, 'XXCMP_CONFIG_CHANGES_V' from dual
+       -- release 74 (R16): the risk model; each table is one approval unit (all its changed rows together)
+       union all select 'XXCMP_RISK_FACTORS', 'Y', 'FACTOR_CODE', 'XXCMP_RISK_FACTOR_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual
+       union all select 'XXCMP_RISK_COUNTRIES', 'Y', 'RISK_COUNTRY_ID', 'XXCMP_RISK_COUNTRY_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual
+       union all select 'XXCMP_RISK_TIERS', 'Y', 'RISK_TIER', 'XXCMP_RISK_TIER_SET', 'MODEL_CODE', 'XXCMP_CONFIG_CHANGES_V' from dual) s
    on (t.table_name = s.table_name)
  when matched then update set t.approval_flag = s.approval_flag, t.pk_column = s.pk_column, t.unit_table = s.unit_table,
                               t.unit_key_column = s.unit_key_column, t.changes_view = s.changes_view
@@ -359,5 +459,38 @@ commit;
 -- the configuration audit triggers of the KYC tables registered above
 begin
     xxfnd_schema_pkg.create_config_audit_triggers;
+end;
+/
+
+-- release 74: the messages the party, request and case components raise (message catalogue, COMMON 09f); a text
+-- Compliance changed is kept
+begin
+    xxfnd_error_pkg.register_message('KYC_PARTY_CREATE_NOT_ALLOWED', 'You are not allowed to create parties.', -20701);
+    xxfnd_error_pkg.register_message('KYC_PARTY_CHANGE_NOT_ALLOWED', 'You are not allowed to change parties.', -20706);
+    xxfnd_error_pkg.register_message('KYC_PARTY_DISABLED', 'A disabled or merged party cannot be changed.', -20707);
+    xxfnd_error_pkg.register_message('KYC_PARTY_THIS_NOT_ALLOWED', 'You are not allowed to change this party.', -20706);
+    xxfnd_error_pkg.register_message('KYC_PARTY_MERGE_NOT_ALLOWED', 'Only Compliance can merge parties.', -20711);
+    xxfnd_error_pkg.register_message('KYC_PARTY_MERGE_TARGET', 'Choose another party to merge into.', -20712);
+    xxfnd_error_pkg.register_message('KYC_PARTY_MERGE_TYPE', 'An organisation cannot be merged into an individual, or the reverse.', -20713);
+    xxfnd_error_pkg.register_message('KYC_PARTY_MERGE_DISABLED', 'Both parties must be enabled.', -20714);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_LOCKED', 'Request {1} can no longer be changed.', -20612);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_PARTY_FIXED', 'The counterparty of a submitted request cannot be replaced.', -20617);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_PARTY_APPROVED', 'The party of this request has been approved: Compliance maintains it.', -20618);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_ANSWERS_LOCKED', 'The request has been submitted; its answers can no longer be changed.', -20613);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_QUESTION_UNKNOWN', 'Question {1} does not belong to this request.', -20614);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_OPTION_UNKNOWN', 'Answer {1} is not an option of question {2}.', -20615);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NUMBER_EXPECTED', 'Enter a number for: {1}', -20616);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_INFO_TEXT', 'Enter the information you need from the requester.', -20625);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_IN_APPROVAL', 'Request {1} is not waiting for approval.', -20625);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_APPROVER', 'You are not an approver of request {1}.', -20625);
+    xxfnd_error_pkg.register_message('KYC_CASE_REASSIGN_NOT_ALLOWED', 'Only a case under investigation can be reassigned, by Compliance management or its assignee.', -20611);
+    xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_REQUIRED', 'Select the officer.', -20611);
+    xxfnd_error_pkg.register_message('KYC_CASE_WITHDRAW_NOT_ALLOWED', 'Only a case waiting for approval can be withdrawn, by its officer or Compliance management.', -20615);
+    xxfnd_error_pkg.register_message('KYC_CASE_WITHDRAW_REASON', 'Enter the reason for withdrawing the case from approval.', -20615);
+    xxfnd_error_pkg.register_message('KYC_CASE_NO_MATRIX_ROW', 'The approval matrix has no row for risk tier {1}.', -20612);
+    xxfnd_error_pkg.register_message('KYC_CASE_CONTACT_NO_EMAIL', 'The contact person has no e-mail address: add one before sending the request.', -20509);
+    xxfnd_error_pkg.register_message('KYC_CASE_FIU_FILING', 'Enter the goAML reference and the date the report was filed.', -20616);
+    xxfnd_error_pkg.register_message('KYC_CASE_FUNDS_EVIDENCE', 'Record the evidence seen before marking the source as verified.', -20617);
+    commit;
 end;
 /

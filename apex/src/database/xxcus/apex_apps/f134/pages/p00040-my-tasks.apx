@@ -295,7 +295,12 @@ page 40 (
                        task_type,
                        task_def_name,
                        details_app_name,
-                       details_link_target,
+                       -- release 74: a case approver's question to me (the requester) is answered on the request screen
+                       case when task_def_static_id = 'CASE_APPROVAL' and state_code = 'INFO_REQUESTED'
+                                 and upper(initiator) = upper(:APP_USER)
+                            then apex_page.get_url(p_page => 206, p_items => 'P206_TASK_ID', p_values => to_char(task_id),
+                                                   p_clear_cache => '206')
+                            else details_link_target end as details_link_target,
                        subject,
                        initiator,
                        actual_owner,

@@ -53,7 +53,7 @@ begin
     feature('NOTIFICATIONS',    109,   'fa-envelope-o',       'E-mail and in-app notification templates.');
     feature('RETENTION',        112,   'fa-archive',          'How long records and documents are kept.');
     -- Workflow and Integration
-    feature('WORKFLOW_SETUP',   165,   'fa-sitemap',          'Approval matrix, delegations, deadlines and escalation, process catalogue.');
+    feature('WORKFLOW_SETUP',   165,   'fa-sitemap',          'SAR gate, delegations, deadlines and escalation, process catalogue (approvers: COMMON Approval Setup).');
     feature('WORKFLOW_MONITOR', 41,    'fa-heartbeat',        'Running workflow items: suspend, resume, move or cancel.');
     feature('INTEGRATIONS',     120,   'fa-plug',             'Endpoints, purposes and the transmission log.');
     -- Security
@@ -66,9 +66,9 @@ begin
     feature('USAGE_FEEDBACK',   10030, 'fa-bar-chart',        'Activity reports and user feedback.');
 
     tabs('FLEXFIELDS',       '152=Descriptive Flexfields|150=Value Sets');
-    tabs('KYC_RULES',        '160=Questionnaires|163=Conclusion Templates');
+    tabs('KYC_RULES',        '160=Questionnaires|163=Conclusion Templates|167=Risk Model');
     tabs('ATTACHMENTS',      '132=Categories|138=Mandatory Documents|136=Storage|130=Registration|134=Attachment Pages');
-    tabs('WORKFLOW_SETUP',   '165=Approval Matrix|166=Request Approval Paths|114=Delegations');
+    tabs('WORKFLOW_SETUP',   '165=SAR Gate|114=Delegations');   -- release 74: approvers in COMMON Approval Setup
     tabs('INTEGRATIONS',     '120=Endpoints|122=Purposes|124=Transmission Log');
     tabs('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties');
     tabs('APP_SETTINGS',     '10022=Settings|10020=Optional Features');

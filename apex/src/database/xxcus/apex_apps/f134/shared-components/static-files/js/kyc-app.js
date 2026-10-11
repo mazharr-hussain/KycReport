@@ -55,8 +55,16 @@ window.kycQuestionnaire = (function ($) {
     "use strict";
     $(document).on("mouseenter focusin", ".kyc-person[data-user]:not([data-loaded])", function () {
         var el = $(this).attr("data-loaded", "Y");
-        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "text" })
-            .done(function (html) { el.append(html); });
+        apex.server.process("PERSON_CARD", { x01: el.attr("data-user") }, { dataType: "json" })
+            .done(function (p) {
+                // release 74: the server returns data; the card is built here (escaped)
+                if (!p || !p.user_name) { return; }
+                var esc = apex.util.escapeHTML, rows = [["Name", p.name], ["Employee no.", p.employee_number],
+                                                         ["Department", p.department], ["User name", p.user_name]];
+                el.append('<span class="kyc-person-card" role="tooltip"><table>' + rows.map(function (r) {
+                    return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1] || "-") + '</td></tr>';
+                }).join("") + '</table></span>');
+            });
     });
 })(apex.jQuery);
 
@@ -195,6 +203,10 @@ window.kycQuestionnaire = (function ($) {
         e.preventDefault();
         apex.item(pageItem("DECISION")).setValue(m[1]);
         $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
+        // release 74: Add Approver picks the person who approves next
+        $("#" + pageItem("ADD_USER") + "_CONTAINER").toggle(m[1] === "ADD_APPROVER");
+        // release 74: Submit Information shows the approver's question
+        $("#" + pageItem("INFO_QUESTION") + "_CONTAINER").toggle(m[1] === "SUBMIT_INFO");
         apex.message.clearErrors();
         dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
         apex.theme.openRegion("decision_dialog");
@@ -203,6 +215,12 @@ window.kycQuestionnaire = (function ($) {
     $(document).on("click", "button.kyc-decide-confirm", function (e) {
         var comment = pageItem("COMMENT");
         e.preventDefault();
+        if ($v(pageItem("DECISION")) === "ADD_APPROVER" && $.trim($v(pageItem("ADD_USER"))) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: pageItem("ADD_USER"),
+                                       message: "Choose the approver to add.", unsafe: false }]);
+            return;
+        }
         if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {
             apex.message.clearErrors();
             apex.message.showErrors([{ type: "error", location: "inline", pageItem: comment,

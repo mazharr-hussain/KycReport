@@ -414,7 +414,7 @@ page 21 (
                                case when p.registration_number is not null
                                      and upper(replace(p.registration_number, ' ')) = upper(replace(me.registration_number, ' '))
                                     then 'Y' else 'N' end as same_registration,
-                               xxcmp_kyc_pkg.name_similarity(p.party_name, me.party_name) as similarity
+                               xxcmp_party_pkg.name_similarity(p.party_name, me.party_name) as similarity
                           from xxcmp_parties me
                           join xxcmp_parties p
                             on p.party_id <> me.party_id and p.party_type = me.party_type and p.enabled_flag = 'Y'
@@ -609,7 +609,7 @@ page 21 (
                     l_party   xxcmp_parties%rowtype;
                 begin
                     select * into l_party from xxcmp_parties where party_id = :P21_PARTY_ID;
-                    l_missing := xxcmp_kyc_pkg.missing_categories('XXCMP_PARTIES', to_char(l_party.party_id),
+                    l_missing := xxcmp_doc_rule_pkg.missing_categories('XXCMP_PARTIES', to_char(l_party.party_id),
                                                                   l_party.jurisdiction,
                                                                   case when l_party.party_type = 'PERSON' then l_party.registration_type else l_party.entity_type end);
                     if l_missing.count = 0 then

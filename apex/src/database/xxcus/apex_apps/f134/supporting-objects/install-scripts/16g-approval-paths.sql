@@ -6,6 +6,9 @@
 --   wins, then the lowest PRIORITY. Each step is approved by a role or a named user.
 --   XXCMP_APPROVAL_PKG: the path of a request, the current step's approvers, the path and history
 --   shown on the request screens. The KYC_REQUEST workflow (1.3) runs one approval task per step.
+--   Release 74: the approvers come from the common Approval Setup (type KYC_REQUEST, COMMON 15d); XXCMP_APPROVAL_PATHS
+--   is kept unchanged as history (page 166 removed). Request only (R6): the case history is in XXCMP_CASE_PKG; the
+--   HTML functions path_html / history_html are gone (R11) - the screens use HISTORY_ROWS in a standard report.
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 create table if not exists xxcmp_approval_paths (
@@ -56,6 +59,8 @@ commit;
 
 create or replace package body xxcmp_approval_pkg as
 
+    c_type constant varchar2(30) := 'KYC_REQUEST';
+
     function req(p_request_id in number) return xxcmp_requests%rowtype is
         l xxcmp_requests%rowtype;
     begin
@@ -69,39 +74,33 @@ create or replace package body xxcmp_approval_pkg as
             raise;
     end req;
 
-    function path_for(p_request_id in number) return varchar2 is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_path varchar2(100);
+    -- release 74: the approvers come from the common Approval Setup (transaction type KYC_REQUEST, C_TYPE); this
+    -- package gives the request's attributes and keeps the request's own columns (APPROVAL_PATH_NAME = the rule,
+    -- CURRENT_STEP = the position) up to date for the screens.
+
+    function attributes(p_req in xxcmp_requests%rowtype) return apex_t_varchar2 is
     begin
-        select max(path_name) keep (dense_rank first order by hits desc, priority, path_name) into l_path
-          from (select path_name, min(priority) priority,
-                       max(nvl2(requesting_department, 1, 0) + nvl2(party_type, 1, 0)
-                           + nvl2(jurisdiction, 1, 0) + nvl2(request_type, 1, 0) + nvl2(business_relationship, 1, 0)) hits
-                  from xxcmp_approval_paths
-                 where enabled_flag = 'Y'
-                   and (requesting_department is null or requesting_department = l_req.requesting_department)
-                   and (party_type is null or party_type = l_req.party_type)
-                   and (jurisdiction is null or jurisdiction = l_req.jurisdiction)
-                   and (request_type is null or request_type = l_req.request_type)
-                   and (business_relationship is null or business_relationship = l_req.business_relationship)
-                 group by path_name);
-        return l_path;
+        return apex_t_varchar2('REQUESTING_DEPARTMENT=' || p_req.requesting_department, 'PARTY_TYPE=' || p_req.party_type,
+                               'JURISDICTION=' || p_req.jurisdiction, 'REQUEST_TYPE=' || p_req.request_type,
+                               'BUSINESS_RELATIONSHIP=' || p_req.business_relationship);
+    end attributes;
+
+    function path_for(p_request_id in number) return varchar2 is
+        l_rule number := xxfnd_approval_rule_pkg.matching_rule(c_type, attributes(req(p_request_id)));
+        l_name varchar2(100);
+    begin
+        select max(rule_name) into l_name from xxfnd_approval_rules where rule_id = l_rule;
+        return l_name;
     end path_for;
 
-    function first_step(p_path in varchar2) return number is
-        l number;
-    begin
-        select min(step_sequence) into l from xxcmp_approval_paths where path_name = p_path and enabled_flag = 'Y';
-        return l;
-    end first_step;
-
     procedure start_path(p_request_id in number) is
-        l_path varchar2(100) := path_for(p_request_id);
-        l_step number := first_step(l_path);    -- private function: not callable inside SQL
+        l_req  xxcmp_requests%rowtype := req(p_request_id);
+        l_rule varchar2(100);
     begin
+        l_rule := xxfnd_approval_rule_pkg.start_approval(c_type, to_char(p_request_id), attributes(l_req),
+                                                         l_req.requester_user_name);
         xxfnd_vpd_pkg.begin_trusted;
-        update xxcmp_requests set approval_path_name = l_path, current_step = l_step
-         where request_id = p_request_id;
+        update xxcmp_requests set approval_path_name = l_rule, current_step = 1 where request_id = p_request_id;
         xxfnd_vpd_pkg.end_trusted;
     exception
         when others then
@@ -109,43 +108,27 @@ create or replace package body xxcmp_approval_pkg as
             raise;
     end start_path;
 
-    function step_row(p_request_id in number) return xxcmp_approval_paths%rowtype is
-        l_req xxcmp_requests%rowtype := req(p_request_id);
-        l     xxcmp_approval_paths%rowtype;
-    begin
-        select * into l from xxcmp_approval_paths
-         where path_name = l_req.approval_path_name and step_sequence = l_req.current_step;
-        return l;
-    exception
-        when no_data_found then
-            return l;
-    end step_row;
-
     function step_approvers(p_request_id in number) return varchar2 is
-        l xxcmp_approval_paths%rowtype := step_row(p_request_id);
     begin
-        return case l.approver_type when 'USER' then upper(l.user_name)
-                                    when 'ROLE' then xxfnd_task_pkg.users_in_role(l.role_code)
-                    -- a request submitted before release 24: Compliance, as before
-                    else xxfnd_task_pkg.users_with_privilege('CASES', 'CREATE') end;
+        return coalesce(xxfnd_approval_rule_pkg.current_approvers(c_type, to_char(p_request_id)),
+                        -- a request whose approval started before the Approval Setup: Compliance, as before
+                        xxfnd_task_pkg.users_with_privilege('CASES', 'CREATE'));
     end step_approvers;
 
     function step_name(p_request_id in number) return varchar2 is
     begin
-        return nvl(step_row(p_request_id).step_name, 'Compliance review');
+        return nvl(xxfnd_approval_rule_pkg.current_step_name(c_type, to_char(p_request_id)), 'Compliance review');
     end step_name;
 
     function next_step(p_request_id in number) return varchar2 is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_next number;
+        l_more varchar2(1) := xxfnd_approval_rule_pkg.next_step(c_type, to_char(p_request_id));
+        l_pos  number      := xxfnd_approval_rule_pkg.current_position(c_type, to_char(p_request_id));
     begin
-        select min(step_sequence) into l_next from xxcmp_approval_paths
-         where path_name = l_req.approval_path_name and enabled_flag = 'Y' and step_sequence > l_req.current_step;
-        if l_next is null then
+        if l_more = 'N' then
             return 'N';
         end if;
         xxfnd_vpd_pkg.begin_trusted;
-        update xxcmp_requests set current_step = l_next, last_action_date = sysdate where request_id = p_request_id;
+        update xxcmp_requests set current_step = l_pos, last_action_date = sysdate where request_id = p_request_id;
         xxfnd_vpd_pkg.end_trusted;
         return 'Y';
     exception
@@ -154,94 +137,18 @@ create or replace package body xxcmp_approval_pkg as
             raise;
     end next_step;
 
-    function who(p_type in varchar2, p_role in varchar2, p_user in varchar2) return varchar2 is
-        l_name xxfnd_roles.role_name%type;
-    begin
-        if p_type = 'USER' then
-            return p_user;
-        end if;
-        select max(role_name) into l_name from xxfnd_roles where role_code = p_role;
-        return nvl(l_name, p_role);
-    end who;
-
-    function path_html(p_request_id in number) return clob is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_path varchar2(100) := nvl(l_req.approval_path_name, path_for(p_request_id));
-        l_html clob := '<ol class="kyc-path">';
-        l_state varchar2(30);
-    begin
-        if l_req.request_status = 'DRAFT' then
-            l_html := '<p>Expected approval path (' || apex_escape.html(l_path) || '):</p>' || l_html;
-        end if;
-        for s in (select step_sequence, step_name, approver_type, role_code, user_name
-                    from xxcmp_approval_paths where path_name = l_path and enabled_flag = 'Y'
-                   order by step_sequence) loop
-            l_state := case when l_req.request_status in ('DRAFT', 'CANCELLED') or l_req.current_step is null then null
-                            when l_req.request_status = 'APPROVED' or s.step_sequence < l_req.current_step then 'Approved'
-                            when s.step_sequence = l_req.current_step and l_req.request_status = 'REJECTED' then 'Rejected'
-                            when s.step_sequence = l_req.current_step then 'Pending'
-                            else 'Waiting' end;
-            l_html := l_html || '<li><strong>' || apex_escape.html(s.step_name) || '</strong> - '
-                      || apex_escape.html(who(s.approver_type, s.role_code, s.user_name))
-                      || nvl2(l_state, ' <span class="u-color-subtle">(' || l_state || ')</span>', null) || '</li>';
-        end loop;
-        return l_html || '</ol>';
-    end path_html;
-
-    function history_html(p_request_id in number) return clob is
-        l_req  xxcmp_requests%rowtype := req(p_request_id);
-        l_html clob;
-    begin
-        l_html := '<table class="t-Report-report"><thead><tr><th>Date</th><th>By</th><th>Action</th><th>Comments</th></tr></thead><tbody>';
-        for h in (select l_req.submitted_date as at_time, l_req.requester_user_name as by_user, 'Submitted' as action, null as text
-                    from dual where l_req.submitted_date is not null
-                  union all
-                  -- release 73: approval workflow switched off for the process
-                  select cast(l_req.auto_approved_date as timestamp), 'System', xxfnd_workflow_switch_pkg.c_auto_approved, null
-                    from dual where l_req.auto_approved_date is not null
-                  union all
-                  select cast(h.event_timestamp as timestamp), h.event_creator,
-                         nvl(h.outcome, h.event_type) || nvl2(t.subject, ' - ' || t.subject, null), null
-                    from apex_task_history h
-                    join apex_tasks t on t.task_id = h.task_id
-                   where t.detail_pk = to_char(p_request_id)
-                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
-                     and h.event_type_code in ('COMPLETE', 'REQUEST_INFO', 'SUBMIT_INFO', 'CLAIM', 'CANCEL', 'DELEGATE')
-                  union all
-                  select cast(c.created_on as timestamp), c.created_by, 'Comment', c.text
-                    from apex_task_comments c
-                    join apex_tasks t on t.task_id = c.task_id
-                   where t.detail_pk = to_char(p_request_id)
-                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
-                  union all
-                  select r.creation_date, r.created_by, 'Information requested', r.description
-                    from xxcmp_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
-                  union all
-                  select r.responded_date, r.recipient_user_name, 'Information submitted', null
-                    from xxcmp_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id) and r.responded_date is not null
-                  union all
-                  select l_req.completed_date, l_req.last_updated_by,
-                         initcap(l_req.request_status), l_req.match_note
-                    from dual where l_req.request_status in ('CANCELLED') and l_req.completed_date is not null
-                   order by 1) loop
-            l_html := l_html || '<tr><td>' || to_char(h.at_time, 'DD-MON-YYYY HH24:MI') || '</td><td>' || apex_escape.html(h.by_user)
-                      || '</td><td>' || apex_escape.html(h.action) || '</td><td>' || apex_escape.html(h.text) || '</td></tr>';
-        end loop;
-        return l_html || '</tbody></table>';
-    end history_html;
-
     function history_rows(p_request_id in number) return xxcmp_history_tab pipelined is
         l_req    xxcmp_requests%rowtype;
         l_path   varchar2(100);
         l_owners varchar2(1000);
+        l_attrs  apex_t_varchar2;
     begin
         if p_request_id is null then
             return;
         end if;
         l_req  := req(p_request_id);
         l_path := nvl(l_req.approval_path_name, path_for(p_request_id));
+        l_attrs := attributes(l_req);
         for h in (select null as step_no, 'Request' as step_name, null as assigned_to, 'Submitted' as action,
                          l_req.requester_user_name as action_by, cast(l_req.submitted_date as timestamp) as action_date,
                          null as comments
@@ -273,19 +180,21 @@ create or replace package body xxcmp_approval_pkg as
                   -- release 73: questions returned to the requester by an approver who is the requester (return_for_info)
                   select null, 'Approval', null, 'Information requested', r.created_by, cast(r.creation_date as timestamp),
                          r.description
-                    from xxcmp_rfis r
+                    from xxfnd_rfis r
                    where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
                   union all
-                  select null, 'Request', null, 'Information submitted', r.recipient_user_name, cast(r.responded_date as timestamp), null
-                    from xxcmp_rfis r
-                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id) and r.responded_date is not null
+                  select null, 'Request', null, 'Information submitted', r.recipient_user_name,
+                         cast(coalesce(r.responded_date, r.resolved_date) as timestamp), null
+                    from xxfnd_rfis r
+                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                     and coalesce(r.responded_date, r.resolved_date) is not null and r.rfi_status <> 'CANCELLED'
                   union all
                   select null, 'Request', null, 'Withdrawn', l_req.requester_user_name, cast(w.last_updated_on as timestamp), null
                     from apex_workflows w
                    where w.detail_pk = to_char(p_request_id) and w.state_code = 'TERMINATED'
                      and not (l_req.request_status = 'CANCELLED'
                               and abs(cast(w.last_updated_on as date) - cast(l_req.completed_date as date)) < 1 / 1440)
-                     and not exists (select 1 from xxcmp_rfis r
+                     and not exists (select 1 from xxfnd_rfis r
                                       where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
                                         and abs(cast(w.last_updated_on as date) - cast(r.creation_date as date)) < 1 / 1440)
                   union all
@@ -295,13 +204,11 @@ create or replace package body xxcmp_approval_pkg as
             pipe row (xxcmp_history_row(h.step_no, h.step_name, h.assigned_to, h.action, h.action_by, h.action_date, h.comments));
         end loop;
         if l_req.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
-            for p in (select step_sequence, step_name, approver_type, role_code, user_name
-                        from xxcmp_approval_paths
-                       where path_name = l_path and enabled_flag = 'Y'
-                         and (l_req.request_status = 'DRAFT' or l_req.current_step is null or step_sequence >= l_req.current_step)
-                       order by step_sequence) loop
+            for p in (select * from table(xxfnd_approval_rule_pkg.steps(c_type, to_char(p_request_id), l_attrs))
+                       where step_state in ('EXPECTED', 'CURRENT', 'WAITING')
+                       order by position) loop
                 l_owners := null;
-                if l_req.request_status <> 'DRAFT' and p.step_sequence = l_req.current_step then
+                if p.step_state = 'CURRENT' then
                     select max(coalesce(t.actual_owner,
                                         (select listagg(pp.participant, ', ') within group (order by pp.participant)
                                            from apex_task_participants pp
@@ -311,78 +218,17 @@ create or replace package body xxcmp_approval_pkg as
                      where t.detail_pk = to_char(p_request_id) and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
                        and t.state_code in ('ASSIGNED', 'UNASSIGNED', 'INFO_REQUESTED');
                 end if;
-                pipe row (xxcmp_history_row(p.step_sequence, p.step_name,
-                              nvl(l_owners, who(p.approver_type, p.role_code, p.user_name)),
-                              case when l_req.request_status = 'DRAFT' then 'Expected'
-                                   when p.step_sequence = l_req.current_step and l_req.request_status = 'INFO_NEEDED' then 'Information needed'
-                                   when p.step_sequence = l_req.current_step then 'Pending'
+                pipe row (xxcmp_history_row(p.position, p.step_name,
+                              nvl(l_owners, xxfnd_approval_rule_pkg.approver_label(p.approver_type, p.role_code, p.user_name)),
+                              case when p.step_state = 'EXPECTED' then 'Expected'
+                                   when p.step_state = 'CURRENT' and l_req.request_status = 'INFO_NEEDED' then 'Information needed'
+                                   when p.step_state = 'CURRENT' then 'Pending'
                                    else 'Waiting' end,
                               null, null, null));
             end loop;
         end if;
         return;
     end history_rows;
-
-    function case_history_rows(p_case_id in number) return xxcmp_history_tab pipelined is
-        l_case   xxcmp_cases%rowtype;
-        l_levels number;
-        l_role1  xxcmp_approval_matrix.level1_role_code%type;
-        l_role2  xxcmp_approval_matrix.level2_role_code%type;
-        l_done   number;
-    begin
-        if p_case_id is null then
-            return;
-        end if;
-        xxfnd_vpd_pkg.begin_trusted;
-        select * into l_case from xxcmp_cases where case_id = p_case_id;
-        xxfnd_vpd_pkg.end_trusted;
-        pipe row (xxcmp_history_row(null, 'Case opened', null, 'Opened',
-                                    case when lower(l_case.created_by) = 'nobody' then 'System' else l_case.created_by end,
-                                    l_case.creation_date, null));
-        for h in (select cast(h.event_timestamp as timestamp) as at_time, h.event_creator,
-                         case h.event_type_code when 'COMPLETE' then 'Submitted for approval' when 'CLAIM' then 'Claimed'
-                                                when 'DELEGATE' then 'Delegated' end as action
-                    from apex_task_history h
-                    join apex_tasks t on t.task_id = h.task_id
-                   where t.detail_pk = to_char(p_case_id) and t.task_def_static_id = 'CASE_INVESTIGATION'
-                     and h.event_type_code in ('COMPLETE', 'CLAIM', 'DELEGATE')
-                   order by h.event_timestamp) loop
-            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, h.action, h.event_creator, h.at_time, null));
-        end loop;
-        for d in (select level_no, role_code, decided_by, outcome, cast(decision_date as timestamp) as at_time, comments
-                    from xxcmp_case_decisions where case_id = p_case_id order by decision_date) loop
-            pipe row (xxcmp_history_row(d.level_no, 'Approval level ' || d.level_no, who('ROLE', d.role_code, null),
-                                        initcap(d.outcome), d.decided_by, d.at_time, d.comments));
-        end loop;
-        if l_case.auto_approved_date is not null then
-            -- release 73: approval workflow switched off for the process
-            pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
-                                        l_case.auto_approved_date, null));
-        end if;
-        if l_case.case_status = 'INVESTIGATION' then
-            pipe row (xxcmp_history_row(null, 'Investigation', l_case.assigned_to, 'In progress', null, null, null));
-        end if;
-        if l_case.case_status in ('INVESTIGATION', 'PENDING_APPROVAL') and l_case.auto_approved_date is null then
-            select max(required_levels), max(level1_role_code), max(level2_role_code) into l_levels, l_role1, l_role2
-              from xxcmp_approval_matrix
-             where risk_tier = case when l_case.enhanced_kyc_flag = 'Y' then 'HIGH' else nvl(l_case.risk_tier, 'HIGH') end;
-            select count(*) into l_done from xxcmp_case_decisions where case_id = p_case_id and outcome = 'APPROVED';
-            for lvl in 1 .. nvl(l_levels, 1) loop
-                if lvl > l_done then
-                    pipe row (xxcmp_history_row(lvl, 'Approval level ' || lvl,
-                                                who('ROLE', case lvl when 1 then l_role1 else l_role2 end, null),
-                                                case when l_case.case_status = 'INVESTIGATION' then 'Expected'
-                                                     when lvl = l_done + 1 then 'Pending' else 'Waiting' end,
-                                                null, null, null));
-                end if;
-            end loop;
-        end if;
-        return;
-    exception
-        when no_data_found then
-            xxfnd_vpd_pkg.end_trusted;
-            return;
-    end case_history_rows;
 
 end xxcmp_approval_pkg;
 /

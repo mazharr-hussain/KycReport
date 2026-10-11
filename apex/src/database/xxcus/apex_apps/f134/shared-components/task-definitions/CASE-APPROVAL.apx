@@ -67,6 +67,30 @@ taskDefinition CASE_APPROVAL (
         }
     )
 
+    action info-requested (
+        name: Case is Pending Information
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_case_pkg.info_requested(to_number(:APEX$TASK_PK));
+        }
+        execution {
+            onEvent: requestInformation
+            sequence: 40
+        }
+    )
+
+    action info-submitted (
+        name: Case back to Pending Approval
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_case_pkg.info_submitted(to_number(:APEX$TASK_PK));
+        }
+        execution {
+            onEvent: submitInformation
+            sequence: 50
+        }
+    )
+
     participant (
         value {
             type: expression

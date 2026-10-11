@@ -231,7 +231,7 @@ page 33 (
                     l_rfi_id number;
                     l_att_id number;
                 begin
-                    l_rfi_id := xxcmp_kyc_pkg.respond_by_token(:P33_TOKEN, :P33_RESPONSE);
+                    l_rfi_id := xxfnd_rfi_pkg.respond_by_token(:P33_TOKEN, :P33_RESPONSE);
                     if :P33_FILE is not null then
                         l_att_id := xxfnd_attach_pkg.add_file(
                             p_entity_name    => 'XXCMP_RFIS',

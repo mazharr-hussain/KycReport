@@ -195,6 +195,42 @@
   ]
  },
  {
+  "name": "15e Communications (e-mail with outside parties)",
+  "file": "15e-communications.sql",
+  "install_sequence": 151,
+  "upgrade_sequence": 111,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15b Common workflow runtime",
+  "file": "15b-workflow-runtime.sql",
+  "install_sequence": 152,
+  "upgrade_sequence": 112,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15c Request for Information workflow",
+  "file": "15c-rfi-workflow.sql",
+  "install_sequence": 154,
+  "upgrade_sequence": 114,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15d Approval Setup",
+  "file": "15d-approval-setup.sql",
+  "install_sequence": 153,
+  "upgrade_sequence": 113,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
@@ -227,6 +263,12 @@
    "COMMON",
    "KYC"
   ]
+ },
+ {
+  "name": "19a Grants to the shared schema (before the seed)",
+  "file": "19a-grants-to-shared-schema.sql",
+  "install_sequence": 175,
+  "upgrade_sequence": 135
  },
  {
   "name": "18 Seed data and administrator - part 2 of 2",
@@ -269,6 +311,12 @@
   "upgrade_sequence": 124
  },
  {
+  "name": "16u0 KYC risk model package specification",
+  "file": "16u0-risk-pkg-spec.sql",
+  "install_sequence": 161,
+  "upgrade_sequence": 121
+ },
+ {
   "name": "16g0 Approval paths - package specification",
   "file": "16g0-approval-pkg-spec.sql",
   "install_sequence": 163,
@@ -279,6 +327,48 @@
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,
   "upgrade_sequence": 125
+ },
+ {
+  "name": "16k KYC RFIs use the common RFI workflow",
+  "file": "16k-rfi-to-common.sql",
+  "install_sequence": 173,
+  "upgrade_sequence": 133
+ },
+ {
+  "name": "16l KYC approvals in the common Approval Setup",
+  "file": "16l-kyc-approval-setup.sql",
+  "install_sequence": 186,
+  "upgrade_sequence": 136
+ },
+ {
+  "name": "16m KYC case status Pending Information",
+  "file": "16m-case-pending-information.sql",
+  "install_sequence": 177,
+  "upgrade_sequence": 137
+ },
+ {
+  "name": "16r KYC request package body",
+  "file": "16r-request-pkg.sql",
+  "install_sequence": 178,
+  "upgrade_sequence": 138
+ },
+ {
+  "name": "16s KYC case package body",
+  "file": "16s-case-pkg.sql",
+  "install_sequence": 179,
+  "upgrade_sequence": 139
+ },
+ {
+  "name": "16u KYC risk model (tables, package body, starting model with the FATF lists)",
+  "file": "16u-risk-model.sql",
+  "install_sequence": 181,
+  "upgrade_sequence": 141
+ },
+ {
+  "name": "16v KYC performance (foreign key and data security indexes)",
+  "file": "16v-performance.sql",
+  "install_sequence": 182,
+  "upgrade_sequence": 142
  },
  {
   "name": "18e KYC requests and cases - seed",
@@ -414,6 +504,15 @@
   "file": "09e-workflow-switches.sql",
   "install_sequence": 99,
   "upgrade_sequence": 59,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09f Central error handling",
+  "file": "09f-error-handling.sql",
+  "install_sequence": 92,
+  "upgrade_sequence": 52,
   "apps": [
    "COMMON"
   ]

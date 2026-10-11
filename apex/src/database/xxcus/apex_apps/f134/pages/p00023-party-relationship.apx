@@ -73,6 +73,9 @@ page 23 (
             dataType: number
             primaryKey: true
         }
+        sessionState {
+            storage: session
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
@@ -111,7 +114,7 @@ page 23 (
                    and party_id <> nvl(to_number(:P23_OBJECT_PARTY_ID), -1)   -- release 73: never the party itself
                 union
                 select j.party_name || ' (' || j.party_number || ')', j.party_id
-                  from json_table(xxcmp_request_pkg.party_directory_json(null), '$[*]'
+                  from json_table(xxcmp_party_pkg.party_directory_json(null), '$[*]'
                          columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
                                   party_name varchar2(360) path '$.party_name')) j
                  where j.party_id <> nvl(to_number(:P23_OBJECT_PARTY_ID), -1)

@@ -1,0 +1,803 @@
+page 201 (
+    name: Create Request - Counterparty
+    alias: CREATE-REQUEST
+    title: Create Request - Counterparty
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Step 1 of 3: the request and its counterparty. Choose an approved party, or enter a new one in the common party form: it is created as a party with status Pending and approved with the request. Parties that may be the same are shown as a warning (name, registration / ID number, date, country); a counterparty with the same number and country as an existing party must use that party. Compliance can merge a duplicate later. Save as Draft keeps the request to finish later; Cancel Request withdraws it.
+            ```
+    }
+
+    region breadcrumb (
+        name: Create Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Create Request
+        type: list
+        source {
+            list: @request-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region request (
+        name: Request
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region counterparty (
+        name: Counterparty
+        type: staticContent
+        layout {
+            sequence: 8
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: counterparty
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P201_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P201_REQUEST_STATUS (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P201_REQUESTING_DEPARTMENT (
+        type: selectList
+        label {
+            label: Requesting Department
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'REQUESTING_DEPARTMENT' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                select xxcmp_request_pkg.default_department from dual
+                ```
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_request_pkg.can_choose_department = 'N' and xxcmp_request_pkg.default_department is not null
+                ```
+        }
+        help {
+            helpText: The department of your employee profile. Compliance can raise requests for any department.
+        }
+    )
+
+    pageItem P201_BUSINESS_RELATIONSHIP (
+        type: selectList
+        label {
+            label: Business Relationship
+            alignment: left
+        }
+        layout {
+            sequence: 15
+            region: @request
+            slot: regionBody
+            startNewRow: false
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'BUSINESS_RELATIONSHIP' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        help {
+            helpText: What the counterparty is to the company for this request (customer, vendor...). One relationship per request; a party that is both a customer and a vendor gets one request for each. It goes on to the case and can choose the approval path.
+        }
+    )
+
+    pageItem P201_JUSTIFICATION (
+        type: textarea
+        label {
+            label: Business Justification
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            valueRequired: true
+            maxLength: 4000
+        }
+        help {
+            helpText: Why the organisation wants to deal with this counterparty.
+        }
+    )
+
+    pageItem P201_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
+        }
+        layout {
+            sequence: 92
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        help {
+            helpText: Who the organisation deals with at the counterparty (or the individual).
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_EMAIL (
+        type: textField
+        label {
+            label: Contact Email
+            alignment: left
+        }
+        layout {
+            sequence: 94
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_PHONE (
+        type: textField
+        label {
+            label: Contact Phone
+            alignment: left
+        }
+        layout {
+            sequence: 96
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_PARTY_SELECTION (
+        type: radioGroup
+        label {
+            label: Counterparty
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Existing party' as display_value, 'EXISTING' as return_value from dual
+                union all select 'New counterparty', 'NEW' from dual
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--large
+            ]
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: static
+            staticValue: NEW
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_STATUS = 'INFO_NEEDED'
+                ```
+        }
+        help {
+            helpText: Existing: an approved party (choose it). New: not yet known to the organisation; it is created as a Pending party with the request.
+        }
+    )
+
+    pageItem P201_PARTY_ID (
+        type: popupLov
+        label {
+            label: Existing Party
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_name || ' (' || j.party_number || nvl2(j.country, ', ' || j.country, null) || ')' as display_value,
+                       j.party_id as return_value
+                  from json_table(xxcmp_party_pkg.party_directory_json(null), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country')) j
+                 order by j.party_name
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 20
+            region: @counterparty
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_STATUS = 'INFO_NEEDED'
+                ```
+        }
+        help {
+            helpText: Search by name or party number. Only approved parties can be chosen.
+        }
+    )
+
+
+    dynamicAction existing-or-new (
+        name: Existing party or new counterparty
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P201_PARTY_SELECTION
+        }
+
+        action existing-or-new-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // a new counterparty is entered in the common party form (Global Page region)
+                    var isNew = apex.item("P201_PARTY_SELECTION").getValue() !== "EXISTING";
+                    $("#party-form, #possible_matches")[isNew ? "show" : "hide"]();
+                    $("#party_card")[isNew ? "hide" : "show"]();
+                    apex.item("P201_PARTY_ID")[isNew ? "hide" : "show"]();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+    )
+
+
+    dynamicAction show-party (
+        name: Show the chosen party
+        execution {
+            sequence: 40
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P201_PARTY_ID
+        }
+
+        action show-party-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.item("P0_SUMMARY_PARTY_ID").setValue(apex.item("P201_PARTY_ID").getValue());
+                    apex.region("party_card").refresh();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction use-party (
+        name: Use an existing party
+        execution {
+            sequence: 50
+            eventScope: dynamic
+            staticContainer: body
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-use-party
+        }
+
+        action use-party-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var a = $(this.triggeringElement);
+                    this.browserEvent.preventDefault();
+                    if (a.data("status") !== "Approved") {
+                        apex.message.alert("This party is not approved yet: it cannot be chosen.");
+                        return;
+                    }
+                    apex.item("P201_PARTY_SELECTION").setValue("EXISTING");
+                    apex.item("P201_PARTY_ID").setValue(String(a.data("party")), a.data("label"));
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 200
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button cancel-request (
+        buttonName: CANCEL_REQUEST
+        label: Cancel Request
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-ban
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Cancel this request? It cannot be submitted afterwards.
+            style: danger
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P201_REQUEST_ID is not null and xxcmp_request_pkg.cancel_error(:P201_REQUEST_ID) is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process load-request (
+        name: Load the request and its counterparty
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_party number;
+                begin
+                    if :P201_REQUEST_ID is not null then
+                        select business_relationship into :P201_BUSINESS_RELATIONSHIP from xxcmp_requests where request_id = :P201_REQUEST_ID;
+                        select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
+                               requesting_department, justification, contact_name, contact_email, contact_phone,
+                               case when party_selection = 'NEW' then party_id end
+                          into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_REQUEST_STATUS,
+                               :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
+                               :P201_CONTACT_PHONE, l_party
+                          from xxcmp_requests
+                         where request_id = :P201_REQUEST_ID;
+                    end if;
+                    -- the new counterparty in the common party form: editable while it is the request's Pending party
+                    xxcmp_party_pkg.load_items(l_party,
+                        case when xxcmp_request_pkg.party_editable(:P201_REQUEST_ID) = 'Y' then 'N' else 'Y' end);
+                    -- the common Party summary (existing party) and the duplicate confirmation
+                    :P0_REQUEST_ID := :P201_REQUEST_ID;
+                    :P0_SUMMARY_PARTY_ID := :P201_PARTY_ID;
+                    if :P201_REQUEST_ID is not null then
+                        select match_ack_flag into :P0_PARTY_MATCH_ACK from xxcmp_requests where request_id = :P201_REQUEST_ID;
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    validation request-rules (
+        name: Request and counterparty rules
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- one rule set for the page and the database; Save as Draft only needs the type and a name or party
+                return xxcmp_request_pkg.request_error(
+                           p_request_id          => to_number(:P201_REQUEST_ID),
+                           p_party_selection     => :P201_PARTY_SELECTION,
+                           p_party_id            => to_number(:P201_PARTY_ID),
+                           p_party_type          => :P0_PARTY_TYPE,
+                           p_party_name          => :P0_PARTY_NAME,
+                           p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                           p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                           p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                           p_registration_type   => :P0_PARTY_REGISTRATION_TYPE,
+                           p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
+                           p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                           p_email               => :P0_PARTY_EMAIL,
+                           p_phone               => :P0_PARTY_PHONE,
+                           p_justification       => :P201_JUSTIFICATION,
+                           p_draft               => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+                           p_match_ack           => :P0_PARTY_MATCH_ACK);
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,SAVE_DRAFT
+        }
+    )
+
+    process save-request (
+        name: Save the request and its counterparty
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_request_id number := to_number(:P201_REQUEST_ID);
+                begin
+                    xxcmp_request_pkg.save_request(
+                        p_request_id            => l_request_id,
+                        p_party_selection       => :P201_PARTY_SELECTION,
+                        p_party_id              => to_number(:P201_PARTY_ID),
+                        p_party_type            => :P0_PARTY_TYPE,
+                        p_party_name            => :P0_PARTY_NAME,
+                        p_jurisdiction          => :P0_PARTY_JURISDICTION,
+                        p_registration_number   => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type           => :P0_PARTY_ENTITY_TYPE,
+                        p_registration_type     => :P0_PARTY_REGISTRATION_TYPE,
+                        p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
+                        p_incorporation_date    => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email                 => :P0_PARTY_EMAIL,
+                        p_phone                 => :P0_PARTY_PHONE,
+                        p_website               => :P0_PARTY_WEBSITE,
+                        p_fax                   => :P0_PARTY_FAX,
+                        p_address               => :P0_PARTY_ADDRESS,
+                        p_requesting_department => :P201_REQUESTING_DEPARTMENT,
+                        p_justification         => :P201_JUSTIFICATION,
+                        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+                        p_contact_name          => :P201_CONTACT_NAME,
+                        p_contact_email         => :P201_CONTACT_EMAIL,
+                        p_contact_phone         => :P201_CONTACT_PHONE,
+                        p_match_ack             => :P0_PARTY_MATCH_ACK);
+                    :P201_REQUEST_ID := l_request_id;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Request saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,SAVE_DRAFT
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process cancel-request (
+        name: Cancel the request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.cancel(:P201_REQUEST_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Request cancelled.
+        }
+        serverSideCondition {
+            whenButtonPressed: @cancel-request
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    branch (
+        name: Draft saved or cancelled
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 200
+                clearCache: 200
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE_DRAFT,CANCEL_REQUEST
+        }
+    )
+
+    branch (
+        name: To questionnaire
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 204
+                items: {
+                    P204_REQUEST_ID: &P201_REQUEST_ID.
+                }
+                clearCache: 202
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @next
+        }
+    )
+
+)

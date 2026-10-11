@@ -46,8 +46,8 @@ begin
     select count(*) into l_n from apex_tasks where detail_pk = to_char(l_req) and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
        and created_on >= l_start;
     ok('no approval task was created', l_n = 0);
-    l_html := xxcmp_request_ui_pkg.details_html(l_req);
-    ok('request details show the Status', dbms_lob.instr(l_html, '>Status<') > 0);
+    l_html := xxcmp_request_ui_pkg.details_json(l_req);     -- release 74: data, no HTML
+    ok('request details show the Status', dbms_lob.instr(l_html, '"label":"Status"') > 0);
     switch('Y');
 
     -- beneficial owner on the relationship

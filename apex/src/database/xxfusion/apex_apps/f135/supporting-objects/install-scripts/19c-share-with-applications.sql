@@ -103,6 +103,14 @@ create or replace package body xxfnd_share_pkg as
     merge into xxfnd_role_privileges t using (select 'COMMON_ADMIN' rc, 'COMMON_HOME.VIEW' pc from dual) s
        on (t.role_code = s.rc and t.privilege_code = s.pc)
      when not matched then insert (role_code, privilege_code) values (s.rc, s.pc);
+    -- release 74: Common administrators see every common RFI (15c) and e-mail (15e); each application adds its own
+    -- roles' rules. Here, after the role exists (a fresh install runs 15c / 15e before the role is created).
+    merge into xxfnd_data_security_rules t
+    using (select 'XXFND_RFIS' tb from dual union all select 'XXFND_COMMUNICATIONS' from dual) s
+       on (t.role_code = 'COMMON_ADMIN' and t.table_name = s.tb and t.rule_type = 'ALL_ROWS')
+     when not matched then insert (role_code, table_name, rule_type) values ('COMMON_ADMIN', s.tb, 'ALL_ROWS');
+    commit;
+    xxfnd_schema_pkg.apply_policies;
 
     -- first administrator
     l_user := sys_context('APEX$SESSION', 'APP_USER');
@@ -210,7 +218,8 @@ create or replace package body xxfnd_share_pkg as
         pages('ATTACHMENTS',      '132=Categories|136=Storage|130=Registration|134=Attachment Pages|131|133|135|137');
         pages('NOTIFICATIONS',    '109|110');
         pages('RETENTION',        '112|113');
-        pages('WORKFLOW_SETUP',   '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|115|146');
+        -- release 74: Approval Setup (148, 149)
+        pages('WORKFLOW_SETUP',   '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|148=Approval Setup|115|146|149');
         pages('INTEGRATIONS',     '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
         pages('USERS_ACCESS',     '103|104');
         pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');

@@ -1,0 +1,278 @@
+page 148 (
+    name: Approval Setup
+    alias: APPROVAL-SETUP
+    title: Approval Setup
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Who approves each process of each application. Every process (transaction type) has rules; the rule whose conditions match a transaction best applies, and its approvers approve one after the other. Approvers can add further approvers while a transaction is being approved.
+    }
+
+    region breadcrumb (
+        name: Approval Setup
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Approval Rules
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74: the approval rules of every transaction type (common Approval Setup)
+                select r.rule_id,
+                       t.application_code,
+                       t.approval_type_name,
+                       r.rule_name,
+                       r.priority,
+                       (select listagg(a.attribute_name || ' = ' || c.attribute_value, '; ')
+                                   within group (order by a.display_sequence, c.attribute_value)
+                          from xxfnd_approval_rule_conds c
+                          join xxfnd_approval_type_attrs a on a.approval_type_code = r.approval_type_code
+                                                          and a.attribute_code = c.attribute_code
+                         where c.rule_id = r.rule_id) as conditions,
+                       (select listagg(s.step_no || '. ' || s.step_name || ' - '
+                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name), ' > ')
+                                   within group (order by s.step_no)
+                          from xxfnd_approval_rule_steps s
+                         where s.rule_id = r.rule_id) as approvers,
+                       decode(r.enabled_flag, 'Y', 'Yes', 'No') as enabled,
+                       apex_page.get_url(p_page => 149, p_items => 'P149_RULE_ID', p_values => to_char(r.rule_id),
+                                         p_clear_cache => '149') as open_url
+                  from xxfnd_approval_rules r
+                  join xxfnd_approval_types t on t.approval_type_code = r.approval_type_code
+                 where :G_ADMIN_APP = 'ALL' or t.application_code = :G_ADMIN_APP
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No approval rule yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPROVAL_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RULE_NAME (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#RULE_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CONDITIONS (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPROVERS (
+            type: plainText
+            heading {
+                heading: Approvers
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ENABLED (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RULE_ID (
+            type: hidden
+            heading {
+                heading: Rule ID
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Rule
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 149
+                clearCache: 149
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

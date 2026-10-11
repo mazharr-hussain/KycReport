@@ -17,7 +17,9 @@
   of the business apps (KYC = app 134); **XXFUSION** is the schema for Fusion web-service data and the COMMON
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
 - **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
-  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it.
+  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it. The repository is connected
+  to Netlify, so every push to a branch with an open PR and every merge to main starts a Netlify build: **no push and
+  no merge at all (zero) until the user clearly says to push.** Commit locally only; do not report Netlify comments.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
   confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
 - **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes
@@ -27,6 +29,18 @@
   install and upgrade, so every database gets exactly what it is missing and a re-run does nothing. Never edit a base
   CREATE to change an existing table. Test every release with a fresh install, an install over existing objects,
   an upgrade, a re-run, and the App Builder import screen.
+- **Golden rule: one package per component, business logic in its own place.** Each component has its own package
+  (request logic in the request package, case logic in the case package, party logic in the party package, and so on);
+  a component never holds another component's logic. When one component needs another's logic, it calls that
+  component's procedure / function - never a copy - so each rule lives in one place and is shared. Logic common to
+  every component (e.g. workflow start / end / state, the RFI workflow and its loop, tasks, notifications) lives once in
+  COMMON; what is specific to a component (its screens, its validations, invoking the common workflow, its own rules)
+  stays in that component's package. Keep shared things common to avoid duplication, and component things separate
+  for better management. Changes to this structure still follow the issues, plan and approval rule.
+- **Golden rule: no HTML in PL/SQL.** Build the UI with APEX components (classic / interactive reports, cards,
+  template components, forms, display items, standard region templates) fed by SQL; packages return data, not markup.
+  HTML is generated in PL/SQL only when no APEX component can do the job, and then the reason is written in a comment
+  next to it.
 - **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.

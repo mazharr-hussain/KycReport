@@ -203,6 +203,23 @@ installScript 09-views (
     }
 )
 
+installScript 09f-central-error-handling (
+    execution {
+        sequence: 92
+    }
+    script {
+        contentFile: 09f-error-handling.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 09b-security-framework-objects (
     execution {
         sequence: 95
@@ -379,6 +396,74 @@ installScript 15-workflow (
     }
     script {
         contentFile: 15-workflow.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 15e-communications-e-mail-with-outside-parties (
+    execution {
+        sequence: 151
+    }
+    script {
+        contentFile: 15e-communications.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 15b-common-workflow-runtime (
+    execution {
+        sequence: 152
+    }
+    script {
+        contentFile: 15b-workflow-runtime.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 15d-approval-setup (
+    execution {
+        sequence: 153
+    }
+    script {
+        contentFile: 15d-approval-setup.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 15c-request-for-information-workflow (
+    execution {
+        sequence: 154
+    }
+    script {
+        contentFile: 15c-rfi-workflow.sql
     }
     serverSideCondition {
         type: expression

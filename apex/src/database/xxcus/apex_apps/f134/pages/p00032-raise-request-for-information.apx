@@ -83,8 +83,14 @@ page 32 (
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-rfi-recipient-type
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d, r from (select 'As set up (Approval Setup - by default the requester)' d, 'SETUP' r, 1 s from dual
+                                  union all
+                                  select 'A colleague I choose', 'REQUESTING_DEPARTMENT', 2 from dual)
+                 order by s
+                ```
         }
         layout {
             sequence: 10
@@ -101,10 +107,10 @@ page 32 (
         }
         default {
             type: static
-            staticValue: REQUESTING_DEPARTMENT
+            staticValue: SETUP
         }
         help {
-            helpText: Choose the send To.
+            helpText: Who provides the information. As set up - the providers from COMMON > Approval Setup (process Case request for information; by default the requester of the case). A colleague - a person you choose.
         }
     )
 
@@ -322,7 +328,7 @@ page 32 (
         )
 
         action recipient-fields-show-f (
-            action: show
+            action: hide
             affectedElements {
                 selectionType: items
                 items: P32_PARTY_CONTACT_ID
@@ -442,31 +448,17 @@ page 32 (
             language: plsql
             plsqlCode:
                 ```plsql
-                declare
-                    l_rfi_id number;
-                    l_token  varchar2(200);
-                    l_url    varchar2(4000);
-                begin
-                    xxcmp_kyc_pkg.create_rfi(
-                        p_entity_name         => :P32_ENTITY_NAME,
-                        p_pk1_value           => :P32_PK1_VALUE,
-                        p_recipient_type      => :P32_RECIPIENT_TYPE,
-                        p_rfi_category        => :P32_RFI_CATEGORY,
-                        p_description         => :P32_DESCRIPTION,
-                        p_continue_other_work => :P32_CONTINUE_WORK,
-                        p_due_date            => to_date(:P32_DUE_DATE),
-                        p_recipient_user_name => case when :P32_RECIPIENT_TYPE = 'REQUESTING_DEPARTMENT'
-                                                      then :P32_RECIPIENT_USER_NAME end,
-                        p_party_contact_id    => case when :P32_RECIPIENT_TYPE = 'EXTERNAL_PARTY'
-                                                      then to_number(:P32_PARTY_CONTACT_ID) end,
-                        p_rfi_id              => l_rfi_id,
-                        p_token               => l_token);
-                    if l_token is not null then
-                        l_url := apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN',
-                                                   p_values => l_token, p_absolute_url => true);
-                    end if;
-                    xxcmp_kyc_pkg.send_rfi_email(l_rfi_id, l_url);
-                end;
+                -- release 74: the case gives the recipient and starts the common RFI workflow
+                xxcmp_case_pkg.raise_rfi(
+                    p_entity_name      => :P32_ENTITY_NAME,
+                    p_pk1_value        => :P32_PK1_VALUE,
+                    p_recipient_type   => :P32_RECIPIENT_TYPE,
+                    p_recipient_user   => :P32_RECIPIENT_USER_NAME,
+                    p_party_contact_id => to_number(:P32_PARTY_CONTACT_ID),
+                    p_rfi_category     => :P32_RFI_CATEGORY,
+                    p_description      => :P32_DESCRIPTION,
+                    p_continue_work    => :P32_CONTINUE_WORK,
+                    p_due_date         => to_date(:P32_DUE_DATE));
                 ```
         }
         execution {

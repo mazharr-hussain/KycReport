@@ -23,7 +23,7 @@ appProcess DOWNLOAD_DOCUMENT (
                                                    = nvl(d.base_document_id, d.document_id))
                      where d.document_id = :G_DOCUMENT_ID
                        and (   (ad.entity_name = 'XXCMP_RFIS'
-                                and exists (select 1 from xxcmp_rfis r
+                                and exists (select 1 from xxfnd_rfis r
                                              where to_char(r.rfi_id) = ad.pk1_value
                                                and upper(r.recipient_user_name) = :APP_USER))
                             or (ad.entity_name = 'XXCMP_REQUESTS'
@@ -60,7 +60,7 @@ appProcess PARTY_MATCHES (
         plsqlCode:
             ```plsql
             -- Similar parties for the party form (Global Page dialog before saving): JSON array, strongest first.
-            htp.p(xxcmp_request_pkg.party_candidates_json(apex_application.g_x01, apex_application.g_x02, apex_application.g_x03,
+            htp.p(xxcmp_party_pkg.party_candidates_json(apex_application.g_x01, apex_application.g_x02, apex_application.g_x03,
                                                          to_date(apex_application.g_x04), apex_application.g_x05,
                                                          to_number(apex_application.g_x06)));
             ```
@@ -81,8 +81,8 @@ appProcess PERSON_CARD (
         language: plsql
         plsqlCode:
             ```plsql
-            -- Hover card of an employee for list cells (kyc-app.js kycPerson): x01 = user name; returns the card HTML.
-            htp.p(xxfnd_ui_pkg.person_card(apex_application.g_x01));
+            -- Hover card of an employee for list cells (kyc-app.js kycPerson builds it): x01 = user name; returns JSON.
+            htp.p(nvl(xxfnd_ui_pkg.person_json(apex_application.g_x01), '{}'));
             ```
     }
     execution {

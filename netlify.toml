@@ -1,4 +1,7 @@
+# Netlify is switched off for this repository (user instruction, release 74): every build is skipped,
+# including deploy previews. Remove the ignore line only when the user asks for Netlify again.
 [build]
+  ignore    = "exit 0"
   command   = "pip install -r requirements.txt && mkdocs build"
   publish   = "site"
 

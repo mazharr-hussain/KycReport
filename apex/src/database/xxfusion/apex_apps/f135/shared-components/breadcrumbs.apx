@@ -414,6 +414,22 @@ breadcrumb breadcrumb (
     )
 
 
+    entry approval-setup (
+        name: Approval Setup
+        pageNumber: 148
+        execution {
+            sequence: 265
+        }
+        appearance {
+            parentEntry: @admin
+        }
+        link {
+            target: {
+                page: 148
+            }
+        }
+    )
+
     entry process-catalogue (
         name: Process Catalogue
         pageNumber: 147

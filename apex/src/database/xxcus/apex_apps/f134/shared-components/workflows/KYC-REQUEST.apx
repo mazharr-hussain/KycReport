@@ -187,7 +187,7 @@ workflow KYC_REQUEST (
             name: Open case
             type: executeCode
             source {
-                plsqlCode: xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_request_pkg.open_case(:APEX$WORKFLOW_DETAIL_PK);
             }
             layout {
                 sequence: 70
@@ -510,7 +510,7 @@ workflow KYC_REQUEST (
             name: Open case
             type: executeCode
             source {
-                plsqlCode: xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_request_pkg.open_case(:APEX$WORKFLOW_DETAIL_PK);
             }
             layout {
                 sequence: 70
@@ -779,7 +779,7 @@ workflow KYC_REQUEST (
             name: Open case
             type: executeCode
             source {
-                plsqlCode: xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_request_pkg.open_case(:APEX$WORKFLOW_DETAIL_PK);
             }
             layout {
                 sequence: 70
@@ -1078,7 +1078,7 @@ workflow KYC_REQUEST (
             name: Open case
             type: executeCode
             source {
-                plsqlCode: xxcmp_request_pkg.create_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_request_pkg.open_case(:APEX$WORKFLOW_DETAIL_PK);
             }
             layout {
                 sequence: 70

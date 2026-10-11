@@ -69,7 +69,8 @@ def errors(pg):
 def click(pg, label, confirm=False):
     """Press a submit button (and OK its confirmation) and wait for the page that follows."""
     with pg.expect_navigation(timeout=120000):     # the first submit after an import starts the workflow engine
-        pg.locator(f'button:has-text("{label}")').locator('visible=true').first.click()
+        # exact label: "Approve" must not match "Add Approver"
+        pg.locator('button', has_text=re.compile(r'^\s*%s\s*$' % re.escape(label))).locator('visible=true').first.click()
         if confirm:
             btn = pg.locator('.ui-dialog .js-confirmBtn, .ui-dialog button:has-text("OK"), .ui-dialog button:has-text("Confirm")').first
             try:
@@ -249,6 +250,41 @@ with sync_playwright() as p:
     ok('review mode: Approve / Reject once in the sticky action bar, the approval history',
        pg.locator('button', has_text=re.compile(r'^\s*Approve\s*$')).count() == 1
        and pg.locator('button', has_text=re.compile(r'^\s*Reject\s*$')).count() == 1 and pg.locator('#case_history').count() == 1)
+    # release 74: Request Information goes to the requester on the same notification; the case is Pending Information
+    ok('the notification offers Request Information and Add Approver, with an attachment under the comment',
+       pg.locator('#decision_buttons button:has-text("Request Information")').count() == 1
+       and pg.locator('#decision_buttons button:has-text("Add Approver")').count() == 1
+       and pg.locator('#P211_DEC_FILE_CONTAINER, #P211_DEC_FILE').count() >= 1)
+    pg.fill('#P211_DEC_COMMENT', 'Please confirm the expected annual volume.')
+    click(pg, 'Request Information')
+    ok(f'information requested ({errors(pg) or "no error"}): case '
+       + db(f"select case_status from xxcmp_cases where case_id = {case}")[0],
+       not errors(pg) and db(f"select case_status from xxcmp_cases where case_id = {case}")[0] == 'PENDING_INFORMATION')
+    pg.close()
+    pg, s = login(b, 'REQ1')
+    goto(pg, s, 1)
+    info = pg.locator('a[href*="p206_task_id=' + str(atask) + '"], a[href*="P206_TASK_ID=' + str(atask) + '"], a[href*="p206_task_id%3D' + str(atask) + '"]').first
+    ok('the requester has the question in My Tasks on the home page', info.count() == 1)
+    with pg.expect_navigation():
+        info.click()
+    pg.wait_for_load_state('networkidle')
+    ok(f'it opens their request with Submit Information ({errors(pg) or "no error"})',
+       not errors(pg) and pg.locator('#decision_buttons button:has-text("Submit Information")').count() == 1)
+    pg.locator('#decision_buttons button', has_text='Submit Information').first.click()
+    pg.locator('#decision_dialog').wait_for(state='visible')
+    ok('the dialog shows the approver\'s question', 'expected annual volume' in pg.inner_text('#decision_dialog'))
+    pg.fill('#P206_COMMENT', 'About 12 million a year.')
+    with pg.expect_navigation(timeout=120000):
+        pg.locator('#decision_dialog button.kyc-decide-confirm').click()
+    pg.wait_for_load_state('networkidle')
+    st = wait_db(f"select count(*) from xxcmp_cases where case_id = {case} and case_status = 'PENDING_APPROVAL'")
+    ok(f'information submitted ({errors(pg) or "no error"}): the case is Pending Approval again', not errors(pg) and st == '1')
+    pg.close()
+    pg, s = login(b, 'MGR1')
+    link = open_task(pg, s, 'P211_TASK_ID', atask)
+    with pg.expect_navigation():
+        link.click()
+    pg.wait_for_load_state('networkidle')
     pg.fill('#P211_DEC_COMMENT', 'Approved in the UI test.')
     click(pg, 'Approve')
     closed = wait_db(f"select count(*) from xxcmp_cases where case_id = {case} and case_status = 'APPROVED'")
