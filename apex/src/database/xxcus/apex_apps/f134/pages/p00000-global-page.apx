@@ -841,13 +841,14 @@ page 0 (
 
     region party-summary (
         name: Party
-        type: classicReport
+        type: appTemplateComponent/fieldGrid
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name
+                select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name,
+                       min(j.seq) over (partition by j.group_name) as group_seq
                   from json_table(xxcmp_party_pkg.card_json(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID)), '$[*]'
                            columns (group_name varchar2(30)   path '$.group_name',
                                     seq        number         path '$.seq',
@@ -883,84 +884,106 @@ page 0 (
                 ```
         }
         componentAppearance {
-            template: @/value-attribute-pairs-row
-            templateOptions: [
-                #DEFAULT#
-                t-AVPList--leftAligned
-            ]
+            display: report
         }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 100
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            meta: &META.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
         }
         messages {
             whenNoDataFound: No party linked yet.
         }
         comments {
-            comments: Common Party region (Global Page): the party in full on the party and request screens (no party status on a request). Release 74: data from XXCMP_PARTY_PKG.CARD_JSON, shown with the standard Value Attribute Pairs report.
+            comments: Common Party region (Global Page): the party in full on the party and request screens (no party status on a request). Release 75 (U-01, U-02): the KYC Field Grid template component - groups Party / Identity / Contact / KYC in a 3-column grid; data from XXCMP_PARTY_PKG.CARD_JSON.
         }
 
-        column LABEL (
-            type: plainText
-            heading {
-                heading: Label
-            }
+        column SEQ (
             layout {
                 sequence: 10
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LABEL (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
             }
         )
 
         column VALUE (
-            type: plainText
-            heading {
-                heading: Value
-            }
             layout {
-                sequence: 20
+                sequence: 30
             }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}#VALUE#{endif/}{endif/}{if META/} <span class="kyc-f-meta">#META#</span>{endif/}
-                    ```
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
             }
         )
 
         column META (
-            type: hidden
             layout {
-                sequence: 30
+                sequence: 40
+            }
+            source {
+                databaseColumn: META
+                dataType: varchar2
             }
         )
 
         column TONE (
-            type: hidden
             layout {
-                sequence: 40
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
             }
         )
 
         column URL (
-            type: hidden
             layout {
-                sequence: 50
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
             }
         )
 
         column GROUP_NAME (
-            type: hidden
-            layout {
-                sequence: 60
-            }
-        )
-
-        column SEQ (
-            type: hidden
             layout {
                 sequence: 70
             }
-            sorting {
-                defaultSequence: 1
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
             }
         )
 
@@ -2730,7 +2753,9 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select rownum as seq, h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
+                -- release 75 (U-09): person names (a role or System stays as it is)
+                select rownum as seq, h.step_no, h.step_name, xxfnd_ui_pkg.person_name(h.assigned_to) as assigned_to, h.action,
+                       xxfnd_ui_pkg.person_name(h.action_by) as action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
                   from table(xxcmp_approval_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
                  order by seq
@@ -2767,7 +2792,6 @@ page 0 (
                 t-Report--rowHighlight
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination

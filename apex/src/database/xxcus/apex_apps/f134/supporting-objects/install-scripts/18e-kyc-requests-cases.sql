@@ -485,6 +485,8 @@ begin
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_APPROVER', 'You are not an approver of request {1}.', -20625);
     xxfnd_error_pkg.register_message('KYC_CASE_REASSIGN_NOT_ALLOWED', 'Only a case under investigation can be reassigned, by Compliance management or its assignee.', -20611);
     xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_REQUIRED', 'Select the officer.', -20611);
+    -- release 75: the officer chosen for a case must be an active Compliance officer, manager or head of Compliance
+    xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_INVALID', 'Choose an active Compliance officer, manager or head of Compliance.', -20619);
     xxfnd_error_pkg.register_message('KYC_CASE_WITHDRAW_NOT_ALLOWED', 'Only a case waiting for approval can be withdrawn, by its officer or Compliance management.', -20615);
     xxfnd_error_pkg.register_message('KYC_CASE_WITHDRAW_REASON', 'Enter the reason for withdrawing the case from approval.', -20615);
     xxfnd_error_pkg.register_message('KYC_CASE_NO_MATRIX_ROW', 'The approval matrix has no row for risk tier {1}.', -20612);

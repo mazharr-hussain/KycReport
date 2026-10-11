@@ -54,3 +54,11 @@ Instead of the import step: after the COMMON script of the same release, as **AD
 application ID (134) and the parsing schema (XXCUS), runs the supporting objects (install scripts on a new database,
 upgrade scripts on an existing one; data kept) and installs the application. Release 74 needs no new database
 privilege.
+
+## Release 75 (KYC only)
+COMMON is not changed: keep COMMON at release 74 and import (or run the SQL install script of) KYC release 75 only.
+Wait until the COMMON install has finished before installing KYC (KYC uses COMMON's objects); if KYC was installed
+while COMMON was still running, run KYC again - every script is idempotent. Release 75 adds the column
+XXCMP_REQUESTS.CASE_ASSIGNEE (checked step 16w) and needs no new database privilege. Open investigation tasks created
+before release 75 keep their business administrators (workflow administrators): only they can reassign those cases;
+cases opened from release 75 on can be reassigned by Cases managers and the assignee.

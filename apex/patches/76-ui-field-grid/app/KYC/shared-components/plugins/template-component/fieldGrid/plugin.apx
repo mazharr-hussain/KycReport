@@ -1,0 +1,36 @@
+plugin fieldGrid (
+    name: KYC Field Grid
+    staticId: KYC_FIELD_GRID
+    templateComponent {
+        availableAs: [
+            report
+        ]
+        partial:
+            ```html
+            <span class="kyc-f-label">#LABEL#</span>
+            <div class="kyc-f-value">{case TONE/}{when missing/}<span class="kyc-missing">#VALUE#{if ?LINK/} – <a href="#LINK#">#LINK_TEXT#</a>{endif/}</span>{otherwise/}{if ?TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if ?PERSON/}<span class="kyc-person" tabindex="0" data-user="#PERSON#">#VALUE#</span>{else/}{if ?LINK/}<a href="#LINK#">#VALUE#</a>{else/}#VALUE#{endif/}{endif/}{endif/}{endcase/}{if ?META/}<span class="kyc-f-meta">#META#</span>{endif/}</div>
+            ```
+        reportBody:
+            ```html
+            <div class="kyc-fieldgrid #APEX$COMPONENT_CSS_CLASSES#">#APEX$ROWS#</div>
+            ```
+        reportGroup:
+            ```html
+            <div class="kyc-fieldgrid-group" #APEX$GROUP_IDENTIFICATION#>
+              {if ?GROUP_TITLE/}<h3 class="kyc-group-title">#GROUP_TITLE#</h3>{endif/}
+              <div class="kyc-grid">#APEX$ROWS#</div>
+            </div>
+            ```
+        reportRow:
+            ```html
+            <div class="kyc-f{if ?FULL_WIDTH/} kyc-f--full{endif/}" #APEX$ROW_IDENTIFICATION#>#APEX$PARTIAL#</div>
+            ```
+    }
+    component {
+        standardAttributes: regionTemplateAttr
+    }
+    information {
+        version: 1.0
+        helpText: Release 75 (U-01, U-02): the fields of a record in a 3-column grid (2 on medium screens, 1 on phones) with the label above the value and a heading per group. Rows come from SQL (data only); the markup lives here, not in PL/SQL.
+    }
+)

@@ -60,14 +60,16 @@ page 206 (
 
     region request-details (
         name: Request
-        type: classicReport
+        type: appTemplateComponent/fieldGrid
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
                 -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
-                select j.label, j.value, j.tone, j.url, j.user_name, j.seq, j.group_name
+                select j.group_name, j.seq, j.label, j.value, j.tone, j.url, j.user_name,
+                         min(j.seq) over (partition by j.group_name) as group_seq,
+                         case when length(j.value) > 80 then 'Y' end as full_width
                   from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P206_REQUEST_ID)), '$[*]'
                            columns (group_name varchar2(30)   path '$.group_name',
                                     seq        number         path '$.seq',
@@ -76,6 +78,7 @@ page 206 (
                                     tone       varchar2(30)   path '$.tone',
                                     url        varchar2(4000) path '$.url',
                                     user_name  varchar2(255)  path '$.user_name')) j
+                   order by j.seq
                 ```
             pageItemsToSubmit: [
                 P206_REQUEST_ID
@@ -93,81 +96,117 @@ page 206 (
             htmlDomId: request_details
         }
         componentAppearance {
-            template: @/value-attribute-pairs-row
-            templateOptions: [
-                #DEFAULT#
-                t-AVPList--leftAligned
-            ]
+            display: report
         }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 100
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            person: &USER_NAME.
+            fullWidth: &FULL_WIDTH.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
         }
         messages {
             whenNoDataFound: The request is not available.
         }
+        comments {
+            comments: Release 75 (U-01, U-02): the KYC Field Grid template component (grouped 3-column grid).
+        }
 
-        column LABEL (
-            type: plainText
-            heading {
-                heading: Label
-            }
+        column GROUP_NAME (
             layout {
                 sequence: 10
             }
-        )
-
-        column VALUE (
-            type: plainText
-            heading {
-                heading: Value
-            }
-            layout {
-                sequence: 20
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    {if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if URL/}<a href="#URL#">#VALUE#</a>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endif/}
-                    ```
-            }
-        )
-
-        column TONE (
-            type: hidden
-            layout {
-                sequence: 30
-            }
-        )
-
-        column URL (
-            type: hidden
-            layout {
-                sequence: 40
-            }
-        )
-
-        column USER_NAME (
-            type: hidden
-            layout {
-                sequence: 50
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
             }
         )
 
         column SEQ (
-            type: hidden
             layout {
-                sequence: 60
+                sequence: 20
             }
-            sorting {
-                defaultSequence: 1
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
             }
         )
 
-        column GROUP_NAME (
-            type: hidden
+        column LABEL (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
             layout {
                 sequence: 70
+            }
+            source {
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column FULL_WIDTH (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: FULL_WIDTH
+                dataType: varchar2
             }
         )
 
@@ -1215,6 +1254,60 @@ page 206 (
         }
     )
 
+    pageItem P206_OPENS_CASE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @decision-dialog
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 75 (B1): Y when approving this step opens the case
+                select xxcmp_request_pkg.opens_case_on_approval(to_number(:P206_REQUEST_ID)) from dual
+                ```
+        }
+    )
+
+    pageItem P206_CASE_ASSIGNEE (
+        type: selectList
+        label {
+            label: Assign the Case to
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 6
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression: case when xxcmp_case_pkg.is_case_officer(:APP_USER) = 'Y' then upper(:APP_USER) end
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression: :P206_OPENS_CASE = 'Y'
+        }
+        help {
+            helpText: Release 75: approving this step opens the case; it is assigned to this officer (default you).
+        }
+    )
+
     pageItem P206_ADD_USER (
         type: popupLov
         label {
@@ -1328,6 +1421,32 @@ page 206 (
         }
         behavior {
             action: definedByDynamicAction
+        }
+    )
+
+    validation case-assignee (
+        name: Case officer chosen
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P206_CASE_ASSIGNEE is null then 'Choose the officer for the case.' end;
+                ```
+        }
+        error {
+            associatedItem: @P206_CASE_ASSIGNEE
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE' and :P206_OPENS_CASE = 'Y'
+                ```
         }
     )
 
@@ -1502,6 +1621,31 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO')
+                ```
+        }
+    )
+
+    process set-case-assignee (
+        name: Case officer
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 75 (B1): the case opened by this approval goes to the officer chosen in the popup
+                xxcmp_request_pkg.set_case_assignee(to_number(:P206_REQUEST_ID), :P206_CASE_ASSIGNEE);
+                ```
+        }
+        execution {
+            sequence: 15
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE' and :P206_OPENS_CASE = 'Y'
                 ```
         }
     )

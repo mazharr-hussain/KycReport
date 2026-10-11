@@ -69,14 +69,16 @@
 .t-AVPList-label { font-size: .8125rem; font-weight: 700; color: var(--kyc-label); }
 .t-AVPList-value { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); }
 
-/* record grid (header card, party card): label above value, 3 / 2 / 1 columns */
-.kyc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; }
-.kyc-grid .kyc-f-label { display: block; font-size: .8125rem; font-weight: 700; color: var(--kyc-label); margin-bottom: .25rem; }
-.kyc-grid .kyc-f-value { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); overflow-wrap: anywhere; }
-.kyc-grid .kyc-f-meta  { display: block; font-size: .75rem; font-weight: 400; color: var(--kyc-muted); }
-.kyc-grid .kyc-f--full { grid-column: 1 / -1; }
-@media (max-width: 1199px) { .kyc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 767px)  { .kyc-grid { grid-template-columns: 1fr; } }
+/* record grid: label above value, 3 / 2 / 1 columns (release 75: the KYC Field Grid template component, U-01 / U-02;
+   .kyc-fieldgrid is the component's body - grouped fields sit in a .kyc-grid per group, ungrouped ones in the body) */
+.kyc-grid, .kyc-fieldgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.kyc-fieldgrid > .kyc-fieldgrid-group { grid-column: 1 / -1; }
+.kyc-fieldgrid .kyc-f-label { display: block; font-size: .8125rem; font-weight: 700; color: var(--kyc-label); margin-bottom: .25rem; }
+.kyc-fieldgrid .kyc-f-value { font-size: .9375rem; font-weight: 700; color: var(--kyc-text); overflow-wrap: anywhere; }
+.kyc-fieldgrid .kyc-f-meta  { display: block; font-size: .75rem; font-weight: 400; color: var(--kyc-muted); }
+.kyc-fieldgrid .kyc-f--full { grid-column: 1 / -1; }
+@media (max-width: 1199px) { .kyc-grid, .kyc-fieldgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px)  { .kyc-grid, .kyc-fieldgrid { grid-template-columns: 1fr; } }
 
 /* ---- 4.2 tables: 14px bold headers on a darker row, 14px data, roomy rows ---- */
 .t-Report-colHead,
@@ -131,20 +133,12 @@
 .kyc-actionbar { position: sticky; bottom: 0; z-index: 50; background: #fff;
                  border-top: 1px solid var(--kyc-border); box-shadow: 0 -2px 8px rgba(0, 0, 0, .06); }
 
-/* ---- 8 KPI cards (release 29; release 74: the home tiles use the standard Cards report): whole card is the link ---- */
-.kyc-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
-.kyc-kpi { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.25rem; background: #fff; color: var(--kyc-text);
-           border: 1px solid var(--kyc-border); border-top: 4px solid var(--kyc-neutral); border-radius: 8px;
-           text-decoration: none; transition: box-shadow .15s; }
-.kyc-kpi:hover, .kyc-kpi:focus { box-shadow: 0 4px 14px rgba(0, 0, 0, .1); text-decoration: none; }
-.kyc-kpi-icon { font-size: 1.25rem; color: var(--kyc-muted); }
-.kyc-kpi-count { font-size: 2rem; font-weight: 700; line-height: 1.1; }
-.kyc-kpi-label { font-size: .875rem; font-weight: 700; color: var(--kyc-label); }
-.kyc-kpi--info    { border-top-color: var(--kyc-info); }    .kyc-kpi--info .kyc-kpi-icon    { color: var(--kyc-info); }
-.kyc-kpi--warning { border-top-color: #c27c0e; }            .kyc-kpi--warning .kyc-kpi-icon { color: #c27c0e; }
-.kyc-kpi--danger  { border-top-color: var(--kyc-danger); }  .kyc-kpi--danger .kyc-kpi-icon  { color: var(--kyc-danger); }
-.kyc-kpi--danger .kyc-kpi-count { color: var(--kyc-danger); }
-.kyc-kpi--neutral .kyc-kpi-count { color: var(--kyc-muted); }
+/* ---- 8 home tiles (release 75, U-03): Universal Theme Metric Card; the count leads, grey at 0, red when overdue ---- */
+#home_kpis { margin-bottom: 1rem; }
+#home_kpis .t-MetricCard-metric { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+#home_kpis .kyc-metric--zero   { color: var(--kyc-muted); }
+#home_kpis .kyc-metric--danger { color: var(--kyc-danger); }
+#home_kpis .t-MetricCard-title { font-weight: 700; color: var(--kyc-label); }
 
 /* due dates: overdue red, due soon amber */
 .kyc-due--danger  { color: var(--kyc-danger); font-weight: 700; }
@@ -165,6 +159,10 @@
 .kyc-case-nav-item.is-warn .kyc-case-nav-icon { color: var(--kyc-warning); }
 .kyc-case-nav-item.is-todo .kyc-case-nav-icon { color: var(--kyc-neutral); }
 .kyc-case-nav-progress { margin: .75rem .75rem 0; font-weight: 600; }
+/* release 75 (U-04): the same state colours on the standard Links List of the case sections */
+.t-LinksList-item.is-done .t-LinksList-icon { color: var(--kyc-success); }
+.t-LinksList-item.is-warn .t-LinksList-icon { color: var(--kyc-warning); }
+.t-LinksList-item.is-current .t-LinksList-icon { color: var(--kyc-info); }
 
 /* ---- 5.1 header card of a record (request: xxcmp_request_ui_pkg.header_html) ---- */
 .kyc-hcard { background: #fff; border: 1px solid var(--kyc-border); border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; }

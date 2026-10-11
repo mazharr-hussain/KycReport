@@ -128,7 +128,9 @@ page 211 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select rownum as seq, h.step_no, h.step_name, h.assigned_to, h.action, h.action_by,
+                -- release 75 (U-09): person names (a role or System stays as it is)
+                select rownum as seq, h.step_no, h.step_name, xxfnd_ui_pkg.person_name(h.assigned_to) as assigned_to, h.action,
+                       xxfnd_ui_pkg.person_name(h.action_by) as action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
                   from table(xxcmp_case_pkg.case_history_rows(to_number(:P211_CASE_ID))) h
                  order by seq
@@ -162,7 +164,6 @@ page 211 (
                 t-Report--staticRowColors
                 t-Report--horizontalBorders
             ]
-            showNullValuesAs: -
         }
         pagination {
             type: rowRangesXToYOfZWithPagination
@@ -548,14 +549,16 @@ page 211 (
 
     region case-summary (
         name: &P211_SECTION_LABEL.
-        type: classicReport
+        type: appTemplateComponent/fieldGrid
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
                 -- release 74 (R7, R11): the case summary as data (XXCMP_CASE_PKG.CASE_SUMMARY_JSON)
-                select j.label, j.value, j.tone, j.url, j.link_text, j.user_name, j.seq, j.group_name
+                select j.group_name, j.seq, j.label, j.value, j.tone, j.url, j.link_text, j.user_name,
+                         min(j.seq) over (partition by j.group_name) as group_seq,
+                         case when length(j.value) > 80 then 'Y' end as full_width
                   from json_table(xxcmp_case_pkg.case_summary_json(to_number(:P211_CASE_ID), to_number(:P211_TASK_ID)), '$[*]'
                            columns (group_name varchar2(30)   path '$.group_name',
                                     seq        number         path '$.seq',
@@ -565,6 +568,7 @@ page 211 (
                                     url        varchar2(4000) path '$.url',
                                     link_text  varchar2(200)  path '$.link_text',
                                     user_name  varchar2(255)  path '$.user_name')) j
+                   order by j.seq
                 ```
             pageItemsToSubmit: [
                 P211_CASE_ID
@@ -591,88 +595,128 @@ page 211 (
                 ```
         }
         componentAppearance {
-            template: @/value-attribute-pairs-row
-            templateOptions: [
-                #DEFAULT#
-                t-AVPList--leftAligned
-            ]
+            display: report
         }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 100
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            person: &USER_NAME.
+            linkText: &LINK_TEXT.
+            fullWidth: &FULL_WIDTH.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
         }
         messages {
             whenNoDataFound: The case is not available.
         }
+        comments {
+            comments: Release 75 (U-01, U-02): the KYC Field Grid template component (grouped 3-column grid).
+        }
 
-        column LABEL (
-            type: plainText
-            heading {
-                heading: Label
-            }
+        column GROUP_NAME (
             layout {
                 sequence: 10
             }
-        )
-
-        column VALUE (
-            type: plainText
-            heading {
-                heading: Value
-            }
-            layout {
-                sequence: 20
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    {case TONE/}{when missing/}<span class="kyc-missing">#VALUE# – <a href="#URL#">#LINK_TEXT#</a></span>{otherwise/}{if TONE/}<span class="kyc-badge kyc-badge--#TONE#">#VALUE#</span>{else/}{if USER_NAME/}<span class="kyc-person" tabindex="0" data-user="#USER_NAME#">#VALUE#</span>{else/}#VALUE#{endif/}{endif/}{endcase/}
-                    ```
-            }
-        )
-
-        column TONE (
-            type: hidden
-            layout {
-                sequence: 30
-            }
-        )
-
-        column URL (
-            type: hidden
-            layout {
-                sequence: 40
-            }
-        )
-
-        column LINK_TEXT (
-            type: hidden
-            layout {
-                sequence: 50
-            }
-        )
-
-        column USER_NAME (
-            type: hidden
-            layout {
-                sequence: 60
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
             }
         )
 
         column SEQ (
-            type: hidden
             layout {
-                sequence: 70
+                sequence: 20
             }
-            sorting {
-                defaultSequence: 1
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
             }
         )
 
-        column GROUP_NAME (
-            type: hidden
+        column LABEL (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column LINK_TEXT (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: LINK_TEXT
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
             layout {
                 sequence: 80
+            }
+            source {
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column FULL_WIDTH (
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: FULL_WIDTH
+                dataType: varchar2
             }
         )
 
@@ -1131,9 +1175,12 @@ page 211 (
             sendOnPageSubmit: false
         }
         source {
-            formRegion: @case
-            column: PEP_FLAG
-            dataType: varchar2
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 75 (U-07): Yes / No, not the code
+                select xxfnd_util_pkg.lookup_meaning('YES_NO', nvl(pep_flag, 'N')) from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
         }
         serverSideCondition {
             type: expression
@@ -1174,6 +1221,8 @@ page 211 (
             plsqlExpression:
                 ```plsql
                 :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                -- release 75 (U-07): shown once set (on approval)
+                and :P211_NEXT_REVIEW_DATE is not null
                 ```
         }
     )
@@ -1207,6 +1256,8 @@ page 211 (
             plsqlExpression:
                 ```plsql
                 :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                -- release 75 (U-07): shown once set (on approval)
+                and :P211_CONDITIONS is not null
                 ```
         }
     )
@@ -1324,6 +1375,9 @@ page 211 (
         }
         advanced {
             htmlDomId: findings
+        }
+        componentAppearance {
+            selectFirstRow: false
         }
         edit {
             enabled: true
@@ -2152,15 +2206,8 @@ page 211 (
             alignment: left
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select distinct e.full_name as display_value, upper(ur.user_name) as return_value
-                  from xxfnd_user_roles_v ur
-                  join xxfnd_employees e on upper(e.user_name) = upper(ur.user_name)
-                 where ur.role_code in ('COMPLIANCE_OFFICER','COMPLIANCE_MANAGER','HEAD_OF_COMPLIANCE') and ur.active_flag = 'Y'
-                 order by 1
-                ```
+            type: sharedComponent
+            lov: @lov-case-officers
             displayNullValue: true
             nullDisplayValue: - Select -
         }

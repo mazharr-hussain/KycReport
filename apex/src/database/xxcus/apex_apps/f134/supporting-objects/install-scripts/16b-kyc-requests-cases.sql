@@ -508,6 +508,11 @@ create or replace package xxcmp_request_pkg authid definer as
     -- release 74: the request asks the case package to open the case (XXCMP_CASE_PKG.CREATE_CASE), then the request and
     -- its party are Approved here.
     procedure open_case(p_request_id in number);
+    -- Release 75: the case officer chosen on the approval that opens the case (Approve popup on 206); OPEN_CASE gives
+    -- the case to that person (default: the approver, as before). Checked with XXCMP_CASE_PKG.IS_CASE_OFFICER.
+    procedure set_case_assignee(p_request_id in number, p_user_name in varchar2);
+    -- Y when approving the current step opens the case (the last approval step of a request that needs KYC).
+    function opens_case_on_approval(p_request_id in number) return varchar2;
     -- The in-progress request behind a case Compliance opens by hand for a party (XXCMP_CASE_PKG.CREATE_MANUAL_CASE).
     function create_case_request(p_party_id in number, p_justification in varchar2, p_business_relationship in varchar2)
         return number;
@@ -536,8 +541,12 @@ create or replace package xxcmp_case_pkg authid definer as
     function create_manual_case(p_party_id in number, p_justification in varchar2) return number;
 
     procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
-    -- Assign / Assign to me on the case screen: Manage on Cases, or the current assignee.
+    -- Assign / Assign to me on the case screen: Manage on Cases, or the current assignee; release 75: and a business
+    -- administrator of the open investigation task (APEX lets only them move it to another officer).
     function can_assign(p_case_id in number) return varchar2;
+    -- Release 75: Y when the user may be given a case (an active Compliance officer, manager or head of Compliance):
+    -- the list of officers on the Assign screens and the check of a chosen officer.
+    function is_case_officer(p_user_name in varchar2) return varchar2;
     -- The approver of the first step of the request's approval path (default assignee of its case).
     function first_approver(p_request_id in number) return varchar2;
     -- Withdraw from approval: back to investigation (the submitter or Manage on Cases, while Pending approval).
@@ -546,6 +555,9 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Task participants.
     function investigation_owners(p_case_id in number) return varchar2;
+    -- Release 75: business administrators of the investigation task - the workflow administrators, Manage on Cases
+    -- and the case's assignee, who may give the case (and its task) to another officer.
+    function investigation_admins(p_case_id in number) return varchar2;
     function level_approvers(p_case_id in number) return varchar2;
 
     -- Approval levels from the approval matrix (risk tier; Enhanced KYC needs two).

@@ -120,6 +120,13 @@ create or replace package body xxcmp_approval_pkg as
         return nvl(xxfnd_approval_rule_pkg.current_step_name(c_type, to_char(p_request_id)), 'Compliance review');
     end step_name;
 
+    function is_last_step(p_request_id in number) return varchar2 is
+        l_pos number := xxfnd_approval_rule_pkg.current_position(c_type, to_char(p_request_id));
+    begin
+        return case when l_pos is null or l_pos >= xxfnd_approval_rule_pkg.step_count(c_type, to_char(p_request_id))
+                    then 'Y' else 'N' end;
+    end is_last_step;
+
     function next_step(p_request_id in number) return varchar2 is
         l_more varchar2(1) := xxfnd_approval_rule_pkg.next_step(c_type, to_char(p_request_id));
         l_pos  number      := xxfnd_approval_rule_pkg.current_position(c_type, to_char(p_request_id));

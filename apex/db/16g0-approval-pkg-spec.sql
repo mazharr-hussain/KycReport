@@ -31,6 +31,8 @@ create or replace package xxcmp_approval_pkg authid definer as
     function step_name(p_request_id in number) return varchar2;
     -- Moves to the next step: Y when there is one, N when the path is complete.
     function next_step(p_request_id in number) return varchar2;
+    -- Release 75: Y when the current step is the last one (a request approved before the Approval Setup has one step).
+    function is_last_step(p_request_id in number) return varchar2;
     -- The approval history table: what happened (submit, decisions, information requests, withdraw, cancel) with
     -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
     -- (Waiting); before submit, the expected steps (Expected) with their role or user.
