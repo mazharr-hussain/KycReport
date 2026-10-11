@@ -51,7 +51,7 @@ taskDefinition CASE_INVESTIGATION (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxcmp_case_pkg.investigation_admins(to_number(:APEX$TASK_PK))
         }
     )
 

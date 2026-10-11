@@ -207,6 +207,8 @@ window.kycQuestionnaire = (function ($) {
         $("#" + pageItem("ADD_USER") + "_CONTAINER").toggle(m[1] === "ADD_APPROVER");
         // release 74: Submit Information shows the approver's question
         $("#" + pageItem("INFO_QUESTION") + "_CONTAINER").toggle(m[1] === "SUBMIT_INFO");
+        // release 75: approving the step that opens the case also picks the case officer
+        $("#" + pageItem("CASE_ASSIGNEE") + "_CONTAINER").toggle(m[1] === "APPROVE");
         apex.message.clearErrors();
         dlg.find("button.kyc-decide-confirm .t-Button-label").text(label);
         apex.theme.openRegion("decision_dialog");
@@ -219,6 +221,13 @@ window.kycQuestionnaire = (function ($) {
             apex.message.clearErrors();
             apex.message.showErrors([{ type: "error", location: "inline", pageItem: pageItem("ADD_USER"),
                                        message: "Choose the approver to add.", unsafe: false }]);
+            return;
+        }
+        if ($v(pageItem("DECISION")) === "APPROVE" && $("#" + pageItem("CASE_ASSIGNEE")).length
+                && $.trim($v(pageItem("CASE_ASSIGNEE"))) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: pageItem("CASE_ASSIGNEE"),
+                                       message: "Choose the officer for the case.", unsafe: false }]);
             return;
         }
         if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {

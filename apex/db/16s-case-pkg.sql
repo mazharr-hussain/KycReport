@@ -182,6 +182,19 @@ create or replace package body xxcmp_case_pkg as
         return upper(coalesce(l_user, nullif(xxfnd_util_pkg.current_user, 'nobody')));
     end first_approver;
 
+    -- release 75: Y when the case has no open investigation task, or the current user administers it
+    function task_admin(p_case_id in number) return varchar2 is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from apex_tasks t
+         where t.detail_pk = to_char(p_case_id) and t.task_def_static_id = 'CASE_INVESTIGATION'
+           and t.state_code in ('UNASSIGNED', 'ASSIGNED')
+           and not exists (select 1 from apex_task_participants p
+                            where p.task_id = t.task_id and p.participant_type = 'BUSINESS_ADMIN'
+                              and upper(p.participant) = upper(xxfnd_util_pkg.current_user));
+        return case when l_n = 0 then 'Y' else 'N' end;
+    end task_admin;
+
     function can_assign(p_case_id in number) return varchar2 is
         l_case xxcmp_cases%rowtype;
     begin
@@ -189,11 +202,21 @@ create or replace package body xxcmp_case_pkg as
         return case when l_case.case_status = 'INVESTIGATION'
                          and (xxfnd_privilege_pkg.has_privilege('CASES', 'MANAGE')
                               or upper(l_case.assigned_to) = upper(xxfnd_util_pkg.current_user))
+                         and task_admin(p_case_id) = 'Y'
                     then 'Y' else 'N' end;
     exception
         when no_data_found then
             return 'N';
     end can_assign;
+
+    function is_case_officer(p_user_name in varchar2) return varchar2 is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from xxfnd_user_roles_v
+         where upper(user_name) = upper(p_user_name) and active_flag = 'Y'
+           and role_code in ('COMPLIANCE_OFFICER', 'COMPLIANCE_MANAGER', 'HEAD_OF_COMPLIANCE');
+        return case when l_n > 0 then 'Y' else 'N' end;
+    end is_case_officer;
 
     procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null) is
         l_case xxcmp_cases%rowtype;
@@ -204,6 +227,13 @@ create or replace package body xxcmp_case_pkg as
             select max(full_name) into l_name from xxfnd_employees where upper(user_name) = upper(p_user);
             return nvl(l_name, p_user);
         end emp;
+        function owner(p_task_id in number, p_user in varchar2) return boolean is
+            l_n pls_integer;
+        begin
+            select count(*) into l_n from apex_task_participants
+             where task_id = p_task_id and participant_type = 'POTENTIAL_OWNER' and upper(participant) = upper(p_user);
+            return l_n > 0;
+        end owner;
     begin
         select * into l_case from xxcmp_cases where case_id = p_case_id;
         if can_assign(p_case_id) = 'N' then
@@ -211,25 +241,26 @@ create or replace package body xxcmp_case_pkg as
         end if;
         if p_user_name is null then
             xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_REQUIRED');
+        elsif is_case_officer(p_user_name) = 'N' then
+            xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_INVALID');   -- release 75
         end if;
-        update xxcmp_cases set assigned_to = upper(p_user_name) where case_id = p_case_id;
-        -- the open investigation task follows the case
-        for t in (select task_id from apex_tasks
+        -- the open investigation task follows the case. Release 75: checked first, never by catching an error - a failed
+        -- APEX task call rolls the whole transaction back (the case kept its officer while the note said otherwise)
+        for t in (select task_id, upper(actual_owner) as actual_owner from apex_tasks
                    where detail_pk = to_char(p_case_id) and task_def_static_id = 'CASE_INVESTIGATION'
                      and state_code in ('UNASSIGNED', 'ASSIGNED')) loop
-            begin
+            if not owner(t.task_id, p_user_name) then
                 apex_human_task.add_task_potential_owner(p_task_id => t.task_id, p_potential_owner => upper(p_user_name));
-            exception
-                when others then null;   -- already a potential owner
-            end;
-            if l_case.assigned_to is not null and upper(l_case.assigned_to) <> upper(p_user_name) then
-                begin
-                    apex_human_task.remove_potential_owner(p_task_id => t.task_id, p_potential_owner => upper(l_case.assigned_to));
-                exception
-                    when others then null;
-                end;
+            end if;
+            if t.actual_owner is not null and t.actual_owner <> upper(p_user_name) then
+                apex_human_task.delegate_task(p_task_id => t.task_id, p_to_user => upper(p_user_name));   -- the owner cannot be removed
+            end if;
+            if l_case.assigned_to is not null and upper(l_case.assigned_to) <> upper(p_user_name)
+               and owner(t.task_id, l_case.assigned_to) then
+                apex_human_task.remove_potential_owner(p_task_id => t.task_id, p_potential_owner => upper(l_case.assigned_to));
             end if;
         end loop;
+        update xxcmp_cases set assigned_to = upper(p_user_name) where case_id = p_case_id;
         l_note := substr('Assigned to ' || emp(p_user_name)
                          || case when l_case.assigned_to is not null then ' (was ' || emp(l_case.assigned_to) || ')' end
                          || case when p_comment is not null then ': ' || p_comment end, 1, 4000);
@@ -292,6 +323,16 @@ create or replace package body xxcmp_case_pkg as
             xxfnd_vpd_pkg.end_trusted;
             raise;
     end investigation_owners;
+
+    function investigation_admins(p_case_id in number) return varchar2 is
+        l_list varchar2(32767);
+    begin
+        select listagg(distinct column_value, ',') within group (order by column_value) into l_list
+          from apex_string.split(xxfnd_task_pkg.business_admins || ',' || xxfnd_task_pkg.users_with_privilege('CASES', 'MANAGE')
+                                 || ',' || investigation_owners(p_case_id), ',')
+         where column_value is not null;
+        return l_list;
+    end investigation_admins;
 
     function matrix(p_case in xxcmp_cases%rowtype) return xxcmp_approval_matrix%rowtype is
         l_row xxcmp_approval_matrix%rowtype;

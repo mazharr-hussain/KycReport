@@ -2206,15 +2206,8 @@ page 211 (
             alignment: left
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select distinct e.full_name as display_value, upper(ur.user_name) as return_value
-                  from xxfnd_user_roles_v ur
-                  join xxfnd_employees e on upper(e.user_name) = upper(ur.user_name)
-                 where ur.role_code in ('COMPLIANCE_OFFICER','COMPLIANCE_MANAGER','HEAD_OF_COMPLIANCE') and ur.active_flag = 'Y'
-                 order by 1
-                ```
+            type: sharedComponent
+            lov: @lov-case-officers
             displayNullValue: true
             nullDisplayValue: - Select -
         }

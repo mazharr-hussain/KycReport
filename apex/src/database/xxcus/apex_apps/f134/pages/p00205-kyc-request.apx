@@ -463,6 +463,140 @@ page 205 (
         }
     )
 
+    button open-assign (
+        buttonName: OPEN_ASSIGN
+        label: Assign Case
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-user
+            cssClasses: kyc-open-assign_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 75 (B2): the approved request's case, for whoever may assign it on the case screen
+                :P205_CASE_ID is not null and xxcmp_case_pkg.can_assign(:P205_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    region assign-dialog (
+        name: Assign Case
+        type: staticContent
+        layout {
+            sequence: 97
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign_dialog
+        }
+    )
+
+    pageItem P205_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Officer
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P205_ASSIGN_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process assign-case (
+        name: Assign case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 75 (B2): the case logic stays in the case package
+                xxcmp_case_pkg.assign(:P205_CASE_ID, :P205_ASSIGN_TO, :P205_ASSIGN_COMMENT);
+                :P205_ASSIGN_TO := null;
+                :P205_ASSIGN_COMMENT := null;
+                ```
+        }
+        execution {
+            sequence: 32
+            point: processing
+        }
+        successMessage {
+            successMessage: Case assigned.
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
     process load-case (
         name: Load case
         type: executeCode

@@ -347,6 +347,12 @@
   "upgrade_sequence": 137
  },
  {
+  "name": "16w KYC case assignment from the request",
+  "file": "16w-case-assignment.sql",
+  "install_sequence": 171,
+  "upgrade_sequence": 131
+ },
+ {
   "name": "16r KYC request package body",
   "file": "16r-request-pkg.sql",
   "install_sequence": 178,
