@@ -3,14 +3,14 @@ Grid (group titles, 3 columns), screenshots kept for a look. Case assignment at 
 screen (206) asks for the case officer when the approval opens the case (default: the approver), the case goes to the
 officer chosen; Assign Case on the approved request (205) gives the case to another officer.
 Usage: r75_ui.py [app-id]   (SQLCL env var: the SQLcl command, default 'sql'; connection name kyc_local;
-SHOTS env var: the screenshot folder, default ./r75_shots)"""
-import os, re, subprocess, sys, time
+SHOTS env var: the screenshot folder, default <temp>/r75_shots)"""
+import os, re, subprocess, sys, tempfile, time
 from playwright.sync_api import sync_playwright
 
 APP = sys.argv[1] if len(sys.argv) > 1 else '134'
 HOST = 'http://localhost:8080'
 SQLCL = os.environ.get('SQLCL', 'sql')
-SHOTS = os.environ.get('SHOTS', 'r75_shots')
+SHOTS = os.environ.get('SHOTS', os.path.join(tempfile.gettempdir(), 'r75_shots'))
 results = []
 
 
