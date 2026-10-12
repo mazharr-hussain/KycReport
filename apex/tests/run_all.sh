@@ -12,9 +12,9 @@ export SQLCL
 db() { printf "@apex/tests/%s.sql\nexit\n" "$1" | $SQLCL -S -name kyc_local 2>&1 | grep -v JAVA_TOOL; }
 if [ "$1" != "ui" ]; then
     echo "== test users"; db test_users | grep -i "error\|ORA-"
-    for t in security_test workflow_test kyc_flow_test party_test request_party_test monitoring_test token_test \
+    for t in security_test workflow_test kyc_flow_test party_test request_party_test token_test \
              r73_kyc_test r74_kyc_test r74_party_test r74_case_test r74_email_test r74_risk_test r74_perf_test \
-             r75_kyc_test r76_kyc_test; do
+             r75_kyc_test r76_kyc_test monitoring_test; do
         out=$(db $t)
         echo "== $t: $(grep -c '^PASS' <<<"$out") pass, $(grep -c '^FAIL' <<<"$out") fail"
         grep -E '^FAIL|ORA-' <<<"$out" | head -5
