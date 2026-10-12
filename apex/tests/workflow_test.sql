@@ -1,29 +1,8 @@
 -- Chunk 4: native APEX task flows inside real APEX sessions (application alias KYC).
 -- Needs security_test.sql first (REQ1, REQ2, OFFICER1 and a party).
 set serveroutput on size unlimited feedback off
-declare
-    l_app number;
-    procedure u(p_user varchar2, p_role varchar2) is
-        l_id number;
-    begin
-        xxfnd_util_pkg.set_install_mode(true);
-        begin select employee_id into l_id from xxfnd_employees where user_name = p_user;
-        exception when no_data_found then
-            insert into xxfnd_employees (source_type, user_name, full_name, email_address)
-            values ('LOCAL', p_user, initcap(p_user), lower(p_user) || '@example.com') returning employee_id into l_id;
-        end;
-        merge into xxfnd_user_roles t using (select l_id e, p_role r from dual) s
-           on (t.employee_id = s.e and t.role_code = s.r and t.end_date_active is null)
-         when not matched then insert (employee_id, role_code) values (s.e, s.r);
-        xxfnd_util_pkg.set_install_mode(false);
-        apex_util.set_workspace('XXCUS');
-        if apex_util.get_user_id(p_user) is null then
-            apex_util.create_user(p_user_name => p_user, p_web_password => 'KycTest#2026', p_change_password_on_first_use => 'N');
-        end if;
-    end;
+@@test_users.sql
 begin
-    u('MGR1', 'COMPLIANCE_MANAGER');
-    u('HOC1', 'HEAD_OF_COMPLIANCE');
     delete from xxfnd_wf_delegations;
     commit;
 end;
