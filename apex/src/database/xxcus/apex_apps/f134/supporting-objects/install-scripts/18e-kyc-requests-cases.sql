@@ -337,6 +337,8 @@ begin
     end loop;
 
     -- KYC Requests: requesters raise and edit their own; Compliance views them and raises reviews.
+    -- Release 76: only on the first install (R13 not yet marked) - the console decides afterwards
+    if not xxfnd_ddl_pkg.release_applied('R13') then
     for g in (select 'REQUESTER' r, column_value p from table(apex_t_varchar2('KYC_REQUESTS.VIEW','KYC_REQUESTS.CREATE','KYC_REQUESTS.MANAGE'))
               union all
               select s.column_value, p.column_value
@@ -346,6 +348,7 @@ begin
            on (t.role_code = s.role_code and t.privilege_code = s.privilege_code)
          when not matched then insert (role_code, privilege_code) values (s.role_code, s.privilege_code);
     end loop;
+    end if;
 
     task_setting('COUNTERPARTY_MATCH', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance decides whether a new counterparty is an existing party.');
     task_setting('DOC_CHECKLIST_REVIEW', 2, 1, 'COMPLIANCE_MANAGER', 'Compliance checks the documents of a request before investigation.');
@@ -483,6 +486,9 @@ begin
     xxfnd_error_pkg.register_message('KYC_REQUEST_INFO_TEXT', 'Enter the information you need from the requester.', -20625);
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_IN_APPROVAL', 'Request {1} is not waiting for approval.', -20625);
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_APPROVER', 'You are not an approver of request {1}.', -20625);
+    -- release 76: requesting departments from data security
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NO_DEPARTMENT', 'No requesting department is set up for you. Ask the administrator to give you a Requesting Entity role.', -20626);
+    xxfnd_error_pkg.register_message('KYC_REQUEST_DEPT_NOT_ALLOWED', 'You cannot raise requests for {1}. Choose one of your departments.', -20626);
     xxfnd_error_pkg.register_message('KYC_CASE_REASSIGN_NOT_ALLOWED', 'Only a case under investigation can be reassigned, by Compliance management or its assignee.', -20611);
     xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_REQUIRED', 'Select the officer.', -20611);
     -- release 75: the officer chosen for a case must be an active Compliance officer, manager or head of Compliance

@@ -403,6 +403,10 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
     -- department of the employee profile (when the profile has one).
     function can_choose_department return varchar2;
+    -- Release 76: the requesting departments the user's data security allows (rule "column in list" on
+    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT, e.g. role Requesting Entity - Finance): null = any department,
+    -- '#NONE' = none; Create Request lists them and SAVE_REQUEST refuses any other (KYC_REQUEST_DEPT_NOT_ALLOWED).
+    function allowed_departments return varchar2;
 
     -- The rules of Create Request step 1 (null = acceptable): EXISTING needs an approved party; NEW follows the
     -- common party form (XXCMP_PARTY_PKG.PARTY_ERROR); the business justification is required.
@@ -513,6 +517,13 @@ create or replace package xxcmp_request_pkg authid definer as
     procedure set_case_assignee(p_request_id in number, p_user_name in varchar2);
     -- Y when approving the current step opens the case (the last approval step of a request that needs KYC).
     function opens_case_on_approval(p_request_id in number) return varchar2;
+    -- Release 76: Assign Case on the request (205, opened right after the approval that opens the case). Y when the user
+    -- may give the request's case to an officer: the case exists and XXCMP_CASE_PKG.CAN_ASSIGN, or the approval is
+    -- complete and the workflow is about to open the case (Case Assignment privilege).
+    function can_assign_case(p_request_id in number) return varchar2;
+    -- Gives the request's case to the officer: XXCMP_CASE_PKG.ASSIGN when the case exists, else the officer is kept on the
+    -- request and OPEN_CASE creates the case for them (the request row is locked, so the two never cross).
+    procedure assign_case(p_request_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
     -- The in-progress request behind a case Compliance opens by hand for a party (XXCMP_CASE_PKG.CREATE_MANUAL_CASE).
     function create_case_request(p_party_id in number, p_justification in varchar2, p_business_relationship in varchar2)
         return number;
@@ -541,8 +552,8 @@ create or replace package xxcmp_case_pkg authid definer as
     function create_manual_case(p_party_id in number, p_justification in varchar2) return number;
 
     procedure assign(p_case_id in number, p_user_name in varchar2, p_comment in varchar2 default null);
-    -- Assign / Assign to me on the case screen: Manage on Cases, or the current assignee; release 75: and a business
-    -- administrator of the open investigation task (APEX lets only them move it to another officer).
+    -- Assign on the case and request screens: the Case Assignment privilege (release 76; before: Manage on Cases or the
+    -- assignee) and a business administrator of the open investigation task (APEX lets only them move it).
     function can_assign(p_case_id in number) return varchar2;
     -- Release 75: Y when the user may be given a case (an active Compliance officer, manager or head of Compliance):
     -- the list of officers on the Assign screens and the check of a chosen officer.
@@ -555,8 +566,8 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Task participants.
     function investigation_owners(p_case_id in number) return varchar2;
-    -- Release 75: business administrators of the investigation task - the workflow administrators, Manage on Cases
-    -- and the case's assignee, who may give the case (and its task) to another officer.
+    -- Release 75: business administrators of the investigation task - the workflow administrators and (release 76) the
+    -- holders of Case Assignment, who may give the case (and its task) to another officer.
     function investigation_admins(p_case_id in number) return varchar2;
     function level_approvers(p_case_id in number) return varchar2;
 
@@ -591,6 +602,9 @@ create or replace package xxcmp_case_pkg authid definer as
 
     -- Workflow steps (KYC_CASE).
     procedure start_approval(p_case_id in number);
+    -- Release 76 (A-11): Y when the case goes to its approvers - the approval workflow is on and the matching Approval
+    -- Setup rule has steps (a rule without steps approves the case at once). The KYC_CASE workflow (version 1.3) asks it.
+    function approval_required(p_case_id in number) return varchar2;
     function has_next_level(p_case_id in number) return varchar2;
     procedure approve_case(p_case_id in number);
     procedure reject_case(p_case_id in number);

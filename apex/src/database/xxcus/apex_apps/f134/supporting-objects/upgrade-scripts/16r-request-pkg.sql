@@ -142,6 +142,11 @@ create or replace package body xxcmp_request_pkg as
         return l_code;
     end default_department;
 
+    function allowed_departments return varchar2 is
+    begin
+        return xxfnd_vpd_pkg.allowed_values('XXCMP_REQUESTS', 'REQUESTING_DEPARTMENT');
+    end allowed_departments;
+
     function can_choose_department return varchar2 is
     begin
         return case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then 'Y' else 'N' end;
@@ -253,6 +258,18 @@ create or replace package body xxcmp_request_pkg as
         if can_choose_department = 'N' and default_department is not null then
             l_dept := default_department;
         end if;
+        -- release 76: only the departments the user's data security allows (Level 1 / Compliance: any)
+        declare
+            l_allowed varchar2(4000) := allowed_departments;
+        begin
+            if l_allowed = '#NONE' then
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_DEPARTMENT');
+            elsif l_allowed is not null and l_dept is not null
+                  and l_dept not member of apex_string.split(l_allowed, ',') then
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED',
+                    apex_t_varchar2(xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', l_dept)));
+            end if;
+        end;
 
         if p_party_selection = 'EXISTING' then
             l_party_id := p_party_id;
@@ -558,6 +575,7 @@ create or replace package body xxcmp_request_pkg as
     procedure submit(p_request_id in number) is
         l_error varchar2(4000) := submit_error(p_request_id);
         l_wf    number;
+        l_auto  boolean;
     begin
         if l_error is not null then
             raise_application_error(-20601, l_error);
@@ -572,7 +590,17 @@ create or replace package body xxcmp_request_pkg as
                      and rfi_status = 'WAITING_FOR_INFORMATION') loop
             xxfnd_rfi_pkg.resolve(f.rfi_id, 'RESOLVED', 'Answered by submitting the request again.');
         end loop;
-        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'N' then
+        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'Y' then
+            -- release 76 (A-11): the Approval Setup rule - no rule or a step nobody can approve stops the submit with its
+            -- message; a rule without steps approves the request at once, like the switched-off approval below
+            xxcmp_approval_pkg.start_path(p_request_id);
+            xxfnd_vpd_pkg.begin_trusted;       -- the approval steps are not the requester's to see
+            l_auto := xxfnd_approval_rule_pkg.step_count('KYC_REQUEST', to_char(p_request_id)) = 0;
+            xxfnd_vpd_pkg.end_trusted;
+        else
+            l_auto := true;
+        end if;
+        if l_auto then
             -- release 73: approval workflow switched off - auto-approved: the steps of KYC_REQUEST without the approval
             update xxcmp_requests set auto_approved_date = systimestamp where request_id = p_request_id;
             evaluate(p_request_id);
@@ -583,7 +611,6 @@ create or replace package body xxcmp_request_pkg as
             end if;
             return;
         end if;
-        xxcmp_approval_pkg.start_path(p_request_id);
         l_wf := xxfnd_workflow_pkg.start_process('KYC_REQUEST', to_char(p_request_id));
         update xxcmp_requests set workflow_id = l_wf where request_id = p_request_id;
     end submit;
@@ -813,7 +840,8 @@ create or replace package body xxcmp_request_pkg as
         l_assignee xxcmp_requests.case_assignee%type;
     begin
         -- release 75: the officer chosen on the approval (null: the approver, as before)
-        select max(case_assignee) into l_assignee from xxcmp_requests where request_id = p_request_id;
+        -- release 76: locked, so an Assign Case on the request (ASSIGN_CASE) waits for the case or is read here
+        select case_assignee into l_assignee from xxcmp_requests where request_id = p_request_id for update;
         l_case := xxcmp_case_pkg.create_case(p_request_id, l_assignee);
         close_without_case(p_request_id);      -- Compliance approved the request: the request and its party are Approved
     end open_case;
@@ -825,6 +853,49 @@ create or replace package body xxcmp_request_pkg as
         end if;
         update xxcmp_requests set case_assignee = upper(p_user_name) where request_id = p_request_id;
     end set_case_assignee;
+
+    function request_case(p_request_id in number) return number is
+        l_case number;
+    begin
+        select max(case_id) into l_case from xxcmp_cases where request_id = p_request_id;
+        return l_case;
+    end request_case;
+
+    function can_assign_case(p_request_id in number) return varchar2 is
+        l_case number := request_case(p_request_id);
+        l_req  xxcmp_requests%rowtype;
+    begin
+        if l_case is not null then
+            return xxcmp_case_pkg.can_assign(l_case);
+        end if;
+        select * into l_req from xxcmp_requests where request_id = p_request_id;
+        return case when l_req.request_status in ('IN_PROGRESS', 'APPROVED') and l_req.intake_outcome = 'ASSIGNED'
+                         and l_req.workflow_id is not null
+                         and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(p_request_id)) = 'N'
+                         and xxfnd_privilege_pkg.has_privilege('CASE_ASSIGNMENT', 'MANAGE')
+                    then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+    end can_assign_case;
+
+    procedure assign_case(p_request_id in number, p_user_name in varchar2, p_comment in varchar2 default null) is
+        l_case number;
+        l_lock number;
+    begin
+        select request_id into l_lock from xxcmp_requests where request_id = p_request_id for update;
+        l_case := request_case(p_request_id);
+        if l_case is not null then
+            xxcmp_case_pkg.assign(l_case, p_user_name, p_comment);       -- the case logic stays in the case package
+        elsif can_assign_case(p_request_id) = 'Y' then
+            if p_user_name is null then
+                xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_REQUIRED');
+            end if;
+            set_case_assignee(p_request_id, p_user_name);
+        else
+            xxfnd_error_pkg.raise_error('KYC_CASE_REASSIGN_NOT_ALLOWED');
+        end if;
+    end assign_case;
 
     function opens_case_on_approval(p_request_id in number) return varchar2 is
     begin

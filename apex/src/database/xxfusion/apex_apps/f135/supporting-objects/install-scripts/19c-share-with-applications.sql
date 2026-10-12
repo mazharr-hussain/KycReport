@@ -53,6 +53,12 @@ create or replace package body xxfnd_share_pkg as
                      and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
                    order by object_type, object_name) loop
             continue when is_local(o.object_name);
+            -- release 76 (S-03, A-08): COMMON only - the error log (written by XXFND_ERROR_PKG, read by IT in COMMON)
+            -- is not granted to the applications, and an earlier grant is taken back
+            if o.object_name in ('XXFND_ERROR_LOG') then
+                run('revoke all on ' || o.object_name || ' from ' || l_to);
+                continue;
+            end if;
             case o.object_type
                 when 'TABLE' then
                     run('grant select on ' || o.object_name || ' to ' || l_to || ' with grant option');

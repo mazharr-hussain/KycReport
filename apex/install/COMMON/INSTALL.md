@@ -50,3 +50,7 @@ Instead of the import steps above: as **ADMIN**, Database Actions → SQL → op
 ID (135) and the parsing schema (**XXFUSION** - no manual switch), runs the supporting objects (install scripts on a
 new database, upgrade scripts on an existing one; data kept) and installs the application. Then run the KYC script of
 the same release. Release 74 needs no new database privilege.
+
+
+## Release 76 (COMMON + KYC)
+Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
