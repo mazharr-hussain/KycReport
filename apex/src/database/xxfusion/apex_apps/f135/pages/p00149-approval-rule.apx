@@ -653,6 +653,44 @@ page 149 (
         }
     )
 
+    pageItem P149_IN_USE (
+        type: displayOnly
+        label {
+            label: In Use
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_approval_rule_pkg.open_count(to_number(:P149_RULE_ID))
+                       || ' approval(s) in progress use this rule. A change applies to new submissions; '
+                       || 'approvals in progress keep their approvers. A rule without approvers approves at once.'
+                  from dual
+                ```
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+        comments {
+            comments: Release 76 (F-05): the impact of a change before saving.
+        }
+    )
+
     button cancel (
         buttonName: CANCEL
         label: Cancel
@@ -775,30 +813,6 @@ page 149 (
             }
         )
 
-    )
-
-    validation approvers-required (
-        name: At least one approver
-        execution {
-            sequence: 10
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                -- a rule without approvers never applies
-                for r in (select 1 from dual
-                           where not exists (select 1 from xxfnd_approval_rule_steps where rule_id = :P149_RULE_ID)) loop
-                    return 'Add at least one approver: a rule without approvers never applies.';
-                end loop;
-                return null;
-                ```
-        }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: SAVE
-        }
     )
 
     process initialize-form (

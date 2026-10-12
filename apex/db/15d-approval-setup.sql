@@ -222,6 +222,9 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
     -- started, the matching rule's approvers (state EXPECTED) for the attributes given.
     function steps(p_type in varchar2, p_txn_id in varchar2, p_attributes in apex_t_varchar2 default null)
         return xxfnd_approval_step_tab pipelined;
+    -- Release 76 (F-05): the number of approvals in progress started from a rule (the rule screen's impact preview; a
+    -- count only, whatever the administrator's data security on the transactions).
+    function open_count(p_rule_id in number) return number;
     -- Display name of an approver (role name, user name or "Requester").
     function approver_label(p_approver_type in varchar2, p_role_code in varchar2, p_user_name in varchar2) return varchar2;
 end xxfnd_approval_rule_pkg;
@@ -439,6 +442,19 @@ create or replace package body xxfnd_approval_rule_pkg as
         update xxfnd_approval_txns set approval_status = 'CANCELLED'
          where approval_type_code = upper(p_type) and txn_id = p_txn_id and approval_status = 'IN_PROGRESS';
     end cancel;
+
+    function open_count(p_rule_id in number) return number is
+        l_n number;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select count(*) into l_n from xxfnd_approval_txns where rule_id = p_rule_id and approval_status = 'IN_PROGRESS';
+        xxfnd_vpd_pkg.end_trusted;
+        return l_n;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end open_count;
 
     function approver_label(p_approver_type in varchar2, p_role_code in varchar2, p_user_name in varchar2) return varchar2 is
         l_name xxfnd_roles.role_name%type;
