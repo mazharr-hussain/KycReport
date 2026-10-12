@@ -108,6 +108,9 @@ begin
     run('create unique index xxfnd_user_roles_u2 on xxfnd_user_roles ('
         || 'case when end_date_active is null and user_id is not null then user_id end, '
         || 'case when end_date_active is null and user_id is not null then role_code end)');
+    -- release 76: the grants belong to the user (U2); the employee index U1 refused the same role to a second LOCAL user
+    -- (no employee) - checked drop, nothing to do when it is gone
+    xxfnd_ddl_pkg.drop_index('XXFND_USER_ROLES_U1');
 end;
 /
 

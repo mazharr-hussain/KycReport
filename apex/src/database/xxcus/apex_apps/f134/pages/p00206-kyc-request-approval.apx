@@ -1265,46 +1265,10 @@ page 206 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                -- release 75 (B1): Y when approving this step opens the case
+                -- release 75 (B1): Y when approving this step opens the case; release 76: then the approver goes to the
+                -- request's Assign Case popup (205) instead of choosing the officer in this common approval dialog
                 select xxcmp_request_pkg.opens_case_on_approval(to_number(:P206_REQUEST_ID)) from dual
                 ```
-        }
-    )
-
-    pageItem P206_CASE_ASSIGNEE (
-        type: selectList
-        label {
-            label: Assign the Case to
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-case-officers
-            displayNullValue: true
-            nullDisplayValue: - Select -
-        }
-        layout {
-            sequence: 6
-            region: @decision-dialog
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-above
-            templateOptions: #DEFAULT#
-        }
-        default {
-            type: expression
-            language: plsql
-            plsqlExpression: case when xxcmp_case_pkg.is_case_officer(:APP_USER) = 'Y' then upper(:APP_USER) end
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression: :P206_OPENS_CASE = 'Y'
-        }
-        help {
-            helpText: Release 75: approving this step opens the case; it is assigned to this officer (default you).
         }
     )
 
@@ -1421,32 +1385,6 @@ page 206 (
         }
         behavior {
             action: definedByDynamicAction
-        }
-    )
-
-    validation case-assignee (
-        name: Case officer chosen
-        execution {
-            sequence: 30
-        }
-        validation {
-            type: functionBody
-            language: plsql
-            plsqlFunctionBody:
-                ```plsql
-                return case when :P206_CASE_ASSIGNEE is null then 'Choose the officer for the case.' end;
-                ```
-        }
-        error {
-            associatedItem: @P206_CASE_ASSIGNEE
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE' and :P206_OPENS_CASE = 'Y'
-                ```
         }
     )
 
@@ -1621,31 +1559,6 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO')
-                ```
-        }
-    )
-
-    process set-case-assignee (
-        name: Case officer
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                -- release 75 (B1): the case opened by this approval goes to the officer chosen in the popup
-                xxcmp_request_pkg.set_case_assignee(to_number(:P206_REQUEST_ID), :P206_CASE_ASSIGNEE);
-                ```
-        }
-        execution {
-            sequence: 15
-            point: processing
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE' and :P206_OPENS_CASE = 'Y'
                 ```
         }
     )
@@ -1831,6 +1744,32 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'CONFIRM' and :P206_FILE is not null
+                ```
+        }
+    )
+
+    branch (
+        name: To the request's Assign Case
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 205
+                items: {
+                    P205_REQUEST_ID: &P206_REQUEST_ID.
+                    P205_OPEN_ASSIGN: Y
+                }
+                clearCache: 205
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 76: the approval that opens the case continues on the request with Assign Case open
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE' and :P206_OPENS_CASE = 'Y'
                 ```
         }
     )

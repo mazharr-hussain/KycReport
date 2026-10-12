@@ -144,7 +144,10 @@ begin
 
     l_err := xxcmp_case_pkg.submit_error(l_case);
     ok('cannot submit without risk tier: ' || l_err, l_err is not null);
-    update xxcmp_cases set risk_tier = 'HIGH', assigned_to = 'OFFICER1' where case_id = l_case;
+    -- release 76 (A-04): the report is written, so the next check reached is the Enhanced KYC one
+    update xxcmp_cases set risk_tier = 'HIGH', assigned_to = 'OFFICER1',
+                           report_conclusion = 'Release 76 test conclusion.', next_steps = 'None.'
+     where case_id = l_case;
     insert into xxcmp_screenings (case_id, party_id, screening_type, match_status, pep_flag)
     values (l_case, l_row.party_id, 'PEP', 'POTENTIAL_MATCH', 'Y');
     xxcmp_case_pkg.apply_screening(l_case);

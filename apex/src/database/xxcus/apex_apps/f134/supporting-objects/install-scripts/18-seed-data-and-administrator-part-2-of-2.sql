@@ -271,6 +271,15 @@ begin
     using (select 'XXCMP_PARTIES' tn from dual) s
        on (t.table_name = s.tn and t.jurisdiction is null)
      when not matched then insert (table_name, retention_years, action_at_expiry) values (s.tn, 5, 'FLAG_FOR_REVIEW');
+    -- release 76 (S-01): the other tables with personal data, as the parties (5 years, flagged for review - nothing is
+    -- deleted); Compliance / Legal set the final years and action on the Retention screen
+    merge into xxfnd_retention_policies t
+    using (select column_value tn from table(apex_t_varchar2('XXFND_COMMUNICATIONS', 'XXCMP_PARTY_ID_VERIFICATIONS',
+                                                            'XXCMP_PARTY_REGISTRY_CHECKS', 'XXCMP_CASE_FUNDS',
+                                                            'XXCMP_FIU_REPORTS'))) s
+       on (t.table_name = s.tn and t.jurisdiction is null)
+     when not matched then insert (table_name, retention_years, action_at_expiry, application_code)
+                           values (s.tn, 5, 'FLAG_FOR_REVIEW', 'KYC');
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;

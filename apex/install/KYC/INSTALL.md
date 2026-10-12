@@ -62,3 +62,7 @@ while COMMON was still running, run KYC again - every script is idempotent. Rele
 XXCMP_REQUESTS.CASE_ASSIGNEE (checked step 16w) and needs no new database privilege. Open investigation tasks created
 before release 75 keep their business administrators (workflow administrators): only they can reassign those cases;
 cases opened from release 75 on can be reassigned by Cases managers and the assignee.
+
+
+## Release 76 (COMMON + KYC)
+Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.

@@ -24,6 +24,20 @@ begin
             || '2. Come back: App Builder > KYC > Utilities > Supporting Objects > Install Supporting Objects (or Upgrade).');
     end if;
 
+    -- release 76: COMMON of the same release first - its new shared calls must be there (a KYC install started while
+    -- the COMMON install still runs, or over an older COMMON, stops here before it changes anything)
+    select count(*) into l_n from all_procedures
+     where owner = c_shared
+       and (object_name, procedure_name) in (('XXFND_APPROVAL_RULE_PKG', 'APPROVAL_ERROR'),
+                                             ('XXFND_VPD_PKG', 'ALLOWED_VALUES'));
+    if l_n < 2 then
+        raise_application_error(-20904,
+            'ACTION NEEDED - COMMON is older than this KYC release (or its install has not finished). Nothing was installed.'
+            || chr(10) || '1. Install / upgrade the COMMON application of the same release and wait until it has finished.'
+            || chr(10) || '2. Come back: App Builder > KYC > Utilities > Supporting Objects > Install Supporting Objects '
+            || '(or Upgrade). Every script can be re-run.');
+    end if;
+
     select count(*) into l_n from user_tables where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS');
     if l_n > 0 then
         raise_application_error(-20903,

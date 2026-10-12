@@ -62,6 +62,7 @@ begin
     feature('CASES',            'Cases',                  'BUSINESS', 50, 'N', 'VIEW,CREATE,MANAGE');
     feature('MONITORING',       'Monitoring Watchlist',   'BUSINESS', 60, 'N', 'VIEW,MANAGE');
     feature('DASHBOARD',        'Executive Dashboard',    'BUSINESS', 70, 'N', 'VIEW');
+    feature('CASE_ASSIGNMENT',  'Case Assignment',        'BUSINESS', 55, 'N', 'MANAGE');
     -- Admin: Basic Setup
     feature('LOOKUPS',          'Lookups',                'BASIC_SETUP', 110, 'Y', 'VIEW,CREATE,MANAGE');
     feature('FLEXFIELDS',       'Flexfields (DFF)',       'BASIC_SETUP', 120, 'Y', 'VIEW,CREATE,MANAGE');
@@ -105,7 +106,9 @@ begin
     pages('APP_SETTINGS',     '10020,10021');
     pages('USAGE_FEEDBACK',   '10030,10031,10032,10033,10051,10052');
 
-    -- Grants that reproduce the previous role-based access
+    -- Grants that reproduce the previous role-based access. Release 76: only on the first install (release R10 not yet
+    -- marked) - a privilege removed in the console is not given back by an upgrade
+    if not xxfnd_ddl_pkg.release_applied('R10') then
     grant_priv(c_all,   'HOME.VIEW,MY_TASKS.VIEW');
     grant_priv(c_staff, 'PARTIES.VIEW,PARTIES.CREATE,PARTIES.MANAGE,CASES.VIEW,CASES.CREATE,CASES.MANAGE');
     grant_priv(c_rules, 'KYC_RULES.VIEW,KYC_RULES.CREATE,KYC_RULES.MANAGE,'
@@ -122,6 +125,19 @@ begin
             || 'ROLES_PRIVILEGES.VIEW,ROLES_PRIVILEGES.CREATE,ROLES_PRIVILEGES.MANAGE,'
             || 'DATA_SECURITY.VIEW,DATA_SECURITY.CREATE,DATA_SECURITY.MANAGE,'
             || 'APP_SETTINGS.VIEW,APP_SETTINGS.MANAGE,USAGE_FEEDBACK.VIEW,USAGE_FEEDBACK.MANAGE');
+    end if;
+
+    -- release 76: Case Assignment is its own privilege (feature above) (Assign Case on 205 / 211, the investigation task's administrators);
+    -- the first install of it gives it to the roles that held Cases - Manage, after that the console decides
+    if not xxfnd_ddl_pkg.release_applied('R76_CASE_ASSIGNMENT') then
+        insert into xxfnd_role_privileges (role_code, privilege_code)
+        select rp.role_code, 'CASE_ASSIGNMENT.MANAGE' from xxfnd_role_privileges rp
+         where rp.privilege_code = 'CASES.MANAGE'
+           and not exists (select 1 from xxfnd_role_privileges x
+                            where x.role_code = rp.role_code and x.privilege_code = 'CASE_ASSIGNMENT.MANAGE');
+        xxfnd_ddl_pkg.mark_release('R76_CASE_ASSIGNMENT', 'Release 76: Case Assignment privilege granted once');
+    end if;
+
 
     -- release 48: the KYC row-access rules (parties, requests for information) are seeded by 18e
 

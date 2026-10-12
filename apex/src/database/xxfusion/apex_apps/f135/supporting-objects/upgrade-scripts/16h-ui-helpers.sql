@@ -82,7 +82,8 @@ create or replace package body xxfnd_ui_pkg as
         if p_user_name is null then
             return null;
         end if;
-        if upper(p_user_name) = 'SYSTEM' then
+        -- release 76 (A-11): work done in the background (workflow activities, automations) runs as APEX user NOBODY
+        if upper(p_user_name) in ('SYSTEM', 'NOBODY') then
             return 'System';
         end if;
         select max(full_name) into l_name from xxfnd_employees where upper(user_name) = upper(p_user_name);
