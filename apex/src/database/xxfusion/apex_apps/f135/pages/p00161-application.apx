@@ -120,6 +120,7 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
@@ -158,6 +159,8 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 8
         }
         appearance {
             template: @/required-above
@@ -188,6 +191,7 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
@@ -240,6 +244,8 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 6
         }
         appearance {
             template: @/required-above
@@ -281,6 +287,7 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
@@ -311,6 +318,8 @@ page 161 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
@@ -542,7 +551,7 @@ page 161 (
                     ```sql
                     select feature_name as display_value, feature_code as return_value
                       from xxfnd_features
-                     where feature_code in (select column_value from table(xxfnd_app_function_pkg.common_functions))
+                     where feature_code in (select column_value from table(xxfnd_application_pkg.common_functions))
                      order by display_sequence
                     ```
             }
@@ -597,7 +606,7 @@ page 161 (
                        case when t.form_page_id is not null and (t.table_name is not null or t.setup_type_code in ('SEGREGATION_OF_DUTIES', 'DATA_SECURITY'))
                             then 'Add' end as add_label
                   from xxfnd_setup_types t
-                 where xxfnd_setup_type_pkg.app_allowed(t.setup_type_code, :P161_APPLICATION_CODE) = 'Y'
+                 where xxfnd_application_pkg.app_allowed(t.setup_type_code, :P161_APPLICATION_CODE) = 'Y'
                  order by t.display_sequence
                 ```
             pageItemsToSubmit: P161_APPLICATION_CODE
@@ -839,7 +848,7 @@ page 161 (
             plsqlCode:
                 ```plsql
                 -- release 72: the schema's grants on the shared objects and one switch per common function (off)
-                xxfnd_app_function_pkg.register_application(:P161_APPLICATION_CODE);
+                xxfnd_application_pkg.register_application(:P161_APPLICATION_CODE);
                 ```
         }
         execution {

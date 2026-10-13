@@ -13,7 +13,7 @@ page 162 (
         formAutoComplete: false
     }
     help {
-        helpText: The level each kind of setup is kept at - all applications (instance), an application, or either - and the applications it may be kept for.
+        helpText: The level each kind of setup is kept at - the workspace (all applications), an application, or either - and the applications it may be kept for.
     }
 
     region breadcrumb (
@@ -48,9 +48,9 @@ page 162 (
                 select t.setup_type_code,
                        t.setup_type_name,
                        (select f.feature_name from xxfnd_features f where f.feature_code = t.feature_code) as function_name,
-                       decode(t.allowed_level, 'I', 'All applications (instance) only',
+                       decode(t.allowed_level, 'I', 'Workspace (all applications) only',
                                                'A', 'Application only',
-                                               'All applications (instance) or an application') as allowed_level,
+                                               'Workspace (all applications) or an application') as allowed_level,
                        case when t.allowed_level = 'I' then null
                             when t.all_applications_flag = 'Y' then 'Every application'
                             else (select listagg(x.application_code, ', ') within group (order by x.application_code)

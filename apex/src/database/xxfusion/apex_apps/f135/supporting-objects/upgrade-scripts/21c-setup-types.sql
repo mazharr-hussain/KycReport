@@ -8,149 +8,10 @@
 --   The COMMON setup forms offer only what the type allows (LOV APPLICATIONS); a trigger (<table>_LV) checks the
 --   application of every new or changed row on the screens. COMMON itself is the instance, not an application.
 --   Also the tables and columns the setup forms list (XXFND_SETUP_TABLES_V / XXFND_SETUP_COLUMNS_V).
+--   Release 80: tables and package in 09d (XXFND_APPLICATION_PKG); this script keeps the seed, the triggers and views.
 -- Idempotent (release 69 rule: CREATE_TABLE only when missing; seed rows created once, IT maintains them).
 --------------------------------------------------------------------------------
-declare
-    l_new boolean;
-begin
-    l_new := xxfnd_ddl_pkg.create_table('XXFND_SETUP_TYPES', q'~create table xxfnd_setup_types (
-    setup_type_code        varchar2(30)   not null,
-    setup_type_name        varchar2(100)  not null,
-    feature_code           varchar2(30),
-    table_name             varchar2(128),
-    list_page_id           number,
-    form_page_id           number,
-    allowed_level          varchar2(1)    default 'B' not null,
-    all_applications_flag  varchar2(1)    default 'Y' not null,
-    display_sequence       number         default 100 not null,
-    description            varchar2(400),
-    -- standard WHO columns
-    created_by               varchar2(255)  not null,
-    creation_date            timestamp      not null,
-    last_updated_by          varchar2(255)  not null,
-    last_update_date         timestamp      not null,
-    last_update_login        varchar2(255),
-    object_version_number    number         default 1 not null,
-    constraint xxfnd_setup_types_pk primary key (setup_type_code),
-    constraint xxfnd_setup_types_ck1 check (allowed_level in ('I','A','B')),
-    constraint xxfnd_setup_types_ck2 check (all_applications_flag in ('Y','N'))
-)~');
-    if l_new then
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_setup_types is 'Setup types and the level they are kept at: I instance only (application empty), A application only, B either; ALL_APPLICATIONS_FLAG N = only the applications in XXFND_SETUP_TYPE_APPS.'~');
-    end if;
-    xxfnd_schema_pkg.create_who_trigger('XXFND_SETUP_TYPES');
-
-    if xxfnd_ddl_pkg.create_table('XXFND_SETUP_TYPE_APPS', q'~create table xxfnd_setup_type_apps (
-    setup_type_code        varchar2(30)   not null,
-    application_code       varchar2(30)   not null,
-    -- standard WHO columns
-    created_by               varchar2(255)  not null,
-    creation_date            timestamp      not null,
-    last_updated_by          varchar2(255)  not null,
-    last_update_date         timestamp      not null,
-    last_update_login        varchar2(255),
-    object_version_number    number         default 1 not null,
-    constraint xxfnd_setup_type_apps_pk primary key (setup_type_code, application_code),
-    constraint xxfnd_setup_type_apps_fk1 foreign key (setup_type_code)
-        references xxfnd_setup_types (setup_type_code) on delete cascade,
-    constraint xxfnd_setup_type_apps_fk2 foreign key (application_code)
-        references xxfnd_applications (application_code) on delete cascade
-)~') then
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_setup_type_apps is 'Applications a setup type may be kept for (when its ALL_APPLICATIONS_FLAG is N).'~');
-    end if;
-    xxfnd_schema_pkg.create_who_trigger('XXFND_SETUP_TYPE_APPS');
-end;
-/
-
-create or replace package xxfnd_setup_type_pkg authid definer as
-    -- I / A / B for the setup type (B when unknown).
-    function allowed_level(p_setup_type_code in varchar2) return varchar2;
-    -- Y when a row of the setup type may belong to the application; null application = the instance level.
-    function app_allowed(p_setup_type_code in varchar2, p_application_code in varchar2) return varchar2;
-    -- The setup type of a COMMON page (its list or form page), else null.
-    function page_type(p_page_id in number) return varchar2;
-    -- Raises ORA-20160 when the application is not allowed for the setup type of the table. Only on the
-    -- application screens (not during installs, jobs or scripts).
-    procedure check_level(p_table_name in varchar2, p_application_code in varchar2);
-    -- The <table>_LV triggers on every setup type table with an APPLICATION_CODE column.
-    procedure create_triggers;
-end xxfnd_setup_type_pkg;
-/
-
-create or replace package body xxfnd_setup_type_pkg as
-
-    function allowed_level(p_setup_type_code in varchar2) return varchar2 is
-        l_level xxfnd_setup_types.allowed_level%type;
-    begin
-        select max(allowed_level) into l_level from xxfnd_setup_types where setup_type_code = upper(p_setup_type_code);
-        return nvl(l_level, 'B');
-    end allowed_level;
-
-    function app_allowed(p_setup_type_code in varchar2, p_application_code in varchar2) return varchar2 is
-        l_level xxfnd_setup_types.allowed_level%type;
-        l_all   xxfnd_setup_types.all_applications_flag%type;
-        l_n     pls_integer;
-    begin
-        select max(allowed_level), max(all_applications_flag) into l_level, l_all
-          from xxfnd_setup_types where setup_type_code = upper(p_setup_type_code);
-        if l_level is null then
-            return 'Y';   -- not a setup type: no rule
-        elsif p_application_code is null then
-            return case when l_level in ('I', 'B') then 'Y' else 'N' end;
-        elsif l_level = 'I' or upper(p_application_code) = 'COMMON' then
-            return 'N';
-        elsif l_all = 'Y' then
-            return 'Y';
-        end if;
-        select count(*) into l_n from xxfnd_setup_type_apps
-         where setup_type_code = upper(p_setup_type_code) and application_code = upper(p_application_code);
-        return case when l_n > 0 then 'Y' else 'N' end;
-    end app_allowed;
-
-    function page_type(p_page_id in number) return varchar2 is
-        l_code xxfnd_setup_types.setup_type_code%type;
-    begin
-        select max(setup_type_code) into l_code from xxfnd_setup_types
-         where p_page_id in (list_page_id, form_page_id);
-        return l_code;
-    end page_type;
-
-    procedure check_level(p_table_name in varchar2, p_application_code in varchar2) is
-    begin
-        if not xxfnd_util_pkg.in_apex_session then
-            return;
-        end if;
-        for t in (select setup_type_code, setup_type_name, allowed_level from xxfnd_setup_types
-                   where table_name = upper(p_table_name)) loop
-            if app_allowed(t.setup_type_code, p_application_code) = 'N' then
-                raise_application_error(-20160, t.setup_type_name || ': ' ||
-                    case when p_application_code is null then 'choose an application (application level only).'
-                         when t.allowed_level = 'I' then 'kept for all applications (instance level only).'
-                         else 'not available for ' || upper(p_application_code) || '.' end);
-            end if;
-        end loop;
-    end check_level;
-
-    procedure create_triggers is
-    begin
-        for t in (select distinct s.table_name from xxfnd_setup_types s
-                   where s.table_name is not null
-                     and exists (select 1 from user_tab_columns c
-                                  where c.table_name = s.table_name and c.column_name = 'APPLICATION_CODE')) loop
-            execute immediate 'create or replace trigger ' || substr(t.table_name, 1, 120) || '_LV
-                before insert or update of application_code on ' || t.table_name || '
-                for each row
-            begin
-                -- release 73 (21c): the level the setup type is kept at (XXFND_SETUP_TYPES)
-                if inserting or nvl(:new.application_code, ''#'') <> nvl(:old.application_code, ''#'') then
-                    xxfnd_setup_type_pkg.check_level(''' || t.table_name || ''', :new.application_code);
-                end if;
-            end;';
-        end loop;
-    end create_triggers;
-
-end xxfnd_setup_type_pkg;
-/
+-- release 80: the tables XXFND_SETUP_TYPES / XXFND_SETUP_TYPE_APPS and the package are in 09d (XXFND_APPLICATION_PKG)
 
 -- the setup types (created once; IT changes level and applications on page 163)
 declare
@@ -216,7 +77,7 @@ end;
 /
 
 begin
-    xxfnd_setup_type_pkg.create_triggers;
+    xxfnd_application_pkg.create_triggers;
 end;
 /
 
@@ -308,3 +169,12 @@ select 'DATA_SECURITY', r.application_code, to_char(d.rule_id), d.role_code || '
   join xxfnd_roles r on r.role_code = d.role_code;
 
 comment on table xxfnd_setup_rows_v is 'Every setup row with its application (empty: all applications - instance) and the COMMON form item that opens it.';
+
+-- release 80: the packages merged into XXFND_APPLICATION_PKG (09d), dropped once every trigger and policy uses it
+-- (16i: scope policies and _SC triggers; above: the _LV triggers). Old callers break on purpose: no wrappers.
+begin
+    xxfnd_ddl_pkg.drop_object('XXFND_SETUP_TYPE_PKG', 'PACKAGE');
+    xxfnd_ddl_pkg.drop_object('XXFND_ADMIN_SCOPE_PKG', 'PACKAGE');
+    xxfnd_ddl_pkg.drop_object('XXFND_APP_FUNCTION_PKG', 'PACKAGE');
+end;
+/

@@ -21,7 +21,7 @@ end;
 
 --------------------------------------------------------------------------------
 -- 03_xxfnd_core_pkgs.sql
---   XXFND_UTIL_PKG      session user/language, lookups, WHO-trigger generator
+--   XXFND_UTIL_PKG      session user/language, WHO-trigger generator (release 80: lookups in XXFND_LOOKUP_PKG, 05c)
 --   XXFND_AUDIT_PKG     change reason + audit-trigger generator
 --   (XXFND_SECURITY_PKG until release 78: its parts moved to XXFND_USER_PKG 16j, XXFND_PRIVILEGE_PKG 09b and
 --    XXFND_INTEGRATION_PKG 05b)
@@ -225,10 +225,6 @@ create or replace package xxfnd_util_pkg authid definer as
     procedure set_preserve_who(p_on in boolean);
     function preserve_who return boolean;
 
-    function lookup_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2;
-    function is_valid_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2) return boolean;
-    procedure assert_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2, p_label in varchar2);
-
     -- Replace #TOKEN# placeholders from a JSON object {"TOKEN":"value",...}.
     function replace_tokens(p_text in clob, p_tokens_json in clob) return clob;
 
@@ -293,58 +289,6 @@ create or replace package body xxfnd_util_pkg as
 
     -- Result-cached per type, code and language: report queries call LOOKUP_MEANING for every row and column.
     -- Oracle invalidates the cache when XXFND_LOOKUP_VALUES(_TL) change.
-    function cached_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2, p_lang in varchar2)
-        return varchar2 result_cache is
-        l_meaning xxfnd_lookup_values.meaning%type;
-    begin
-        if p_lookup_code is null then
-            return null;
-        end if;
-        select nvl(t.meaning, v.meaning)
-          into l_meaning
-          from xxfnd_lookup_values v
-          left join xxfnd_lookup_values_tl t
-            on t.lookup_type = v.lookup_type
-           and t.lookup_code = v.lookup_code
-           and t.language_code = p_lang
-         where v.lookup_type = p_lookup_type
-           and v.lookup_code = p_lookup_code;
-        return l_meaning;
-    exception
-        when no_data_found then
-            return p_lookup_code;
-    end cached_meaning;
-
-    function lookup_meaning(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2 is
-        pragma udf;
-    begin
-        if p_lookup_code is null then
-            return null;
-        end if;
-        return cached_meaning(p_lookup_type, p_lookup_code, current_lang);
-    end lookup_meaning;
-
-    function is_valid_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2) return boolean is
-        l_count pls_integer;
-    begin
-        select count(*)
-          into l_count
-          from xxfnd_lookup_values v
-         where v.lookup_type = p_lookup_type
-           and v.lookup_code = p_lookup_code
-           and v.enabled_flag = 'Y'
-           and trunc(sysdate) between v.start_date_active and nvl(v.end_date_active, trunc(sysdate));
-        return l_count > 0;
-    end is_valid_lookup;
-
-    procedure assert_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2, p_label in varchar2) is
-    begin
-        if p_lookup_code is not null and not is_valid_lookup(p_lookup_type, p_lookup_code) then
-            raise_application_error(-20100,
-                p_label || ': "' || p_lookup_code || '" is not an active value of ' || p_lookup_type || '.');
-        end if;
-    end assert_lookup;
-
     function replace_tokens(p_text in clob, p_tokens_json in clob) return clob is
         l_result clob := p_text;
         l_obj    json_object_t;

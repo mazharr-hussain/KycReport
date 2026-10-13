@@ -95,6 +95,15 @@
   ]
  },
  {
+  "name": "05c Lookups package",
+  "file": "05c-lookup-pkg.sql",
+  "install_sequence": 56,
+  "upgrade_sequence": 16,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "06 Core packages - part 2 of 2",
   "file": "06-core-packages-part-2-of-2.sql",
   "install_sequence": 60,
@@ -506,8 +515,8 @@
   ]
  },
  {
-  "name": "09d Application functions - table and package",
-  "file": "09d-application-functions.sql",
+  "name": "09d Applications package (functions, setup types, administration scope)",
+  "file": "09d-application-pkg.sql",
   "install_sequence": 98,
   "upgrade_sequence": 58,
   "apps": [
@@ -561,6 +570,15 @@
   "file": "23-security-module.sql",
   "install_sequence": 214,
   "upgrade_sequence": 174,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21d Application settings package",
+  "file": "21d-app-setting-pkg.sql",
+  "install_sequence": 216,
+  "upgrade_sequence": 176,
   "apps": [
    "COMMON"
   ]

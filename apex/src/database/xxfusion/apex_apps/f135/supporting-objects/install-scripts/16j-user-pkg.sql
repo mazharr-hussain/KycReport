@@ -546,26 +546,26 @@ create or replace package body xxfnd_user_pkg as
                    -- release 71: COMMON is for IT only (Common Administrator)
                    -- release 73: and an application's administrators on the functions IT lets them manage (delegated)
                    when 'APP_USER'             then case when upper(v('APP_ALIAS')) = 'COMMON'
-                                                         then xxfnd_admin_scope_pkg.is_common_admin = 'Y'
-                                                              or xxfnd_admin_scope_pkg.delegated_any = 'Y'
+                                                         then xxfnd_application_pkg.is_common_admin = 'Y'
+                                                              or xxfnd_application_pkg.delegated_any = 'Y'
                                                          else xxfnd_privilege_pkg.has_any_privilege
-                                                              or xxfnd_admin_scope_pkg.administers_any = 'Y' end
+                                                              or xxfnd_application_pkg.administers_any = 'Y' end
                    -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
-                   when 'ADMIN_APP'            then xxfnd_admin_scope_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
+                   when 'ADMIN_APP'            then xxfnd_application_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
                    -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
                    -- release 73: in COMMON a delegated user only on the pages of a function managed in the application
                    when 'PAGE_VIEW'            then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW')
-                                                    and xxfnd_admin_scope_pkg.page_allowed(page_id) = 'Y'
+                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'PAGE_CREATE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE')
-                                                    and xxfnd_admin_scope_pkg.page_allowed(page_id) = 'Y'
+                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'PAGE_MANAGE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'MANAGE')
-                                                    and xxfnd_admin_scope_pkg.page_allowed(page_id) = 'Y'
+                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    -- processes that change data: request CREATE needs CREATE, any other request MANAGE
                    when 'PAGE_SUBMIT'          then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
-                                                    and xxfnd_admin_scope_pkg.page_allowed(page_id) = 'Y'
+                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'WORKFLOW_ADMINISTER'  then xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE')
                    when 'ADMIN_AREA'           then case when upper(v('APP_ALIAS')) = 'COMMON'
-                                                         then xxfnd_admin_scope_pkg.is_common_admin = 'Y'   -- release 71
+                                                         then xxfnd_application_pkg.is_common_admin = 'Y'   -- release 71
                                                          else xxfnd_privilege_pkg.has_any_admin_privilege end
                    -- party detail dialogs (contact person, owner / officer): the page privilege or the requester
                    when 'PARTY_DETAILS_VIEW'   then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW') or party_details_editable

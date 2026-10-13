@@ -55,7 +55,7 @@ page 136 (
                                    s.storage_config_id,
                                    nvl(s.entity_name, 'Any') as entity_name,
                                    nvl(s.category_code, 'Any') as category_code,
-                                   xxfnd_util_pkg.lookup_meaning('STORAGE_TYPE', s.storage_type) as storage_type,
+                                   xxfnd_lookup_pkg.lookup_meaning('STORAGE_TYPE', s.storage_type) as storage_type,
                                    s.endpoint_code, s.folder_path_template, s.priority, s.enabled_flag
                               from xxfnd_storage_config s
                 ) q

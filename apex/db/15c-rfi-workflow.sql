@@ -217,7 +217,7 @@ create or replace package body xxfnd_rfi_pkg as
         l_users varchar2(4000);
         l_app xxfnd_applications.application_code%type := app_code(p_application_code);
     begin
-        xxfnd_util_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
+        xxfnd_lookup_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
         if p_due_date is not null and p_due_date < trunc(sysdate) then
             raise_application_error(-20501, 'The due date cannot be in the past.');
         end if;

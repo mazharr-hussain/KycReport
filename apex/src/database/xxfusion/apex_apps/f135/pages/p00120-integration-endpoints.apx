@@ -53,9 +53,9 @@ page 120 (
 
                             select nvl(e.application_code, 'Shared') as application_code,
                                    e.endpoint_code, e.endpoint_name,
-                                   xxfnd_util_pkg.lookup_meaning('ENDPOINT_TYPE', e.endpoint_type) as endpoint_type,
+                                   xxfnd_lookup_pkg.lookup_meaning('ENDPOINT_TYPE', e.endpoint_type) as endpoint_type,
                                    e.base_url, e.web_credential_static_id,
-                                   xxfnd_util_pkg.lookup_meaning('ENDPOINT_STATUS', e.status_code) as status_code
+                                   xxfnd_lookup_pkg.lookup_meaning('ENDPOINT_STATUS', e.status_code) as status_code
                               from xxfnd_integration_endpoints e
                 ) q
                 ```

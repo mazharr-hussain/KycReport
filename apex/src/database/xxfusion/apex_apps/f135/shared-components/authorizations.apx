@@ -112,7 +112,7 @@ authorization admin-app (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- release 61: the application in scope (G_ADMIN_APP) is one the user administers (XXFND_ADMIN_SCOPE_PKG)
+            -- release 61: the application in scope (G_ADMIN_APP) is one the user administers (XXFND_APPLICATION_PKG)
             return xxfnd_user_pkg.authorized('ADMIN_APP');
             ```
     }

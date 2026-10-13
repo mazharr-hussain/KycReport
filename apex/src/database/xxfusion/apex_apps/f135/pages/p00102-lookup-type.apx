@@ -74,6 +74,7 @@ page 102 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
@@ -144,6 +145,8 @@ page 102 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 5
         }
         appearance {
             template: @/required-above
@@ -203,13 +206,15 @@ page 102 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: All applications (instance)
+            nullDisplayValue: Workspace (all applications)
         }
         layout {
             sequence: 15
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 3
         }
         appearance {
             template: @/optional-above
@@ -237,7 +242,7 @@ page 102 (
                 ```
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
         }
     )
 
@@ -256,6 +261,7 @@ page 102 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/required-above

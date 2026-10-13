@@ -50,7 +50,7 @@ page 124 (
 
                                           select t.transmission_id, t.sent_date, t.endpoint_code, t.purpose_code, t.entity_name,
                                                  t.pk1_value, t.http_method, t.request_url, t.response_status_code,
-                                                 xxfnd_util_pkg.lookup_meaning('TRANSMISSION_STATUS', t.status_code) as status_code,
+                                                 xxfnd_lookup_pkg.lookup_meaning('TRANSMISSION_STATUS', t.status_code) as status_code,
                                                  t.retry_count, t.error_message, t.created_by
                                             from xxfnd_transmissions t
                                           -- the application in scope: through its purpose (scoped by data security)

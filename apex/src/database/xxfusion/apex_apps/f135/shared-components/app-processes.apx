@@ -7,7 +7,7 @@ appProcess SET_ADMIN_APP (
             ```plsql
             -- release 73: no application filter - every application (ALL), unless an application opened a setup
             -- screen for itself (delegated: G_ADMIN_LOCK = Y, page 99)
-            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_admin_scope_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
+            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_application_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
             ```
     }
     execution {

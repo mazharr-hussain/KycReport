@@ -72,7 +72,7 @@ create or replace package body xxfnd_ui_pkg as
                       when 'RISK'      then 'RISK_TIER'
                       when 'RFI'       then 'RFI_STATUS'
                   end;
-        return nvl(xxfnd_util_pkg.lookup_meaning(l_type, p_code), p_code);
+        return nvl(xxfnd_lookup_pkg.lookup_meaning(l_type, p_code), p_code);
     end status_label;
 
 

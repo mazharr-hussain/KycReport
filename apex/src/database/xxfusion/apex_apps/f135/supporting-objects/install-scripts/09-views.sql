@@ -123,35 +123,11 @@ select c.descriptive_flexfield_code,
    and t.context_code = c.context_code
    and t.language_code = xxfnd_util_pkg.current_lang;
 
-create or replace view xxfnd_df_segments_vl as
-select s.descriptive_flexfield_code,
-       s.context_code,
-       c.global_flag,
-       s.segment_code,
-       s.column_name,
-       s.sequence_number,
-       nvl(t.prompt, s.prompt)            prompt,
-       nvl(t.help_text, s.help_text)      help_text,
-       s.value_set_code,
-       vs.validation_type,
-       vs.format_type,
-       vs.maximum_size,
-       s.required_flag,
-       s.default_type,
-       s.default_value,
-       s.read_only_flag,
-       s.display_flag,
-       s.enabled_flag
-  from xxfnd_df_segments s
-  join xxfnd_df_contexts c
-    on c.descriptive_flexfield_code = s.descriptive_flexfield_code
-   and c.context_code = s.context_code
-  join xxfnd_value_sets vs on vs.value_set_code = s.value_set_code
-  left join xxfnd_df_segments_tl t
-    on t.descriptive_flexfield_code = s.descriptive_flexfield_code
-   and t.context_code = s.context_code
-   and t.segment_code = s.segment_code
-   and t.language_code = xxfnd_util_pkg.current_lang;
+-- release 80: XXFND_DF_SEGMENTS_VL was not used by any page or package: dropped (checked, DDL recorded)
+begin
+    xxfnd_ddl_pkg.drop_object('XXFND_DF_SEGMENTS_VL', 'VIEW');
+end;
+/
 
 -- release 48: each application lists its own pending configuration changes in a view registered in
 -- XXFND_CONFIG_TABLES.CHANGES_VIEW; the shared views below read them all (XXFND_APPROVAL_PKG.CONFIG_CHANGES).

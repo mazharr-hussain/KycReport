@@ -116,9 +116,9 @@ page 163 (
             sqlQuery:
                 ```sql
                 select display_value, return_value
-                  from (select 'All applications (instance) only' as display_value, 'I' as return_value, 1 as seq from dual union all
+                  from (select 'Workspace (all applications) only' as display_value, 'I' as return_value, 1 as seq from dual union all
                         select 'Application only', 'A', 2 from dual union all
-                        select 'All applications (instance) or an application', 'B', 3 from dual)
+                        select 'Workspace (all applications) or an application', 'B', 3 from dual)
                  order by seq
                 ```
         }
@@ -385,13 +385,9 @@ page 163 (
             language: plsql
             plsqlCode:
                 ```plsql
-                -- release 73: the applications of the setup type (only used when Every Application is off)
-                delete from xxfnd_setup_type_apps where setup_type_code = :P163_SETUP_TYPE_CODE;
-                if :P163_ALLOWED_LEVEL <> 'I' and :P163_ALL_APPLICATIONS_FLAG = 'N' then
-                    insert into xxfnd_setup_type_apps (setup_type_code, application_code)
-                    select :P163_SETUP_TYPE_CODE, column_value from table(apex_string.split(:P163_APPLICATIONS, ':'))
-                     where column_value is not null;
-                end if;
+                -- release 80: the applications of the setup type, saved by the Applications package (no DML on the page)
+                xxfnd_application_pkg.save_setup_type_apps(:P163_SETUP_TYPE_CODE, :P163_ALLOWED_LEVEL,
+                                                           :P163_ALL_APPLICATIONS_FLAG, :P163_APPLICATIONS);
                 ```
         }
         execution {

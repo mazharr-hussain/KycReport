@@ -49,9 +49,9 @@ page 122 (
                   from (
 
                             select p.purpose_code, p.purpose_name, p.application_code,
-                                   xxfnd_util_pkg.lookup_meaning('CAPTURE_METHOD', p.capture_method) as capture_method,
+                                   xxfnd_lookup_pkg.lookup_meaning('CAPTURE_METHOD', p.capture_method) as capture_method,
                                    p.endpoint_code,
-                                   xxfnd_util_pkg.lookup_meaning('APPROVAL_STATUS', p.approval_status) as approval_status,
+                                   xxfnd_lookup_pkg.lookup_meaning('APPROVAL_STATUS', p.approval_status) as approval_status,
                                    p.approved_by, p.approved_date
                               from xxfnd_integration_purposes p
                 ) q

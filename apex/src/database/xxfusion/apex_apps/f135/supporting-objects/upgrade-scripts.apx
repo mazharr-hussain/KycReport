@@ -101,6 +101,23 @@ upgradeScript 05b-integrations-package (
     }
 )
 
+upgradeScript 05c-lookups-package (
+    execution {
+        sequence: 16
+    }
+    script {
+        contentFile: 05c-lookup-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 06-core-packages-part-2-of-2 (
     execution {
         sequence: 20
@@ -220,12 +237,12 @@ upgradeScript 09c-shared-objects-formerly-in-kyc-scripts (
     }
 )
 
-upgradeScript 09d-application-functions-table-and-package (
+upgradeScript 09d-applications-package-functions-setup-types-administration-scope (
     execution {
         sequence: 58
     }
     script {
-        contentFile: 09d-application-functions.sql
+        contentFile: 09d-application-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -634,6 +651,23 @@ upgradeScript 23-common-security-module (
     }
     script {
         contentFile: 23-security-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 21d-application-settings-package (
+    execution {
+        sequence: 176
+    }
+    script {
+        contentFile: 21d-app-setting-pkg.sql
     }
     serverSideCondition {
         type: expression

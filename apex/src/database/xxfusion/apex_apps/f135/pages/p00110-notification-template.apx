@@ -140,7 +140,7 @@ page 110 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: All applications (instance)
+            nullDisplayValue: Workspace (all applications)
         }
         layout {
             sequence: 15
@@ -174,7 +174,7 @@ page 110 (
                 ```
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
         }
     )
 

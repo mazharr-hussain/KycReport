@@ -47,9 +47,9 @@ page 112 (
 
                             select nvl(r.application_code, 'Shared') as application_code,
                                    r.retention_policy_id, r.table_name,
-                                   nvl(xxfnd_util_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'All') as jurisdiction,
+                                   nvl(xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'All') as jurisdiction,
                                    r.retention_years,
-                                   xxfnd_util_pkg.lookup_meaning('RETENTION_ACTION', r.action_at_expiry) as action_at_expiry,
+                                   xxfnd_lookup_pkg.lookup_meaning('RETENTION_ACTION', r.action_at_expiry) as action_at_expiry,
                                    r.enabled_flag
                               from xxfnd_retention_policies r
                 ) q

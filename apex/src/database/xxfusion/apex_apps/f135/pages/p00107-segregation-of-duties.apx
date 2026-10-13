@@ -48,7 +48,7 @@ page 107 (
                             select s.sod_rule_id,
                                    r1.role_name as role_1,
                                    r2.role_name as role_2,
-                                   xxfnd_util_pkg.lookup_meaning('SOD_SCOPE', s.conflict_scope) as conflict_scope,
+                                   xxfnd_lookup_pkg.lookup_meaning('SOD_SCOPE', s.conflict_scope) as conflict_scope,
                                    s.description,
                                    s.enabled_flag
                               from xxfnd_sod_rules s
