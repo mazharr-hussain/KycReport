@@ -78,8 +78,11 @@ You implement the approved COMMON review, release by release, without changing a
    (fresh install, install over existing objects, upgrade, re-run) and the App Builder import.
 5. Patch folder `apex/patches/NN-<feature>/` with README and zip; `ARCHITECTURE.md`; `install/COMMON/INSTALL.md`.
 6. Tick the finished tasks and the matching removal-checklist items in the report; note anything left open.
-7. Commit; push once the release is complete and tested; open the PR, merge it after CI is green (per the user's
-   instruction). Never trigger anything on Netlify beyond what a push causes.
+7. Commit the release; push the branch once the release is complete and tested (no PR is open between releases, so
+   no Netlify build runs). Do not open a PR per release.
+
+After release 6: open **one** PR for all six releases (the PR lists each release with its tasks and tests), and merge
+it once CI is green (per the user's instruction). Never trigger anything on Netlify beyond what that PR causes.
 
 ## Report back after each release
 In the chat, briefly: what was done (task numbers), what was tested and the result, what is left, any question.
