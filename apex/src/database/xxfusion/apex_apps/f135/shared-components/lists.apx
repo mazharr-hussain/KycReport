@@ -2,6 +2,29 @@ list navigation-bar (
     name: Navigation Bar
 
 
+    entry notifications (
+        label: Notifications
+        icon {
+            imageIconCssClasses: fa-bell-o
+        }
+        layout {
+            sequence: 5
+        }
+        link {
+            target: {
+                page: 43
+                clearCache: 43
+            }
+        }
+        userDefinedAttributes {
+            1: &NOTIFY_COUNT.
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+
     entry app-user (
         label: &APP_USER.
         icon {

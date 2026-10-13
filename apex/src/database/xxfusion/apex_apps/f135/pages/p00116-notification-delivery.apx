@@ -1,0 +1,1024 @@
+page 116 (
+    name: Notification Delivery
+    alias: NOTIFICATION-DELIVERY
+    title: Notification Delivery
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            How workflow notifications are delivered - all from data, nothing is written into the application:
+            Channels (in the application, e-mail, push, Fusion; switch one on or off), Events (what happens, its wording and the
+            page its link opens), Rules (per event, and optionally per application and process: who is told on which channel) and
+            Who Can Be Told (the queries that find the people). The wording itself is kept on Notification Templates. Every
+            notification made is in the Notification Log.
+            ```
+    }
+
+    region breadcrumb (
+        name: Notification Delivery
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region channels (
+        name: Channels
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select channel_code, channel_name, delivery_procedure, integration_purpose, inbox_flag, enabled_flag, display_sequence
+                  from xxfnd_notify_channels
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: channels
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No channel.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @CHANNEL_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CHANNEL_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @DELIVERY_PROCEDURE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @INTEGRATION_PURPOSE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @INBOX_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 7
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column CHANNEL_CODE (
+            type: displayOnly
+            heading {
+                heading: Channel
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CHANNEL_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column CHANNEL_NAME (
+            type: textField
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CHANNEL_NAME
+                dataType: varchar2
+            }
+        )
+
+        column DELIVERY_PROCEDURE (
+            type: displayOnly
+            heading {
+                heading: Delivered By
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DELIVERY_PROCEDURE
+                dataType: varchar2
+            }
+        )
+
+        column INTEGRATION_PURPOSE (
+            type: displayOnly
+            heading {
+                heading: Integration Purpose
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: INTEGRATION_PURPOSE
+                dataType: varchar2
+            }
+        )
+
+        column INBOX_FLAG (
+            type: displayOnly
+            heading {
+                heading: Notification List
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: INBOX_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            help {
+                helpText: Off: nothing is sent on this channel.
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+    )
+
+    region events (
+        name: Events
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select event_code, event_name, template_code, trigger_code, outcome_code, link_application_code, link_page_alias,
+                       link_items, link_tokens, enabled_flag
+                  from xxfnd_notify_events
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: events
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No event.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @EVENT_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @EVENT_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @TEMPLATE_CODE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @TRIGGER_CODE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @OUTCOME_CODE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @LINK_APPLICATION_CODE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @LINK_PAGE_ALIAS
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column EVENT_CODE (
+            type: displayOnly
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: EVENT_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column EVENT_NAME (
+            type: textField
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: EVENT_NAME
+                dataType: varchar2
+            }
+        )
+
+        column TEMPLATE_CODE (
+            type: selectList
+            heading {
+                heading: Wording
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select template_code as display_value, template_code as return_value from xxfnd_notification_templates order by 1
+                    ```
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TEMPLATE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column TRIGGER_CODE (
+            type: displayOnly
+            heading {
+                heading: Raised On
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TRIGGER_CODE
+                dataType: varchar2
+            }
+        )
+
+        column OUTCOME_CODE (
+            type: displayOnly
+            heading {
+                heading: Outcome
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: OUTCOME_CODE
+                dataType: varchar2
+            }
+        )
+
+        column LINK_APPLICATION_CODE (
+            type: selectList
+            heading {
+                heading: Link Application
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select application_name as display_value, application_code as return_value from xxfnd_applications where enabled_flag = 'Y' order by 1
+                    ```
+                displayNullValue: true
+                nullDisplayValue: The task's application
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LINK_APPLICATION_CODE
+                dataType: varchar2
+            }
+        )
+
+        column LINK_PAGE_ALIAS (
+            type: textField
+            heading {
+                heading: Link Page
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LINK_PAGE_ALIAS
+                dataType: varchar2
+            }
+            help {
+                helpText: The page alias the link opens (e.g. MY-TASKS).
+            }
+        )
+
+        column LINK_ITEMS (
+            type: displayOnly
+            heading {
+                heading: Link Items
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LINK_ITEMS
+                dataType: varchar2
+            }
+        )
+
+        column LINK_TOKENS (
+            type: displayOnly
+            heading {
+                heading: Link Values
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LINK_TOKENS
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            help {
+                helpText: Off: the event tells nobody.
+            }
+        )
+    )
+
+    region rules (
+        name: Rules
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select rule_id, event_code, application_code, process_code, recipient_type_code, recipient_value, channel_code,
+                       template_code, enabled_flag
+                  from xxfnd_notify_rules
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rules
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No rule.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @EVENT_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @APPLICATION_CODE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PROCESS_CODE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @RECIPIENT_TYPE_CODE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @RECIPIENT_VALUE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @CHANNEL_CODE
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @TEMPLATE_CODE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 9
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 4
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column RULE_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RULE_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column EVENT_CODE (
+            type: selectList
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 20
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select event_name as display_value, event_code as return_value from xxfnd_notify_events order by 1
+                    ```
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: EVENT_CODE
+                dataType: varchar2
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: selectList
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select application_name as display_value, application_code as return_value from xxfnd_applications where enabled_flag = 'Y' order by 1
+                    ```
+                displayNullValue: true
+                nullDisplayValue: Every application
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPLICATION_CODE
+                dataType: varchar2
+            }
+        )
+
+        column PROCESS_CODE (
+            type: textField
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PROCESS_CODE
+                dataType: varchar2
+            }
+            help {
+                helpText: A workflow process (Process Catalogue); empty = every process.
+            }
+        )
+
+        column RECIPIENT_TYPE_CODE (
+            type: selectList
+            heading {
+                heading: Who
+            }
+            layout {
+                sequence: 50
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select recipient_type_name as display_value, recipient_type_code as return_value from xxfnd_notify_recipient_types order by 1
+                    ```
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RECIPIENT_TYPE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column RECIPIENT_VALUE (
+            type: textField
+            heading {
+                heading: Role / Privilege
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RECIPIENT_VALUE
+                dataType: varchar2
+            }
+            help {
+                helpText: For "The users of a role": the role code; for "The users with a privilege": the privilege code.
+            }
+        )
+
+        column CHANNEL_CODE (
+            type: selectList
+            heading {
+                heading: Channel
+            }
+            layout {
+                sequence: 70
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select channel_name as display_value, channel_code as return_value from xxfnd_notify_channels order by display_sequence
+                    ```
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CHANNEL_CODE
+                dataType: varchar2
+            }
+        )
+
+        column TEMPLATE_CODE (
+            type: selectList
+            heading {
+                heading: Other Wording
+            }
+            layout {
+                sequence: 80
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select template_code as display_value, template_code as return_value from xxfnd_notification_templates order by 1
+                    ```
+                displayNullValue: true
+                nullDisplayValue: The event's wording
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TEMPLATE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+    )
+
+    region recipients (
+        name: Who Can Be Told
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: the recipient types and their queries (kept by IT through the install scripts)
+                select recipient_type_name, recipient_type_code, value_required_flag, description, recipient_query
+                  from xxfnd_notify_recipient_types
+                 order by recipient_type_name
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: recipients
+        }
+        messages {
+            whenNoDataFound: No recipient type.
+        }
+
+        column RECIPIENT_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Who
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column RECIPIENT_TYPE_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column VALUE_REQUIRED_FLAG (
+            type: plainText
+            heading {
+                heading: Needs a Value
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RECIPIENT_QUERY (
+            type: plainText
+            heading {
+                heading: Query
+            }
+            layout {
+                sequence: 50
+            }
+        )
+    )
+    process save-channels (
+        name: Save the channels
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @channels
+        execution {
+            sequence: 10
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process save-events (
+        name: Save the events
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @events
+        execution {
+            sequence: 20
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process save-rules (
+        name: Save the rules
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @rules
+        execution {
+            sequence: 30
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+)

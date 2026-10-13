@@ -711,4 +711,116 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry notifications (
+        name: Notifications
+        pageNumber: 43
+        execution {
+            sequence: 25
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 43
+            }
+        }
+    )
+
+    entry notification-delivery (
+        name: Notification Delivery
+        pageNumber: 116
+        execution {
+            sequence: 175
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 116
+            }
+        }
+    )
+
+    entry notification-log (
+        name: Notification Log
+        pageNumber: 117
+        execution {
+            sequence: 176
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 117
+            }
+        }
+    )
+
+    entry information-request (
+        name: Information Request
+        pageNumber: 143
+        execution {
+            sequence: 30
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 143
+            }
+        }
+    )
+
+    entry configuration-change (
+        name: Configuration Change
+        pageNumber: 144
+        execution {
+            sequence: 35
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 144
+            }
+        }
+    )
+
+    entry communications (
+        name: Communications
+        pageNumber: 45
+        execution {
+            sequence: 40
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 45
+            }
+        }
+    )
+
+    entry e-mail (
+        name: E-mail
+        pageNumber: 46
+        execution {
+            sequence: 45
+        }
+        appearance {
+            parentEntry: @communications
+        }
+        link {
+            target: {
+                page: 46
+            }
+        }
+    )
 )

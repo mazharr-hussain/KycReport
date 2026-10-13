@@ -1,0 +1,616 @@
+page 143 (
+    name: Information Request
+    alias: INFORMATION-REQUEST
+    title: Information Request
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A step of the request for information process (workflow RFI): answer the question when it is addressed to you, or -
+            when you raised it - review the answer: resolve it, return it, cancel it, or ask again (the process asks the same
+            person once more). The questions and answers of every round are listed.
+            ```
+    }
+
+    region breadcrumb (
+        name: Information Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region request (
+        name: Request for Information
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+    pageItem P143_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P143_RFI_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P143_TASK_DEF (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P143_CAN_ACT (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P143_RFI_NUMBER (
+        type: displayOnly
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The request.
+        }
+    )
+    pageItem P143_STATUS (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @request
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The status.
+        }
+    )
+    pageItem P143_RECIPIENT (
+        type: displayOnly
+        label {
+            label: Asked
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @request
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The asked.
+        }
+    )
+    pageItem P143_DUE_DATE (
+        type: displayOnly
+        label {
+            label: Due
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @request
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The due.
+        }
+    )
+    pageItem P143_RECORD (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @request
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The record.
+        }
+    )
+    pageItem P143_RAISED_BY (
+        type: displayOnly
+        label {
+            label: Raised By
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @request
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        help {
+            helpText: The raised by.
+        }
+    )
+
+    region rounds (
+        name: Questions and Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: every question, answer and review of the RFI, in round order (the task authorises the reader)
+                select m.source_code as round_label, m.source_type as kind, m.message_text, m.author, m.message_date
+                  from table(xxfnd_rfi_pkg.task_messages(to_number(:P143_TASK_ID))) m
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: rounds
+        }
+        messages {
+            whenNoDataFound: No question yet.
+        }
+
+        column ROUND_LABEL (
+            type: plainText
+            heading {
+                heading: Round
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column KIND (
+            type: plainText
+            heading {
+                heading: What
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column MESSAGE_TEXT (
+            type: plainText
+            heading {
+                heading: Text
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column AUTHOR (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column MESSAGE_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+    )
+    region answer (
+        name: Your Answer
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: answer
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P143_TASK_DEF = 'RFI_RESPONSE' and :P143_CAN_ACT = 'Y'
+                ```
+        }
+    )
+    pageItem P143_RESPONSE (
+        type: textarea
+        label {
+            label: Answer
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @answer
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 6
+        }
+        help {
+            helpText: Your answer to the question.
+        }
+    )
+    button submit-answer (
+        buttonName: SUBMIT_ANSWER
+        label: Submit Answer
+        layout {
+            sequence: 10
+            region: @answer
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    region review (
+        name: Review the Answer
+        type: staticContent
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: review
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P143_TASK_DEF = 'RFI_REVIEW' and :P143_CAN_ACT = 'Y'
+                ```
+        }
+    )
+    pageItem P143_NOTES (
+        type: textarea
+        label {
+            label: Notes or New Question
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @review
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        help {
+            helpText: Your notes on the answer; for Ask Again, the new question (the same person is asked once more).
+        }
+    )
+    button resolve (
+        buttonName: RESOLVE
+        label: Resolve
+        layout {
+            sequence: 10
+            region: @review
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    button ask-again (
+        buttonName: ASK_AGAIN
+        label: Ask Again
+        layout {
+            sequence: 20
+            region: @review
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    button return (
+        buttonName: RETURN
+        label: Return
+        layout {
+            sequence: 30
+            region: @review
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    button cancel-rfi (
+        buttonName: CANCEL_RFI
+        label: Cancel Request
+        layout {
+            sequence: 40
+            region: @review
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: The request for information is cancelled and its process ends. Continue?
+        }
+    )
+    process load-task (
+        name: The task and its request
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: only the task's own people (or a workflow administrator) see its request (XXFND_RFI_PKG.TASK_VALUES)
+                xxfnd_rfi_pkg.task_values(to_number(:P143_TASK_ID), :P143_RFI_ID, :P143_RFI_NUMBER, :P143_STATUS, :P143_RECIPIENT,
+                                          :P143_DUE_DATE, :P143_RECORD, :P143_RAISED_BY);
+                select max(task_def_static_id) into :P143_TASK_DEF from apex_tasks where task_id = to_number(:P143_TASK_ID);
+                :P143_CAN_ACT := case when :P143_RFI_ID is not null
+                                       and (apex_human_task.is_allowed(p_task_id => to_number(:P143_TASK_ID),
+                                                                        p_operation => apex_human_task.c_task_op_complete)
+                                            or apex_human_task.is_allowed(p_task_id => to_number(:P143_TASK_ID),
+                                                                           p_operation => apex_human_task.c_task_op_claim))
+                                      then 'Y' else 'N' end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+    process submit-answer (
+        name: Submit the answer
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if trim(:P143_RESPONSE) is null then
+                    raise_application_error(-20510, 'Enter your answer.');
+                end if;
+                xxfnd_rfi_pkg.respond(to_number(:P143_RFI_ID), :P143_RESPONSE);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Your answer was sent.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT_ANSWER
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process review (
+        name: Review the answer
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: the decision is the RFI package's; the workflow ends or asks again
+                declare
+                    l_token varchar2(64);
+                begin
+                    case :REQUEST
+                        when 'RESOLVE'    then xxfnd_rfi_pkg.resolve(to_number(:P143_RFI_ID), 'RESOLVED', :P143_NOTES);
+                        when 'RETURN'     then xxfnd_rfi_pkg.resolve(to_number(:P143_RFI_ID), 'REJECTED_RETURNED', :P143_NOTES);
+                        when 'CANCEL_RFI' then xxfnd_rfi_pkg.resolve(to_number(:P143_RFI_ID), 'CANCELLED', :P143_NOTES);
+                        when 'ASK_AGAIN'  then
+                            l_token := xxfnd_rfi_pkg.ask_again(to_number(:P143_RFI_ID), :P143_NOTES);
+                            xxfnd_rfi_pkg.send_email(to_number(:P143_RFI_ID), p_token => l_token);
+                    end case;
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: The request for information is updated.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: RESOLVE,RETURN,CANCEL_RFI,ASK_AGAIN
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    branch (
+        name: Back to My Tasks
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 40
+                clearCache: 40
+            }
+        }
+    )
+)

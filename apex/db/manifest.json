@@ -591,5 +591,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "26 Notifications module",
+  "file": "26-notifications-module.sql",
+  "install_sequence": 219,
+  "upgrade_sequence": 179,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]

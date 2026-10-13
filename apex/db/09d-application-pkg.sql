@@ -390,7 +390,9 @@ create or replace package body xxfnd_application_pkg as
         l_app varchar2(30) := upper(v('G_ADMIN_APP'));
         l_del varchar2(30);
     begin
-        if not in_common then
+        -- release 84: server code that has authorised its caller, or a background job (e.g. a workflow task action
+        -- reading the notification wording), reads the setup of every application
+        if not in_common or xxfnd_vpd_pkg.is_trusted then
             return null;
         elsif is_common_admin = 'Y' then
             if l_app is null or l_app = 'ALL' then

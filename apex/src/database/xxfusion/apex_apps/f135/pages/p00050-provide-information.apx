@@ -1,0 +1,197 @@
+page 50 (
+    name: Provide Information
+    alias: PROVIDE-INFORMATION
+    title: Provide Information
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authentication: public
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText: Secure page for a person without an account to answer a request for information.
+    }
+    comments {
+        comments:
+            ```
+            Release 84 - the outside step of the COMMON workflow process RFI. Public on purpose: a person without an account answers through the one-time link e-mailed to them (event RFI_RAISED). Access is controlled by the token (random 256-bit, stored only as a SHA-256 hash, expires the day after the due date, cleared after use). The link opens in a new session, so it cannot carry a session checksum. The answer continues the waiting workflow.
+            ```
+    }
+
+    region respond (
+        name: Provide Information
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: respond
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P50_DONE
+        }
+    )
+    region thanks (
+        name: Thank You
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Your answer has been received. You may close this page.</p>
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: thanks
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P50_DONE
+        }
+    )
+    pageItem P50_TOKEN (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @respond
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: carries the one-time token of the e-mailed link; no dynamic action changes it. Only its
+                SHA-256 hash is stored; XXFND_RFI_PKG.RESPOND_BY_TOKEN refuses unknown, used or expired tokens.
+                ```
+        }
+    )
+    pageItem P50_DONE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @respond
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P50_QUESTION (
+        type: displayOnly
+        label {
+            label: Question
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @respond
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select nvl(xxfnd_rfi_pkg.question_by_token(:P50_TOKEN), 'This link is not valid any more.') from dual
+                ```
+            used: always
+        }
+        help {
+            helpText: The question.
+        }
+    )
+    pageItem P50_RESPONSE (
+        type: textarea
+        label {
+            label: Your Answer
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @respond
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 8
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Your answer to the question.
+        }
+    )
+    button submit (
+        buttonName: SUBMIT
+        label: Submit Answer
+        layout {
+            sequence: 10
+            region: @respond
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    process submit-response (
+        name: Submit the answer
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: the answer is kept and the waiting RFI workflow goes on to the review
+                declare
+                    l_rfi_id number;
+                begin
+                    l_rfi_id := xxfnd_rfi_pkg.respond_by_token(:P50_TOKEN, :P50_RESPONSE);
+                    :P50_DONE  := 'Y';
+                    :P50_TOKEN := null;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT
+        }
+    )
+)
