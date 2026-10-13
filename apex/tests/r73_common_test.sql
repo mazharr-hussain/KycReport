@@ -13,16 +13,16 @@ begin
     -- setup types
     select count(*) into l_n from xxfnd_setup_types;
     check_(l_n >= 20, 'setup types seeded (' || l_n || ')');
-    check_(xxfnd_setup_type_pkg.app_allowed('VALUE_SETS', null) = 'Y', 'instance-only type: instance allowed');
-    check_(xxfnd_setup_type_pkg.app_allowed('VALUE_SETS', 'KYC') = 'N', 'instance-only type: application refused');
-    check_(xxfnd_setup_type_pkg.app_allowed('ROLES', null) = 'N', 'application-only type: instance refused');
-    check_(xxfnd_setup_type_pkg.app_allowed('ROLES', 'KYC') = 'Y', 'application-only type: KYC allowed');
-    check_(xxfnd_setup_type_pkg.app_allowed('LOOKUPS', 'COMMON') = 'N', 'COMMON is the instance, not an application');
+    check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', null) = 'Y', 'instance-only type: instance allowed');
+    check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', 'KYC') = 'N', 'instance-only type: application refused');
+    check_(xxfnd_application_pkg.app_allowed('ROLES', null) = 'N', 'application-only type: instance refused');
+    check_(xxfnd_application_pkg.app_allowed('ROLES', 'KYC') = 'Y', 'application-only type: KYC allowed');
+    check_(xxfnd_application_pkg.app_allowed('LOOKUPS', 'COMMON') = 'N', 'COMMON is the instance, not an application');
     update xxfnd_setup_types set all_applications_flag = 'N' where setup_type_code = 'LOOKUPS';
-    check_(xxfnd_setup_type_pkg.app_allowed('LOOKUPS', 'KYC') = 'N', 'chosen applications only: KYC not listed -> refused');
+    check_(xxfnd_application_pkg.app_allowed('LOOKUPS', 'KYC') = 'N', 'chosen applications only: KYC not listed -> refused');
     insert into xxfnd_setup_type_apps (setup_type_code, application_code) values ('LOOKUPS', 'KYC');
-    check_(xxfnd_setup_type_pkg.app_allowed('LOOKUPS', 'KYC') = 'Y', 'chosen applications only: KYC listed -> allowed');
-    check_(xxfnd_setup_type_pkg.page_type(102) = 'LOOKUPS', 'the form page knows its setup type');
+    check_(xxfnd_application_pkg.app_allowed('LOOKUPS', 'KYC') = 'Y', 'chosen applications only: KYC listed -> allowed');
+    check_(xxfnd_application_pkg.page_type(102) = 'LOOKUPS', 'the form page knows its setup type');
     select count(*) into l_n from user_triggers where trigger_name like '%\_LV' escape '\' and status = 'ENABLED';
     check_(l_n >= 10, 'level triggers on the setup tables (' || l_n || ')');
     select count(*) into l_n from xxfnd_setup_rows_v where application_code = 'KYC';
@@ -64,10 +64,10 @@ begin
     if l_user is null then
         dbms_output.put_line('SKIP no KYC user with a Lookups privilege');
     else
-        check_(xxfnd_admin_scope_pkg.is_delegated('KYC', 'LOOKUPS', l_user) = 'N', 'not managed in KYC: ' || l_user || ' not delegated');
+        check_(xxfnd_application_pkg.is_delegated('KYC', 'LOOKUPS', l_user) = 'N', 'not managed in KYC: ' || l_user || ' not delegated');
         update xxfnd_application_functions set managed_in_app_flag = 'Y' where application_code = 'KYC' and feature_code = 'LOOKUPS';
-        check_(xxfnd_admin_scope_pkg.is_delegated('KYC', 'LOOKUPS', l_user) = 'Y', 'managed in KYC: ' || l_user || ' delegated');
-        check_(xxfnd_admin_scope_pkg.delegated_any(l_user) = 'Y', l_user || ' may open COMMON delegated screens');
+        check_(xxfnd_application_pkg.is_delegated('KYC', 'LOOKUPS', l_user) = 'Y', 'managed in KYC: ' || l_user || ' delegated');
+        check_(xxfnd_application_pkg.delegated_any(l_user) = 'Y', l_user || ' may open COMMON delegated screens');
     end if;
     rollback;
 end;

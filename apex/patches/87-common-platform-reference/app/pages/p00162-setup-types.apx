@@ -1,0 +1,234 @@
+page 162 (
+    name: Setup Types
+    alias: SETUP-TYPES
+    title: Setup Types
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: The level each kind of setup is kept at - the workspace (all applications), an application, or either - and the applications it may be kept for.
+    }
+
+    region breadcrumb (
+        name: Setup Types
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Setup Types
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 73: the setup types and the level they are kept at (XXFND_SETUP_TYPES)
+                select t.setup_type_code,
+                       t.setup_type_name,
+                       (select f.feature_name from xxfnd_features f where f.feature_code = t.feature_code) as function_name,
+                       decode(t.allowed_level, 'I', 'Workspace (all applications) only',
+                                               'A', 'Application only',
+                                               'Workspace (all applications) or an application') as allowed_level,
+                       case when t.allowed_level = 'I' then null
+                            when t.all_applications_flag = 'Y' then 'Every application'
+                            else (select listagg(x.application_code, ', ') within group (order by x.application_code)
+                                    from xxfnd_setup_type_apps x where x.setup_type_code = t.setup_type_code)
+                       end as applications,
+                       t.description,
+                       t.display_sequence,
+                       apex_page.get_url(p_page => 163, p_items => 'P163_SETUP_TYPE_CODE', p_values => t.setup_type_code,
+                                         p_clear_cache => '163') as open_url
+                  from xxfnd_setup_types t
+                 order by t.display_sequence
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column SETUP_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Setup Type
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#SETUP_TYPE_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FUNCTION_NAME (
+            type: plainText
+            heading {
+                heading: Function
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ALLOWED_LEVEL (
+            type: plainText
+            heading {
+                heading: Level
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATIONS (
+            type: plainText
+            heading {
+                heading: Applications
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SETUP_TYPE_CODE (
+            type: hidden
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: hidden
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

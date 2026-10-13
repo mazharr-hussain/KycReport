@@ -18,8 +18,9 @@
 ## Files
 - `db/`: 05 and 05 upgrade, 05c (new), 09 (view drop), 09d (renamed `09d-application-pkg.sql`), 10, 11, 12, 15c, 16h,
   16i, 16j, 19, 21b, 21c, 21d (new), `manifest.json`
-- `app/`: `application.apx` (Release 80), pages 102, 153, 161, 163, 10021, 10023 and the pages showing the level label,
-  shared components `lovs.apx`, `app-processes.apx`, `authorizations.apx`
+- `app/`: `application.apx` (Release 80); pages 102, 153, 161, 163, 10021, 10023 (saves through the component
+  packages); pages 101, 107, 110, 112, 113, 120-124, 131-133, 135-137, 147, 150, 151, 162 (lookup calls and the
+  "Workspace (all applications)" label); shared components `lovs.apx`, `app-processes.apx`, `authorizations.apx`
 
 ## Deploy (COMMON only)
 Import `COMMON-Application-APEXlang_80.zip` over COMMON with **Parsing Schema = XXCUS** and
