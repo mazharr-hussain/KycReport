@@ -536,7 +536,7 @@ breadcrumb breadcrumb (
     )
 
     entry endpoints (
-        name: Integration Endpoints
+        name: Servers
         pageNumber: 120
         execution {
             sequence: 210

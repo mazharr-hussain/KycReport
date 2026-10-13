@@ -145,49 +145,33 @@ create or replace package body xxfnd_attach_pkg as
     c_simple_max constant number := 4 * 1024 * 1024;      -- Graph simple-upload limit
     c_chunk      constant number := 10 * 327680;          -- 3.2 MB, multiple of 320 KiB
 
+    -- release 83: the store's server comes from XXFND_INTEGRATION_PKG (an APEX Remote Server of that static ID and
+    -- its Web Credential; the retiring endpoint row only while no Remote Server exists)
     function get_endpoint(p_endpoint_code in varchar2) return xxfnd_integration_endpoints%rowtype is
-        l_ep xxfnd_integration_endpoints%rowtype;
+        l_ep  xxfnd_integration_endpoints%rowtype;
+        l_srv xxfnd_integration_pkg.t_server := xxfnd_integration_pkg.server(p_endpoint_code);
     begin
-        select * into l_ep from xxfnd_integration_endpoints where endpoint_code = p_endpoint_code;
-        if l_ep.status_code <> 'ACTIVE' then
-            raise_application_error(-20301, 'Storage endpoint ' || p_endpoint_code || ' is not active.');
-        end if;
+        l_ep.endpoint_code            := l_srv.static_id;
+        l_ep.endpoint_name            := l_srv.server_name;
+        l_ep.base_url                 := l_srv.base_url;
+        l_ep.web_credential_static_id := l_srv.credential_static_id;
+        l_ep.status_code              := 'ACTIVE';
         return l_ep;
     end get_endpoint;
 
     ----------------------------------------------------------------------------
-    -- transmission log (autonomous: survives a page rollback)
+    -- transmission log: release 83 - the COMMON call log (XXFND_INTEGRATION_PKG, autonomous); file transfers are
+    -- logged, not retried. The HTTP details are in APEX_WEBSERVICE_LOG.
     ----------------------------------------------------------------------------
     function log_start(p_endpoint in varchar2, p_entity in varchar2, p_pk1 in varchar2,
                        p_method in varchar2, p_url in varchar2, p_payload in clob) return number is
-        pragma autonomous_transaction;
-        l_id number;
     begin
-        insert into xxfnd_transmissions (endpoint_code, purpose_code, entity_name, pk1_value,
-                                         http_method, request_url, request_payload, status_code, created_by)
-        values (p_endpoint, c_purpose, p_entity, p_pk1, p_method, substr(p_url, 1, 4000), p_payload,
-                'PENDING', xxfnd_util_pkg.current_user)
-        returning transmission_id into l_id;
-        commit;
-        return l_id;
+        return xxfnd_integration_pkg.log_start(p_endpoint, p_method, p_url, p_entity, p_pk1, c_purpose);
     end log_start;
 
     procedure log_end(p_id in number, p_status in number, p_response in clob, p_error in varchar2) is
-        pragma autonomous_transaction;
-        l_resp clob := p_response;
     begin
-        -- Keep the log small: the first 8000 characters are enough to diagnose a failure.
-        if dbms_lob.getlength(p_response) > 8000 then
-            l_resp := dbms_lob.substr(p_response, 8000, 1);
-        end if;
-        update xxfnd_transmissions
-           set response_status_code = p_status,
-               response_payload     = l_resp,
-               status_code          = case when p_error is null then 'SUCCESS' else 'FAILED' end,
-               error_message        = substr(p_error, 1, 4000),
-               responded_date       = systimestamp
-         where transmission_id = p_id;
-        commit;
+        xxfnd_integration_pkg.log_end(p_id, p_status, p_error);
     end log_end;
 
     -- URL-encode each path segment, keep the slashes.

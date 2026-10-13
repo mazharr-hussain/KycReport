@@ -1,0 +1,12 @@
+restDataSourceServer UCM_MAIN (
+    name: Oracle WebCenter Content
+    endpointUrl {
+        url: https://your-ucm-host.example.com
+    }
+    advanced {
+        promptOnInstall: true
+    }
+    comments {
+        comments: Release 83 - Document store UCM (attachments). Replaces endpoint UCM_MAIN. Kept by the workspace administrator (Workspace Utilities, Remote Servers); COMMON reaches it through XXFND_INTEGRATION_PKG.
+    }
+)

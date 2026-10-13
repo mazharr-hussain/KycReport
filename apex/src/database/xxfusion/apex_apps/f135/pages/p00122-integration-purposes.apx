@@ -13,7 +13,7 @@ page 122 (
         formAutoComplete: false
     }
     help {
-        helpText: Which endpoint serves each business purpose and whether it runs manually or automatically. Changes take effect after a second person approves them.
+        helpText: Which REST Data Source (release 83; a registered endpoint before) serves each business purpose and whether it runs manually or automatically. Changes take effect after a second person approves them.
     }
 
     region breadcrumb (
@@ -50,7 +50,7 @@ page 122 (
 
                             select p.purpose_code, p.purpose_name, p.application_code,
                                    xxfnd_lookup_pkg.lookup_meaning('CAPTURE_METHOD', p.capture_method) as capture_method,
-                                   p.endpoint_code,
+                                   coalesce(p.rest_source_static_id, p.endpoint_code) as endpoint_code,
                                    xxfnd_lookup_pkg.lookup_meaning('APPROVAL_STATUS', p.approval_status) as approval_status,
                                    p.approved_by, p.approved_date
                               from xxfnd_integration_purposes p
@@ -148,7 +148,7 @@ page 122 (
         column ENDPOINT_CODE (
             type: plainText
             heading {
-                heading: Endpoint
+                heading: REST Data Source
             }
             layout {
                 sequence: 50

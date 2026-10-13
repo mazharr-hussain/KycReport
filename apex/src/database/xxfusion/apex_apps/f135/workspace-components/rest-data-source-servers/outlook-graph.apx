@@ -1,0 +1,12 @@
+restDataSourceServer OUTLOOK_GRAPH (
+    name: Outlook (Microsoft Graph)
+    endpointUrl {
+        url: https://graph.microsoft.com/v1.0
+    }
+    advanced {
+        promptOnInstall: true
+    }
+    comments {
+        comments: Release 83 - Planned: e-mails of the RFI and Notes screens through Microsoft Graph. Replaces endpoint OUTLOOK_GRAPH. Kept by the workspace administrator (Workspace Utilities, Remote Servers); COMMON reaches it through XXFND_INTEGRATION_PKG.
+    }
+)

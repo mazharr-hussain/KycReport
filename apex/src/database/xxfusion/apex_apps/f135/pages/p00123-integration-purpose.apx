@@ -250,15 +250,22 @@ page 123 (
         }
     )
 
-    pageItem P123_ENDPOINT_CODE (
+    pageItem P123_REST_SOURCE_STATIC_ID (
         type: selectList
         label {
-            label: Endpoint
+            label: REST Data Source
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-endpoints
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select m.module_name || ' (' || m.remote_server_name || ')' as display_value,
+                       m.module_static_id as return_value
+                  from apex_appl_web_src_modules m
+                 where m.application_id = :APP_ID
+                 order by m.module_name
+                ```
             displayNullValue: true
             nullDisplayValue: - Select -
         }
@@ -274,11 +281,38 @@ page 123 (
         }
         source {
             formRegion: @form
+            column: REST_SOURCE_STATIC_ID
+            dataType: varchar2
+        }
+        help {
+            helpText: The REST Data Source of COMMON that serves the purpose (release 83); its server and Web Credential are kept by the workspace administrator. Required when the purpose runs by API.
+        }
+    )
+
+    pageItem P123_ENDPOINT_CODE (
+        type: displayOnly
+        label {
+            label: Registered Endpoint (Retiring)
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
             column: ENDPOINT_CODE
             dataType: varchar2
         }
         help {
-            helpText: Required for automatic capture.
+            helpText: The endpoint the purpose used before release 83. Read-only: the REST Data Source replaces it.
         }
     )
 

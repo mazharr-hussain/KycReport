@@ -13,7 +13,12 @@ page 124 (
         formAutoComplete: false
     }
     help {
-        helpText: Business-level log of every outbound call. File contents are never logged.
+        helpText:
+            ```
+            Every request to an outside system, from APEX's own web service log: time, URL, method, HTTP status and elapsed time.
+            Calls made through the COMMON call procedure also show their purpose and record; a failed one can be retried from its
+            detail. Calls a page makes directly through a REST Data Source are shown but not retried: repeat the action on that page.
+            ```
     }
 
     region breadcrumb (
@@ -36,7 +41,7 @@ page 124 (
         }
     )
 
-    region report (
+    region log (
         name: Transmission Log
         type: interactiveReport
         source {
@@ -44,18 +49,25 @@ page 124 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select q.*,
-                       apex_page.get_url(p_page => 125, p_items => 'P125_TRANSMISSION_ID', p_values => to_char(q.transmission_id), p_clear_cache => '125') as open_url
-                  from (
-
-                                          select t.transmission_id, t.sent_date, t.endpoint_code, t.purpose_code, t.entity_name,
-                                                 t.pk1_value, t.http_method, t.request_url, t.response_status_code,
-                                                 xxfnd_lookup_pkg.lookup_meaning('TRANSMISSION_STATUS', t.status_code) as status_code,
-                                                 t.retry_count, t.error_message, t.created_by
-                                            from xxfnd_transmissions t
-                                          -- the application in scope: through its purpose (scoped by data security)
-                                          where exists (select 1 from xxfnd_integration_purposes ip where ip.purpose_code = t.purpose_code)
-                ) q
+                -- release 83: APEX_WEBSERVICE_LOG with the purpose and record of the calls made through XXFND_INTEGRATION_PKG
+                select w.id                                     as log_id,
+                       w.request_date,
+                       c.purpose_code,
+                       c.server_static_id,
+                       case when c.entity_name is not null then c.entity_name || ': ' || c.pk1_value end as record,
+                       w.http_method,
+                       w.url,
+                       w.status_code                            as http_status,
+                       round(w.elapsed_sec, 3)                  as elapsed_sec,
+                       case when c.call_id is null then 'Direct (REST Data Source)'
+                            when c.status_code = 'FAILED' then 'Failed'
+                            else 'Done' end                     as call_status,
+                       w.apex_or_db_user                        as called_by,
+                       case when c.call_id is not null then
+                            apex_page.get_url(p_page => 125, p_items => 'P125_CALL_ID', p_values => to_char(c.call_id),
+                                              p_clear_cache => '125') end as open_url
+                  from apex_webservice_log w
+                  left join xxfnd_integration_calls c on c.webservice_log_id = w.id
                 ```
         }
         layout {
@@ -67,7 +79,7 @@ page 124 (
             templateOptions: #DEFAULT#
         }
         advanced {
-            htmlDomId: report
+            htmlDomId: log
         }
         componentAppearance {
             showNullValuesAs: -
@@ -76,7 +88,7 @@ page 124 (
             type: rowRangesXToY
         }
         messages {
-            whenNoDataFound: No data found.
+            whenNoDataFound: No request yet.
         }
         searchBar {
             includeSearchBar: true
@@ -88,10 +100,10 @@ page 124 (
             ]
         }
 
-        column TRANSMISSION_ID (
+        column LOG_ID (
             type: hidden
             heading {
-                heading: Transmission Id
+                heading: Log
             }
             layout {
                 sequence: 10
@@ -102,37 +114,16 @@ page 124 (
             }
         )
 
-        column SENT_DATE (
+        column REQUEST_DATE (
             type: plainText
             heading {
-                heading: Sent
+                heading: When
             }
             layout {
                 sequence: 20
             }
-            appearance {
-            }
-            columnFormatting {
-                htmlExpression:
-                    ```html
-                    <a href="#OPEN_URL#">#SENT_DATE#</a>
-                    ```
-            }
             source {
                 dataType: DATE
-            }
-        )
-
-        column ENDPOINT_CODE (
-            type: plainText
-            heading {
-                heading: Endpoint
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
             }
         )
 
@@ -142,6 +133,19 @@ page 124 (
                 heading: Purpose
             }
             layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SERVER_STATIC_ID (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
                 sequence: 40
             }
             source {
@@ -149,26 +153,13 @@ page 124 (
             }
         )
 
-        column ENTITY_NAME (
-            type: plainText
-            heading {
-                heading: Record Type
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column PK1_VALUE (
+        column RECORD (
             type: plainText
             heading {
                 heading: Record
             }
             layout {
-                sequence: 60
+                sequence: 50
             }
             source {
                 dataType: STRING
@@ -181,6 +172,19 @@ page 124 (
                 heading: Method
             }
             layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
                 sequence: 70
             }
             source {
@@ -188,80 +192,58 @@ page 124 (
             }
         )
 
-        column REQUEST_URL (
-            type: plainText
-            heading {
-                heading: URL
-            }
-            layout {
-                sequence: 80
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column RESPONSE_STATUS_CODE (
+        column HTTP_STATUS (
             type: plainText
             heading {
                 heading: HTTP Status
             }
             layout {
-                sequence: 90
-                columnAlignment: end
+                sequence: 80
             }
             source {
                 dataType: NUMBER
             }
         )
 
-        column STATUS_CODE (
+        column ELAPSED_SEC (
             type: plainText
             heading {
-                heading: Result
+                heading: Seconds
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CALL_STATUS (
+            type: plainText
+            heading {
+                heading: Call
             }
             layout {
                 sequence: 100
             }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#CALL_STATUS#</a>
+                    ```
+            }
             source {
                 dataType: STRING
             }
         )
 
-        column RETRY_COUNT (
+        column CALLED_BY (
             type: plainText
             heading {
-                heading: Retries
+                heading: By
             }
             layout {
                 sequence: 110
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        column ERROR_MESSAGE (
-            type: plainText
-            heading {
-                heading: Error
-            }
-            layout {
-                sequence: 120
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: User
-            }
-            layout {
-                sequence: 130
             }
             source {
                 dataType: STRING
@@ -271,34 +253,33 @@ page 124 (
         column OPEN_URL (
             type: hidden
             heading {
-                heading: Open Url
+                heading: Open
             }
             layout {
-                sequence: 140
+                sequence: 120
             }
             source {
                 dataType: STRING
             }
         )
-
     )
 
-    dynamicAction refresh-report (
-        name: Refresh report
+    dynamicAction refresh-log (
+        name: Refresh after the dialog
         execution {
-            sequence: 20
+            sequence: 10
         }
         when {
             event: apexafterclosedialog
             selectionType: region
-            region: @report
+            region: @log
         }
 
-        action refresh-report-refresh (
+        action refresh-log-refresh (
             action: refresh
             affectedElements {
                 selectionType: region
-                region: @report
+                region: @log
             }
             execution {
                 sequence: 10
@@ -307,5 +288,4 @@ page 124 (
         )
 
     )
-
 )

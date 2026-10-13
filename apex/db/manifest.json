@@ -88,8 +88,8 @@
  {
   "name": "05b Integrations package",
   "file": "05b-integration-pkg.sql",
-  "install_sequence": 55,
-  "upgrade_sequence": 15,
+  "install_sequence": 130,
+  "upgrade_sequence": 90,
   "apps": [
    "COMMON"
   ]
@@ -579,6 +579,15 @@
   "file": "24-workflow-module.sql",
   "install_sequence": 217,
   "upgrade_sequence": 177,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "25 Integrations module",
+  "file": "25-integrations-module.sql",
+  "install_sequence": 218,
+  "upgrade_sequence": 178,
   "apps": [
    "COMMON"
   ]

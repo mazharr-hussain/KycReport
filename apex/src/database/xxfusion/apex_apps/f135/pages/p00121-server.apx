@@ -1,0 +1,273 @@
+page 121 (
+    name: Server
+    alias: SERVER
+    title: Server
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 800
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One server (APEX Remote Server) with its Web Credential and health. Test Connection sends one request to the server's
+            URL and keeps the result. To change the URL or the secret, the workspace administrator uses Workspace Utilities, Remote
+            Servers and Web Credentials (admin guide, "How to change a server").
+            ```
+    }
+
+    region server (
+        name: Server
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: server
+        }
+    )
+
+    pageItem P121_STATIC_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @server
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P121_SERVER_NAME (
+        type: displayOnly
+        label {
+            label: Server
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @server
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select remote_server_name from apex_workspace_remote_servers where remote_server_static_id = :P121_STATIC_ID
+                ```
+        }
+        help {
+            helpText: The server.
+        }
+    )
+    pageItem P121_STATIC_ID_SHOWN (
+        type: displayOnly
+        label {
+            label: Static ID
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @server
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select :P121_STATIC_ID from dual
+                ```
+        }
+        help {
+            helpText: The static id.
+        }
+    )
+    pageItem P121_BASE_URL (
+        type: displayOnly
+        label {
+            label: URL
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @server
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select base_url from apex_workspace_remote_servers where remote_server_static_id = :P121_STATIC_ID
+                ```
+        }
+        help {
+            helpText: The url.
+        }
+    )
+    pageItem P121_CREDENTIAL (
+        type: displayOnly
+        label {
+            label: Web Credential
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @server
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(m.credential_name) from apex_appl_web_src_modules m
+                 where m.remote_server_static_id = :P121_STATIC_ID
+                ```
+        }
+        help {
+            helpText: The web credential.
+        }
+    )
+    pageItem P121_LAST_TEST (
+        type: displayOnly
+        label {
+            label: Last Test
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @server
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select result_code || ' - ' || result_message || ' (' || to_char(tested_date, 'DD-Mon-YYYY HH24:MI') || ', ' || tested_by || ')'
+                  from xxfnd_server_tests where server_static_id = :P121_STATIC_ID
+                ```
+        }
+        help {
+            helpText: The result of the last Test Connection.
+        }
+    )
+    pageItem P121_LAST_ERROR (
+        type: displayOnly
+        label {
+            label: Last Error
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @server
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(error_message) keep (dense_rank last order by called_date)
+                  from xxfnd_integration_calls where server_static_id = :P121_STATIC_ID and status_code = 'FAILED'
+                ```
+        }
+        help {
+            helpText: The last failed call to this server.
+        }
+    )
+    button test (
+        buttonName: TEST
+        label: Test Connection
+        layout {
+            sequence: 10
+            region: @server
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process test-connection (
+        name: Test the connection
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 83: one request to the server's URL; the result is kept (XXFND_SERVER_TESTS) and shown
+                apex_application.g_print_success_message := xxfnd_integration_pkg.test_connection(:P121_STATIC_ID);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: TEST
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)
