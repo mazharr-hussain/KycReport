@@ -186,19 +186,19 @@
   ]
  },
  {
-  "name": "13 Document store",
-  "file": "13-document-store.sql",
-  "install_sequence": 130,
-  "upgrade_sequence": 90,
+  "name": "14 Attachments",
+  "file": "14-attachments.sql",
+  "install_sequence": 140,
+  "upgrade_sequence": 100,
   "apps": [
    "COMMON"
   ]
  },
  {
-  "name": "14 Attachments",
-  "file": "14-attachments.sql",
-  "install_sequence": 140,
-  "upgrade_sequence": 100,
+  "name": "14b Retention (placeholder)",
+  "file": "14b-retention-pkg.sql",
+  "install_sequence": 145,
+  "upgrade_sequence": 105,
   "apps": [
    "COMMON"
   ]

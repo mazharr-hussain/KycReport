@@ -690,12 +690,8 @@ page 131 (
             language: plsql
             plsqlCode:
                 ```plsql
-                merge into xxfnd_document_entities_tl t
-                using (select :P131_ENTITY_NAME entity_name, 'en' language_code from dual) s
-                   on (t.entity_name = s.entity_name and t.language_code = s.language_code)
-                 when matched then update set t.user_entity_name = :P131_USER_ENTITY_NAME
-                 when not matched then insert (entity_name, language_code, user_entity_name)
-                                       values (s.entity_name, 'en', :P131_USER_ENTITY_NAME);
+                -- release 81: saved by the attachments package (no DML in pages)
+                xxfnd_attach_pkg.save_entity_display_name(:P131_ENTITY_NAME, :P131_USER_ENTITY_NAME);
                 ```
         }
         execution {

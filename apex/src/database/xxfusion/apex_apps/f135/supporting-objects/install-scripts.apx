@@ -390,12 +390,12 @@ installScript 13a-database-document-store (
     }
 )
 
-installScript 13-document-store (
+installScript 14-attachments (
     execution {
-        sequence: 130
+        sequence: 140
     }
     script {
-        contentFile: 13-document-store.sql
+        contentFile: 14-attachments.sql
     }
     serverSideCondition {
         type: expression
@@ -407,12 +407,12 @@ installScript 13-document-store (
     }
 )
 
-installScript 14-attachments (
+installScript 14b-retention-placeholder (
     execution {
-        sequence: 140
+        sequence: 145
     }
     script {
-        contentFile: 14-attachments.sql
+        contentFile: 14b-retention-pkg.sql
     }
     serverSideCondition {
         type: expression

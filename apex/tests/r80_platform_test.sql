@@ -17,8 +17,9 @@ begin
     check_(l_n = 0, 'merged packages and unused views dropped (' || l_n || ' left)');
     select count(*) into l_n from xxfnd_dropped_objects
      where object_name in ('XXFND_SETUP_TYPE_PKG', 'XXFND_ADMIN_SCOPE_PKG', 'XXFND_APP_FUNCTION_PKG', 'XXFND_DFF_SETUP_PKG');
-    -- an upgrade records the four it dropped; a fresh install had none to drop
-    check_(l_n >= 4 or l_n = 0, 'their DDL is recorded in XXFND_DROPPED_OBJECTS when they existed (' || l_n || ')');
+    -- an upgraded database (it also dropped XXFND_SECURITY_PKG in 79) records the four; a fresh install had none
+    select count(*) into l_v from xxfnd_dropped_objects where object_name = 'XXFND_SECURITY_PKG';
+    check_((l_v > 0 and l_n >= 4) or (l_v = 0 and l_n = 0), 'their DDL is recorded in XXFND_DROPPED_OBJECTS when they existed (' || l_n || ')');
     select count(*) into l_n from user_objects where status <> 'VALID';
     check_(l_n = 0, 'no invalid object (' || l_n || ')');
     select count(*) into l_n from user_procedures

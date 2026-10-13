@@ -339,12 +339,12 @@ upgradeScript 13a-database-document-store (
     }
 )
 
-upgradeScript 13-document-store (
+upgradeScript 14-attachments (
     execution {
-        sequence: 90
+        sequence: 100
     }
     script {
-        contentFile: 13-document-store.sql
+        contentFile: 14-attachments.sql
     }
     serverSideCondition {
         type: expression
@@ -356,12 +356,12 @@ upgradeScript 13-document-store (
     }
 )
 
-upgradeScript 14-attachments (
+upgradeScript 14b-retention-placeholder (
     execution {
-        sequence: 100
+        sequence: 105
     }
     script {
-        contentFile: 14-attachments.sql
+        contentFile: 14b-retention-pkg.sql
     }
     serverSideCondition {
         type: expression
