@@ -45,8 +45,10 @@
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.
 - **COMMON scope only (from the user):** a component that belongs to COMMON lives only in COMMON scope; KYC (and every
-  other application) uses it as it is - no change, no redevelopment, no duplication. KYC adopts COMMON once all COMMON
-  releases (78-83) are finished, in one rename; then the same review, plan, tests and install cycle are done for KYC.
+  other application) uses it as it is - no change, no redevelopment, no duplication.
+- **COMMON is completed on its own (from the user):** KYC and COMMON are two different applications. For now treat KYC
+  as if it did not exist: no KYC work, no KYC dependency in COMMON's design or tests. COMMON is finished first as a
+  standalone application; the user makes all KYC changes later in one go, on the completed COMMON.
 - **Always use the Oracle skills** for database and APEX work: the Db and Apex skills from
   `mazharr-hussain/OracleskillsMirror` (clone to `/home/user/mazharr-hussain/oracleskillsmirror`, fetch the latest first;
   `db/SKILL.md`, `apex/apexlang/26.1/`). Read the matching skill file before reviewing or changing DB objects or APEXlang.
