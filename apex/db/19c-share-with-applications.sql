@@ -191,48 +191,53 @@ create or replace package body xxfnd_share_pkg as
         xxfnd_util_pkg.set_install_mode(true);
         select application_id into l_app from xxfnd_applications where application_code = 'COMMON';
 
-        feature('LOOKUPS',          'Lookups',                       'BASIC_SETUP', 110, 'VIEW,CREATE,MANAGE', 101,
-                'fa-list-ul',    'Lists of values used across the application.');
-        feature('FLEXFIELDS',       'Flexfields (DFF)',              'BASIC_SETUP', 120, 'VIEW,CREATE,MANAGE', 152,
-                'fa-table',      'Descriptive flexfields and their value sets.');
-        feature('ATTACHMENTS',      'Attachments',                   'BASIC_SETUP', 140, 'VIEW,CREATE,MANAGE', 132,
-                'fa-paperclip',  'Document categories, storage and where attachments appear.');
-        feature('NOTIFICATIONS',    'Notifications',                 'BASIC_SETUP', 150, 'VIEW,CREATE,MANAGE', 109,
-                'fa-envelope-o', 'E-mail and in-app notification templates.');
-        feature('RETENTION',        'Retention',                     'BASIC_SETUP', 160, 'VIEW,CREATE,MANAGE', 112,
-                'fa-archive',    'How long records and documents are kept.');
-        feature('WORKFLOW_SETUP',   'Workflow Setup',                'WORKFLOW_INTEGRATION', 210, 'VIEW,CREATE,MANAGE', 114,
-                'fa-sitemap',    'Delegations, deadlines and escalation, process catalogue.');
-        feature('INTEGRATIONS',     'Integrations',                  'WORKFLOW_INTEGRATION', 240, 'VIEW,CREATE,MANAGE', 120,
-                'fa-plug',       'Endpoints, purposes and the transmission log.');
-        feature('USERS_ACCESS',     'Users ' || c_amp || ' Access',     'SECURITY', 310, 'VIEW,CREATE,MANAGE', 103,
-                'fa-users',      'Employees and the roles they hold.');
-        feature('ROLES_PRIVILEGES', 'Roles ' || c_amp || ' Privileges', 'SECURITY', 320, 'VIEW,CREATE,MANAGE', 105,
-                'fa-key',        'Roles, the privileges they grant and segregation of duties.');
-        feature('DATA_SECURITY',    'Data Security',                 'SECURITY', 330, 'VIEW,CREATE,MANAGE', 180,
-                'fa-lock',       'Which rows each role can see.');
-        feature('AUDIT_LOG',        'Audit Log',                     'SECURITY', 340, 'VIEW', 111,
-                'fa-history',    'Who changed what and when.');
-        -- release 72: register applications and switch their common functions on (IT)
-        feature('APPLICATIONS',     'Applications',                  'APPLICATION', 400, 'VIEW,CREATE,MANAGE', 160,
+        -- release 78: the six COMMON modules (feature group = lookup XXFND_MODULE, script 22)
+        feature('APPLICATIONS',     'Applications',                  'PLATFORM', 110, 'VIEW,CREATE,MANAGE', 160,
                 'fa-cubes',      'Registered applications, the common functions switched on for each, their setup.');
-        feature('APP_SETTINGS',     'Application Settings',          'APPLICATION', 410, 'VIEW,MANAGE', 10022,
-                'fa-sliders',    'Application settings and optional features.');
+        feature('APP_SETTINGS',     'Application Settings',          'PLATFORM', 120, 'VIEW,MANAGE', 10022,
+                'fa-sliders',    'Application settings.');
+        feature('OPTIONAL_FEATURES', 'Optional Features',            'PLATFORM', 130, 'VIEW,MANAGE', 10020,
+                'fa-toggle-on',  'Optional features of each application, switched on or off.');
+        feature('USERS_ACCESS',     'Users ' || c_amp || ' Access',     'SECURITY', 210, 'VIEW,CREATE,MANAGE', 103,
+                'fa-users',      'Employees and the roles they hold.');
+        feature('ROLES_PRIVILEGES', 'Roles ' || c_amp || ' Privileges', 'SECURITY', 220, 'VIEW,CREATE,MANAGE', 105,
+                'fa-key',        'Roles, the privileges they grant and segregation of duties.');
+        feature('DATA_SECURITY',    'Data Security',                 'SECURITY', 230, 'VIEW,CREATE,MANAGE', 180,
+                'fa-lock',       'Which rows each role can see.');
+        feature('AUDIT_LOG',        'Audit Log',                     'SECURITY', 240, 'VIEW', 111,
+                'fa-history',    'Who changed what and when.');
+        feature('LOOKUPS',          'Lookups',                       'REFERENCE_DATA', 310, 'VIEW,CREATE,MANAGE', 101,
+                'fa-list-ul',    'Lists of values used across the application.');
+        feature('FLEXFIELDS',       'Flexfields',                    'REFERENCE_DATA', 320, 'VIEW,CREATE,MANAGE', 152,
+                'fa-table',      'Descriptive flexfields and their value sets.');
+        feature('ATTACHMENTS',      'Attachments',                   'DOCUMENTS_RECORDS', 410, 'VIEW,CREATE,MANAGE', 132,
+                'fa-paperclip',  'Document categories, storage and where attachments appear.');
+        feature('RETENTION',        'Retention',                     'DOCUMENTS_RECORDS', 420, 'VIEW,CREATE,MANAGE', 112,
+                'fa-archive',    'How long records and documents are kept.');
+        feature('WORKFLOW_SETUP',   'Workflow Setup',                'WORKFLOW', 510, 'VIEW,CREATE,MANAGE', 114,
+                'fa-sitemap',    'Delegations, deadlines and escalation, process catalogue.');
+        feature('APPROVAL_SETUP',   'Approval Setup',                'WORKFLOW', 520, 'VIEW,CREATE,MANAGE', 148,
+                'fa-check-square-o', 'Approval rules: who approves which record, step by step.');
+        feature('NOTIFICATIONS',    'Notifications',                 'WORKFLOW', 530, 'VIEW,CREATE,MANAGE', 109,
+                'fa-envelope-o', 'E-mail and in-app notification templates.');
+        feature('INTEGRATIONS',     'Integrations',                  'INTEGRATIONS', 610, 'VIEW,CREATE,MANAGE', 120,
+                'fa-plug',       'Endpoints, purposes and the transmission log.');
 
-        pages('LOOKUPS',          '101|102');
-        pages('FLEXFIELDS',       '152=Descriptive Flexfields|150=Value Sets|151|153');
-        pages('ATTACHMENTS',      '132=Categories|136=Storage|130=Registration|134=Attachment Pages|131|133|135|137');
-        pages('NOTIFICATIONS',    '109|110');
-        pages('RETENTION',        '112|113');
-        -- release 74: Approval Setup (148, 149)
-        pages('WORKFLOW_SETUP',   '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|148=Approval Setup|115|146|149');
-        pages('INTEGRATIONS',     '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
-        pages('USERS_ACCESS',     '103|104');
-        pages('ROLES_PRIVILEGES', '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
-        pages('DATA_SECURITY',    '180|181');
-        pages('AUDIT_LOG',        '111');
-        pages('APPLICATIONS',     '160=Applications|162=Setup Types|161|163');   -- release 73: Setup Types
-        pages('APP_SETTINGS',     '10022=Settings|10020=Optional Features|10021|10023');
+        pages('APPLICATIONS',      '160=Applications|162=Setup Types|164=Subscriptions|161|163');   -- 73: Setup Types; 78: Subscriptions
+        pages('APP_SETTINGS',      '10022|10023');
+        pages('OPTIONAL_FEATURES', '10020|10021');
+        pages('USERS_ACCESS',      '103|104');
+        pages('ROLES_PRIVILEGES',  '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
+        pages('DATA_SECURITY',     '180|181');
+        pages('AUDIT_LOG',         '111');
+        pages('LOOKUPS',           '101|102');
+        pages('FLEXFIELDS',        '152=Descriptive Flexfields|150=Value Sets|151|153');
+        pages('ATTACHMENTS',       '132=Categories|136=Storage|130=Registration|134=Attachment Pages|131|133|135|137');
+        pages('RETENTION',         '112|113');
+        pages('WORKFLOW_SETUP',    '114=Delegations|145=Deadlines ' || c_amp || ' Escalation|147=Process Catalogue|115|146');
+        pages('APPROVAL_SETUP',    '148|149');
+        pages('NOTIFICATIONS',     '109|110');
+        pages('INTEGRATIONS',      '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
 
         -- the Common Administrator holds every admin privilege
         merge into xxfnd_role_privileges t

@@ -56,5 +56,12 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 78 (COMMON)
+Release 78 (COMMON only, patch 85): COMMON is organised into six modules (Platform, Security, Reference Data,
+Documents and Records, Workflow, Integrations). The menu is Home and the six modules; a module opens its page with its
+components; Home shows the modules with their state; Approval Setup and Optional Features have their own menu entries
+(rights copied from Workflow Setup / Application Settings); new page Subscriptions under Platform > Applications.
+Upgrade as usual (Install Supporting Objects, upgrade scripts). KYC is not changed.
+
 ## Release 77 (COMMON)
 Release 77 (COMMON only): removes the unchanged release 76 error-log retention policy; no retention policy is seeded any more. Independent of KYC 77.

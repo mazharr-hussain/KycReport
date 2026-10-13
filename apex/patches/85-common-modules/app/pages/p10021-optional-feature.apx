@@ -1,7 +1,7 @@
 page 10021 (
-    name: Feature
-    alias: FEATURE
-    title: Feature
+    name: Optional Feature
+    alias: OPTIONAL-FEATURE
+    title: Optional Feature
     pageGroup: @features
     appearance {
         pageMode: modalDialog
@@ -24,7 +24,7 @@ page 10021 (
     }
 
     region feature (
-        name: Feature
+        name: Optional Feature
         type: staticContent
         layout {
             sequence: 10

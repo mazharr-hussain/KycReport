@@ -537,5 +537,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "22 COMMON modules",
+  "file": "22-common-modules.sql",
+  "install_sequence": 213,
+  "upgrade_sequence": 173,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]

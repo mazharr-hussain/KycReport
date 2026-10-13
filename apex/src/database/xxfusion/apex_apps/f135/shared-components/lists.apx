@@ -68,8 +68,8 @@ list navigation-menu (
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- release 71: Home, then the Administration tree - its groups and every component (feature) that has a
-            -- page in this application, opening the component directly.
+            -- release 78: Home, then the six modules (XXFND_MODULES_V) and their components (features with a page in
+            -- this application). A module opens its module page (100) and is expanded there (page 100 load).
             with feat as (
                 select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
                   from xxfnd_admin_menu_v m
@@ -87,29 +87,18 @@ list navigation-menu (
                  where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID),
             nodes as (
                 select 'HOME' as id, cast(null as varchar2(40)) as parent_id, 'Home' as label,
-                       apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 10 as seq,
+                       apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 0 as seq,
                        case when :APP_PAGE_ID = 1 then 'YES' else 'NO' end as is_current
                   from dual
                 union all
-                select 'ADMIN', null, 'Administration', apex_page.get_url(p_page => 100), 'fa-gear', 90,
-                       case when :APP_PAGE_ID = 100 then 'YES' else 'NO' end
-                  from dual
-                 where xxfnd_admin_scope_pkg.administers_any = 'Y'
+                select 'M_' || md.module_code, null, md.module_name,
+                       apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => md.module_code,
+                                         p_clear_cache => '100'),
+                       md.icon_css, md.display_sequence,
+                       case when :APP_PAGE_ID = 100 and :P100_MODULE = md.module_code then 'YES' else 'NO' end
+                  from xxfnd_modules_v md
                 union all
-                select distinct 'G_' || f.feature_group, 'ADMIN',
-                       decode(f.feature_group, 'BASIC_SETUP', 'Basic Setup',
-                                               'WORKFLOW_INTEGRATION', 'Workflow ' || chr(38) || ' Integration',
-                                               'SECURITY', 'Security',
-                                               'APPLICATION', 'Application',
-                                               initcap(replace(f.feature_group, '_', ' '))),
-                       null,
-                       decode(f.feature_group, 'BASIC_SETUP', 'fa-wrench', 'WORKFLOW_INTEGRATION', 'fa-sitemap',
-                                               'SECURITY', 'fa-shield', 'fa-cube'),
-                       decode(f.feature_group, 'BASIC_SETUP', 1, 'WORKFLOW_INTEGRATION', 2, 'SECURITY', 3, 4),
-                       'NO'
-                  from feat f
-                union all
-                select 'F_' || f.feature_code, 'G_' || f.feature_group, f.feature_name,
+                select 'F_' || f.feature_code, 'M_' || f.feature_group, f.feature_name,
                        apex_page.get_url(p_page => f.page_id), f.icon_css, f.display_sequence,
                        case when f.feature_code = (select feature_code from cur) then 'YES' else 'NO' end
                   from feat f)
@@ -128,45 +117,36 @@ list navigation-menu (
     }
 )
 
-list admin-basic-setup (
-    name: Administration - Basic Setup
+list module-cards (
+    name: Module Cards
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (the feature's home page here, else its first tab here).
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
-             where m.feature_group = 'BASIC_SETUP'
-               and t.page_id is not null
-             order by m.display_sequence
+            -- release 78: one card per module the user may open, with its state (Home and page 100)
+            select null                                                    as lvl,
+                   module_name                                             as label,
+                   apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => module_code,
+                                     p_clear_cache => '100')               as target,
+                   'NO'                                                    as is_current,
+                   icon_css                                                as image,
+                   null                                                    as image_attribute,
+                   null                                                    as image_alt,
+                   description                                             as a01,
+                   module_state                                            as a02
+              from xxfnd_modules_v
+             order by display_sequence
             ```
     }
 )
 
-list admin-workflow-integration (
-    name: Administration - Workflow and Integration
+list module-components (
+    name: Module Components
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (the feature's home page here, else its first tab here).
+            -- release 78: the components (features) of the module on page 100 that the user may open
             select null                                    as lvl,
                    m.feature_name                          as label,
                    apex_page.get_url(p_page => t.page_id)  as target,
@@ -183,69 +163,7 @@ list admin-workflow-integration (
                              join apex_application_pages ap
                                on ap.application_id = :APP_ID and ap.page_id = fp.page_id
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
-             where m.feature_group = 'WORKFLOW_INTEGRATION'
-               and t.page_id is not null
-             order by m.display_sequence
-            ```
-    }
-)
-
-list admin-security (
-    name: Administration - Security
-    source {
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (the feature's home page here, else its first tab here).
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
-             where m.feature_group = 'SECURITY'
-               and t.page_id is not null
-             order by m.display_sequence
-            ```
-    }
-)
-
-list admin-application (
-    name: Administration - Application
-    source {
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (the feature's home page here, else its first tab here).
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                             join apex_application_pages ap
-                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
-             where m.feature_group = 'APPLICATION'
+             where m.feature_group = :P100_MODULE
                and t.page_id is not null
              order by m.display_sequence
             ```

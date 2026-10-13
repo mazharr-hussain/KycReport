@@ -1,0 +1,205 @@
+page 164 (
+    name: Subscriptions
+    alias: SUBSCRIPTIONS
+    title: Subscriptions
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The shared components built once in COMMON (the masters: authorizations, authentication, lists, lists of
+            values, templates) and the applications that subscribe to them. "Publish needed" means the master was changed
+            after its last Publish: open the component in App Builder (Shared Components) and press Publish, so every
+            subscriber gets the change.
+            ```
+    }
+
+    region breadcrumb (
+        name: Subscriptions
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Subscriptions
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 78: every component subscribed from a COMMON master, with the subscriber and whether it has the
+                -- master's current version (APEX_SUBSCRIBED_COMPONENTS)
+                select s.component_type,
+                       s.component_name,
+                       s.application_id     as subscriber_id,
+                       s.application_name   as subscriber_name,
+                       s.version_number,
+                       s.master_version_number,
+                       case when s.version_number = s.master_version_number then 'Up to date'
+                            else 'Publish needed' end as publish_status,
+                       s.subscription_status
+                  from apex_subscribed_components s
+                 where s.master_application_id = :APP_ID
+                 order by s.component_type, s.component_name, s.application_name
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No application subscribes to a COMMON component yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column COMPONENT_TYPE (
+            type: plainText
+            heading {
+                heading: Component Type
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column COMPONENT_NAME (
+            type: plainText
+            heading {
+                heading: Component
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBSCRIBER_ID (
+            type: plainText
+            heading {
+                heading: Application ID
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column SUBSCRIBER_NAME (
+            type: plainText
+            heading {
+                heading: Subscribing Application
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PUBLISH_STATUS (
+            type: plainText
+            heading {
+                heading: Publish
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBSCRIPTION_STATUS (
+            type: plainText
+            heading {
+                heading: Subscription Status
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: hidden
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column MASTER_VERSION_NUMBER (
+            type: hidden
+            heading {
+                heading: Master Version
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+)

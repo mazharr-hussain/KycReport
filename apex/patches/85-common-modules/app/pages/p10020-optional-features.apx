@@ -1,7 +1,7 @@
 page 10020 (
-    name: Feature Configuration
-    alias: FEATURE-CONFIGURATION
-    title: Feature Configuration
+    name: Optional Features
+    alias: OPTIONAL-FEATURES
+    title: Optional Features
     pageGroup: @features
     appearance {
         pageTemplate: @/standard
@@ -17,7 +17,7 @@ page 10020 (
     }
 
     region breadcrumb (
-        name: Feature Configuration
+        name: Optional Features
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
@@ -37,7 +37,7 @@ page 10020 (
     )
 
     region report (
-        name: Feature Configuration
+        name: Optional Features
         type: interactiveReport
         source {
             location: localDatabase

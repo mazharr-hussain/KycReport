@@ -18,6 +18,16 @@ create table if not exists xxfnd_schema_releases (
     constraint xxfnd_schema_releases_pk primary key (release_code)
 );
 
+-- release 78: what DROP_OBJECT dropped - its DDL and the objects that depended on it (never purged)
+create table if not exists xxfnd_dropped_objects (
+    object_name            varchar2(128)  not null,
+    object_type            varchar2(30)   not null,
+    dependents             varchar2(4000),
+    object_ddl             clob,
+    dropped_date           timestamp      default systimestamp not null,
+    dropped_by             varchar2(255)  not null
+);
+
 create or replace package xxfnd_ddl_pkg authid current_user as
     -- True once MARK_RELEASE has recorded this release in this schema.
     function release_applied(p_release_code in varchar2) return boolean;
@@ -37,6 +47,11 @@ create or replace package xxfnd_ddl_pkg authid current_user as
     procedure add_constraint(p_table_name in varchar2, p_constraint_name in varchar2, p_definition in varchar2);
     procedure drop_constraint(p_table_name in varchar2, p_constraint_name in varchar2);
     procedure drop_index(p_index_name in varchar2);
+    -- Release 78: DROP PACKAGE / VIEW / FUNCTION / PROCEDURE / SYNONYM only when the object exists. Safe sequence
+    -- (DB skill): the objects that depend on it (every schema) and its DDL are recorded in XXFND_DROPPED_OBJECTS,
+    -- this schema's synonyms for it are dropped, then the object (grants go with it; nothing is purged). Dependents
+    -- are not a reason to stop: a dropped component breaks its old callers on purpose (no wrappers).
+    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2);
     -- EXECUTE IMMEDIATE, for the statements that belong to a table CREATE_TABLE just created.
     procedure run(p_ddl in varchar2);
 end xxfnd_ddl_pkg;
@@ -156,6 +171,42 @@ create or replace package body xxfnd_ddl_pkg as
             execute immediate 'drop index ' || p_index_name;
         end if;
     end drop_index;
+
+    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2) is
+        l_name  varchar2(128) := upper(dbms_assert.simple_sql_name(p_object_name));
+        l_type  varchar2(30)  := upper(p_object_type);
+        l_owner varchar2(128) := sys_context('USERENV', 'CURRENT_SCHEMA');
+        l_ddl   clob;
+        l_deps  varchar2(4000);
+    begin
+        if l_type not in ('PACKAGE', 'VIEW', 'FUNCTION', 'PROCEDURE', 'SYNONYM') then
+            raise_application_error(-20009, 'DROP_OBJECT does not drop a ' || l_type || ' (tables keep their data).');
+        end if;
+        if not object_exists(l_name, l_type) then
+            return;
+        end if;
+        select substr(listagg(d.owner || '.' || d.name || ' (' || d.type || ')', ', ') within group (order by d.owner, d.name),
+                      1, 4000)
+          into l_deps
+          from all_dependencies d
+         where d.referenced_owner = l_owner and d.referenced_name = l_name
+           and d.referenced_type in (l_type, l_type || ' BODY')
+           and not (d.owner = l_owner and d.name = l_name);
+        begin
+            l_ddl := dbms_metadata.get_ddl(case l_type when 'PACKAGE' then 'PACKAGE' else l_type end, l_name);
+        exception
+            when others then
+                l_ddl := null;   -- recorded without its DDL; the source is in the repository
+        end;
+        execute immediate 'insert into xxfnd_dropped_objects (object_name, object_type, dependents, object_ddl, dropped_by)'
+                       || ' values (:1, :2, :3, :4, :5)'
+            using l_name, l_type, l_deps, l_ddl,
+                  coalesce(sys_context('APEX$SESSION', 'APP_USER'), sys_context('USERENV', 'SESSION_USER'));
+        for s in (select synonym_name from user_synonyms where table_owner = l_owner and table_name = l_name) loop
+            execute immediate 'drop synonym ' || dbms_assert.enquote_name(s.synonym_name, false);
+        end loop;
+        execute immediate 'drop ' || l_type || ' ' || l_name;
+    end drop_object;
 
 end xxfnd_ddl_pkg;
 /

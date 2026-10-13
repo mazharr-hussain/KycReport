@@ -593,3 +593,20 @@ upgradeScript 21c-setup-types (
             ```
     }
 )
+
+upgradeScript 22-common-modules (
+    execution {
+        sequence: 173
+    }
+    script {
+        contentFile: 22-common-modules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

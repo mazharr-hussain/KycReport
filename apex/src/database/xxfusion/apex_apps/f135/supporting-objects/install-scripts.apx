@@ -644,3 +644,20 @@ installScript 21c-setup-types (
             ```
     }
 )
+
+installScript 22-common-modules (
+    execution {
+        sequence: 213
+    }
+    script {
+        contentFile: 22-common-modules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
