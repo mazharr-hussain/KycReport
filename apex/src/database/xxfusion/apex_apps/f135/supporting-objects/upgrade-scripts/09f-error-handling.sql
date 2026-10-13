@@ -217,11 +217,9 @@ using (select 'XXFND_UNEXPECTED_ERROR' code, 'Something went wrong and the actio
    on (d.message_code = s.code and d.language_code = 'en')
  when not matched then insert (message_code, language_code, message_text, error_number, description)
                        values (s.code, 'en', s.txt, s.num, s.dsc);
--- release 76 (S-03): the error log keeps the failing statement and call stack, which can hold personal data - kept one
--- year, then flagged for review (nothing is deleted); IT changes it on the Retention screen
-merge into xxfnd_retention_policies t
-using (select 'XXFND_ERROR_LOG' tn from dual) s
-   on (t.table_name = s.tn and t.jurisdiction is null)
- when not matched then insert (table_name, retention_years, action_at_expiry, created_by, creation_date, last_updated_by, last_update_date)
-                       values (s.tn, 1, 'FLAG_FOR_REVIEW', 'INSTALL', systimestamp, 'INSTALL', systimestamp);
+-- release 77: no retention policy is seeded (the business keeps every record); the release 76 seed is taken back
+-- when nobody changed it since
+delete from xxfnd_retention_policies
+ where table_name = 'XXFND_ERROR_LOG' and jurisdiction is null and retention_years = 1
+   and action_at_expiry = 'FLAG_FOR_REVIEW' and object_version_number = 1;
 commit;

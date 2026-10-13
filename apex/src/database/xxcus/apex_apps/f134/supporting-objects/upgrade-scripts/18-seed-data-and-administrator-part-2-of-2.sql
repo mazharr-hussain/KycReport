@@ -267,19 +267,13 @@ begin
        on (t.risk_tier = s.rt)
      when not matched then insert (risk_tier, template_name, template_text) values (s.rt, s.nm, s.tx);
 
-    merge into xxfnd_retention_policies t
-    using (select 'XXCMP_PARTIES' tn from dual) s
-       on (t.table_name = s.tn and t.jurisdiction is null)
-     when not matched then insert (table_name, retention_years, action_at_expiry) values (s.tn, 5, 'FLAG_FOR_REVIEW');
-    -- release 76 (S-01): the other tables with personal data, as the parties (5 years, flagged for review - nothing is
-    -- deleted); Compliance / Legal set the final years and action on the Retention screen
-    merge into xxfnd_retention_policies t
-    using (select column_value tn from table(apex_t_varchar2('XXFND_COMMUNICATIONS', 'XXCMP_PARTY_ID_VERIFICATIONS',
-                                                            'XXCMP_PARTY_REGISTRY_CHECKS', 'XXCMP_CASE_FUNDS',
-                                                            'XXCMP_FIU_REPORTS'))) s
-       on (t.table_name = s.tn and t.jurisdiction is null)
-     when not matched then insert (table_name, retention_years, action_at_expiry, application_code)
-                           values (s.tn, 5, 'FLAG_FOR_REVIEW', 'KYC');
+    -- release 77: no retention policy is seeded (the business keeps every record); the seeded ones are taken back
+    -- when nobody changed them since (a policy set on the Retention screen stays)
+    delete from xxfnd_retention_policies
+     where table_name in ('XXCMP_PARTIES', 'XXFND_COMMUNICATIONS', 'XXCMP_PARTY_ID_VERIFICATIONS',
+                          'XXCMP_PARTY_REGISTRY_CHECKS', 'XXCMP_CASE_FUNDS', 'XXCMP_FIU_REPORTS')
+       and jurisdiction is null and retention_years = 5 and action_at_expiry = 'FLAG_FOR_REVIEW'
+       and object_version_number = 1;
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;

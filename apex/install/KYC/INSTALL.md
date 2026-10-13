@@ -66,3 +66,7 @@ cases opened from release 75 on can be reassigned by Cases managers and the assi
 
 ## Release 76 (COMMON + KYC)
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
+
+
+## Release 77 (KYC)
+Release 77 (KYC only): removes the unchanged seeded retention policies of the KYC tables; no retention policy is seeded any more. Needs COMMON 76 or later; independent of COMMON 77.
