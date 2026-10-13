@@ -1,7 +1,7 @@
 page 183 (
     name: Assign
     alias: ASSIGN
-    title: &P183_TITLE.
+    title: Assign
     pageGroup: @administration
     appearance {
         pageMode: modalDialog
@@ -35,7 +35,7 @@ page 183 (
             slot: BODY
         }
         appearance {
-            template: @/blank-with-attributes
+            template: @/standard
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -114,8 +114,7 @@ page 183 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- what can be assigned to the record on the calling screen: roles, users or data access rules
-                select display_value, return_value
+                select display_value, return_value   -- what can be assigned: roles, users or data access rules
                   from (select r.role_name || ' (' || r.application_code || ')' as display_value,
                                r.role_code as return_value, 'ROLE' as kind
                           from xxfnd_roles r
@@ -221,6 +220,7 @@ page 183 (
             action: cancelDialog
             execution {
                 sequence: 10
+                fireOnInit: false
             }
         )
 

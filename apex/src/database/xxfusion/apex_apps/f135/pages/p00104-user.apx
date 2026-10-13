@@ -77,6 +77,9 @@ page 104 (
             region: @user
             slot: regionBody
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
@@ -574,10 +577,10 @@ page 104 (
         layout {
             sequence: 10
             parentRegion: @access
-            slot: regionBody
+            slot: subRegions
         }
         appearance {
-            template: @/standard
+            template: @/blank-with-attributes
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -590,10 +593,10 @@ page 104 (
         layout {
             sequence: 20
             parentRegion: @access
-            slot: regionBody
+            slot: subRegions
         }
         appearance {
-            template: @/standard
+            template: @/blank-with-attributes
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -1006,11 +1009,14 @@ page 104 (
         layout {
             sequence: 10
             region: @roles
-            slot: RIGHT_OF_TITLE
+            slot: CREATE
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
             icon: fa-plus
         }
         behavior {
@@ -1036,11 +1042,14 @@ page 104 (
         layout {
             sequence: 20
             region: @rules
-            slot: RIGHT_OF_TITLE
+            slot: CREATE
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
             icon: fa-plus
         }
         behavior {

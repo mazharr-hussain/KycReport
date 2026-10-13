@@ -25,7 +25,7 @@ begin
         or (object_name = 'XXFND_PRIVILEGE_PKG' and procedure_name in ('HAS_ROLE', 'SOD_CONFLICT', 'CAN_VIEW_SENSITIVE'))
         or (object_name = 'XXFND_INTEGRATION_PKG' and procedure_name in ('SYNC_FROM_FUSION', 'SYNC_RUNNING'))
         or (object_name = 'XXFND_VPD_PKG' and procedure_name in ('ASSIGN_RULE', 'UNASSIGN_RULE'));
-    check_(l_n = 12, 'merged procedures in XXFND_USER_PKG / PRIVILEGE_PKG / INTEGRATION_PKG / VPD_PKG (' || l_n || ')');
+    check_(l_n = 14, 'merged procedures in XXFND_USER_PKG / PRIVILEGE_PKG / INTEGRATION_PKG / VPD_PKG (' || l_n || ')');
     select count(*) into l_n from user_objects where status <> 'VALID';
     check_(l_n = 0, 'no invalid object (' || l_n || ')');
 
@@ -48,7 +48,7 @@ begin
     insert into xxfnd_users (user_name, user_type, full_name, email_address)
     values ('R79_TEST_USER', 'LOCAL', 'R79 Test', 'r79@example.invalid') returning user_id into l_user;
     insert into xxfnd_roles (role_code, application_code, role_name, description)
-    values (l_role, 'COMMON', 'R79 Test Role', 'test');
+    select l_role, min(application_code), 'R79 Test Role', 'test' from xxfnd_applications where application_code <> 'COMMON';
     insert into xxfnd_data_security_rules (table_name, rule_type, column_name, value_list, description)
     values ('XXFND_RFIS', 'COLUMN_IN_LIST', 'RFI_STATUS', 'OPEN', 'r79 user rule') returning rule_id into l_rule1;
     insert into xxfnd_data_security_rules (table_name, rule_type, column_name, value_list, description)

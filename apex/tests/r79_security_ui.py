@@ -25,7 +25,7 @@ def go(pg, alias):
 
 
 def tab_names(scope):
-    return [t.strip() for t in scope.locator('.t-Tabs-label, .apex-rds-item a').all_inner_texts() if t.strip()]
+    return [t.strip() for t in scope.locator('ul[aria-label="Access"] .t-Tabs-link, ul[aria-label="Assigned To"] .t-Tabs-link').all_inner_texts() if t.strip()]
 
 
 def open_assign(pg, frame_parent, button_text):
@@ -58,31 +58,63 @@ with sync_playwright() as p:
     pg.wait_for_load_state('networkidle')
     no_error(pg, 'User ADMIN')
     check(pg.locator('#user').count() == 1, 'the user is on top')
-    tabs = tab_names(pg.locator('#access'))
+    tabs = tab_names(pg)
     check(tabs[:2] == ['Roles and privileges', 'Data access'], f'User tabs: {tabs}')
     check(pg.locator('#user_roles td', has_text='Common Administrator').count() >= 1, 'ADMIN\'s role is listed')
     check(pg.locator('#user_privileges td').count() > 0, 'the privileges the roles give are listed')
-    pg.locator('#access .t-Tabs-label, #access .apex-rds-item a', has_text='Data access').first.click()
+    pg.locator('.t-Tabs-link', has_text='Data access').first.click()
     pg.wait_for_timeout(500)
     check(pg.locator('#user_effective').count() == 1, 'Data access tab shows Effective access')
+    pg.locator('.t-Tabs-link', has_text='Roles and privileges').first.click(); pg.wait_for_timeout(300)
     fr = open_assign(pg, pg.locator('#user_roles'), 'Assign Roles')
     check(fr is not None, 'Assign Roles opens the Assign dialog')
     if fr:
         no_error(fr, 'Assign dialog (user > roles)')
-        check('Assign roles to' in fr.inner_text('body') or 'Roles' in fr.inner_text('body'), 'the dialog names what it assigns')
+        body = fr.inner_text('body')
+        check('Assign roles to' in body and 'Roles' in body, 'the dialog names what it assigns (Assign roles to ...)')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
+
+    # end to end: assign a role to TEST1 through the picker, then remove it with the Remove link
+    go(pg, 'users')
+    pg.locator('.a-IRR-search-field').first.fill('TEST1'); pg.keyboard.press('Enter'); pg.wait_for_timeout(1500)
+    with pg.expect_navigation():
+        pg.locator('.a-IRR-table a', has_text='TEST1').first.click()
+    pg.wait_for_load_state('networkidle')
+    fr = open_assign(pg, pg.locator('#user_roles'), 'Assign Roles')
+    if fr:
+        fr.locator('#P183_VALUES').click(); pg.wait_for_timeout(1200)
+        pg.keyboard.type('Super Administrator'); pg.wait_for_timeout(1500)
+        opt = pg.locator('.a-PopupLOV-results li, .a-IconList-item, .a-GV-row', has_text='Super Administrator').first
+        if opt.count() == 0:
+            opt = fr.locator('.a-PopupLOV-results li, .a-IconList-item, .a-GV-row', has_text='Super Administrator').first
+        opt.click(); pg.wait_for_timeout(800)
+        done = fr.locator('.ui-dialog-buttonpane button, .a-PopupLOV-dialog button', has_text='Done')
+        if done.count():
+            done.first.click(); pg.wait_for_timeout(500)
+        fr.locator('#assign, .t-Region-title').first.click(force=True); pg.wait_for_timeout(300)
+        fr.locator('button', has_text='Assign').last.click(); pg.wait_for_timeout(3000)
+        pg.wait_for_load_state('networkidle')
+        check(pg.locator('#user_roles td', has_text='Super Administrator').count() == 1,
+              'assigned through the picker: the role shows on the user at once')
+        pg.once('dialog', lambda d: d.accept())
+        row = pg.locator('#user_roles tr', has_text='Super Administrator')
+        if row.count():
+            row.locator('a', has_text='Remove').click()
+            pg.locator('.ui-dialog button', has_text='OK').first.click(timeout=10000)
+            pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1500)
+            check(pg.locator('#user_roles td', has_text='Super Administrator').count() == 0, 'Remove takes the role away')
 
     # Role screen: tabs Users / Data access and the same dialog
     go(pg, 'roles')
     with pg.expect_navigation(wait_until='networkidle') if False else pg.expect_event('framenavigated'):
-        pg.locator('.a-IRR-table a', has_text='Common Administrator').first.click()
+        pg.locator('.a-IRR-table td a', has_text='COMMON_ADMIN').first.click()
     pg.wait_for_timeout(3000)
     rf = [f for f in pg.frames if 'role' in (f.url or '').lower() and 'roles' not in (f.url or '').lower()]
     check(bool(rf), 'Role screen opens')
     if rf:
         rf = rf[-1]
         no_error(rf, 'Role Common Administrator')
-        tabs = tab_names(rf.locator('#access'))
+        tabs = tab_names(rf)
         check(tabs[:2] == ['Users', 'Data access'], f'Role tabs: {tabs}')
         check(rf.locator('#role_users td', has_text='ADMIN').count() >= 1, 'the role lists its users')
         check(rf.locator('#role_rules').count() == 1, 'the role lists its data access rules')
@@ -99,7 +131,7 @@ with sync_playwright() as p:
     if df:
         df = df[-1]
         no_error(df, 'Data access rule')
-        tabs = tab_names(df.locator('#access'))
+        tabs = tab_names(df)
         check(tabs[:2] == ['Users', 'Roles'], f'Rule tabs: {tabs}')
         check(df.locator('#P181_ROLE_CODE').count() == 0, 'the rule has no single role field any more')
 

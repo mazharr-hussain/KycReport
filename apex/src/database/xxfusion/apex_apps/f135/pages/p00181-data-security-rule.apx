@@ -92,9 +92,9 @@ page 181 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 79: a rule is no longer tied to one role: the tables of every registered application
-                -- (its schema, granted to COMMON's schema)
                 select t.table_name || ' (' || a.application_code || ')' as display_value, t.table_name as return_value
+                  -- release 79: a rule is no longer tied to one role: the tables of every registered application
+                  -- (its schema, granted to COMMON's schema)
                   from all_tables t
                   join xxfnd_applications a on a.schema_name = t.owner
                  where a.application_code <> 'COMMON'
@@ -344,6 +344,7 @@ page 181 (
                 select 1 from xxfnd_data_security_rules
                  where table_name = :P181_TABLE_NAME
                    and rule_type = :P181_RULE_TYPE and nvl(column_name, '#') = nvl(:P181_COLUMN_NAME, '#')
+                   and nvl(value_list, '#') = nvl(:P181_VALUE_LIST, '#') and role_code is null
                    and rule_id <> nvl(to_number(:P181_RULE_ID), -1)
                 ```
         }
@@ -576,6 +577,9 @@ page 181 (
             region: @form
             slot: regionBody
         }
+        settings {
+            valueProtected: false
+        }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
@@ -610,10 +614,10 @@ page 181 (
         layout {
             sequence: 10
             parentRegion: @access
-            slot: regionBody
+            slot: subRegions
         }
         appearance {
-            template: @/standard
+            template: @/blank-with-attributes
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -626,10 +630,10 @@ page 181 (
         layout {
             sequence: 20
             parentRegion: @access
-            slot: regionBody
+            slot: subRegions
         }
         appearance {
-            template: @/standard
+            template: @/blank-with-attributes
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -818,11 +822,14 @@ page 181 (
         layout {
             sequence: 50
             region: @users
-            slot: RIGHT_OF_TITLE
+            slot: CREATE
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
             icon: fa-plus
         }
         behavior {
@@ -848,11 +855,14 @@ page 181 (
         layout {
             sequence: 60
             region: @roles
-            slot: RIGHT_OF_TITLE
+            slot: CREATE
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
             icon: fa-plus
         }
         behavior {
