@@ -38,11 +38,11 @@ with sync_playwright() as p:
     check(pg.locator('#modules .t-Card', has_text='Documents and Records').filter(
         has_text='Retention not active').count() == 1, 'module card shows its state (Retention not active yet)')
 
-    # menu: Home then the modules (no Administration level); the menu starts collapsed: open it
+    # menu: Home, (release 82) My Tasks, then the modules (no Administration level); the menu starts collapsed: open it
     if pg.locator('#t_TreeNav .a-TreeView-label:visible').count() == 0:
         pg.locator('#t_Button_navControl').click(); pg.wait_for_timeout(500)
     top = [t.strip() for t in pg.locator('#t_TreeNav > ul > li > div .a-TreeView-label').all_inner_texts()]
-    check(top[:1] == ['Home'] and top[1:] == MODULES, f'menu top level: {top}')
+    check(top[:1] == ['Home'] and [t for t in top[1:] if t != 'My Tasks'] == MODULES, f'menu top level: {top}')
     check('Administration' not in top, 'no Administration level in the menu')
 
     # a module opens page 100 with its components and is expanded in the menu
@@ -86,7 +86,7 @@ with sync_playwright() as p:
         pg.locator('#t_TreeNav .a-TreeView-label:visible', has_text='Workflow').first.click()
     pg.wait_for_load_state('networkidle')
     comps = [t.strip() for t in pg.locator('#components .t-Card-title').all_inner_texts()]
-    check(comps == ['Workflow Setup', 'Approval Setup', 'Notifications'], f'Workflow components: {comps}')
+    check(comps[:3] == ['Workflow Setup', 'Approval Setup', 'Notifications'] and set(comps[3:]) <= {'Workflow Monitor'}, f'Workflow components: {comps}')   # release 82: + Workflow Monitor
 
     # Subscriptions (tab of Applications)
     pg.goto(re.sub(r'/r/xxcus/common/[^?]*', '/r/xxcus/common/applications', pg.url)); pg.wait_for_load_state('networkidle')
