@@ -1,0 +1,12 @@
+restDataSourceServer FUSION (
+    name: Oracle Fusion Cloud
+    endpointUrl {
+        url: https://your-fusion-host.oraclecloud.com
+    }
+    advanced {
+        promptOnInstall: false
+    }
+    comments {
+        comments: Release 83 - Oracle Fusion Cloud Applications (HCM workers for the user sync). Kept by the workspace administrator (Workspace Utilities, Remote Servers); COMMON reaches it through XXFND_INTEGRATION_PKG.
+    }
+)

@@ -22,8 +22,10 @@ them. The **workspace administrator** changes them:
    the Servers list (Last Test).
 5. Only the static ID ties a server to COMMON: do not change it.
 
-When the application is installed in a new workspace, the import asks for each server's URL and credential
-(prompt on install); they can also be set afterwards as above.
+When the application is installed in a new workspace, the servers are created with placeholder URLs
+(e.g. https://your-fusion-host.oraclecloud.com) and the Web Credentials without secrets: set them as above before the
+first call. Nothing calls a server that is not set up (the Fusion HCM sync waits; the document stores stay on the
+database store until a storage rule points to them).
 
 ## Fusion HCM sync
 

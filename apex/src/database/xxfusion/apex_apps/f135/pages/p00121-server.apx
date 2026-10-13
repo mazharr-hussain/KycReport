@@ -53,6 +53,17 @@ page 121 (
             sessionStateProtection: checksumRequiredSessionLevel
         }
     )
+    pageItem P121_TEST_RESULT (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @server
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
     pageItem P121_SERVER_NAME (
         type: displayOnly
         label {
@@ -255,12 +266,15 @@ page 121 (
             plsqlCode:
                 ```plsql
                 -- release 83: one request to the server's URL; the result is kept (XXFND_SERVER_TESTS) and shown
-                apex_application.g_print_success_message := xxfnd_integration_pkg.test_connection(:P121_STATIC_ID);
+                :P121_TEST_RESULT := xxfnd_integration_pkg.test_connection(:P121_STATIC_ID);
                 ```
         }
         execution {
             sequence: 10
             point: processing
+        }
+        successMessage {
+            successMessage: &P121_TEST_RESULT.
         }
         serverSideCondition {
             type: requestIsContainedInValue
@@ -268,6 +282,22 @@ page 121 (
         }
         security {
             authorizationScheme: @page-manage
+        }
+    )
+
+    branch (
+        name: Back to the server with the result
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 121
+                items: {
+                    P121_STATIC_ID: &P121_STATIC_ID.
+                }
+                clearCache: 121
+            }
         }
     )
 )

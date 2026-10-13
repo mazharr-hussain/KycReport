@@ -56,6 +56,16 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 83 (COMMON)
+Release 83 (COMMON only, patch 90): Integrations use APEX's own components. The servers COMMON calls are APEX Remote
+Servers (FUSION, UCM_MAIN, SHAREPOINT_MAIN, OUTLOOK_GRAPH) and their secrets APEX Web Credentials, kept by the workspace
+administrator (installed with placeholder URLs and no secrets; see ADMIN-GUIDE.md, "How to change a server"). Endpoints
+are REST Data Sources of COMMON (FUSION_HCM_WORKERS); purposes point to them. XXFND_INTEGRATION_PKG is the one call
+procedure: every call is logged with what is needed to retry it, and the Transmission Log shows APEX's own web service
+log. The registered endpoints are read-only and retiring (their rows stay). The Fusion HCM sync is a COMMON automation,
+installed disabled: switch it on once the FUSION server and its credential are set. Upgrade as usual (Install
+Supporting Objects, upgrade scripts). **KYC needs its own release** (its HCM sync automation and FUSION_* settings go).
+
 ## Release 82 (COMMON)
 Release 82 (COMMON only, patch 89): Workflow uses one package per component. XXFND_WORKFLOW_PKG holds the workflow
 runtime, the workflow and e-mail switches and the task helpers; XXFND_NOTIFY_PKG holds notifications and the e-mails per

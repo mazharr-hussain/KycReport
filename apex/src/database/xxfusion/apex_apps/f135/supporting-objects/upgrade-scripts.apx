@@ -84,23 +84,6 @@ upgradeScript 05-core-packages-part-1-of-2 (
     }
 )
 
-upgradeScript 05b-integrations-package (
-    execution {
-        sequence: 15
-    }
-    script {
-        contentFile: 05b-integration-pkg.sql
-    }
-    serverSideCondition {
-        type: expression
-        language: sql
-        sqlExpression:
-            ```sql
-            sys_context('userenv', 'current_schema') = 'XXFUSION'
-            ```
-    }
-)
-
 upgradeScript 05c-lookups-package (
     execution {
         sequence: 16
@@ -328,6 +311,23 @@ upgradeScript 13a-database-document-store (
     }
     script {
         contentFile: 13a-database-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 05b-integrations-package (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: 05b-integration-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -668,6 +668,23 @@ upgradeScript 24-workflow-module (
     }
     script {
         contentFile: 24-workflow-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 25-integrations-module (
+    execution {
+        sequence: 178
+    }
+    script {
+        contentFile: 25-integrations-module.sql
     }
     serverSideCondition {
         type: expression

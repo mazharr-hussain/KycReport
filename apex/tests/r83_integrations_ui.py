@@ -16,7 +16,9 @@ def check(ok, msg):
 
 
 def no_error(scope, what):
-    body = scope.inner_text('body')
+    # the page's own text, without the stored data shown in display-only fields (e.g. a server's last error)
+    body = scope.evaluate("""() => { const c = document.body.cloneNode(true);
+        c.querySelectorAll('.display_only, .t-Report-cell, td').forEach(e => e.remove()); return c.innerText; }""")
     bad = [w for w in ('ORA-', 'error occurred', 'do not have access', 'Page not available', 'went wrong') if w in body]
     check(not bad, f'{what} opens without error {bad or ""}')
 
@@ -56,14 +58,15 @@ with sync_playwright() as p:
 
     # Server (121): Test Connection
     pg.locator('#servers .a-IRR-table td a', has_text='Oracle Fusion Cloud').first.click()
-    fr = dialog(pg, 'server?', '#P121_SERVER_NAME, #P121_SERVER_NAME_DISPLAY')
+    fr = dialog(pg, 'server?', '#P121_SERVER_NAME_DISPLAY')
     check(fr is not None, 'Server dialog opens')
     if fr:
         no_error(fr, 'Server')
-        fr.locator('button', has_text='Test Connection').click(); pg.wait_for_timeout(8000)
-        fr = dialog(pg, 'server?', '#P121_SERVER_NAME, #P121_SERVER_NAME_DISPLAY')
-        txt = fr.inner_text('body') if fr else ''
-        check('Reachable' in txt or 'Not reachable' in txt, 'Test Connection answers (reachable or why not)')
+        fr.locator('button', has_text='Test Connection').click(); pg.wait_for_timeout(5000)
+        fr = dialog(pg, 'server?', '#P121_SERVER_NAME_DISPLAY')
+        txt = fr.locator('#P121_LAST_TEST_DISPLAY').inner_text() if fr else ''
+        check(('REACHABLE' in txt or 'could not be reached' in txt or 'FAILED' in txt) and 'ADMIN' in txt,
+              f'Test Connection answers and keeps the result (Last Test: {txt[:80]})')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
     go(pg, 'servers')
     check('REACHABLE' in pg.inner_text('#servers') or 'FAILED' in pg.inner_text('#servers'), 'Last Test shows in the list')
@@ -85,7 +88,7 @@ with sync_playwright() as p:
     links = pg.locator('#log .a-IRR-table td a')
     if links.count():
         links.first.click()
-        fr = dialog(pg, 'call?', '#P125_PURPOSE, #P125_PURPOSE_DISPLAY')
+        fr = dialog(pg, 'call?', '#P125_PURPOSE_DISPLAY')
         check(fr is not None, 'a call opens its detail')
         if fr:
             no_error(fr, 'Call')

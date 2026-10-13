@@ -1,0 +1,85 @@
+restDataSource FUSION_HCM_WORKERS (
+    name: Fusion HCM Workers
+    source {
+        type: http
+        remoteServer: @FUSION
+        urlPathPrefix: /hcmRestApi/resources/11.13.18.05/publicWorkers
+    }
+    authentication {
+        credentials: @FUSION_CREDENTIALS
+    }
+    comments {
+        comments: Release 83 - the HCM workers of Oracle Fusion (purpose HCM_SYNC). XXFND_INTEGRATION_PKG.SYNC_HCM reads it to refresh the Fusion employees; workers no longer returned are disabled, not deleted.
+    }
+
+    dataProfile {
+        name: FUSION_HCM_WORKERS
+        rowSelector: items
+    }
+
+    dataProfileColumn person-id (
+        columnName: PERSON_ID
+        source {
+            sequence: 1
+            dataType: number
+            primaryKey: true
+        }
+        parsing {
+            pathExpression: PersonId
+        }
+        advanced {
+            sourceDataType: number
+        }
+    )
+
+    dataProfileColumn person-number (
+        columnName: PERSON_NUMBER
+        source {
+            sequence: 2
+            dataType: varchar2
+        }
+        parsing {
+            pathExpression: PersonNumber
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    dataProfileColumn display-name (
+        columnName: DISPLAY_NAME
+        source {
+            sequence: 3
+            dataType: varchar2
+        }
+        parsing {
+            pathExpression: DisplayName
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    dataProfileColumn work-email (
+        columnName: WORK_EMAIL
+        source {
+            sequence: 4
+            dataType: varchar2
+        }
+        parsing {
+            pathExpression: WorkEmail
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    operation get-rows (
+        label: GET
+        operation {
+            urlPattern: .
+            httpMethod: get
+            databaseOperation: fetchRows
+        }
+    )
+)

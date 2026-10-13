@@ -279,6 +279,14 @@ create or replace package body xxfnd_integration_pkg as
         end if;
     end assert_manage;
 
+    -- a readable reason for a request that did not reach the server (shown on the Servers screens and in the log)
+    function failure_text(p_sqlcode in number, p_sqlerrm in varchar2) return varchar2 is
+    begin
+        return case when p_sqlcode in (-29273, -29024, -24247, -12535, -12541)
+                    then 'The server could not be reached: check its URL and the network access (ACL) of the database.'
+                    else p_sqlerrm end;
+    end failure_text;
+
     function server(p_static_id in varchar2) return t_server is
         l_srv t_server;
     begin
@@ -394,7 +402,7 @@ create or replace package body xxfnd_integration_pkg as
                                                          p_credential_static_id => l_cred);
         exception
             when others then
-                log_end(l_call_id, null, sqlerrm);
+                log_end(l_call_id, null, failure_text(sqlcode, sqlerrm));
                 raise;
         end;
         if apex_web_service.g_status_code not between 200 and 299 then
@@ -461,7 +469,7 @@ create or replace package body xxfnd_integration_pkg as
         exception
             when others then
                 l_result := 'FAILED';
-                l_msg    := substr(sqlerrm, 1, 4000);
+                l_msg    := substr(failure_text(sqlcode, sqlerrm), 1, 4000);
         end;
         merge into xxfnd_server_tests t
         using (select p_server_static_id sid from dual) s on (t.server_static_id = s.sid)
@@ -470,7 +478,7 @@ create or replace package body xxfnd_integration_pkg as
          when not matched then insert (server_static_id, tested_date, tested_by, http_status, result_code, result_message)
                                values (s.sid, systimestamp, xxfnd_util_pkg.current_user, l_status, l_result, l_msg);
         commit;
-        return case when l_result = 'REACHABLE' then 'Reachable (' || l_msg || ').' else 'Not reachable: ' || l_msg end;
+        return case when l_result = 'REACHABLE' then 'Reachable (' || l_msg || ').' else 'Not reachable. ' || l_msg end;
     end test_connection;
 
     procedure sync_hcm is

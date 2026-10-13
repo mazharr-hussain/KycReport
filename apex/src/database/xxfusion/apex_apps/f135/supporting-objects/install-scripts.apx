@@ -135,23 +135,6 @@ installScript 05-core-packages-part-1-of-2 (
     }
 )
 
-installScript 05b-integrations-package (
-    execution {
-        sequence: 55
-    }
-    script {
-        contentFile: 05b-integration-pkg.sql
-    }
-    serverSideCondition {
-        type: expression
-        language: sql
-        sqlExpression:
-            ```sql
-            sys_context('userenv', 'current_schema') = 'XXFUSION'
-            ```
-    }
-)
-
 installScript 05c-lookups-package (
     execution {
         sequence: 56
@@ -379,6 +362,23 @@ installScript 13a-database-document-store (
     }
     script {
         contentFile: 13a-database-document-store.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 05b-integrations-package (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 05b-integration-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -719,6 +719,23 @@ installScript 24-workflow-module (
     }
     script {
         contentFile: 24-workflow-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 25-integrations-module (
+    execution {
+        sequence: 218
+    }
+    script {
+        contentFile: 25-integrations-module.sql
     }
     serverSideCondition {
         type: expression

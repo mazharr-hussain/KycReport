@@ -1,0 +1,43 @@
+restDataSource SHAREPOINT_DRIVES (
+    name: SharePoint Drives
+    source {
+        type: http
+        remoteServer: @SHAREPOINT_MAIN
+        urlPathPrefix: /drives
+    }
+    authentication {
+        credentials: @XXFND_GRAPH_CRED
+    }
+    comments {
+        comments: Release 83 - the document store in SharePoint through Microsoft Graph (attachments, server SHAREPOINT_MAIN). Its server and Web Credential are kept by the workspace administrator; COMMON calls it through XXFND_INTEGRATION_PKG.
+    }
+
+    dataProfile {
+        name: SHAREPOINT_DRIVES
+        rowSelector: value
+    }
+
+    dataProfileColumn id (
+        columnName: ID
+        source {
+            sequence: 1
+            dataType: varchar2
+            primaryKey: true
+        }
+        parsing {
+            pathExpression: id
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    operation get-rows (
+        label: GET
+        operation {
+            urlPattern: .
+            httpMethod: get
+            databaseOperation: fetchRows
+        }
+    )
+)

@@ -1,0 +1,26 @@
+automation fusion-hcm-sync (
+    name: Fusion HCM sync
+    execution {
+        scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=2;BYMINUTE=0
+        scheduleStatus: disabled
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Release 83 - refreshes the Fusion employees from Oracle Fusion HCM through purpose HCM_SYNC (REST Data Source FUSION_HCM_WORKERS on server FUSION). Installed disabled; switch it on once the workspace administrator has set up the FUSION server and its Web Credential. Does nothing until then.
+    }
+
+    action sync-workers (
+        name: Sync workers
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                xxfnd_integration_pkg.sync_hcm;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)
