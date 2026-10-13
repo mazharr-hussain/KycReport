@@ -1,0 +1,274 @@
+page 141 (
+    name: Workflow Monitor
+    alias: WORKFLOW-MONITOR
+    title: Workflow Monitor
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every workflow of every application in the workspace, with its state. Open a workflow to suspend, resume, retry or
+            terminate it, or to reassign, delegate or release one of its tasks on anyone's behalf (Workflow Monitor - Manage).
+            ```
+    }
+
+    region breadcrumb (
+        name: Workflow Monitor
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region workflows (
+        name: Workflows
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82 (D19): the workflows of every registered application
+                select w.workflow_id,
+                       nvl(a.application_name, w.application_name)    as application_name,
+                       w.workflow_def_name                             as process_name,
+                       w.title,
+                       w.detail_pk                                     as record_key,
+                       w.state,
+                       w.initiator,
+                       w.start_time,
+                       w.end_time,
+                       (select count(*) from apex_tasks t
+                         where t.workflow_id = w.workflow_id and t.state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED')) as open_tasks,
+                       apex_page.get_url(p_page => 142, p_items => 'P142_WORKFLOW_ID', p_values => to_char(w.workflow_id),
+                                         p_clear_cache => '142') as open_url
+                  from apex_workflows w
+                  left join xxfnd_applications a on a.apex_application_id = w.application_id
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: workflows
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No workflow found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column WORKFLOW_ID (
+            type: hidden
+            heading {
+                heading: Workflow
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Workflow
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#TITLE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PROCESS_NAME (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECORD_KEY (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_TASKS (
+            type: plainText
+            heading {
+                heading: Open Tasks
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column INITIATOR (
+            type: plainText
+            heading {
+                heading: Initiated By
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column START_TIME (
+            type: plainText
+            heading {
+                heading: Started
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column END_TIME (
+            type: plainText
+            heading {
+                heading: Ended
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    dynamicAction refresh-workflows (
+        name: Refresh after the dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @workflows
+        }
+
+        action refresh-workflows-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @workflows
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+)

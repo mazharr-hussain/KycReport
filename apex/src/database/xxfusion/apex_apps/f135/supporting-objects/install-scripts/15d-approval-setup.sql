@@ -218,6 +218,19 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
                            p_position in varchar2 default 'NEXT', p_comment in varchar2 default null,
                            p_force in varchar2 default 'N');
     procedure cancel(p_type in varchar2, p_txn_id in varchar2);
+
+    -- Release 82: the one task decision every application calls (no copies of the APEX task calls on pages).
+    -- p_decision: APPROVE | REJECT | REQUEST_INFO | SUBMIT_INFO | ADD_APPROVER | COMMENT. A comment (p_comment) is
+    -- recorded on the task first for APPROVE, REJECT, ADD_APPROVER and COMMENT; it is the question for REQUEST_INFO
+    -- and the answer for SUBMIT_INFO. ADD_APPROVER adds p_add_user after the current approver of p_approval_type /
+    -- p_txn_id. Returns Y when done; N for REQUEST_INFO when the task cannot ask its initiator (the approver is the
+    -- initiator): the application then returns the record to its requester in its own way.
+    function decide_task(p_task_id       in number,
+                         p_decision      in varchar2,
+                         p_comment       in varchar2 default null,
+                         p_approval_type in varchar2 default null,
+                         p_txn_id        in varchar2 default null,
+                         p_add_user      in varchar2 default null) return varchar2;
     -- The approvers of a transaction in order, with their state (DONE, CURRENT, WAITING); before its approval
     -- started, the matching rule's approvers (state EXPECTED) for the attributes given.
     function steps(p_type in varchar2, p_txn_id in varchar2, p_attributes in apex_t_varchar2 default null)
@@ -312,7 +325,7 @@ create or replace package body xxfnd_approval_rule_pkg as
         end if;
         for s in (select step_name, role_code from xxfnd_approval_rule_steps
                    where rule_id = l_rule and approver_type = 'ROLE' order by step_no) loop
-            if xxfnd_task_pkg.users_in_role(s.role_code) is null then
+            if xxfnd_workflow_pkg.users_in_role(s.role_code) is null then
                 return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_APPROVER',
                                                apex_t_varchar2(s.step_name, approver_label('ROLE', s.role_code, null)));
             end if;
@@ -370,7 +383,7 @@ create or replace package body xxfnd_approval_rule_pkg as
         l xxfnd_approval_txn_steps%rowtype := step(p_type, p_txn_id);
     begin
         return case l.approver_type when 'USER'      then upper(l.user_name)
-                                    when 'ROLE'      then xxfnd_task_pkg.users_in_role(l.role_code)
+                                    when 'ROLE'      then xxfnd_workflow_pkg.users_in_role(l.role_code)
                                     when 'REQUESTER' then txn(p_type, p_txn_id).requester end;
     end current_approvers;
 
@@ -496,6 +509,48 @@ create or replace package body xxfnd_approval_rule_pkg as
         end if;
         return;
     end steps;
+
+    function decide_task(p_task_id       in number,
+                         p_decision      in varchar2,
+                         p_comment       in varchar2 default null,
+                         p_approval_type in varchar2 default null,
+                         p_txn_id        in varchar2 default null,
+                         p_add_user      in varchar2 default null) return varchar2 is
+        l_decision varchar2(30) := upper(p_decision);
+    begin
+        if l_decision not in ('APPROVE', 'REJECT', 'REQUEST_INFO', 'SUBMIT_INFO', 'ADD_APPROVER', 'COMMENT') then
+            raise_application_error(-20536, 'Unknown task decision ' || p_decision || '.');
+        end if;
+        if p_comment is not null and l_decision in ('APPROVE', 'REJECT', 'ADD_APPROVER', 'COMMENT') then
+            apex_human_task.add_task_comment(p_task_id => p_task_id, p_text => p_comment);
+        end if;
+        case l_decision
+            when 'APPROVE' then
+                apex_human_task.approve_task(p_task_id => p_task_id, p_autoclaim => true);
+            when 'REJECT' then
+                apex_human_task.reject_task(p_task_id => p_task_id, p_autoclaim => true);
+            when 'REQUEST_INFO' then
+                -- the question goes to the task initiator; an unclaimed task is claimed first
+                for t in (select 1 from apex_tasks where task_id = p_task_id and state_code = 'UNASSIGNED') loop
+                    apex_human_task.claim_task(p_task_id => p_task_id);
+                end loop;
+                if xxfnd_workflow_pkg.can_request_info(p_task_id) = 'N' then
+                    return 'N';
+                end if;
+                apex_human_task.request_more_information(p_task_id => p_task_id, p_text => p_comment);
+            when 'SUBMIT_INFO' then
+                apex_human_task.submit_information(p_task_id => p_task_id, p_text => p_comment);
+            when 'ADD_APPROVER' then
+                if p_add_user is null then
+                    xxfnd_error_pkg.raise_error('XXFND_APPROVAL_APPROVER_REQUIRED');
+                end if;
+                add_approver(p_approval_type, p_txn_id, 'USER', p_user_name => p_add_user,
+                             p_position => 'NEXT', p_comment => p_comment);
+            else
+                null;   -- COMMENT: recorded above
+        end case;
+        return 'Y';
+    end decide_task;
 
 end xxfnd_approval_rule_pkg;
 /

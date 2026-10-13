@@ -40,18 +40,18 @@ begin
     -- workflow / e-mail switches
     select count(*) into l_n from xxfnd_workflow_processes where application_code = 'KYC';
     check_(l_n >= 2, 'KYC workflow processes registered (' || l_n || ')');
-    check_(xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE', 'KYC') = 'Y', 'workflow on by default');
+    check_(xxfnd_workflow_pkg.workflow_enabled('KYC_CASE', 'KYC') = 'Y', 'workflow on by default');
     update xxfnd_workflow_processes set workflow_enabled_flag = 'N' where application_code = 'KYC' and process_code = 'KYC_CASE';
-    check_(xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE', 'KYC') = 'N', 'workflow switched off for the process');
-    check_(xxfnd_workflow_switch_pkg.email_enabled('KYC_CASE', 'KYC') = 'Y', 'e-mail on: instance, application and process on');
+    check_(xxfnd_workflow_pkg.workflow_enabled('KYC_CASE', 'KYC') = 'N', 'workflow switched off for the process');
+    check_(xxfnd_workflow_pkg.email_enabled('KYC_CASE', 'KYC') = 'Y', 'e-mail on: instance, application and process on');
     update xxfnd_workflow_processes set email_enabled_flag = 'N' where application_code = 'KYC' and process_code = 'KYC_CASE';
-    check_(xxfnd_workflow_switch_pkg.email_enabled('KYC_CASE', 'KYC') = 'N', 'e-mail off for the process');
-    check_(xxfnd_workflow_switch_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'Y', 'another process keeps e-mail');
+    check_(xxfnd_workflow_pkg.email_enabled('KYC_CASE', 'KYC') = 'N', 'e-mail off for the process');
+    check_(xxfnd_workflow_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'Y', 'another process keeps e-mail');
     update xxfnd_applications set email_enabled_flag = 'N' where application_code = 'KYC';
-    check_(xxfnd_workflow_switch_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'N', 'e-mail off for the application');
+    check_(xxfnd_workflow_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'N', 'e-mail off for the application');
     update xxfnd_applications set email_enabled_flag = 'Y' where application_code = 'KYC';
     update xxfnd_applications set email_enabled_flag = 'N' where application_code = 'COMMON';
-    check_(xxfnd_workflow_switch_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'N', 'e-mail off for the instance');
+    check_(xxfnd_workflow_pkg.email_enabled('KYC_REQUEST', 'KYC') = 'N', 'e-mail off for the instance');
 
     -- delegated administration
     select count(*) into l_n from user_tab_columns where table_name = 'XXFND_APPLICATION_FUNCTIONS' and column_name = 'ENABLED_FLAG';

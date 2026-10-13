@@ -68,7 +68,7 @@ list navigation-menu (
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- release 78: Home, then the six modules (XXFND_MODULES_V) and their components (features with a page in
+            -- release 78: Home, (release 82: My Tasks,) then the six modules (XXFND_MODULES_V) and their components (features with a page in
             -- this application). A module opens its module page (100) and is expanded there (page 100 load).
             with feat as (
                 select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
@@ -90,6 +90,12 @@ list navigation-menu (
                        apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 0 as seq,
                        case when :APP_PAGE_ID = 1 then 'YES' else 'NO' end as is_current
                   from dual
+                union all
+                -- release 82: My Tasks of every application (D20)
+                select 'MY_TASKS', null, 'My Tasks', apex_page.get_url(p_page => 40), 'fa-inbox', 1,
+                       case when :APP_PAGE_ID = 40 then 'YES' else 'NO' end
+                  from dual
+                 where xxfnd_privilege_pkg.has_privilege_yn('MY_TASKS', 'VIEW') = 'Y'
                 union all
                 select 'M_' || md.module_code, null, md.module_name,
                        apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => md.module_code,

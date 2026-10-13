@@ -458,23 +458,6 @@ installScript 15e-communications-e-mail-with-outside-parties (
     }
 )
 
-installScript 15b-common-workflow-runtime (
-    execution {
-        sequence: 152
-    }
-    script {
-        contentFile: 15b-workflow-runtime.sql
-    }
-    serverSideCondition {
-        type: expression
-        language: sql
-        sqlExpression:
-            ```sql
-            sys_context('userenv', 'current_schema') = 'XXFUSION'
-            ```
-    }
-)
-
 installScript 15d-approval-setup (
     execution {
         sequence: 153
@@ -719,6 +702,23 @@ installScript 21d-application-settings-package (
     }
     script {
         contentFile: 21d-app-setting-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 24-workflow-module (
+    execution {
+        sequence: 217
+    }
+    script {
+        contentFile: 24-workflow-module.sql
     }
     serverSideCondition {
         type: expression

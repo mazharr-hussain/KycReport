@@ -65,6 +65,8 @@ begin
     xxfnd_schema_pkg.create_who_trigger('XXFND_RFIS');
     -- who provides the information can come from the Approval Setup (e.g. CASE_RFI: the requester by default)
     xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'APPROVAL_TYPE_CODE', 'varchar2(30)');
+    -- release 82: the language of the e-mail to an outside recipient (no user record), default English
+    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'LANGUAGE_CODE', q'~varchar2(10) default 'en'~');
 
     if xxfnd_ddl_pkg.create_table('XXFND_RFI_ROUNDS', q'~create table xxfnd_rfi_rounds (
     rfi_id                 number         not null,
@@ -125,10 +127,16 @@ create or replace package xxfnd_rfi_pkg authid definer as
                          p_approval_type       in varchar2 default null,
                          p_attributes          in apex_t_varchar2 default null,
                          p_requester           in varchar2 default null,
+                         p_language            in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2);
-    -- p_approval_type: who provides the information comes from that Approval Setup type (p_attributes, p_requester);
+    -- Release 82: a USER recipient left empty is the requester (p_requester) - the default recipient of an RFI.
+    -- p_language: the language of the e-mail to an EXTERNAL recipient (default English); a user gets their own.
+    -- p_approval_type: who provides the information comes from that Approval Setup type (p_attributes, p_requester)
+    -- while the type is enabled (a disabled type, e.g. CASE_RFI, is ignored: the chosen recipient answers);
     -- each provider answers in turn (ad-hoc providers can be added), then the answer is reviewed.
+    -- Release 82: the RFI process of the application (Process Catalogue): workflow off = no response task; e-mail off
+    -- = no e-mail.
     -- p_with_tasks N: the application collects the answer in its own way (e.g. the requester resubmits a returned
     -- request) and resolves the RFI itself; no response task is created.
     -- Participant of the RFI_RESPONSE task: the user the RFI is addressed to.
@@ -183,15 +191,15 @@ create or replace package body xxfnd_rfi_pkg as
     procedure open_response(p_rfi_id in number) is
         l_task_id number;
     begin
-        l_task_id := xxfnd_task_pkg.create_task('RFI_RESPONSE', to_char(p_rfi_id));
+        l_task_id := xxfnd_workflow_pkg.create_task('RFI_RESPONSE', to_char(p_rfi_id));
         update xxfnd_rfis set response_task_id = l_task_id where rfi_id = p_rfi_id;
     end open_response;
 
     procedure start_review(p_rfi_id in number) is
         l_task_id number;
     begin
-        xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));   -- a newer answer replaces the older one
-        l_task_id := xxfnd_task_pkg.create_task('RFI_REVIEW', to_char(p_rfi_id));
+        xxfnd_workflow_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));   -- a newer answer replaces the older one
+        l_task_id := xxfnd_workflow_pkg.create_task('RFI_REVIEW', to_char(p_rfi_id));
         update xxfnd_rfis set review_task_id = l_task_id where rfi_id = p_rfi_id;
     end start_review;
 
@@ -211,28 +219,37 @@ create or replace package body xxfnd_rfi_pkg as
                          p_approval_type       in varchar2 default null,
                          p_attributes          in apex_t_varchar2 default null,
                          p_requester           in varchar2 default null,
+                         p_language            in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2) is
         l_rule  varchar2(100);
         l_users varchar2(4000);
+        l_type_on varchar2(1);
         l_app xxfnd_applications.application_code%type := app_code(p_application_code);
+        -- release 82: the requester is the default recipient
+        l_recipient varchar2(255) := case when p_recipient_type = 'USER'
+                                          then upper(coalesce(p_recipient_user_name, p_requester)) end;
     begin
         xxfnd_lookup_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
+        select max(enabled_flag) into l_type_on from xxfnd_approval_types where approval_type_code = upper(p_approval_type);
+        if p_recipient_type = 'USER' and l_recipient is null and nvl(l_type_on, 'N') = 'N' then
+            raise_application_error(-20509, 'Choose who provides the information.');
+        end if;
         if p_due_date is not null and p_due_date < trunc(sysdate) then
             raise_application_error(-20501, 'The due date cannot be in the past.');
         end if;
         insert into xxfnd_rfis (application_code, entity_name, pk1_value, recipient_type, recipient_user_name,
                                 recipient_name, recipient_email, recipient_reference, rfi_category, description,
-                                continue_other_work_flag, rfi_status, due_date)
-        values (l_app, p_entity_name, p_pk1_value, p_recipient_type, upper(p_recipient_user_name),
+                                continue_other_work_flag, rfi_status, due_date, language_code)
+        values (l_app, p_entity_name, p_pk1_value, p_recipient_type, l_recipient,
                 p_recipient_name, p_recipient_email, p_recipient_reference, p_rfi_category, p_description,
                 nvl(p_continue_other_work, 'Y'),
                 case when nvl(p_continue_other_work, 'Y') = 'Y' then 'WAITING_FOR_INFORMATION' else 'ON_HOLD_PENDING' end,
-                p_due_date)
+                p_due_date, nvl(p_language, 'en'))
         returning rfi_id into p_rfi_id;
         insert into xxfnd_rfi_rounds (rfi_id, round_no, question, asked_by)
         values (p_rfi_id, 1, p_description, xxfnd_util_pkg.current_user);
-        if p_approval_type is not null then
+        if p_approval_type is not null and l_type_on = 'Y' then
             l_rule  := xxfnd_approval_rule_pkg.start_approval(p_approval_type, to_char(p_rfi_id), p_attributes, p_requester);
             l_users := xxfnd_approval_rule_pkg.current_approvers(p_approval_type, to_char(p_rfi_id));
             update xxfnd_rfis
@@ -242,7 +259,8 @@ create or replace package body xxfnd_rfi_pkg as
         end if;
         -- a user answers in My Tasks; an external person through the e-mailed link (no account, no task)
         if p_recipient_type = 'USER' then
-            if nvl(p_with_tasks, 'Y') = 'Y' then
+            if nvl(p_with_tasks, 'Y') = 'Y'
+               and xxfnd_workflow_pkg.workflow_enabled(xxfnd_workflow_pkg.c_rfi_process, l_app) = 'Y' then
                 open_response(p_rfi_id);
             end if;
         else
@@ -298,7 +316,7 @@ create or replace package body xxfnd_rfi_pkg as
         if l_rfi.rfi_status not in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED') then
             raise_application_error(-20503, 'This request for information is closed.');
         end if;
-        xxfnd_task_pkg.complete_open('RFI_RESPONSE', to_char(p_rfi_id));
+        xxfnd_workflow_pkg.complete_open('RFI_RESPONSE', to_char(p_rfi_id));
         record_answer(l_rfi, p_response_text, xxfnd_util_pkg.current_user);
     end respond;
 
@@ -348,7 +366,7 @@ create or replace package body xxfnd_rfi_pkg as
             raise_application_error(-20503, 'This request for information is closed.');
         end if;
         close_round(p_rfi_id, l_rfi.round_no, 'ASKED_AGAIN', p_question);
-        xxfnd_task_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
+        xxfnd_workflow_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
         update xxfnd_rfis
            set round_no = round_no + 1, description = substr(p_question, 1, 4000), rfi_status = 'WAITING_FOR_INFORMATION',
                response_text = null, responded_date = null
@@ -392,10 +410,10 @@ create or replace package body xxfnd_rfi_pkg as
             close_round(p_rfi_id, l_rfi.round_no, p_status, p_notes);
         end if;
         if p_status in ('RESOLVED', 'REJECTED_RETURNED') then
-            xxfnd_task_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
+            xxfnd_workflow_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
         elsif p_status = 'CANCELLED' then
-            xxfnd_task_pkg.cancel_open('RFI_RESPONSE', to_char(p_rfi_id));
-            xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));
+            xxfnd_workflow_pkg.cancel_open('RFI_RESPONSE', to_char(p_rfi_id));
+            xxfnd_workflow_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));
         end if;
     end resolve;
 
@@ -404,54 +422,41 @@ create or replace package body xxfnd_rfi_pkg as
         l_to       varchar2(320);
         l_name     varchar2(360);
         l_template varchar2(50);
-        l_subject  varchar2(500);
-        l_body     clob;
+        l_lang     varchar2(10);
         l_json     json_object_t := json_object_t();
-        l_tokens   clob;
         l_mail_id  number;
     begin
         select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id;
-        if xxfnd_workflow_switch_pkg.email_enabled(null, l_rfi.application_code) = 'N' then
-            return;
-        end if;
         if l_rfi.recipient_type = 'USER' then
             select max(email_address), max(full_name) into l_to, l_name
               from xxfnd_employees where user_name = upper(l_rfi.recipient_user_name);
             l_template := 'RFI_RAISED_INTERNAL';
+            l_lang     := xxfnd_notify_pkg.user_language(l_rfi.recipient_user_name);
         else
             l_to := l_rfi.recipient_email;
             l_name := l_rfi.recipient_name;
             l_template := 'RFI_RAISED_EXTERNAL';
+            l_lang     := nvl(l_rfi.language_code, 'en');   -- release 82: chosen when the RFI is raised
         end if;
         if l_to is null then
             return;
         end if;
-        select nvl(t.subject, n.subject), nvl(t.body_html, n.body_html)
-          into l_subject, l_body
-          from xxfnd_notification_templates n
-          left join xxfnd_notification_templates_tl t
-            on t.template_code = n.template_code and t.language_code = xxfnd_util_pkg.current_lang
-         where n.template_code = l_template;
+        -- release 82: plain values; the XXFND_STANDARD layout escapes them and carries the link
         l_json.put('RFI_NUMBER',   l_rfi.rfi_number);
-        l_json.put('DESCRIPTION',  apex_escape.html(l_rfi.description));
+        l_json.put('DESCRIPTION',  l_rfi.description);
         l_json.put('DUE_DATE',     to_char(l_rfi.due_date, 'DD-Mon-YYYY'));
-        l_json.put('CONTACT_NAME', apex_escape.html(nvl(l_name, 'Sir/Madam')));
+        l_json.put('CONTACT_NAME', nvl(l_name, 'Sir/Madam'));
         l_json.put('RESPONSE_URL', p_response_url);
-        l_tokens := l_json.to_clob;
-        l_mail_id := apex_mail.send(
-                         p_to        => l_to,
-                         p_from      => apex_app_setting.get_value('MAIL_FROM'),
-                         p_subj      => dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
-                         p_body      => to_clob(l_rfi.description),
-                         p_body_html => xxfnd_util_pkg.replace_tokens(l_body, l_tokens));
+        l_mail_id := xxfnd_notify_pkg.send_message(l_template, l_to, l_json.to_clob, l_lang,
+                                                   xxfnd_workflow_pkg.c_rfi_process, l_rfi.application_code);
         -- release 74 (R27): an e-mail to an outside person is kept with the record's communications; the one-time
         -- response link is masked (only its hash is stored with the RFI)
-        if l_rfi.recipient_type = 'EXTERNAL' then
+        if l_rfi.recipient_type = 'EXTERNAL' and l_mail_id is not null then
             l_json.put('RESPONSE_URL', '[secure response link]');
-            l_tokens := l_json.to_clob;
-            xxfnd_communication_pkg.record_sent(l_rfi.application_code, l_rfi.entity_name, l_rfi.pk1_value, l_to,
-                                                dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
-                                                xxfnd_util_pkg.replace_tokens(l_body, l_tokens), l_rfi.rfi_id, l_mail_id);
+            xxfnd_notify_pkg.record_sent(l_rfi.application_code, l_rfi.entity_name, l_rfi.pk1_value, l_to,
+                                         substr(xxfnd_notify_pkg.preview_subject(l_template, l_lang, l_json.to_clob), 1, 500),
+                                         xxfnd_notify_pkg.preview_message(l_template, l_lang, l_json.to_clob),
+                                         l_rfi.rfi_id, l_mail_id);
         end if;
     end send_email;
 

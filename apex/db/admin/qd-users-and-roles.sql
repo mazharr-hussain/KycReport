@@ -73,7 +73,7 @@ begin
     apex_util.set_workspace('XXCUS');
     select max(application_id) into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'COMMON';
     select min(column_value) into l_admin
-      from table(apex_string.split(xxfnd_task_pkg.users_with_privilege('USERS_ACCESS', 'MANAGE'), ','));
+      from table(apex_string.split(xxfnd_workflow_pkg.users_with_privilege('USERS_ACCESS', 'MANAGE'), ','));
     if l_admin is null then
         raise_application_error(-20001, 'No user holds USERS_ACCESS.MANAGE: give the access administrator role first.');
     end if;

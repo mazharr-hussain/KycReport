@@ -39,7 +39,7 @@ begin
     apex_util.set_workspace('XXCUS');
     select max(application_id) into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'COMMON';
     select min(column_value) into l_admin
-      from table(apex_string.split(xxfnd_task_pkg.users_with_privilege('DATA_SECURITY', 'MANAGE'), ','))
+      from table(apex_string.split(xxfnd_workflow_pkg.users_with_privilege('DATA_SECURITY', 'MANAGE'), ','))
      where column_value in (select user_name from xxfnd_user_roles_v where role_code = 'COMMON_ADMIN' and active_flag = 'Y');
     apex_session.create_session(l_app, 1, l_admin);
     xxfnd_vpd_pkg.begin_trusted;
@@ -107,7 +107,7 @@ begin
     check_(l_v = 'en', 'a new user''s language is English');
     select count(*) into l_n from xxfnd_role_privileges where role_code = 'SUPER_ADMIN' and privilege_code = 'WORKFLOW_MONITOR.MANAGE';
     check_(l_n = 1, 'Super Administrator holds WORKFLOW_MONITOR.MANAGE (business administrator of every task)');
-    select count(*) into l_n from xxfnd_user_roles where role_code = 'SUPER_ADMIN';
+    select count(*) into l_n from xxfnd_user_roles where role_code = 'SUPER_ADMIN' and enabled_flag = 'Y';   -- a removed grant stays, disabled
     check_(l_n = 0, 'nobody holds Super Administrator after the install (granted from the console only)');
 
     rollback;

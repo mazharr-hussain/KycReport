@@ -222,15 +222,6 @@
   ]
  },
  {
-  "name": "15b Common workflow runtime",
-  "file": "15b-workflow-runtime.sql",
-  "install_sequence": 152,
-  "upgrade_sequence": 112,
-  "apps": [
-   "COMMON"
-  ]
- },
- {
   "name": "15c Request for Information workflow",
   "file": "15c-rfi-workflow.sql",
   "install_sequence": 154,
@@ -579,6 +570,15 @@
   "file": "21d-app-setting-pkg.sql",
   "install_sequence": 216,
   "upgrade_sequence": 176,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "24 Workflow module",
+  "file": "24-workflow-module.sql",
+  "install_sequence": 217,
+  "upgrade_sequence": 177,
   "apps": [
    "COMMON"
   ]

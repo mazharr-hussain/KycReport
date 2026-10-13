@@ -150,13 +150,8 @@ select detail_pk, change_type, change_title, change_summary, submitted_by, submi
   from table(xxfnd_approval_pkg.config_changes);
 comment on table xxfnd_config_changes_v is 'Maker-checker changes waiting for approval, one row per CONFIG_CHANGE approval task (DETAIL_PK), from every application.';
 
-create or replace view xxfnd_pending_approvals_v as
-select substr(detail_pk, 1, instr(detail_pk, ':') - 1)  table_name,
-       change_type,
-       substr(detail_pk, instr(detail_pk, ':') + 1)     pk_value,
-       change_summary,
-       submitted_by,
-       submitted_date,
-       'PENDING_APPROVAL'                               approval_status
-  from xxfnd_config_changes_v;
-comment on table xxfnd_pending_approvals_v is 'Config Change Approvals queue: every maker-checker change waiting for a second person.';
+-- release 82: XXFND_PENDING_APPROVALS_V was used by nothing; dropped (checked step, DDL kept in XXFND_DROPPED_OBJECTS)
+begin
+    xxfnd_ddl_pkg.drop_object('XXFND_PENDING_APPROVALS_V', 'VIEW');
+end;
+/

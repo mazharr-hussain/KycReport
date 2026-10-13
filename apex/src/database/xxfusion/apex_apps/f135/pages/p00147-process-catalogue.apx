@@ -122,7 +122,7 @@ page 147 (
             sqlQuery:
                 ```sql
                 -- release 73: per application and workflow process: approval workflow (off = auto-approved) and e-mail
-                select p.application_code, p.process_code, p.process_name, p.workflow_enabled_flag, p.email_enabled_flag
+                select p.application_code, p.process_code, p.process_name, p.participants_type, p.workflow_enabled_flag, p.email_enabled_flag
                   from xxfnd_workflow_processes p
                  where :G_ADMIN_APP = 'ALL' or p.application_code = :G_ADMIN_APP
                 ```
@@ -182,16 +182,23 @@ page 147 (
             )
 
             displayColumn (
-                column: @WORKFLOW_ENABLED_FLAG
+                column: @PARTICIPANTS_TYPE
                 layout {
                     sequence: 3
                 }
             )
 
             displayColumn (
-                column: @EMAIL_ENABLED_FLAG
+                column: @WORKFLOW_ENABLED_FLAG
                 layout {
                     sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @EMAIL_ENABLED_FLAG
+                layout {
+                    sequence: 5
                 }
             )
         )
@@ -244,6 +251,28 @@ page 147 (
                 type: databaseColumn
                 databaseColumn: PROCESS_NAME
                 dataType: varchar2
+            }
+        )
+
+        column PARTICIPANTS_TYPE (
+            type: selectList
+            heading {
+                heading: Participants
+            }
+            layout {
+                sequence: 35
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC2:Approval Setup rules;RULE,Chosen by the user;CHOSEN
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PARTICIPANTS_TYPE
+                dataType: varchar2
+            }
+            help {
+                helpText: Who acts on the process: the Approval Setup rules decide, or the user who starts it chooses (for example the recipient of a request for information).
             }
         )
 
@@ -436,6 +465,43 @@ page 147 (
 
     )
 
+    dynamicAction confirm-workflow-off (
+        name: Confirm switching a workflow off
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: columns
+            interactiveGrid: @processes
+            columns: [
+                WORKFLOW_ENABLED_FLAG
+            ]
+        }
+        comments {
+            comments: Release 82 - switching an approval workflow off asks first; Cancel puts the switch back on.
+        }
+
+        action confirm-workflow-off-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var item = apex.item(this.triggeringElement.id);
+                    if (item.getValue() === 'N') {
+                        apex.message.confirm('Records of this process will be approved automatically. Continue?', function (ok) {
+                            if (!ok) { item.setValue('Y'); }
+                        });
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
     dynamicAction refresh-report (
         name: Refresh report
         execution {
@@ -468,7 +534,7 @@ page 147 (
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_workflow_switch_pkg.sync_processes;   -- release 73: new workflows get their switches
+                xxfnd_workflow_pkg.sync_processes;   -- release 73: new workflows get their switches
                 ```
         }
         execution {
@@ -497,7 +563,8 @@ page 147 (
             language: plsql
             plsqlCode:
                 ```plsql
-                update xxfnd_applications set email_enabled_flag = nvl(:P147_INSTANCE_EMAIL, 'N') where application_code = 'COMMON';
+                -- release 82: saved by the workflow package (no DML in pages)
+                xxfnd_workflow_pkg.set_workspace_email(nvl(:P147_INSTANCE_EMAIL, 'N'));
                 ```
         }
         execution {

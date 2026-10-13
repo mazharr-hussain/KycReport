@@ -240,7 +240,7 @@ create or replace package body xxfnd_share_pkg as
         pages('INTEGRATIONS',      '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
 
         -- release 79: the Super Administrator is the business administrator of every workflow and task of every
-        -- application (XXFND_TASK_PKG.BUSINESS_ADMINS returns the holders of WORKFLOW_MONITOR.MANAGE); granted from
+        -- application (XXFND_WORKFLOW_PKG.BUSINESS_ADMINS returns the holders of WORKFLOW_MONITOR.MANAGE); granted from
         -- the console only (nobody holds it after the install)
         feature('WORKFLOW_MONITOR', 'Workflow Monitor', 'WORKFLOW', 540, 'VIEW,MANAGE', null,
                 'fa-heartbeat', 'Running workflows and tasks of every application: act on anyone''s behalf.');

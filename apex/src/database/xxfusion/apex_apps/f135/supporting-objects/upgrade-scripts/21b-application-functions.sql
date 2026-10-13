@@ -17,7 +17,7 @@ begin
         xxfnd_application_pkg.set_apex_id(a.application_code);   -- release 73: APEX ID known before the first sign-in
         xxfnd_application_pkg.ensure_rows(a.application_code);
     end loop;
-    xxfnd_workflow_switch_pkg.sync_processes;   -- release 73: the workflow processes and their switches (09e)
+    xxfnd_workflow_pkg.sync_processes;   -- release 73: the workflow processes and their switches (09e)
     xxfnd_util_pkg.set_install_mode(false);
     commit;
 exception

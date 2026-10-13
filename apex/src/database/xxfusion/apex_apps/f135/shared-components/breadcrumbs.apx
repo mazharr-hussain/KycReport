@@ -680,4 +680,35 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry my-tasks (
+        name: My Tasks
+        pageNumber: 40
+        execution {
+            sequence: 20
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 40
+            }
+        }
+    )
+
+    entry workflow-monitor (
+        name: Workflow Monitor
+        pageNumber: 141
+        execution {
+            sequence: 590
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 141
+            }
+        }
+    )
 )
