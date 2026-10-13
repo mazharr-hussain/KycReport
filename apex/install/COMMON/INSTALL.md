@@ -56,6 +56,13 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 81 (COMMON)
+Release 81 (COMMON only, patch 88): Documents and Records use one package per component. The document store transport
+(Oracle UCM, SharePoint, database) is now private code of XXFND_ATTACH_PKG; XXFND_ATTACH_STORE_PKG is dropped (its DDL
+is kept in XXFND_DROPPED_OBJECTS). New XXFND_RETENTION_PKG is a placeholder that flags, archives and deletes nothing.
+The Retention screen (112) shows only "Retention is not active yet". Document Entity (131) saves its display name
+through XXFND_ATTACH_PKG. Upgrade as usual (Install Supporting Objects, upgrade scripts).
+
 ## Release 80 (COMMON)
 Release 80 (COMMON only, patch 87): Platform and Reference Data use one package per component - XXFND_APPLICATION_PKG
 (applications, setup types, administration scope), XXFND_APP_SETTING_PKG, XXFND_LOOKUP_PKG and XXFND_DFF_PKG; the old
