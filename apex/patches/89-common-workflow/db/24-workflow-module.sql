@@ -1,7 +1,6 @@
 --------------------------------------------------------------------------------
 -- 24 Workflow module (release 82, C5). COMMON only (XXFUSION), after 21b (the processes are synced there).
---   - XXFND_WORKFLOW_PROCESSES.PARTICIPANTS_TYPE: who acts on the process - RULE (the Approval Setup rules decide)
---     or CHOSEN (the user who starts it chooses, e.g. the recipient of a request for information).
+--   - XXFND_WORKFLOW_PROCESSES.PARTICIPANTS_TYPE (added in 09e, before XXFND_WORKFLOW_PKG): RULE or CHOSEN.
 --   - RFI is a process of every registered application (XXFND_WORKFLOW_PKG.SYNC_PROCESSES adds it): its workflow
 --     switch (off = no review task) and e-mail switch are set in the Process Catalogue like any other process.
 --   - The Approval Setup type "Case request for information" (CASE_RFI) is disabled: the recipient of a request for
@@ -9,16 +8,18 @@
 -- Idempotent: checked steps; a re-run changes nothing.
 --------------------------------------------------------------------------------
 begin
-    xxfnd_ddl_pkg.add_column('XXFND_WORKFLOW_PROCESSES', 'PARTICIPANTS_TYPE', q'~varchar2(30) default 'RULE' not null~');
-    xxfnd_ddl_pkg.add_constraint('XXFND_WORKFLOW_PROCESSES', 'XXFND_WORKFLOW_PROCESSES_CK3',
-        q'~check (participants_type in ('RULE','CHOSEN'))~');
-    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_workflow_processes.participants_type is 'Who acts on the process: RULE = the Approval Setup rules decide; CHOSEN = the user who starts it chooses (e.g. the recipient of a request for information).'~');
-end;
-/
-
-begin
     xxfnd_util_pkg.set_install_mode(true);
-    xxfnd_workflow_pkg.sync_processes;   -- adds the RFI process of every application
+    begin
+        xxfnd_workflow_pkg.sync_processes;   -- adds the RFI process of every application
+    exception
+        when others then
+            -- the package was recompiled earlier in this install session (its state is discarded once): call again
+            if sqlcode in (-4068, -4061, -4065, -6508) then
+                xxfnd_workflow_pkg.sync_processes;
+            else
+                raise;
+            end if;
+    end;
     update xxfnd_workflow_processes set participants_type = 'CHOSEN'
      where process_code = xxfnd_workflow_pkg.c_rfi_process and participants_type <> 'CHOSEN';
     update xxfnd_approval_types set enabled_flag = 'N'
@@ -119,5 +120,11 @@ comment on table xxfnd_qa_history_v is 'Release 82: questions and answers of a r
 -- the applications reach the new view through the usual grants (19c runs before this script)
 begin
     xxfnd_share_pkg.grant_to_applications;
+end;
+/
+
+-- release 82: anything a change above left invalid is compiled again (no install error, no stale package state)
+begin
+    dbms_utility.compile_schema(schema => user, compile_all => false);
 end;
 /
