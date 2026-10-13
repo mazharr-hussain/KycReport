@@ -115,3 +115,4 @@ Workflows / task definitions / automations (src/shared-components) ──> same 
 - Tests per feature: requests `request_party_test.sql`/`request_party_ui.py`, flow `kyc_flow_test.sql`/`kyc_ui.py`,
   monitoring `monitoring_*`, upload `upload_limits_*`, security `security_test.sql`, workflow `workflow_test.sql`.
 - Patches for the user's environment: `apex/patches/NN-<feature>/` (db script + `app/` files + README) and a zip.
+- **Release 77 (COMMON and KYC delivered separately; patches 83 COMMON, 84 KYC):** no retention policy is seeded (the business keeps every record; no code ever acted on the policies). COMMON 09f and KYC 18 remove the policies seeded by releases 76 and earlier when unchanged (OBJECT_VERSION_NUMBER = 1). From this release COMMON and KYC are released and documented separately.
