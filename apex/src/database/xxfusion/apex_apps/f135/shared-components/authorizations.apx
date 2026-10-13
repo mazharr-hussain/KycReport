@@ -4,8 +4,8 @@ authorization app-user (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('APP_USER');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('APP_USER');
             ```
     }
     error {
@@ -22,8 +22,8 @@ authorization page-view (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_VIEW');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_VIEW');
             ```
     }
     error {
@@ -40,8 +40,8 @@ authorization page-create (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_CREATE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_CREATE');
             ```
     }
     error {
@@ -58,8 +58,8 @@ authorization page-manage (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_MANAGE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_MANAGE');
             ```
     }
     error {
@@ -76,8 +76,8 @@ authorization page-submit (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_SUBMIT');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_SUBMIT');
             ```
     }
     error {
@@ -94,8 +94,8 @@ authorization admin-area (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('ADMIN_AREA');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('ADMIN_AREA');
             ```
     }
     error {
@@ -113,7 +113,7 @@ authorization admin-app (
         plsqlFunctionBody:
             ```plsql
             -- release 61: the application in scope (G_ADMIN_APP) is one the user administers (XXFND_ADMIN_SCOPE_PKG)
-            return xxfnd_auth_pkg.authorized('ADMIN_APP');
+            return xxfnd_user_pkg.authorized('ADMIN_APP');
             ```
     }
     error {

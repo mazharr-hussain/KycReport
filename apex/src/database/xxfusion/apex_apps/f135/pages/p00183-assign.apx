@@ -1,0 +1,313 @@
+page 183 (
+    name: Assign
+    alias: ASSIGN
+    title: &P183_TITLE.
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 640
+        chained: false
+    }
+    security {
+        authorizationScheme: @admin-area
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One picker for every assignment of the Security screens: roles to a user, users to a role, data access rules
+            to a user or a role, and users or roles to a data access rule. Search, select several and press Assign. What
+            is assigned here shows at once on the other two screens. Access adds up: a user sees the rows allowed by any
+            rule assigned to them or to one of their roles.
+            ```
+    }
+
+    region assign (
+        name: &P183_TITLE.
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P183_TARGET (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @assign
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P183_TARGET_ID (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @assign
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P183_PICK (
+        type: hidden
+        layout {
+            sequence: 30
+            region: @assign
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P183_TITLE (
+        type: hidden
+        layout {
+            sequence: 40
+            region: @assign
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P183_VALUES (
+        type: popupLov
+        label {
+            label: &P183_PICK_LABEL.
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- what can be assigned to the record on the calling screen: roles, users or data access rules
+                select display_value, return_value
+                  from (select r.role_name || ' (' || r.application_code || ')' as display_value,
+                               r.role_code as return_value, 'ROLE' as kind
+                          from xxfnd_roles r
+                         where r.enabled_flag = 'Y'
+                        union all
+                        select coalesce(u.full_name, u.user_name) || ' - ' || u.user_name, to_char(u.user_id), 'USER'
+                          from xxfnd_users u
+                         where u.enabled_flag = 'Y'
+                        union all
+                        select d.table_name || ': '
+                               || decode(d.rule_type, 'ALL_ROWS', 'all rows',
+                                                      'OWN_RECORDS', 'own records (' || d.column_name || ')',
+                                                      d.column_name || ' in ' || d.value_list)
+                               || nvl2(d.description, ' - ' || d.description, null),
+                               to_char(d.rule_id), 'RULE'
+                          from xxfnd_data_security_rules d
+                         where d.enabled_flag = 'Y')
+                 where kind = :P183_PICK
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 50
+            region: @assign
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        multipleValues {
+            type: delimitedList
+            separator: :
+        }
+        help {
+            helpText: Search by name, select one or more and press Assign. Something already assigned stays as it is.
+        }
+    )
+
+    pageItem P183_PICK_LABEL (
+        type: hidden
+        layout {
+            sequence: 60
+            region: @assign
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-close (
+            action: cancelDialog
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    process describe (
+        name: Describe the assignment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 79: the record the picker assigns to, and what it picks
+                declare
+                    l_name varchar2(400);
+                begin
+                    if :P183_TARGET = 'USER' then
+                        select max(coalesce(full_name, user_name)) into l_name
+                          from xxfnd_users where user_id = to_number(:P183_TARGET_ID default null on conversion error);
+                    elsif :P183_TARGET = 'ROLE' then
+                        select max(role_name) into l_name from xxfnd_roles where role_code = :P183_TARGET_ID;
+                    elsif :P183_TARGET = 'RULE' then
+                        select max(table_name || ' rule') into l_name
+                          from xxfnd_data_security_rules
+                         where rule_id = to_number(:P183_TARGET_ID default null on conversion error);
+                    end if;
+                    if l_name is null or :P183_PICK not in ('ROLE', 'USER', 'RULE') or :P183_PICK = :P183_TARGET then
+                        raise_application_error(-20074, 'Open the picker from a User, Role or Data access rule screen.');
+                    end if;
+                    :P183_PICK_LABEL := case :P183_PICK when 'ROLE' then 'Roles' when 'USER' then 'Users'
+                                                        else 'Data access rules' end;
+                    :P183_TITLE := 'Assign ' || lower(:P183_PICK_LABEL) || ' to ' || l_name;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process assign (
+        name: Assign
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 79: one call per pair in the component package (user-role: XXFND_USER_PKG; data access rule:
+                -- XXFND_VPD_PKG), so an assignment made on any of the three Security screens is the same
+                begin
+                    for v in (select column_value as val from table(apex_string.split(:P183_VALUES, ':'))
+                               where column_value is not null) loop
+                        case :P183_TARGET || '>' || :P183_PICK
+                            when 'USER>ROLE' then xxfnd_user_pkg.assign_role(to_number(:P183_TARGET_ID), v.val);
+                            when 'ROLE>USER' then xxfnd_user_pkg.assign_role(to_number(v.val), :P183_TARGET_ID);
+                            when 'USER>RULE' then xxfnd_vpd_pkg.assign_rule(to_number(v.val), p_user_id => to_number(:P183_TARGET_ID));
+                            when 'ROLE>RULE' then xxfnd_vpd_pkg.assign_rule(to_number(v.val), p_role_code => :P183_TARGET_ID);
+                            when 'RULE>USER' then xxfnd_vpd_pkg.assign_rule(to_number(:P183_TARGET_ID), p_user_id => to_number(v.val));
+                            when 'RULE>ROLE' then xxfnd_vpd_pkg.assign_rule(to_number(:P183_TARGET_ID), p_role_code => v.val);
+                        end case;
+                    end loop;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Assigned.
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+)

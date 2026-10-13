@@ -165,7 +165,7 @@ begin
     constraint xxfnd_roles_ck2 check (enabled_flag in ('Y','N'))
 )~') then
         xxfnd_ddl_pkg.run(q'~create index xxfnd_roles_n1 on xxfnd_roles (application_code)~');
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_roles is 'Application roles. Enforced by APEX authorization schemes that call XXFND_SECURITY_PKG.'~');
+        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_roles is 'Application roles. Enforced by APEX authorization schemes that call XXFND_USER_PKG.AUTHORIZED.'~');
     end if;
 end;
 /

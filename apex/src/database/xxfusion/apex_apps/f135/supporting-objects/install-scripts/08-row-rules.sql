@@ -33,7 +33,7 @@ create or replace trigger xxfnd_employees_src
     before update or delete on xxfnd_employees
     for each row
 begin
-    if xxfnd_util_pkg.in_apex_session and not xxfnd_security_pkg.sync_running
+    if xxfnd_util_pkg.in_apex_session and not xxfnd_integration_pkg.sync_running
        and :old.source_type = 'FUSION' then
         if deleting
            or :new.user_name     <> :old.user_name
@@ -74,13 +74,4 @@ begin
 end;
 /
 
--- An employee's user name changed (Fusion user name from the HCM sync, or a LOCAL edit): every stored reference
--- moves to the new name (xxfnd_security_pkg.rename_user), so the person keeps their requests, cases and tasks.
-create or replace trigger xxfnd_employees_rename
-    after update of user_name on xxfnd_employees
-    for each row
-    when (upper(new.user_name) <> upper(old.user_name))
-begin
-    xxfnd_security_pkg.rename_user(:old.user_name, :new.user_name);
-end;
-/
+-- (release 79: the trigger XXFND_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)

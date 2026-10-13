@@ -135,6 +135,23 @@ installScript 05-core-packages-part-1-of-2 (
     }
 )
 
+installScript 05b-integrations-package (
+    execution {
+        sequence: 55
+    }
+    script {
+        contentFile: 05b-integration-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 06-core-packages-part-2-of-2 (
     execution {
         sequence: 60
@@ -526,12 +543,12 @@ installScript 16i-administration-scope (
     }
 )
 
-installScript 16j-authentication-and-authorization (
+installScript 16j-users-package-users-sign-in-authorization (
     execution {
         sequence: 175
     }
     script {
-        contentFile: 16j-auth-pkg.sql
+        contentFile: 16j-user-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -651,6 +668,23 @@ installScript 22-common-modules (
     }
     script {
         contentFile: 22-common-modules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 23-common-security-module (
+    execution {
+        sequence: 214
+    }
+    script {
+        contentFile: 23-security-module.sql
     }
     serverSideCondition {
         type: expression

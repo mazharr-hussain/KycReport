@@ -29,6 +29,7 @@ begin
             check_(sqlcode = -20009, 'DROP_OBJECT refuses a table (tables keep their data)');
     end;
     delete from xxfnd_dropped_objects where object_name = 'XXFND_R78_TEST_V';
+    commit;
 
     -- the six modules
     select listagg(lookup_code, ',') within group (order by display_sequence) into l_v

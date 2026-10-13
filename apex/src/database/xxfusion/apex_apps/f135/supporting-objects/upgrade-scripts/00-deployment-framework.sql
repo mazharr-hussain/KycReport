@@ -52,6 +52,8 @@ create or replace package xxfnd_ddl_pkg authid current_user as
     -- this schema's synonyms for it are dropped, then the object (grants go with it; nothing is purged). Dependents
     -- are not a reason to stop: a dropped component breaks its old callers on purpose (no wrappers).
     procedure drop_object(p_object_name in varchar2, p_object_type in varchar2);
+    -- Release 79: ALTER TABLE ... MODIFY (<column> NULL) only when the column is NOT NULL (no data changes).
+    procedure set_nullable(p_table_name in varchar2, p_column_name in varchar2);
     -- EXECUTE IMMEDIATE, for the statements that belong to a table CREATE_TABLE just created.
     procedure run(p_ddl in varchar2);
 end xxfnd_ddl_pkg;
@@ -207,6 +209,18 @@ create or replace package body xxfnd_ddl_pkg as
         end loop;
         execute immediate 'drop ' || l_type || ' ' || l_name;
     end drop_object;
+
+    procedure set_nullable(p_table_name in varchar2, p_column_name in varchar2) is
+        l_table  varchar2(128) := upper(dbms_assert.simple_sql_name(p_table_name));
+        l_column varchar2(128) := upper(dbms_assert.simple_sql_name(p_column_name));
+        l_count  pls_integer;
+    begin
+        select count(*) into l_count from user_tab_columns
+         where table_name = l_table and column_name = l_column and nullable = 'N';
+        if l_count > 0 then
+            execute immediate 'alter table ' || l_table || ' modify (' || l_column || ' null)';
+        end if;
+    end set_nullable;
 
 end xxfnd_ddl_pkg;
 /

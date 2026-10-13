@@ -131,12 +131,12 @@ create or replace package body xxfnd_share_pkg as
             when others then
                 null;
         end;
-        xxfnd_security_pkg.bootstrap_admin(l_user, l_name, l_email, 'COMMON_ADMIN');
+        xxfnd_user_pkg.bootstrap_admin(l_user, l_name, l_email, 'COMMON_ADMIN');
     else
         for a in (select user_name, trim(first_name || ' ' || last_name) full_name, email
                     from apex_workspace_apex_users
                    where is_admin = 'Yes' and nvl(account_locked, 'No') = 'No') loop
-            xxfnd_security_pkg.bootstrap_admin(a.user_name, a.full_name, a.email, 'COMMON_ADMIN');
+            xxfnd_user_pkg.bootstrap_admin(a.user_name, a.full_name, a.email, 'COMMON_ADMIN');
         end loop;
     end if;
     xxfnd_util_pkg.set_install_mode(false);
@@ -199,11 +199,11 @@ create or replace package body xxfnd_share_pkg as
         feature('OPTIONAL_FEATURES', 'Optional Features',            'PLATFORM', 130, 'VIEW,MANAGE', 10020,
                 'fa-toggle-on',  'Optional features of each application, switched on or off.');
         feature('USERS_ACCESS',     'Users ' || c_amp || ' Access',     'SECURITY', 210, 'VIEW,CREATE,MANAGE', 103,
-                'fa-users',      'Employees and the roles they hold.');
+                'fa-users',      'Users, their roles and their data access.');
         feature('ROLES_PRIVILEGES', 'Roles ' || c_amp || ' Privileges', 'SECURITY', 220, 'VIEW,CREATE,MANAGE', 105,
                 'fa-key',        'Roles, the privileges they grant and segregation of duties.');
         feature('DATA_SECURITY',    'Data Security',                 'SECURITY', 230, 'VIEW,CREATE,MANAGE', 180,
-                'fa-lock',       'Which rows each role can see.');
+                'fa-lock',       'Data access rules: which rows each user and role can see.');
         feature('AUDIT_LOG',        'Audit Log',                     'SECURITY', 240, 'VIEW', 111,
                 'fa-history',    'Who changed what and when.');
         feature('LOOKUPS',          'Lookups',                       'REFERENCE_DATA', 310, 'VIEW,CREATE,MANAGE', 101,
@@ -238,6 +238,21 @@ create or replace package body xxfnd_share_pkg as
         pages('APPROVAL_SETUP',    '148|149');
         pages('NOTIFICATIONS',     '109|110');
         pages('INTEGRATIONS',      '120=Endpoints|122=Purposes|124=Transmission Log|121|123|125');
+
+        -- release 79: the Super Administrator is the business administrator of every workflow and task of every
+        -- application (XXFND_TASK_PKG.BUSINESS_ADMINS returns the holders of WORKFLOW_MONITOR.MANAGE); granted from
+        -- the console only (nobody holds it after the install)
+        feature('WORKFLOW_MONITOR', 'Workflow Monitor', 'WORKFLOW', 540, 'VIEW,MANAGE', null,
+                'fa-heartbeat', 'Running workflows and tasks of every application: act on anyone''s behalf.');
+        merge into xxfnd_roles t using (select 'SUPER_ADMIN' role_code from dual) s on (t.role_code = s.role_code)
+         when not matched then insert (role_code, application_code, application_id, role_name, description)
+                               values (s.role_code, 'COMMON', l_app, 'Super Administrator',
+                                       'Business administrator of every workflow and task of every application: '
+                                       || 'suspends, resumes, retries, reassigns and delegates on anyone''s behalf.');
+        merge into xxfnd_role_privileges t
+        using (select 'SUPER_ADMIN' rc, 'WORKFLOW_MONITOR.' || column_value pc from table(apex_t_varchar2('VIEW', 'MANAGE'))) s
+           on (t.role_code = s.rc and t.privilege_code = s.pc)
+         when not matched then insert (role_code, privilege_code) values (s.rc, s.pc);
 
         -- the Common Administrator holds every admin privilege
         merge into xxfnd_role_privileges t

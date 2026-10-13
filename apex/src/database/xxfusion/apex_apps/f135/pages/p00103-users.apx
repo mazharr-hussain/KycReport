@@ -1,7 +1,7 @@
 page 103 (
-    name: Employees and Access
-    alias: EMPLOYEES-AND-ACCESS
-    title: Employees and Access
+    name: Users and Access
+    alias: USERS
+    title: Users and Access
     pageGroup: @administration
     appearance {
         pageTemplate: @/standard
@@ -15,12 +15,14 @@ page 103 (
     help {
         helpText:
             ```
-            People come from Oracle Fusion HCM (nightly sync) or are created here when not in Fusion. Access is granted by assigning roles.
+            The users of every application, with their roles and data access rules, so you see who has what without
+            opening each user. A user is a local user (user name and password) or an employee who signs in with the
+            company account. Open a user to change it, assign roles and data access, or see the effective access.
             ```
     }
 
     region breadcrumb (
-        name: Employees and Access
+        name: Users and Access
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
@@ -40,32 +42,34 @@ page 103 (
     )
 
     region report (
-        name: Employees and Access
+        name: Users and Access
         type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select q.*,
-                       apex_page.get_url(p_page => 104, p_items => 'P104_EMPLOYEE_ID', p_values => to_char(q.employee_id), p_clear_cache => '104') as open_url
-                  from (
-
-                            select e.employee_id,
-                                   e.user_name,
-                                   e.full_name,
-                                   e.email_address,
-                                   xxfnd_util_pkg.lookup_meaning('EMPLOYEE_SOURCE', e.source_type) as source_type,
-                                   e.department_name,
-                                   e.job_title,
-                                   (select listagg(r.role_name, ', ') within group (order by r.role_name)
-                                      from xxfnd_user_roles_v r
-                                      join xxfnd_roles r2 on r2.role_code = r.role_code
-                                     where r.employee_id = e.employee_id and r.active_flag = 'Y') as roles,
-                                   e.enabled_flag,
-                                   e.last_sync_date
-                              from xxfnd_employees e
-                ) q
+                -- release 79: the users (XXFND_USERS) with the linked employee, their active roles and the data access
+                -- rules that apply to them (directly or through a role)
+                select u.user_id,
+                       u.user_name,
+                       coalesce(e.full_name, u.full_name) as full_name,
+                       coalesce(e.email_address, u.email_address) as email_address,
+                       decode(u.user_type, 'SSO', 'Employee', 'Local') as user_type,
+                       e.department_name,
+                       (select listagg(ur.role_name, ', ') within group (order by ur.role_name)
+                          from xxfnd_user_roles_v ur
+                         where ur.user_id = u.user_id and ur.active_flag = 'Y') as roles,
+                       (select listagg(distinct x.table_name, ', ') within group (order by x.table_name)
+                          from xxfnd_effective_access_v x
+                         where x.user_id = u.user_id) as data_access,
+                       (select l.meaning from xxfnd_lookup_values l
+                         where l.lookup_type = 'LANGUAGE' and l.lookup_code = u.language_code) as language,
+                       decode(u.enabled_flag, 'Y', 'Enabled', 'Disabled') as status,
+                       apex_page.get_url(p_page => 104, p_items => 'P104_USER_ID', p_values => to_char(u.user_id),
+                                         p_clear_cache => '104') as open_url
+                  from xxfnd_users u
+                  left join xxfnd_employees e on e.employee_id = u.employee_id
                 ```
         }
         layout {
@@ -86,7 +90,7 @@ page 103 (
             type: rowRangesXToY
         }
         messages {
-            whenNoDataFound: No data found.
+            whenNoDataFound: No users.
         }
         searchBar {
             includeSearchBar: true
@@ -98,17 +102,16 @@ page 103 (
             ]
         }
 
-        column EMPLOYEE_ID (
+        column USER_ID (
             type: hidden
             heading {
-                heading: Employee Id
+                heading: User Id
             }
             layout {
                 sequence: 10
             }
             source {
                 dataType: NUMBER
-                primaryKey: true
             }
         )
 
@@ -147,7 +150,7 @@ page 103 (
         column EMAIL_ADDRESS (
             type: plainText
             heading {
-                heading: Email
+                heading: E-mail
             }
             layout {
                 sequence: 40
@@ -157,10 +160,10 @@ page 103 (
             }
         )
 
-        column SOURCE_TYPE (
+        column USER_TYPE (
             type: plainText
             heading {
-                heading: Source
+                heading: Kind
             }
             layout {
                 sequence: 50
@@ -183,10 +186,10 @@ page 103 (
             }
         )
 
-        column JOB_TITLE (
+        column ROLES (
             type: plainText
             heading {
-                heading: Job
+                heading: Roles
             }
             layout {
                 sequence: 70
@@ -196,10 +199,10 @@ page 103 (
             }
         )
 
-        column ROLES (
+        column DATA_ACCESS (
             type: plainText
             heading {
-                heading: Roles
+                heading: Data Access (tables)
             }
             layout {
                 sequence: 80
@@ -209,10 +212,10 @@ page 103 (
             }
         )
 
-        column ENABLED_FLAG (
+        column LANGUAGE (
             type: plainText
             heading {
-                heading: Enabled
+                heading: Language
             }
             layout {
                 sequence: 90
@@ -222,19 +225,16 @@ page 103 (
             }
         )
 
-        column LAST_SYNC_DATE (
+        column STATUS (
             type: plainText
             heading {
-                heading: Last Synced
+                heading: Status
             }
             layout {
                 sequence: 100
             }
-            appearance {
-                formatMask: SINCE
-            }
             source {
-                dataType: DATE
+                dataType: STRING
             }
         )
 
@@ -255,11 +255,11 @@ page 103 (
 
     button create (
         buttonName: CREATE
-        label: Create Local Employee
+        label: Create User
         layout {
             sequence: 10
-            region: @breadcrumb
-            slot: CREATE
+            region: @report
+            slot: RIGHT_OF_IR_SEARCH_BAR
         }
         appearance {
             buttonTemplate: @/text
@@ -276,53 +276,6 @@ page 103 (
         }
         security {
             authorizationScheme: @page-create
-        }
-    )
-
-    button sync (
-        buttonName: SYNC
-        label: Sync from Fusion Now
-        layout {
-            sequence: 20
-            region: @report
-            slot: RIGHT_OF_IR_SEARCH_BAR
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-refresh
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-
-    process run-sync (
-        name: Start Fusion sync
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                dbms_scheduler.run_job('XXFND_HCM_SYNC', use_current_session => false);
-                ```
-        }
-        execution {
-            sequence: 10
-            point: processing
-        }
-        successMessage {
-            successMessage: Fusion HCM sync started. Refresh in a minute.
-        }
-        serverSideCondition {
-            whenButtonPressed: @sync
-        }
-        security {
-            authorizationScheme: @page-submit
         }
     )
 

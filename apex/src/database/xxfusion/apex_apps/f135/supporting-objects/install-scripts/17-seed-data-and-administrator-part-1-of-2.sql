@@ -6,7 +6,7 @@
 -- Runs both from SQLcl (install.sql) and as an APEX Supporting Objects script.
 -- First administrator (SYSTEM_ADMIN):
 --   * APEX install: the developer running the install.
---   * SQLcl install: install.sql prompts and calls XXFND_SECURITY_PKG.BOOTSTRAP_ADMIN.
+--   * SQLcl install: install.sql prompts and calls XXFND_USER_PKG.BOOTSTRAP_ADMIN.
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------

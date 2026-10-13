@@ -51,8 +51,14 @@ page 180 (
                 select q.*,
                        apex_page.get_url(p_page => 181, p_items => 'P181_RULE_ID', p_values => to_char(q.rule_id), p_clear_cache => '181') as open_url
                   from (
+                            -- release 79: a rule is assigned to users and roles (XXFND_DATA_RULE_ASSIGNMENTS)
                             select d.rule_id,
-                                   r.role_name,
+                                   (select listagg(coalesce(r.role_name, u.full_name, u.user_name), ', ')
+                                             within group (order by r.role_name, u.user_name)
+                                      from xxfnd_data_rule_assignments a
+                                      left join xxfnd_roles r on r.role_code = a.role_code
+                                      left join xxfnd_users u on u.user_id = a.user_id
+                                     where a.rule_id = d.rule_id) as role_name,
                                    d.table_name,
                                    case d.rule_type
                                         when 'ALL_ROWS'       then 'All rows'
@@ -64,8 +70,10 @@ page 180 (
                                    d.description,
                                    d.enabled_flag
                               from xxfnd_data_security_rules d
-                              join xxfnd_roles r on r.role_code = d.role_code
-                             where (:G_ADMIN_APP = 'ALL' or r.application_code = :G_ADMIN_APP)   -- the application filter (ALL: every application)
+                             where (:G_ADMIN_APP = 'ALL'   -- the application filter (ALL: every application)
+                                    or exists (select 1 from xxfnd_data_rule_assignments a
+                                                 join xxfnd_roles r on r.role_code = a.role_code
+                                                where a.rule_id = d.rule_id and r.application_code = :G_ADMIN_APP))
                 ) q
                 ```
         }
@@ -116,7 +124,7 @@ page 180 (
         column ROLE_NAME (
             type: plainText
             heading {
-                heading: Role
+                heading: Assigned To
             }
             layout {
                 sequence: 20
@@ -124,7 +132,7 @@ page 180 (
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#OPEN_URL#">#ROLE_NAME#</a>
+                    #ROLE_NAME#
                     ```
             }
             source {
@@ -139,6 +147,12 @@ page 180 (
             }
             layout {
                 sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#TABLE_NAME#</a>
+                    ```
             }
             source {
                 dataType: STRING

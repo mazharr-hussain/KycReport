@@ -56,6 +56,16 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 79 (COMMON)
+Release 79 (COMMON only, patch 86): Security works as one module. A data access rule is assigned to users and to roles
+(existing rules keep their role as first assignment); a user sees what any rule of theirs or of their roles allows. The
+User, Role and Data access rule screens each show their record on top with two tabs and share one Assign dialog;
+the User screen shows the Effective access. Users have a language (default English). New Super Administrator role
+(nobody holds it until granted). XXFND_SECURITY_PKG and XXFND_AUTH_PKG are replaced by XXFND_USER_PKG,
+XXFND_PRIVILEGE_PKG and XXFND_INTEGRATION_PKG: **the KYC application stops working until its own release uses the new
+names** (decided: no wrappers). After the upgrade, run `apex/db/admin/qd-users-and-roles.sql` again for the QD users
+(department rules per user). Upgrade as usual (Install Supporting Objects, upgrade scripts).
+
 ## Release 78 (COMMON)
 Release 78 (COMMON only, patch 85): COMMON is organised into six modules (Platform, Security, Reference Data,
 Documents and Records, Workflow, Integrations). The menu is Home and the six modules; a module opens its page with its

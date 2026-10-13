@@ -1,0 +1,1335 @@
+page 104 (
+    name: User
+    alias: USER
+    title: User
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A user of every application: a local user (user name and password kept by APEX) or an employee who signs in
+            with the company account. The user is on top; the tabs show the roles and privileges and the data access
+            the user has. Assign opens the same picker on the User, Role and Data access rule screens, so an assignment
+            made on one shows at once on the other two. Access adds up: the user sees the rows allowed by any rule
+            assigned to them or to one of their roles.
+            ```
+    }
+
+    region breadcrumb (
+        name: User
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region user (
+        name: User
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: user
+        }
+    )
+
+    pageItem P104_USER_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @user
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P104_REMOVE_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @user
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P104_USER_TYPE (
+        type: radioGroup
+        label {
+            label: Kind of User
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Local user (user name and password);LOCAL,Employee (company sign-in);SSO
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        default {
+            type: static
+            staticValue: LOCAL
+        }
+        layout {
+            sequence: 10
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: Local: the user signs in with a user name and a password kept by APEX. Employee: the person signs in with the company account (single sign-on).
+        }
+    )
+    pageItem P104_EMPLOYEE_ID (
+        type: popupLov
+        label {
+            label: Employee
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- employees that have no user yet
+                select e.full_name || ' (' || e.email_address || ')' as display_value, e.employee_id as return_value
+                  from xxfnd_employees e
+                 where e.enabled_flag = 'Y'
+                   and not exists (select 1 from xxfnd_users u where u.employee_id = e.employee_id)
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 20
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: The employee (from Fusion HCM or created locally) who becomes a user; only employees without a user are listed.
+        }
+    )
+    pageItem P104_USER_NAME (
+        type: textField
+        label {
+            label: User Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: The sign-in name, in capitals. An employee user gets the employees user name.
+        }
+    )
+    pageItem P104_EMPLOYEE (
+        type: displayOnly
+        label {
+            label: Employee
+            alignment: left
+        }
+        layout {
+            sequence: 35
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: The employee this user is, with department and job (from Fusion HCM).
+        }
+    )
+    pageItem P104_FULL_NAME (
+        type: textField
+        label {
+            label: Full Name
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_TYPE = 'SSO'
+                ```
+        }
+        help {
+            helpText: The name shown on screens and in e-mails. For an employee it comes from Fusion HCM.
+        }
+    )
+    pageItem P104_EMAIL (
+        type: textField
+        label {
+            label: E-mail
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_TYPE = 'SSO'
+                ```
+        }
+        help {
+            helpText: Where notifications are sent. For an employee it comes from Fusion HCM.
+        }
+    )
+    pageItem P104_PASSWORD (
+        type: password
+        label {
+            label: Password
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P104_USER_TYPE, 'LOCAL') = 'LOCAL'
+                ```
+        }
+        help {
+            helpText: Local users only: the first password, or a new one with Reset Password. The user changes it at the next sign-in.
+        }
+    )
+    pageItem P104_LANGUAGE_CODE (
+        type: selectList
+        label {
+            label: Language
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'LANGUAGE' and enabled_flag = 'Y'
+                 order by display_sequence
+                ```
+        }
+        default {
+            type: static
+            staticValue: en
+        }
+        layout {
+            sequence: 70
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: The language of the notifications this user receives; English when a text has no translation.
+        }
+    )
+    pageItem P104_END_DATE (
+        type: datePicker
+        label {
+            label: Active Until
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Leave empty for no end. After this date the user cannot sign in and holds no access.
+        }
+    )
+    pageItem P104_STATUS (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: Enabled users can sign in. Disable keeps the user and the history; Enable gives the access back.
+        }
+    )
+    pageItem P104_DESCRIPTION (
+        type: textarea
+        label {
+            label: Notes
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @user
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Why this user exists or anything an administrator should know.
+        }
+    )
+    button cancel (
+        buttonName: CANCEL
+        label: Back to Users
+        layout {
+            sequence: 10
+            region: @user
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 103
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 20
+            region: @user
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P104_USER_ID
+        }
+    )
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @user
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+    )
+    button reset-password (
+        buttonName: RESET_PASSWORD
+        label: Reset Password
+        layout {
+            sequence: 40
+            region: @user
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Set the new password from the Password field? The user changes it at the next sign-in.
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_ID is not null and :P104_USER_TYPE = 'LOCAL'
+                ```
+        }
+    )
+    button disable (
+        buttonName: DISABLE
+        label: Disable
+        layout {
+            sequence: 50
+            region: @user
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Disable this user? The user can no longer sign in; roles and history are kept.
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_ID is not null and :P104_STATUS = 'Enabled'
+                ```
+        }
+    )
+    button enable (
+        buttonName: ENABLE
+        label: Enable
+        layout {
+            sequence: 60
+            region: @user
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_ID is not null and :P104_STATUS = 'Disabled'
+                ```
+        }
+    )
+
+    region access (
+        name: Access
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/tabs-container
+            templateOptions: [
+                #DEFAULT#
+                t-TabsRegion-mod--simple
+            ]
+        }
+        advanced {
+            htmlDomId: access
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+    )
+
+    region tab-roles (
+        name: Roles and privileges
+        type: staticContent
+        layout {
+            sequence: 10
+            parentRegion: @access
+            slot: regionBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_roles
+        }
+    )
+    region tab-data (
+        name: Data access
+        type: staticContent
+        layout {
+            sequence: 20
+            parentRegion: @access
+            slot: regionBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_data
+        }
+    )
+    region roles (
+        name: Roles
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: the user's active roles (XXFND_USER_ROLES_V); Remove ends the grant (XXFND_USER_PKG.UNASSIGN_ROLE)
+                select ur.user_role_id,
+                       ur.role_name,
+                       ur.application_code,
+                       ur.start_date_active,
+                       (select count(*) from xxfnd_role_privileges rp where rp.role_code = ur.role_code) as privileges,
+                       'Remove' as remove
+                  from xxfnd_user_roles_v ur
+                 where ur.user_id = :P104_USER_ID
+                   and ur.active_flag = 'Y'
+                 order by ur.role_name
+                ```
+            pageItemsToSubmit: [
+                P104_USER_ID
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-roles
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: user_roles
+        }
+        messages {
+            whenNoDataFound: No role yet: Assign Roles gives the user access.
+        }
+
+        column USER_ROLE_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column START_DATE_ACTIVE (
+            type: plainText
+            heading {
+                heading: Since
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PRIVILEGES (
+            type: plainText
+            heading {
+                heading: Privileges
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove this role from the user?',{request:'REMOVE_ROLE',set:{'P104_REMOVE_ID':'#USER_ROLE_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    region privileges (
+        name: Privileges these roles give
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the privileges the user holds through the roles above
+                select distinct f.feature_name, p.action_code, p.privilege_code
+                  from xxfnd_user_roles_v ur
+                  join xxfnd_role_privileges rp on rp.role_code = ur.role_code
+                  join xxfnd_privileges p on p.privilege_code = rp.privilege_code
+                  join xxfnd_features f on f.feature_code = p.feature_code
+                 where ur.user_id = :P104_USER_ID
+                   and ur.active_flag = 'Y'
+                 order by f.feature_name, p.action_code
+                ```
+            pageItemsToSubmit: [
+                P104_USER_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            parentRegion: @tab-roles
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: user_privileges
+        }
+        messages {
+            whenNoDataFound: No privileges.
+        }
+
+        column FEATURE_NAME (
+            type: plainText
+            heading {
+                heading: Component
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ACTION_CODE (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column PRIVILEGE_CODE (
+            type: plainText
+            heading {
+                heading: Privilege
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+    region rules (
+        name: Data access rules assigned to the user
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: rules assigned to the user directly; Remove takes the assignment away (XXFND_VPD_PKG.UNASSIGN_RULE)
+                select a.assignment_id,
+                       d.table_name,
+                       decode(d.rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
+                       d.column_name,
+                       d.value_list,
+                       'Remove' as remove
+                  from xxfnd_data_rule_assignments a
+                  join xxfnd_data_security_rules d on d.rule_id = a.rule_id
+                 where a.user_id = :P104_USER_ID
+                 order by d.table_name, d.rule_type
+                ```
+            pageItemsToSubmit: [
+                P104_USER_ID
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-data
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: user_rules
+        }
+        messages {
+            whenNoDataFound: No rule assigned to the user directly (rules can also come from roles).
+        }
+
+        column ASSIGNMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RULE_TYPE (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VALUE_LIST (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove this rule from the user?',{request:'REMOVE_RULE',set:{'P104_REMOVE_ID':'#ASSIGNMENT_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    region effective (
+        name: Effective access
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: what the user actually sees per table, from direct and role rules together (the widest rule wins)
+                select table_name,
+                       decode(rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
+                       column_name,
+                       value_list,
+                       granted_through
+                  from xxfnd_effective_access_v
+                 where user_id = :P104_USER_ID
+                 order by table_name, rule_type, granted_through
+                ```
+            pageItemsToSubmit: [
+                P104_USER_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            parentRegion: @tab-data
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: user_effective
+        }
+        messages {
+            whenNoDataFound: No data access: the user sees no rows of protected tables.
+        }
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column RULE_TYPE (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column VALUE_LIST (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column GRANTED_THROUGH (
+            type: plainText
+            heading {
+                heading: Granted Through
+            }
+            layout {
+                sequence: 50
+            }
+        )
+    )
+    button assign-roles (
+        buttonName: ASSIGN_ROLES
+        label: Assign Roles
+        layout {
+            sequence: 10
+            region: @roles
+            slot: RIGHT_OF_TITLE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: USER
+                    P183_TARGET_ID: &P104_USER_ID.
+                    P183_PICK: ROLE
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button assign-rules (
+        buttonName: ASSIGN_RULES
+        label: Assign Rules
+        layout {
+            sequence: 20
+            region: @rules
+            slot: RIGHT_OF_TITLE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: USER
+                    P183_TARGET_ID: &P104_USER_ID.
+                    P183_PICK: RULE
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    dynamicAction refresh-after-assign (
+        name: Refresh after the Assign dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @access
+        }
+
+        action refresh-after-assign-refresh-1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @roles
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action refresh-after-assign-refresh-2 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @privileges
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+        action refresh-after-assign-refresh-3 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rules
+            }
+            execution {
+                sequence: 30
+                fireOnInit: false
+            }
+        )
+
+        action refresh-after-assign-refresh-4 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @effective
+            }
+            execution {
+                sequence: 40
+                fireOnInit: false
+            }
+        )
+
+    )
+    process load (
+        name: Load the user
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 79: the user on top (XXFND_USERS with the linked employee)
+                select u.user_type, u.user_name, coalesce(e.full_name, u.full_name), coalesce(e.email_address, u.email_address),
+                       u.language_code, u.end_date_active, u.description,
+                       case u.enabled_flag when 'Y' then 'Enabled' else 'Disabled' end,
+                       case when e.employee_id is not null
+                            then e.full_name || nvl2(e.department_name, ', ' || e.department_name, null)
+                                 || nvl2(e.job_title, ', ' || e.job_title, null) end
+                  into :P104_USER_TYPE, :P104_USER_NAME, :P104_FULL_NAME, :P104_EMAIL,
+                       :P104_LANGUAGE_CODE, :P104_END_DATE, :P104_DESCRIPTION, :P104_STATUS, :P104_EMPLOYEE
+                  from xxfnd_users u
+                  left join xxfnd_employees e on e.employee_id = u.employee_id
+                 where u.user_id = :P104_USER_ID;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+    )
+    process create-user (
+        name: Create the user
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 79: XXFND_USER_PKG creates the user (local: with its APEX account; employee: linked to the employee)
+                begin
+                    if :P104_USER_TYPE = 'SSO' then
+                        if :P104_EMPLOYEE_ID is null then
+                            raise_application_error(-20075, 'Choose the employee.');
+                        end if;
+                        :P104_USER_ID := xxfnd_user_pkg.employee_user(to_number(:P104_EMPLOYEE_ID));
+                    else
+                        :P104_USER_ID := xxfnd_user_pkg.create_local_user(:P104_USER_NAME, :P104_FULL_NAME, :P104_EMAIL, :P104_PASSWORD);
+                    end if;
+                    xxfnd_user_pkg.save_user(to_number(:P104_USER_ID), :P104_FULL_NAME, :P104_EMAIL, :P104_LANGUAGE_CODE,
+                                             :P104_END_DATE, :P104_DESCRIPTION);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: User created. Assign roles and data access in the tabs.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process save-user (
+        name: Save the user
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_user_pkg.save_user(to_number(:P104_USER_ID), :P104_FULL_NAME, :P104_EMAIL, :P104_LANGUAGE_CODE,
+                                         :P104_END_DATE, :P104_DESCRIPTION);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process reset-password (
+        name: Reset the password
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                if :P104_PASSWORD is null then
+                    raise_application_error(-20076, 'Enter the new password in the Password field.');
+                end if;
+                xxfnd_user_pkg.reset_password(to_number(:P104_USER_ID), :P104_PASSWORD);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Password reset. The user changes it at the next sign-in.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: RESET_PASSWORD
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process set-enabled (
+        name: Enable or disable
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_user_pkg.set_enabled(to_number(:P104_USER_ID), case :REQUEST when 'ENABLE' then 'Y' else 'N' end);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ENABLE,DISABLE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process remove-role (
+        name: Remove a role
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_user_pkg.unassign_role(to_number(:P104_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Role removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_ROLE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process remove-rule (
+        name: Remove a data access rule
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_vpd_pkg.unassign_rule(to_number(:P104_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 60
+            point: processing
+        }
+        successMessage {
+            successMessage: Rule removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_RULE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    branch (
+        name: Back to the user
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 104
+                items: {
+                    P104_USER_ID: &P104_USER_ID.
+                }
+                clearCache: 104
+            }
+        }
+    )
+
+)

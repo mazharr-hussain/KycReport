@@ -86,6 +86,15 @@
   ]
  },
  {
+  "name": "05b Integrations package",
+  "file": "05b-integration-pkg.sql",
+  "install_sequence": 55,
+  "upgrade_sequence": 15,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "06 Core packages - part 2 of 2",
   "file": "06-core-packages-part-2-of-2.sql",
   "install_sequence": 60,
@@ -246,8 +255,8 @@
   ]
  },
  {
-  "name": "16j Authentication and authorization",
-  "file": "16j-auth-pkg.sql",
+  "name": "16j Users package (users, sign-in, authorization)",
+  "file": "16j-user-pkg.sql",
   "install_sequence": 175,
   "upgrade_sequence": 135,
   "apps": [
@@ -543,6 +552,15 @@
   "file": "22-common-modules.sql",
   "install_sequence": 213,
   "upgrade_sequence": 173,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "23 COMMON Security module",
+  "file": "23-security-module.sql",
+  "install_sequence": 214,
+  "upgrade_sequence": 174,
   "apps": [
    "COMMON"
   ]
