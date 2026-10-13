@@ -56,6 +56,19 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 82 (COMMON)
+Release 82 (COMMON only, patch 89): Workflow uses one package per component. XXFND_WORKFLOW_PKG holds the workflow
+runtime, the workflow and e-mail switches and the task helpers; XXFND_NOTIFY_PKG holds notifications and the e-mails per
+record. XXFND_TASK_PKG, XXFND_WORKFLOW_SWITCH_PKG, XXFND_COMMUNICATION_PKG and the unused view XXFND_PENDING_APPROVALS_V
+are dropped (their DDL is kept in XXFND_DROPPED_OBJECTS). The Process Catalogue lists the Request for Information
+process of every application and who acts on each process, and asks before a workflow is switched off. A request for
+information goes to the requester unless someone else is chosen; an outside recipient gets the e-mail in the chosen
+language. E-mails use the APEX Email Template XXFND_STANDARD (layout, links, right to left for Arabic); the
+Notifications screen keeps only the wording (plain text, English and Arabic) with a preview and "Send Test to Me".
+New screens: My Tasks (tasks of every application) and the Workflow Monitor (act on anyone's behalf, Workflow Monitor -
+Manage). Upgrade as usual (Install Supporting Objects, upgrade scripts). **KYC needs its own release for the new names**
+(decided: no wrappers).
+
 ## Release 81 (COMMON)
 Release 81 (COMMON only, patch 88): Documents and Records use one package per component. The document store transport
 (Oracle UCM, SharePoint, database) is now private code of XXFND_ATTACH_PKG; XXFND_ATTACH_STORE_PKG is dropped (its DDL

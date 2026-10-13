@@ -1,0 +1,27 @@
+emailTemplate XXFND_STANDARD (
+    name: XXFND Standard
+    emailSubject: #SUBJECT#
+    htmlFormat {
+        body:
+            ```html
+            <div dir="#DIR#" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5;">
+              <p style="white-space: pre-line;">#MESSAGE#</p>
+              <p><a href="#ACTION_URL#">#ACTION_LABEL#</a></p>
+            </div>
+            ```
+        footer: <div dir="#DIR#" style="font-size: 12px; color: #666;">#FOOTER#</div>
+    }
+    plainTextFormat {
+        content:
+            ```html
+            #MESSAGE#
+
+            #ACTION_LABEL#: #ACTION_URL#
+
+            #FOOTER#
+            ```
+    }
+    comments {
+        comments: Release 82 - the one layout of every COMMON e-mail. XXFND_NOTIFY_PKG fills it with the wording of XXFND_NOTIFICATION_TEMPLATES (plain text per event and language): #SUBJECT#, #MESSAGE#, #ACTION_URL#, #ACTION_LABEL#, #FOOTER#, and #DIR# (rtl for Arabic, ltr otherwise). Applications subscribe to it; they do not copy it.
+    }
+)
