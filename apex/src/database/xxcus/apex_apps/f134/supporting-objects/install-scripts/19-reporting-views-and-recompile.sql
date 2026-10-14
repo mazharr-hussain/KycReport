@@ -1,7 +1,7 @@
 begin
     -- Reporting views for the registered flexfields, then recompile anything
     -- created before its dependencies existed.
-    xxfnd_dff_setup_pkg.generate_all_dfv_views;
+    xxfnd_dff_pkg.generate_all_dfv_views;
     dbms_utility.compile_schema(schema => user, compile_all => false);
     -- release 74: COMPILE_SCHEMA skips synonyms; one whose shared object was re-created (COMMON upgrade) shows
     -- invalid until first used - recompile it so an install ends with no invalid object
