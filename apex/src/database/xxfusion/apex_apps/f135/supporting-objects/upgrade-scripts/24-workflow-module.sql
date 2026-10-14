@@ -86,8 +86,10 @@ begin
     -- release 84: only before the notification events exist (release 84 tells the RFI's requester with RFI_RESPONDED;
     -- an administrator's later choice is kept)
     update xxfnd_notification_templates set enabled_flag = 'N'
-     where template_code in ('RFI_RESPONDED', 'CONFIG_CHANGE_PENDING') and enabled_flag = 'Y'
-       and not exists (select 1 from xxfnd_notify_events where event_code = 'RFI_ANSWERED');
+     where enabled_flag = 'Y'
+       and (template_code = 'CONFIG_CHANGE_PENDING'
+            or (template_code = 'RFI_RESPONDED'
+                and not exists (select 1 from xxfnd_notify_events where event_code = 'RFI_ANSWERED')));
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;

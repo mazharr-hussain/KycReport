@@ -87,9 +87,13 @@ begin
     -- notifications: plain-text wording, English when not translated, two events disabled
     select count(*) into l_n from xxfnd_notification_templates where message_text is null and body_html is not null;
     check_(l_n = 0, 'every wording has its plain-text message');
+    -- release 84: RFI_RESPONDED tells the RFI's requester again (event RFI_ANSWERED)
     select count(*) into l_n from xxfnd_notification_templates
-     where template_code in ('RFI_RESPONDED', 'CONFIG_CHANGE_PENDING') and enabled_flag = 'Y';
-    check_(l_n = 0, 'RFI_RESPONDED and CONFIG_CHANGE_PENDING disabled');
+     where (template_code = 'CONFIG_CHANGE_PENDING'
+            or (template_code = 'RFI_RESPONDED'
+                and not exists (select 1 from xxfnd_notify_events where event_code = 'RFI_ANSWERED')))
+       and enabled_flag = 'Y';
+    check_(l_n = 0, 'CONFIG_CHANGE_PENDING disabled (RFI_RESPONDED too before release 84)');
     select max(template_code) into l_v from xxfnd_notification_templates where template_code = 'TASK_ASSIGNED';
     if l_v is not null then
         check_(xxfnd_notify_pkg.preview_subject('TASK_ASSIGNED', 'en') is not null, 'preview: English subject');

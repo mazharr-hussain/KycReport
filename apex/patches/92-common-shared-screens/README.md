@@ -15,7 +15,7 @@
 
 ## Files
 - `db/`: 09d (feedback), 14 (RECORD_VISIBLE, DOWNLOAD_CHECKED, ASSERT_CHANGE), 27 (new: features, pages, the page
-  45 registration), `manifest.json`
+  45 registration), 24 (release 82's wording switch: CONFIG_CHANGE_PENDING as before, RFI_RESPONDED only before release 84), `manifest.json`
 - `app/`: `application.apx` (Release 85), pages 45, 47, 48, 170, 171, 172, 173; lists (Feedback link), breadcrumbs
 - `ADMIN-GUIDE.md`: Documents, activity and feedback (release 85)
 

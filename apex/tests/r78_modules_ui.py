@@ -76,7 +76,9 @@ with sync_playwright() as p:
         pg.locator('#t_TreeNav .a-TreeView-label:visible', has_text='Platform').first.click()
     pg.wait_for_load_state('networkidle')
     comps = [t.strip() for t in pg.locator('#components .t-Card-title').all_inner_texts()]
-    check(comps == ['Applications', 'Application Settings', 'Optional Features'], f'Platform components: {comps}')
+    # release 85: + Platform Activity and Usage and Feedback
+    check(all(c in comps for c in ('Applications', 'Application Settings', 'Optional Features')),
+          f'Platform components: {comps}')
     with pg.expect_navigation():
         pg.locator('#components .t-Card', has=pg.locator('.t-Card-title', has_text=re.compile('^Optional Features$'))).locator('a').first.click()
     pg.wait_for_load_state('networkidle')

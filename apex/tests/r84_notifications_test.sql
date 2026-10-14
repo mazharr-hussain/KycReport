@@ -231,7 +231,11 @@ begin
         session_as('ADMIN');
         select min(role_code) into l_role from xxfnd_role_privileges where privilege_code = 'CHANGE_APPROVALS.MANAGE';
         select max(user_id) into l_n from xxfnd_users where user_name = 'R84_APPROVER';
-        if l_n is null then
+        if l_n is null and apex_util.get_user_id('R84_APPROVER') is not null then
+            -- the APEX account outlives the schemas (a fresh install): the user record only
+            insert into xxfnd_users (user_name, user_type, full_name, email_address)
+            values ('R84_APPROVER', 'LOCAL', 'R84 Approver', 'r84.approver@example.com') returning user_id into l_n;
+        elsif l_n is null then
             l_n := xxfnd_user_pkg.create_local_user('R84_APPROVER', 'R84 Approver', 'r84.approver@example.com', 'R84Test#2026x');
         end if;
         xxfnd_user_pkg.assign_role(l_n, l_role);
