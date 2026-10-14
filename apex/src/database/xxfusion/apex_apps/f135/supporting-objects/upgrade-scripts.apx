@@ -712,3 +712,20 @@ upgradeScript 26-notifications-module (
             ```
     }
 )
+
+upgradeScript 27-shared-screens (
+    execution {
+        sequence: 180
+    }
+    script {
+        contentFile: 27-shared-screens.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

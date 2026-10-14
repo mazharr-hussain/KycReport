@@ -171,6 +171,14 @@ create or replace package xxfnd_application_pkg authid definer as
     -- application's Setup dialog page 98, which shows the COMMON page): null when not delegated.
     function delegated_url(p_feature_code in varchar2) return varchar2;
 
+    ----------------------------------------------------------------------------
+    -- Release 85: feedback of every application, kept by APEX (APEX_TEAM_FEEDBACK), given and followed up in COMMON
+    ----------------------------------------------------------------------------
+    -- Feedback on a page of a registered application (P_TYPE 1 comment, 2 enhancement, 3 bug). Refused (ORA-20171)
+    -- for an application that is not registered.
+    procedure submit_feedback(p_application_id in number, p_page_id in number, p_type in number, p_comment in varchar2);
+    -- A follow-up on a feedback (USAGE_FEEDBACK - Manage, ORA-20172 otherwise).
+    procedure feedback_follow_up(p_feedback_id in number, p_follow_up in varchar2);
 end xxfnd_application_pkg;
 /
 
@@ -547,6 +555,30 @@ create or replace package body xxfnd_application_pkg as
         end if;
         return apex_page.get_url(p_page => 98, p_items => 'P98_FEATURE', p_values => upper(p_feature_code));
     end delegated_url;
+
+    procedure submit_feedback(p_application_id in number, p_page_id in number, p_type in number, p_comment in varchar2) is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from xxfnd_applications where apex_application_id = p_application_id;
+        if l_n = 0 then
+            raise_application_error(-20171, 'Feedback is taken for the registered applications only.');
+        end if;
+        if trim(p_comment) is null then
+            raise_application_error(-20173, 'Enter your feedback.');
+        end if;
+        apex_util.submit_feedback(p_comment        => p_comment,
+                                  p_type           => nvl(p_type, 1),
+                                  p_application_id => p_application_id,
+                                  p_page_id        => p_page_id);
+    end submit_feedback;
+
+    procedure feedback_follow_up(p_feedback_id in number, p_follow_up in varchar2) is
+    begin
+        if not xxfnd_privilege_pkg.has_privilege('USAGE_FEEDBACK', 'MANAGE') then
+            raise_application_error(-20172, 'You are not allowed to follow up feedback (Usage and Feedback - Manage).');
+        end if;
+        apex_util.submit_feedback_followup(p_feedback_id => p_feedback_id, p_follow_up => p_follow_up);
+    end feedback_follow_up;
 
 end xxfnd_application_pkg;
 /

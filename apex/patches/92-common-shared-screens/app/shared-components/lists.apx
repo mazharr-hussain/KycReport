@@ -1,0 +1,244 @@
+list navigation-bar (
+    name: Navigation Bar
+
+
+    entry give-feedback (
+        label: Feedback
+        icon {
+            imageIconCssClasses: fa-comment-o
+        }
+        layout {
+            sequence: 6
+        }
+        link {
+            target: {
+                page: 173
+                items: {
+                    P173_APPLICATION_ID: &APP_ID.
+                    P173_PAGE_ID: &APP_PAGE_ID.
+                }
+                clearCache: 173
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry notifications (
+        label: Notifications
+        icon {
+            imageIconCssClasses: fa-bell-o
+        }
+        layout {
+            sequence: 5
+        }
+        link {
+            target: {
+                page: 43
+                clearCache: 43
+            }
+        }
+        userDefinedAttributes {
+            1: &NOTIFY_COUNT.
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+
+
+    entry --- (
+        label: ---
+        layout {
+            sequence: 20
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 78: Home, (release 82: My Tasks,) then the six modules (XXFND_MODULES_V) and their components (features with a page in
+            -- this application). A module opens its module page (100) and is expanded there (page 100 load).
+            with feat as (
+                select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
+                  from xxfnd_admin_menu_v m
+                  cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                          case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                          fp.tab_sequence nulls last, fp.page_id) as page_id
+                                 from xxfnd_feature_pages fp
+                                 join apex_application_pages ap
+                                   on ap.application_id = :APP_ID and ap.page_id = fp.page_id
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+                 where t.page_id is not null),
+            cur as (
+                select max(fp.feature_code) as feature_code
+                  from xxfnd_feature_pages fp
+                 where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID),
+            nodes as (
+                select 'HOME' as id, cast(null as varchar2(40)) as parent_id, 'Home' as label,
+                       apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 0 as seq,
+                       case when :APP_PAGE_ID = 1 then 'YES' else 'NO' end as is_current
+                  from dual
+                union all
+                -- release 82: My Tasks of every application (D20)
+                select 'MY_TASKS', null, 'My Tasks', apex_page.get_url(p_page => 40), 'fa-inbox', 1,
+                       case when :APP_PAGE_ID = 40 then 'YES' else 'NO' end
+                  from dual
+                 where xxfnd_privilege_pkg.has_privilege_yn('MY_TASKS', 'VIEW') = 'Y'
+                union all
+                select 'M_' || md.module_code, null, md.module_name,
+                       apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => md.module_code,
+                                         p_clear_cache => '100'),
+                       md.icon_css, md.display_sequence,
+                       case when :APP_PAGE_ID = 100 and :P100_MODULE = md.module_code then 'YES' else 'NO' end
+                  from xxfnd_modules_v md
+                union all
+                select 'F_' || f.feature_code, 'M_' || f.feature_group, f.feature_name,
+                       apex_page.get_url(p_page => f.page_id), f.icon_css, f.display_sequence,
+                       case when f.feature_code = (select feature_code from cur) then 'YES' else 'NO' end
+                  from feat f)
+            select level  as lvl,
+                   label,
+                   target,
+                   is_current,
+                   image,
+                   null   as image_attribute,
+                   null   as image_alt
+              from nodes
+             start with parent_id is null
+            connect by prior id = parent_id
+             order siblings by seq, label
+            ```
+    }
+)
+
+list module-cards (
+    name: Module Cards
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 78: one card per module the user may open, with its state (Home and page 100)
+            select null                                                    as lvl,
+                   module_name                                             as label,
+                   apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => module_code,
+                                     p_clear_cache => '100')               as target,
+                   'NO'                                                    as is_current,
+                   icon_css                                                as image,
+                   null                                                    as image_attribute,
+                   null                                                    as image_alt,
+                   description                                             as a01,
+                   module_state                                            as a02
+              from xxfnd_modules_v
+             order by display_sequence
+            ```
+    }
+)
+
+list module-components (
+    name: Module Components
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 78: the components (features) of the module on page 100 that the user may open
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                             join apex_application_pages ap
+                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+             where m.feature_group = :P100_MODULE
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)
+
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   apex_page.get_url(p_page => fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
+)

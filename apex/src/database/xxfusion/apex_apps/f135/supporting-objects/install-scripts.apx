@@ -763,3 +763,20 @@ installScript 26-notifications-module (
             ```
     }
 )
+
+installScript 27-shared-screens (
+    execution {
+        sequence: 220
+    }
+    script {
+        contentFile: 27-shared-screens.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
