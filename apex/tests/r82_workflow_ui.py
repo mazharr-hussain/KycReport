@@ -62,7 +62,7 @@ with sync_playwright() as p:
     links = pg.locator('#workflows .a-IRR-table td a')
     if links.count():
         links.first.click()
-        fr = dialog(pg, 'workflow?', '#P142_TITLE_DISPLAY, #P142_TITLE')
+        fr = dialog(pg, 'workflow?', '#P142_TITLE_DISPLAY')
         check(fr is not None, 'Workflow dialog opens')
         if fr:
             no_error(fr, 'Workflow dialog')

@@ -5,8 +5,21 @@
 # received e-mail; the public page Provide Information (50) opens without signing in and refuses an unknown link.
 # Usage: python3 r84_notifications_ui.py   (after r84_notifications_test.sql, which leaves RFI tasks)
 import re
+import subprocess
 from playwright.sync_api import sync_playwright
 ROOT = 'http://localhost:8080/ords'
+SQL = '/tmp/claude-0/-home-user-KycReport/5e8c20fd-6c82-5747-8066-a7d503f76bd3/scratchpad/sqlcl/bin/sql'
+
+
+def open_rfi_number():
+    # the RFI the database test left waiting for ADMIN's answer
+    out = subprocess.run([SQL, '-S', '/nolog'], input='connect xxfusion/"Xxfusion#Local1"@localhost:1521/FREEPDB1\n'
+                         'set heading off feedback off pages 0\n'
+                         "select max(rfi_number) keep (dense_rank last order by rfi_id) from xxfnd_rfis "
+                         "where description = 'R84 question for the browser test' and rfi_status = 'WAITING_FOR_INFORMATION';\nexit\n",
+                         capture_output=True, text=True).stdout
+    m = re.search(r'(RFI-\d+)', out)
+    return m.group(1) if m else None
 fails = 0
 
 
@@ -78,7 +91,8 @@ with sync_playwright() as p:
 
     # an RFI task opens its page
     go(pg, 'my-tasks')
-    link = pg.locator('#tasks .a-IRR-table td a', has_text=re.compile('Information requested|Answer received'))
+    number = open_rfi_number()
+    link = pg.locator('#tasks .a-IRR-table td a', has_text=number or 'no open RFI')
     if link.count():
         link.first.click(); pg.wait_for_load_state('networkidle')
         no_error(pg, 'Information Request')

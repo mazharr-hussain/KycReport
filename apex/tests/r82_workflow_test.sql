@@ -72,7 +72,7 @@ begin
                  || l_cat || q'~', p_description => 'x', p_with_tasks => 'N', p_rfi_id => i, p_token => t); end;~');
     xxfnd_rfi_pkg.create_rfi(p_entity_name => 'XXFND_R82_TEST', p_pk1_value => 'R82', p_recipient_type => 'EXTERNAL',
                              p_rfi_category => l_cat, p_description => 'R82 external', p_recipient_email => 'a@example.com',
-                             p_recipient_name => 'A', p_language => 'ar', p_rfi_id => l_id, p_token => l_token);
+                             p_recipient_name => 'A', p_language => 'ar', p_with_tasks => 'N', p_rfi_id => l_id, p_token => l_token);
     select language_code into l_v from xxfnd_rfis where rfi_id = l_id;
     check_(l_v = 'ar' and l_token is not null, 'external RFI keeps its language and gets a one-time link');
 
