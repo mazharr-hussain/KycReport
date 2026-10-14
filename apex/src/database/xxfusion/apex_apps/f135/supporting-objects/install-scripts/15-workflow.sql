@@ -1295,6 +1295,11 @@ create or replace package body xxfnd_workflow_pkg as
             l_params(1) := apex_workflow.t_workflow_parameter(static_id => 'APPLICATION_CODE',
                                                               string_value => upper(p_application_code));
         end if;
+        -- release 84: the APEX workflow engine needs an APEX session (a page, an automation, or a script that opened one
+        -- with APEX_SESSION.CREATE_SESSION)
+        if v('APP_SESSION') is null then
+            raise_application_error(-20167, 'A workflow process starts in an APEX session only (open one with APEX_SESSION.CREATE_SESSION).');
+        end if;
         xxfnd_vpd_pkg.begin_trusted;
         begin
             l_id := apex_workflow.start_workflow(

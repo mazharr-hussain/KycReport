@@ -83,8 +83,11 @@ begin
     update xxfnd_notification_templates_tl
        set message_text = regexp_replace(regexp_replace(body_html, '<br\s*/?>|</p>|</div>|</li>', chr(10), 1, 0, 'i'), '<[^>]+>', '')
      where message_text is null and body_html is not null;
+    -- release 84: only before the notification events exist (release 84 tells the RFI's requester with RFI_RESPONDED;
+    -- an administrator's later choice is kept)
     update xxfnd_notification_templates set enabled_flag = 'N'
-     where template_code in ('RFI_RESPONDED', 'CONFIG_CHANGE_PENDING') and enabled_flag = 'Y';
+     where template_code in ('RFI_RESPONDED', 'CONFIG_CHANGE_PENDING') and enabled_flag = 'Y'
+       and not exists (select 1 from xxfnd_notify_events where event_code = 'RFI_ANSWERED');
 
     xxfnd_util_pkg.set_install_mode(false);
     commit;
