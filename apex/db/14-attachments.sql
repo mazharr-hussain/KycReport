@@ -36,6 +36,8 @@ comment on column xxfnd_attachment_functions.allowed_file_types is 'File extensi
 --   Checked steps here (not in 29) because this package and its view use them and run before 29.
 --------------------------------------------------------------------------------
 begin
+    -- the application column comes with 16i on older databases; a fresh install needs it here, before the view
+    xxfnd_ddl_pkg.add_column('XXFND_STORAGE_CONFIG', 'APPLICATION_CODE', 'varchar2(30)');
     xxfnd_ddl_pkg.add_column('XXFND_STORAGE_CONFIG', 'SERVER_CODE', 'varchar2(255)');
     xxfnd_ddl_pkg.add_column('XXFND_STORAGE_CONFIG', 'BUCKET_NAME', 'varchar2(255)');
     xxfnd_ddl_pkg.set_nullable('XXFND_STORAGE_CONFIG', 'STORAGE_TYPE');

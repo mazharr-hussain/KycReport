@@ -114,8 +114,7 @@ page 165 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- the APEX applications of this workspace that are not registered yet (on edit: the registered one)
-                select a.application_name || ' (' || a.application_id || ')' as display_value,
+                select a.application_name || ' (' || a.application_id || ')' as display_value,   -- the APEX applications of this workspace that are not registered yet (on edit: the registered one)
                        a.application_id as return_value
                   from apex_applications a
                  where a.workspace = (select w.workspace from apex_applications w where w.application_id = :APP_ID)
@@ -452,8 +451,7 @@ page 165 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- the common functions (admin features with a COMMON setup page)
-                select f.feature_name as display_value, f.feature_code as return_value
+                select f.feature_name as display_value, f.feature_code as return_value   -- the common functions (admin features with a COMMON setup page)
                   from xxfnd_features f
                  where f.feature_code in (select column_value from table(xxfnd_application_pkg.common_functions))
                  order by f.display_sequence
@@ -511,8 +509,7 @@ page 165 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- the APEX workflows of the chosen application
-                select nvl(w.title, w.name) || ' (' || w.static_id || ')' as display_value,
+                select nvl(w.title, w.name) || ' (' || w.static_id || ')' as display_value,   -- the APEX workflows of the chosen application
                        w.static_id as return_value
                   from apex_appl_workflows w
                  where w.application_id = :P165_APEX_APPLICATION_ID

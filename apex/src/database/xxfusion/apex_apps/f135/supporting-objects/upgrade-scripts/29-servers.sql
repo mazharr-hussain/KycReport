@@ -233,7 +233,7 @@ begin
     xxfnd_ddl_pkg.drop_constraint('XXFND_STORAGE_CONFIG', 'XXFND_STORAGE_CONFIG_FK3');
     xxfnd_ddl_pkg.drop_constraint('XXFND_INTEGRATION_PURPOSES', 'XXFND_INT_PURPOSES_FK1');
     xxfnd_ddl_pkg.drop_constraint('XXFND_TRANSMISSIONS', 'XXFND_TRANSMISSIONS_FK1');
-    xxfnd_ddl_pkg.drop_object('XXFND_INTEGRATION_ENDPOINTS', 'TABLE');
+    xxfnd_ddl_pkg.drop_object('XXFND_INTEGRATION_ENDPOINTS', 'TABLE', p_retired_table => true);
     delete from xxfnd_config_tables where table_name = 'XXFND_INTEGRATION_ENDPOINTS';
     commit;
 end;

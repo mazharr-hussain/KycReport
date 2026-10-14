@@ -84,7 +84,7 @@ begin
     check_(l_n >= 2, 'DROP_OBJECT recorded the table and the trigger with their DDL (' || l_n || ')');
     select count(*) into l_n from user_dependencies where referenced_name = 'XXFND_INTEGRATION_ENDPOINTS';
     check_(l_n = 0, 'no object depends on XXFND_INTEGRATION_ENDPOINTS (' || l_n || ')');
-    select count(*) into l_n from user_source where upper(text) like '%XXFND_INTEGRATION_ENDPOINTS%';
+    select count(*) into l_n from user_source where upper(text) like '%XXFND_INTEGRATION_ENDPOINTS%' and name not like 'BIN$%';
     check_(l_n = 0, 'no PL/SQL names XXFND_INTEGRATION_ENDPOINTS (' || l_n || ')');
     select count(*) into l_n from user_constraints
      where constraint_name in ('XXFND_STORAGE_CONFIG_FK3', 'XXFND_INT_PURPOSES_FK1', 'XXFND_TRANSMISSIONS_FK1',

@@ -854,9 +854,9 @@ create or replace package body xxfnd_dff_pkg as
                                  p_number_precision      in number   default null,
                                  p_minimum_value         in varchar2 default null,
                                  p_maximum_value         in varchar2 default null) is
-        l_code xxfnd_value_sets.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_code varchar2(30)    := xxfnd_application_pkg.setup_code(p_application_code);
         l_n    pls_integer;
-        l_row  xxfnd_value_sets.application_code%type;
+        l_row  varchar2(30)   ;
     begin
         select count(*), max(application_code) into l_n, l_row from xxfnd_value_sets where value_set_code = upper(p_value_set_code);
         if l_n > 0 then

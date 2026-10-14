@@ -51,9 +51,10 @@ create or replace package xxfnd_ddl_pkg authid current_user as
     -- (DB skill): the objects that depend on it (every schema) and its DDL are recorded in XXFND_DROPPED_OBJECTS,
     -- this schema's synonyms for it are dropped, then the object (grants go with it; nothing is purged). Dependents
     -- are not a reason to stop: a dropped component breaks its old callers on purpose (no wrappers).
-    -- Release 86: also TRIGGER and TABLE (a retired table, after its data was copied; it goes to the recycle bin, not
-    -- purged; the foreign keys that point to it are dropped first with DROP_CONSTRAINT).
-    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2);
+    -- Release 86: also TRIGGER; a TABLE only with p_retired_table => true (a retired table whose data was copied first,
+    -- approved per table; it goes to the recycle bin, not purged; the foreign keys that point to it are dropped first
+    -- with DROP_CONSTRAINT). Without it a table is still refused: tables keep their data.
+    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2, p_retired_table in boolean default false);
     -- Release 79: ALTER TABLE ... MODIFY (<column> NULL) only when the column is NOT NULL (no data changes).
     procedure set_nullable(p_table_name in varchar2, p_column_name in varchar2);
     -- EXECUTE IMMEDIATE, for the statements that belong to a table CREATE_TABLE just created.
@@ -176,15 +177,16 @@ create or replace package body xxfnd_ddl_pkg as
         end if;
     end drop_index;
 
-    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2) is
+    procedure drop_object(p_object_name in varchar2, p_object_type in varchar2, p_retired_table in boolean default false) is
         l_name  varchar2(128) := upper(dbms_assert.simple_sql_name(p_object_name));
         l_type  varchar2(30)  := upper(p_object_type);
         l_owner varchar2(128) := sys_context('USERENV', 'CURRENT_SCHEMA');
         l_ddl   clob;
         l_deps  varchar2(4000);
     begin
-        if l_type not in ('PACKAGE', 'VIEW', 'FUNCTION', 'PROCEDURE', 'SYNONYM', 'TRIGGER', 'TABLE') then
-            raise_application_error(-20009, 'DROP_OBJECT does not drop a ' || l_type || '.');
+        if l_type not in ('PACKAGE', 'VIEW', 'FUNCTION', 'PROCEDURE', 'SYNONYM', 'TRIGGER')
+           and not (l_type = 'TABLE' and p_retired_table) then
+            raise_application_error(-20009, 'DROP_OBJECT does not drop a ' || l_type || ' (tables keep their data).');
         end if;
         if not object_exists(l_name, l_type) then
             return;

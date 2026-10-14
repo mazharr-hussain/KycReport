@@ -3,8 +3,9 @@
 ## How to change a server
 
 Since release 83 the servers COMMON calls are **APEX Remote Servers**, and their secrets **APEX Web Credentials**, of
-the workspace. The COMMON Servers screen (Integrations > Servers) shows them with their health; it does not change
-them. The **workspace administrator** changes them:
+the workspace. Since release 86 the COMMON Servers screen (Integrations > Servers) is the register of these servers:
+the COMMON administrator adds a server there (its Remote Server, Web Credential and type with the type's details) and
+sees its health. The URL and the secret stay with the **workspace administrator**:
 
 | Server (static ID) | What it is | Web Credential |
 | --- | --- | --- |
@@ -25,7 +26,7 @@ them. The **workspace administrator** changes them:
 When the application is installed in a new workspace, the servers are created with placeholder URLs
 (e.g. https://your-fusion-host.oraclecloud.com) and the Web Credentials without secrets: set them as above before the
 first call. Nothing calls a server that is not set up (the Fusion HCM sync waits; the document stores stay on the
-database store until a storage rule points to them).
+database until an application's storage points to them).
 
 ## Fusion HCM sync
 
@@ -76,3 +77,34 @@ Credentials.
 - **Feedback:** everyone gives feedback with the Feedback link in the navigation bar (another application links to COMMON
   page 173 with `P173_APPLICATION_ID` and `P173_PAGE_ID`). Platform > Usage and Feedback lists it; open one to add a
   follow-up.
+
+## Applications, servers and storage (release 86)
+
+**Register an application.** Platform > Applications > **Register Application** opens a journey of ten steps:
+1. **Application** - pick an APEX application of this workspace that is not registered yet (name, alias and schema come
+   from APEX), give it a code, a description and its switches.
+2. **Roles** and 3. **Users** - the application's roles and who holds them (the usual Role, User and Assign screens).
+4. **Shared functions** - the COMMON setup the application's own administrators may manage inside the application.
+5. **Setup types**, 6. **Processes**, 7. **Notifications** - what applies to the application.
+8. **Document storage** and 9. **Integrations** - where its documents go and which servers it calls.
+10. **Review** - check everything, then **Register**. Nothing is saved before Register.
+
+Opening an application shows its page: a header with **Edit** (the journey, at any step), **Disable / Enable** and
+**Delete** (only when the application is disabled and nothing refers to it - otherwise the reason is shown), a menu of
+the sections and each section with its Add / Edit / Remove actions.
+
+**Scripted onboarding.** Connected as XXFUSION, run `apex/db/admin/onboard-application.sql`: it asks for the APEX
+application ID, the code, a description, the e-mail switch and (optional) an administrator user, then registers the
+application with the basic setup: role `<CODE>_ADMIN` (every privilege of its features) for that user, shared functions
+and processes off, the default notification rules, documents in the database. A re-run changes nothing.
+
+**Servers.** Integrations > Servers > Create Server: pick the APEX Remote Server, its Web Credential and the type; the
+screen shows the type's details (OCI Object Storage: region and namespace). Applications only pick servers; they never
+define them.
+
+**Document storage.** Attachments > Storage lists every application with its storage state. Open one to set the
+application default (server; SharePoint site and document library, Object Storage bucket, UCM security group, account
+and document type; folder) and, in the grid, any category that differs - a category value overrides the application's.
+Per field: the category, else the application, else the default folder `/#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#`; when
+nothing is set or the setup is incomplete, documents are kept in the **database** (the screen says "incomplete - using
+database"). Documents already stored stay where they are.

@@ -56,6 +56,20 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 86 (COMMON)
+Release 86 (COMMON only, patch 93): onboarding applications and workspace servers. **Applications** (Platform) is a
+guided journey: Register Application (165) picks an APEX application of the workspace that is not registered yet and
+walks through its roles, users, shared functions, setup types, processes, notifications, document storage and
+integrations; the application page (166) shows every section with Add / Edit / Remove, Disable / Enable and Delete
+(only when the application is disabled and nothing refers to it). Page 161 is retired. **Servers** (Integrations >
+Servers) are defined once for the workspace (APEX Remote Server + Web Credential + the details of the server's type:
+OCI Object Storage, SharePoint, UCM, Fusion, REST, Outlook); **Document storage** is set per application with category
+overrides (Attachments > Storage) and falls back to the database when nothing is set; OCI Object Storage is a new
+store. The retired endpoints table is removed (its servers copied first) and the old storage rules are converted.
+Scripted onboarding: `apex/db/admin/onboard-application.sql` (as XXFUSION; APEX application ID, code, description,
+e-mail switch, optional administrator). Upgrade as usual. **KYC needs its own release** (its seed still writes the
+retired endpoints table).
+
 ## Release 85 (COMMON)
 Release 85 (COMMON only, patch 92): the shared screens every application uses from COMMON. **Attachments** (47) and
 **Document** (48): the documents of any application's record - download, add, replace with a new version, remove;
