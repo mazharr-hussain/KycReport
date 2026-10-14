@@ -1596,4 +1596,42 @@ page 0 (
             }
         )
     )
+
+    dynamicAction jrn-after-dialog-cancel (
+        name: Journey - refresh after a dialog closed with Cancel
+        execution {
+            sequence: 20
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (165, 166)
+                ```
+        }
+        when {
+            event: custom
+            customEvent: apexaftercanceldialog
+            selectionType: jQuerySelector
+            jquerySelector: body
+        }
+
+        action jrn-after-dialog-cancel-submit (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // release 86: a Role, Assign, Setup Type, Storage or Purpose dialog changed the application - show the
+                    // sections and the section states again (the page keeps its journey step); also after Cancel, as the Role
+                    // dialog stays open after Create for its tabs
+                    apex.page.submit({ request: "JRN_REFRESH", validate: false, showWait: true });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+    )
 )
