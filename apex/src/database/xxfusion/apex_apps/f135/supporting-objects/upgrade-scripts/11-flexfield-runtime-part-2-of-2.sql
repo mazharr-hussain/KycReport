@@ -837,5 +837,117 @@ create or replace package body xxfnd_dff_pkg as
                                values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
     end save_flexfield_name;
 
+    ----------------------------------------------------------------------------
+    -- Release 86: registration
+    ----------------------------------------------------------------------------
+    procedure register_value_set(p_application_code      in varchar2,
+                                 p_value_set_code        in varchar2,
+                                 p_value_set_name        in varchar2,
+                                 p_validation_type       in varchar2 default 'NONE',
+                                 p_format_type           in varchar2 default 'CHAR',
+                                 p_maximum_size          in number   default null,
+                                 p_lookup_type           in varchar2 default null,
+                                 p_parent_value_set_code in varchar2 default null,
+                                 p_table_query           in clob     default null,
+                                 p_description           in varchar2 default null,
+                                 p_uppercase_only_flag   in varchar2 default 'N',
+                                 p_number_precision      in number   default null,
+                                 p_minimum_value         in varchar2 default null,
+                                 p_maximum_value         in varchar2 default null) is
+        l_code xxfnd_value_sets.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_n    pls_integer;
+        l_row  xxfnd_value_sets.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_value_sets where value_set_code = upper(p_value_set_code);
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Value set', upper(p_value_set_code), l_row, p_application_code);
+            return;
+        end if;
+        insert into xxfnd_value_sets (value_set_code, value_set_name, description, validation_type, format_type,
+                                      maximum_size, number_precision, minimum_value, maximum_value, uppercase_only_flag,
+                                      lookup_type, parent_value_set_code, table_query, application_code)
+        values (upper(p_value_set_code), p_value_set_name, p_description, upper(nvl(p_validation_type, 'NONE')),
+                upper(nvl(p_format_type, 'CHAR')), p_maximum_size, p_number_precision, p_minimum_value, p_maximum_value,
+                nvl(p_uppercase_only_flag, 'N'), upper(p_lookup_type), upper(p_parent_value_set_code), p_table_query, l_code);
+    end register_value_set;
+
+    procedure register_flexfield(p_application_code             in varchar2,
+                                 p_dff_code                     in varchar2,
+                                 p_table_name                   in varchar2,
+                                 p_pk_column_name               in varchar2,
+                                 p_flexfield_name               in varchar2,
+                                 p_flexfield_name_ar            in varchar2 default null,
+                                 p_context_column_name          in varchar2 default 'ATTRIBUTE_CATEGORY',
+                                 p_context_reference_column     in varchar2 default null,
+                                 p_default_context_code         in varchar2 default null,
+                                 p_context_required_flag        in varchar2 default 'N',
+                                 p_context_user_selectable_flag in varchar2 default 'N',
+                                 p_description                  in varchar2 default null) is
+        l_code  xxfnd_df_flexfields.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_dff   varchar2(60) := upper(p_dff_code);
+        l_n     pls_integer;
+        l_row   xxfnd_df_flexfields.application_code%type;
+        l_other xxfnd_df_flexfields.descriptive_flexfield_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_df_flexfields where descriptive_flexfield_code = l_dff;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Flexfield', l_dff, l_row, p_application_code);
+        else
+            select max(descriptive_flexfield_code) into l_other from xxfnd_df_flexfields where table_name = upper(p_table_name);
+            if l_other is not null then
+                xxfnd_error_pkg.raise_error('XXFND_REG_DFF_TABLE', apex_t_varchar2(upper(p_table_name), l_other));
+            end if;
+            insert into xxfnd_df_flexfields (descriptive_flexfield_code, application_code, table_name, pk_column_name,
+                                             context_column_name, context_reference_column, default_context_code,
+                                             context_required_flag, context_user_selectable_flag)
+            values (l_dff, l_code, upper(p_table_name), upper(p_pk_column_name),
+                    upper(nvl(p_context_column_name, 'ATTRIBUTE_CATEGORY')), upper(p_context_reference_column),
+                    p_default_context_code, nvl(p_context_required_flag, 'N'), nvl(p_context_user_selectable_flag, 'N'));
+        end if;
+        -- its name (English, Arabic when given) and its protected GLOBAL context, each when missing
+        merge into xxfnd_df_flexfields_tl t
+        using (select l_dff code, 'en' lang, p_flexfield_name name from dual
+               union all
+               select l_dff, 'ar', p_flexfield_name_ar from dual where p_flexfield_name_ar is not null) s
+           on (t.descriptive_flexfield_code = s.code and t.language_code = s.lang)
+         when not matched then insert (descriptive_flexfield_code, language_code, flexfield_name, description)
+                               values (s.code, s.lang, s.name, case when s.lang = 'en' then p_description end);
+        merge into xxfnd_df_contexts c
+        using (select l_dff code from dual) s
+           on (c.descriptive_flexfield_code = s.code and c.context_code = 'GLOBAL')
+         when not matched then insert (descriptive_flexfield_code, context_code, context_name, global_flag, protected_flag)
+                               values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
+    end register_flexfield;
+
+    procedure register_context(p_application_code in varchar2,
+                               p_dff_code         in varchar2,
+                               p_context_code     in varchar2,
+                               p_context_name     in varchar2,
+                               p_context_name_ar  in varchar2 default null,
+                               p_description      in varchar2 default null) is
+        l_dff varchar2(60) := upper(p_dff_code);
+        l_n   pls_integer;
+        l_row xxfnd_df_flexfields.application_code%type;
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_df_flexfields where descriptive_flexfield_code = l_dff;
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Flexfield', l_dff));
+        end if;
+        xxfnd_application_pkg.assert_same_application('Flexfield', l_dff, l_row, l_code);
+        merge into xxfnd_df_contexts c
+        using (select l_dff code, upper(p_context_code) ctx from dual) s
+           on (c.descriptive_flexfield_code = s.code and c.context_code = s.ctx)
+         when not matched then insert (descriptive_flexfield_code, context_code, context_name, description)
+                               values (s.code, s.ctx, p_context_name, p_description);
+        if p_context_name_ar is not null then
+            merge into xxfnd_df_contexts_tl t
+            using (select l_dff code, upper(p_context_code) ctx, 'ar' lang from dual) s
+               on (t.descriptive_flexfield_code = s.code and t.context_code = s.ctx and t.language_code = s.lang)
+             when not matched then insert (descriptive_flexfield_code, context_code, language_code, context_name)
+                                   values (s.code, s.ctx, s.lang, p_context_name_ar);
+        end if;
+    end register_context;
+
 end xxfnd_dff_pkg;
 /

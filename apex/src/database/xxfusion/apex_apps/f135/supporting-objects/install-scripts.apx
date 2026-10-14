@@ -780,3 +780,54 @@ installScript 27-shared-screens (
             ```
     }
 )
+
+installScript 28-registration-and-onboarding (
+    execution {
+        sequence: 221
+    }
+    script {
+        contentFile: 28-registration.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 29-workspace-servers-and-storage-per-application (
+    execution {
+        sequence: 222
+    }
+    script {
+        contentFile: 29-servers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 30-application-journey (
+    execution {
+        sequence: 223
+    }
+    script {
+        contentFile: 30-application-journey.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

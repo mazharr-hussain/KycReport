@@ -729,3 +729,54 @@ upgradeScript 27-shared-screens (
             ```
     }
 )
+
+upgradeScript 28-registration-and-onboarding (
+    execution {
+        sequence: 181
+    }
+    script {
+        contentFile: 28-registration.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 29-workspace-servers-and-storage-per-application (
+    execution {
+        sequence: 182
+    }
+    script {
+        contentFile: 29-servers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 30-application-journey (
+    execution {
+        sequence: 183
+    }
+    script {
+        contentFile: 30-application-journey.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

@@ -179,6 +179,48 @@ create or replace package xxfnd_application_pkg authid definer as
     procedure submit_feedback(p_application_id in number, p_page_id in number, p_type in number, p_comment in varchar2);
     -- A follow-up on a feedback (USAGE_FEEDBACK - Manage, ORA-20172 otherwise).
     procedure feedback_follow_up(p_feedback_id in number, p_follow_up in varchar2);
+
+    ----------------------------------------------------------------------------
+    -- Release 86: onboarding an application and the registration rule every REGISTER_* routine uses
+    ----------------------------------------------------------------------------
+    -- The registered application code (upper case); catalogue error XXFND_APP_NOT_REGISTERED (ORA-20180) when the
+    -- code is not in XXFND_APPLICATIONS. No APEX session needed.
+    function registered_code(p_application_code in varchar2) return varchar2;
+    -- The same, as stored in a setup row: COMMON is the instance (null), any other application its code.
+    function setup_code(p_application_code in varchar2) return varchar2;
+    -- A setup row that already exists under another application is refused (XXFND_REG_OTHER_APP, ORA-20186):
+    -- P_ROW_APPLICATION is the row's application (null = instance row, open to every application).
+    procedure assert_same_application(p_what in varchar2, p_key in varchar2, p_row_application in varchar2,
+                                      p_application_code in varchar2);
+    -- Creates (= registers: grants to its schema, APEX ID, function and process rows) or updates an application.
+    -- Name, alias and parsing schema come from the APEX application P_APEX_APPLICATION_ID of the current workspace;
+    -- refused when that APEX application is not in the workspace (ORA-20181) or is registered under another code
+    -- (ORA-20182). In an APEX session: Applications - Manage.
+    procedure save_application(p_application_code    in varchar2,
+                               p_apex_application_id in number,
+                               p_description         in varchar2 default null,
+                               p_enabled_flag        in varchar2 default 'Y',
+                               p_email_enabled_flag  in varchar2 default 'Y');
+    -- SAVE_APPLICATION + the role <CODE>_ADMIN (every privilege of the application's features) given to
+    -- P_ADMIN_USER when named; the shared functions are not managed in the application and the shared processes
+    -- (e.g. RFI) start off; the default notification rules (for every application) apply; documents are kept in
+    -- the database until storage is set up. Re-runnable: what the administrators changed is kept.
+    procedure onboard(p_apex_application_id in number,
+                      p_application_code    in varchar2,
+                      p_description         in varchar2 default null,
+                      p_email_enabled_flag  in varchar2 default 'Y',
+                      p_admin_user          in varchar2 default null);
+    -- Enables or disables an application (COMMON is always enabled).
+    procedure set_enabled(p_application_code in varchar2, p_enabled_flag in varchar2);
+    -- Null when the application may be deleted; otherwise the reason. Only a disabled application that no data
+    -- refers to (tasks, workflows, RFIs, communications, documents, notifications, roles in use, setup rows ...).
+    function delete_blocker(p_application_code in varchar2) return varchar2;
+    -- Deletes the application with its own standard rows (function and process rows, unused roles); raises the
+    -- DELETE_BLOCKER reason (ORA-20184) when it may not be deleted.
+    procedure delete_application(p_application_code in varchar2);
+    -- The common functions managed in the application (P_MANAGED_FEATURES: colon-separated feature codes); every
+    -- other common function is not (was the "save functions" grid of page 161).
+    procedure save_functions(p_application_code in varchar2, p_managed_features in varchar2);
 end xxfnd_application_pkg;
 /
 
@@ -431,7 +473,7 @@ create or replace package body xxfnd_application_pkg as
     begin
         -- not XXFND_ROLES: the access checks read every role (the Roles screen filters by application itself)
         return apex_t_varchar2('XXFND_LOOKUP_TYPES', 'XXFND_NOTIFICATION_TEMPLATES',
-                               'XXFND_INTEGRATION_PURPOSES', 'XXFND_INTEGRATION_ENDPOINTS', 'XXFND_DOCUMENT_ENTITIES',
+                               'XXFND_INTEGRATION_PURPOSES', 'XXFND_DOCUMENT_ENTITIES',   -- release 86: endpoints retired
                                'XXFND_DOCUMENT_CATEGORIES', 'XXFND_ATTACHMENT_FUNCTIONS', 'XXFND_DF_FLEXFIELDS',
                                'XXFND_VALUE_SETS', 'XXFND_RETENTION_POLICIES', 'XXFND_STORAGE_CONFIG');
     end scoped_tables;
@@ -579,6 +621,297 @@ create or replace package body xxfnd_application_pkg as
         end if;
         apex_util.submit_feedback_followup(p_feedback_id => p_feedback_id, p_follow_up => p_follow_up);
     end feedback_follow_up;
+
+    ----------------------------------------------------------------------------
+    -- Release 86: onboarding and the registration rule
+    ----------------------------------------------------------------------------
+    -- in an APEX session the caller needs Applications - Manage; scripts (no APEX session) may
+    procedure check_manage is
+    begin
+        if xxfnd_util_pkg.in_apex_session and not xxfnd_privilege_pkg.has_privilege('APPLICATIONS', 'MANAGE') then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');
+        end if;
+    end check_manage;
+
+    function registered_code(p_application_code in varchar2) return varchar2 is
+        l_code xxfnd_applications.application_code%type;
+    begin
+        select max(application_code) into l_code from xxfnd_applications
+         where application_code = upper(trim(p_application_code));
+        if l_code is null then
+            xxfnd_error_pkg.raise_error('XXFND_APP_NOT_REGISTERED',
+                                        apex_t_varchar2(nvl(upper(trim(p_application_code)), '-')));
+        end if;
+        return l_code;
+    end registered_code;
+
+    function setup_code(p_application_code in varchar2) return varchar2 is
+        l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
+    begin
+        return case when l_code = 'COMMON' then null else l_code end;
+    end setup_code;
+
+    procedure assert_same_application(p_what in varchar2, p_key in varchar2, p_row_application in varchar2,
+                                      p_application_code in varchar2) is
+        l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
+    begin
+        if p_row_application is not null and upper(p_row_application) <> l_code then
+            xxfnd_error_pkg.raise_error('XXFND_REG_OTHER_APP', apex_t_varchar2(p_what, p_key, upper(p_row_application)));
+        end if;
+    end assert_same_application;
+
+    -- the workspace of the registered applications (COMMON's), else the running application's
+    function workspace_name return varchar2 is
+        l_ws varchar2(255);
+    begin
+        select max(x.workspace) into l_ws
+          from apex_applications x
+         where x.application_id = coalesce((select max(apex_application_id) from xxfnd_applications
+                                             where application_code = 'COMMON'), to_number(v('APP_ID')));
+        return l_ws;
+    end workspace_name;
+
+    procedure save_application(p_application_code    in varchar2,
+                               p_apex_application_id in number,
+                               p_description         in varchar2 default null,
+                               p_enabled_flag        in varchar2 default 'Y',
+                               p_email_enabled_flag  in varchar2 default 'Y') is
+        l_code   xxfnd_applications.application_code%type := upper(trim(p_application_code));
+        l_ws     varchar2(255) := workspace_name;
+        l_name   varchar2(4000);
+        l_alias  varchar2(4000);
+        l_schema varchar2(4000);
+        l_other  xxfnd_applications.application_code%type;
+    begin
+        check_manage;
+        if l_code is null or not regexp_like(l_code, '^[A-Z][A-Z0-9_]{0,29}$') then
+            xxfnd_error_pkg.raise_error('XXFND_APP_CODE_INVALID', apex_t_varchar2(nvl(l_code, '-')));
+        end if;
+        -- name, alias and parsing schema are those of the APEX application (one source of truth)
+        select max(application_name), max(alias), max(owner) into l_name, l_alias, l_schema
+          from apex_applications
+         where application_id = p_apex_application_id
+           and (l_ws is null or workspace = l_ws);
+        if l_name is null then
+            xxfnd_error_pkg.raise_error('XXFND_APP_APEX_NOT_FOUND', apex_t_varchar2(to_char(p_apex_application_id)));
+        end if;
+        select max(application_code) into l_other from xxfnd_applications
+         where application_code <> l_code
+           and (apex_application_id = p_apex_application_id or upper(apex_app_alias) = upper(l_alias));
+        if l_other is not null then
+            xxfnd_error_pkg.raise_error('XXFND_APP_APEX_TAKEN', apex_t_varchar2(to_char(p_apex_application_id), l_other));
+        end if;
+        merge into xxfnd_applications t
+        using (select l_code application_code from dual) s
+           on (t.application_code = s.application_code)
+         when matched then update set t.application_name    = substr(l_name, 1, 240),
+                                      t.apex_app_alias      = l_alias,
+                                      t.apex_application_id = p_apex_application_id,
+                                      t.schema_name         = l_schema,
+                                      t.description         = p_description,
+                                      t.enabled_flag        = case when l_code = 'COMMON' then 'Y'
+                                                                   else nvl(p_enabled_flag, 'Y') end
+         when not matched then insert (application_code, application_name, apex_app_alias, apex_application_id,
+                                       schema_name, description, enabled_flag)
+                               values (l_code, substr(l_name, 1, 240), l_alias, p_apex_application_id, l_schema,
+                                       p_description, nvl(p_enabled_flag, 'Y'));
+        -- the e-mail switch (column added after this package, 09e: written by name)
+        execute immediate 'update xxfnd_applications set email_enabled_flag = :e where application_code = :c'
+            using case when p_email_enabled_flag = 'N' then 'N' else 'Y' end, l_code;
+        -- grants to its schema, its APEX ID and one row per common function (not managed in the application)
+        register_application(l_code);
+        -- its workflow processes and the RFI process (new rows on, existing rows kept); XXFND_WORKFLOW_PKG is
+        -- installed later (15): called by name
+        execute immediate 'begin xxfnd_workflow_pkg.sync_processes; end;';
+    end save_application;
+
+    procedure onboard(p_apex_application_id in number,
+                      p_application_code    in varchar2,
+                      p_description         in varchar2 default null,
+                      p_email_enabled_flag  in varchar2 default 'Y',
+                      p_admin_user          in varchar2 default null) is
+        l_code    xxfnd_applications.application_code%type := upper(trim(p_application_code));
+        l_app     xxfnd_applications%rowtype;
+        l_before  apex_t_varchar2;
+        l_new     apex_t_varchar2;
+        l_role    xxfnd_roles.role_code%type;
+        l_roles   pls_integer;
+        l_created timestamp;
+        l_email   varchar2(1);
+        l_granted pls_integer;
+    begin
+        check_manage;
+        -- XXFND_WORKFLOW_PROCESSES is created after this package (09e): read by name
+        execute immediate 'select process_code from xxfnd_workflow_processes where application_code = :c'
+            bulk collect into l_before using l_code;
+        select count(*) into l_roles from xxfnd_applications where application_code = l_code;
+        if l_roles > 0 then
+            -- a re-run refreshes the registration and keeps what the administrators set
+            select * into l_app from xxfnd_applications where application_code = l_code;
+            execute immediate 'select email_enabled_flag from xxfnd_applications where application_code = :c'
+                into l_email using l_code;
+            save_application(l_code, p_apex_application_id, nvl(l_app.description, p_description),
+                             l_app.enabled_flag, l_email);
+        else
+            save_application(l_code, p_apex_application_id, p_description, 'Y', nvl(p_email_enabled_flag, 'Y'));
+        end if;
+        select * into l_app from xxfnd_applications where application_code = l_code;
+
+        -- the shared processes (not the application's own APEX workflows, e.g. RFI) start off; only rows made now
+        execute immediate q'~select w.process_code from xxfnd_workflow_processes w
+                   where w.application_code = :c
+                     and w.process_code not in (select column_value from table(:b))
+                     and not exists (select 1 from apex_appl_workflows x
+                                      where x.application_id = :i and upper(x.static_id) = w.process_code)~'
+            bulk collect into l_new using l_code, l_before, l_app.apex_application_id;
+        for i in 1 .. l_new.count loop
+            -- XXFND_WORKFLOW_PKG is installed later (15): called by name
+            execute immediate 'begin xxfnd_workflow_pkg.set_process_enabled(:a, :p, ''N''); end;'
+                using l_code, l_new(i);
+        end loop;
+
+        -- the application's administrator: every privilege of its features when the role is made; on a re-run only
+        -- the privileges registered since the last onboarding (the role's LAST_UPDATE_DATE, set below), so what an
+        -- administrator took away stays away
+        l_role := substr(l_code, 1, 24) || '_ADMIN';
+        select count(*) into l_roles from xxfnd_roles where role_code = l_role;
+        xxfnd_privilege_pkg.register_role(l_code, l_role, substr(l_app.application_name, 1, 185) || ' Administrator',
+                                          substr('Administers ' || l_app.application_name
+                                                 || ': every feature of the application (onboarding).', 1, 500));
+        select last_update_date into l_created from xxfnd_roles where role_code = l_role;
+        l_granted := 0;
+        for p in (select p.privilege_code from xxfnd_privileges p
+                    join xxfnd_features f on f.feature_code = p.feature_code
+                   where f.application_id = l_app.application_id
+                     and (l_roles = 0 or p.creation_date > l_created)) loop
+            xxfnd_privilege_pkg.add_role_privilege(l_code, l_role, p.privilege_code);
+            l_granted := l_granted + 1;
+        end loop;
+        if l_granted > 0 and l_roles > 0 then
+            -- the onboarding mark: the WHO trigger sets LAST_UPDATE_DATE
+            update xxfnd_roles set role_name = role_name where role_code = l_role;
+        end if;
+        if trim(p_admin_user) is not null then
+            -- XXFND_USER_PKG is installed later (16j): called by name; it gives the role outside an APEX session
+            execute immediate 'begin xxfnd_user_pkg.bootstrap_admin(p_user_name => :u, p_role_code => :r); end;'
+                using upper(trim(p_admin_user)), l_role;
+        end if;
+    end onboard;
+
+    procedure set_enabled(p_application_code in varchar2, p_enabled_flag in varchar2) is
+        l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
+    begin
+        check_manage;
+        if l_code = 'COMMON' and nvl(p_enabled_flag, 'N') <> 'Y' then
+            xxfnd_error_pkg.raise_error('XXFND_APP_COMMON_ALWAYS');
+        end if;
+        update xxfnd_applications set enabled_flag = case when p_enabled_flag = 'Y' then 'Y' else 'N' end
+         where application_code = l_code
+           and enabled_flag <> case when p_enabled_flag = 'Y' then 'Y' else 'N' end;
+    end set_enabled;
+
+    function delete_blocker(p_application_code in varchar2) return varchar2 is
+        l_app  xxfnd_applications%rowtype;
+        l_list varchar2(4000);
+        l_n    number;
+        procedure found(p_what in varchar2, p_count in number) is
+        begin
+            if p_count > 0 then
+                l_list := substr(l_list || case when l_list is not null then ', ' end || p_what || ': ' || p_count, 1, 3000);
+            end if;
+        end found;
+    begin
+        select * into l_app from xxfnd_applications where application_code = registered_code(p_application_code);
+        if l_app.application_code = 'COMMON' then
+            return xxfnd_error_pkg.message('XXFND_APP_DELETE_COMMON');
+        elsif l_app.enabled_flag = 'Y' then
+            return xxfnd_error_pkg.message('XXFND_APP_DELETE_ENABLED', apex_t_varchar2(l_app.application_code));
+        end if;
+        -- every row is counted, whoever asks (data security and the administration scope do not hide any)
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            -- any table of the platform that keeps an application code: setup rows, RFIs, communications,
+            -- notifications ... (not the application's own standard rows, deleted with it)
+            for t in (select c.table_name from user_tab_columns c
+                        join user_tables u on u.table_name = c.table_name
+                       where c.column_name = 'APPLICATION_CODE'
+                         and c.table_name like 'XXFND\_%' escape '\'
+                         and c.table_name not in ('XXFND_APPLICATIONS', 'XXFND_APPLICATION_FUNCTIONS',
+                                                  'XXFND_WORKFLOW_PROCESSES', 'XXFND_SETUP_TYPE_APPS', 'XXFND_ROLES')
+                       order by c.table_name) loop
+                execute immediate 'select count(*) from ' || dbms_assert.simple_sql_name(t.table_name)
+                               || ' where application_code = :c' into l_n using l_app.application_code;
+                found(initcap(replace(substr(t.table_name, 7), '_', ' ')), l_n);
+            end loop;
+            select count(*) into l_n from xxfnd_features where application_id = l_app.application_id;
+            found('Features', l_n);
+            select count(*) into l_n from xxfnd_feature_pages where upper(app_alias) = upper(l_app.apex_app_alias);
+            found('Feature pages', l_n);
+            select count(*) into l_n from xxfnd_config_tables where application_id = l_app.application_id;
+            found('Config tables', l_n);
+            -- documents of the application's records (its registered entities)
+            select count(*) into l_n from xxfnd_attached_documents ad
+              join xxfnd_document_entities e on e.entity_name = ad.entity_name
+             where e.application_code = l_app.application_code;
+            found('Documents', l_n);
+            -- roles in use: given to someone, or named by data access, segregation of duties, deadlines or approvals
+            -- (the deadline and approval tables are created after this package (15, 15d): read by name)
+            execute immediate q'~select count(*) from xxfnd_roles r
+             where r.application_code = :c
+               and (exists (select 1 from xxfnd_user_roles x where x.role_code = r.role_code)
+                    or exists (select 1 from xxfnd_data_rule_assignments x where x.role_code = r.role_code)
+                    or exists (select 1 from xxfnd_data_security_rules x where x.role_code = r.role_code)
+                    or exists (select 1 from xxfnd_sod_rules x where r.role_code in (x.role_code_1, x.role_code_2))
+                    or exists (select 1 from xxfnd_task_settings x where x.escalation_role_code = r.role_code)
+                    or exists (select 1 from xxfnd_approval_rule_steps x where x.role_code = r.role_code))~'
+                into l_n using l_app.application_code;
+            found('Roles in use', l_n);
+            -- its APEX tasks and workflows
+            select count(*) into l_n from apex_tasks where application_id = l_app.apex_application_id;
+            found('Tasks', l_n);
+            select count(*) into l_n from apex_workflows where application_id = l_app.apex_application_id;
+            found('Workflows', l_n);
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+        if l_list is not null then
+            return xxfnd_error_pkg.message('XXFND_APP_DELETE_DATA', apex_t_varchar2(l_app.application_code, l_list));
+        end if;
+        return null;
+    end delete_blocker;
+
+    procedure delete_application(p_application_code in varchar2) is
+        l_code   xxfnd_applications.application_code%type := registered_code(p_application_code);
+        l_reason varchar2(4000);
+    begin
+        check_manage;
+        l_reason := delete_blocker(l_code);
+        if l_reason is not null then
+            xxfnd_error_pkg.raise_error('XXFND_APP_DELETE_BLOCKED', apex_t_varchar2(l_reason));
+        end if;
+        -- its own standard rows (made when it was registered) go with it; unused roles take their privileges along
+        delete from xxfnd_application_functions where application_code = l_code;
+        -- XXFND_WORKFLOW_PROCESSES is created after this package (09e): by name
+        execute immediate 'delete from xxfnd_workflow_processes where application_code = :c' using l_code;
+        delete from xxfnd_setup_type_apps where application_code = l_code;
+        delete from xxfnd_roles where application_code = l_code;
+        delete from xxfnd_applications where application_code = l_code;
+    end delete_application;
+
+    procedure save_functions(p_application_code in varchar2, p_managed_features in varchar2) is
+        l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
+        l_list apex_t_varchar2 := apex_string.split(upper(p_managed_features), ':');
+    begin
+        check_manage;
+        ensure_rows(l_code);
+        update xxfnd_application_functions f
+           set f.managed_in_app_flag = case when f.feature_code in (select column_value from table(l_list)) then 'Y' else 'N' end
+         where f.application_code = l_code
+           and f.managed_in_app_flag <> case when f.feature_code in (select column_value from table(l_list)) then 'Y' else 'N' end;
+    end save_functions;
 
 end xxfnd_application_pkg;
 /

@@ -4,7 +4,7 @@
 --   information ...): sent from the application, or a reply received and recorded. Sent now through APEX mail;
 --   received e-mails are typed (or pasted) by a person now. The Outlook provision: an Outlook (Microsoft Graph)
 --   integration later fills the same table through RECORD_RECEIVED (SOURCE OUTLOOK) and matches replies by
---   CONVERSATION_ID / EXTERNAL_MESSAGE_ID; nothing else changes. Integration endpoint OUTLOOK_GRAPH (inactive) and
+--   CONVERSATION_ID / EXTERNAL_MESSAGE_ID; nothing else changes. Server OUTLOOK_GRAPH (release 86; disabled) and
 --   purpose EMAIL_SYNC (manual) are registered for it.
 --   Attachments: entity XXFND_COMMUNICATIONS (common attachments), registered by each application that uses it.
 -- Release 82: the table is created in 15 and the package is XXFND_NOTIFY_PKG (15); this script keeps the seeds.
@@ -31,11 +31,14 @@ begin
     lv('COMMUNICATION_STATUS', 'NOT_SENT', 'Recorded, not sent (e-mail switched off)', 20);
     lv('COMMUNICATION_STATUS', 'FAILED', 'Failed', 30);
     lv('COMMUNICATION_STATUS', 'RECEIVED', 'Received', 40);
-    merge into xxfnd_integration_endpoints t using (select 'OUTLOOK_GRAPH' endpoint_code from dual) s
-       on (t.endpoint_code = s.endpoint_code)
-     when not matched then insert (endpoint_code, endpoint_name, endpoint_type, base_url, status_code, description)
-                           values ('OUTLOOK_GRAPH', 'Outlook (Microsoft Graph)', 'OTHER', 'https://graph.microsoft.com/v1.0',
-                                   'INACTIVE', 'Planned: sends and receives the e-mails of the RFI and Notes screens '
+    -- release 86: the Outlook server is a workspace server (XXFND_SERVERS; was the endpoint OUTLOOK_GRAPH)
+    merge into xxfnd_servers t using (select 'OUTLOOK_GRAPH' server_code from dual) s
+       on (t.server_code = s.server_code)
+     when not matched then insert (server_code, server_name, server_type, base_url, credential_static_id, enabled_flag,
+                                   description)
+                           values ('OUTLOOK_GRAPH', 'Outlook (Microsoft Graph)', 'OUTLOOK', 'https://graph.microsoft.com/v1.0',
+                                   'XXFND_GRAPH_CRED', 'N',
+                                   'Planned: sends and receives the e-mails of the RFI and Notes screens '
                                    || '(XXFND_COMMUNICATIONS). Not built yet: e-mails are sent by APEX mail and replies recorded by hand.');
     merge into xxfnd_integration_purposes t using (select 'EMAIL_SYNC' purpose_code from dual) s
        on (t.purpose_code = s.purpose_code)

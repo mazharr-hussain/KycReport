@@ -372,6 +372,17 @@ create or replace package body xxfnd_user_pkg as
         if l_user is null then
             return;
         end if;
+        -- release 86 (onboarding an application's administrator): an existing user without an employee (LOCAL) gets
+        -- the role on the user itself (an employee made for it would clash with the user's name)
+        select max(user_id) into l_id from xxfnd_users where user_name = l_user and employee_id is null;
+        if l_id is not null then
+            merge into xxfnd_user_roles t
+            using (select l_id user_id, p_role_code role_code from dual) s
+               on (t.user_id = s.user_id and t.role_code = s.role_code and t.end_date_active is null)
+             when matched then update set t.enabled_flag = 'Y'
+             when not matched then insert (user_id, role_code) values (s.user_id, s.role_code);
+            return;
+        end if;
         begin
             select employee_id into l_id from xxfnd_employees where user_name = l_user;
             update xxfnd_employees set enabled_flag = 'Y', end_date_active = null where employee_id = l_id;

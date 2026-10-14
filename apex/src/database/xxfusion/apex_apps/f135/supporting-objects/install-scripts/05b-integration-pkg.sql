@@ -10,6 +10,13 @@
 --   - TEST_CONNECTION: one request to a server's base URL, kept per server (XXFND_SERVER_TESTS) for its health.
 --   - SYNC_HCM: the Fusion HCM worker sync through purpose HCM_SYNC (server FUSION, REST Data Source
 --     FUSION_HCM_WORKERS); the FUSION_* application settings are no longer read.
+--   Release 86 (part B, workspace servers): XXFND_SERVERS - one row per server the COMMON administrator defines at
+--     workspace level: SERVER_CODE = the APEX Remote Server static ID (its Web Credential holds the secret), the
+--     server type (storage: OBJECT_STORAGE, SHAREPOINT, UCM; integration: FUSION, REST, OUTLOOK) and the type's
+--     details. Created here (not in 29) because this package, the attachments (14), the communications seed (15e),
+--     the setup rows (21c) and the modules state (22) use it and run before 29. XXFND_INTEGRATION_ENDPOINTS is
+--     retired: 29 copies it into XXFND_SERVERS and drops it. A purpose may name its server (SERVER_CODE).
+--     Saves of the Servers (121) and Purposes (123) screens: SAVE_SERVER / DELETE_SERVER, SAVE_PURPOSE / DELETE_PURPOSE.
 -- Idempotent: tables only when missing, changes as checked steps; safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 begin
@@ -61,6 +68,125 @@ begin
 end;
 /
 
+-- release 86 (part B): the workspace servers, defined once by the COMMON administrator
+begin
+    if xxfnd_ddl_pkg.create_table('XXFND_SERVERS', q'~create table xxfnd_servers (
+    server_code            varchar2(255)  not null,
+    server_name            varchar2(200)  not null,
+    server_type            varchar2(30)   not null,
+    base_url               varchar2(1000),
+    credential_static_id   varchar2(255),
+    oauth_token_url        varchar2(1000),
+    oci_region             varchar2(100),
+    oci_namespace          varchar2(200),
+    enabled_flag           varchar2(1)    default 'Y' not null,
+    description            varchar2(1000),
+    -- standard WHO columns
+    created_by               varchar2(255)  not null,
+    creation_date            timestamp      not null,
+    last_updated_by          varchar2(255)  not null,
+    last_update_date         timestamp      not null,
+    last_update_login        varchar2(255),
+    object_version_number    number         default 1 not null,
+    constraint xxfnd_servers_pk primary key (server_code),
+    constraint xxfnd_servers_ck1 check (server_type in ('OBJECT_STORAGE','SHAREPOINT','UCM','FUSION','REST','OUTLOOK')),
+    constraint xxfnd_servers_ck2 check (enabled_flag in ('Y','N')),
+    constraint xxfnd_servers_ck3 check (server_code <> 'DATABASE')
+)~') then
+        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_servers is 'Release 86: the servers of the workspace, defined once by the COMMON administrator. SERVER_CODE = the static ID of the APEX Remote Server (workspace component); its secret is the APEX Web Credential CREDENTIAL_STATIC_ID. Storage servers: OBJECT_STORAGE (OCI region, namespace), SHAREPOINT (Microsoft Graph, OAuth token URL), UCM (WebCenter Content); integration servers: FUSION, REST, OUTLOOK (Microsoft Graph). The database needs no server.'~');
+        xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.base_url is 'Used only while no APEX Remote Server of SERVER_CODE exists (copied from the retired XXFND_INTEGRATION_ENDPOINTS); the Remote Server URL wins.'~');
+        xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.credential_static_id is 'Static ID of the APEX Web Credential; empty = of a COMMON REST Data Source on the Remote Server, else <SERVER_CODE>_CREDENTIALS.'~');
+        xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.oauth_token_url is 'SHAREPOINT / OUTLOOK (Microsoft Graph): OAuth2 client-credentials token URL (not a secret).'~');
+        xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.oci_region is 'OBJECT_STORAGE: OCI region, e.g. eu-frankfurt-1 (URL https://objectstorage.<region>.oraclecloud.com when there is no Remote Server).'~');
+        xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.oci_namespace is 'OBJECT_STORAGE: the Object Storage namespace of the tenancy.'~');
+    end if;
+    xxfnd_schema_pkg.create_who_trigger('XXFND_SERVERS');
+    -- a purpose may name the server it uses
+    xxfnd_ddl_pkg.add_column('XXFND_INTEGRATION_PURPOSES', 'SERVER_CODE', 'varchar2(255)');
+    xxfnd_ddl_pkg.add_constraint('XXFND_INTEGRATION_PURPOSES', 'XXFND_INT_PURPOSES_FK2',
+        'foreign key (server_code) references xxfnd_servers (server_code)');
+    xxfnd_ddl_pkg.ensure_index('XXFND_INT_PURPOSES_N2',
+        'create index xxfnd_int_purposes_n2 on xxfnd_integration_purposes (server_code)');
+    xxfnd_audit_pkg.create_audit_trigger('XXFND_INTEGRATION_PURPOSES');   -- audit the new column too
+    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_integration_purposes.server_code is 'Release 86: the server (XXFND_SERVERS) the purpose uses; a REST Data Source, when set, keeps its own Remote Server.'~');
+end;
+/
+
+-- release 86: the servers are configuration - audited like the other setup tables
+begin
+    xxfnd_util_pkg.set_install_mode(true);
+    merge into xxfnd_config_tables t using (select 'XXFND_SERVERS' table_name from dual) s
+       on (t.table_name = s.table_name)
+     when not matched then insert (table_name, application_id, audit_flag, created_by, creation_date, last_updated_by, last_update_date)
+                           values (s.table_name, (select application_id from xxfnd_applications where application_code = 'COMMON'),
+                                   'Y', 'INSTALL', systimestamp, 'INSTALL', systimestamp);
+    xxfnd_util_pkg.set_install_mode(false);
+    commit;
+    xxfnd_audit_pkg.create_audit_trigger('XXFND_SERVERS');
+exception
+    when others then
+        xxfnd_util_pkg.set_install_mode(false);
+        raise;
+end;
+/
+
+-- release 86: the servers with their usage, effective URL and Web Credential, health and state (Servers screen,
+-- storage of the applications, purposes)
+create or replace view xxfnd_servers_v as
+select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage, q.base_url, q.remote_server_flag,
+       q.credential_static_id, q.oauth_token_url, q.oci_region, q.oci_namespace, q.enabled_flag, q.description,
+       q.last_call, q.last_error, q.last_test, q.missing,
+       case when q.enabled_flag = 'N' then 'DISABLED'
+            when q.missing is not null then 'INCOMPLETE'
+            when q.last_test like 'FAILED%' then 'FAILED'
+            else 'OK' end                                                   as status,
+       case when q.enabled_flag = 'N' then 'Disabled'
+            when q.missing is not null then 'Incomplete: needs ' || q.missing
+            when q.last_test like 'FAILED%' then 'Last Test Connection failed'
+            else 'OK' end                                                   as status_text
+  from (select s.server_code, s.server_name, s.server_type,
+               nvl((select max(v.meaning) from xxfnd_lookup_values v
+                     where v.lookup_type = 'SERVER_TYPE' and v.lookup_code = s.server_type),
+                   initcap(replace(s.server_type, '_', ' ')))              as server_type_name,
+               case when s.server_type in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM') then 'STORAGE'
+                    else 'INTEGRATION' end                                 as usage,
+               coalesce(r.base_url, s.base_url,
+                        case when s.server_type = 'OBJECT_STORAGE' and s.oci_region is not null
+                             then 'https://objectstorage.' || s.oci_region || '.oraclecloud.com' end) as base_url,
+               nvl2(r.remote_server_static_id, 'Y', 'N')                   as remote_server_flag,
+               coalesce(s.credential_static_id,
+                        (select max(m.credential_static_id) from apex_appl_web_src_modules m
+                          where m.remote_server_static_id = s.server_code and m.credential_static_id is not null
+                            and m.application_id = (select a.apex_application_id from xxfnd_applications a
+                                                     where a.application_code = 'COMMON')),
+                        (select max(c.static_id) from apex_workspace_credentials c
+                          where c.static_id = s.server_code || '_CREDENTIALS')) as credential_static_id,
+               s.oauth_token_url, s.oci_region, s.oci_namespace, s.enabled_flag, s.description,
+               (select max(c.called_date) from xxfnd_integration_calls c
+                 where c.server_static_id = s.server_code)                 as last_call,
+               (select max(c.called_date) from xxfnd_integration_calls c
+                 where c.server_static_id = s.server_code and c.status_code = 'FAILED') as last_error,
+               (select max(t.result_code || ' ' || to_char(t.tested_date, 'DD-Mon-YYYY HH24:MI'))
+                  from xxfnd_server_tests t where t.server_static_id = s.server_code) as last_test,
+               rtrim(case when coalesce(r.base_url, s.base_url,
+                                        case when s.server_type = 'OBJECT_STORAGE' then s.oci_region end) is null
+                          then 'its APEX Remote Server, ' end
+                  || case when s.credential_static_id is null
+                           and not exists (select 1 from apex_appl_web_src_modules m
+                                            where m.remote_server_static_id = s.server_code
+                                              and m.credential_static_id is not null)
+                           and not exists (select 1 from apex_workspace_credentials c
+                                            where c.static_id = s.server_code || '_CREDENTIALS')
+                          then 'a Web Credential, ' end
+                  || case when s.server_type = 'OBJECT_STORAGE' and (s.oci_region is null or s.oci_namespace is null)
+                          then 'the region and namespace, ' end
+                  || case when s.server_type in ('SHAREPOINT', 'OUTLOOK') and s.oauth_token_url is null
+                          then 'the OAuth token URL, ' end, ', ')           as missing
+          from xxfnd_servers s
+          left join apex_workspace_remote_servers r on r.remote_server_static_id = s.server_code) q;
+
+comment on table xxfnd_servers_v is 'Release 86: the servers (XXFND_SERVERS) with their usage (STORAGE / INTEGRATION), effective URL (APEX Remote Server, else the copied URL, else the OCI region URL) and Web Credential, health, and STATUS: DISABLED, INCOMPLETE (MISSING says what), FAILED (last Test Connection) or OK.';
+
 create or replace package xxfnd_integration_pkg authid definer as
     -- Upserts one Fusion worker (JSON object from the HCM publicWorkers resource).
     procedure upsert_fusion_worker(p_worker in json_object_t);
@@ -84,12 +210,44 @@ create or replace package xxfnd_integration_pkg authid definer as
         static_id            varchar2(255),
         server_name          varchar2(255),
         base_url             varchar2(4000),
-        credential_static_id varchar2(255));
-    -- A server by static ID: the APEX Remote Server (credential: the Web Credential of a COMMON REST Data Source on
-    -- it, else the one its retiring endpoint row named, else <static ID>_CREDENTIALS); else the retiring
-    -- XXFND_INTEGRATION_ENDPOINTS row when ACTIVE.
+        credential_static_id varchar2(255),
+        -- release 86: from XXFND_SERVERS (empty for a Remote Server the administrator has not defined there)
+        server_type          varchar2(30),
+        oauth_token_url      varchar2(1000),
+        oci_region           varchar2(100),
+        oci_namespace        varchar2(200));
+    -- A server by static ID. Release 86: the server the COMMON administrator defined (XXFND_SERVERS_V: URL of its
+    -- APEX Remote Server, else the copied URL; its Web Credential, else of a COMMON REST Data Source on it, else
+    -- <static ID>_CREDENTIALS); else an APEX Remote Server of that static ID not defined yet (the same credential rule).
     -- ORA-20301 when neither exists.
     function server(p_static_id in varchar2) return t_server;
+    -- Release 86: the Servers screen (121). Saves one server: SERVER_CODE = an APEX Remote Server static ID; the type
+    -- decides which details are kept (OBJECT_STORAGE: region, namespace; SHAREPOINT / OUTLOOK: OAuth token URL); the
+    -- other details are cleared. P_BASE_URL (kept when empty): used only while no APEX Remote Server of that static ID
+    -- exists. ORA-20341 for an unknown type.
+    procedure save_server(p_server_code          in varchar2,
+                          p_server_name          in varchar2,
+                          p_server_type          in varchar2,
+                          p_credential_static_id in varchar2 default null,
+                          p_oauth_token_url      in varchar2 default null,
+                          p_oci_region           in varchar2 default null,
+                          p_oci_namespace        in varchar2 default null,
+                          p_enabled_flag         in varchar2 default 'Y',
+                          p_description          in varchar2 default null,
+                          p_base_url             in varchar2 default null);
+    -- Deletes a server nothing uses; ORA-20342 when a storage rule or a purpose uses it (disable it instead).
+    procedure delete_server(p_server_code in varchar2);
+    -- Release 86: the Purposes screen (123). P_NEW = Y creates (ORA-20343 when the code exists), N changes the purpose
+    -- (the maker-checker trigger sends a changed approved purpose back for approval).
+    procedure save_purpose(p_purpose_code          in varchar2,
+                           p_purpose_name          in varchar2,
+                           p_application_code      in varchar2,
+                           p_capture_method        in varchar2,
+                           p_server_code           in varchar2,
+                           p_rest_source_static_id in varchar2,
+                           p_new                   in varchar2 default 'N');
+    -- ORA-20344 when calls or transmissions refer to it.
+    procedure delete_purpose(p_purpose_code in varchar2);
     -- The one call procedure: the purpose's REST Data Source on its Remote Server, with its Web Credential; p_path and
     -- p_query are added to the REST Data Source URL. Logged (XXFND_INTEGRATION_CALLS) and retryable. Raises ORA-20311
     -- with the HTTP status when the call fails; ORA-20312 when the purpose has no REST Data Source.
@@ -115,6 +273,16 @@ create or replace package xxfnd_integration_pkg authid definer as
     -- The Fusion HCM worker sync through purpose HCM_SYNC (Remote Server FUSION). Does nothing while the purpose
     -- has no REST Data Source or the server is not set up.
     procedure sync_hcm;
+
+    ---------------------------------------------------------------- release 86 (part A): registration
+    -- An integration purpose of the application, added when missing (an administrator's change is kept). Approved
+    -- when a script registers it; from an APEX session it waits for the second person (maker-checker).
+    -- ORA-20180 when the application is not registered; ORA-20186 when the purpose is another application's.
+    procedure register_purpose(p_application_code      in varchar2,
+                               p_purpose_code          in varchar2,
+                               p_purpose_name          in varchar2,
+                               p_capture_method        in varchar2 default 'MANUAL',
+                               p_rest_source_static_id in varchar2 default null);
 end xxfnd_integration_pkg;
 /
 
@@ -290,6 +458,22 @@ create or replace package body xxfnd_integration_pkg as
     function server(p_static_id in varchar2) return t_server is
         l_srv t_server;
     begin
+        -- release 86: the server the COMMON administrator defined (XXFND_SERVERS_V holds the URL and credential rule)
+        for s in (select server_code, server_name, base_url, credential_static_id, server_type, oauth_token_url,
+                         oci_region, oci_namespace
+                    from xxfnd_servers_v
+                   where server_code = p_static_id) loop
+            l_srv.static_id            := s.server_code;
+            l_srv.server_name          := s.server_name;
+            l_srv.base_url             := s.base_url;
+            l_srv.credential_static_id := s.credential_static_id;
+            l_srv.server_type          := s.server_type;
+            l_srv.oauth_token_url      := s.oauth_token_url;
+            l_srv.oci_region           := s.oci_region;
+            l_srv.oci_namespace        := s.oci_namespace;
+            return l_srv;
+        end loop;
+        -- an APEX Remote Server not defined as a server yet
         for r in (select remote_server_static_id, remote_server_name, base_url
                     from apex_workspace_remote_servers
                    where remote_server_static_id = p_static_id) loop
@@ -298,34 +482,113 @@ create or replace package body xxfnd_integration_pkg as
             l_srv.base_url    := r.base_url;
         end loop;
         if l_srv.static_id is not null then
-            -- its Web Credential: of a COMMON REST Data Source on it, else the one the retiring endpoint row named,
-            -- else <static ID>_CREDENTIALS
+            -- its Web Credential: of a COMMON REST Data Source on it, else <static ID>_CREDENTIALS
             select coalesce(
                      (select max(m.credential_static_id) from apex_appl_web_src_modules m
                        where m.remote_server_static_id = p_static_id and m.credential_static_id is not null
                          and m.application_id = (select apex_application_id from xxfnd_applications
                                                   where application_code = 'COMMON')),
-                     (select max(e.web_credential_static_id) from xxfnd_integration_endpoints e
-                       where e.endpoint_code = p_static_id),
                      (select max(c.static_id) from apex_workspace_credentials c
                        where c.static_id = p_static_id || '_CREDENTIALS'))
               into l_srv.credential_static_id
               from dual;
             return l_srv;
         end if;
-        -- retiring: the registered endpoint, while no Remote Server replaces it
-        for e in (select endpoint_code, endpoint_name, base_url, web_credential_static_id
-                    from xxfnd_integration_endpoints
-                   where endpoint_code = p_static_id and status_code = 'ACTIVE') loop
-            l_srv.static_id := e.endpoint_code;
-            l_srv.server_name := e.endpoint_name;
-            l_srv.base_url := e.base_url;
-            l_srv.credential_static_id := e.web_credential_static_id;
-            return l_srv;
-        end loop;
         raise_application_error(-20301, 'Server ' || p_static_id
-            || ' is not set up: the workspace administrator adds it in Workspace Utilities, Remote Servers.');
+            || ' is not set up: the COMMON administrator defines it on the Servers screen (an APEX Remote Server of the'
+            || ' workspace and its Web Credential).');
     end server;
+
+    ---------------------------------------------------------------- release 86: servers and purposes screens
+    procedure save_server(p_server_code          in varchar2,
+                          p_server_name          in varchar2,
+                          p_server_type          in varchar2,
+                          p_credential_static_id in varchar2 default null,
+                          p_oauth_token_url      in varchar2 default null,
+                          p_oci_region           in varchar2 default null,
+                          p_oci_namespace        in varchar2 default null,
+                          p_enabled_flag         in varchar2 default 'Y',
+                          p_description          in varchar2 default null,
+                          p_base_url             in varchar2 default null) is
+        l_type varchar2(30) := upper(p_server_type);
+    begin
+        if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM', 'FUSION', 'REST', 'OUTLOOK') then
+            raise_application_error(-20341, 'Choose the server type: OCI Object Storage, SharePoint, UCM, Fusion, REST or Outlook.');
+        end if;
+        merge into xxfnd_servers t
+        using (select p_server_code server_code from dual) s
+           on (t.server_code = s.server_code)
+         when matched then update set
+              t.server_name          = p_server_name,
+              t.server_type          = l_type,
+              t.credential_static_id = p_credential_static_id,
+              t.oauth_token_url      = case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
+              t.oci_region           = case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
+              t.oci_namespace        = case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
+              t.enabled_flag         = nvl(p_enabled_flag, 'Y'),
+              t.description          = p_description,
+              t.base_url             = nvl(p_base_url, t.base_url)
+         when not matched then insert
+              (server_code, server_name, server_type, credential_static_id, oauth_token_url, oci_region, oci_namespace,
+               enabled_flag, description, base_url)
+              values
+              (s.server_code, p_server_name, l_type, p_credential_static_id,
+               case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
+               case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
+               case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
+               nvl(p_enabled_flag, 'Y'), p_description, p_base_url);
+    end save_server;
+
+    procedure delete_server(p_server_code in varchar2) is
+        e_child exception;
+        pragma exception_init(e_child, -2292);
+    begin
+        -- the storage rules (XXFND_STORAGE_CONFIG_FK4) and purposes (XXFND_INT_PURPOSES_FK2) refer to their server
+        delete from xxfnd_servers where server_code = p_server_code;
+    exception
+        when e_child then
+            raise_application_error(-20342, 'Server ' || p_server_code
+                || ' is used by document storage or an integration purpose: disable it instead.');
+    end delete_server;
+
+    procedure save_purpose(p_purpose_code          in varchar2,
+                           p_purpose_name          in varchar2,
+                           p_application_code      in varchar2,
+                           p_capture_method        in varchar2,
+                           p_server_code           in varchar2,
+                           p_rest_source_static_id in varchar2,
+                           p_new                   in varchar2 default 'N') is
+    begin
+        if p_new = 'Y' then
+            begin
+                insert into xxfnd_integration_purposes (purpose_code, purpose_name, application_code, capture_method,
+                                                        server_code, rest_source_static_id)
+                values (upper(p_purpose_code), p_purpose_name, p_application_code, p_capture_method,
+                        p_server_code, p_rest_source_static_id);
+            exception
+                when dup_val_on_index then
+                    raise_application_error(-20343, 'Purpose ' || upper(p_purpose_code) || ' already exists.');
+            end;
+        else
+            update xxfnd_integration_purposes
+               set purpose_name          = p_purpose_name,
+                   application_code      = p_application_code,
+                   capture_method        = p_capture_method,
+                   server_code           = p_server_code,
+                   rest_source_static_id = p_rest_source_static_id
+             where purpose_code = p_purpose_code;
+        end if;
+    end save_purpose;
+
+    procedure delete_purpose(p_purpose_code in varchar2) is
+        e_child exception;
+        pragma exception_init(e_child, -2292);
+    begin
+        delete from xxfnd_integration_purposes where purpose_code = p_purpose_code;
+    exception
+        when e_child then
+            raise_application_error(-20344, 'Purpose ' || p_purpose_code || ' has logged calls: it cannot be deleted.');
+    end delete_purpose;
 
     function log_start(p_server_static_id in varchar2, p_http_method in varchar2, p_url in varchar2,
                        p_entity_name in varchar2 default null, p_pk1_value in varchar2 default null,
@@ -501,6 +764,28 @@ create or replace package body xxfnd_integration_pkg as
         end if;
         sync_from_fusion(l_srv.base_url, l_srv.credential_static_id);
     end sync_hcm;
+
+    ---------------------------------------------------------------- release 86 (part A): registration
+    procedure register_purpose(p_application_code      in varchar2,
+                               p_purpose_code          in varchar2,
+                               p_purpose_name          in varchar2,
+                               p_capture_method        in varchar2 default 'MANUAL',
+                               p_rest_source_static_id in varchar2 default null) is
+        l_code xxfnd_integration_purposes.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_key  xxfnd_integration_purposes.purpose_code%type := upper(p_purpose_code);
+        l_n    pls_integer;
+        l_row  xxfnd_integration_purposes.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_integration_purposes where purpose_code = l_key;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Integration purpose', l_key, l_row, p_application_code);
+            return;
+        end if;
+        -- APPROVED from a script; the maker-checker trigger makes it PENDING_APPROVAL in an APEX session
+        insert into xxfnd_integration_purposes (purpose_code, application_code, purpose_name, capture_method,
+                                                rest_source_static_id, approval_status)
+        values (l_key, l_code, p_purpose_name, upper(nvl(p_capture_method, 'MANUAL')), p_rest_source_static_id, 'APPROVED');
+    end register_purpose;
 
 end xxfnd_integration_pkg;
 /

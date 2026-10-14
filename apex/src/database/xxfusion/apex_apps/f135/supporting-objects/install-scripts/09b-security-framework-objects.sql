@@ -250,6 +250,48 @@ create or replace package xxfnd_privilege_pkg authid definer as
     function sod_conflict(p_role_code   in varchar2,
                           p_prior_roles in apex_t_varchar2 default null,
                           p_user_name   in varchar2 default null) return boolean;
+
+    ----------------------------------------------------------------------------
+    -- Release 86: registration by an application (its install script or COMMON's onboarding). Each adds the row only
+    -- when it is missing and never changes what an administrator changed; a re-run does nothing. The application
+    -- must be registered (XXFND_APP_NOT_REGISTERED, ORA-20180); a row of another application is refused
+    -- (ORA-20186). No APEX session needed.
+    ----------------------------------------------------------------------------
+    procedure register_feature(p_application_code in varchar2,
+                               p_feature_code     in varchar2,
+                               p_feature_name     in varchar2,
+                               p_feature_group    in varchar2 default 'BUSINESS',
+                               p_display_sequence in number   default 100,
+                               p_admin_flag       in varchar2 default 'N',
+                               p_home_page_id     in number   default null,
+                               p_icon_css         in varchar2 default null,
+                               p_description      in varchar2 default null);
+    -- A page of the application belongs to a feature (the application's APEX alias; ORA-20187 for an unknown feature).
+    procedure register_feature_page(p_application_code in varchar2,
+                                    p_feature_code     in varchar2,
+                                    p_page_id          in number,
+                                    p_tab_label        in varchar2 default null,
+                                    p_tab_sequence     in number   default null);
+    -- FEATURE.ACTION (VIEW, CREATE or MANAGE) of one of the application's features.
+    procedure register_privilege(p_application_code in varchar2,
+                                 p_feature_code     in varchar2,
+                                 p_action_code      in varchar2,
+                                 p_privilege_name   in varchar2 default null);
+    procedure register_role(p_application_code    in varchar2,
+                            p_role_code           in varchar2,
+                            p_role_name           in varchar2,
+                            p_description         in varchar2 default null,
+                            p_view_sensitive_flag in varchar2 default 'N');
+    -- Gives one privilege (any application's, e.g. COMMON's DOCUMENTS.VIEW) to a role of the application. Additive:
+    -- the role's other privileges stay (SET_ROLE_PRIVILEGES replaces them all).
+    procedure add_role_privilege(p_application_code in varchar2, p_role_code in varchar2, p_privilege_code in varchar2);
+    -- Two roles one person may not combine (stored in canonical order; scope SAME_RECORD or GLOBAL); at least one
+    -- of them is the application's.
+    procedure register_sod_rule(p_application_code in varchar2,
+                                p_role_code_1      in varchar2,
+                                p_role_code_2      in varchar2,
+                                p_conflict_scope   in varchar2 default 'SAME_RECORD',
+                                p_description      in varchar2 default null);
 end xxfnd_privilege_pkg;
 /
 
@@ -484,6 +526,185 @@ create or replace package body xxfnd_privilege_pkg as
         return l_count > 0;
     end sod_conflict;
 
+    ----------------------------------------------------------------------------
+    -- Release 86: registration
+    ----------------------------------------------------------------------------
+    -- the registered application (the rule is XXFND_APPLICATION_PKG's, installed after this package (09d): called
+    -- by name)
+    function app_row(p_application_code in varchar2) return xxfnd_applications%rowtype is
+        l_code xxfnd_applications.application_code%type;
+        l_row  xxfnd_applications%rowtype;
+    begin
+        execute immediate 'begin :r := xxfnd_application_pkg.registered_code(:c); end;'
+            using out l_code, in p_application_code;
+        select * into l_row from xxfnd_applications where application_code = l_code;
+        return l_row;
+    end app_row;
+
+    procedure same_application(p_what in varchar2, p_key in varchar2, p_row_application in varchar2,
+                               p_application_code in varchar2) is
+    begin
+        execute immediate 'begin xxfnd_application_pkg.assert_same_application(:w, :k, :r, :a); end;'
+            using p_what, p_key, p_row_application, p_application_code;
+    end same_application;
+
+    -- the application code of a feature; P_EXISTS false when the feature does not exist
+    function feature_application(p_feature_code in varchar2, p_exists out boolean) return varchar2 is
+        l_n    pls_integer;
+        l_code xxfnd_applications.application_code%type;
+    begin
+        select count(*), max(a.application_code) into l_n, l_code
+          from xxfnd_features f left join xxfnd_applications a on a.application_id = f.application_id
+         where f.feature_code = upper(p_feature_code);
+        p_exists := l_n > 0;
+        return l_code;
+    end feature_application;
+
+    -- the application of a role (ORA-20187 when the role does not exist)
+    function role_application(p_role_code in varchar2) return varchar2 is
+        l_code xxfnd_roles.application_code%type;
+        l_n    pls_integer;
+    begin
+        select count(*), max(application_code) into l_n, l_code from xxfnd_roles where role_code = upper(p_role_code);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role', upper(p_role_code)));
+        end if;
+        return l_code;
+    end role_application;
+
+    procedure register_feature(p_application_code in varchar2,
+                               p_feature_code     in varchar2,
+                               p_feature_name     in varchar2,
+                               p_feature_group    in varchar2 default 'BUSINESS',
+                               p_display_sequence in number   default 100,
+                               p_admin_flag       in varchar2 default 'N',
+                               p_home_page_id     in number   default null,
+                               p_icon_css         in varchar2 default null,
+                               p_description      in varchar2 default null) is
+        l_app    xxfnd_applications%rowtype := app_row(p_application_code);
+        l_exists boolean;
+        l_owner  xxfnd_applications.application_code%type;
+    begin
+        l_owner := feature_application(p_feature_code, l_exists);
+        if l_exists then
+            same_application('Feature', upper(p_feature_code), l_owner, l_app.application_code);
+            return;
+        end if;
+        -- HOME_PAGE_ID / ICON_CSS are added after this package (09c): written by name
+        execute immediate 'insert into xxfnd_features (feature_code, feature_name, feature_group, display_sequence,
+                                admin_flag, application_id, home_page_id, icon_css, description)
+                           values (:1, :2, :3, :4, :5, :6, :7, :8, :9)'
+            using upper(p_feature_code), p_feature_name, upper(nvl(p_feature_group, 'BUSINESS')),
+                  nvl(p_display_sequence, 100), nvl(p_admin_flag, 'N'), l_app.application_id, p_home_page_id,
+                  p_icon_css, p_description;
+    end register_feature;
+
+    procedure register_feature_page(p_application_code in varchar2,
+                                    p_feature_code     in varchar2,
+                                    p_page_id          in number,
+                                    p_tab_label        in varchar2 default null,
+                                    p_tab_sequence     in number   default null) is
+        l_app    xxfnd_applications%rowtype := app_row(p_application_code);
+        l_exists boolean;
+        l_owner  xxfnd_applications.application_code%type;
+    begin
+        l_owner := feature_application(p_feature_code, l_exists);
+        if not l_exists then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Feature', upper(p_feature_code)));
+        end if;
+        -- a page already mapped (perhaps changed by an administrator) is kept; TAB_LABEL / TAB_SEQUENCE are added
+        -- after this package (09c): written by name
+        execute immediate 'merge into xxfnd_feature_pages t
+            using (select :a app_alias, :p page_id from dual) s
+               on (upper(t.app_alias) = upper(s.app_alias) and t.page_id = s.page_id)
+             when not matched then insert (app_alias, page_id, feature_code, tab_label, tab_sequence)
+                                   values (s.app_alias, s.page_id, :f, :l, :s)'
+            using nvl(l_app.apex_app_alias, l_app.application_code), p_page_id, upper(p_feature_code), p_tab_label,
+                  p_tab_sequence;
+    end register_feature_page;
+
+    procedure register_privilege(p_application_code in varchar2,
+                                 p_feature_code     in varchar2,
+                                 p_action_code      in varchar2,
+                                 p_privilege_name   in varchar2 default null) is
+        l_app    xxfnd_applications%rowtype := app_row(p_application_code);
+        l_exists boolean;
+        l_owner  xxfnd_applications.application_code%type;
+        l_name   xxfnd_features.feature_name%type;
+    begin
+        l_owner := feature_application(p_feature_code, l_exists);
+        if not l_exists then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Feature', upper(p_feature_code)));
+        end if;
+        same_application('Feature', upper(p_feature_code), l_owner, l_app.application_code);
+        select feature_name into l_name from xxfnd_features where feature_code = upper(p_feature_code);
+        merge into xxfnd_privileges t
+        using (select upper(p_feature_code) || '.' || upper(p_action_code) privilege_code from dual) s
+           on (t.privilege_code = s.privilege_code)
+         when not matched then insert (privilege_code, feature_code, action_code, privilege_name)
+                               values (s.privilege_code, upper(p_feature_code), upper(p_action_code),
+                                       substr(nvl(p_privilege_name, l_name || ' - ' || initcap(p_action_code)), 1, 240));
+    end register_privilege;
+
+    procedure register_role(p_application_code    in varchar2,
+                            p_role_code           in varchar2,
+                            p_role_name           in varchar2,
+                            p_description         in varchar2 default null,
+                            p_view_sensitive_flag in varchar2 default 'N') is
+        l_app  xxfnd_applications%rowtype := app_row(p_application_code);
+        l_n    pls_integer;
+        l_code xxfnd_roles.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_code from xxfnd_roles where role_code = upper(p_role_code);
+        if l_n > 0 then
+            same_application('Role', upper(p_role_code), l_code, l_app.application_code);
+            return;
+        end if;
+        -- a role always has an application (COMMON's roles too)
+        insert into xxfnd_roles (role_code, application_code, application_id, role_name, description, view_sensitive_flag)
+        values (upper(p_role_code), l_app.application_code, l_app.application_id, p_role_name, p_description,
+                nvl(p_view_sensitive_flag, 'N'));
+    end register_role;
+
+    procedure add_role_privilege(p_application_code in varchar2, p_role_code in varchar2, p_privilege_code in varchar2) is
+        l_app xxfnd_applications%rowtype := app_row(p_application_code);
+        l_n   pls_integer;
+    begin
+        same_application('Role', upper(p_role_code), role_application(p_role_code), l_app.application_code);
+        select count(*) into l_n from xxfnd_privileges where privilege_code = upper(p_privilege_code);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Privilege', upper(p_privilege_code)));
+        end if;
+        merge into xxfnd_role_privileges t
+        using (select upper(p_role_code) role_code, upper(p_privilege_code) privilege_code from dual) s
+           on (t.role_code = s.role_code and t.privilege_code = s.privilege_code)
+         when not matched then insert (role_code, privilege_code) values (s.role_code, s.privilege_code);
+    end add_role_privilege;
+
+    procedure register_sod_rule(p_application_code in varchar2,
+                                p_role_code_1      in varchar2,
+                                p_role_code_2      in varchar2,
+                                p_conflict_scope   in varchar2 default 'SAME_RECORD',
+                                p_description      in varchar2 default null) is
+        l_app xxfnd_applications%rowtype := app_row(p_application_code);
+        l_r1  xxfnd_roles.role_code%type := least(upper(p_role_code_1), upper(p_role_code_2));
+        l_r2  xxfnd_roles.role_code%type := greatest(upper(p_role_code_1), upper(p_role_code_2));
+        l_a1  xxfnd_roles.application_code%type;
+        l_a2  xxfnd_roles.application_code%type;
+    begin
+        l_a1 := role_application(l_r1);
+        l_a2 := role_application(l_r2);
+        -- at least one of the two roles is the application's own
+        if l_app.application_code not in (l_a1, l_a2) then
+            same_application('Role', l_r1, l_a1, l_app.application_code);
+        end if;
+        merge into xxfnd_sod_rules t
+        using (select l_r1 r1, l_r2 r2, upper(nvl(p_conflict_scope, 'SAME_RECORD')) scope from dual) s
+           on (t.role_code_1 = s.r1 and t.role_code_2 = s.r2 and t.conflict_scope = s.scope)
+         when not matched then insert (role_code_1, role_code_2, conflict_scope, description)
+                               values (s.r1, s.r2, s.scope, p_description);
+    end register_sod_rule;
+
 end xxfnd_privilege_pkg;
 /
 
@@ -513,6 +734,18 @@ create or replace package xxfnd_vpd_pkg authid definer as
     -- assigned already. The same call serves the User, Role and Data access rule screens.
     procedure assign_rule(p_rule_id in number, p_user_id in number default null, p_role_code in varchar2 default null);
     procedure unassign_rule(p_assignment_id in number);
+
+    -- Release 86: a data access rule of a role of the application (registration: added only when the role has no
+    -- rule of that type on that table and column; assigned to the role). The application must be registered
+    -- (ORA-20180) and own the role (ORA-20186). The table gets its policy from the application's own install
+    -- (XXFND_SCHEMA_PKG.APPLY_POLICIES in its schema).
+    procedure register_data_rule(p_application_code in varchar2,
+                                 p_role_code        in varchar2,
+                                 p_table_name       in varchar2,
+                                 p_rule_type        in varchar2,
+                                 p_column_name      in varchar2 default null,
+                                 p_value_list       in varchar2 default null,
+                                 p_description      in varchar2 default null);
 end xxfnd_vpd_pkg;
 /
 
@@ -671,6 +904,42 @@ create or replace package body xxfnd_vpd_pkg as
         -- release 54: the generator is invoker rights (xxfnd_schema_pkg); called here, it covers this schema
         xxfnd_schema_pkg.apply_policies;
     end apply_policies;
+
+    -- Release 86: registration
+    procedure register_data_rule(p_application_code in varchar2,
+                                 p_role_code        in varchar2,
+                                 p_table_name       in varchar2,
+                                 p_rule_type        in varchar2,
+                                 p_column_name      in varchar2 default null,
+                                 p_value_list       in varchar2 default null,
+                                 p_description      in varchar2 default null) is
+        l_code xxfnd_applications.application_code%type;
+        l_role xxfnd_roles.application_code%type;
+        l_n    pls_integer;
+    begin
+        -- the registration rule is XXFND_APPLICATION_PKG's, installed after this package (09d): called by name
+        execute immediate 'begin :r := xxfnd_application_pkg.registered_code(:c); end;'
+            using out l_code, in p_application_code;
+        select count(*), max(application_code) into l_n, l_role from xxfnd_roles where role_code = upper(p_role_code);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role', upper(p_role_code)));
+        end if;
+        execute immediate 'begin xxfnd_application_pkg.assert_same_application(:w, :k, :r, :a); end;'
+            using 'Role', upper(p_role_code), l_role, l_code;
+        select count(*) into l_n from xxfnd_data_security_rules d
+         where d.table_name = upper(p_table_name) and d.rule_type = upper(p_rule_type)
+           and nvl(d.column_name, '#') = nvl(upper(p_column_name), '#')
+           and (d.role_code = upper(p_role_code)
+                or exists (select 1 from xxfnd_data_rule_assignments a
+                            where a.rule_id = d.rule_id and a.role_code = upper(p_role_code)));
+        if l_n = 0 then
+            -- the trigger XXFND_DATA_RULES_ASSIGN assigns it to the role
+            insert into xxfnd_data_security_rules (role_code, table_name, rule_type, column_name, value_list, description)
+            values (upper(p_role_code), upper(p_table_name), upper(p_rule_type), upper(p_column_name), p_value_list,
+                    p_description);
+            clear_cache;
+        end if;
+    end register_data_rule;
 
 end xxfnd_vpd_pkg;
 /

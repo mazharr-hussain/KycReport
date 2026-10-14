@@ -90,5 +90,44 @@ create or replace package xxfnd_dff_pkg authid definer as
     procedure generate_all_dfv_views;
     -- Release 80: the flexfield's name (English) and its protected GLOBAL context, saved from page 153.
     procedure save_flexfield_name(p_dff_code in varchar2, p_flexfield_name in varchar2);
+
+    -- Release 86: registration by an application. Added only when missing; what an administrator changed is kept;
+    -- a re-run does nothing. The application must be registered (ORA-20180); a row of another application is refused
+    -- (ORA-20186). COMMON's rows are the instance's (no application). Names: English, P_..._AR Arabic.
+    procedure register_value_set(p_application_code      in varchar2,
+                                 p_value_set_code        in varchar2,
+                                 p_value_set_name        in varchar2,
+                                 p_validation_type       in varchar2 default 'NONE',
+                                 p_format_type           in varchar2 default 'CHAR',
+                                 p_maximum_size          in number   default null,
+                                 p_lookup_type           in varchar2 default null,
+                                 p_parent_value_set_code in varchar2 default null,
+                                 p_table_query           in clob     default null,
+                                 p_description           in varchar2 default null,
+                                 p_uppercase_only_flag   in varchar2 default 'N',
+                                 p_number_precision      in number   default null,
+                                 p_minimum_value         in varchar2 default null,
+                                 p_maximum_value         in varchar2 default null);
+    -- The flexfield of a table (one per table: ORA-20190 when the table has another one), its name and its protected
+    -- GLOBAL context.
+    procedure register_flexfield(p_application_code             in varchar2,
+                                 p_dff_code                     in varchar2,
+                                 p_table_name                   in varchar2,
+                                 p_pk_column_name               in varchar2,
+                                 p_flexfield_name               in varchar2,
+                                 p_flexfield_name_ar            in varchar2 default null,
+                                 p_context_column_name          in varchar2 default 'ATTRIBUTE_CATEGORY',
+                                 p_context_reference_column     in varchar2 default null,
+                                 p_default_context_code         in varchar2 default null,
+                                 p_context_required_flag        in varchar2 default 'N',
+                                 p_context_user_selectable_flag in varchar2 default 'N',
+                                 p_description                  in varchar2 default null);
+    -- A context of the application's flexfield (ORA-20187 when the flexfield is not registered).
+    procedure register_context(p_application_code in varchar2,
+                               p_dff_code         in varchar2,
+                               p_context_code     in varchar2,
+                               p_context_name     in varchar2,
+                               p_context_name_ar  in varchar2 default null,
+                               p_description      in varchar2 default null);
 end xxfnd_dff_pkg;
 /

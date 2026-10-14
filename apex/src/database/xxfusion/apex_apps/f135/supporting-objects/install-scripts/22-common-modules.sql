@@ -91,7 +91,7 @@ begin
     module('WORKFLOW',          'Workflow',              50, 'fa-sitemap',
            'Workflow setup, approval rules and notifications.');
     module('INTEGRATIONS',      'Integrations',          60, 'fa-plug',
-           'External systems: endpoints, purposes and the transmission log.');
+           'External systems: servers, purposes and the transmission log.');
 
     split('APPROVAL_SETUP', 'Approval Setup', 'WORKFLOW_SETUP', 'VIEW,CREATE,MANAGE', 148, 'fa-check-square-o',
           'Approval rules: who approves which record, step by step.', '148,149');
@@ -164,8 +164,9 @@ select m.lookup_code                       as module_code,
                      || (select ' ' || count(*) || ' workflow(s) switched off'
                            from xxfnd_workflow_processes where workflow_enabled_flag = 'N' having count(*) > 0))
            when 'INTEGRATIONS' then
-               (select count(*) || ' inactive endpoint(s)'
-                  from xxfnd_integration_endpoints where status_code = 'INACTIVE' having count(*) > 0)
+               -- release 86: the workspace servers (XXFND_SERVERS_V, 05b); XXFND_INTEGRATION_ENDPOINTS retired
+               (select count(*) || ' server(s) incomplete or failing'
+                  from xxfnd_servers_v where status in ('INCOMPLETE', 'FAILED') having count(*) > 0)
        end                                 as module_state
   from xxfnd_lookup_values m
  where m.lookup_type  = 'XXFND_MODULE'

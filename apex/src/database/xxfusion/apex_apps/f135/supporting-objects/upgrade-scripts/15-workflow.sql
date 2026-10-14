@@ -459,6 +459,20 @@ create or replace package xxfnd_workflow_pkg authid definer as
     -- the questions-and-answers history XXFND_QA_HISTORY_V (the applications cannot be granted the APEX views).
     function task_messages return xxfnd_qa_tab pipelined;
 
+    ---------------------------------------------------------------- release 86: registration and the process switch
+    -- The deadline settings of a task definition of the application (added when missing; an administrator's change
+    -- is kept). ORA-20180 when the application is not registered.
+    procedure register_task_setting(p_application_code      in varchar2,
+                                    p_task_definition       in varchar2,
+                                    p_due_days              in number   default null,
+                                    p_reminder_days_before  in number   default null,
+                                    p_escalation_role_code  in varchar2 default null,
+                                    p_notify_on_create_flag in varchar2 default 'Y',
+                                    p_description           in varchar2 default null);
+    -- The approval workflow of a process of an application on (Y) or off (N, the record is auto-approved). In an APEX
+    -- session: Applications - Manage or Workflow Setup - Manage. ORA-20187 for a process not in the catalogue.
+    procedure set_process_enabled(p_application_code in varchar2, p_process_code in varchar2, p_enabled_flag in varchar2);
+
 end xxfnd_workflow_pkg;
 /
 
@@ -576,6 +590,21 @@ create or replace package xxfnd_notify_pkg authid definer as
                           p_mail_id          in number default null);
     -- The rule of an e-mail before it is sent or recorded (null when it is fine).
     function email_error(p_direction in varchar2, p_address in varchar2, p_subject in varchar2, p_body in clob) return varchar2;
+
+    ---------------------------------------------------------------- release 86: registration and the rule switch
+    -- The wording of a notification of the application (English; Arabic when given), added when missing (the
+    -- administrators own the wording afterwards). ORA-20180 / ORA-20186 as every registration.
+    procedure register_template(p_application_code in varchar2,
+                                p_template_code    in varchar2,
+                                p_subject          in varchar2,
+                                p_message_text     in clob,
+                                p_action_label     in varchar2 default null,
+                                p_subject_ar       in varchar2 default null,
+                                p_message_text_ar  in clob     default null,
+                                p_action_label_ar  in varchar2 default null);
+    -- A notification rule on (Y) or off (N). In an APEX session: Applications - Manage or Notifications - Manage.
+    -- ORA-20187 for an unknown rule.
+    procedure set_rule_enabled(p_rule_id in number, p_enabled_flag in varchar2);
 end xxfnd_notify_pkg;
 /
 
@@ -1270,6 +1299,51 @@ create or replace package body xxfnd_notify_pkg as
         return l_id;
     end record_received;
 
+    ---------------------------------------------------------------- release 86: registration and the rule switch
+    procedure register_template(p_application_code in varchar2,
+                                p_template_code    in varchar2,
+                                p_subject          in varchar2,
+                                p_message_text     in clob,
+                                p_action_label     in varchar2 default null,
+                                p_subject_ar       in varchar2 default null,
+                                p_message_text_ar  in clob     default null,
+                                p_action_label_ar  in varchar2 default null) is
+        l_code xxfnd_notification_templates.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_tpl  xxfnd_notification_templates.template_code%type := upper(p_template_code);
+        l_n    pls_integer;
+        l_row  xxfnd_notification_templates.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_notification_templates where template_code = l_tpl;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Notification template', l_tpl, l_row, p_application_code);
+        else
+            insert into xxfnd_notification_templates (template_code, application_code, subject, message_text, action_label,
+                                                      enabled_flag)
+            values (l_tpl, l_code, p_subject, p_message_text, p_action_label, 'Y');
+        end if;
+        if p_subject_ar is not null then
+            merge into xxfnd_notification_templates_tl t
+            using (select l_tpl template_code, 'ar' language_code from dual) s
+               on (t.template_code = s.template_code and t.language_code = s.language_code)
+             when not matched then insert (template_code, language_code, subject, message_text, action_label)
+                                   values (l_tpl, 'ar', p_subject_ar, p_message_text_ar, p_action_label_ar);
+        end if;
+    end register_template;
+
+    procedure set_rule_enabled(p_rule_id in number, p_enabled_flag in varchar2) is
+    begin
+        if xxfnd_util_pkg.in_apex_session
+           and not (xxfnd_privilege_pkg.has_privilege('APPLICATIONS', 'MANAGE')
+                    or xxfnd_privilege_pkg.has_privilege('NOTIFICATIONS', 'MANAGE')) then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');
+        end if;
+        update xxfnd_notify_rules set enabled_flag = case when p_enabled_flag = 'Y' then 'Y' else 'N' end
+         where rule_id = p_rule_id;
+        if sql%rowcount = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Notification rule', to_char(p_rule_id)));
+        end if;
+    end set_rule_enabled;
+
 end xxfnd_notify_pkg;
 /
 
@@ -1769,6 +1843,41 @@ create or replace package body xxfnd_workflow_pkg as
         return;
     end task_messages;
 
+    ---------------------------------------------------------------- release 86: registration and the process switch
+    procedure register_task_setting(p_application_code      in varchar2,
+                                    p_task_definition       in varchar2,
+                                    p_due_days              in number   default null,
+                                    p_reminder_days_before  in number   default null,
+                                    p_escalation_role_code  in varchar2 default null,
+                                    p_notify_on_create_flag in varchar2 default 'Y',
+                                    p_description           in varchar2 default null) is
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+    begin
+        merge into xxfnd_task_settings t
+        using (select trim(p_task_definition) task_definition from dual) s
+           on (t.task_definition = s.task_definition)
+         when not matched then insert (task_definition, due_days, reminder_days_before, escalation_role_code,
+                                       notify_on_create_flag, description)
+                               values (s.task_definition, p_due_days, p_reminder_days_before, upper(p_escalation_role_code),
+                                       nvl(p_notify_on_create_flag, 'Y'), p_description);
+    end register_task_setting;
+
+    procedure set_process_enabled(p_application_code in varchar2, p_process_code in varchar2, p_enabled_flag in varchar2) is
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+    begin
+        if xxfnd_util_pkg.in_apex_session
+           and not (xxfnd_privilege_pkg.has_privilege('APPLICATIONS', 'MANAGE')
+                    or xxfnd_privilege_pkg.has_privilege('WORKFLOW_SETUP', 'MANAGE')) then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');
+        end if;
+        update xxfnd_workflow_processes
+           set workflow_enabled_flag = case when p_enabled_flag = 'Y' then 'Y' else 'N' end
+         where application_code = l_code and process_code = upper(p_process_code);
+        if sql%rowcount = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Process', l_code || ' ' || upper(p_process_code)));
+        end if;
+    end set_process_enabled;
+
 end xxfnd_workflow_pkg;
 /
 
@@ -2070,6 +2179,35 @@ create or replace package body xxfnd_approval_pkg as
         end loop;
         return;
     end task_change;
+
+    -- release 86: registration
+    procedure register_config_table(p_application_code in varchar2,
+                                    p_table_name       in varchar2,
+                                    p_audit_flag       in varchar2 default 'Y',
+                                    p_approval_flag    in varchar2 default 'N',
+                                    p_pk_column        in varchar2 default null,
+                                    p_unit_table       in varchar2 default null,
+                                    p_unit_key_column  in varchar2 default null,
+                                    p_changes_view     in varchar2 default null,
+                                    p_description      in varchar2 default null) is
+        l_code  xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_app   xxfnd_applications.application_id%type;
+        l_n     pls_integer;
+        l_owner xxfnd_applications.application_code%type;
+    begin
+        select application_id into l_app from xxfnd_applications where application_code = l_code;
+        select count(*), max(a.application_code) into l_n, l_owner
+          from xxfnd_config_tables c join xxfnd_applications a on a.application_id = c.application_id
+         where c.table_name = upper(p_table_name);
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Configuration table', upper(p_table_name), l_owner, l_code);
+            return;
+        end if;
+        insert into xxfnd_config_tables (table_name, application_id, audit_flag, approval_flag, pk_column, unit_table,
+                                         unit_key_column, changes_view, description)
+        values (upper(p_table_name), l_app, nvl(p_audit_flag, 'Y'), nvl(p_approval_flag, 'N'), upper(p_pk_column),
+                upper(p_unit_table), upper(p_unit_key_column), upper(p_changes_view), p_description);
+    end register_config_table;
 
 end xxfnd_approval_pkg;
 /
