@@ -15,7 +15,10 @@ page 136 (
     help {
         helpText:
             ```
-            Where files are stored. The most specific rule wins: entity and category, then entity, then category, then the default.
+            Where each application keeps its documents (release 86): a storage server of the workspace (OCI Object Storage,
+            SharePoint, UCM) with the application's site and library, bucket or security group, and folder; each category may
+            override them. Without a server, or while the setup is incomplete, documents are kept in the database. Open an
+            application to change its storage.
             ```
     }
 
@@ -47,18 +50,28 @@ page 136 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select q.*,
-                       apex_page.get_url(p_page => 137, p_items => 'P137_STORAGE_CONFIG_ID', p_values => to_char(q.storage_config_id), p_clear_cache => '137') as open_url
-                  from (
-
-                            select nvl(s.application_code, 'Shared') as application_code,
-                                   s.storage_config_id,
-                                   nvl(s.entity_name, 'Any') as entity_name,
-                                   nvl(s.category_code, 'Any') as category_code,
-                                   xxfnd_lookup_pkg.lookup_meaning('STORAGE_TYPE', s.storage_type) as storage_type,
-                                   s.endpoint_code, s.folder_path_template, s.priority, s.enabled_flag
-                              from xxfnd_storage_config s
-                ) q
+                -- release 86: one line per application (XXFND_APP_STORAGE_V, category empty = the application default)
+                select v.application_code,
+                       v.application_name,
+                       nvl((select max(l.meaning) from xxfnd_lookup_values_vl l
+                             where l.lookup_type = 'STORAGE_TYPE' and l.lookup_code = v.effective_storage_type),
+                           v.effective_storage_type)                                      as storage,
+                       v.effective_server_name                                            as server_name,
+                       case v.effective_server_type
+                            when 'SHAREPOINT'     then v.effective_site || ' / ' || v.effective_library
+                            when 'OBJECT_STORAGE' then v.effective_bucket
+                            when 'UCM'            then v.effective_security_group
+                       end                                                                as location,
+                       case when v.effective_server_code is not null then v.effective_folder end as folder,
+                       (select count(*) from xxfnd_app_storage_v c
+                         where c.application_code = v.application_code and c.category_code is not null
+                           and coalesce(c.server_code, c.server_type, c.site, c.library, c.bucket, c.security_group,
+                                        c.account, c.document_type, c.folder) is not null) as category_overrides,
+                       v.state || case when v.incomplete_reason is not null then ': needs ' || v.incomplete_reason end as state,
+                       apex_page.get_url(p_page => 137, p_items => 'P137_APPLICATION_CODE', p_values => v.application_code,
+                                         p_clear_cache => '137') as open_url
+                  from xxfnd_app_storage_v v
+                 where v.category_code is null
                 ```
         }
         layout {
@@ -79,7 +92,7 @@ page 136 (
             type: rowRangesXToY
         }
         messages {
-            whenNoDataFound: No data found.
+            whenNoDataFound: No registered application.
         }
         searchBar {
             includeSearchBar: true
@@ -97,50 +110,37 @@ page 136 (
                 heading: Application
             }
             layout {
-                sequence: 5
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column STORAGE_CONFIG_ID (
-            type: hidden
-            heading {
-                heading: Storage Config Id
-            }
-            layout {
                 sequence: 10
-            }
-            source {
-                dataType: NUMBER
-                primaryKey: true
-            }
-        )
-
-        column ENTITY_NAME (
-            type: plainText
-            heading {
-                heading: Entity
-            }
-            layout {
-                sequence: 20
             }
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#OPEN_URL#">#ENTITY_NAME#</a>
+                    <a href="#OPEN_URL#">#APPLICATION_CODE#</a>
                     ```
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
             }
             source {
                 dataType: STRING
             }
         )
 
-        column CATEGORY_CODE (
+        column STORAGE (
             type: plainText
             heading {
-                heading: Category
+                heading: Storage
             }
             layout {
                 sequence: 30
@@ -150,10 +150,10 @@ page 136 (
             }
         )
 
-        column STORAGE_TYPE (
+        column SERVER_NAME (
             type: plainText
             heading {
-                heading: Store
+                heading: Server
             }
             layout {
                 sequence: 40
@@ -163,10 +163,10 @@ page 136 (
             }
         )
 
-        column ENDPOINT_CODE (
+        column LOCATION (
             type: plainText
             heading {
-                heading: Endpoint
+                heading: Site / Library / Bucket / Security Group
             }
             layout {
                 sequence: 50
@@ -176,7 +176,7 @@ page 136 (
             }
         )
 
-        column FOLDER_PATH_TEMPLATE (
+        column FOLDER (
             type: plainText
             heading {
                 heading: Folder
@@ -189,24 +189,23 @@ page 136 (
             }
         )
 
-        column PRIORITY (
+        column CATEGORY_OVERRIDES (
             type: plainText
             heading {
-                heading: Priority
+                heading: Category Overrides
             }
             layout {
                 sequence: 70
-                columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
         )
 
-        column ENABLED_FLAG (
+        column STATE (
             type: plainText
             heading {
-                heading: Enabled
+                heading: State
             }
             layout {
                 sequence: 80
@@ -229,32 +228,6 @@ page 136 (
             }
         )
 
-    )
-
-    button create (
-        buttonName: CREATE
-        label: Create Storage Rule
-        layout {
-            sequence: 10
-            region: @breadcrumb
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 137
-                clearCache: 137
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        security {
-            authorizationScheme: @page-create
-        }
     )
 
     dynamicAction refresh-report (

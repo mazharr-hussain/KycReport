@@ -87,13 +87,14 @@ begin
     select count(*) into l_v from xxfnd_employees where enabled_flag = 'Y';
     check_(to_number(l_v) = l_n, 'HCM sync without a reachable server disables nobody');
 
-    -- registered endpoints are read-only in the application (APEX session)
-    select count(*) into l_n from user_triggers where trigger_name = 'XXFND_INT_ENDPOINTS_RO' and status = 'ENABLED';
-    check_(l_n = 1, 'registered endpoints are read-only (trigger)');
+    -- release 86: the registered endpoints are retired (copied into XXFND_SERVERS, table and trigger dropped by 29)
+    select count(*) into l_n from user_tables where table_name = 'XXFND_INTEGRATION_ENDPOINTS';
+    check_(l_n = 0, 'registered endpoints retired (release 86: XXFND_SERVERS)');
     select count(*) into l_n from user_constraints
-     where table_name = 'XXFND_INTEGRATION_PURPOSES' and constraint_name in ('XXFND_INT_PURPOSES_CK3', 'XXFND_INT_PURPOSES_CK4');
-    select count(*) into l_max from user_constraints where constraint_name = 'XXFND_INT_PURPOSES_CK4';
-    check_(l_n = 1 and l_max = 1, 'an API purpose needs a REST Data Source (or its retiring endpoint)');
+     where table_name = 'XXFND_INTEGRATION_PURPOSES'
+       and constraint_name in ('XXFND_INT_PURPOSES_CK3', 'XXFND_INT_PURPOSES_CK4', 'XXFND_INT_PURPOSES_CK5');
+    select count(*) into l_max from user_constraints where constraint_name = 'XXFND_INT_PURPOSES_CK5';
+    check_(l_n = 1 and l_max = 1, 'an API purpose needs a REST Data Source or a server (release 86: CK5)');
 
     -- the attachments reach their stores through XXFND_INTEGRATION_PKG
     select count(*) into l_n from user_source

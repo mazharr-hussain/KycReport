@@ -431,7 +431,7 @@ create or replace package body xxfnd_application_pkg as
     begin
         -- not XXFND_ROLES: the access checks read every role (the Roles screen filters by application itself)
         return apex_t_varchar2('XXFND_LOOKUP_TYPES', 'XXFND_NOTIFICATION_TEMPLATES',
-                               'XXFND_INTEGRATION_PURPOSES', 'XXFND_INTEGRATION_ENDPOINTS', 'XXFND_DOCUMENT_ENTITIES',
+                               'XXFND_INTEGRATION_PURPOSES', 'XXFND_DOCUMENT_ENTITIES',   -- release 86: endpoints retired
                                'XXFND_DOCUMENT_CATEGORIES', 'XXFND_ATTACHMENT_FUNCTIONS', 'XXFND_DF_FLEXFIELDS',
                                'XXFND_VALUE_SETS', 'XXFND_RETENTION_POLICIES', 'XXFND_STORAGE_CONFIG');
     end scoped_tables;

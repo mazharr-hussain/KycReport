@@ -51,20 +51,20 @@ with sync_playwright() as p:
     no_error(pg, 'Servers')
     body = pg.inner_text('#servers')
     check(all(s in body for s in ('FUSION', 'UCM_MAIN', 'SHAREPOINT_MAIN', 'OUTLOOK_GRAPH')), 'the four Remote Servers are listed')
-    check('Workspace administrator' in body, 'the owner is named')
+    check('OK' in body or 'Incomplete' in body, 'each server shows its state (release 86)')
     check(pg.locator('#howto').count() == 1 and 'Workspace Utilities' in pg.inner_text('#howto'), 'How to change a server')
-    check(pg.locator('#endpoints').count() == 1, 'registered endpoints shown read-only')
+    check(pg.locator('#endpoints').count() == 0, 'registered endpoints retired (release 86)')
     check(pg.locator('.t-Tabs-link', has_text='Servers').count() > 0 or 'Servers' in pg.inner_text('body'), 'tab reads Servers')
 
     # Server (121): Test Connection
     pg.locator('#servers .a-IRR-table td a', has_text='Oracle Fusion Cloud').first.click()
-    fr = dialog(pg, 'server?', '#P121_SERVER_NAME_DISPLAY')
+    fr = dialog(pg, 'server?', '#P121_SERVER_NAME')
     check(fr is not None, 'Server dialog opens')
     if fr:
         no_error(fr, 'Server')
         fr.locator('button', has_text='Test Connection').click(); pg.wait_for_timeout(5000)
-        fr = dialog(pg, 'server?', '#P121_SERVER_NAME_DISPLAY')
-        txt = fr.locator('#P121_LAST_TEST_DISPLAY').inner_text() if fr else ''
+        fr = dialog(pg, 'server?', '#P121_SERVER_NAME')
+        txt = fr.locator('#P121_LAST_TEST_CONTAINER').inner_text() if fr else ''
         check(('REACHABLE' in txt or 'could not be reached' in txt or 'FAILED' in txt) and 'ADMIN' in txt,
               f'Test Connection answers and keeps the result (Last Test: {txt[:80]})')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(800)

@@ -2,7 +2,8 @@
 -- 07_xxfnd_attach_pkg.sql
 -- Attachments runtime (0.1), EBS model: a document (XXFND_DOCUMENTS) is linked
 -- to any registered entity row (XXFND_ATTACHED_DOCUMENTS, ENTITY_NAME + PK1-5).
--- Files live in Oracle UCM, SharePoint or the database; XXFND_STORAGE_CONFIG decides where.
+-- Files live in OCI Object Storage, Oracle UCM, SharePoint or the database; XXFND_STORAGE_CONFIG (release 86: per
+-- application and category, XXFND_APP_STORAGE_V) decides where.
 -- This package owns the attachment rules: categories, expiry and recency, versions, permissions per page
 -- region, soft delete - and (release 81) the store transport, merged from XXFND_ATTACH_STORE_PKG.
 --------------------------------------------------------------------------------
@@ -21,11 +22,186 @@ comment on column xxfnd_document_categories.allowed_file_types is 'File extensio
 comment on column xxfnd_attachment_functions.max_file_size_mb is 'Largest file accepted on this page (MB) unless the category says otherwise; overrides the application default.';
 comment on column xxfnd_attachment_functions.allowed_file_types is 'File extensions accepted on this page unless the category says otherwise; overrides the application default.';
 
+--------------------------------------------------------------------------------
+-- Release 86 (part B): document storage per application, with category overrides, on the workspace servers.
+--   Three levels: the server (XXFND_SERVERS, shared: OCI Object Storage, SharePoint, UCM) -> the application (one
+--   XXFND_STORAGE_CONFIG row with CATEGORY_CODE empty; APPLICATION_CODE empty = COMMON, the instance): server, site +
+--   document library (SharePoint), bucket (Object Storage), security group + account + document type (UCM), folder ->
+--   a category of that application (a row with CATEGORY_CODE; every field may override the application's, the server
+--   too; STORAGE_TYPE DATABASE = this category in the database). Effective value per field: category, else
+--   application, else (folder only) /#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#; the DATABASE when no server applies or the
+--   setup is incomplete (XXFND_APP_STORAGE_V.STATE) - an upload never fails because of the storage setup.
+--   The old entity / endpoint columns stay (no data deleted) but are no longer read; 29 converts the old rules.
+--   Each document keeps where it was stored (XXFND_DOCUMENTS.SERVER_CODE, STORAGE_CONTAINER = library or bucket).
+--   Checked steps here (not in 29) because this package and its view use them and run before 29.
+--------------------------------------------------------------------------------
+begin
+    xxfnd_ddl_pkg.add_column('XXFND_STORAGE_CONFIG', 'SERVER_CODE', 'varchar2(255)');
+    xxfnd_ddl_pkg.add_column('XXFND_STORAGE_CONFIG', 'BUCKET_NAME', 'varchar2(255)');
+    xxfnd_ddl_pkg.set_nullable('XXFND_STORAGE_CONFIG', 'STORAGE_TYPE');
+    xxfnd_ddl_pkg.set_nullable('XXFND_STORAGE_CONFIG', 'ENDPOINT_CODE');
+    xxfnd_ddl_pkg.set_nullable('XXFND_STORAGE_CONFIG', 'FOLDER_PATH_TEMPLATE');
+    xxfnd_ddl_pkg.drop_constraint('XXFND_STORAGE_CONFIG', 'XXFND_STORAGE_CONFIG_CK1');
+    xxfnd_ddl_pkg.drop_constraint('XXFND_STORAGE_CONFIG', 'XXFND_STORAGE_CONFIG_CK2');
+    xxfnd_ddl_pkg.add_constraint('XXFND_STORAGE_CONFIG', 'XXFND_STORAGE_CONFIG_CK4',
+        q'~check (storage_type is null or storage_type in ('UCM','SHAREPOINT','OBJECT_STORAGE','DATABASE'))~');
+    xxfnd_ddl_pkg.add_constraint('XXFND_STORAGE_CONFIG', 'XXFND_STORAGE_CONFIG_FK4',
+        'foreign key (server_code) references xxfnd_servers (server_code)');
+    xxfnd_ddl_pkg.ensure_index('XXFND_STORAGE_CONFIG_N1',
+        'create index xxfnd_storage_config_n1 on xxfnd_storage_config (server_code)');
+    xxfnd_audit_pkg.create_audit_trigger('XXFND_STORAGE_CONFIG');   -- audit the new columns too
+    -- a document keeps the place it was stored, whatever the setup becomes later
+    xxfnd_ddl_pkg.add_column('XXFND_DOCUMENTS', 'SERVER_CODE', 'varchar2(255)');
+    xxfnd_ddl_pkg.add_column('XXFND_DOCUMENTS', 'STORAGE_CONTAINER', 'varchar2(500)');
+end;
+/
+comment on column xxfnd_storage_config.server_code is 'Release 86: the workspace server (XXFND_SERVERS). Application row: empty = the database. Category row: empty = the application''s server.';
+comment on column xxfnd_storage_config.storage_type is 'Release 86: the server''s type (UCM, SHAREPOINT, OBJECT_STORAGE), DATABASE (no server; on a category row: this category in the database), empty on a category row = as the application.';
+comment on column xxfnd_storage_config.category_code is 'Release 86: empty = the application default row; a category = that category''s overrides (empty fields = the application''s).';
+comment on column xxfnd_storage_config.sharepoint_site_id is 'Release 86: SharePoint site (Microsoft Graph site ID).';
+comment on column xxfnd_storage_config.sharepoint_drive_id is 'Release 86: SharePoint document library (Microsoft Graph drive ID).';
+comment on column xxfnd_storage_config.bucket_name is 'Release 86: OCI Object Storage bucket.';
+comment on column xxfnd_storage_config.folder_path_template is 'Folder for new files. Tokens: #CATEGORY# (= #CATEGORY_CODE#), #ENTITY_NAME#, #PK1_VALUE#..#PK5_VALUE#, #YYYY#. Empty: the application''s, else /#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#.';
+comment on column xxfnd_storage_config.entity_name is 'Before release 86: the entity of the rule. No longer read (storage is per application and category).';
+comment on column xxfnd_storage_config.endpoint_code is 'Before release 86: the retired integration endpoint. No longer read (SERVER_CODE).';
+comment on column xxfnd_documents.server_code is 'Release 86: the server (XXFND_SERVERS) the file was stored on; empty for the database.';
+comment on column xxfnd_documents.storage_container is 'Release 86: the SharePoint document library (drive ID) or the Object Storage bucket the file was stored in.';
+
+-- a stored file may also be in OCI Object Storage (the same check as 13a, plus OBJECT_STORAGE)
+declare
+    l_cond varchar2(4000);
+begin
+    select max(search_condition_vc) into l_cond from user_constraints
+     where table_name = 'XXFND_DOCUMENTS' and constraint_name = 'XXFND_DOCUMENTS_CK4';
+    if l_cond is not null and instr(l_cond, 'OBJECT_STORAGE') = 0 then
+        xxfnd_ddl_pkg.drop_constraint('XXFND_DOCUMENTS', 'XXFND_DOCUMENTS_CK4');
+        xxfnd_ddl_pkg.add_constraint('XXFND_DOCUMENTS', 'XXFND_DOCUMENTS_CK4', q'[check (
+            (datatype_code = 'FILE'     and storage_type in ('UCM','SHAREPOINT','DATABASE','OBJECT_STORAGE') and file_name is not null) or
+            (datatype_code = 'WEB_PAGE' and url is not null and storage_type is null) or
+            (datatype_code in ('SHORT_TEXT','LONG_TEXT') and storage_type is null))]');
+    end if;
+end;
+/
+
+-- Release 86: the storage of every registered application (CATEGORY_CODE empty) and of each of its categories (its
+-- own and the shared ones), with the value each field takes and whether the setup is complete. XXFND_ATTACH_PKG
+-- stores by it; the Storage screens (136, 137) show it.
+create or replace view xxfnd_app_storage_v as
+with lines as (
+    select a.application_code, a.application_name,
+           case when a.application_code = 'COMMON' then null else a.application_code end as storage_app,
+           cast(null as varchar2(30)) as category_code, cast(null as varchar2(240)) as category_name
+      from xxfnd_applications a
+    union all
+    select a.application_code, a.application_name,
+           case when a.application_code = 'COMMON' then null else a.application_code end,
+           c.category_code, c.category_name
+      from xxfnd_applications a
+      join xxfnd_document_categories c on c.application_code = a.application_code or c.application_code is null
+), eff as (
+    select l.application_code, l.application_name, l.category_code, l.category_name,
+           r.storage_config_id, d.storage_config_id as default_config_id,
+           r.server_code, r.storage_type,
+           r.sharepoint_site_id as site, r.sharepoint_drive_id as library, r.bucket_name as bucket,
+           r.ucm_security_group as security_group, r.ucm_doc_account as account, r.ucm_doc_type as document_type,
+           r.folder_path_template as folder,
+           case when r.storage_type = 'DATABASE' then null else coalesce(r.server_code, d.server_code) end
+                                                                             as effective_server_code,
+           coalesce(r.sharepoint_site_id, d.sharepoint_site_id)              as effective_site,
+           coalesce(r.sharepoint_drive_id, d.sharepoint_drive_id)            as effective_library,
+           coalesce(r.bucket_name, d.bucket_name)                            as effective_bucket,
+           coalesce(r.ucm_security_group, d.ucm_security_group)              as effective_security_group,
+           coalesce(r.ucm_doc_account, d.ucm_doc_account)                    as effective_account,
+           coalesce(r.ucm_doc_type, d.ucm_doc_type)                          as effective_document_type,
+           coalesce(r.folder_path_template, d.folder_path_template, '/#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#')
+                                                                             as effective_folder
+      from lines l
+      left join xxfnd_storage_config r
+        on r.enabled_flag = 'Y'
+       and nvl(r.application_code, '#') = nvl(l.storage_app, '#')
+       and nvl(r.category_code, '#') = nvl(l.category_code, '#')
+      left join xxfnd_storage_config d
+        on d.enabled_flag = 'Y'
+       and nvl(d.application_code, '#') = nvl(l.storage_app, '#')
+       and d.category_code is null
+), chk as (
+    select e.*, s.server_type as effective_server_type, s.server_name as effective_server_name,
+           case when e.effective_server_code is null then null
+                when s.usage <> 'STORAGE' then 'the server is not a storage server'
+                when s.status = 'DISABLED' then 'the server is disabled'
+                when s.status = 'INCOMPLETE' then 'the server needs ' || s.missing
+                when s.server_type = 'SHAREPOINT' and (e.effective_site is null or e.effective_library is null)
+                     then 'the site and document library'
+                when s.server_type = 'OBJECT_STORAGE' and e.effective_bucket is null then 'the bucket'
+                when s.server_type = 'UCM' and e.effective_security_group is null then 'the security group'
+           end as incomplete_reason
+      from eff e
+      left join xxfnd_servers_v s on s.server_code = e.effective_server_code
+)
+select c.application_code, c.application_name, c.category_code, c.category_name,
+       c.storage_config_id, c.default_config_id,
+       c.server_code,
+       case when c.storage_type = 'DATABASE' then 'DATABASE'
+            else (select max(v.server_type) from xxfnd_servers v where v.server_code = c.server_code) end as server_type,
+       c.site, c.library, c.bucket, c.security_group, c.account, c.document_type, c.folder,
+       c.effective_server_code, c.effective_server_name,
+       case when c.effective_server_code is null then 'DATABASE' else c.effective_server_type end as effective_server_type,
+       c.effective_site, c.effective_library, c.effective_bucket, c.effective_security_group, c.effective_account,
+       c.effective_document_type, c.effective_folder,
+       -- what an upload uses now: the effective store when complete, else the database
+       case when c.incomplete_reason is null and c.effective_server_code is not null
+            then c.effective_server_type else 'DATABASE' end                  as effective_storage_type,
+       case when c.incomplete_reason is null then 'OK' else 'INCOMPLETE - using database' end as state,
+       c.incomplete_reason
+  from chk c;
+
+comment on table xxfnd_app_storage_v is 'Release 86: storage of each registered application (CATEGORY_CODE empty = the application default) and of each of its categories: the row''s own values, the EFFECTIVE_* value of each field (category, else application, else the default folder), EFFECTIVE_STORAGE_TYPE (what an upload uses) and STATE (OK, or INCOMPLETE - using database with INCOMPLETE_REASON).';
+
 create or replace package xxfnd_attach_pkg authid definer as
 
-    -- Most specific enabled storage row: entity+category, entity, category, default; DATABASE when none.
+    -- Release 86: where a new file of this entity and category goes - the storage of the entity's application
+    -- (STORAGE_APPLICATION) for the category (XXFND_APP_STORAGE_V), as one row with the effective values:
+    -- STORAGE_CONFIG_ID = the category's row, else the application's; SERVER_CODE, SHAREPOINT_SITE_ID / _DRIVE_ID,
+    -- BUCKET_NAME, UCM_*, FOLDER_PATH_TEMPLATE effective; STORAGE_TYPE DATABASE when nothing applies or the setup is
+    -- incomplete (an upload never fails because of the storage setup).
     function resolve_storage(p_entity_name in varchar2, p_category_code in varchar2)
         return xxfnd_storage_config%rowtype;
+
+    ---------------------------------------------------------------- release 86 (part B): storage per application
+    -- The application whose storage a document of this entity and category uses: the entity's application, else the
+    -- category's, else COMMON.
+    function storage_application(p_entity_name in varchar2, p_category_code in varchar2) return varchar2;
+    -- The Storage editor (page 137), one application (COMMON = the instance). The application default: P_SERVER_CODE
+    -- empty = the database; fields the server type does not use are cleared. ORA-20333 for an application that is
+    -- not registered, ORA-20334 for a server that is not a storage server.
+    procedure save_app_storage(p_application_code in varchar2,
+                               p_server_code      in varchar2,
+                               p_site             in varchar2 default null,
+                               p_library          in varchar2 default null,
+                               p_bucket           in varchar2 default null,
+                               p_security_group   in varchar2 default null,
+                               p_account          in varchar2 default null,
+                               p_document_type    in varchar2 default null,
+                               p_folder           in varchar2 default null);
+    -- A category of that application: empty fields = the application's; P_SERVER_CODE empty = the application's
+    -- server, DATABASE = this category in the database. All empty = no override (the row stays, emptied, for the
+    -- documents stored by it). ORA-20335 for a category the application does not use.
+    procedure save_category_storage(p_application_code in varchar2,
+                                    p_category_code    in varchar2,
+                                    p_server_code      in varchar2,
+                                    p_site             in varchar2 default null,
+                                    p_library          in varchar2 default null,
+                                    p_bucket           in varchar2 default null,
+                                    p_security_group   in varchar2 default null,
+                                    p_account          in varchar2 default null,
+                                    p_document_type    in varchar2 default null,
+                                    p_folder           in varchar2 default null);
+    -- OCI Object Storage: the URL of a bucket (P_OBJECT_NAME empty) or of an object on a server
+    -- (<server URL>/n/<namespace>/b/<bucket>/o/<object name, URL-encoded>).
+    function object_storage_url(p_server_code in varchar2, p_bucket in varchar2,
+                                p_object_name in varchar2 default null) return varchar2;
+    -- The object name of a new file: <folder>/<unique prefix>_<file name> (a new version never overwrites one).
+    function object_name(p_folder in varchar2, p_file_name in varchar2) return varchar2;
 
     -- Y/N: may the current page region insert/update/delete attachments of this entity?
     -- P_ACTION = INSERT | UPDATE | DELETE. Used in button server-side conditions.
@@ -142,8 +318,12 @@ create or replace package body xxfnd_attach_pkg as
     --               same drive item. Download through @microsoft.graph.downloadUrl, or
     --               /versions/{id}/content for an older version.
     --               Web Credential: OAuth2 client credentials (scope set on the
-    --               credential); token URL from XXFND_INTEGRATION_ENDPOINTS.
-    --   Every external call is logged in XXFND_TRANSMISSIONS (purpose
+    --               credential); token URL from the server (XXFND_SERVERS, release 86).
+    --   Object      release 86: OCI Object Storage. <base_url> = the server's Remote Server URL, else
+    --   Storage     https://objectstorage.<region>.oraclecloud.com; PUT / GET / DELETE
+    --               /n/{namespace}/b/{bucket}/o/{object name}; each version is its own object
+    --               (OBJECT_NAME). Web Credential: OCI native authentication.
+    --   Every external call is logged in the COMMON call log (XXFND_INTEGRATION_PKG.LOG_START / LOG_END, purpose
     --   DOCUMENT_STORAGE) in an autonomous transaction. File bytes are never logged.
     ----------------------------------------------------------------------------
     c_purpose  constant varchar2(30) := 'DOCUMENT_STORAGE';
@@ -158,19 +338,13 @@ create or replace package body xxfnd_attach_pkg as
     c_simple_max constant number := 4 * 1024 * 1024;      -- Graph simple-upload limit
     c_chunk      constant number := 10 * 327680;          -- 3.2 MB, multiple of 320 KiB
 
-    -- release 83: the store's server comes from XXFND_INTEGRATION_PKG (an APEX Remote Server of that static ID and
-    -- its Web Credential; the retiring endpoint row only while no Remote Server exists)
-    function get_endpoint(p_endpoint_code in varchar2) return xxfnd_integration_endpoints%rowtype is
-        l_ep  xxfnd_integration_endpoints%rowtype;
-        l_srv xxfnd_integration_pkg.t_server := xxfnd_integration_pkg.server(p_endpoint_code);
+    -- release 83: the store's server comes from XXFND_INTEGRATION_PKG; release 86: the workspace server
+    -- (XXFND_SERVERS: its APEX Remote Server and Web Credential, OAuth token URL, OCI region and namespace)
+    subtype t_server is xxfnd_integration_pkg.t_server;
+    function get_server(p_server_code in varchar2) return t_server is
     begin
-        l_ep.endpoint_code            := l_srv.static_id;
-        l_ep.endpoint_name            := l_srv.server_name;
-        l_ep.base_url                 := l_srv.base_url;
-        l_ep.web_credential_static_id := l_srv.credential_static_id;
-        l_ep.status_code              := 'ACTIVE';
-        return l_ep;
-    end get_endpoint;
+        return xxfnd_integration_pkg.server(p_server_code);
+    end get_server;
 
     ----------------------------------------------------------------------------
     -- transmission log: release 83 - the COMMON call log (XXFND_INTEGRATION_PKG, autonomous); file transfers are
@@ -218,7 +392,7 @@ create or replace package body xxfnd_attach_pkg as
             || p_value || c_crlf, 'AL32UTF8'));
     end add_part;
 
-    function ucm_checkin(p_ep in xxfnd_integration_endpoints%rowtype, p_cfg in xxfnd_storage_config%rowtype,
+    function ucm_checkin(p_ep in t_server, p_cfg in xxfnd_storage_config%rowtype,
                          p_entity in varchar2, p_pk1 in varchar2, p_folder in varchar2,
                          p_file in blob, p_filename in varchar2, p_mime in varchar2,
                          p_title in varchar2, p_existing_doc_name in varchar2) return t_stored is
@@ -259,7 +433,7 @@ create or replace package body xxfnd_attach_pkg as
         l_meta.put('fileName', p_filename);
         l_meta.put('bytes', dbms_lob.getlength(p_file));
         l_meta.put('revisionOf', p_existing_doc_name);
-        l_log_id := log_start(p_ep.endpoint_code, p_entity, p_pk1, 'POST', l_url, l_meta.to_clob);
+        l_log_id := log_start(p_ep.static_id, p_entity, p_pk1, 'POST', l_url, l_meta.to_clob);
 
         apex_web_service.clear_request_headers;
         apex_web_service.set_request_headers(
@@ -271,7 +445,7 @@ create or replace package body xxfnd_attach_pkg as
                           p_url                  => l_url,
                           p_http_method          => 'POST',
                           p_body_blob            => l_body,
-                          p_credential_static_id => p_ep.web_credential_static_id);
+                          p_credential_static_id => p_ep.credential_static_id);
         exception
             when others then
                 log_end(l_log_id, null, null, sqlerrm);
@@ -300,18 +474,18 @@ create or replace package body xxfnd_attach_pkg as
         return l_stored;
     end ucm_checkin;
 
-    function ucm_get_file(p_ep in xxfnd_integration_endpoints%rowtype, p_dId in varchar2,
+    function ucm_get_file(p_ep in t_server, p_dId in varchar2,
                           p_entity in varchar2, p_pk1 in varchar2) return blob is
         l_url    varchar2(2000) := rtrim(p_ep.base_url, '/') || '/cs/idcplg?IdcService=GET_FILE&dID='
                                    || utl_url.escape(p_dId, true);
         l_blob   blob;
-        l_log_id number := log_start(p_ep.endpoint_code, p_entity, p_pk1, 'GET', l_url, null);
+        l_log_id number := log_start(p_ep.static_id, p_entity, p_pk1, 'GET', l_url, null);
     begin
         apex_web_service.clear_request_headers;
         l_blob := apex_web_service.make_rest_request_b(
                       p_url                  => l_url,
                       p_http_method          => 'GET',
-                      p_credential_static_id => p_ep.web_credential_static_id);
+                      p_credential_static_id => p_ep.credential_static_id);
         if apex_web_service.g_status_code not between 200 and 299 then
             log_end(l_log_id, apex_web_service.g_status_code, null, 'HTTP ' || apex_web_service.g_status_code);
             raise_http('UCM download', null);
@@ -325,11 +499,11 @@ create or replace package body xxfnd_attach_pkg as
     ----------------------------------------------------------------------------
     -- Graph calls pass the Web Credential and token URL; APEX obtains and caches
     -- the OAuth2 client-credentials token itself, using the scope configured on
-    -- the Web Credential (XXFND_INTEGRATION_ENDPOINTS.OAUTH_SCOPE records it).
-    procedure graph_auth(p_ep in xxfnd_integration_endpoints%rowtype) is
+    -- the Web Credential (the token URL is on the server, XXFND_SERVERS.OAUTH_TOKEN_URL).
+    procedure graph_auth(p_ep in t_server) is
     begin
         if p_ep.oauth_token_url is null then
-            raise_application_error(-20318, 'Endpoint ' || p_ep.endpoint_code || ' needs an OAuth token URL.');
+            raise_application_error(-20318, 'Server ' || p_ep.static_id || ' needs an OAuth token URL.');
         end if;
         apex_web_service.clear_request_headers;
     end graph_auth;
@@ -344,7 +518,7 @@ create or replace package body xxfnd_attach_pkg as
         return l_stored;
     end graph_item;
 
-    function sp_upload(p_ep in xxfnd_integration_endpoints%rowtype, p_cfg in xxfnd_storage_config%rowtype,
+    function sp_upload(p_ep in t_server, p_cfg in xxfnd_storage_config%rowtype,
                        p_entity in varchar2, p_pk1 in varchar2, p_folder in varchar2,
                        p_file in blob, p_filename in varchar2, p_mime in varchar2,
                        p_existing_item_id in varchar2) return t_stored is
@@ -370,7 +544,7 @@ create or replace package body xxfnd_attach_pkg as
         l_meta.put('bytes', l_size);
         l_meta.put('folder', p_folder);
         l_meta.put('versionOf', p_existing_item_id);
-        l_log_id := log_start(p_ep.endpoint_code, p_entity, p_pk1,
+        l_log_id := log_start(p_ep.static_id, p_entity, p_pk1,
                               case when l_size <= c_simple_max then 'PUT' else 'POST' end, l_target,
                               l_meta.to_clob);
         begin
@@ -381,7 +555,7 @@ create or replace package body xxfnd_attach_pkg as
                     p_reset   => false);
                 l_resp := apex_web_service.make_rest_request(
                               p_url => l_target || '/content', p_http_method => 'PUT', p_body_blob => p_file,
-                              p_credential_static_id => p_ep.web_credential_static_id,
+                              p_credential_static_id => p_ep.credential_static_id,
                               p_token_url            => p_ep.oauth_token_url);
                 if apex_web_service.g_status_code not in (200, 201) then
                     log_end(l_log_id, apex_web_service.g_status_code, l_resp, 'HTTP ' || apex_web_service.g_status_code);
@@ -394,7 +568,7 @@ create or replace package body xxfnd_attach_pkg as
                               p_url         => l_target || '/createUploadSession',
                               p_http_method => 'POST',
                               p_body        => '{"item":{"@microsoft.graph.conflictBehavior":"replace"}}',
-                              p_credential_static_id => p_ep.web_credential_static_id,
+                              p_credential_static_id => p_ep.credential_static_id,
                               p_token_url            => p_ep.oauth_token_url);
                 if apex_web_service.g_status_code not in (200, 201) then
                     log_end(l_log_id, apex_web_service.g_status_code, l_resp, 'HTTP ' || apex_web_service.g_status_code);
@@ -439,7 +613,7 @@ create or replace package body xxfnd_attach_pkg as
                           p_url         => l_base || '/items/' || l_stored.external_document_id
                                            || '/versions?$select=id&$top=1',
                           p_http_method => 'GET',
-                          p_credential_static_id => p_ep.web_credential_static_id,
+                          p_credential_static_id => p_ep.credential_static_id,
                           p_token_url            => p_ep.oauth_token_url);
             if apex_web_service.g_status_code = 200 then
                 l_stored.external_version_id := nvl(
@@ -453,7 +627,7 @@ create or replace package body xxfnd_attach_pkg as
         return l_stored;
     end sp_upload;
 
-    function sp_download(p_ep in xxfnd_integration_endpoints%rowtype, p_cfg in xxfnd_storage_config%rowtype,
+    function sp_download(p_ep in t_server, p_cfg in xxfnd_storage_config%rowtype,
                          p_item_id in varchar2, p_version_id in varchar2, p_is_current in boolean,
                          p_entity in varchar2, p_pk1 in varchar2) return blob is
         l_url    varchar2(2000) := rtrim(p_ep.base_url, '/') || '/drives/' || p_cfg.sharepoint_drive_id
@@ -467,10 +641,10 @@ create or replace package body xxfnd_attach_pkg as
             -- Older version: Graph redirects /versions/{id}/content to the file.
             l_url := rtrim(p_ep.base_url, '/') || '/drives/' || p_cfg.sharepoint_drive_id
                   || '/items/' || p_item_id || '/versions/' || utl_url.escape(p_version_id, true) || '/content';
-            l_log_id := log_start(p_ep.endpoint_code, p_entity, p_pk1, 'GET', l_url, null);
+            l_log_id := log_start(p_ep.static_id, p_entity, p_pk1, 'GET', l_url, null);
             graph_auth(p_ep);
             l_blob := apex_web_service.make_rest_request_b(p_url => l_url, p_http_method => 'GET',
-                          p_credential_static_id => p_ep.web_credential_static_id,
+                          p_credential_static_id => p_ep.credential_static_id,
                           p_token_url            => p_ep.oauth_token_url);
             log_end(l_log_id, apex_web_service.g_status_code, null,
                     case when apex_web_service.g_status_code <> 200 then 'HTTP ' || apex_web_service.g_status_code end);
@@ -480,10 +654,10 @@ create or replace package body xxfnd_attach_pkg as
             return l_blob;
         end if;
 
-        l_log_id := log_start(p_ep.endpoint_code, p_entity, p_pk1, 'GET', l_url, null);
+        l_log_id := log_start(p_ep.static_id, p_entity, p_pk1, 'GET', l_url, null);
         graph_auth(p_ep);
         l_resp := apex_web_service.make_rest_request(p_url => l_url, p_http_method => 'GET',
-                      p_credential_static_id => p_ep.web_credential_static_id,
+                      p_credential_static_id => p_ep.credential_static_id,
                       p_token_url            => p_ep.oauth_token_url);
         if apex_web_service.g_status_code <> 200 then
             log_end(l_log_id, apex_web_service.g_status_code, l_resp, 'HTTP ' || apex_web_service.g_status_code);
@@ -503,12 +677,172 @@ create or replace package body xxfnd_attach_pkg as
     ----------------------------------------------------------------------------
     -- public
     ----------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
+    -- release 86: OCI Object Storage (PUT / GET / DELETE of an object with the server's Web Credential)
+    ----------------------------------------------------------------------------
+    function os_base(p_srv in t_server, p_bucket in varchar2) return varchar2 is
+    begin
+        if p_srv.oci_namespace is null or p_bucket is null then
+            raise_application_error(-20336, 'OCI Object Storage needs the namespace (server ' || p_srv.static_id
+                || ') and the bucket.');
+        end if;
+        return rtrim(coalesce(p_srv.base_url, 'https://objectstorage.' || p_srv.oci_region || '.oraclecloud.com'), '/')
+            || '/n/' || utl_url.escape(p_srv.oci_namespace, true, 'AL32UTF8')
+            || '/b/' || utl_url.escape(p_bucket, true, 'AL32UTF8') || '/o';
+    end os_base;
+
+    function os_object_url(p_srv in t_server, p_bucket in varchar2, p_object in varchar2) return varchar2 is
+    begin
+        -- the whole object name is one path segment: its slashes are encoded too
+        return os_base(p_srv, p_bucket) || '/' || utl_url.escape(p_object, true, 'AL32UTF8');
+    end os_object_url;
+
+    function os_put(p_srv in t_server, p_bucket in varchar2, p_object in varchar2, p_file in blob, p_mime in varchar2,
+                    p_entity in varchar2, p_pk1 in varchar2) return t_stored is
+        l_url    varchar2(4000) := os_object_url(p_srv, p_bucket, p_object);
+        l_resp   clob;
+        l_log_id number := log_start(p_srv.static_id, p_entity, p_pk1, 'PUT', l_url, null);
+        l_stored t_stored;
+    begin
+        apex_web_service.clear_request_headers;
+        apex_web_service.set_request_headers(p_name_01  => 'Content-Type',
+                                             p_value_01 => nvl(p_mime, 'application/octet-stream'),
+                                             p_reset    => true);
+        begin
+            l_resp := apex_web_service.make_rest_request(p_url                  => l_url,
+                                                         p_http_method          => 'PUT',
+                                                         p_body_blob            => p_file,
+                                                         p_credential_static_id => p_srv.credential_static_id);
+        exception
+            when others then
+                log_end(l_log_id, null, null, sqlerrm);
+                raise;
+        end;
+        if apex_web_service.g_status_code not between 200 and 299 then
+            log_end(l_log_id, apex_web_service.g_status_code, l_resp, 'HTTP ' || apex_web_service.g_status_code);
+            raise_http('Object Storage upload', l_resp);
+        end if;
+        l_stored.external_document_id := p_object;
+        l_stored.external_version_id  := p_object;
+        for i in 1 .. apex_web_service.g_headers.count loop
+            if lower(apex_web_service.g_headers(i).name) = 'etag' then
+                l_stored.external_version_id := substr(apex_web_service.g_headers(i).value, 1, 500);
+            end if;
+        end loop;
+        l_stored.external_url := substr(l_url, 1, 2000);
+        log_end(l_log_id, apex_web_service.g_status_code, l_resp, null);
+        return l_stored;
+    end os_put;
+
+    function os_get(p_srv in t_server, p_bucket in varchar2, p_object in varchar2,
+                    p_entity in varchar2, p_pk1 in varchar2) return blob is
+        l_url    varchar2(4000) := os_object_url(p_srv, p_bucket, p_object);
+        l_blob   blob;
+        l_log_id number := log_start(p_srv.static_id, p_entity, p_pk1, 'GET', l_url, null);
+    begin
+        apex_web_service.clear_request_headers;
+        begin
+            l_blob := apex_web_service.make_rest_request_b(p_url                  => l_url,
+                                                           p_http_method          => 'GET',
+                                                           p_credential_static_id => p_srv.credential_static_id);
+        exception
+            when others then
+                log_end(l_log_id, null, null, sqlerrm);
+                raise;
+        end;
+        if apex_web_service.g_status_code <> 200 then
+            log_end(l_log_id, apex_web_service.g_status_code, null, 'HTTP ' || apex_web_service.g_status_code);
+            raise_http('Object Storage download', null);
+        end if;
+        log_end(l_log_id, apex_web_service.g_status_code, null, null);
+        return l_blob;
+    end os_get;
+
+    -- removes a stored object (e.g. the object of an upload whose document could not be saved)
+    procedure os_delete(p_srv in t_server, p_bucket in varchar2, p_object in varchar2,
+                        p_entity in varchar2, p_pk1 in varchar2) is
+        l_url    varchar2(4000) := os_object_url(p_srv, p_bucket, p_object);
+        l_resp   clob;
+        l_log_id number := log_start(p_srv.static_id, p_entity, p_pk1, 'DELETE', l_url, null);
+    begin
+        apex_web_service.clear_request_headers;
+        l_resp := apex_web_service.make_rest_request(p_url                  => l_url,
+                                                     p_http_method          => 'DELETE',
+                                                     p_credential_static_id => p_srv.credential_static_id);
+        log_end(l_log_id, apex_web_service.g_status_code, l_resp,
+                case when apex_web_service.g_status_code not between 200 and 299
+                     then 'HTTP ' || apex_web_service.g_status_code end);
+    exception
+        when others then
+            log_end(l_log_id, null, null, sqlerrm);   -- best effort: the document was not saved anyway
+    end os_delete;
+
+    ----------------------------------------------------------------------------
+    -- public
+    ----------------------------------------------------------------------------
     function database_config return xxfnd_storage_config%rowtype is
         l_cfg xxfnd_storage_config%rowtype;
     begin
         l_cfg.storage_type := c_database;
         return l_cfg;
     end database_config;
+
+    -- release 86: a storage row read past the administration scope (a document of any application may be read)
+    function config_row(p_storage_config_id in number) return xxfnd_storage_config%rowtype is
+        l_cfg xxfnd_storage_config%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            select * into l_cfg from xxfnd_storage_config where storage_config_id = p_storage_config_id;
+        exception
+            when no_data_found then
+                null;
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_cfg;
+    end config_row;
+
+    -- release 86: where an existing document is: its own server and container (library / bucket) when recorded,
+    -- else those of the storage row it was stored by (documents stored before release 86)
+    function document_location(p_doc in xxfnd_documents%rowtype) return xxfnd_storage_config%rowtype is
+        l_cfg xxfnd_storage_config%rowtype;
+    begin
+        if p_doc.storage_config_id is not null then
+            l_cfg := config_row(p_doc.storage_config_id);
+        end if;
+        l_cfg.storage_type := p_doc.storage_type;
+        l_cfg.server_code  := coalesce(p_doc.server_code, l_cfg.server_code, l_cfg.endpoint_code);
+        if p_doc.storage_type = 'SHAREPOINT' then
+            l_cfg.sharepoint_drive_id := coalesce(p_doc.storage_container, l_cfg.sharepoint_drive_id);
+        elsif p_doc.storage_type = 'OBJECT_STORAGE' then
+            l_cfg.bucket_name := coalesce(p_doc.storage_container, l_cfg.bucket_name);
+        end if;
+        return l_cfg;
+    end document_location;
+
+    -- the library (SharePoint) or bucket (Object Storage) a file is stored in, kept on the document
+    function storage_container(p_cfg in xxfnd_storage_config%rowtype) return varchar2 is
+    begin
+        return case p_cfg.storage_type when 'SHAREPOINT'     then p_cfg.sharepoint_drive_id
+                                       when 'OBJECT_STORAGE' then p_cfg.bucket_name end;
+    end storage_container;
+
+    function object_name(p_folder in varchar2, p_file_name in varchar2) return varchar2 is
+    begin
+        return case when trim(both '/' from p_folder) is not null then trim(both '/' from p_folder) || '/' end
+            || lower(substr(rawtohex(sys_guid()), 1, 12)) || '_' || replace(nvl(p_file_name, 'file'), '/', '_');
+    end object_name;
+
+    function object_storage_url(p_server_code in varchar2, p_bucket in varchar2,
+                                p_object_name in varchar2 default null) return varchar2 is
+        l_srv t_server := get_server(p_server_code);
+    begin
+        return case when p_object_name is null then os_base(l_srv, p_bucket)
+                    else os_object_url(l_srv, p_bucket, p_object_name) end;
+    end object_storage_url;
 
     function upload(p_cfg                  in xxfnd_storage_config%rowtype,
                     p_entity               in varchar2,
@@ -519,7 +853,7 @@ create or replace package body xxfnd_attach_pkg as
                     p_mime                 in varchar2,
                     p_title                in varchar2,
                     p_previous_external_id in varchar2) return t_stored is
-        l_ep     xxfnd_integration_endpoints%rowtype;
+        l_srv    t_server;
         l_stored t_stored;
     begin
         if p_cfg.storage_type = c_database then
@@ -528,12 +862,15 @@ create or replace package body xxfnd_attach_pkg as
             l_stored.external_version_id := l_stored.external_document_id;
             return l_stored;
         end if;
-        l_ep := get_endpoint(p_cfg.endpoint_code);
+        l_srv := get_server(p_cfg.server_code);
         if p_cfg.storage_type = 'UCM' then
-            return ucm_checkin(l_ep, p_cfg, p_entity, p_pk1, p_folder, p_file, p_filename, p_mime,
+            return ucm_checkin(l_srv, p_cfg, p_entity, p_pk1, p_folder, p_file, p_filename, p_mime,
                                p_title, p_previous_external_id);
+        elsif p_cfg.storage_type = 'OBJECT_STORAGE' then
+            -- every version is its own object: nothing is overwritten
+            return os_put(l_srv, p_cfg.bucket_name, object_name(p_folder, p_filename), p_file, p_mime, p_entity, p_pk1);
         end if;
-        return sp_upload(l_ep, p_cfg, p_entity, p_pk1, p_folder, p_file, p_filename, p_mime,
+        return sp_upload(l_srv, p_cfg, p_entity, p_pk1, p_folder, p_file, p_filename, p_mime,
                          p_previous_external_id);
     end upload;
 
@@ -541,46 +878,228 @@ create or replace package body xxfnd_attach_pkg as
                         p_is_current in boolean,
                         p_entity     in varchar2,
                         p_pk1        in varchar2) return blob is
-        l_cfg xxfnd_storage_config%rowtype;
-        l_ep  xxfnd_integration_endpoints%rowtype;
+        l_cfg  xxfnd_storage_config%rowtype;
+        l_srv  t_server;
         l_blob blob;
     begin
         if p_doc.storage_type = c_database then
             select file_content into l_blob from xxfnd_document_files where file_id = to_number(p_doc.external_version_id);
             return l_blob;
         end if;
-        select * into l_cfg from xxfnd_storage_config where storage_config_id = p_doc.storage_config_id;
-        select * into l_ep  from xxfnd_integration_endpoints where endpoint_code = l_cfg.endpoint_code;
+        l_cfg := document_location(p_doc);
+        l_srv := get_server(l_cfg.server_code);
         if p_doc.storage_type = 'UCM' then
-            return ucm_get_file(l_ep, p_doc.external_version_id, p_entity, p_pk1);
+            return ucm_get_file(l_srv, p_doc.external_version_id, p_entity, p_pk1);
+        elsif p_doc.storage_type = 'OBJECT_STORAGE' then
+            return os_get(l_srv, l_cfg.bucket_name, p_doc.external_document_id, p_entity, p_pk1);
         end if;
-        return sp_download(l_ep, l_cfg, p_doc.external_document_id, p_doc.external_version_id,
+        return sp_download(l_srv, l_cfg, p_doc.external_document_id, p_doc.external_version_id,
                            p_is_current, p_entity, p_pk1);
     end fetch_file;
 
     ----------------------------------------------------------------------------
     -- configuration lookups
     ----------------------------------------------------------------------------
+    function storage_application(p_entity_name in varchar2, p_category_code in varchar2) return varchar2 is
+        l_app varchar2(30);
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            select coalesce((select max(e.application_code) from xxfnd_document_entities e
+                              where e.entity_name = p_entity_name),
+                            (select max(c.application_code) from xxfnd_document_categories c
+                              where c.category_code = p_category_code))
+              into l_app
+              from dual;
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+        return nvl(upper(l_app), 'COMMON');
+    end storage_application;
+
     function resolve_storage(p_entity_name in varchar2, p_category_code in varchar2)
         return xxfnd_storage_config%rowtype is
+        l_app varchar2(30) := storage_application(p_entity_name, p_category_code);
         l_cfg xxfnd_storage_config%rowtype;
+        l_v   xxfnd_app_storage_v%rowtype;
     begin
-        select * into l_cfg
-          from (select s.*
-                  from xxfnd_storage_config s
-                 where s.enabled_flag = 'Y'
-                   and (s.entity_name   = p_entity_name   or s.entity_name   is null)
-                   and (s.category_code = p_category_code or s.category_code is null)
-                 order by case when s.entity_name   is not null then 0 else 1 end,
-                          case when s.category_code is not null then 0 else 1 end,
-                          s.priority)
-         where rownum = 1;
-        return l_cfg;
-    exception
-        when no_data_found then
-            -- nothing configured: keep the file in the database
+        -- release 86: the category's line of the application, else the application default (XXFND_APP_STORAGE_V
+        -- holds the rule); read past the administration scope: every user stores documents
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            select * into l_v
+              from (select v.* from xxfnd_app_storage_v v
+                     where v.application_code = l_app
+                       and (v.category_code = p_category_code or v.category_code is null)
+                     order by v.category_code nulls last)
+             where rownum = 1;
+        exception
+            when no_data_found then
+                l_v.effective_storage_type := c_database;
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+        if nvl(l_v.effective_storage_type, c_database) = c_database then
+            -- nothing applies, or the setup is incomplete: keep the file in the database
             return database_config;
+        end if;
+        l_cfg.storage_config_id    := nvl(l_v.storage_config_id, l_v.default_config_id);
+        l_cfg.application_code     := case when l_app <> 'COMMON' then l_app end;
+        l_cfg.category_code        := p_category_code;
+        l_cfg.storage_type         := l_v.effective_storage_type;
+        l_cfg.server_code          := l_v.effective_server_code;
+        l_cfg.sharepoint_site_id   := l_v.effective_site;
+        l_cfg.sharepoint_drive_id  := l_v.effective_library;
+        l_cfg.bucket_name          := l_v.effective_bucket;
+        l_cfg.ucm_security_group   := l_v.effective_security_group;
+        l_cfg.ucm_doc_account      := l_v.effective_account;
+        l_cfg.ucm_doc_type         := l_v.effective_document_type;
+        l_cfg.folder_path_template := l_v.effective_folder;
+        l_cfg.enabled_flag         := 'Y';
+        return l_cfg;
     end resolve_storage;
+
+    ---------------------------------------------------------------- release 86: the Storage editor (page 137)
+    function storage_app(p_application_code in varchar2) return varchar2 is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from xxfnd_applications where application_code = upper(p_application_code);
+        if l_n = 0 then
+            raise_application_error(-20333, 'Application ' || p_application_code || ' is not registered.');
+        end if;
+        return case when upper(p_application_code) <> 'COMMON' then upper(p_application_code) end;   -- COMMON = instance
+    end storage_app;
+
+    function storage_server_type(p_server_code in varchar2) return varchar2 is
+        l_type varchar2(30);
+    begin
+        if p_server_code is null then
+            return null;
+        end if;
+        select max(server_type) into l_type from xxfnd_servers where server_code = p_server_code;
+        if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM') then
+            raise_application_error(-20334, 'Server ' || p_server_code
+                || ' is not a storage server (OCI Object Storage, SharePoint or UCM).');
+        end if;
+        return l_type;
+    end storage_server_type;
+
+    procedure put_storage_row(p_app in varchar2, p_category in varchar2, p_type in varchar2, p_server in varchar2,
+                              p_site in varchar2, p_library in varchar2, p_bucket in varchar2,
+                              p_security_group in varchar2, p_account in varchar2, p_document_type in varchar2,
+                              p_folder in varchar2) is
+        l_id number;
+    begin
+        select max(storage_config_id) into l_id
+          from xxfnd_storage_config
+         where enabled_flag = 'Y'
+           and nvl(application_code, '#') = nvl(p_app, '#')
+           and nvl(category_code, '#') = nvl(p_category, '#');
+        if l_id is null then
+            if p_category is not null
+               and coalesce(p_type, p_server, p_site, p_library, p_bucket, p_security_group, p_account,
+                            p_document_type, p_folder) is null then
+                return;   -- nothing to override
+            end if;
+            insert into xxfnd_storage_config (application_code, category_code, storage_type, server_code,
+                                              sharepoint_site_id, sharepoint_drive_id, bucket_name, ucm_security_group,
+                                              ucm_doc_account, ucm_doc_type, folder_path_template, enabled_flag)
+            values (p_app, p_category, p_type, p_server, p_site, p_library, p_bucket, p_security_group, p_account,
+                    p_document_type, p_folder, 'Y')
+            returning storage_config_id into l_id;
+            if p_app is null then
+                -- COMMON (the instance): the screen's default-application trigger (16i, _SC) may have set the
+                -- application in scope
+                update xxfnd_storage_config set application_code = null
+                 where storage_config_id = l_id and application_code is not null;
+            end if;
+        else
+            update xxfnd_storage_config
+               set storage_type         = p_type,
+                   server_code          = p_server,
+                   sharepoint_site_id   = p_site,
+                   sharepoint_drive_id  = p_library,
+                   bucket_name          = p_bucket,
+                   ucm_security_group   = p_security_group,
+                   ucm_doc_account      = p_account,
+                   ucm_doc_type         = p_document_type,
+                   folder_path_template = p_folder
+             where storage_config_id = l_id;
+        end if;
+    end put_storage_row;
+
+    procedure save_app_storage(p_application_code in varchar2,
+                               p_server_code      in varchar2,
+                               p_site             in varchar2 default null,
+                               p_library          in varchar2 default null,
+                               p_bucket           in varchar2 default null,
+                               p_security_group   in varchar2 default null,
+                               p_account          in varchar2 default null,
+                               p_document_type    in varchar2 default null,
+                               p_folder           in varchar2 default null) is
+        l_app  varchar2(30) := storage_app(p_application_code);
+        l_type varchar2(30) := nvl(storage_server_type(p_server_code), c_database);
+    begin
+        put_storage_row(l_app, null, l_type, p_server_code,
+                        case when l_type = 'SHAREPOINT'     then p_site end,
+                        case when l_type = 'SHAREPOINT'     then p_library end,
+                        case when l_type = 'OBJECT_STORAGE' then p_bucket end,
+                        case when l_type = 'UCM'            then p_security_group end,
+                        case when l_type = 'UCM'            then p_account end,
+                        case when l_type = 'UCM'            then p_document_type end,
+                        case when l_type <> c_database      then p_folder end);
+    end save_app_storage;
+
+    procedure save_category_storage(p_application_code in varchar2,
+                                    p_category_code    in varchar2,
+                                    p_server_code      in varchar2,
+                                    p_site             in varchar2 default null,
+                                    p_library          in varchar2 default null,
+                                    p_bucket           in varchar2 default null,
+                                    p_security_group   in varchar2 default null,
+                                    p_account          in varchar2 default null,
+                                    p_document_type    in varchar2 default null,
+                                    p_folder           in varchar2 default null) is
+        l_app    varchar2(30) := storage_app(p_application_code);
+        l_n      pls_integer;
+        l_type   varchar2(30);     -- the row's own type (empty = as the application)
+        l_eff    varchar2(30);     -- the type the category's files go to
+        l_server varchar2(255);
+    begin
+        select count(*) into l_n from xxfnd_document_categories
+         where category_code = p_category_code
+           and (application_code = upper(p_application_code) or application_code is null);
+        if l_n = 0 then
+            raise_application_error(-20335, 'Category ' || p_category_code || ' is not used by application '
+                || upper(p_application_code) || '.');
+        end if;
+        if upper(p_server_code) = c_database then
+            l_type := c_database;
+            l_eff  := c_database;
+        elsif p_server_code is not null then
+            l_server := p_server_code;
+            l_type   := storage_server_type(p_server_code);
+            l_eff    := l_type;
+        else
+            select max(s.server_type) into l_eff
+              from xxfnd_storage_config d
+              join xxfnd_servers s on s.server_code = d.server_code
+             where d.enabled_flag = 'Y' and d.category_code is null and nvl(d.application_code, '#') = nvl(l_app, '#');
+        end if;
+        put_storage_row(l_app, p_category_code, l_type, l_server,
+                        case when l_eff = 'SHAREPOINT'     then p_site end,
+                        case when l_eff = 'SHAREPOINT'     then p_library end,
+                        case when l_eff = 'OBJECT_STORAGE' then p_bucket end,
+                        case when l_eff = 'UCM'            then p_security_group end,
+                        case when l_eff = 'UCM'            then p_account end,
+                        case when l_eff = 'UCM'            then p_document_type end,
+                        case when nvl(l_eff, c_database) <> c_database then p_folder end);
+    end save_category_storage;
 
     function block_permission(p_app_alias        in varchar2,
                               p_page_id          in number,
@@ -639,6 +1158,7 @@ create or replace package body xxfnd_attach_pkg as
         l_path := replace(l_path, '#PK4_VALUE#',     p_pk4);
         l_path := replace(l_path, '#PK5_VALUE#',     p_pk5);
         l_path := replace(l_path, '#CATEGORY_CODE#', p_category);
+        l_path := replace(l_path, '#CATEGORY#',      p_category);    -- release 86: the default folder's token
         l_path := replace(l_path, '#YYYY#',          to_char(sysdate, 'YYYY'));
         l_path := regexp_replace(l_path, '/+', '/');
         return rtrim(ltrim(l_path, '/'), '/');
@@ -777,7 +1297,7 @@ create or replace package body xxfnd_attach_pkg as
         l_stored := upload(p_cfg, p_entity, p_pk1, l_folder, p_file, p_filename, p_mime,
                                                   p_title, p_previous_external_id);
 
-        if p_cfg.storage_type = c_database then
+        if p_cfg.storage_type = c_database or p_cfg.storage_config_id is null then
             return l_stored;    -- no external folder
         end if;
         -- Remember the record's folder so later files land in the same place.
@@ -833,6 +1353,7 @@ create or replace package body xxfnd_attach_pkg as
         l_doc_id   number;
         l_att_id   number;
         l_seq      number;
+        l_container varchar2(500);
     begin
         check_entity(p_entity_name);
         check_category_rules(p_category_code, p_document_date, p_expiry_date);
@@ -844,13 +1365,16 @@ create or replace package body xxfnd_attach_pkg as
                                p_pk5_value, p_category_code, l_blob, l_filename, l_mime,
                                nvl(p_title, l_filename), null);
 
+        -- release 86: the document keeps its server and library / bucket (SERVER_CODE, STORAGE_CONTAINER)
+        l_container := storage_container(l_cfg);   -- a private function cannot be called in SQL (PLS-00231)
         insert into xxfnd_documents (category_code, datatype_code, version_number, storage_config_id,
                                      storage_type, external_document_id, external_version_id, external_url,
                                      file_name, mime_type, file_size_bytes, document_date, expiry_date,
-                                     upload_status)
+                                     upload_status, server_code, storage_container)
         values (p_category_code, 'FILE', 1, l_cfg.storage_config_id, l_cfg.storage_type,
                 l_stored.external_document_id, l_stored.external_version_id, l_stored.external_url,
-                l_filename, l_mime, dbms_lob.getlength(l_blob), p_document_date, p_expiry_date, 'STORED')
+                l_filename, l_mime, dbms_lob.getlength(l_blob), p_document_date, p_expiry_date, 'STORED',
+                l_cfg.server_code, l_container)
         returning document_id into l_doc_id;
         set_tl(l_doc_id, nvl(p_title, l_filename), p_description);
 
@@ -918,6 +1442,8 @@ create or replace package body xxfnd_attach_pkg as
         l_ad       xxfnd_attached_documents%rowtype;
         l_old      xxfnd_documents%rowtype;
         l_cfg      xxfnd_storage_config%rowtype;
+        l_new      xxfnd_storage_config%rowtype;
+        l_container varchar2(500);
         l_blob     blob;
         l_filename varchar2(400);
         l_mime     varchar2(255);
@@ -941,7 +1467,15 @@ create or replace package body xxfnd_attach_pkg as
         if l_old.storage_type = c_database then
             l_cfg := database_config;
         else
-            select * into l_cfg from xxfnd_storage_config where storage_config_id = l_old.storage_config_id;
+            -- release 86: the server and library / bucket the first version is in; the UCM metadata and the folder of
+            -- its storage row, else of the setup that applies now
+            l_cfg := document_location(l_old);
+            l_new := resolve_storage(l_ad.entity_name, l_ad.category_code);
+            l_cfg.ucm_security_group   := coalesce(l_cfg.ucm_security_group, l_new.ucm_security_group);
+            l_cfg.ucm_doc_account      := coalesce(l_cfg.ucm_doc_account, l_new.ucm_doc_account);
+            l_cfg.ucm_doc_type         := coalesce(l_cfg.ucm_doc_type, l_new.ucm_doc_type);
+            l_cfg.folder_path_template := coalesce(l_cfg.folder_path_template, l_new.folder_path_template,
+                                                   '/#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#');
         end if;
         begin
             select title, description into l_title, l_desc
@@ -955,14 +1489,16 @@ create or replace package body xxfnd_attach_pkg as
                                l_ad.pk4_value, l_ad.pk5_value, l_ad.category_code, l_blob, l_filename, l_mime,
                                nvl(l_title, l_filename), l_old.external_document_id);
 
+        l_container := storage_container(l_cfg);   -- a private function cannot be called in SQL (PLS-00231)
         insert into xxfnd_documents (category_code, datatype_code, base_document_id, version_number,
                                      storage_config_id, storage_type, external_document_id, external_version_id,
                                      external_url, file_name, mime_type, file_size_bytes, document_date,
-                                     expiry_date, upload_status)
+                                     expiry_date, upload_status, server_code, storage_container)
         values (l_old.category_code, 'FILE', nvl(l_old.base_document_id, l_old.document_id), l_old.version_number + 1,
                 l_cfg.storage_config_id, l_cfg.storage_type, l_stored.external_document_id,
                 l_stored.external_version_id, l_stored.external_url, l_filename, l_mime,
-                dbms_lob.getlength(l_blob), p_document_date, p_expiry_date, 'STORED')
+                dbms_lob.getlength(l_blob), p_document_date, p_expiry_date, 'STORED',
+                l_cfg.server_code, l_container)
         returning document_id into l_doc_id;
         set_tl(l_doc_id, nvl(l_title, l_filename), l_desc);
 

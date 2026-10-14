@@ -33,13 +33,13 @@ begin
     st('VALUE_SETS',             'Value Sets',               'FLEXFIELDS',       'XXFND_VALUE_SETS',             150,   151,   'I',  20, 'Lists of values the flexfields use.');
     st('FLEXFIELDS',             'Descriptive Flexfields',   'FLEXFIELDS',       'XXFND_DF_FLEXFIELDS',          152,   153,   'A',  30, 'Extra fields on a screen of an application.');
     st('DOCUMENT_CATEGORIES',    'Document Categories',      'ATTACHMENTS',      'XXFND_DOCUMENT_CATEGORIES',    132,   133,   'B',  40, 'Kinds of attached documents.');
-    st('DOCUMENT_STORAGE',       'Document Storage',         'ATTACHMENTS',      'XXFND_STORAGE_CONFIG',         136,   137,   'I',  50, 'Where attached documents are kept.');
+    st('DOCUMENT_STORAGE',       'Document Storage',         'ATTACHMENTS',      'XXFND_STORAGE_CONFIG',         136,   137,   'B',  50, 'Where attached documents are kept: per application and category (release 86).');
     st('DOCUMENT_ENTITIES',      'Document Entities',        'ATTACHMENTS',      'XXFND_DOCUMENT_ENTITIES',      130,   131,   'B',  60, 'Records documents can be attached to.');
     st('ATTACHMENT_PAGES',       'Attachment Pages',         'ATTACHMENTS',      'XXFND_ATTACHMENT_FUNCTIONS',   134,   135,   'A',  70, 'Screens of an application that show attachments.');
     st('NOTIFICATION_TEMPLATES', 'Notification Templates',   'NOTIFICATIONS',    'XXFND_NOTIFICATION_TEMPLATES', 109,   110,   'B',  80, 'Texts of notifications and e-mails.');
     st('RETENTION_POLICIES',     'Retention Policies',       'RETENTION',        'XXFND_RETENTION_POLICIES',     112,   113,   'I',  90, 'How long records are kept.');
-    st('INTEGRATION_ENDPOINTS',  'Integration Endpoints',    'INTEGRATIONS',     'XXFND_INTEGRATION_ENDPOINTS',  120,   121,   'I', 100, 'External systems and their credentials.');
-    st('INTEGRATION_PURPOSES',   'Integration Purposes',     'INTEGRATIONS',     'XXFND_INTEGRATION_PURPOSES',   122,   123,   'B', 110, 'What an endpoint is used for.');
+    st('SERVERS',                'Servers',                  'INTEGRATIONS',     'XXFND_SERVERS',                120,   121,   'I', 100, 'Workspace servers (APEX Remote Servers and Web Credentials) for storage and integrations.');
+    st('INTEGRATION_PURPOSES',   'Integration Purposes',     'INTEGRATIONS',     'XXFND_INTEGRATION_PURPOSES',   122,   123,   'B', 110, 'What a server is used for.');
     st('USERS',                  'Users ' || chr(38) || ' Access', 'USERS_ACCESS', null,                          103,   104,   'I', 120, 'Employees, users and their roles.');
     st('ROLES',                  'Roles',                    'ROLES_PRIVILEGES', 'XXFND_ROLES',                  105,   106,   'A', 130, 'Roles and their privileges.');
     st('SEGREGATION_OF_DUTIES',  'Segregation of Duties',    'ROLES_PRIVILEGES', null,                           107,   108,   'A', 140, 'Roles one user may not hold together.');
@@ -136,8 +136,10 @@ union all
 select 'DOCUMENT_CATEGORIES', application_code, category_code, category_code || ' - ' || category_name, 'P133_CATEGORY_CODE'
   from xxfnd_document_categories
 union all
-select 'DOCUMENT_STORAGE', application_code, to_char(storage_config_id), entity_name || ' / ' || nvl(category_code, '-') || ' - ' || storage_type, 'P137_STORAGE_CONFIG_ID'
+select 'DOCUMENT_STORAGE', application_code, nvl(application_code, 'COMMON'),
+       nvl(category_code, 'Application default') || ' - ' || nvl(server_code, nvl(storage_type, 'as the application')), 'P137_APPLICATION_CODE'
   from xxfnd_storage_config
+ where enabled_flag = 'Y'
 union all
 select 'DOCUMENT_ENTITIES', application_code, entity_name, entity_name || ' - ' || table_name, 'P131_ENTITY_NAME'
   from xxfnd_document_entities
@@ -151,8 +153,8 @@ union all
 select 'RETENTION_POLICIES', application_code, to_char(retention_policy_id), table_name || nvl2(jurisdiction, ' (' || jurisdiction || ')', null), 'P113_RETENTION_POLICY_ID'
   from xxfnd_retention_policies
 union all
-select 'INTEGRATION_ENDPOINTS', application_code, endpoint_code, endpoint_code || ' - ' || endpoint_name, 'P121_ENDPOINT_CODE'
-  from xxfnd_integration_endpoints
+select 'SERVERS', cast(null as varchar2(30)), server_code, server_code || ' - ' || server_name, 'P121_SERVER_CODE'
+  from xxfnd_servers
 union all
 select 'INTEGRATION_PURPOSES', application_code, purpose_code, purpose_code || ' - ' || purpose_name, 'P123_PURPOSE_CODE'
   from xxfnd_integration_purposes

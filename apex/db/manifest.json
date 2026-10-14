@@ -609,5 +609,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "29 Workspace servers and storage per application",
+  "file": "29-servers.sql",
+  "install_sequence": 222,
+  "upgrade_sequence": 182,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]
