@@ -242,3 +242,78 @@ list feature-tabs (
             ```
     }
 )
+
+list application-journey (
+    name: Application Journey
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 86: the steps of the application journey, once for both pages: the Wizard Progress of page 165
+            -- (current step = P165_STEP) and the section menu of page 166 (a link to each section, its state as the
+            -- badge). P0_JRN_APP = the application (empty while a new one is being registered).
+            select null                                                        as lvl,
+                   s.label                                                     as label,
+                   case when :APP_PAGE_ID = 166 then '#' || s.dom_id
+                        when :P0_JRN_APP is not null
+                        then apex_page.get_url(p_page => 165, p_items => 'P165_APPLICATION_CODE,P165_STEP',
+                                               p_values => :P0_JRN_APP || ',' || s.step)
+                   end                                                         as target,
+                   case when :APP_PAGE_ID = 165 and to_char(s.step) = :P165_STEP then 'YES' else 'NO' end as is_current,
+                   case when s.state is null then 'fa-circle-o' else 'fa-check-circle' end as image,
+                   null                                                        as image_attribute,
+                   null                                                        as image_alt,
+                   s.state                                                     as a01
+              from (select 1 as step, 'Application' as label, 'jrn-application' as dom_id,
+                           (select case enabled_flag when 'Y' then 'Enabled' else 'Disabled' end
+                              from xxfnd_applications where application_code = :P0_JRN_APP) as state
+                      from dual
+                    union all
+                    select 2, 'Roles', 'jrn-roles',
+                           (select to_char(nullif(count(*), 0)) from xxfnd_roles where application_code = :P0_JRN_APP)
+                      from dual
+                    union all
+                    select 3, 'Users', 'jrn-users',
+                           (select to_char(nullif(count(distinct user_id), 0)) from xxfnd_user_roles_v
+                             where application_code = :P0_JRN_APP and active_flag = 'Y')
+                      from dual
+                    union all
+                    select 4, 'Shared functions', 'jrn-functions',
+                           (select to_char(nullif(count(*), 0)) from xxfnd_application_functions
+                             where application_code = :P0_JRN_APP and managed_in_app_flag = 'Y')
+                      from dual
+                    union all
+                    select 5, 'Setup types', 'jrn-setup-types',
+                           (select to_char(nullif(count(*), 0)) from xxfnd_setup_types t
+                             where :P0_JRN_APP is not null
+                               and xxfnd_application_pkg.app_allowed(t.setup_type_code, :P0_JRN_APP) = 'Y')
+                      from dual
+                    union all
+                    select 6, 'Processes', 'jrn-processes',
+                           (select case when count(*) > 0
+                                        then sum(case workflow_enabled_flag when 'Y' then 1 else 0 end) || ' / ' || count(*) end
+                              from xxfnd_workflow_processes where application_code = :P0_JRN_APP)
+                      from dual
+                    union all
+                    select 7, 'Notifications', 'jrn-notifications',
+                           (select to_char(nullif(count(*), 0)) from xxfnd_notify_rules
+                             where application_code = :P0_JRN_APP and enabled_flag = 'Y')
+                      from dual
+                    union all
+                    select 8, 'Document storage', 'jrn-storage',
+                           (select max(state) from xxfnd_app_storage_v
+                             where application_code = :P0_JRN_APP and category_code is null)
+                      from dual
+                    union all
+                    select 9, 'Integrations', 'jrn-integrations',
+                           (select to_char(nullif(count(*), 0)) from xxfnd_integration_purposes
+                             where application_code = :P0_JRN_APP)
+                      from dual
+                    union all
+                    select 10, 'Review', 'jrn-application', cast(null as varchar2(100))
+                      from dual
+                     where :APP_PAGE_ID = 165) s
+             order by s.step
+            ```
+    }
+)

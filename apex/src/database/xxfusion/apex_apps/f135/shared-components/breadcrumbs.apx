@@ -314,10 +314,21 @@ breadcrumb breadcrumb (
     )
 
     entry application (
-        name: Application
-        pageNumber: 161
+        name: &P166_APPLICATION_CODE.
+        pageNumber: 166
         execution {
             sequence: 401
+        }
+        appearance {
+            parentEntry: @applications
+        }
+    )
+
+    entry application-journey (
+        name: &P165_TITLE.
+        pageNumber: 165
+        execution {
+            sequence: 405
         }
         appearance {
             parentEntry: @applications
