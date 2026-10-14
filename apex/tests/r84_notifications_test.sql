@@ -34,11 +34,22 @@ declare
     begin
         apex_session.create_session(p_app_id => l_app, p_page_id => 1, p_username => p_user);
     end session_as;
-    -- the workflow engine goes on in the background once the step is committed
+    -- the workflow engine goes on in the background once the step is committed: wait (up to 3 minutes) until the
+    -- workflow has nothing left to run - every activity completed, or one waits for a person, a wait or has ended
     procedure settle is
+        l_busy number;
     begin
         commit;
-        dbms_session.sleep(8);
+        for i in 1 .. 90 loop
+            dbms_session.sleep(2);
+            select count(*) into l_busy from apex_workflows w
+             where w.workflow_id = l_wf and w.state_code = 'ACTIVE'
+               and not exists (select 1 from apex_workflow_activities a
+                                where a.workflow_id = w.workflow_id and a.end_time is null
+                                  and upper(a.state) in ('WAITING'));
+            exit when l_busy = 0 and i > 1;
+        end loop;
+        dbms_session.sleep(2);   -- the task actions of the step just reached
     end settle;
     function activity(p_static_id in varchar2) return varchar2 is
         l_state varchar2(100);
@@ -230,10 +241,10 @@ begin
     session_as('ADMIN');
     update xxfnd_integration_purposes set purpose_name = purpose_name where purpose_code = 'EMAIL_SYNC';
     xxfnd_approval_pkg.request('XXFND_INTEGRATION_PURPOSES', 'EMAIL_SYNC');
-    settle;
     select max(workflow_id) into l_wf from apex_workflows
      where workflow_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXFND_INTEGRATION_PURPOSES:EMAIL_SYNC'
        and state_code = 'ACTIVE';
+    settle;
     l_task := open_task('CONFIG_CHANGE');
     check_(l_task is not null, 'a change starts the COMMON workflow CONFIG_CHANGE and its approval task');
     select count(*) into l_n from apex_task_participants
@@ -276,6 +287,15 @@ begin
     check_(xxfnd_workflow_pkg.task_record(l_task) is null, 'someone outside the task may not');
     select count(*) into l_n from table(xxfnd_approval_pkg.task_change(l_task));
     check_(l_n = 0, 'nor read its change');
-    rollback;
+
+    -- one RFI is left waiting for ADMIN's answer: the browser test opens its task page
+    session_as('ADMIN');
+    xxfnd_rfi_pkg.create_rfi(p_entity_name => 'R84_TEST', p_pk1_value => 'UI' || to_char(sysdate, 'YYYYMMDDHH24MISS'),
+                             p_recipient_type => 'USER', p_rfi_category => l_cat, p_description => 'R84 question for the browser test',
+                             p_recipient_user_name => 'ADMIN', p_application_code => 'COMMON',
+                             p_rfi_id => l_rfi, p_token => l_token);
+    select workflow_id into l_wf from xxfnd_rfis where rfi_id = l_rfi;
+    settle;
+    check_(open_task('RFI_RESPONSE') is not null, 'an RFI is left open for the browser test');
 end;
 /

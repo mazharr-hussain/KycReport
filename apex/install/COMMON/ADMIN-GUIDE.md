@@ -39,3 +39,27 @@ are disabled, not deleted.
 Integrations > Transmission Log lists every request (APEX web service log). A failed call made through the COMMON call
 procedure opens its detail with a **Retry** button (Integrations - Manage). Calls made directly by a page are shown
 but not retried: repeat the action on that page.
+
+## Notifications (release 84)
+
+Workflow notifications are set up on **Workflow > Notification Delivery**, nothing is written into the application:
+
+- **Channels:** In the application (the bell and the Notifications list), E-mail, Push notification, Fusion
+  notifications. Switch a channel off to send nothing on it.
+- **Events:** what happens (a task is assigned, approved, rejected, information requested or submitted, a reminder, an
+  escalation, an RFI raised or answered), its wording (a Notification Template, English and Arabic) and the page its
+  link opens.
+- **Rules:** per event, and optionally per application and process: who is told (the task's owners, the initiator, the
+  users of a role or a privilege, the people of the record, the escalation role, the RFI's people) on which channel.
+- The **Notification Log** shows every notification and what happened to it (sent, skipped with the reason, failed).
+
+**E-mail:** set the COMMON settings MAIL_FROM (the sender; empty = no e-mail) and MAIL_FOOTER on Application Settings.
+The e-mail switches of the Process Catalogue still apply.
+
+**Push:** COMMON is a progressive web app. Each person turns push on for each browser or phone on Notifications >
+Push Notifications on This Device. In a new workspace the install makes the push key pair; to make a new one later
+(subscriptions are lost): App Builder > COMMON > Edit Application Definition > Progressive Web App > Generate
+Credentials.
+
+**Fusion notifications (prepared):** give integration purpose FUSION_NOTIFY a REST Data Source on the FUSION server
+(Integrations > Purposes), then switch the Fusion channel on.

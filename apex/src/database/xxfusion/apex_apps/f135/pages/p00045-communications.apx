@@ -9,7 +9,7 @@ page 45 (
     }
     security {
         authorizationScheme: @page-view
-        pageAccessProtection: argumentsMustHaveChecksum
+        pageAccessProtection: unrestricted
         formAutoComplete: false
     }
     help {
@@ -64,7 +64,13 @@ page 45 (
             slot: regionBody
         }
         security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
         }
     )
     pageItem P45_ENTITY_NAME (
@@ -75,7 +81,13 @@ page 45 (
             slot: regionBody
         }
         security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
         }
     )
     pageItem P45_PK1_VALUE (
@@ -86,7 +98,13 @@ page 45 (
             slot: regionBody
         }
         security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
         }
     )
     pageItem P45_RECORD (

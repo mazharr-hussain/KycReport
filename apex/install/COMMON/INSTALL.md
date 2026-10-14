@@ -56,6 +56,22 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 84 (COMMON)
+Release 84 (COMMON only, patch 91): workflow processes and notifications driven by data. The request for information
+(RFI) and the configuration change approval are APEX workflows of COMMON (Shared Components > Workflows: RFI,
+CONFIG_CHANGE) with their task definitions; XXFND_RFI_PKG and XXFND_APPROVAL_PKG keep the data and the rules and no
+longer create tasks. An outside person answers on the public page Provide Information (one-time link), which continues
+the waiting workflow. Notifications come from data (Workflow > Notification Delivery): channels (in the application -
+the bell and Notifications list, e-mail, push, Fusion prepared and off), events, rules (who, on which channel) and the
+queries that find the people; the wording stays on Notification Templates (English and Arabic). COMMON becomes a
+progressive web app with push notifications; each person turns push on per device (Notifications > This device).
+New COMMON settings MAIL_FROM (sender; empty = no e-mail) and MAIL_FOOTER: set them on Application Settings after the
+upgrade. The e-mails of a record (send, record a received one, history) are COMMON pages Communications and E-mail.
+An hourly COMMON automation "Task deadlines" raises the reminders and escalations of every application.
+Upgrade as usual (Install Supporting Objects, upgrade scripts). In a new workspace the push key pair is made by the
+install script while no device is subscribed. **KYC needs its own release** (its RFI and configuration change task
+definitions and pages move to COMMON's).
+
 ## Release 83 (COMMON)
 Release 83 (COMMON only, patch 90): Integrations use APEX's own components. The servers COMMON calls are APEX Remote
 Servers (FUSION, UCM_MAIN, SHAREPOINT_MAIN, OUTLOOK_GRAPH) and their secrets APEX Web Credentials, kept by the workspace

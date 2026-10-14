@@ -9,7 +9,7 @@ page 143 (
     }
     security {
         authorizationScheme: @page-view
-        pageAccessProtection: argumentsMustHaveChecksum
+        pageAccessProtection: unrestricted
         formAutoComplete: false
     }
     help {
@@ -64,7 +64,13 @@ page 143 (
             slot: regionBody
         }
         security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                'Unrestricted on purpose: APEX opens a task page from My Tasks with the task ID and no checksum (the task details link). The page shows the record only to the task's own people or a workflow administrator (XXFND_WORKFLOW_PKG.TASK_RECORD) and acts only through APEX task operations the user is allowed.'
+                ```
         }
     )
     pageItem P143_RFI_ID (

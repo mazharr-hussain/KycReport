@@ -625,7 +625,7 @@ create or replace package body xxfnd_notify_pkg as
         end loop;
     end wording;
 
-    -- release 84: the link label is wording too (XXFND_NOTIFICATION_TEMPLATES.ACTION_LABEL per language; was 'Open')
+    -- release 84: the link label is wording too (XXFND_NOTIFICATION_TEMPLATES.ACTION_LABEL per language; before release 84 a fixed label in this package)
     function action_label(p_template_code in varchar2, p_language in varchar2) return varchar2 is
         l_label varchar2(100);
     begin
