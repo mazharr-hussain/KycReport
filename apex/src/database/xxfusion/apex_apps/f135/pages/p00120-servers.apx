@@ -15,10 +15,10 @@ page 120 (
     help {
         helpText:
             ```
-            The servers COMMON calls (APEX Remote Servers) with their Web Credential, owner and health: the last call, the last
-            error and the last Test Connection. Open a server to test its connection. The workspace administrator changes a server
-            in Workspace Utilities (admin guide, "How to change a server"). Registered endpoints are kept read-only until they
-            retire.
+            The servers of the workspace, defined once by the COMMON administrator (release 86): each one is an APEX Remote
+            Server (static ID) with its Web Credential, a type (storage: OCI Object Storage, SharePoint, UCM; integration:
+            Fusion, REST, Outlook) and the type's details, with its state and health. Applications store documents on the
+            storage servers (Document Storage) and integration purposes call the integration servers.
             ```
     }
 
@@ -50,23 +50,20 @@ page 120 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 83: APEX Remote Servers of the workspace with their health (calls through XXFND_INTEGRATION_PKG, tests)
-                select s.remote_server_static_id                                     as static_id,
-                       s.remote_server_name                                          as server_name,
-                       initcap(replace(s.remote_server_type, '_', ' '))              as server_type,
+                -- release 86: the servers the COMMON administrator defined (XXFND_SERVERS_V: state, URL, credential, health)
+                select s.server_code                                                  as static_id,
+                       s.server_name,
+                       s.server_type_name                                             as server_type,
+                       initcap(s.usage)                                               as usage,
                        s.base_url,
-                       (select max(m.credential_name) from apex_appl_web_src_modules m
-                         where m.remote_server_static_id = s.remote_server_static_id) as credential_name,
-                       'Workspace administrator'                                     as owner,
-                       (select max(c.called_date) from xxfnd_integration_calls c
-                         where c.server_static_id = s.remote_server_static_id)        as last_call,
-                       (select max(c.called_date) from xxfnd_integration_calls c
-                         where c.server_static_id = s.remote_server_static_id and c.status_code = 'FAILED') as last_error,
-                       (select max(t.result_code || ' ' || to_char(t.tested_date, 'DD-Mon-YYYY HH24:MI'))
-                          from xxfnd_server_tests t where t.server_static_id = s.remote_server_static_id) as last_test,
-                       apex_page.get_url(p_page => 121, p_items => 'P121_STATIC_ID', p_values => s.remote_server_static_id,
+                       s.credential_static_id                                         as credential_name,
+                       s.status_text                                                  as status,
+                       s.last_call,
+                       s.last_error,
+                       s.last_test,
+                       apex_page.get_url(p_page => 121, p_items => 'P121_SERVER_CODE', p_values => s.server_code,
                                          p_clear_cache => '121') as open_url
-                  from apex_workspace_remote_servers s
+                  from xxfnd_servers_v s
                 ```
         }
         layout {
@@ -87,7 +84,7 @@ page 120 (
             type: rowRangesXToY
         }
         messages {
-            whenNoDataFound: No server yet: the workspace administrator adds them in Workspace Utilities, Remote Servers.
+            whenNoDataFound: No server yet. Create one for an APEX Remote Server of the workspace.
         }
         searchBar {
             includeSearchBar: true
@@ -170,13 +167,26 @@ page 120 (
             }
         )
 
-        column OWNER (
+        column USAGE (
             type: plainText
             heading {
-                heading: Owner
+                heading: Used For
             }
             layout {
                 sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 65
             }
             source {
                 dataType: STRING
@@ -242,10 +252,10 @@ page 120 (
         source {
             htmlCode:
                 ```html
-                <p>Servers are APEX Remote Servers, and their secrets APEX Web Credentials, of the workspace. They are kept by the
-                workspace administrator: Workspace Utilities, Remote Servers (URL) and Web Credentials (user, password or client
-                secret). This screen shows them and their health; it does not change them. See the admin guide, "How to change a
-                server".</p>
+                <p>A server is an APEX Remote Server of the workspace (its URL) and an APEX Web Credential (its secret): the
+                workspace administrator keeps both in Workspace Utilities, Remote Servers and Web Credentials. The COMMON
+                administrator defines each server here once - its type and the type's details - and every application uses it.
+                See the admin guide, "How to change a server".</p>
                 ```
         }
         layout {
@@ -261,105 +271,30 @@ page 120 (
         }
     )
 
-    region endpoints (
-        name: Registered Endpoints (Read-only, Retiring)
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                -- release 83: kept for reference until every endpoint has its Remote Server; nothing changes them
-                select e.endpoint_code, e.endpoint_name, e.base_url, e.web_credential_static_id, e.status_code,
-                       case when exists (select 1 from apex_workspace_remote_servers s where s.remote_server_static_id = e.endpoint_code)
-                            then 'Replaced by its Remote Server' else 'No Remote Server yet' end as replacement
-                  from xxfnd_integration_endpoints e
-                 order by e.endpoint_code
-                ```
-        }
+    button create (
+        buttonName: CREATE
+        label: Create Server
         layout {
-            sequence: 40
-            slot: BODY
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
         }
         appearance {
-            template: @/standard
+            buttonTemplate: @/text
+            hot: true
             templateOptions: #DEFAULT#
         }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-            showNullValuesAs: -
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 121
+                clearCache: 121
+            }
+            warnOnUnsavedChanges: doNotCheck
         }
-        advanced {
-            htmlDomId: endpoints
+        security {
+            authorizationScheme: @page-create
         }
-        messages {
-            whenNoDataFound: No registered endpoint.
-        }
-
-        column ENDPOINT_CODE (
-            type: plainText
-            heading {
-                heading: Code
-            }
-            layout {
-                sequence: 10
-            }
-        )
-
-        column ENDPOINT_NAME (
-            type: plainText
-            heading {
-                heading: Endpoint
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
-        column BASE_URL (
-            type: plainText
-            heading {
-                heading: URL
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column WEB_CREDENTIAL_STATIC_ID (
-            type: plainText
-            heading {
-                heading: Web Credential
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column STATUS_CODE (
-            type: plainText
-            heading {
-                heading: Status
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column REPLACEMENT (
-            type: plainText
-            heading {
-                heading: Replacement
-            }
-            layout {
-                sequence: 60
-            }
-        )
     )
 
     dynamicAction refresh-servers (
