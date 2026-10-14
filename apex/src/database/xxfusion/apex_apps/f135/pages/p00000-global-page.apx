@@ -70,4 +70,1530 @@ page 0 (
                 ```
         }
     )
+
+    region journey-context (
+        name: Application Journey Context
+        type: staticContent
+        layout {
+            sequence: 2
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-context
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (165, 166)
+                ```
+        }
+        comments {
+            comments: Release 86 - the application the journey (165) or the review page (166) works on, for the shared section regions below. Set by the page before its regions are shown.
+        }
+    )
+
+    pageItem P0_JRN_APP (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @journey-context
+            slot: regionBody
+        }
+        comments {
+            comments: Release 86 - application code of the application journey (165) or review (166); empty while a new application is being registered.
+        }
+    )
+
+    pageItem P0_JRN_KEY (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @journey-context
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: Release 86 - the row a section action works on (user role, process code or notification rule); set by the action link, checked by the application process JOURNEY_ACTIONS.
+        }
+    )
+
+    region jrn-application (
+        name: Application
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the registered application (journey step 1)
+                select a.application_code,
+                       a.application_name,
+                       nvl(aa.application_name, '-') || ' (' || a.apex_application_id || ')' as apex_application,
+                       a.apex_app_alias,
+                       a.schema_name,
+                       case a.enabled_flag when 'Y' then 'Enabled' else 'Disabled' end as status,
+                       case a.email_enabled_flag when 'Y' then 'On' else 'Off' end as email,
+                       a.description
+                  from xxfnd_applications a
+                  left join apex_applications aa on aa.application_id = a.apex_application_id
+                 where a.application_code = :P0_JRN_APP
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 110
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-application
+        }
+        componentAppearance {
+            template: @/value-attribute-pairs-column
+            templateOptions: #DEFAULT#
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: The application is not registered.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP = '10'))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 1, shared by the review page (166) and the journey's Review step (165).
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX_APPLICATION (
+            type: plainText
+            heading {
+                heading: APEX application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column APEX_APP_ALIAS (
+            type: plainText
+            heading {
+                heading: Alias
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 80
+            }
+        )
+    )
+
+    button jrn-application-edit (
+        buttonName: JRN_EDIT_APPLICATION
+        label: Edit
+        layout {
+            sequence: 10
+            region: @jrn-application
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 165
+                items: {
+                    P165_APPLICATION_CODE: &P0_JRN_APP.
+                    P165_STEP: 1
+                }
+                clearCache: 165
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region jrn-roles (
+        name: Roles
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the application's roles (journey step 2); a role opens the Role dialog (106)
+                select r.role_code,
+                       r.role_name,
+                       r.description,
+                       case r.enabled_flag when 'Y' then 'Enabled' else 'Disabled' end as status,
+                       (select count(distinct ur.user_id) from xxfnd_user_roles_v ur
+                         where ur.role_code = r.role_code and ur.active_flag = 'Y') as users,
+                       (select count(*) from xxfnd_role_privileges rp where rp.role_code = r.role_code) as privileges,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('ROLES_PRIVILEGES', 'MANAGE') = 'Y'
+                            then apex_page.get_url(p_page => 106, p_items => 'P106_ROLE_CODE', p_values => r.role_code,
+                                                   p_clear_cache => '106') end as edit_url
+                  from xxfnd_roles r
+                 where r.application_code = :P0_JRN_APP
+                 order by r.role_name
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 120
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-roles
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No role yet. Add Role creates one; its privileges say what its users may do.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('2', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 2, shared by 165 and 166. Add / Edit open the Role dialog (106, which also deletes); Roles and Privileges privileges.
+        }
+
+        column ROLE_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">#ROLE_NAME#</a>{else/}#ROLE_NAME#{endif/}
+                    ```
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column USERS (
+            type: plainText
+            heading {
+                heading: Users
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column PRIVILEGES (
+            type: plainText
+            heading {
+                heading: Privileges
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+    )
+
+    button jrn-roles-add (
+        buttonName: JRN_ADD_ROLE
+        label: Add Role
+        layout {
+            sequence: 10
+            region: @jrn-roles
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 106
+                items: {
+                    P106_APPLICATION_CODE: &P0_JRN_APP.
+                }
+                clearCache: 106
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege_yn('ROLES_PRIVILEGES', 'CREATE') = 'Y'
+                ```
+        }
+    )
+
+    region jrn-users (
+        name: Users
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the users holding the application's roles (journey step 3), per role; Assign users opens the
+                -- Assign picker (183), Remove ends the grant (application process JOURNEY_ACTIONS)
+                select r.role_name,
+                       ur.full_name,
+                       ur.user_name,
+                       to_char(ur.start_date_active, 'DD-MON-YYYY') as since,
+                       ur.user_role_id,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('USERS_ACCESS', 'MANAGE') = 'Y'
+                            then apex_page.get_url(p_page => 183, p_items => 'P183_TARGET,P183_TARGET_ID,P183_PICK',
+                                                   p_values => 'ROLE,' || r.role_code || ',USER', p_clear_cache => '183')
+                       end as assign_url,
+                       case when ur.user_role_id is not null
+                             and xxfnd_privilege_pkg.has_privilege_yn('USERS_ACCESS', 'MANAGE') = 'Y' then 'Remove' end as remove_label
+                  from xxfnd_roles r
+                  left join xxfnd_user_roles_v ur on ur.role_code = r.role_code and ur.active_flag = 'Y'
+                 where r.application_code = :P0_JRN_APP
+                 order by r.role_name, ur.full_name
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 130
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-users
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        breakFormatting {
+            breakColumns: col1
+        }
+        messages {
+            whenNoDataFound: The application has no role yet: add a role first, then assign users to it.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('3', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 3, shared by 165 and 166. Users and Access privileges.
+        }
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    #ROLE_NAME#{if ASSIGN_URL/} <a href="#ASSIGN_URL#" class="t-Button t-Button--small t-Button--noUI">Assign users</a>{endif/}
+                    ```
+            }
+        )
+
+        column FULL_NAME (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column USER_NAME (
+            type: plainText
+            heading {
+                heading: User Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column SINCE (
+            type: plainText
+            heading {
+                heading: Since
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column REMOVE_LABEL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if REMOVE_LABEL/}<a href="javascript:apex.page.confirm('Remove this user from the role?',{request:'JRN_REMOVE_USER',set:{'P0_JRN_KEY':'#USER_ROLE_ID#'}});">Remove</a>{endif/}
+                    ```
+            }
+        )
+
+        column USER_ROLE_ID (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column ASSIGN_URL (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+    )
+
+    button jrn-users-create (
+        buttonName: JRN_CREATE_USER
+        label: Create User
+        layout {
+            sequence: 10
+            region: @jrn-users
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-user-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 104
+                clearCache: 104
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege_yn('USERS_ACCESS', 'CREATE') = 'Y'
+                ```
+        }
+    )
+
+    region jrn-functions (
+        name: Shared Functions
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the common functions and who maintains their setup for the application (journey step 4)
+                select f.feature_name,
+                       f.description,
+                       case af.managed_in_app_flag when 'Y' then 'The application''s administrators'
+                                                  else 'Common administrators only' end as managed_by
+                  from xxfnd_application_functions af
+                  join xxfnd_features f on f.feature_code = af.feature_code
+                 where af.application_code = :P0_JRN_APP
+                 order by f.display_sequence
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 140
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-functions
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No common function is listed for this application yet.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP = '10'))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 4, shared by 166 and the journey's Review step; the journey's step 4 edits the switches (XXFND_APPLICATION_PKG.SAVE_FUNCTIONS).
+        }
+
+        column FEATURE_NAME (
+            type: plainText
+            heading {
+                heading: Function
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column MANAGED_BY (
+            type: plainText
+            heading {
+                heading: Setup Maintained By
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+
+    button jrn-functions-edit (
+        buttonName: JRN_EDIT_FUNCTIONS
+        label: Edit
+        layout {
+            sequence: 10
+            region: @jrn-functions
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 165
+                items: {
+                    P165_APPLICATION_CODE: &P0_JRN_APP.
+                    P165_STEP: 4
+                }
+                clearCache: 165
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region jrn-setup-types (
+        name: Setup Types
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the setup types and whether the application may keep its own rows of each (journey step 5);
+                -- Edit opens the Setup Type dialog (163)
+                select t.setup_type_name,
+                       case t.allowed_level when 'I' then 'Workspace only' when 'A' then 'Application only'
+                                            else 'Workspace or application' end as allowed_level,
+                       case when xxfnd_application_pkg.app_allowed(t.setup_type_code, :P0_JRN_APP) = 'Y'
+                            then 'Yes' else 'No' end as allowed,
+                       (select count(*) from xxfnd_setup_rows_v r
+                         where r.setup_type_code = t.setup_type_code and r.application_code = :P0_JRN_APP) as setup_rows,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'MANAGE') = 'Y'
+                            then apex_page.get_url(p_page => 163, p_items => 'P163_SETUP_TYPE_CODE',
+                                                   p_values => t.setup_type_code, p_clear_cache => '163') end as edit_url
+                  from xxfnd_setup_types t
+                 order by t.display_sequence
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 150
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-setup-types
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No setup type is defined.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('5', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 5, shared by 165 and 166. Edit opens the Setup Type dialog (163, XXFND_APPLICATION_PKG.SAVE_SETUP_TYPE_APPS); Applications privileges.
+        }
+
+        column SETUP_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Setup Type
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">#SETUP_TYPE_NAME#</a>{else/}#SETUP_TYPE_NAME#{endif/}
+                    ```
+            }
+        )
+
+        column ALLOWED_LEVEL (
+            type: plainText
+            heading {
+                heading: Kept At
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ALLOWED (
+            type: plainText
+            heading {
+                heading: For This Application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column SETUP_ROWS (
+            type: plainText
+            heading {
+                heading: Rows
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region jrn-processes (
+        name: Processes
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the application's workflow processes and their switch (journey step 6); Switch on / off calls
+                -- XXFND_WORKFLOW_PKG.SET_PROCESS_ENABLED (application process JOURNEY_ACTIONS)
+                select p.process_code,
+                       nvl(p.process_name, p.process_code) as process_name,
+                       case p.workflow_enabled_flag when 'Y' then 'On' else 'Off' end as state,
+                       case p.email_enabled_flag when 'Y' then 'On' else 'Off' end as email,
+                       case p.participants_type when 'CHOSEN' then 'Chosen by the user' else 'Approval rules' end as participants,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('WORKFLOW_SETUP', 'MANAGE') = 'Y'
+                            then case p.workflow_enabled_flag when 'Y' then 'JRN_PROCESS_OFF' else 'JRN_PROCESS_ON' end
+                       end as action_request,
+                       case p.workflow_enabled_flag when 'Y' then 'Switch off' else 'Switch on' end as action_label
+                  from xxfnd_workflow_processes p
+                 where p.application_code = :P0_JRN_APP
+                 order by 2
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 160
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-processes
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: The application has no workflow process.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('6', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 6, shared by 165 and 166; Workflow Setup privileges.
+        }
+
+        column PROCESS_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PROCESS_NAME (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: Workflow
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PARTICIPANTS (
+            type: plainText
+            heading {
+                heading: Who Acts
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ACTION_LABEL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if ACTION_REQUEST/}<a href="javascript:apex.page.submit({request:'#ACTION_REQUEST#',set:{'P0_JRN_KEY':'#PROCESS_CODE#'}});">#ACTION_LABEL#</a>{endif/}
+                    ```
+            }
+        )
+
+        column ACTION_REQUEST (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+    )
+
+    region jrn-notifications (
+        name: Notifications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: who is told of what for the application (journey step 7): its own rules (Switch on / off calls
+                -- XXFND_NOTIFY_PKG.SET_RULE_ENABLED, application process JOURNEY_ACTIONS) and the rules of every application
+                -- (changed on the Notifications screens only)
+                select n.rule_id,
+                       e.event_name,
+                       nvl(n.process_code, 'Every process') as process_name,
+                       rt.recipient_type_name || nvl2(n.recipient_value, ' (' || n.recipient_value || ')', null) as recipients,
+                       c.channel_name,
+                       case when n.application_code is null then 'Every application' else 'This application' end as scope,
+                       case n.enabled_flag when 'Y' then 'On' else 'Off' end as state,
+                       case when n.application_code is not null
+                             and xxfnd_privilege_pkg.has_privilege_yn('NOTIFICATIONS', 'MANAGE') = 'Y'
+                            then case n.enabled_flag when 'Y' then 'JRN_RULE_OFF' else 'JRN_RULE_ON' end
+                       end as action_request,
+                       case n.enabled_flag when 'Y' then 'Switch off' else 'Switch on' end as action_label
+                  from xxfnd_notify_rules n
+                  join xxfnd_notify_events e on e.event_code = n.event_code
+                  join xxfnd_notify_recipient_types rt on rt.recipient_type_code = n.recipient_type_code
+                  join xxfnd_notify_channels c on c.channel_code = n.channel_code
+                 where n.application_code = :P0_JRN_APP
+                    or n.application_code is null
+                 order by case when n.application_code is null then 1 else 0 end, e.event_name, c.display_sequence
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 170
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-notifications
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 15
+        }
+        messages {
+            whenNoDataFound: No notification rule applies to this application.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('7', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 7, shared by 165 and 166; Notifications privileges.
+        }
+
+        column RULE_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column EVENT_NAME (
+            type: plainText
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column PROCESS_NAME (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column RECIPIENTS (
+            type: plainText
+            heading {
+                heading: Who
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CHANNEL_NAME (
+            type: plainText
+            heading {
+                heading: Channel
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SCOPE (
+            type: plainText
+            heading {
+                heading: Rule Of
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column ACTION_LABEL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if ACTION_REQUEST/}<a href="javascript:apex.page.submit({request:'#ACTION_REQUEST#',set:{'P0_JRN_KEY':'#RULE_ID#'}});">#ACTION_LABEL#</a>{endif/}
+                    ```
+            }
+        )
+
+        column ACTION_REQUEST (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+    )
+
+    region jrn-storage (
+        name: Document Storage
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: where the application's documents are kept (journey step 8): the application default and the
+                -- categories with their own place (XXFND_APP_STORAGE_V); Edit opens the storage editor (137)
+                select nvl(c.category_name, 'Application default') as category,
+                       s.server_code,
+                       s.server_type,
+                       s.folder,
+                       s.state
+                  from xxfnd_app_storage_v s
+                  left join xxfnd_document_categories c on c.category_code = s.category_code
+                 where s.application_code = :P0_JRN_APP
+                 order by case when s.category_code is null then 0 else 1 end, c.category_name
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 180
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-storage
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No storage is set: the documents are kept in the database.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('8', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 8, shared by 165 and 166 (view XXFND_APP_STORAGE_V of part B); Attachments privileges.
+        }
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SERVER_CODE (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SERVER_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FOLDER (
+            type: plainText
+            heading {
+                heading: Folder
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    button jrn-storage-edit (
+        buttonName: JRN_EDIT_STORAGE
+        label: Edit Storage
+        layout {
+            sequence: 10
+            region: @jrn-storage
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 137
+                items: {
+                    P137_APPLICATION_CODE: &P0_JRN_APP.
+                }
+                clearCache: 137
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege_yn('ATTACHMENTS', 'MANAGE') = 'Y'
+                ```
+        }
+    )
+
+    region jrn-integrations (
+        name: Integrations
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the application's integration purposes (journey step 9); a purpose opens the Purpose dialog (123)
+                select p.purpose_code,
+                       p.purpose_name,
+                       case p.capture_method when 'API' then 'Automatic (API)' else 'Manual' end as capture_method,
+                       p.rest_source_static_id,
+                       initcap(replace(p.approval_status, '_', ' ')) as approval_status,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('INTEGRATIONS', 'MANAGE') = 'Y'
+                            then apex_page.get_url(p_page => 123, p_items => 'P123_PURPOSE_CODE', p_values => p.purpose_code,
+                                                   p_clear_cache => '123') end as edit_url
+                  from xxfnd_integration_purposes p
+                 where p.application_code = :P0_JRN_APP
+                 order by p.purpose_name
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 190
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-integrations
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: The application has no integration purpose yet.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP in ('9', '10')))
+                ```
+        }
+        comments {
+            comments: Release 86 - journey section 9, shared by 165 and 166; Add / Edit open the Purpose dialog (123, which also deletes); Integrations privileges.
+        }
+
+        column PURPOSE_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PURPOSE_NAME (
+            type: plainText
+            heading {
+                heading: Purpose
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">#PURPOSE_NAME#</a>{else/}#PURPOSE_NAME#{endif/}
+                    ```
+            }
+        )
+
+        column CAPTURE_METHOD (
+            type: plainText
+            heading {
+                heading: Runs
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column REST_SOURCE_STATIC_ID (
+            type: plainText
+            heading {
+                heading: REST Data Source
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column APPROVAL_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    button jrn-integrations-add (
+        buttonName: JRN_ADD_PURPOSE
+        label: Add Purpose
+        layout {
+            sequence: 10
+            region: @jrn-integrations
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 123
+                items: {
+                    P123_APPLICATION_CODE: &P0_JRN_APP.
+                }
+                clearCache: 123
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege_yn('INTEGRATIONS', 'CREATE') = 'Y'
+                ```
+        }
+    )
+
+    region jrn-servers (
+        name: Servers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the servers the purposes and the document storage can use (XXFND_SERVERS_V of part B)
+                select s.server_name,
+                       s.server_type_name,
+                       initcap(s.usage) as usage,
+                       s.status
+                  from xxfnd_servers_v s
+                 order by s.server_name
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @jrn-integrations
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-servers
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No server is set up yet (Integrations - Servers).
+        }
+        comments {
+            comments: Release 86 - the servers of the workspace (part B), under the journey's Integrations section.
+        }
+
+        column SERVER_NAME (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SERVER_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column USAGE (
+            type: plainText
+            heading {
+                heading: Used For
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    dynamicAction jrn-after-dialog (
+        name: Journey - refresh after a dialog
+        execution {
+            sequence: 10
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (165, 166)
+                ```
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: jQuerySelector
+            jquerySelector: body
+        }
+
+        action jrn-after-dialog-submit (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // release 86: a Role, Assign, Setup Type, Storage or Purpose dialog changed the application - show the
+                    // sections and the section states again (the page keeps its journey step)
+                    apex.page.submit({ request: "JRN_REFRESH", validate: false, showWait: true });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+    )
 )

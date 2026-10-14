@@ -1,0 +1,1222 @@
+page 165 (
+    name: Application Journey
+    alias: APPLICATION-JOURNEY
+    title: &P165_TITLE.
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Registers an APEX application of this workspace for the common setup, or changes a registered one, step by
+            step: 1 Application, 2 Roles, 3 Users, 4 Shared functions, 5 Setup types, 6 Processes, 7 Notifications,
+            8 Document storage, 9 Integrations, 10 Review. Previous and Next move between the steps.
+            Register (new application): nothing is saved before the Review step; Register then registers the application
+            (grants, APEX ID, standard rows, the administrator role) with the choices of the steps. Roles, users, setup
+            types, storage and integrations are added on their own screens once the application is registered.
+            Edit (registered application): each step opens the screen that keeps that setup and saves it there; Save on
+            the Application, Shared functions and Review steps saves those choices.
+            ```
+    }
+
+    region breadcrumb (
+        name: Application Journey
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Steps
+        type: list
+        source {
+            list: @application-journey
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-wizard
+        }
+        comments {
+            comments: Release 86 - the Wizard Progress: the shared list application-journey (also the section menu of page 166).
+        }
+    )
+
+    region step-application (
+        name: Application
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-step-application
+        }
+        serverSideCondition {
+            type: item=value
+            item: P165_STEP
+            value: 1
+        }
+    )
+
+    pageItem P165_APEX_APPLICATION_ID (
+        type: selectList
+        label {
+            label: APEX Application
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @step-application
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the APEX applications of this workspace that are not registered yet (on edit: the registered one)
+                select a.application_name || ' (' || a.application_id || ')' as display_value,
+                       a.application_id as return_value
+                  from apex_applications a
+                 where a.workspace = (select w.workspace from apex_applications w where w.application_id = :APP_ID)
+                   and (a.application_id = (select x.apex_application_id from xxfnd_applications x
+                                             where x.application_code = :P0_JRN_APP)
+                        or not exists (select 1 from xxfnd_applications x
+                                        where x.apex_application_id = a.application_id
+                                           or upper(x.apex_app_alias) = upper(a.alias)))
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        validation {
+            valueRequired: true
+        }
+        readOnly {
+            type: item=value
+            item: P165_REGISTERED
+            value: Y
+        }
+        help {
+            helpText: The APEX application of this workspace to register. Only applications that are not registered yet are offered; its name, alias and parsing schema are taken from APEX and shown below. Cannot be changed once registered.
+        }
+    )
+
+    pageItem P165_APPLICATION_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @step-application
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            textCase: upper
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        readOnly {
+            type: item=value
+            item: P165_REGISTERED
+            value: Y
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Short code of the application, the same in every environment (usually its APEX alias, for example KYC). Upper case letters, digits and underscores; it cannot be changed once registered.
+        }
+    )
+
+    region apex-app (
+        name: From APEX
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the chosen APEX application as APEX knows it (name, alias, parsing schema): registered as shown
+                select a.application_name, a.alias, a.owner as schema_name, a.pages
+                  from apex_applications a
+                 where a.application_id = :P165_APEX_APPLICATION_ID
+                ```
+            pageItemsToSubmit: [
+                P165_APEX_APPLICATION_ID
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @step-application
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-apex-app
+        }
+        componentAppearance {
+            template: @/value-attribute-pairs-column
+            templateOptions: #DEFAULT#
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: Choose the APEX application.
+        }
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ALIAS (
+            type: plainText
+            heading {
+                heading: Alias
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PAGES (
+            type: plainText
+            heading {
+                heading: Pages
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    pageItem P165_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @step-application
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: A disabled application is kept with its data but cannot be chosen on the setup screens.
+        }
+    )
+
+    pageItem P165_EMAIL_ENABLED_FLAG (
+        type: switch
+        label {
+            label: E-mail
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @step-application
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Off - no e-mail is sent for this application (tasks and in-application notifications continue).
+        }
+    )
+
+    pageItem P165_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @step-application
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: What the application is for, in one or two sentences (shown on the application's page).
+        }
+    )
+
+    region step-note (
+        name: Step
+        type: staticContent
+        source {
+            htmlCode: &P165_STEP_NOTE.
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--defaultIcons
+                t-Alert--info
+            ]
+        }
+        advanced {
+            htmlDomId: jrn-step-note
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P165_STEP_NOTE
+        }
+    )
+
+    region step-admin (
+        name: Administrator
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-step-admin
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '3'
+                ```
+        }
+    )
+
+    pageItem P165_ADMIN_USER (
+        type: popupLov
+        label {
+            label: Administrator
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select coalesce(u.full_name, u.user_name) || ' - ' || u.user_name as display_value,
+                       u.user_name as return_value
+                  from xxfnd_users u
+                 where u.enabled_flag = 'Y'
+                 order by 1
+                ```
+        }
+        layout {
+            sequence: 10
+            region: @step-admin
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The first administrator of the application: Register gives this user the application's administrator role. Leave empty to assign users after registering (Users step).
+        }
+    )
+
+    region step-functions (
+        name: Shared Functions
+        type: staticContent
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-step-functions
+        }
+        serverSideCondition {
+            type: item=value
+            item: P165_STEP
+            value: 4
+        }
+    )
+
+    pageItem P165_FUNCTIONS (
+        type: checkboxGroup
+        label {
+            label: Maintained by the Application's Administrators
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the common functions (admin features with a COMMON setup page)
+                select f.feature_name as display_value, f.feature_code as return_value
+                  from xxfnd_features f
+                 where f.feature_code in (select column_value from table(xxfnd_application_pkg.common_functions))
+                 order by f.display_sequence
+                ```
+        }
+        settings {
+            noOfCols: 3
+        }
+        layout {
+            sequence: 10
+            region: @step-functions
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The common functions whose setup the application's own administrators may maintain for their application (from the application's menu). Unticked functions are maintained by the Common Administrators only.
+        }
+    )
+
+    region step-processes (
+        name: Processes
+        type: staticContent
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-step-processes
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '6'
+                ```
+        }
+    )
+
+    pageItem P165_PROCESSES (
+        type: checkboxGroup
+        label {
+            label: Switched On
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the APEX workflows of the chosen application
+                select nvl(w.title, w.name) || ' (' || w.static_id || ')' as display_value,
+                       w.static_id as return_value
+                  from apex_appl_workflows w
+                 where w.application_id = :P165_APEX_APPLICATION_ID
+                 order by 1
+                ```
+        }
+        settings {
+            noOfCols: 2
+        }
+        layout {
+            sequence: 10
+            region: @step-processes
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The workflow processes of the APEX application to switch on at registration; the others start switched off (their records are approved at once). Each can be switched on or off later on this step or on the Process Catalogue.
+        }
+    )
+
+    region review-new (
+        name: Application to Register
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the choices of the journey, before anything is saved
+                select upper(trim(:P165_APPLICATION_CODE)) as application_code,
+                       a.application_name || ' (' || a.application_id || ')' as apex_application,
+                       a.alias as apex_app_alias,
+                       a.owner as schema_name,
+                       case nvl(:P165_ENABLED_FLAG, 'N') when 'Y' then 'Enabled' else 'Disabled' end as status,
+                       case nvl(:P165_EMAIL_ENABLED_FLAG, 'N') when 'Y' then 'On' else 'Off' end as email,
+                       :P165_DESCRIPTION as description,
+                       (select coalesce(u.full_name, u.user_name) from xxfnd_users u
+                         where u.user_name = :P165_ADMIN_USER) as administrator,
+                       (select listagg(f.feature_name, ', ') within group (order by f.display_sequence)
+                          from xxfnd_features f
+                         where f.feature_code in (select column_value from table(apex_string.split(:P165_FUNCTIONS, ':'))))
+                       as functions,
+                       (select listagg(nvl(w.title, w.name), ', ') within group (order by nvl(w.title, w.name))
+                          from apex_appl_workflows w
+                         where w.application_id = a.application_id
+                           and w.static_id in (select column_value from table(apex_string.split(:P165_PROCESSES, ':'))))
+                       as processes
+                  from apex_applications a
+                 where a.application_id = :P165_APEX_APPLICATION_ID
+                ```
+        }
+        layout {
+            sequence: 70
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-review-new
+        }
+        componentAppearance {
+            template: @/value-attribute-pairs-column
+            templateOptions: #DEFAULT#
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: Choose the APEX application on the first step.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '10'
+                ```
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX_APPLICATION (
+            type: plainText
+            heading {
+                heading: APEX application
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX_APP_ALIAS (
+            type: plainText
+            heading {
+                heading: Alias
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column ADMINISTRATOR (
+            type: plainText
+            heading {
+                heading: Administrator
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column FUNCTIONS (
+            type: plainText
+            heading {
+                heading: Shared functions
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column PROCESSES (
+            type: plainText
+            heading {
+                heading: Processes switched on
+            }
+            layout {
+                sequence: 100
+            }
+        )
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-buttons
+        }
+    )
+
+    pageItem P165_STEP (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: The journey step shown (1 Application ... 10 Review); set from the URL (the review page's Edit links) and by Previous / Next.
+        }
+    )
+
+    pageItem P165_REGISTERED (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: Y = edit of a registered application (opened with P165_APPLICATION_CODE); empty = a new registration.
+        }
+    )
+
+    pageItem P165_LOADED (
+        type: hidden
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: Y once the journey has decided create or edit and loaded the application (once per opening; Register Application and Edit clear the page).
+        }
+    )
+
+    pageItem P165_TITLE (
+        type: hidden
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: Page title and breadcrumb: Register Application or Edit <application>.
+        }
+    )
+
+    pageItem P165_STEP_NOTE (
+        type: hidden
+        layout {
+            sequence: 50
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: One sentence on a step of a new registration that has nothing to fill in yet (it is set up after Register).
+        }
+    )
+
+    button cancel-new (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 160
+                clearCache: 165
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P165_REGISTERED, 'N') = 'N'
+                ```
+        }
+    )
+
+    button cancel-edit (
+        buttonName: BACK
+        label: Back to the Application
+        layout {
+            sequence: 11
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 166
+                items: {
+                    P166_APPLICATION_CODE: &P165_APPLICATION_CODE.
+                }
+                clearCache: 166
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: item=value
+            item: P165_REGISTERED
+            value: Y
+        }
+    )
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-chevron-left
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                to_number(:P165_STEP) > 1
+                ```
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P165_REGISTERED = 'Y' and :P165_STEP in ('1', '4', '10')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconRight
+            ]
+            icon: fa-chevron-right
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                to_number(:P165_STEP) < 10
+                ```
+        }
+    )
+
+    button register (
+        buttonName: CREATE
+        label: Register
+        layout {
+            sequence: 50
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '10'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process load (
+        name: Create or edit
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: the journey opens either for a new registration (no application: Create privilege) or for a
+                -- registered application (P165_APPLICATION_CODE from the review page: Manage privilege), decided once per
+                -- opening; the application's values are loaded into the step items once, then kept in session state
+                declare
+                    l_step pls_integer := to_number(:P165_STEP default null on conversion error);
+                begin
+                    if l_step is null or l_step not between 1 and 10 then
+                        l_step := 1;
+                    end if;
+                    :P165_STEP := to_char(l_step);
+                    if :P165_LOADED is null then
+                        :P165_REGISTERED := null;
+                        for a in (select a.application_code, a.application_name, a.apex_application_id, a.description,
+                                         a.enabled_flag, a.email_enabled_flag
+                                    from xxfnd_applications a
+                                   where a.application_code = :P165_APPLICATION_CODE) loop
+                            :P165_REGISTERED          := 'Y';
+                            :P165_APEX_APPLICATION_ID := a.apex_application_id;
+                            :P165_DESCRIPTION         := a.description;
+                            :P165_ENABLED_FLAG        := a.enabled_flag;
+                            :P165_EMAIL_ENABLED_FLAG  := a.email_enabled_flag;
+                            :P165_TITLE               := 'Edit ' || a.application_name;
+                            select listagg(f.feature_code, ':') within group (order by f.feature_code)
+                              into :P165_FUNCTIONS
+                              from xxfnd_application_functions f
+                             where f.application_code = a.application_code and f.managed_in_app_flag = 'Y';
+                        end loop;
+                        if :P165_REGISTERED is null then
+                            :P165_APPLICATION_CODE := null;
+                            :P165_TITLE := 'Register Application';
+                        end if;
+                        :P165_LOADED := 'Y';
+                    end if;
+                    if not apex_authorization.is_authorized(case when :P165_REGISTERED = 'Y' then 'Page - Manage'
+                                                                 else 'Page - Create' end) then
+                        raise_application_error(-20185, case when :P165_REGISTERED = 'Y'
+                                                             then 'You are not allowed to change applications.'
+                                                             else 'You are not allowed to register applications.' end);
+                    end if;
+                    :P0_JRN_APP := case when :P165_REGISTERED = 'Y' then :P165_APPLICATION_CODE end;
+                    :P0_JRN_KEY := null;
+                    :P165_STEP_NOTE := case when :P165_REGISTERED = 'Y' then null
+                                            else case :P165_STEP
+                        when '2' then 'Roles are added once the application is registered. Register creates its administrator role.'
+                        when '3' then 'Choose the first administrator; other users are assigned to the roles after registering.'
+                        when '5' then 'Which setup the application may keep of its own is set per setup type after registering.'
+                        when '6' then 'Choose the workflow processes to switch on; the others start switched off.'
+                        when '7' then 'Register switches the standard notifications on; each can be switched off here afterwards.'
+                        when '8' then 'Until a storage is set, the documents are kept in the database. Storage is set after registering.'
+                        when '9' then 'Integration purposes are added after registering.'
+                        when '10' then 'Check the choices, then Register. Nothing is saved before.'
+                    end end;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process register (
+        name: Register
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: nothing is saved before Register. The application package registers the application (grants,
+                -- APEX ID, standard rows, the administrator role for the chosen user, processes off, standard notifications
+                -- on); the journey's choices then go through the routines that own them.
+                begin
+                    :P165_APPLICATION_CODE := upper(trim(:P165_APPLICATION_CODE));
+                    xxfnd_application_pkg.onboard(
+                        p_apex_application_id => to_number(:P165_APEX_APPLICATION_ID),
+                        p_application_code    => :P165_APPLICATION_CODE,
+                        p_description         => :P165_DESCRIPTION,
+                        p_email_enabled_flag  => nvl(:P165_EMAIL_ENABLED_FLAG, 'N'),
+                        p_admin_user          => :P165_ADMIN_USER);
+                    if nvl(:P165_ENABLED_FLAG, 'N') = 'N' then
+                        xxfnd_application_pkg.set_enabled(:P165_APPLICATION_CODE, 'N');
+                    end if;
+                    xxfnd_application_pkg.save_functions(:P165_APPLICATION_CODE, :P165_FUNCTIONS);
+                    for p in (select column_value as process_code from table(apex_string.split(:P165_PROCESSES, ':'))
+                               where column_value is not null) loop
+                        xxfnd_workflow_pkg.set_process_enabled(:P165_APPLICATION_CODE, p.process_code, 'Y');
+                    end loop;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Application &P165_APPLICATION_CODE. registered.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CREATE' and nvl(:P165_REGISTERED, 'N') = 'N'
+                ```
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-application (
+        name: Save the application
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_application_pkg.save_application(
+                    p_application_code    => :P165_APPLICATION_CODE,
+                    p_apex_application_id => to_number(:P165_APEX_APPLICATION_ID),
+                    p_description         => :P165_DESCRIPTION,
+                    p_enabled_flag        => nvl(:P165_ENABLED_FLAG, 'N'),
+                    p_email_enabled_flag  => nvl(:P165_EMAIL_ENABLED_FLAG, 'N'));
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'SAVE' and :P165_REGISTERED = 'Y' and :P165_STEP in ('1', '10')
+                ```
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-functions (
+        name: Save the shared functions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_application_pkg.save_functions(:P165_APPLICATION_CODE, :P165_FUNCTIONS);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'SAVE' and :P165_REGISTERED = 'Y' and :P165_STEP in ('4', '10')
+                ```
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process move (
+        name: Previous or next step
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P165_STEP := to_char(greatest(1, least(10, to_number(:P165_STEP) + case :REQUEST when 'NEXT' then 1 else -1 end)));
+                ```
+        }
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,PREVIOUS
+        }
+    )
+
+    dynamicAction apex-app-changed (
+        name: Show the chosen APEX application
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: [
+                P165_APEX_APPLICATION_ID
+            ]
+        }
+
+        action apex-app-changed-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @apex-app
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+    )
+
+    branch (
+        name: After Register or the Review's Save: the application
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 166
+                items: {
+                    P166_APPLICATION_CODE: &P165_APPLICATION_CODE.
+                }
+                clearCache: 165,166
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CREATE' or (:REQUEST = 'SAVE' and :P165_STEP = '10')
+                ```
+        }
+    )
+
+    branch (
+        name: Stay on the journey
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 165
+            }
+        }
+    )
+
+)

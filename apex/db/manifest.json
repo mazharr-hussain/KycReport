@@ -609,5 +609,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "30 Application journey",
+  "file": "30-application-journey.sql",
+  "install_sequence": 223,
+  "upgrade_sequence": 183,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]
