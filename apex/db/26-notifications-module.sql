@@ -317,6 +317,23 @@ begin
            and not exists (select 1 from xxfnd_role_privileges x
                             where x.role_code = rp.role_code and x.privilege_code = 'CHANGE_APPROVALS.' || a.column_value);
     end if;
+    -- the records of COMMON that keep files (an e-mail's file; an RFI's answer documents) and the category of a file
+    -- kept with an e-mail: registered by COMMON itself (before release 84 only the KYC seed did)
+    merge into xxfnd_document_entities t
+    using (select 'XXFND_COMMUNICATIONS' entity_name, 'XXFND_COMMUNICATIONS' table_name, 'COMMUNICATION_ID' pk from dual
+           union all select 'XXFND_RFIS', 'XXFND_RFIS', 'RFI_ID' from dual) s
+       on (t.entity_name = s.entity_name)
+     when not matched then insert (entity_name, application_code, table_name, pk1_column, enabled_flag)
+                           values (s.entity_name, 'COMMON', s.table_name, s.pk, 'Y');
+    merge into xxfnd_document_entities_tl t
+    using (select 'XXFND_COMMUNICATIONS' entity_name, 'E-mail' user_name from dual
+           union all select 'XXFND_RFIS', 'Request for Information' from dual) s
+       on (t.entity_name = s.entity_name and t.language_code = 'en')
+     when not matched then insert (entity_name, language_code, user_entity_name) values (s.entity_name, 'en', s.user_name);
+    merge into xxfnd_document_categories t using (select 'OTHER' category_code from dual) s
+       on (t.category_code = s.category_code)
+     when not matched then insert (category_code, application_code, category_name, default_datatype_code, has_expiry_flag)
+                           values ('OTHER', 'COMMON', 'Other Document', 'FILE', 'N');
     page('MY_TASKS', 43);
     page('MY_TASKS', 143);
     page('MY_TASKS', 144);
