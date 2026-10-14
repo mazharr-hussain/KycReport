@@ -22,7 +22,7 @@
 ## Files
 - `db/`: 05 (approval package spec, install and upgrade copies), 09b (XXFND_VPD_PKG.IS_TRUSTED), 09d (scope honours
   trusted mode), 15 (notification tables, XXFND_NOTIFY_PKG engine, XXFND_WORKFLOW_PKG task events, approval body),
-  15c (RFI in the workflow), 26 (new: seeds, privileges, push key pair), `manifest.json`
+  15c (RFI in the workflow), 24 (the release 82 wording switch runs once only, before the notification events), 26 (new: seeds, privileges, push key pair), `manifest.json`
 - `app/`: `application.apx` (Release 84, PWA with push, settings MAIL_FROM / MAIL_FOOTER), workflows, task
   definitions, push credential, automation, app item and computation (bell count), lists, breadcrumbs, pages 43, 45,
   46, 50, 116, 117, 143, 144
