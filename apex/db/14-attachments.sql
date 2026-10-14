@@ -101,6 +101,19 @@ create or replace package xxfnd_attach_pkg authid definer as
     -- Ajax/before-header process; it stops the APEX engine when done.
     procedure download(p_document_id in number, p_inline in varchar2 default 'N');
 
+    -- Release 85 (the COMMON Attachments dialog, page 47, for any application's record): Y when the signed-in user may
+    -- see the record - its row in the entity's table (XXFND_DOCUMENT_ENTITIES) is visible under the user's data
+    -- security; N otherwise, or when the entity is not registered.
+    function record_visible(p_entity_name in varchar2, p_pk1_value in varchar2) return varchar2;
+    -- DOWNLOAD after that check on the document's record (ORA-20331 when the user may not see it).
+    procedure download_checked(p_document_id in number, p_inline in varchar2 default 'N');
+    -- The change of a document from the dialog (P_ACTION INSERT, UPDATE or DELETE) is allowed: the calling page's
+    -- attachment registration permits it (BLOCK_PERMISSION) and the user may see the record; ORA-20332 otherwise.
+    -- For UPDATE / DELETE, P_ATTACHED_DOCUMENT_ID must belong to that record.
+    procedure assert_change(p_app_alias in varchar2, p_page_id in number, p_region_static_id in varchar2,
+                            p_entity_name in varchar2, p_pk1_value in varchar2, p_action in varchar2,
+                            p_attached_document_id in number default null);
+
     -- Copy all current attachments from one record to another (EBS COPY_ATTACHMENTS),
     -- e.g. from an intake request to the party. Shares the stored file.
     procedure copy_attachments(p_from_entity in varchar2, p_from_pk1 in varchar2,
@@ -1019,6 +1032,63 @@ create or replace package body xxfnd_attach_pkg as
             p_filename     => l_doc.file_name,
             p_is_inline    => p_inline = 'Y');
     end download;
+
+    function record_visible(p_entity_name in varchar2, p_pk1_value in varchar2) return varchar2 is
+        l_ent xxfnd_document_entities%rowtype;
+        l_n   pls_integer;
+    begin
+        select * into l_ent from xxfnd_document_entities where entity_name = upper(p_entity_name) and enabled_flag = 'Y';
+        -- the entity's table and key come from the registry only; the row is read under the user's data security
+        execute immediate 'select count(*) from ' || xxfnd_util_pkg.qualified(l_ent.table_name)
+                       || ' where to_char(' || dbms_assert.simple_sql_name(l_ent.pk1_column) || ') = :k'
+            into l_n using p_pk1_value;
+        return case when l_n > 0 then 'Y' else 'N' end;
+    exception
+        when no_data_found then
+            return 'N';
+        when others then
+            if sqlcode in (-942, -20130) then
+                return 'N';   -- the table is not there or not shared with COMMON
+            end if;
+            raise;
+    end record_visible;
+
+    procedure assert_change(p_app_alias in varchar2, p_page_id in number, p_region_static_id in varchar2,
+                            p_entity_name in varchar2, p_pk1_value in varchar2, p_action in varchar2,
+                            p_attached_document_id in number default null) is
+        l_n pls_integer := 1;
+    begin
+        if p_attached_document_id is not null then
+            select count(*) into l_n from xxfnd_attached_documents
+             where attached_document_id = p_attached_document_id
+               and entity_name = upper(p_entity_name) and pk1_value = p_pk1_value and expiration_date is null;
+        end if;
+        if l_n = 0
+           or record_visible(p_entity_name, p_pk1_value) = 'N'
+           or block_permission(p_app_alias, p_page_id, p_region_static_id, upper(p_entity_name), upper(p_action)) = 'N' then
+            raise_application_error(-20332, 'You are not allowed to change the documents of this record here.');
+        end if;
+    end assert_change;
+
+    procedure download_checked(p_document_id in number, p_inline in varchar2 default 'N') is
+        l_ok varchar2(1) := 'N';
+    begin
+        for a in (select ad.entity_name, ad.pk1_value
+                    from xxfnd_attached_documents ad
+                    join xxfnd_documents d on d.document_id = ad.document_id
+                   where ad.document_id = p_document_id
+                      or nvl(d.base_document_id, d.document_id) =
+                         (select nvl(x.base_document_id, x.document_id) from xxfnd_documents x where x.document_id = p_document_id)) loop
+            if record_visible(a.entity_name, a.pk1_value) = 'Y' then
+                l_ok := 'Y';
+                exit;
+            end if;
+        end loop;
+        if l_ok = 'N' then
+            raise_application_error(-20331, 'You are not allowed to open this document.');
+        end if;
+        download(p_document_id, p_inline);
+    end download_checked;
 
     procedure copy_attachments(p_from_entity in varchar2, p_from_pk1 in varchar2,
                                p_to_entity   in varchar2, p_to_pk1   in varchar2,

@@ -63,3 +63,16 @@ Credentials.
 
 **Fusion notifications (prepared):** give integration purpose FUSION_NOTIFY a REST Data Source on the FUSION server
 (Integrations > Purposes), then switch the Fusion channel on.
+
+## Documents, activity and feedback (release 85)
+
+- **Documents of a record (any application):** an application opens COMMON page 47 (Attachments) with
+  `P47_APP_ALIAS`, `P47_SOURCE_PAGE`, `P47_SOURCE_REGION`, `P47_ENTITY_NAME` and `P47_PK1_VALUE`. Register the calling
+  page and region under Documents and Records > Attachment Pages (which entities, and whether documents may be added,
+  replaced or removed there); register the entity under Document Entities. A record the user may not see shows
+  nothing.
+- **Platform Activity** (Platform > Platform Activity): the slowest pages, the top users, the errors and every page view
+  of the last 30 days, for every registered application.
+- **Feedback:** everyone gives feedback with the Feedback link in the navigation bar (another application links to COMMON
+  page 173 with `P173_APPLICATION_ID` and `P173_PAGE_ID`). Platform > Usage and Feedback lists it; open one to add a
+  follow-up.

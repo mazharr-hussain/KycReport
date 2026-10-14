@@ -823,4 +823,100 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry attachments (
+        name: Attachments
+        pageNumber: 47
+        execution {
+            sequence: 50
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 47
+            }
+        }
+    )
+
+    entry document (
+        name: Document
+        pageNumber: 48
+        execution {
+            sequence: 55
+        }
+        appearance {
+            parentEntry: @attachments
+        }
+        link {
+            target: {
+                page: 48
+            }
+        }
+    )
+
+    entry platform-activity (
+        name: Platform Activity
+        pageNumber: 170
+        execution {
+            sequence: 90
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 170
+            }
+        }
+    )
+
+    entry feedback (
+        name: Feedback
+        pageNumber: 171
+        execution {
+            sequence: 95
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 171
+            }
+        }
+    )
+
+    entry feedback-follow-up (
+        name: Feedback Follow-up
+        pageNumber: 172
+        execution {
+            sequence: 96
+        }
+        appearance {
+            parentEntry: @feedback
+        }
+        link {
+            target: {
+                page: 172
+            }
+        }
+    )
+
+    entry give-feedback (
+        name: Give Feedback
+        pageNumber: 173
+        execution {
+            sequence: 60
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 173
+            }
+        }
+    )
 )

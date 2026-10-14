@@ -215,7 +215,11 @@ page 45 (
                        dbms_lob.substr(c.body, 1000, 1) as body,
                        c.status,
                        c.communication_date,
-                       c.recorded_by
+                       c.recorded_by,
+                       -- release 85: the documents of the e-mail (COMMON Attachments; this page and region are registered for them)
+                       apex_page.get_url(p_page => 47, p_clear_cache => '47',
+                                         p_items  => 'P47_APP_ALIAS,P47_SOURCE_PAGE,P47_SOURCE_REGION,P47_ENTITY_NAME,P47_PK1_VALUE',
+                                         p_values => 'COMMON,45,history,XXFND_COMMUNICATIONS,' || c.communication_id) as documents_url
                   from xxfnd_communications c
                  where c.application_code = :P45_APPLICATION_CODE
                    and c.entity_name = :P45_ENTITY_NAME
@@ -324,6 +328,23 @@ page 45 (
             }
             layout {
                 sequence: 80
+            }
+        )
+
+        column DOCUMENTS_URL (
+            type: link
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 90
+            }
+            link {
+                target: {
+                    type: url
+                    url: #DOCUMENTS_URL#
+                }
+                linkText: Documents
             }
         )
     )

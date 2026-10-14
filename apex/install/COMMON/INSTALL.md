@@ -56,6 +56,17 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 85 (COMMON)
+Release 85 (COMMON only, patch 92): the shared screens every application uses from COMMON. **Attachments** (47) and
+**Document** (48): the documents of any application's record - download, add, replace with a new version, remove;
+the application opens page 47 with its alias, page, region, entity and key, its attachment page registration says
+who may change documents there, and the record must be one the user may see (its table's data security).
+**Platform Activity** (170): slowest pages, top users, errors and page views of every registered application (APEX
+activity log). **Feedback** (171, 172 follow-up) and **Give Feedback** (173, a link in the navigation bar; any
+application opens it with its application and page). New features DOCUMENTS, PLATFORM_ACTIVITY, GIVE_FEEDBACK and
+USAGE_FEEDBACK when missing (privileges given to the roles once). Upgrade as usual. **KYC needs its own release**
+(its attachment dialogs 90 / 91, activity reports 10030 and feedback pages 10050-10052 move to COMMON's).
+
 ## Release 84 (COMMON)
 Release 84 (COMMON only, patch 91): workflow processes and notifications driven by data. The request for information
 (RFI) and the configuration change approval are APEX workflows of COMMON (Shared Components > Workflows: RFI,

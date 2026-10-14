@@ -600,5 +600,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "27 Shared screens",
+  "file": "27-shared-screens.sql",
+  "install_sequence": 220,
+  "upgrade_sequence": 180,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]
