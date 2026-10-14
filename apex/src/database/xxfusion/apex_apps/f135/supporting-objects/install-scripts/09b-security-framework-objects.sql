@@ -498,6 +498,9 @@ create or replace package xxfnd_vpd_pkg authid definer as
     -- Narrow bypass for server code that has already authorised the caller
     -- (e.g. a validated RFI response token). Always paired with end_trusted.
     procedure begin_trusted;
+    -- Release 84: Y-state of that bypass (or a background job, as the policy): the other row policies of the setup
+    -- (the administration scope of XXFND_APPLICATION_PKG) honour it too.
+    function is_trusted return boolean;
     procedure end_trusted;
     -- Release 74 (R23): the predicate of a user and table is kept for a few seconds in the APEX session (a report
     -- that calls a function per row runs the policy once, not once per row). CLEAR_CACHE forgets it at once.
@@ -539,6 +542,10 @@ create or replace package body xxfnd_vpd_pkg as
 
     procedure begin_trusted is begin g_trusted := g_trusted + 1; end begin_trusted;
     procedure end_trusted   is begin g_trusted := greatest(g_trusted - 1, 0); end end_trusted;
+    function is_trusted return boolean is
+    begin
+        return g_trusted > 0 or sys_context('USERENV', 'BG_JOB_ID') is not null;
+    end is_trusted;
 
     function quoted_list(p_values in varchar2) return varchar2 is
         l_out varchar2(32767);

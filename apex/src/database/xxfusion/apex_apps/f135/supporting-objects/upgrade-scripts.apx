@@ -695,3 +695,20 @@ upgradeScript 25-integrations-module (
             ```
     }
 )
+
+upgradeScript 26-notifications-module (
+    execution {
+        sequence: 179
+    }
+    script {
+        contentFile: 26-notifications-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

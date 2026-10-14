@@ -746,3 +746,20 @@ installScript 25-integrations-module (
             ```
     }
 )
+
+installScript 26-notifications-module (
+    execution {
+        sequence: 219
+    }
+    script {
+        contentFile: 26-notifications-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
