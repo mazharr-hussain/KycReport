@@ -609,5 +609,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "28 Registration and onboarding",
+  "file": "28-registration.sql",
+  "install_sequence": 221,
+  "upgrade_sequence": 181,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]

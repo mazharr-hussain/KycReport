@@ -115,6 +115,16 @@ create or replace package xxfnd_integration_pkg authid definer as
     -- The Fusion HCM worker sync through purpose HCM_SYNC (Remote Server FUSION). Does nothing while the purpose
     -- has no REST Data Source or the server is not set up.
     procedure sync_hcm;
+
+    ---------------------------------------------------------------- release 86 (part A): registration
+    -- An integration purpose of the application, added when missing (an administrator's change is kept). Approved
+    -- when a script registers it; from an APEX session it waits for the second person (maker-checker).
+    -- ORA-20180 when the application is not registered; ORA-20186 when the purpose is another application's.
+    procedure register_purpose(p_application_code      in varchar2,
+                               p_purpose_code          in varchar2,
+                               p_purpose_name          in varchar2,
+                               p_capture_method        in varchar2 default 'MANUAL',
+                               p_rest_source_static_id in varchar2 default null);
 end xxfnd_integration_pkg;
 /
 
@@ -501,6 +511,28 @@ create or replace package body xxfnd_integration_pkg as
         end if;
         sync_from_fusion(l_srv.base_url, l_srv.credential_static_id);
     end sync_hcm;
+
+    ---------------------------------------------------------------- release 86 (part A): registration
+    procedure register_purpose(p_application_code      in varchar2,
+                               p_purpose_code          in varchar2,
+                               p_purpose_name          in varchar2,
+                               p_capture_method        in varchar2 default 'MANUAL',
+                               p_rest_source_static_id in varchar2 default null) is
+        l_code xxfnd_integration_purposes.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_key  xxfnd_integration_purposes.purpose_code%type := upper(p_purpose_code);
+        l_n    pls_integer;
+        l_row  xxfnd_integration_purposes.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_integration_purposes where purpose_code = l_key;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Integration purpose', l_key, l_row, p_application_code);
+            return;
+        end if;
+        -- APPROVED from a script; the maker-checker trigger makes it PENDING_APPROVAL in an APEX session
+        insert into xxfnd_integration_purposes (purpose_code, application_code, purpose_name, capture_method,
+                                                rest_source_static_id, approval_status)
+        values (l_key, l_code, p_purpose_name, upper(nvl(p_capture_method, 'MANUAL')), p_rest_source_static_id, 'APPROVED');
+    end register_purpose;
 
 end xxfnd_integration_pkg;
 /
