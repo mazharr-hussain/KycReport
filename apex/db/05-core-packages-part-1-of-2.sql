@@ -451,5 +451,17 @@ create or replace package xxfnd_approval_pkg authid definer as
     -- part in the task (XXFND_WORKFLOW_PKG.TASK_RECORD). The task actions and this read run in trusted mode: APEX has
     -- authorised the approver, whose administration scope may not include the changed setup.
     function task_change(p_task_id in number) return xxfnd_config_change_tab pipelined;
+    -- Release 86: an application registers one of its configuration tables (audit, maker-checker approval: see
+    -- XXFND_CONFIG_TABLES), added when missing (an administrator's change is kept). ORA-20180 when the application is
+    -- not registered; ORA-20186 when the table is another application's.
+    procedure register_config_table(p_application_code in varchar2,
+                                    p_table_name       in varchar2,
+                                    p_audit_flag       in varchar2 default 'Y',
+                                    p_approval_flag    in varchar2 default 'N',
+                                    p_pk_column        in varchar2 default null,
+                                    p_unit_table       in varchar2 default null,
+                                    p_unit_key_column  in varchar2 default null,
+                                    p_changes_view     in varchar2 default null,
+                                    p_description      in varchar2 default null);
 end xxfnd_approval_pkg;
 /

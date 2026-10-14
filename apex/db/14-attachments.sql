@@ -120,6 +120,50 @@ create or replace package xxfnd_attach_pkg authid definer as
                                p_to_entity   in varchar2, p_to_pk1   in varchar2,
                                p_category_code in varchar2 default null);
 
+    ----------------------------------------------------------------------------
+    -- Release 86 (part A): registration by an application and moving documents between records
+    ----------------------------------------------------------------------------
+    -- Each registration adds what is missing only (an administrator's change is kept; a re-run does nothing). The
+    -- application must be registered (ORA-20180); a row of another application is refused (ORA-20186). COMMON's
+    -- rows are the instance's (no application). Names: English, P_..._AR Arabic (as COMMON's seeds).
+    procedure register_entity(p_application_code in varchar2,
+                              p_entity_name      in varchar2,
+                              p_table_name       in varchar2,
+                              p_pk1_column       in varchar2,
+                              p_display_name     in varchar2,
+                              p_display_name_ar  in varchar2 default null,
+                              p_pk2_column       in varchar2 default null);
+    procedure register_category(p_application_code      in varchar2,
+                                p_category_code         in varchar2,
+                                p_category_name         in varchar2,
+                                p_category_name_ar      in varchar2 default null,
+                                p_description           in varchar2 default null,
+                                p_default_datatype_code in varchar2 default 'FILE',
+                                p_has_expiry_flag       in varchar2 default 'N',
+                                p_max_age_days          in number   default null,
+                                p_max_file_size_mb      in number   default null,
+                                p_allowed_file_types    in varchar2 default null);
+    -- An attachment page of the application (function = page of its APEX alias), one of its regions (block) and the
+    -- entity that region attaches to, with what the user may do there. Call once per region and entity.
+    -- ORA-20187 when the entity is not registered; ORA-20191 when the page is registered under another function.
+    procedure register_attachment_page(p_application_code    in varchar2,
+                                       p_function_code       in varchar2,
+                                       p_function_name       in varchar2,
+                                       p_page_id             in number,
+                                       p_block_code          in varchar2,
+                                       p_region_static_id    in varchar2,
+                                       p_entity_name         in varchar2,
+                                       p_pk1_page_item       in varchar2,
+                                       p_block_name          in varchar2 default null,
+                                       p_insert_allowed_flag in varchar2 default 'Y',
+                                       p_update_allowed_flag in varchar2 default 'Y',
+                                       p_delete_allowed_flag in varchar2 default 'N',
+                                       p_display_sequence    in number   default 10);
+    -- Moves every document of one record (removed ones too, each with all its versions) to another record of the
+    -- same entity, after the documents that record already has. Nothing when there is nothing to move. The stored
+    -- files stay where they are. (COPY_ATTACHMENTS shares documents instead.)
+    procedure move_documents(p_entity_name in varchar2, p_from_pk1 in varchar2, p_to_pk1 in varchar2);
+
 end xxfnd_attach_pkg;
 /
 
@@ -1117,6 +1161,143 @@ create or replace package body xxfnd_attach_pkg as
          when not matched then insert (entity_name, language_code, user_entity_name)
                                values (s.entity_name, 'en', p_display_name);
     end save_entity_display_name;
+
+    ----------------------------------------------------------------------------
+    -- Release 86 (part A): registration and moving documents between records
+    ----------------------------------------------------------------------------
+    procedure register_entity(p_application_code in varchar2,
+                              p_entity_name      in varchar2,
+                              p_table_name       in varchar2,
+                              p_pk1_column       in varchar2,
+                              p_display_name     in varchar2,
+                              p_display_name_ar  in varchar2 default null,
+                              p_pk2_column       in varchar2 default null) is
+        l_code xxfnd_document_entities.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_name xxfnd_document_entities.entity_name%type := upper(p_entity_name);
+        l_n    pls_integer;
+        l_row  xxfnd_document_entities.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_document_entities where entity_name = l_name;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Document entity', l_name, l_row, p_application_code);
+        else
+            insert into xxfnd_document_entities (entity_name, application_code, table_name, pk1_column, pk2_column, enabled_flag)
+            values (l_name, l_code, upper(p_table_name), upper(p_pk1_column), upper(p_pk2_column), 'Y');
+        end if;
+        merge into xxfnd_document_entities_tl t
+        using (select l_name entity_name, 'en' lang, p_display_name name from dual
+               union all
+               select l_name, 'ar', p_display_name_ar from dual where p_display_name_ar is not null) s
+           on (t.entity_name = s.entity_name and t.language_code = s.lang)
+         when not matched then insert (entity_name, language_code, user_entity_name) values (s.entity_name, s.lang, s.name);
+    end register_entity;
+
+    procedure register_category(p_application_code      in varchar2,
+                                p_category_code         in varchar2,
+                                p_category_name         in varchar2,
+                                p_category_name_ar      in varchar2 default null,
+                                p_description           in varchar2 default null,
+                                p_default_datatype_code in varchar2 default 'FILE',
+                                p_has_expiry_flag       in varchar2 default 'N',
+                                p_max_age_days          in number   default null,
+                                p_max_file_size_mb      in number   default null,
+                                p_allowed_file_types    in varchar2 default null) is
+        l_code xxfnd_document_categories.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_cat  xxfnd_document_categories.category_code%type := upper(p_category_code);
+        l_n    pls_integer;
+        l_row  xxfnd_document_categories.application_code%type;
+        -- NORMALISE_TYPES is private to the package body, so it cannot be called inside SQL (PLS-00231)
+        l_types xxfnd_document_categories.allowed_file_types%type := normalise_types(p_allowed_file_types);
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_document_categories where category_code = l_cat;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Document category', l_cat, l_row, p_application_code);
+        else
+            -- the English name is the category's own; other languages in XXFND_DOCUMENT_CATEGORIES_TL
+            insert into xxfnd_document_categories (category_code, application_code, category_name, description,
+                                                   default_datatype_code, has_expiry_flag, max_age_days,
+                                                   max_file_size_mb, allowed_file_types)
+            values (l_cat, l_code, p_category_name, p_description, upper(nvl(p_default_datatype_code, 'FILE')),
+                    nvl(p_has_expiry_flag, 'N'), p_max_age_days, p_max_file_size_mb, l_types);
+        end if;
+        if p_category_name_ar is not null then
+            merge into xxfnd_document_categories_tl t
+            using (select l_cat category_code, 'ar' language_code from dual) s
+               on (t.category_code = s.category_code and t.language_code = s.language_code)
+             when not matched then insert (category_code, language_code, category_name) values (l_cat, 'ar', p_category_name_ar);
+        end if;
+    end register_category;
+
+    procedure register_attachment_page(p_application_code    in varchar2,
+                                       p_function_code       in varchar2,
+                                       p_function_name       in varchar2,
+                                       p_page_id             in number,
+                                       p_block_code          in varchar2,
+                                       p_region_static_id    in varchar2,
+                                       p_entity_name         in varchar2,
+                                       p_pk1_page_item       in varchar2,
+                                       p_block_name          in varchar2 default null,
+                                       p_insert_allowed_flag in varchar2 default 'Y',
+                                       p_update_allowed_flag in varchar2 default 'Y',
+                                       p_delete_allowed_flag in varchar2 default 'N',
+                                       p_display_sequence    in number   default 10) is
+        l_code  xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_fn    xxfnd_attachment_functions.function_code%type := upper(p_function_code);
+        l_alias xxfnd_applications.apex_app_alias%type;
+        l_n     pls_integer;
+        l_row   xxfnd_attachment_functions.application_code%type;
+        l_other xxfnd_attachment_functions.function_code%type;
+    begin
+        select nvl(apex_app_alias, application_code) into l_alias from xxfnd_applications where application_code = l_code;
+        select count(*) into l_n from xxfnd_document_entities where entity_name = upper(p_entity_name);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Document entity', upper(p_entity_name)));
+        end if;
+        select count(*), max(application_code) into l_n, l_row from xxfnd_attachment_functions where function_code = l_fn;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Attachment page', l_fn, l_row, l_code);
+        else
+            select max(function_code) into l_other from xxfnd_attachment_functions
+             where upper(apex_app_alias) = upper(l_alias) and apex_page_id = p_page_id;
+            if l_other is not null then
+                xxfnd_error_pkg.raise_error('XXFND_REG_PAGE_TAKEN', apex_t_varchar2(l_alias, to_char(p_page_id), l_other));
+            end if;
+            insert into xxfnd_attachment_functions (function_code, application_code, function_name, apex_app_alias,
+                                                    apex_page_id, enabled_flag)
+            values (l_fn, xxfnd_application_pkg.setup_code(l_code), p_function_name, l_alias, p_page_id, 'Y');
+        end if;
+        merge into xxfnd_attachment_blocks t
+        using (select l_fn function_code, upper(p_block_code) block_code from dual) s
+           on (t.function_code = s.function_code and t.block_code = s.block_code)
+         when not matched then insert (function_code, block_code, region_static_id, block_name, display_sequence)
+                               values (s.function_code, s.block_code, p_region_static_id, p_block_name, p_display_sequence);
+        merge into xxfnd_attachment_blk_entities t
+        using (select l_fn function_code, upper(p_block_code) block_code, upper(p_entity_name) entity_name from dual) s
+           on (t.function_code = s.function_code and t.block_code = s.block_code and t.entity_name = s.entity_name)
+         when not matched then insert (function_code, block_code, entity_name, pk1_page_item, insert_allowed_flag,
+                                       update_allowed_flag, delete_allowed_flag, display_sequence)
+                               values (s.function_code, s.block_code, s.entity_name, upper(p_pk1_page_item),
+                                       nvl(p_insert_allowed_flag, 'Y'), nvl(p_update_allowed_flag, 'Y'),
+                                       nvl(p_delete_allowed_flag, 'N'), p_display_sequence);
+    end register_attachment_page;
+
+    procedure move_documents(p_entity_name in varchar2, p_from_pk1 in varchar2, p_to_pk1 in varchar2) is
+        l_entity xxfnd_attached_documents.entity_name%type := upper(p_entity_name);
+        l_after  number;
+    begin
+        if p_from_pk1 is null or p_to_pk1 is null or p_from_pk1 = p_to_pk1 then
+            return;
+        end if;
+        -- the versions of a document hang off its first version (BASE_DOCUMENT_ID): moving the link moves them all
+        select nvl(max(seq_num), 0) into l_after
+          from xxfnd_attached_documents
+         where entity_name = l_entity and pk1_value = p_to_pk1;
+        update xxfnd_attached_documents
+           set pk1_value = p_to_pk1,
+               seq_num   = seq_num + l_after
+         where entity_name = l_entity
+           and pk1_value   = p_from_pk1;
+    end move_documents;
 
 end xxfnd_attach_pkg;
 /

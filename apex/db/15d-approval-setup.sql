@@ -240,6 +240,18 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
     function open_count(p_rule_id in number) return number;
     -- Display name of an approver (role name, user name or "Requester").
     function approver_label(p_approver_type in varchar2, p_role_code in varchar2, p_user_name in varchar2) return varchar2;
+    -- Release 86: an application's default rule for one of its transaction types (REGISTER_TYPE), added only while the
+    -- type has no rule at all (afterwards the administrators own the rules). P_CONDITIONS: 'ATTRIBUTE=value' items;
+    -- P_STEPS in order: 'Step name=ROLE=role code', 'Step name=USER=user name' or 'Step name=REQUESTER' (no step = no
+    -- approval). ORA-20180 / ORA-20186 as every registration; ORA-20187 for an unknown type; ORA-20188 for a step
+    -- that is not well formed.
+    procedure register_default_rule(p_application_code in varchar2,
+                                    p_type             in varchar2,
+                                    p_rule_name        in varchar2,
+                                    p_steps            in apex_t_varchar2 default null,
+                                    p_conditions       in apex_t_varchar2 default null,
+                                    p_priority         in number   default 100,
+                                    p_description      in varchar2 default null);
 end xxfnd_approval_rule_pkg;
 /
 
@@ -551,6 +563,70 @@ create or replace package body xxfnd_approval_rule_pkg as
         end case;
         return 'Y';
     end decide_task;
+
+    -- release 86: registration
+    procedure register_default_rule(p_application_code in varchar2,
+                                    p_type             in varchar2,
+                                    p_rule_name        in varchar2,
+                                    p_steps            in apex_t_varchar2 default null,
+                                    p_conditions       in apex_t_varchar2 default null,
+                                    p_priority         in number   default 100,
+                                    p_description      in varchar2 default null) is
+        l_code  xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_type  xxfnd_approval_types.approval_type_code%type := upper(p_type);
+        l_owner xxfnd_approval_types.application_code%type;
+        l_n     pls_integer;
+        l_rule  number;
+        l_parts apex_t_varchar2;
+        l_kind  varchar2(30);
+        l_who   varchar2(255);
+    begin
+        select count(*), max(application_code) into l_n, l_owner from xxfnd_approval_types where approval_type_code = l_type;
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Approval type', l_type));
+        end if;
+        xxfnd_application_pkg.assert_same_application('Approval type', l_type, l_owner, l_code);
+        select count(*) into l_n from xxfnd_approval_rules where approval_type_code = l_type;
+        if l_n > 0 then
+            return;   -- the type has its rules: the administrators own them
+        end if;
+        -- every step is checked before anything is written
+        if p_steps is not null then
+            for i in 1 .. p_steps.count loop
+                l_parts := apex_string.split(p_steps(i), '=');
+                l_kind  := case when l_parts.count >= 2 then upper(trim(l_parts(2))) end;
+                if trim(l_parts(1)) is null
+                   or nvl(l_kind, '#') not in ('ROLE', 'USER', 'REQUESTER')
+                   or (l_kind in ('ROLE', 'USER') and (l_parts.count < 3 or trim(l_parts(3)) is null)) then
+                    xxfnd_error_pkg.raise_error('XXFND_REG_RULE_STEP', apex_t_varchar2(p_steps(i)));
+                end if;
+            end loop;
+        end if;
+        insert into xxfnd_approval_rules (approval_type_code, rule_name, priority, description)
+        values (l_type, p_rule_name, nvl(p_priority, 100), p_description)
+        returning rule_id into l_rule;
+        if p_conditions is not null then
+            for i in 1 .. p_conditions.count loop
+                l_parts := apex_string.split(p_conditions(i), '=');
+                merge into xxfnd_approval_rule_conds d
+                using (select l_rule r, upper(trim(l_parts(1))) a, trim(substr(p_conditions(i), instr(p_conditions(i), '=') + 1)) v
+                         from dual) s
+                   on (d.rule_id = s.r and d.attribute_code = s.a and d.attribute_value = s.v)
+                 when not matched then insert (rule_id, attribute_code, attribute_value) values (s.r, s.a, s.v);
+            end loop;
+        end if;
+        if p_steps is not null then
+            for i in 1 .. p_steps.count loop
+                l_parts := apex_string.split(p_steps(i), '=');
+                l_kind  := upper(trim(l_parts(2)));
+                l_who   := case when l_kind in ('ROLE', 'USER') then upper(trim(l_parts(3))) end;
+                insert into xxfnd_approval_rule_steps (rule_id, step_no, step_name, approver_type, role_code, user_name)
+                values (l_rule, i, trim(l_parts(1)), l_kind,
+                        case when l_kind = 'ROLE' then l_who end,
+                        case when l_kind = 'USER' then l_who end);
+            end loop;
+        end if;
+    end register_default_rule;
 
 end xxfnd_approval_rule_pkg;
 /

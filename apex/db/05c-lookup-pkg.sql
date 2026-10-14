@@ -11,6 +11,26 @@ create or replace package xxfnd_lookup_pkg authid definer as
     function is_valid_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2) return boolean;
     -- Raises ORA-20100 (with P_LABEL) when a given value is not an active value of the lookup type.
     procedure assert_lookup(p_lookup_type in varchar2, p_lookup_code in varchar2, p_label in varchar2);
+
+    -- Release 86: registration by an application. Added only when missing; what an administrator changed is kept;
+    -- a re-run does nothing. The application must be registered (ORA-20180); a lookup type of another application
+    -- is refused (ORA-20186). COMMON's rows are the instance's (no application). No APEX session needed.
+    procedure register_lookup_type(p_application_code    in varchar2,
+                                   p_lookup_type         in varchar2,
+                                   p_meaning             in varchar2,
+                                   p_customization_level in varchar2 default 'E',
+                                   p_description         in varchar2 default null);
+    -- A value of a lookup type (ORA-20187 when the type is not registered); P_MEANING_AR: its Arabic meaning.
+    procedure register_lookup_value(p_application_code   in varchar2,
+                                    p_lookup_type        in varchar2,
+                                    p_lookup_code        in varchar2,
+                                    p_meaning            in varchar2,
+                                    p_display_sequence   in number   default null,
+                                    p_description        in varchar2 default null,
+                                    p_tag                in varchar2 default null,
+                                    p_parent_lookup_type in varchar2 default null,
+                                    p_parent_lookup_code in varchar2 default null,
+                                    p_meaning_ar         in varchar2 default null);
 end xxfnd_lookup_pkg;
 /
 
@@ -67,6 +87,76 @@ create or replace package body xxfnd_lookup_pkg as
                 p_label || ': "' || p_lookup_code || '" is not an active value of ' || p_lookup_type || '.');
         end if;
     end assert_lookup;
+
+    ----------------------------------------------------------------------------
+    -- Release 86: registration. XXFND_APPLICATION_PKG (09d, the registration rule) and XXFND_ERROR_PKG (09f) are
+    -- installed after this package: called by name.
+    ----------------------------------------------------------------------------
+    function setup_code(p_application_code in varchar2) return varchar2 is
+        l_code varchar2(30);
+    begin
+        execute immediate 'begin :r := xxfnd_application_pkg.setup_code(:c); end;' using out l_code, in p_application_code;
+        return l_code;
+    end setup_code;
+
+    -- the lookup type's application, checked against the registering one; false when the type does not exist
+    function type_checked(p_lookup_type in varchar2, p_application_code in varchar2) return boolean is
+        l_n    pls_integer;
+        l_code xxfnd_lookup_types.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_code from xxfnd_lookup_types where lookup_type = upper(p_lookup_type);
+        if l_n > 0 then
+            execute immediate 'begin xxfnd_application_pkg.assert_same_application(:w, :k, :r, :a); end;'
+                using 'Lookup type', upper(p_lookup_type), l_code, p_application_code;
+        end if;
+        return l_n > 0;
+    end type_checked;
+
+    procedure register_lookup_type(p_application_code    in varchar2,
+                                   p_lookup_type         in varchar2,
+                                   p_meaning             in varchar2,
+                                   p_customization_level in varchar2 default 'E',
+                                   p_description         in varchar2 default null) is
+        l_code varchar2(30) := setup_code(p_application_code);
+    begin
+        if type_checked(p_lookup_type, p_application_code) then
+            return;
+        end if;
+        insert into xxfnd_lookup_types (lookup_type, meaning, customization_level, application_code, description)
+        values (upper(p_lookup_type), p_meaning, upper(nvl(p_customization_level, 'E')), l_code, p_description);
+    end register_lookup_type;
+
+    procedure register_lookup_value(p_application_code   in varchar2,
+                                    p_lookup_type        in varchar2,
+                                    p_lookup_code        in varchar2,
+                                    p_meaning            in varchar2,
+                                    p_display_sequence   in number   default null,
+                                    p_description        in varchar2 default null,
+                                    p_tag                in varchar2 default null,
+                                    p_parent_lookup_type in varchar2 default null,
+                                    p_parent_lookup_code in varchar2 default null,
+                                    p_meaning_ar         in varchar2 default null) is
+        l_code varchar2(30) := setup_code(p_application_code);
+    begin
+        if not type_checked(p_lookup_type, p_application_code) then
+            execute immediate 'begin xxfnd_error_pkg.raise_error(:c, apex_t_varchar2(:w, :k)); end;'
+                using 'XXFND_REG_UNKNOWN', 'Lookup type', upper(p_lookup_type);
+        end if;
+        merge into xxfnd_lookup_values t
+        using (select upper(p_lookup_type) lookup_type, p_lookup_code lookup_code from dual) s
+           on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code)
+         when not matched then insert (lookup_type, lookup_code, meaning, description, tag, display_sequence,
+                                       parent_lookup_type, parent_lookup_code)
+                               values (s.lookup_type, s.lookup_code, p_meaning, p_description, p_tag, p_display_sequence,
+                                       upper(p_parent_lookup_type), p_parent_lookup_code);
+        if p_meaning_ar is not null then
+            merge into xxfnd_lookup_values_tl t
+            using (select upper(p_lookup_type) lookup_type, p_lookup_code lookup_code, 'ar' language_code from dual) s
+               on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code and t.language_code = s.language_code)
+             when not matched then insert (lookup_type, lookup_code, language_code, meaning)
+                                   values (s.lookup_type, s.lookup_code, 'ar', p_meaning_ar);
+        end if;
+    end register_lookup_value;
 
 end xxfnd_lookup_pkg;
 /
