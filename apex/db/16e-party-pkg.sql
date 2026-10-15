@@ -205,6 +205,7 @@ create or replace package body xxcmp_party_pkg as
             raise;
     end party_candidates_json;
 
+    -- release 90: private (PARTY_ERROR below)
     function party_candidate_count(p_party_type          in varchar2,
                                    p_party_name          in varchar2,
                                    p_registration_number in varchar2,
@@ -588,8 +589,36 @@ create or replace package body xxcmp_party_pkg as
             raise;
     end party_type;
 
+    function party_status(p_party_id in number) return varchar2 is
+        l_status xxcmp_parties.party_status%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(party_status) into l_status from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_status;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end party_status;
+
+    function get_party(p_party_id in number) return xxcmp_parties%rowtype is
+        l_party xxcmp_parties%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select * into l_party from xxcmp_parties where party_id = p_party_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return l_party;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end get_party;
+
     function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob is
-        -- HTML on purpose: the flexfield fields are defined at run time (see XXFND_DFF_PKG.RENDER, no APEX component fits)
+        -- HTML unavoidable, and not built here (release 90): the flexfield's fields are defined at run time, so no APEX
+        -- component can show them; COMMON's reusable XXFND_DFF_PKG.RENDER draws them (its reason comment is there). KYC adds
+        -- only the party's access rules and the trusted read (a requester cannot read XXCMP_PARTIES).
         l_html clob;
     begin
         if can_view(p_party_id, p_request_id) = 'N' then

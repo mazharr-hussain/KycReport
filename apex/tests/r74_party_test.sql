@@ -32,7 +32,8 @@ begin
     -- matching moved to the party package
     ok('name similarity (party package) ' || xxcmp_party_pkg.name_similarity('R74 Party Test Trading LLC', 'R74 Party Test Trading'),
        xxcmp_party_pkg.name_similarity('R74 Party Test Trading LLC', 'R74 Party Test Trading') >= 95);
-    l_n := xxcmp_party_pkg.party_candidate_count('ORGANIZATION', 'R74 Party Test Trading', null, null, 'AE', l_dup);
+    -- release 90: PARTY_CANDIDATE_COUNT is private; the candidates JSON gives the same count
+    l_n := json_array_t.parse(xxcmp_party_pkg.party_candidates_json('ORGANIZATION', 'R74 Party Test Trading', null, null, 'AE', l_dup)).get_size;
     ok('candidates for the duplicate: ' || l_n, l_n >= 1);
     select count(*) into l_n
       from json_table(xxcmp_party_pkg.party_directory_json('ORGANIZATION'), '$[*]' columns (party_id number path '$.party_id'))

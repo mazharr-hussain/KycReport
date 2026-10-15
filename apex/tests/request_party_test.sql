@@ -44,14 +44,14 @@ declare
     function history_has(p_req number, p_action varchar2 default null, p_step varchar2 default null) return boolean is
         l number;
     begin
-        select count(*) into l from table(xxcmp_approval_pkg.history_rows(p_req))
+        select count(*) into l from table(xxcmp_request_pkg.history_rows(p_req))
          where (p_action is null or action = p_action) and (p_step is null or step_name = p_step);
         return l > 0;
     end;
     function exists_withdrawn(p_req number) return boolean is
         l number;
     begin
-        select count(*) into l from table(xxcmp_approval_pkg.history_rows(p_req)) where action = 'Withdrawn';
+        select count(*) into l from table(xxcmp_request_pkg.history_rows(p_req)) where action = 'Withdrawn';
         return l > 0;
     end;
     function status(p_party number) return varchar2 is
@@ -227,16 +227,22 @@ begin
     select l_rule, 2, 'Finance sign-off', 'USER', null, 'REQ1' from dual;
     l_req2 := null;
     save_org(l_req2, 'Path Org ' || l_tag, 'PA-' || l_tag);
-    ok('the path with the most matching criteria applies', xxcmp_approval_pkg.path_for(l_req2) = 'Test ' || l_tag);
     ok('before submit: the expected path lists both steps',
-       history_has(l_req2, p_step => 'Finance sign-off'));
-    xxcmp_approval_pkg.start_path(l_req2);
-    ok('step 1: approved by the role (' || xxcmp_approval_pkg.step_approvers(l_req2) || ')',
-       xxcmp_approval_pkg.step_name(l_req2) = 'Compliance check' and instr(xxcmp_approval_pkg.step_approvers(l_req2), 'OFFICER1') > 0);
-    ok('after step 1 there is a next step', xxcmp_approval_pkg.next_step(l_req2) = 'Y');
+       history_has(l_req2, p_step => 'Compliance check') and history_has(l_req2, p_step => 'Finance sign-off'));
+    -- release 90: PATH_FOR / START_PATH are private to XXCMP_REQUEST_PKG (SUBMIT starts the path); the test starts the
+    -- Approval Setup approval with the request's attributes, as START_PATH does
+    select * into l_r from xxcmp_requests where request_id = l_req2;
+    ok('the path with the most matching criteria applies',
+       xxfnd_approval_rule_pkg.start_approval('KYC_REQUEST', to_char(l_req2),
+           apex_t_varchar2('REQUESTING_DEPARTMENT=' || l_r.requesting_department, 'PARTY_TYPE=' || l_r.party_type,
+                           'JURISDICTION=' || l_r.jurisdiction, 'REQUEST_TYPE=' || l_r.request_type,
+                           'BUSINESS_RELATIONSHIP=' || l_r.business_relationship), l_r.requester_user_name) = 'Test ' || l_tag);
+    ok('step 1: approved by the role (' || xxcmp_request_pkg.step_approvers(l_req2) || ')',
+       xxcmp_request_pkg.step_name(l_req2) = 'Compliance check' and instr(xxcmp_request_pkg.step_approvers(l_req2), 'OFFICER1') > 0);
+    ok('after step 1 there is a next step', xxcmp_request_pkg.next_step(l_req2) = 'Y');
     ok('step 2: a named user, who may also be the requester (role based, not person based)',
-       xxcmp_approval_pkg.step_approvers(l_req2) = 'REQ1');
-    ok('after the last step the path is complete (the case opens)', xxcmp_approval_pkg.next_step(l_req2) = 'N');
+       xxcmp_request_pkg.step_approvers(l_req2) = 'REQ1');
+    ok('after the last step the path is complete (the case opens)', xxcmp_request_pkg.next_step(l_req2) = 'N');
     -- live: the workflow runs one approval task per step; the requester approves step 2; then the case opens
     l_req2 := null;
     save_org(l_req2, 'Live Path Org ' || l_tag, 'LP-' || l_tag);
@@ -252,7 +258,7 @@ begin
     select max(task_id) into l_task from apex_tasks where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(l_req2)
        and state_code in ('ASSIGNED', 'UNASSIGNED');
     ok('step 1 approved: the step 2 task goes to the named user', l_task is not null
-       and xxcmp_approval_pkg.step_name(l_req2) = 'Finance sign-off');
+       and xxcmp_request_pkg.step_name(l_req2) = 'Finance sign-off');
     select count(*) into l_cnt from xxcmp_cases where request_id = l_req2;
     ok('no case before the last step', l_cnt = 0);
     session_as('REQ1');

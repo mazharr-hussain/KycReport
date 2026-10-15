@@ -1,0 +1,36 @@
+plugin question (
+    name: KYC Question
+    staticId: KYC_QUESTION
+    templateComponent {
+        availableAs: [
+            report
+        ]
+        partial:
+            ```html
+            {case ROW_KIND/}{when OPTION/}<label class="kyc-q-option"><input type="radio" name="kycq_#QUESTION_ID#" value="#OPTION_ID#"{if ?CHECKED/} checked{endif/}> <span>#OPTION_LABEL#</span></label>{when TEXT/}<textarea class="textarea apex-item-textarea kyc-q-input" rows="3" maxlength="4000" aria-label="#INPUT_LABEL#">#ANSWER_TEXT#</textarea>{when DATE/}<input class="text_field apex-item-text kyc-q-input" type="date" value="#ANSWER_TEXT#" aria-label="#INPUT_LABEL#">{when NUMBER/}<input class="text_field apex-item-text kyc-q-input" type="text" inputmode="decimal" value="#ANSWER_TEXT#" aria-label="#INPUT_LABEL#">{endcase/}
+            ```
+        reportBody:
+            ```html
+            <div class="kyc-questionnaire #APEX$COMPONENT_CSS_CLASSES#">#APEX$ROWS#</div>
+            ```
+        reportGroup:
+            ```html
+            {if ?SECTION_TITLE/}<h3 class="kyc-section-title">#SECTION_TITLE#</h3>{endif/}
+            <fieldset class="kyc-q" data-kyc-q="#GROUP_QUESTION_ID#" data-kyc-type="#GROUP_ANSWER_TYPE#" #APEX$GROUP_IDENTIFICATION#>
+              <legend class="kyc-q-text">#QUESTION_TEXT#{if ?REQUIRED/} <span class="kyc-q-required" title="Required">*</span>{endif/}</legend>
+              {if ?CHOICE/}<div class="kyc-q-options" role="radiogroup">#APEX$ROWS#</div>{else/}#APEX$ROWS#{endif/}
+            </fieldset>
+            ```
+        reportRow:
+            ```html
+            #APEX$PARTIAL#
+            ```
+    }
+    component {
+        standardAttributes: regionTemplateAttr
+    }
+    information {
+        version: 1.0
+        helpText: Release 90: the questionnaire as a form - one group per question (legend, required mark), one row per answer option (radio button) or one input for a text, number or date answer; the section title before a section's first question. Rows come from SQL (data only); the markup lives here, not in PL/SQL. kyc-app.js (kycQuestionnaire) reads fieldset[data-kyc-q] for the answers.
+    }
+)

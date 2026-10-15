@@ -263,7 +263,7 @@ workflow KYC_CASE (
             name: Approve and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.approve_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'APPROVED');
             }
             layout {
                 sequence: 90
@@ -285,7 +285,7 @@ workflow KYC_CASE (
             name: Reject and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.reject_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'REJECTED');
             }
             layout {
                 sequence: 100
@@ -662,7 +662,7 @@ workflow KYC_CASE (
             name: Approve and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.approve_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'APPROVED');
             }
             layout {
                 sequence: 90
@@ -684,7 +684,7 @@ workflow KYC_CASE (
             name: Reject and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.reject_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'REJECTED');
             }
             layout {
                 sequence: 100
@@ -986,7 +986,7 @@ workflow KYC_CASE (
             name: Approve and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.approve_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'APPROVED');
             }
             layout {
                 sequence: 90
@@ -1008,7 +1008,7 @@ workflow KYC_CASE (
             name: Reject and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.reject_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'REJECTED');
             }
             layout {
                 sequence: 100
@@ -1310,7 +1310,7 @@ workflow KYC_CASE (
             name: Approve and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.approve_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'APPROVED');
             }
             layout {
                 sequence: 90
@@ -1332,7 +1332,7 @@ workflow KYC_CASE (
             name: Reject and close case
             type: executeCode
             source {
-                plsqlCode: xxcmp_case_pkg.reject_case(:APEX$WORKFLOW_DETAIL_PK);
+                plsqlCode: xxcmp_case_pkg.close_case(:APEX$WORKFLOW_DETAIL_PK, 'REJECTED');
             }
             layout {
                 sequence: 100
