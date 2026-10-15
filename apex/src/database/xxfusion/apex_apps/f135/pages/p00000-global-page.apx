@@ -445,7 +445,7 @@ page 0 (
             target: {
                 page: 106
                 items: {
-                    P106_APPLICATION_CODE: &P0_JRN_APP.
+                    P106_FOR_APP: &P0_JRN_APP.
                 }
                 clearCache: 106
             }
@@ -1612,7 +1612,7 @@ page 0 (
         }
         when {
             event: custom
-            customEvent: apexaftercanceldialog
+            customEvent: apexafterclosecanceldialog
             selectionType: jQuerySelector
             jquerySelector: body
         }

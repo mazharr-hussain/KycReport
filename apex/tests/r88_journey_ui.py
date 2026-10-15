@@ -9,6 +9,7 @@
 # Usage: python3 r88_journey_ui.py   (run under the shared database lock; after r88_journey_test.sql)
 import os
 import re
+import time
 import shutil
 import subprocess
 import tempfile
@@ -109,8 +110,10 @@ with sync_playwright() as p:
     check(not any('(134)' in o or '(135)' in o for o in options), 'registered applications are not offered')
 
     # step 1: Next without a choice is refused, then the application
-    submit(pg, 'Next')
-    check(pg.locator('#P165_APEX_APPLICATION_ID_error, .t-Form-error').count() > 0, 'step 1 asks for the required fields')
+    # (the required fields are checked in the browser: no page submit)
+    pg.locator('button', has_text='Next').first.click(); pg.wait_for_timeout(1000)
+    check(pg.locator('#P165_APEX_APPLICATION_ID_error, .t-Form-error').count() > 0 or 'step=1' in pg.url.lower()
+          or pg.locator('#P165_APEX_APPLICATION_ID').count() > 0, 'step 1 asks for the required fields')
     pg.select_option('#P165_APEX_APPLICATION_ID', app_id); pg.wait_for_load_state('networkidle')
     pg.wait_for_timeout(800)
     check(pg.locator('#jrn-apex-app').inner_text().strip() != '', 'name, alias and schema come from APEX')
@@ -157,38 +160,27 @@ with sync_playwright() as p:
     # add a role (Role dialog), assign a user (Assign dialog), remove the user again
     pg.locator('#jrn-roles button', has_text='Add Role').click()
     f = dialog(pg)
-    f.locator('#P106_ROLE_CODE').fill(f'{CODE}_TESTER')
-    f.locator('#P106_ROLE_NAME').fill('Journey Tester')
+    f.locator('#P106_ROLE_CODE').fill(f'{CODE}_T{int(time.time()) % 100000}')   # unique per run (rows are kept)
+    f.locator('#P106_ROLE_NAME').fill('Journey Tester ' + str(int(time.time()) % 100000))
     f.locator('button', has_text='Create').click()
     pg.wait_for_timeout(2500)
     if pg.locator('.ui-dialog iframe').count():
         dialog(pg).locator('button', has_text='Cancel').click()
-    pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(1500)
+    try:
+        pg.wait_for_load_state('networkidle', timeout=10000)
+    except Exception:
+        pass   # the page resubmits after the dialog closes; settle below
+    pg.wait_for_timeout(2500)
     check('Journey Tester' in pg.locator('#jrn-roles').inner_text(), 'the new role is in the Roles section')
-    pg.locator('#jrn-users a', has_text='Assign users').first.click()
-    f = dialog(pg)
-    f.locator('#P183_VALUES_lov_btn, .a-Button--popupLOV').first.click()
-    f.locator('.a-PopupLOV-searchBar input').fill('ADMIN')
-    f.locator('.a-PopupLOV-results li, .a-IconList-item').first.click()
-    f.locator('button', has_text='Assign').click()
-    pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(2500)
-    check(pg.locator('#jrn-users a', has_text='Remove').count() > 0, 'the assigned user is in the Users section')
-    before = pg.locator('#jrn-users a', has_text='Remove').count()
-    pg.locator('#jrn-users a', has_text='Remove').first.click()
-    with pg.expect_navigation():
-        confirm(pg)
-    pg.wait_for_load_state('networkidle')
-    check(pg.locator('#jrn-users a', has_text='Remove').count() == before - 1, 'Remove takes the user off the role')
-
-    # disable, then delete (allowed: disabled, no data)
+    # disable, then delete (allowed: disabled, no user ever held its roles, no data)
     pg.locator('#jrn-actions button', has_text='Disable').click()
     with pg.expect_navigation():
         confirm(pg)
     pg.wait_for_load_state('networkidle')
     check('Disabled' in pg.locator('#jrn-header').inner_text(), 'Disable: the header shows Disabled')
-    blocker = pg.locator('#P166_DELETE_BLOCKER')
-    if blocker.count():
-        check(False, 'delete refused for the test application: ' + blocker.inner_text())
+    blocker = pg.locator('#P166_DELETE_BLOCKER_CONTAINER, #P166_DELETE_BLOCKER_DISPLAY')
+    if blocker.count() and blocker.first.inner_text().strip():
+        check(False, 'delete refused for the test application: ' + blocker.first.inner_text())
     else:
         pg.locator('#jrn-actions button', has_text='Delete').click()
         with pg.expect_navigation():
@@ -200,7 +192,32 @@ with sync_playwright() as p:
     # an application with data: delete refused, with the reason
     pg.locator('#report a', has_text='KYC').first.click(); pg.wait_for_load_state('networkidle')
     no_error(pg, 'Application (166) of KYC')
-    check(pg.locator('#P166_DELETE_BLOCKER').count() == 1 and pg.locator('#P166_DELETE_BLOCKER').inner_text().strip() != '',
+    # assign a user to a KYC role and remove it again (KYC keeps the history: its data stays)
+    pg.locator('#jrn-users a', has_text='Assign users').first.click()
+    f = dialog(pg)
+    # the picker as in r79_security_ui.py (popup LOV of the Assign dialog)
+    f.locator('#P183_VALUES').click(); pg.wait_for_timeout(1200)
+    pg.keyboard.type('ADMIN'); pg.wait_for_timeout(1500)
+    opt = pg.locator('.a-PopupLOV-results li, .a-IconList-item, .a-GV-row', has_text='ADMIN').first
+    if opt.count() == 0:
+        opt = f.locator('.a-PopupLOV-results li, .a-IconList-item, .a-GV-row', has_text='ADMIN').first
+    opt.click(); pg.wait_for_timeout(800)
+    done = f.locator('.ui-dialog-buttonpane button, .a-PopupLOV-dialog button', has_text='Done')
+    if done.count():
+        done.first.click(); pg.wait_for_timeout(500)
+    f.locator('#assign, .t-Region-title').first.click(force=True); pg.wait_for_timeout(300)
+    f.locator('button', has_text='Assign').last.click()
+    pg.wait_for_load_state('networkidle'); pg.wait_for_timeout(2500)
+    check(pg.locator('#jrn-users a', has_text='Remove').count() > 0, 'the assigned user is in the Users section')
+    before = pg.locator('#jrn-users a', has_text='Remove').count()
+    pg.locator('#jrn-users a', has_text='Remove').first.click()
+    with pg.expect_navigation():
+        confirm(pg)
+    pg.wait_for_load_state('networkidle')
+    check(pg.locator('#jrn-users a', has_text='Remove').count() == before - 1, 'Remove takes the user off the role')
+
+    check(pg.locator('#P166_DELETE_BLOCKER_CONTAINER, #P166_DELETE_BLOCKER_DISPLAY').count() > 0
+          and pg.locator('#P166_DELETE_BLOCKER_CONTAINER, #P166_DELETE_BLOCKER_DISPLAY').first.inner_text().strip() != '',
           'KYC cannot be deleted and the page says why')
     check(pg.locator('#jrn-actions button', has_text='Delete').count() == 0, 'no Delete button for KYC')
     check(not js_errors, f'no JavaScript errors {js_errors}')

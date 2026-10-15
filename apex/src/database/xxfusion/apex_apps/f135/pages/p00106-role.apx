@@ -111,6 +111,21 @@ page 106 (
         }
     )
 
+    pageItem P106_FOR_APP (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Release 86 - the application a new role is made for when the application journey (165 / 166) opens this dialog.
+        }
+    )
+
     process set-saved (
         name: Detect existing record
         type: executeCode
@@ -202,7 +217,7 @@ page 106 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                nullif(:G_ADMIN_APP, 'ALL')
+                coalesce(:P106_FOR_APP, nullif(:G_ADMIN_APP, 'ALL'))   -- release 86: the journey's application first
                 ```
         }
         help {

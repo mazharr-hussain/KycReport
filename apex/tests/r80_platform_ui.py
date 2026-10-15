@@ -1,5 +1,5 @@
 # COMMON release 80 (C1 Platform, C3 Reference Data): the screens that now call the component packages open and save -
-# Application (161, fields side by side), Setup Type (163, save through XXFND_APPLICATION_PKG), Optional Features
+# Application (166 since release 86), Setup Type (163, save through XXFND_APPLICATION_PKG), Optional Features
 # (10020/10021) and Application Settings (10022/10023), Lookup Type (102) and Descriptive Flexfield (153, save
 # through XXFND_DFF_PKG); the level label reads "Workspace (all applications)".
 # Usage: python3 r80_platform_ui.py
@@ -40,18 +40,18 @@ with sync_playwright() as p:
     pg.fill('#P9999_USERNAME', 'ADMIN'); pg.fill('#P9999_PASSWORD', 'KycTest#2026')
     pg.click('#LOGIN, button:has-text("Sign In")'); pg.wait_for_load_state('networkidle')
 
-    # Application (161): code and name on one row
+    # Application: since release 86 a row opens the application page (166; page 161 retired)
     go(pg, 'applications')
     no_error(pg, 'Applications')
-    fr = open_dialog(pg, pg.locator('.a-IRR-table a', has_text='KYC'), 'application')
-    target = fr or pg
-    if fr is None:
+    row = pg.locator('.a-IRR-table a', has_text='KYC')
+    if row.count():
+        with pg.expect_navigation():
+            row.first.click()
         pg.wait_for_load_state('networkidle')
-    no_error(target, 'Application KYC')
-    code = target.locator('#P161_APPLICATION_CODE').bounding_box()
-    name = target.locator('#P161_APPLICATION_NAME').bounding_box()
-    check(code and name and abs(code['y'] - name['y']) < 5, 'code and name sit on one row')
-    pg.keyboard.press('Escape'); pg.wait_for_timeout(800)
+        no_error(pg, 'Application KYC')
+        check('KYC' in pg.inner_text('body'), 'the application page shows the application')
+    else:
+        check(False, 'the KYC row is listed')
 
     # Setup Type (163): saved through the Applications package
     go(pg, 'setup-types')
