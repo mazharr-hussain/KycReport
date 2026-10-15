@@ -32,7 +32,13 @@ scripts; data kept). A re-run changes nothing. Then set up the servers (Integrat
 its storage (Attachments > Storage) if documents should leave the database. **KYC needs its own release**: its seed
 script still writes the removed endpoints table.
 
-## Tests
-`apex/tests/r86_registration_test.sql`, `r87_servers_test.sql`, `r88_journey_test.sql` (as XXFUSION; their rows stay),
-`r87_servers_ui.py`, `r88_journey_ui.py`; `r86_test_apps.sql` (as XXCUS, once) creates two empty test applications
-(860, 861).
+## Tests (COMMON on its own - no business application installed or onboarded)
+- Test setup: `apex/tests/r86_test_apps.sql` (as XXCUS, once: empty APEX test applications 860 and 861) and
+  `apex/tests/common_test_fixture.sql` (as XXFUSION: test application R86TEST onboarded, its RFI categories, local user
+  TEST1). Test rows are kept.
+- New: `r86_registration_test.sql` (98 checks), `r87_servers_test.sql` (54), `r88_journey_test.sql` (24),
+  `r87_servers_ui.py`, `r88_journey_ui.py`.
+- Install cycle: COMMON-only fresh install 0 errors, re-run 0, upgrade from release 74 twice 0 errors; DB tests r78-r88
+  and browser tests r78-r88 pass on the fresh and the upgraded database (r83's Test Connection reports the unreachable
+  test server, as before). `r73_common_test.sql` tests KYC's own workflows and needs KYC installed: it passes on the
+  upgraded database only.

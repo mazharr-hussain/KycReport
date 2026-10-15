@@ -40,19 +40,19 @@ begin
 
     -- the application package works as the three did
     check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', null) = 'Y', 'setup types: instance-only type allowed for the workspace');
-    check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', 'KYC') = 'N', 'setup types: instance-only type refused for an application');
+    check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', 'R86TEST') = 'N', 'setup types: instance-only type refused for an application');
     check_(xxfnd_application_pkg.page_type(102) = 'LOOKUPS', 'setup types: the page knows its setup type');
     check_(xxfnd_application_pkg.default_application(null) = 'ALL', 'scope: default application is ALL');
-    check_(xxfnd_application_pkg.is_managed('KYC', 'LOOKUPS') in ('Y', 'N'), 'functions: managed switch read');
+    check_(xxfnd_application_pkg.is_managed('R86TEST', 'LOOKUPS') in ('Y', 'N'), 'functions: managed switch read');
     select count(*) into l_n from table(xxfnd_application_pkg.common_functions);
     check_(l_n > 5, 'functions: the common functions (' || l_n || ')');
 
     -- page 163: the applications of a setup type saved by the package
     xxfnd_util_pkg.set_install_mode(true);
-    xxfnd_application_pkg.save_setup_type_apps('LOOKUPS', 'B', 'N', 'KYC');
-    select count(*) into l_n from xxfnd_setup_type_apps where setup_type_code = 'LOOKUPS' and application_code = 'KYC';
+    xxfnd_application_pkg.save_setup_type_apps('LOOKUPS', 'B', 'N', 'R86TEST');
+    select count(*) into l_n from xxfnd_setup_type_apps where setup_type_code = 'LOOKUPS' and application_code = 'R86TEST';
     check_(l_n = 1, 'chosen applications saved');
-    xxfnd_application_pkg.save_setup_type_apps('LOOKUPS', 'B', 'Y', 'KYC');
+    xxfnd_application_pkg.save_setup_type_apps('LOOKUPS', 'B', 'Y', 'R86TEST');
     select count(*) into l_n from xxfnd_setup_type_apps where setup_type_code = 'LOOKUPS';
     check_(l_n = 0, 'every application: the list is emptied');
     xxfnd_util_pkg.set_install_mode(false);
