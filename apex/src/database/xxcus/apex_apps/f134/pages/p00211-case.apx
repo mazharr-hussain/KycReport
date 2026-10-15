@@ -1924,18 +1924,31 @@ page 211 (
                 ```sql
                 select * from (
                     select 'Note' as kind, n.note_text as text, p.party_name as detail, null as status, n.created_by as by_user,
-                           to_char(n.creation_date, 'DD-MON-YYYY HH24:MI') as at_time, n.creation_date as sort_date, null as open_url
+                           to_char(n.creation_date, 'DD-MON-YYYY HH24:MI') as at_time, n.creation_date as sort_date,
+                           null as open_url, null as docs_url
                       from xxcmp_case_notes n
                       left join xxcmp_parties p on p.party_id = n.related_party_id
                      where n.case_id = :P211_CASE_ID
                     union all
-                    select 'RFI ' || r.rfi_number, xxfnd_lookup_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category),
+                    -- release 89: the RFIs run in COMMON's RFI process; the link opens COMMON's task page Information
+                    -- Request (143) for the user's open step (answer or review); documents of an earlier KYC RFI
+                    -- (entity XXCMP_RFIS) open on COMMON's Attachments page (47)
+                    select 'RFI ' || r.rfi_number,
+                           xxfnd_lookup_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) || ': ' || r.description,
                            case r.continue_other_work_flag when 'N' then 'Pauses the case' end
                            || nvl2(r.due_date, ' - due ' || to_char(r.due_date, 'DD-MON-YYYY'), null)
                            || nvl2(r.responded_date, ' - answered ' || to_char(r.responded_date, 'DD-MON-YYYY'), null),
                            xxfnd_lookup_pkg.lookup_meaning('RFI_STATUS', r.rfi_status), r.created_by,
                            to_char(r.creation_date, 'DD-MON-YYYY HH24:MI'), r.creation_date,
-                           apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31')
+                           (select apex_page.get_url(p_application => 'COMMON', p_page => 143, p_items => 'P143_TASK_ID',
+                                                     p_values => to_char(t.task_id), p_clear_cache => '143')
+                              from (select xxcmp_case_pkg.rfi_task(r.rfi_id) as task_id from dual) t
+                             where t.task_id is not null),
+                           case when exists (select 1 from xxfnd_attached_documents_v a
+                                              where a.entity_name = 'XXCMP_RFIS' and a.pk1_value = to_char(r.rfi_id))
+                                then apex_page.get_url(p_application => 'COMMON', p_page => 47, p_clear_cache => '47',
+                                         p_items  => 'P47_APP_ALIAS,P47_SOURCE_PAGE,P47_SOURCE_REGION,P47_ENTITY_NAME,P47_PK1_VALUE',
+                                         p_values => 'KYC,211,notes,XXCMP_RFIS,' || r.rfi_id) end
                       from xxfnd_rfis r
                      where (r.entity_name = 'XXCMP_CASES' and r.pk1_value = :P211_CASE_ID)
                         or (r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = (select to_char(request_id) from xxcmp_cases where case_id = :P211_CASE_ID))
@@ -2071,6 +2084,22 @@ page 211 (
             type: hidden
             layout {
                 sequence: 80
+            }
+        )
+
+        column DOCS_URL (
+            type: plainText
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if DOCS_URL/}<a href="#DOCS_URL#">Documents</a>{endif/}
+                    ```
             }
         )
 
@@ -2505,18 +2534,10 @@ page 211 (
         appearance {
             buttonTemplate: @/text
             templateOptions: #DEFAULT#
+            cssClasses: kyc-open-rfi_dialog
         }
         behavior {
-            action: redirectThisApp
-            target: {
-                page: 32
-                items: {
-                    P32_ENTITY_NAME: XXCMP_CASES
-                    P32_PK1_VALUE: &P211_CASE_ID.
-                }
-                clearCache: 32
-            }
-            warnOnUnsavedChanges: doNotCheck
+            action: definedByDynamicAction
         }
         serverSideCondition {
             type: rowsReturned
@@ -2674,6 +2695,251 @@ page 211 (
         }
     )
 
+    region rfi-dialog (
+        name: Raise Request for Information
+        type: staticContent
+        layout {
+            sequence: 99
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rfi_dialog
+        }
+        comments {
+            comments: Release 89 (was page 32): KYC raises the RFI (XXCMP_CASE_PKG.RAISE_RFI); COMMON's RFI process asks, waits and has the answer reviewed (COMMON task page 143).
+        }
+    )
+
+    pageItem P211_RFI_RECIPIENT_TYPE (
+        type: radioGroup
+        label {
+            label: Send To
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:As set up (Approval Setup - by default the requester);SETUP,A colleague I choose;REQUESTING_DEPARTMENT
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: SETUP
+        }
+        help {
+            helpText: Who provides the information. As set up - the providers from COMMON > Approval Setup (process Case request for information; by default the requester of the case). A colleague - a person you choose.
+        }
+    )
+
+    pageItem P211_RFI_USER (
+        type: popupLov
+        label {
+            label: Colleague
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-employees
+        }
+        layout {
+            sequence: 20
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The colleague who answers (A colleague I choose).
+        }
+    )
+
+    pageItem P211_RFI_CATEGORY (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-category
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The kind of information requested.
+        }
+    )
+
+    pageItem P211_RFI_DESCRIPTION (
+        type: textarea
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 5
+        }
+        validation {
+            maxLength: 4000
+        }
+        help {
+            helpText: The question - what is needed and why.
+        }
+    )
+
+    pageItem P211_RFI_CONTINUE (
+        type: switch
+        label {
+            label: Continue Other Work Meanwhile
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Off pauses the case - it cannot go to approval until the information arrives.
+        }
+    )
+
+    pageItem P211_RFI_DUE_DATE (
+        type: datePicker
+        label {
+            label: Due Date
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: When the information is needed (not in the past).
+        }
+    )
+
+    button send-rfi (
+        buttonName: SEND_RFI
+        label: Send Request
+        layout {
+            sequence: 10
+            region: @rfi-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction rfi-recipient (
+        name: Colleague only when chosen
+        execution {
+            sequence: 80
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P211_RFI_RECIPIENT_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P211_RFI_RECIPIENT_TYPE
+            value: REQUESTING_DEPARTMENT
+        }
+
+        action rfi-recipient-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P211_RFI_USER
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action rfi-recipient-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P211_RFI_USER
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
     button report (
         buttonName: REPORT
         label: Compliance Report
@@ -2792,6 +3058,33 @@ page 211 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: ADD_NOTE
+        }
+    )
+
+    validation rfi-entered (
+        name: RFI entered
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case
+                         when :P211_RFI_RECIPIENT_TYPE = 'REQUESTING_DEPARTMENT' and :P211_RFI_USER is null
+                              then 'Choose the colleague who should answer.'
+                         when :P211_RFI_CATEGORY is null then 'Choose the category.'
+                         when trim(:P211_RFI_DESCRIPTION) is null then 'Enter the information requested.'
+                       end;
+                ```
+        }
+        error {
+            associatedItem: @P211_RFI_DESCRIPTION
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SEND_RFI
         }
     )
 
@@ -3259,14 +3552,8 @@ page 211 (
             alignment: left
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
-                  from xxfnd_employees
-                 where user_name is not null
-                 order by 1
-                ```
+            type: sharedComponent
+            lov: @lov-employees
         }
         layout {
             sequence: 130
@@ -3828,6 +4115,44 @@ page 211 (
         }
         serverSideCondition {
             whenButtonPressed: @add-note
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process raise-rfi (
+        name: Raise RFI
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the case package raises it; COMMON's RFI process runs it (XXFND_RFI_PKG)
+                xxcmp_case_pkg.raise_rfi(
+                    p_entity_name      => 'XXCMP_CASES',
+                    p_pk1_value        => :P211_CASE_ID,
+                    p_recipient_type   => :P211_RFI_RECIPIENT_TYPE,
+                    p_recipient_user   => :P211_RFI_USER,
+                    p_party_contact_id => null,
+                    p_rfi_category     => :P211_RFI_CATEGORY,
+                    p_description      => :P211_RFI_DESCRIPTION,
+                    p_continue_work    => :P211_RFI_CONTINUE,
+                    p_due_date         => to_date(:P211_RFI_DUE_DATE));
+                :P211_RFI_DESCRIPTION := null;
+                :P211_RFI_USER := null;
+                :P211_RFI_DUE_DATE := null;
+                ```
+        }
+        execution {
+            sequence: 31
+            point: processing
+        }
+        successMessage {
+            successMessage: Request for information sent.
+        }
+        serverSideCondition {
+            whenButtonPressed: @send-rfi
         }
         security {
             authorizationScheme: @page-submit
@@ -4517,17 +4842,8 @@ page 211 (
             icon: fa-send
         }
         behavior {
-            action: redirectThisApp
-            target: {
-                page: 34
-                items: {
-                    P34_ENTITY_NAME: XXCMP_CASES
-                    P34_PK1_VALUE: &P211_CASE_ID.
-                    P34_PARTY_ID: &P211_PARTY_ID.
-                    P34_DIRECTION: OUT
-                }
-                clearCache: 34
-            }
+            action: redirectUrl
+            targetUrl: &P211_EMAIL_OUT_URL.
             warnOnUnsavedChanges: doNotCheck
         }
         serverSideCondition {
@@ -4554,18 +4870,64 @@ page 211 (
             icon: fa-inbox
         }
         behavior {
-            action: redirectThisApp
-            target: {
-                page: 34
-                items: {
-                    P34_ENTITY_NAME: XXCMP_CASES
-                    P34_PK1_VALUE: &P211_CASE_ID.
-                    P34_PARTY_ID: &P211_PARTY_ID.
-                    P34_DIRECTION: IN
-                }
-                clearCache: 34
-            }
+            action: redirectUrl
+            targetUrl: &P211_EMAIL_IN_URL.
             warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'NOTES' and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    pageItem P211_EMAIL_OUT_URL (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @emails
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P211_EMAIL_IN_URL (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @emails
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process email-links (
+        name: E-mail links to COMMON
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the e-mails of the case are sent and recorded on COMMON's E-mail page (46; it goes back to
+                -- COMMON's Communications page 45 of the case)
+                :P211_EMAIL_OUT_URL := apex_page.get_url(p_application => 'COMMON', p_page => 46, p_clear_cache => '46',
+                    p_items  => 'P46_APPLICATION_CODE,P46_ENTITY_NAME,P46_PK1_VALUE,P46_DIRECTION',
+                    p_values => 'KYC,XXCMP_CASES,' || :P211_CASE_ID || ',OUT');
+                :P211_EMAIL_IN_URL := apex_page.get_url(p_application => 'COMMON', p_page => 46, p_clear_cache => '46',
+                    p_items  => 'P46_APPLICATION_CODE,P46_ENTITY_NAME,P46_PK1_VALUE,P46_DIRECTION',
+                    p_values => 'KYC,XXCMP_CASES,' || :P211_CASE_ID || ',IN');
+                ```
+        }
+        execution {
+            sequence: 30
+            point: beforeHeader
         }
         serverSideCondition {
             type: expression

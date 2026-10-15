@@ -764,12 +764,23 @@ create or replace package body xxcmp_case_pkg as
             p_application_code    => 'KYC',
             p_rfi_id              => l_rfi_id,
             p_token               => l_token);
-        -- an external person answers on the public page 33 with the one-time token
-        xxfnd_rfi_pkg.send_email(l_rfi_id,
-            case when l_token is not null
-                 then apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN', p_values => l_token,
-                                        p_absolute_url => true) end);
+        -- release 89: an outside person answers on COMMON's public page Provide Information (50) through the one-time
+        -- link of the RFI_RAISED e-mail (COMMON builds it from the token); a user answers on COMMON's task page 143
+        xxfnd_rfi_pkg.send_email(l_rfi_id, p_token => l_token);
     end raise_rfi;
+
+    function rfi_task(p_rfi_id in number) return number is
+        l_task number;
+    begin
+        -- the tasks belong to COMMON's application (workflow RFI); APEX gives only the user's own (or delegated) ones
+        select max(t.task_id) into l_task
+          from table(apex_human_task.get_tasks(p_context        => 'MY_TASKS',
+                                               p_application_id => xxfnd_workflow_pkg.common_application_id)) t
+         where t.task_def_static_id in ('RFI_RESPONSE', 'RFI_REVIEW')
+           and t.detail_pk = to_char(p_rfi_id)
+           and t.state_code in ('UNASSIGNED', 'ASSIGNED');
+        return l_task;
+    end rfi_task;
 
     procedure apply_screening(p_case_id in number) is
         l_pep pls_integer;

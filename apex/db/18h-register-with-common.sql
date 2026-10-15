@@ -305,14 +305,18 @@ begin
     xxfnd_attach_pkg.register_category(c_app, 'WEB_LINK', 'Web Link', p_default_datatype_code => 'WEB_PAGE');
 
     attachment_page('KYC_PARTY', 'Party', 21, 'ATTACHMENTS', 'party_attachments', 'Attachments', 'XXCMP_PARTIES', 'P21_PARTY_ID', 'N');
-    attachment_page('KYC_RFI', 'Request for Information', 31, 'ATTACHMENTS', 'rfi_attachments', 'Attachments', 'XXCMP_RFIS',
-                    'P31_RFI_ID', 'N');
     attachment_page('KYC_REQUEST_SUBMIT', 'Create Request - Submit', 203, 'ATTACHMENTS', 'request_attachments', 'Documents',
                     'XXCMP_REQUESTS', 'P203_REQUEST_ID', 'Y');
     attachment_page('KYC_REQUEST', 'KYC Request', 205, 'ATTACHMENTS', 'request_attachments', 'Documents', 'XXCMP_REQUESTS',
                     'P205_REQUEST_ID', 'N');
     attachment_page('KYC_CASE', 'Case', 211, 'PARTY_DOCUMENTS', 'party_documents', 'Party Documents', 'XXCMP_PARTIES',
                     'P211_PARTY_ID', 'N');
+    -- release 89: KYC's RFI page (31) is gone - the RFIs run in COMMON's RFI process (task page 143). The documents of an
+    -- earlier KYC RFI (entity XXCMP_RFIS, kept as history) are shown from the case's Notes and RFIs list (region notes)
+    -- on COMMON's Attachments page: view only (an existing KYC_RFI registration of page 31 is left as it is)
+    xxfnd_attach_pkg.register_attachment_page(c_app, 'KYC_CASE', 'Case', 211, 'RFI_DOCUMENTS', 'notes', 'XXCMP_RFIS', 'RFI_ID',
+                                              'RFI Documents', p_insert_allowed_flag => 'N', p_update_allowed_flag => 'N',
+                                              p_delete_allowed_flag => 'N', p_display_sequence => 20);
     attachment_page('KYC_REQUEST_PARTY', 'Create Request - Party Details', 204, 'ATTACHMENTS', 'party_attachments',
                     'Party Documents', 'XXCMP_PARTIES', 'P0_SUMMARY_PARTY_ID', 'Y');
     attachment_page('KYC_PARTY_DETAILS', 'Party - Details', 25, 'ATTACHMENTS', 'party_attachments', 'Party Documents',
@@ -339,10 +343,8 @@ begin
         p_description => 'An approver decides the case (one task per approval level).');
     xxfnd_workflow_pkg.register_task_setting(c_app, 'CONFIG_CHANGE', 3, 1, 'HEAD_OF_COMPLIANCE',
         p_description => 'Second-person approval of a configuration change.');
-    xxfnd_workflow_pkg.register_task_setting(c_app, 'RFI_RESPONSE', 7, 2, 'COMPLIANCE_MANAGER',
-        p_description => 'Requesting department answers a request for information.');
-    xxfnd_workflow_pkg.register_task_setting(c_app, 'RFI_REVIEW', 3, 1, 'COMPLIANCE_MANAGER',
-        p_description => 'Compliance reviews the answer to a request for information.');
+    -- release 89: RFI_RESPONSE and RFI_REVIEW are COMMON's task definitions (workflow RFI), shared by every application:
+    -- their deadlines are COMMON's settings (Workflow Setup), not registered by KYC (existing rows are kept)
 
     -- the KYC workflows (KYC_REQUEST, KYC_CASE) as processes of KYC with their switches (COMMON reads the APEX
     -- workflows of every registered application); on a first install KYC raises its RFIs through COMMON's RFI process
