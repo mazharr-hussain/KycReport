@@ -62,7 +62,7 @@ page 1 (
                 union all
                 select 20, 'Pending information', cnt, cnt,
                        apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
-                                         p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
+                                         p_values => xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
                        'fa-question-circle-o', 'u-warning'
                   from (select count(*) cnt from xxcmp_requests
                          where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED')
@@ -242,7 +242,7 @@ page 1 (
                    and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL')
                 union all
                 select apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31'),
-                       r.rfi_number || ' - ' || nvl(xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),
+                       r.rfi_number || ' - ' || nvl(xxfnd_lookup_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),
                        'Information request',
                        'warning',
                        to_char(r.due_date, 'DD-MON-YYYY'),

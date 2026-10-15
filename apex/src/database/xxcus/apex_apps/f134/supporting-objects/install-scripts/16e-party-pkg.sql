@@ -127,7 +127,7 @@ create or replace package body xxcmp_party_pkg as
         xxfnd_vpd_pkg.begin_trusted;
         select json_arrayagg(json_object('party_id' value party_id, 'party_number' value party_number,
                                          'party_name' value party_name,
-                                         'country' value xxfnd_util_pkg.lookup_meaning('JURISDICTION', jurisdiction))
+                                         'country' value xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', jurisdiction))
                              order by party_name returning clob)
           into l_json
           from xxcmp_parties
@@ -175,11 +175,11 @@ create or replace package body xxcmp_party_pkg as
                              || case when country_hit = 'Y' then 'Same ' || lower(field_label(p_party_type, 'JURISDICTION')) || '; ' end,
                              '; ') as reasons
                   from (select p.party_id, p.party_number, p.party_name, p.registration_number,
-                               xxfnd_util_pkg.lookup_meaning(registration_lookup(p.party_type),
+                               xxfnd_lookup_pkg.lookup_meaning(registration_lookup(p.party_type),
                                                              p.registration_type) as registration_type,
-                               xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as status,
+                               xxfnd_lookup_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as status,
                                upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) as party_id_number,
-                               xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,
+                               xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as country,
                                case when l_id is not null
                                      and upper(regexp_replace(p.registration_number, '[^[:alnum:]]', '')) = l_id
                                     then 'Y' else 'N' end as id_hit,
@@ -474,13 +474,13 @@ create or replace package body xxcmp_party_pkg as
                    'direction'             value case when r.object_party_id = p_party_id then 'Holds interest in this party'
                                                       else 'This party holds interest in' end,
                    'related_party'         value o.party_name || ' (' || o.party_number || ')',
-                   'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
+                   'relationship_type'     value xxfnd_lookup_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
                    'ownership_percentage'  value r.ownership_percentage,
                    'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
                    'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'),
                    -- release 73: beneficial owner, marked on the relationship
                    'beneficial_owner'      value case when r.beneficial_owner_flag = 'Y'
-                                                      then 'Yes - ' || xxfnd_util_pkg.lookup_meaning('UBO_BASIS', r.ubo_basis) end)
+                                                      then 'Yes - ' || xxfnd_lookup_pkg.lookup_meaning('UBO_BASIS', r.ubo_basis) end)
                    order by r.end_date nulls first, o.party_name returning clob)
           into l_json
           from xxcmp_party_relationships r
@@ -539,23 +539,23 @@ create or replace package body xxcmp_party_pkg as
                    'direction'             value replace(t.direction, '#PARENT#', pp.party_name),
                    'related_party_id'      value o.party_id,
                    'related_party'         value o.party_name || ' (' || o.party_number || ')',
-                   'party_type'            value xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', o.party_type),
+                   'party_type'            value xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', o.party_type),
                    'party_type_code'       value o.party_type,
-                   'relationship_type'     value xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
+                   'relationship_type'     value xxfnd_lookup_pkg.lookup_meaning('RELATIONSHIP_TYPE', r.relationship_type),
                    'ownership_percentage'  value r.ownership_percentage,
                    'start_date'            value to_char(r.start_date, 'DD-MON-YYYY'),
                    'end_date'              value to_char(r.end_date, 'DD-MON-YYYY'),
-                   'country'               value xxfnd_util_pkg.lookup_meaning('JURISDICTION', o.jurisdiction),
+                   'country'               value xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', o.jurisdiction),
                    'birth_date'            value to_char(o.incorporation_date, 'DD-MON-YYYY'),
                    'id_number'             value o.registration_number,
                    'id_expiry'             value (select to_char(max(d.expiry_date), 'DD-MON-YYYY')
                                                     from xxfnd_attached_documents_v d
                                                    where d.entity_name = 'XXCMP_PARTIES' and d.pk1_value = to_char(o.party_id)),
                    'screening_id'          value s.screening_id,
-                   'results'               value xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status),
+                   'results'               value xxfnd_lookup_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status),
                    'conclusion'            value s.result_notes,
                    'source'                value s.source_reference,
-                   'risk_tier'             value xxfnd_util_pkg.lookup_meaning('RISK_TIER', s.risk_tier))
+                   'risk_tier'             value xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', s.risk_tier))
                    order by t.ord returning clob)
           into l_json
           from tree t
@@ -674,7 +674,7 @@ create or replace package body xxcmp_party_pkg as
         put('P0_PARTY_ADDRESS',             l_p.address);
         put('P0_PARTY_DATA_PROVENANCE',     nvl(l_p.data_provenance, 'SELF_DECLARED'));
         put('P0_PARTY_LAST_VERIFIED_DATE',  to_char(l_p.last_verified_date, 'DD-MON-YYYY'));
-        put('P0_PARTY_STATUS',              xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status));
+        put('P0_PARTY_STATUS',              xxfnd_lookup_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status));
         put('P0_PARTY_NEXT_KYC_DATE',       to_char(l_p.next_kyc_date, 'DD-MON-YYYY'));
         put('P0_PARTY_ENABLED_FLAG',        nvl(l_p.enabled_flag, 'Y'));
         put('P0_PARTY_READ_ONLY',           case when p_read_only = 'Y' then 'Y' else 'N' end);
@@ -696,7 +696,7 @@ create or replace package body xxcmp_party_pkg as
         if p_relationship_type is null then
             return 'Choose the relationship.';
         elsif instr(c_ownership_types, ':' || p_relationship_type || ':') > 0 and p_percentage is null then
-            return 'Enter the ownership % of a ' || lower(xxfnd_util_pkg.lookup_meaning('RELATIONSHIP_TYPE', p_relationship_type)) || '.';
+            return 'Enter the ownership % of a ' || lower(xxfnd_lookup_pkg.lookup_meaning('RELATIONSHIP_TYPE', p_relationship_type)) || '.';
         elsif instr(c_ownership_types, ':' || p_relationship_type || ':') = 0 and p_percentage is not null then
             return 'Ownership % applies only to shareholders, beneficial owners and parent companies.';
         elsif p_percentage not between 0 and 100 then
@@ -761,9 +761,8 @@ create or replace package body xxcmp_party_pkg as
         -- identity and registry checks (release 74)
         update xxcmp_party_id_verifications set party_id = p_into_party_id where party_id = p_from_party_id;
         update xxcmp_party_registry_checks  set party_id = p_into_party_id where party_id = p_from_party_id;
-        -- documents
-        update xxfnd_attached_documents set pk1_value = to_char(p_into_party_id)
-         where entity_name = 'XXCMP_PARTIES' and pk1_value = to_char(p_from_party_id);
+        -- documents (release 87: COMMON moves them, with their versions)
+        xxfnd_attach_pkg.move_documents('XXCMP_PARTIES', to_char(p_from_party_id), to_char(p_into_party_id));
 
         -- the kept party's empty details are completed from the duplicate
         update xxcmp_parties
@@ -845,17 +844,17 @@ create or replace package body xxcmp_party_pkg as
                 elsif l_p.enabled_flag = 'N' then
                     fld('Party', 'Status', 'Disabled', null, 'neutral');
                 else
-                    fld('Party', 'Status', xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status), null,
+                    fld('Party', 'Status', xxfnd_lookup_pkg.lookup_meaning('PARTY_STATUS', l_p.party_status), null,
                         xxfnd_ui_pkg.status_tone('PARTY', l_p.party_status));
                 end if;
             end if;
-            fld('Identity', 'Type', xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
+            fld('Identity', 'Type', xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
             if l_p.party_type = 'ORGANIZATION' then
-                fld('Identity', 'Entity Type', xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
+                fld('Identity', 'Entity Type', xxfnd_lookup_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
             end if;
-            fld('Identity', field_label(l_p.party_type, 'JURISDICTION'), xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
+            fld('Identity', field_label(l_p.party_type, 'JURISDICTION'), xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
             fld('Identity', field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number,
-                xxfnd_util_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
+                xxfnd_lookup_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
             fld('Identity', field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
             fld('Contact', 'Email', l_p.email, null, null, case when l_p.email is not null then 'mailto:' || l_p.email end);
             fld('Contact', 'Phone', l_p.phone);

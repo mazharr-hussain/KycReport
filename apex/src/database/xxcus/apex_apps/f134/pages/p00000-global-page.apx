@@ -2162,9 +2162,9 @@ page 0 (
                        end as score_label,
                        case when r.intake_critical_flag = 'Y' then 'danger' else 'neutral' end as score_tone,
                        (select max(c.case_number) from xxcmp_cases c where c.request_id = r.request_id) as case_number,
-                       rtrim(xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
-                             || nvl2(r.business_relationship, ' · ' || xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), null)
-                             || nvl2(r.requesting_department, ' · ' || xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department), null),
+                       rtrim(xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
+                             || nvl2(r.business_relationship, ' · ' || xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), null)
+                             || nvl2(r.requesting_department, ' · ' || xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department), null),
                              ' ·') as type_line,
                        r.requester_user_name as requester,
                        xxfnd_ui_pkg.person_name(r.requester_user_name) as requester_name,
@@ -2995,12 +2995,12 @@ page 0 (
                 ```sql
                 -- release 74 (R14): identity document checks of the individual (manual)
                 select v.id_verification_id,
-                       xxfnd_util_pkg.lookup_meaning('ID_DOCUMENT_TYPE', v.document_type) as document_type,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_DOCUMENT_TYPE', v.document_type) as document_type,
                        v.document_number,
-                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', v.issuing_country) as issuing_country,
+                       xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', v.issuing_country) as issuing_country,
                        v.expiry_date,
-                       xxfnd_util_pkg.lookup_meaning('ID_VERIFICATION_METHOD', v.verification_method) as verification_method,
-                       xxfnd_util_pkg.lookup_meaning('ID_VERIFICATION_RESULT', v.verification_result) as verification_result,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_VERIFICATION_METHOD', v.verification_method) as verification_method,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_VERIFICATION_RESULT', v.verification_result) as verification_result,
                        decode(v.verification_result, 'VERIFIED', 'success', 'NOT_VERIFIED', 'danger', 'warning') as result_tone,
                        xxfnd_ui_pkg.person_name(v.verified_by) as verified_by,
                        v.verified_date,
@@ -3254,9 +3254,9 @@ page 0 (
                 select r.registry_check_id,
                        r.registry_name,
                        r.external_reference,
-                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', r.source) as source,
-                       xxfnd_util_pkg.lookup_meaning('REGISTRATION_STATUS', r.registration_status) as registration_status,
-                       xxfnd_util_pkg.lookup_meaning('REGISTRY_CHECK_RESULT', r.check_result) as check_result,
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', r.source) as source,
+                       xxfnd_lookup_pkg.lookup_meaning('REGISTRATION_STATUS', r.registration_status) as registration_status,
+                       xxfnd_lookup_pkg.lookup_meaning('REGISTRY_CHECK_RESULT', r.check_result) as check_result,
                        decode(r.check_result, 'MATCH', 'success', 'MISMATCH', 'danger', 'warning') as result_tone,
                        xxfnd_ui_pkg.person_name(r.checked_by) as checked_by,
                        r.checked_date,

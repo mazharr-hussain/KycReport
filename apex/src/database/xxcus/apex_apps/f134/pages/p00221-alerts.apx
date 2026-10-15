@@ -62,13 +62,13 @@ page 221 (
                         select a.alert_id,
                                a.case_id,
                                a.creation_date as raised,
-                               xxfnd_util_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type,
+                               xxfnd_lookup_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type,
                                r.rule_name,
                                p.party_name,
                                a.alert_message,
                                a.due_date,
                                a.alert_status as status_code,
-                               xxfnd_util_pkg.lookup_meaning('ALERT_STATUS', a.alert_status) as alert_status,
+                               xxfnd_lookup_pkg.lookup_meaning('ALERT_STATUS', a.alert_status) as alert_status,
                                a.acknowledged_by,
                                q.request_number as review_request
                           from xxcmp_alerts a

@@ -26,17 +26,17 @@ taskDefinition CONFIG_CHANGE (
             }
             clearCache: 172
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
-        comments: Maker-checker for risk scoring answers, mandatory document rules and integration purposes. Created by XXFND_CONFIG_APPROVAL_PKG.REQUEST; the maker cannot approve (initiator cannot complete, and XXFND_APPROVAL_PKG refuses it).
+        comments: Maker-checker for risk scoring answers, mandatory document rules and integration purposes. Created by XXFND_APPROVAL_PKG.REQUEST; the maker cannot approve (initiator cannot complete, and XXFND_APPROVAL_PKG refuses it).
     }
 
     action notify-owners (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create
@@ -61,7 +61,7 @@ taskDefinition CONFIG_CHANGE (
         name: Reject the change
         type: executeCode
         source {
-            plsqlCode: xxfnd_approval_pkg.reject_change(:APEX$TASK_PK, xxfnd_task_pkg.last_comment(:APEX$TASK_ID));
+            plsqlCode: xxfnd_approval_pkg.reject_change(:APEX$TASK_PK, xxfnd_workflow_pkg.last_comment(:APEX$TASK_ID));
         }
         execution {
             onEvent: complete
@@ -73,7 +73,7 @@ taskDefinition CONFIG_CHANGE (
     participant (
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.users_with_privilege('CHANGE_APPROVALS', 'MANAGE')
+            plsqlExpression: xxfnd_workflow_pkg.users_with_privilege('CHANGE_APPROVALS', 'MANAGE')
         }
     )
 
@@ -81,7 +81,7 @@ taskDefinition CONFIG_CHANGE (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
         }
     )
 

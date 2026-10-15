@@ -38,9 +38,9 @@ create or replace package body xxcmp_request_ui_pkg as
             for c in (select * from xxcmp_cases where request_id = r.request_id) loop
                 l_case := c;
             end loop;
-            fld('Details', 'Request type', xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type));
-            fld('Details', 'Business relationship', xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship));
-            fld('Details', 'Requesting department', xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department));
+            fld('Details', 'Request type', xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type));
+            fld('Details', 'Business relationship', xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship));
+            fld('Details', 'Requesting department', xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department));
             fld('Details', 'Requested by', xxfnd_ui_pkg.person_name(r.requester_user_name), null, null, r.requester_user_name);
             fld('Details', 'Submitted', to_char(r.submitted_date, 'DD-MON-YYYY HH24:MI'));
             fld('Details', 'Last action', to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI'));
@@ -60,7 +60,7 @@ create or replace package body xxcmp_request_ui_pkg as
                 fld('Assessment', 'Intake score', to_char(r.intake_score),
                     case when r.intake_critical_flag = 'Y' then 'danger' else 'neutral' end);
             end if;
-            fld('Assessment', 'Routed to', xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', r.intake_outcome));
+            fld('Assessment', 'Routed to', xxfnd_lookup_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', r.intake_outcome));
             fld('Assessment', 'Reason', case when r.intake_critical_flag = 'Y' then 'Critical answer in the questionnaire' end);
             fld('Assessment', 'KYC required', xxcmp_request_pkg.kyc_required(r.request_id));
         end loop;

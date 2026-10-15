@@ -22,7 +22,7 @@ taskDefinition CASE_INVESTIGATION (
             }
             clearCache: 211
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
         comments: The officer investigates the case (screening, documents, UBO, findings, risk classification) and submits it for approval, which completes this task. Created by the KYC_CASE workflow.
@@ -32,7 +32,7 @@ taskDefinition CASE_INVESTIGATION (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create

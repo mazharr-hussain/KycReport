@@ -702,8 +702,8 @@ begin
                                                 or updating('ASSIGNED_TO') or updating('SAR_REQUIRED_FLAG') or updating('REQUEST_ID')) then
         return;
     end if;
-    -- a user rename (XXFND_SECURITY_PKG.RENAME_USER) only moves the user name columns to the new name
-    if xxfnd_security_pkg.renaming then
+    -- a user rename (XXFND_USER_PKG.RENAME_USER) only moves the user name columns to the new name
+    if xxfnd_user_pkg.renaming then
         return;
     end if;
     -- a party merge (XXCMP_PARTY_PKG.MERGE_PARTIES) only re-points the case to the party that is kept

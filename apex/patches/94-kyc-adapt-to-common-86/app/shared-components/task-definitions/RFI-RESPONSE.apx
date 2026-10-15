@@ -1,0 +1,58 @@
+taskDefinition RFI_RESPONSE (
+    name: Provide Requested Information
+    type: action
+    task {
+        subject: Information requested: &RFI_NUMBER.
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row (a delegate may not see the RFI itself)
+            select nvl(r.rfi_number, 'RFI ' || :APEX$TASK_PK) as rfi_number, r.description, r.due_date
+              from dual
+              left join xxfnd_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 31
+            items: {
+                P31_TASK_ID: &TASK_ID.
+            }
+            clearCache: 31
+        }
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
+    }
+    comments {
+        comments: The requesting department answers a request for information. Created by XXFND_RFI_PKG.CREATE_RFI; completed by XXFND_RFI_PKG.RESPOND.
+    }
+
+    action notify-owners (
+        name: Notify potential owners
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxfnd_rfi_pkg.recipient(to_number(:APEX$TASK_PK))
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
+        }
+    )
+
+)

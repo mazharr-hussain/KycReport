@@ -368,8 +368,8 @@ page 211 (
                            || ' · SLA ' || to_char(c.sla_due_date, 'DD-MON-YYYY') end as sla_label,
                        case when c.sla_due_date < trunc(sysdate) then 'danger'
                             when c.sla_due_date <= trunc(sysdate) + 2 then 'warning' else 'success' end as sla_tone,
-                       ltrim(xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction)
-                             || nvl2(c.business_relationship, ' · ' || xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship), null)
+                       ltrim(xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction)
+                             || nvl2(c.business_relationship, ' · ' || xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship), null)
                              || nvl2(r.request_number, ' · request ' || r.request_number, null), ' ·') as info_line,
                        c.assigned_to,
                        nvl(xxfnd_ui_pkg.person_name(c.assigned_to), 'nobody') as assigned_name,
@@ -887,7 +887,7 @@ page 211 (
             sqlQuery:
                 ```sql
                 select p.party_number || ' - ' || p.party_name
-                       || nvl2(p.jurisdiction, ' (' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) || ')', null)
+                       || nvl2(p.jurisdiction, ' (' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) || ')', null)
                   from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id where c.case_id = :P211_CASE_ID
                 ```
             used: always
@@ -925,7 +925,7 @@ page 211 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select xxfnd_util_pkg.lookup_meaning('CASE_STATUS', case_status)
+                select xxfnd_lookup_pkg.lookup_meaning('CASE_STATUS', case_status)
                        || case when case_status = 'PENDING_APPROVAL' then ' (level ' || current_level || ')' end
                        || nvl2(closed_date, ' - closed ' || to_char(closed_date, 'DD-Mon-YYYY'), null)
                   from xxcmp_cases where case_id = :P211_CASE_ID
@@ -1005,7 +1005,7 @@ page 211 (
             sqlQuery:
                 ```sql
                 select r.request_number || ' - '
-                       || xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
+                       || xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
                        || ' - intake score ' || nvl(to_char(r.intake_score), '-') || ' (reference only)'
                   from xxcmp_cases c join xxcmp_requests r on r.request_id = c.request_id where c.case_id = :P211_CASE_ID
                 ```
@@ -1179,7 +1179,7 @@ page 211 (
             sqlQuery:
                 ```sql
                 -- release 75 (U-07): Yes / No, not the code
-                select xxfnd_util_pkg.lookup_meaning('YES_NO', nvl(pep_flag, 'N')) from xxcmp_cases where case_id = :P211_CASE_ID
+                select xxfnd_lookup_pkg.lookup_meaning('YES_NO', nvl(pep_flag, 'N')) from xxcmp_cases where case_id = :P211_CASE_ID
                 ```
         }
         serverSideCondition {
@@ -1573,14 +1573,14 @@ page 211 (
             sqlQuery:
                 ```sql
                 select s.screening_id,
-                       xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as screening_type,
+                       xxfnd_lookup_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as screening_type,
                        p.party_name,
-                       xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as match_status,
-                       xxfnd_util_pkg.lookup_meaning('RISK_TIER', s.risk_tier) as risk_tier,
+                       xxfnd_lookup_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as match_status,
+                       xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', s.risk_tier) as risk_tier,
                        rtrim(case when s.pep_flag = 'Y' then 'PEP, ' end || case when s.sanctions_flag = 'Y' then 'Sanctions, ' end
                              || case when s.adverse_media_flag = 'Y' then 'Adverse media, ' end, ', ') as flags,
                        -- release 74 (R14): by hand or from the provider; a provider's result shows whether a person reviewed it
-                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', s.capture_method)
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', s.capture_method)
                        || case when s.capture_method = 'API' then
                               case when s.reviewed_by is null then ' · not reviewed'
                                    else ' · reviewed by ' || xxfnd_ui_pkg.person_name(s.reviewed_by) end
@@ -1746,7 +1746,7 @@ page 211 (
                        a.title, a.category_name, a.document_date, a.expiry_date,
                        case when a.expired_flag = 'Y' then 'Expired' end as expired,
                        case a.entity_name when 'XXCMP_REQUESTS' then 'Request' when 'XXCMP_CASES' then 'Case' else 'Party' end as attached_to,
-                       nvl(xxfnd_util_pkg.lookup_meaning('DOC_VERIFICATION_STATUS', v.verification_status), 'Not verified') as verification,
+                       nvl(xxfnd_lookup_pkg.lookup_meaning('DOC_VERIFICATION_STATUS', v.verification_status), 'Not verified') as verification,
                        v.notes,
                        case when a.datatype_code = 'FILE' then
                            apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
@@ -1929,11 +1929,11 @@ page 211 (
                       left join xxcmp_parties p on p.party_id = n.related_party_id
                      where n.case_id = :P211_CASE_ID
                     union all
-                    select 'RFI ' || r.rfi_number, xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category),
+                    select 'RFI ' || r.rfi_number, xxfnd_lookup_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category),
                            case r.continue_other_work_flag when 'N' then 'Pauses the case' end
                            || nvl2(r.due_date, ' - due ' || to_char(r.due_date, 'DD-MON-YYYY'), null)
                            || nvl2(r.responded_date, ' - answered ' || to_char(r.responded_date, 'DD-MON-YYYY'), null),
-                           xxfnd_util_pkg.lookup_meaning('RFI_STATUS', r.rfi_status), r.created_by,
+                           xxfnd_lookup_pkg.lookup_meaning('RFI_STATUS', r.rfi_status), r.created_by,
                            to_char(r.creation_date, 'DD-MON-YYYY HH24:MI'), r.creation_date,
                            apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31')
                       from xxfnd_rfis r
@@ -2836,7 +2836,7 @@ page 211 (
                         :P211_SECTION := 'REVIEW';
                     end if;
                     :P211_SECTION := nvl(:P211_SECTION, 'SUMMARY');
-                    :P211_SECTION_LABEL := xxfnd_util_pkg.lookup_meaning('CASE_SECTION', :P211_SECTION);
+                    :P211_SECTION_LABEL := xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', :P211_SECTION);
                     :P211_PROGRESS := xxcmp_case_pkg.section_progress(:P211_CASE_ID);
                     :P211_NEXT_SECTION := :P211_SECTION;
                     for i in 1 .. l_list.count - 1 loop
@@ -3004,8 +3004,8 @@ page 211 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select xxfnd_util_pkg.lookup_meaning('RISK_TIER', risk_tier)
-                       || ' - ' || xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', due_diligence_type) || case when pep_flag = 'Y' then ' - PEP' end
+                select xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', risk_tier)
+                       || ' - ' || xxfnd_lookup_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', due_diligence_type) || case when pep_flag = 'Y' then ' - PEP' end
                   from xxcmp_cases where case_id = :P211_CASE_ID
                 ```
             used: always
@@ -3620,7 +3620,7 @@ page 211 (
                 :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
                 and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
                      or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
-                and xxfnd_task_pkg.can_request_info(:P211_TASK_ID) = 'Y'
+                and xxfnd_workflow_pkg.can_request_info(:P211_TASK_ID) = 'Y'
                 ```
         }
     )
@@ -3844,16 +3844,16 @@ page 211 (
                 ```sql
                 -- release 74 (R19): guided source of funds / wealth - each source with the evidence expected and seen
                 select f.case_funds_id,
-                       xxfnd_util_pkg.lookup_meaning('FUNDS_TYPE', f.funds_type) as funds_type,
-                       xxfnd_util_pkg.lookup_meaning('FUNDS_CATEGORY', f.category) as category,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_TYPE', f.funds_type) as funds_type,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_CATEGORY', f.category) as category,
                        ltrim(to_char(f.amount, 'FM999G999G999G990D00') || ' ' || f.currency_code) as amount,
                        xxcmp_case_pkg.expected_evidence_text(f.category) as expected,
-                       xxfnd_util_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', f.evidence_type) as evidence,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', f.evidence_type) as evidence,
                        ltrim(f.bank_name || nvl2(f.account_reference, ' · ' || f.account_reference, null)
                              || nvl2(f.period_from, ' · ' || to_char(f.period_from, 'DD-MON-YYYY') || ' - ' || to_char(f.period_to, 'DD-MON-YYYY'), null), ' ·') as bank_data,
                        case when f.verified_flag = 'Y' then 'Verified' when f.evidence_type is null then 'Evidence missing' else 'To verify' end as state,
                        case when f.verified_flag = 'Y' then 'success' when f.evidence_type is null then 'danger' else 'warning' end as state_tone,
-                       xxfnd_util_pkg.lookup_meaning('DATA_SOURCE', f.source) as source,
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', f.source) as source,
                        f.creation_date,
                        apex_page.get_url(p_page => 218, p_items => 'P218_CASE_FUNDS_ID,P218_CASE_ID,P218_PARTY_ID',
                                          p_values => to_char(f.case_funds_id) || ',' || f.case_id || ',' || f.party_id, p_clear_cache => '218') as open_url
@@ -4098,8 +4098,8 @@ page 211 (
                 ```sql
                 -- release 74 (R14): FIU / goAML reports of the case (filed by hand now)
                 select r.fiu_report_id,
-                       xxfnd_util_pkg.lookup_meaning('FIU_REPORT_TYPE', r.report_type) as report_type,
-                       xxfnd_util_pkg.lookup_meaning('FIU_REPORT_STATUS', r.report_status) as report_status,
+                       xxfnd_lookup_pkg.lookup_meaning('FIU_REPORT_TYPE', r.report_type) as report_type,
+                       xxfnd_lookup_pkg.lookup_meaning('FIU_REPORT_STATUS', r.report_status) as report_status,
                        decode(r.report_status, 'FILED', 'success', 'APPROVED', 'info', 'CANCELLED', 'neutral', 'warning') as status_tone,
                        xxfnd_ui_pkg.person_name(r.prepared_by) as prepared_by,
                        xxfnd_ui_pkg.person_name(r.approved_by) as approved_by,
@@ -4338,7 +4338,7 @@ page 211 (
                             else c.from_address end as counterpart,
                        c.subject,
                        dbms_lob.substr(c.body, 600, 1) as body_text,
-                       xxfnd_util_pkg.lookup_meaning('COMMUNICATION_STATUS', c.status) as status,
+                       xxfnd_lookup_pkg.lookup_meaning('COMMUNICATION_STATUS', c.status) as status,
                        case c.status when 'SENT' then 'success' when 'RECEIVED' then 'info' when 'FAILED' then 'danger' else 'warning' end as status_tone,
                        to_char(c.communication_date, 'DD-MON-YYYY HH24:MI') as sent_on,
                        c.communication_date,
@@ -4749,9 +4749,9 @@ page 211 (
                 begin
                     select max(risk_tier) into l_case from xxcmp_cases where case_id = :P211_CASE_ID;
                     :P211_RISK_SCORE_TEXT := xxcmp_risk_pkg.score(:P211_CASE_ID) || ' · suggested tier '
-                        || nvl(xxfnd_util_pkg.lookup_meaning('RISK_TIER', l_tier), '-')
+                        || nvl(xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', l_tier), '-')
                         || case when l_case is not null and l_case <> nvl(l_tier, '#')
-                                then ' · classified ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', l_case) end;
+                                then ' · classified ' || xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', l_case) end;
                 end;
                 ```
         }

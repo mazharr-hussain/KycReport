@@ -1506,9 +1506,9 @@ page 206 (
             plsqlCode:
                 ```plsql
                 -- release 74: an approver asked the requester for information: the requester answers here (Submit Information)
-                :P206_INFO_TASK_ID := nvl(xxfnd_task_pkg.info_task('DOC_CHECKLIST_REVIEW', :P206_REQUEST_ID),
+                :P206_INFO_TASK_ID := nvl(xxfnd_workflow_pkg.info_task('DOC_CHECKLIST_REVIEW', :P206_REQUEST_ID),
                                           xxcmp_case_pkg.info_task(:P206_REQUEST_ID));
-                :P206_INFO_QUESTION := xxfnd_task_pkg.last_comment(:P206_INFO_TASK_ID);
+                :P206_INFO_QUESTION := xxfnd_workflow_pkg.last_comment(:P206_INFO_TASK_ID);
                 ```
         }
         execution {

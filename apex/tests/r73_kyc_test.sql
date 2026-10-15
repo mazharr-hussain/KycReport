@@ -26,7 +26,7 @@ begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';
     apex_session.create_session(l_app, 1, 'REQ1');
     switch('N');
-    ok('KYC_REQUEST workflow switched off', xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST', 'KYC') = 'N');
+    ok('KYC_REQUEST workflow switched off', xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST', 'KYC') = 'N');
     xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', 'Auto Org ' || l_tag, 'AE', 'AU-' || l_tag, 'LLC',
                                    date '2015-01-01', 'auto@example.com', null, null, null, 'FINANCE', 'Auto approval test',
                                    'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');

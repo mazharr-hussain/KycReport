@@ -262,7 +262,7 @@ workflow KYC_REQUEST (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -591,7 +591,7 @@ workflow KYC_REQUEST (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -854,7 +854,7 @@ workflow KYC_REQUEST (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -1153,7 +1153,7 @@ workflow KYC_REQUEST (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 

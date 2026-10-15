@@ -362,7 +362,7 @@ workflow KYC_CASE (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -443,7 +443,7 @@ workflow KYC_CASE (
             type: switch
             condition {
                 conditionType: functionBody
-                plsqlFunctionBody: return xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y';
+                plsqlFunctionBody: return xxfnd_workflow_pkg.workflow_enabled('KYC_CASE') = 'Y';
             }
             layout {
                 sequence: 35
@@ -761,7 +761,7 @@ workflow KYC_CASE (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -841,7 +841,7 @@ workflow KYC_CASE (
             type: switch
             condition {
                 conditionType: functionBody
-                plsqlFunctionBody: return xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y';
+                plsqlFunctionBody: return xxfnd_workflow_pkg.workflow_enabled('KYC_CASE') = 'Y';
             }
             layout {
                 sequence: 35
@@ -1085,7 +1085,7 @@ workflow KYC_CASE (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 
@@ -1409,7 +1409,7 @@ workflow KYC_CASE (
             type: admin
             value {
                 type: expression
-                plsqlExpression: xxfnd_task_pkg.business_admins
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
             }
         )
 

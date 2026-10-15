@@ -367,7 +367,7 @@ page 34 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
-                return xxfnd_communication_pkg.email_error(:P34_DIRECTION, case :P34_DIRECTION when 'OUT' then :P34_TO else :P34_FROM end,
+                return xxfnd_notify_pkg.email_error(:P34_DIRECTION, case :P34_DIRECTION when 'OUT' then :P34_TO else :P34_FROM end,
                                                            :P34_SUBJECT, :P34_BODY);
                 ```
         }
@@ -515,7 +515,7 @@ page 34 (
                 declare
                     l_id number;
                 begin
-                    l_id := xxfnd_communication_pkg.send_email(
+                    l_id := xxfnd_notify_pkg.send_email(
                                 p_application_code => 'KYC',
                                 p_entity_name      => :P34_ENTITY_NAME,
                                 p_pk1_value        => :P34_PK1_VALUE,
@@ -551,7 +551,7 @@ page 34 (
                 declare
                     l_id number;
                 begin
-                    l_id := xxfnd_communication_pkg.record_received(
+                    l_id := xxfnd_notify_pkg.record_received(
                                 p_application_code => 'KYC',
                                 p_entity_name      => :P34_ENTITY_NAME,
                                 p_pk1_value        => :P34_PK1_VALUE,

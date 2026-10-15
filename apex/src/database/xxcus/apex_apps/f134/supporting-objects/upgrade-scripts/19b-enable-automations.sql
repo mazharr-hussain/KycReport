@@ -1,7 +1,8 @@
 --------------------------------------------------------------------------------
 -- 19b Enable the application's automations  (release R14)
--- An application import leaves every automation disabled, whatever the export says; without this the task
--- reminders and escalations, the Fusion HCM sync and the KYC monitoring would never run.
+-- An application import leaves every automation disabled, whatever the export says; without this the KYC monitoring
+-- would never run. (Release 87: the task deadlines and the Fusion HCM sync are COMMON's automations, for every
+-- application; KYC has no copy of them any more.)
 -- Runs last, on install and on every upgrade.
 --------------------------------------------------------------------------------
 declare

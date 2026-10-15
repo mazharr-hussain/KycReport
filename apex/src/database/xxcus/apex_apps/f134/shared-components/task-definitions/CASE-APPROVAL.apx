@@ -23,7 +23,7 @@ taskDefinition CASE_APPROVAL (
             }
             clearCache: 211
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
         comments: One approval level of a case (approval matrix: risk tier, Enhanced KYC). Participants hold the level role and did not investigate or already decide the case, and have no segregation-of-duties conflict. Created by the KYC_CASE workflow.
@@ -33,7 +33,7 @@ taskDefinition CASE_APPROVAL (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create
@@ -45,7 +45,7 @@ taskDefinition CASE_APPROVAL (
         name: Record approval
         type: executeCode
         source {
-            plsqlCode: xxcmp_case_pkg.record_decision(to_number(:APEX$TASK_PK), 'APPROVED', xxfnd_task_pkg.last_comment(:APEX$TASK_ID), :APEX$TASK_ID);
+            plsqlCode: xxcmp_case_pkg.record_decision(to_number(:APEX$TASK_PK), 'APPROVED', xxfnd_workflow_pkg.last_comment(:APEX$TASK_ID), :APEX$TASK_ID);
         }
         execution {
             onEvent: complete
@@ -58,7 +58,7 @@ taskDefinition CASE_APPROVAL (
         name: Record rejection
         type: executeCode
         source {
-            plsqlCode: xxcmp_case_pkg.record_decision(to_number(:APEX$TASK_PK), 'REJECTED', xxfnd_task_pkg.last_comment(:APEX$TASK_ID), :APEX$TASK_ID);
+            plsqlCode: xxcmp_case_pkg.record_decision(to_number(:APEX$TASK_PK), 'REJECTED', xxfnd_workflow_pkg.last_comment(:APEX$TASK_ID), :APEX$TASK_ID);
         }
         execution {
             onEvent: complete
@@ -102,7 +102,7 @@ taskDefinition CASE_APPROVAL (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
         }
     )
 

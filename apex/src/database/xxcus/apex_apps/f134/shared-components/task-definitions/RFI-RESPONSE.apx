@@ -22,7 +22,7 @@ taskDefinition RFI_RESPONSE (
             }
             clearCache: 31
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
         comments: The requesting department answers a request for information. Created by XXFND_RFI_PKG.CREATE_RFI; completed by XXFND_RFI_PKG.RESPOND.
@@ -32,7 +32,7 @@ taskDefinition RFI_RESPONSE (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create
@@ -51,7 +51,7 @@ taskDefinition RFI_RESPONSE (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
         }
     )
 

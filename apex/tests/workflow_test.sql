@@ -132,8 +132,8 @@ begin
                              'Deadline test.', 'Y', trunc(sysdate) + 5,
                              p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi2, p_token => l_token);
     select response_task_id into l_task from xxfnd_rfis where rfi_id = l_rfi2;
-    xxfnd_task_pkg.process_deadlines;
-    xxfnd_task_pkg.process_deadlines;   -- second run must not send again
+    xxfnd_workflow_pkg.process_deadlines;
+    xxfnd_workflow_pkg.process_deadlines;   -- second run must not send again
     select count(*) into l_cnt from xxfnd_task_alerts where task_id = l_task and alert_type = 'REMINDER';
     ok('reminder recorded once for the new task', l_cnt = 1);
     select count(*) into l_cnt from apex_mail_queue where mail_subj like 'Reminder:%';

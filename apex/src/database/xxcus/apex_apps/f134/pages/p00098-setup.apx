@@ -35,7 +35,7 @@ page 98 (
                     l_code xxfnd_applications.application_code%type;
                     l_page xxfnd_features.home_page_id%type;
                 begin
-                    if xxfnd_admin_scope_pkg.delegated_url(:P98_FEATURE) is null then
+                    if xxfnd_application_pkg.delegated_url(:P98_FEATURE) is null then
                         return '<p>This setup is not managed in this application.</p>';
                     end if;
                     select max(application_code) into l_code from xxfnd_applications

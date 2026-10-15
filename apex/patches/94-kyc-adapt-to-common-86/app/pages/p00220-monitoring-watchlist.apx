@@ -1,0 +1,419 @@
+page 220 (
+    name: Monitoring Watchlist
+    alias: MONITORING-WATCHLIST
+    title: Monitoring Watchlist
+    pageGroup: @monitoring
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every approved party with its latest approved case: when the next review is due, whether a review is running, and open alerts. Reviews start automatically ahead of the due date (KYC parameter REVIEW_LEAD_DAYS); Reassess starts an early review now.
+            ```
+    }
+
+    region breadcrumb (
+        name: Monitoring Watchlist
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Monitoring Watchlist
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '211') as open_url,
+                       case when q.review_request_id is not null then
+                            apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.review_request_id), p_clear_cache => '205')
+                       end as review_url,
+                       case when q.review_request_id is null and xxfnd_privilege_pkg.has_privilege_yn('MONITORING', 'MANAGE') = 'Y' then
+                            apex_page.get_url(p_page => 222, p_items => 'P222_CASE_ID', p_values => to_char(q.case_id), p_clear_cache => '222')
+                       end as reassess_url,
+                       case when q.review_request_id is null and xxfnd_privilege_pkg.has_privilege_yn('MONITORING', 'MANAGE') = 'Y' then
+                            'Reassess'
+                       end as action
+                  from (
+                        select w.case_id,
+                               w.party_id,
+                               w.party_number,
+                               w.party_name,
+                               xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', w.party_type) as party_type,
+                               w.case_number,
+                               xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', w.risk_tier) as risk_tier,
+                               case when w.pep_flag = 'Y' then 'PEP' end as pep,
+                               case when w.enhanced_kyc_flag = 'Y' then 'Enhanced' end as kyc_level,
+                               w.approved_date,
+                               w.next_review_date,
+                               w.days_to_review,
+                               xxfnd_lookup_pkg.lookup_meaning('REVIEW_STATUS', w.review_status) as review_status,
+                               w.review_request_id,
+                               w.review_request_number,
+                               w.open_alerts
+                          from xxcmp_watchlist_v w
+                       ) q
+                 order by q.days_to_review
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column CASE_ID (
+            type: hidden
+            heading {
+                heading: Case Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column PARTY_ID (
+            type: hidden
+            heading {
+                heading: Party Id
+            }
+            layout {
+                sequence: 15
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#PARTY_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_NUMBER (
+            type: plainText
+            heading {
+                heading: Party Number
+            }
+            layout {
+                sequence: 25
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARTY_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CASE_NUMBER (
+            type: plainText
+            heading {
+                heading: Approved Case
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PEP (
+            type: plainText
+            heading {
+                heading: PEP
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column KYC_LEVEL (
+            type: plainText
+            heading {
+                heading: KYC Level
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPROVED_DATE (
+            type: plainText
+            heading {
+                heading: Approved
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column NEXT_REVIEW_DATE (
+            type: plainText
+            heading {
+                heading: Next Review
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column DAYS_TO_REVIEW (
+            type: plainText
+            heading {
+                heading: Days to Review
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column REVIEW_STATUS (
+            type: plainText
+            heading {
+                heading: Review Status
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REVIEW_REQUEST_NUMBER (
+            type: plainText
+            heading {
+                heading: Review Request
+            }
+            layout {
+                sequence: 120
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#REVIEW_URL#">#REVIEW_REQUEST_NUMBER#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_ALERTS (
+            type: plainText
+            heading {
+                heading: Open Alerts
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 140
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#REASSESS_URL#">#ACTION#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REVIEW_REQUEST_ID (
+            type: hidden
+            heading {
+                heading: Review Request Id
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REVIEW_URL (
+            type: hidden
+            heading {
+                heading: Review Url
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REASSESS_URL (
+            type: hidden
+            heading {
+                heading: Reassess Url
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

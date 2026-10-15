@@ -24,7 +24,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
             }
             clearCache: 206
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
         comments: Compliance checks that the documents of a KYC request are complete before investigation (Module 1). Approve approves the request and its party and opens the case; Reject rejects the request; Request Information asks the requester (the request is Information Needed until they answer). Created by the KYC_REQUEST workflow.
@@ -34,7 +34,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create
@@ -77,7 +77,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
         }
     )
 

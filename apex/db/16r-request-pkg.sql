@@ -267,7 +267,7 @@ create or replace package body xxcmp_request_pkg as
             elsif l_allowed is not null and l_dept is not null
                   and l_dept not member of apex_string.split(l_allowed, ',') then
                 xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED',
-                    apex_t_varchar2(xxfnd_util_pkg.lookup_meaning('REQUESTING_DEPARTMENT', l_dept)));
+                    apex_t_varchar2(xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', l_dept)));
             end if;
         end;
 
@@ -590,7 +590,7 @@ create or replace package body xxcmp_request_pkg as
                      and rfi_status = 'WAITING_FOR_INFORMATION') loop
             xxfnd_rfi_pkg.resolve(f.rfi_id, 'RESOLVED', 'Answered by submitting the request again.');
         end loop;
-        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_REQUEST') = 'Y' then
+        if xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST') = 'Y' then
             -- release 76 (A-11): the Approval Setup rule - no rule or a step nobody can approve stops the submit with its
             -- message; a rule without steps approves the request at once, like the switched-off approval below
             xxcmp_approval_pkg.start_path(p_request_id);
@@ -651,7 +651,7 @@ create or replace package body xxcmp_request_pkg as
 
     function can_request_info(p_task_id in number) return varchar2 is
     begin
-        return xxfnd_task_pkg.can_request_info(p_task_id);
+        return xxfnd_workflow_pkg.can_request_info(p_task_id);
     end can_request_info;
 
     function withdraw_error(p_request_id in number) return varchar2 is
@@ -946,7 +946,7 @@ create or replace package body xxcmp_request_pkg as
 
     function stage(p_request_id in number) return varchar2 is
     begin
-        return xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', get_request(p_request_id).request_status);
+        return xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', get_request(p_request_id).request_status);
     exception
         when no_data_found then
             return null;

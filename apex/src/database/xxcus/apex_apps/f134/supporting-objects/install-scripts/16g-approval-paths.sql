@@ -112,7 +112,7 @@ create or replace package body xxcmp_approval_pkg as
     begin
         return coalesce(xxfnd_approval_rule_pkg.current_approvers(c_type, to_char(p_request_id)),
                         -- a request whose approval started before the Approval Setup: Compliance, as before
-                        xxfnd_task_pkg.users_with_privilege('CASES', 'CREATE'));
+                        xxfnd_workflow_pkg.users_with_privilege('CASES', 'CREATE'));
     end step_approvers;
 
     function step_name(p_request_id in number) return varchar2 is
@@ -162,7 +162,7 @@ create or replace package body xxcmp_approval_pkg as
                     from dual where l_req.submitted_date is not null
                   union all
                   -- release 73: approval workflow switched off for the process
-                  select null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
+                  select null, 'Approval', null, xxfnd_workflow_pkg.c_auto_approved, 'System',
                          cast(l_req.auto_approved_date as timestamp), null
                     from dual where l_req.auto_approved_date is not null
                   union all

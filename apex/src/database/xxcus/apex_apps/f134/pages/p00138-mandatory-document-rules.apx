@@ -49,10 +49,10 @@ page 138 (
                   from (
 
                             select r.attachment_rule_id, r.entity_name, c.category_name,
-                                   nvl(xxfnd_util_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'Any') as jurisdiction,
-                                   nvl(xxfnd_util_pkg.lookup_meaning('ENTITY_TYPE', r.entity_type), 'Any') as entity_type,
+                                   nvl(xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', r.jurisdiction), 'Any') as jurisdiction,
+                                   nvl(xxfnd_lookup_pkg.lookup_meaning('ENTITY_TYPE', r.entity_type), 'Any') as entity_type,
                                    r.mandatory_flag, r.priority, r.enabled_flag,
-                                   xxfnd_util_pkg.lookup_meaning('APPROVAL_STATUS', r.approval_status) as approval_status,
+                                   xxfnd_lookup_pkg.lookup_meaning('APPROVAL_STATUS', r.approval_status) as approval_status,
                                    r.approved_by
                               from xxcmp_attachment_rules r
                               join xxfnd_document_categories_vl c on c.category_code = r.category_code

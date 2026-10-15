@@ -258,7 +258,7 @@ create or replace package body xxcmp_monitor_pkg as
                     l_tokens.put('ALERT_NAME', apex_escape.html(p_rule.rule_name));
                     l_tokens.put('ALERT_MESSAGE', apex_escape.html(p_message));
                     l_tokens.put('LINK', l_url);
-                    xxfnd_notify_pkg.send_to_users('KYC_ALERT', xxfnd_task_pkg.users_in_role(p_rule.recipient_role_code),
+                    xxfnd_notify_pkg.send_to_users('KYC_ALERT', xxfnd_workflow_pkg.users_in_role(p_rule.recipient_role_code),
                                                    l_tokens.to_clob);
                 exception
                     when others then
@@ -333,8 +333,8 @@ create or replace package body xxcmp_monitor_pkg as
                 elsif r.alert_type = 'ADVERSE_SCREENING' then
                     -- a screening recorded after the party was approved that is not clean
                     for s in (select w.party_id, w.case_id, w.party_name, s.screening_id, s.screened_date,
-                                     xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as check_type,
-                                     xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as result
+                                     xxfnd_lookup_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as check_type,
+                                     xxfnd_lookup_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as result
                                 from xxcmp_watchlist_v w
                                 join xxcmp_screenings s on s.party_id = w.party_id
                                where s.creation_date > w.approved_date

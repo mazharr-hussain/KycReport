@@ -22,7 +22,7 @@ taskDefinition COUNTERPARTY_MATCH (
             }
             clearCache: 206
         }
-        vacationRuleProcedureName: xxfnd_task_pkg.vacation_rule
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
         comments: A new counterparty resembles existing parties. Compliance decides on the request page whether it is one of them (merge) or a new party. Created by the KYC_REQUEST workflow before the document checklist; completed by XXCMP_REQUEST_PKG.RESOLVE_MATCH.
@@ -32,7 +32,7 @@ taskDefinition COUNTERPARTY_MATCH (
         name: Notify potential owners
         type: executeCode
         source {
-            plsqlCode: xxfnd_task_pkg.notify_created(:APEX$TASK_ID);
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
         }
         execution {
             onEvent: create
@@ -43,7 +43,7 @@ taskDefinition COUNTERPARTY_MATCH (
     participant (
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.users_with_privilege('PARTIES', 'MANAGE')
+            plsqlExpression: xxfnd_workflow_pkg.users_with_privilege('PARTIES', 'MANAGE')
         }
     )
 
@@ -51,7 +51,7 @@ taskDefinition COUNTERPARTY_MATCH (
         type: businessAdministrator
         value {
             type: expression
-            plsqlExpression: xxfnd_task_pkg.business_admins
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
         }
     )
 

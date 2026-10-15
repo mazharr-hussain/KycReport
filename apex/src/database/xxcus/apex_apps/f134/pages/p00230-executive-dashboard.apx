@@ -205,7 +205,7 @@ page 230 (
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    select xxfnd_util_pkg.lookup_meaning('CASE_STATUS', case_status) as status, count(*) as cases
+                    select xxfnd_lookup_pkg.lookup_meaning('CASE_STATUS', case_status) as status, count(*) as cases
                       from xxcmp_cases group by case_status order by count(*) desc
                     ```
             }
@@ -281,7 +281,7 @@ page 230 (
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    select nvl(xxfnd_util_pkg.lookup_meaning('RISK_TIER', risk_tier), 'Not rated') as risk, count(*) as parties
+                    select nvl(xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', risk_tier), 'Not rated') as risk, count(*) as parties
                       from xxcmp_watchlist_v group by risk_tier order by count(*) desc
                     ```
             }
@@ -411,7 +411,7 @@ page 230 (
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    select nvl(xxfnd_util_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome), 'Not evaluated') as outcome, count(*) as requests
+                    select nvl(xxfnd_lookup_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', intake_outcome), 'Not evaluated') as outcome, count(*) as requests
                       from xxcmp_requests where request_status <> 'DRAFT'
                      group by intake_outcome order by count(*) desc
                     ```
@@ -536,7 +536,7 @@ page 230 (
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    select xxfnd_util_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type, count(*) as alerts
+                    select xxfnd_lookup_pkg.lookup_meaning('ALERT_TYPE', r.alert_type) as alert_type, count(*) as alerts
                       from xxcmp_alerts a join xxcmp_alert_rules r on r.alert_rule_id = a.alert_rule_id
                      where a.alert_status = 'OPEN'
                      group by r.alert_type order by count(*) desc

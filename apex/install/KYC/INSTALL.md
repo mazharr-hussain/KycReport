@@ -70,3 +70,18 @@ Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops w
 
 ## Release 77 (KYC)
 Release 77 (KYC only): removes the unchanged seeded retention policies of the KYC tables; no retention policy is seeded any more. Needs COMMON 76 or later; independent of COMMON 77.
+
+## Release 87 (KYC)
+Release 87 (KYC only) adapts KYC to COMMON 86. COMMON is not changed. Order:
+1. COMMON 86 is installed and its install has finished.
+2. Import KYC 87 (`KYC-Compliance-Platform-APEXlang_87.zip`). If the import runs the supporting objects before step 3,
+   the install stops with **ORA-20905 ACTION NEEDED** and changes nothing.
+3. Register KYC in COMMON once, connected as **XXFUSION**: `apex/db/admin/onboard-application.sql` with the KYC APEX
+   application ID and the code **KYC** (an existing registration is kept; re-running changes nothing).
+4. **App Builder → KYC → Utilities → Supporting Objects → Install Supporting Objects** (or Upgrade).
+
+KYC now registers its own setup in COMMON (roles, features, lookups, flexfields, document categories, attachment pages,
+data rules, task deadlines) through COMMON's registration routines; it no longer writes COMMON's tables. The task
+deadlines and the Fusion HCM sync are COMMON's automations for every application (KYC's copies are removed). Documents
+stay in the database until COMMON's administrator sets up a server and KYC's storage (COMMON > Attachments > Storage).
+A database must already be at KYC release 74 or later (the one-time RFI copy of release 74 is retired).
