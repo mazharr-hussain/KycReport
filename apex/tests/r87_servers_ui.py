@@ -115,7 +115,10 @@ with sync_playwright() as p:
             cell = row_e.locator('td').nth(bucket_idx[0] - 1)   # the row selector is a header without a cell here
             cell.dblclick(); fr.wait_for_timeout(500)
             pg.keyboard.press('Control+A'); pg.keyboard.type('bkt-e-ui'); pg.keyboard.press('Tab'); fr.wait_for_timeout(500)
-        fr.locator('button', has_text='Apply Changes').click(); pg.wait_for_timeout(4000)
+        # leave the grid cell (the cell editor can cover the button on a short grid), then save
+        fr.locator('#P137_FOLDER').click(); fr.wait_for_timeout(500)
+        fr.locator('button', has_text='Apply Changes').scroll_into_view_if_needed()
+        fr.locator('button', has_text='Apply Changes').click(force=True); pg.wait_for_timeout(4000)
         still = [f for f in pg.frames if 'storage-rule' in (f.url or '').lower()]
         if still:
             print('DIALOG STILL OPEN:', still[-1].inner_text('body')[:600])
