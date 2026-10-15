@@ -103,7 +103,7 @@ begin
     select count(*) into l_n from user_views where view_name in ('XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V');
     check_(l_n = 2, 'the views of part B exist (' || l_n || ')');
     begin
-        execute immediate 'begin :t := xxfnd_application_pkg.delete_blocker(''KYC''); end;' using out l_text;
+        execute immediate 'begin :t := xxfnd_application_pkg.delete_blocker(''R86TEST''); end;' using out l_text;
         check_(l_text is not null, 'an enabled application with data cannot be deleted: ' || l_text);
     exception
         when others then

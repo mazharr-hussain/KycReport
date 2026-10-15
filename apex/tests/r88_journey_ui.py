@@ -2,7 +2,7 @@
 # application of the workspace that is not registered; it goes through the ten steps (nothing saved before Register)
 # and Register opens the review page (166): header card, section menu with states, one section per step (Global Page
 # regions). Edit at a step (Shared functions) saves there; in a section a role is added (Role dialog 106), a user is
-# assigned (Assign 183) and removed again (Remove); the application is disabled and deleted. KYC shows why it cannot
+# assigned (Assign 183) and removed again (Remove); the application is disabled and deleted. R86TEST (the r86 test application, enabled) shows why it cannot
 # be deleted.
 # Needs: an unregistered APEX application in the workspace. When there is none, the test imports the basic example
 # application of the Oracle skills (apexlang-example-applications/example-0) as application 188, alias JRN88.
@@ -190,9 +190,9 @@ with sync_playwright() as p:
         check(CODE not in pg.locator('#report').inner_text(), 'the application is no longer in the list')
 
     # an application with data: delete refused, with the reason
-    pg.locator('#report a', has_text='KYC').first.click(); pg.wait_for_load_state('networkidle')
-    no_error(pg, 'Application (166) of KYC')
-    # assign a user to a KYC role and remove it again (KYC keeps the history: its data stays)
+    pg.locator('#report a', has_text='R86TEST').first.click(); pg.wait_for_load_state('networkidle')
+    no_error(pg, 'Application (166) of R86TEST')
+    # assign a user to an R86TEST role and remove it again (the history stays: test rows are kept)
     pg.locator('#jrn-users a', has_text='Assign users').first.click()
     f = dialog(pg)
     # the picker as in r79_security_ui.py (popup LOV of the Assign dialog)
@@ -218,8 +218,8 @@ with sync_playwright() as p:
 
     check(pg.locator('#P166_DELETE_BLOCKER_CONTAINER, #P166_DELETE_BLOCKER_DISPLAY').count() > 0
           and pg.locator('#P166_DELETE_BLOCKER_CONTAINER, #P166_DELETE_BLOCKER_DISPLAY').first.inner_text().strip() != '',
-          'KYC cannot be deleted and the page says why')
-    check(pg.locator('#jrn-actions button', has_text='Delete').count() == 0, 'no Delete button for KYC')
+          'R86TEST cannot be deleted and the page says why')
+    check(pg.locator('#jrn-actions button', has_text='Delete').count() == 0, 'no Delete button for R86TEST')
     check(not js_errors, f'no JavaScript errors {js_errors}')
     b.close()
 

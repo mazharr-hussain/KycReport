@@ -25,7 +25,7 @@ begin
     put_category('R87_CAT_D', 'R87TEST');
     put_category('R87_CAT_E', 'R87TEST');   -- no override
     put_category('R87_CAT_F', 'R87TEST');   -- typed in the grid by r87_servers_ui.py
-    put_category('R87_CAT_X', 'KYC');
+    put_category('R87_CAT_X', 'R86TEST');   -- the test application of r86 (COMMON is tested alone)
     merge into xxfnd_document_entities t using (select 'R87_ENTITY' e from dual) s on (t.entity_name = s.e)
      when not matched then insert (entity_name, application_code, table_name, pk1_column, enabled_flag)
                            values (s.e, 'R87TEST', 'XXFND_SERVERS', 'SERVER_CODE', 'Y');
@@ -134,16 +134,16 @@ begin
            'object URL from the region, namespace and bucket, name encoded (' || l_v || ')');
     l_v := xxfnd_attach_pkg.object_storage_url('R87_OS', 'bkt');
     check_(l_v = 'https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/r87ns/b/bkt/o', 'bucket URL');
-    l_v := xxfnd_attach_pkg.object_name('/KYC/PARTY/42/', 'id.pdf');
-    check_(regexp_like(l_v, '^KYC/PARTY/42/[0-9a-f]{12}_id\.pdf$'), 'object name: folder + unique prefix + file (' || l_v || ')');
-    check_(xxfnd_attach_pkg.object_name('/KYC/', 'id.pdf') <> xxfnd_attach_pkg.object_name('/KYC/', 'id.pdf'),
+    l_v := xxfnd_attach_pkg.object_name('/APP/PARTY/42/', 'id.pdf');
+    check_(regexp_like(l_v, '^APP/PARTY/42/[0-9a-f]{12}_id\.pdf$'), 'object name: folder + unique prefix + file (' || l_v || ')');
+    check_(xxfnd_attach_pkg.object_name('/APP/', 'id.pdf') <> xxfnd_attach_pkg.object_name('/APP/', 'id.pdf'),
            'a new version never overwrites an object');
     expect_error(-20336, 'Object Storage needs the bucket',
                  q'~declare v varchar2(4000); begin v := xxfnd_attach_pkg.object_storage_url('R87_OS', null, 'x'); end;~');
 
     ---------------------------------------------------------------- storage resolution
     check_(xxfnd_attach_pkg.storage_application('R87_ENTITY', null) = 'R87TEST', 'the entity decides the application');
-    check_(xxfnd_attach_pkg.storage_application('NO_SUCH_ENTITY', 'R87_CAT_X') = 'KYC', 'else the category');
+    check_(xxfnd_attach_pkg.storage_application('NO_SUCH_ENTITY', 'R87_CAT_X') = 'R86TEST', 'else the category');
     check_(xxfnd_attach_pkg.storage_application('NO_SUCH_ENTITY', null) = 'COMMON', 'else COMMON');
 
     xxfnd_attach_pkg.save_app_storage('R87TEST', null);   -- the database

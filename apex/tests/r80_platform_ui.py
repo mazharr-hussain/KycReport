@@ -43,15 +43,15 @@ with sync_playwright() as p:
     # Application: since release 86 a row opens the application page (166; page 161 retired)
     go(pg, 'applications')
     no_error(pg, 'Applications')
-    row = pg.locator('.a-IRR-table a', has_text='KYC')
+    row = pg.locator('.a-IRR-table a', has_text='R86TEST')   # the r86 test application (COMMON is tested alone)
     if row.count():
         with pg.expect_navigation():
             row.first.click()
         pg.wait_for_load_state('networkidle')
-        no_error(pg, 'Application KYC')
-        check('KYC' in pg.inner_text('body'), 'the application page shows the application')
+        no_error(pg, 'Application R86TEST')
+        check('R86TEST' in pg.inner_text('body'), 'the application page shows the application')
     else:
-        check(False, 'the KYC row is listed')
+        check(False, 'the R86TEST row is listed')
 
     # Setup Type (163): saved through the Applications package
     go(pg, 'setup-types')
