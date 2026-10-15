@@ -1,0 +1,70 @@
+taskDefinition RFI_REVIEW (
+    name: Review Information Received
+    type: action
+    task {
+        subject: Answer received: &RFI_NUMBER.
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row (a delegate may not see the RFI itself)
+            select nvl(r.rfi_number, 'RFI ' || :APEX$TASK_PK) as rfi_number, r.description, r.responded_date
+              from dual
+              left join xxfnd_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 143
+            items: {
+                P143_TASK_ID: &TASK_ID.
+            }
+            clearCache: 143
+        }
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
+    }
+    comments {
+        comments: Release 84 - a step of the COMMON workflow process RFI: the person who raised the RFI reviews the answer on page 143 - resolve, return, cancel or ask again (XXFND_RFI_PKG.RESOLVE / ASK_AGAIN complete it; asked again, the workflow loops).
+    }
+
+    action keep-task (
+        name: Keep the task on the RFI
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_rfi_pkg.task_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    action notify-create (
+        name: Notify - task assigned
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'CREATE');
+        }
+        execution {
+            onEvent: create
+            sequence: 20
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxfnd_rfi_pkg.reviewers(to_number(:APEX$TASK_PK))
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
+        }
+    )
+
+)

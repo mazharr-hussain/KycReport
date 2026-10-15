@@ -13,7 +13,7 @@ page 122 (
         formAutoComplete: false
     }
     help {
-        helpText: Which endpoint serves each business purpose and whether it runs manually or automatically. Changes take effect after a second person approves them.
+        helpText: Which server (release 86) and REST Data Source serve each business purpose and whether it runs manually or automatically. Changes take effect after a second person approves them.
     }
 
     region breadcrumb (
@@ -49,9 +49,10 @@ page 122 (
                   from (
 
                             select p.purpose_code, p.purpose_name, p.application_code,
-                                   xxfnd_util_pkg.lookup_meaning('CAPTURE_METHOD', p.capture_method) as capture_method,
-                                   p.endpoint_code,
-                                   xxfnd_util_pkg.lookup_meaning('APPROVAL_STATUS', p.approval_status) as approval_status,
+                                   xxfnd_lookup_pkg.lookup_meaning('CAPTURE_METHOD', p.capture_method) as capture_method,
+                                   p.server_code,   -- release 86: the workspace server
+                                   p.rest_source_static_id,
+                                   xxfnd_lookup_pkg.lookup_meaning('APPROVAL_STATUS', p.approval_status) as approval_status,
                                    p.approved_by, p.approved_date
                               from xxfnd_integration_purposes p
                 ) q
@@ -145,10 +146,23 @@ page 122 (
             }
         )
 
-        column ENDPOINT_CODE (
+        column SERVER_CODE (
             type: plainText
             heading {
-                heading: Endpoint
+                heading: Server
+            }
+            layout {
+                sequence: 45
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REST_SOURCE_STATIC_ID (
+            type: plainText
+            heading {
+                heading: REST Data Source
             }
             layout {
                 sequence: 50

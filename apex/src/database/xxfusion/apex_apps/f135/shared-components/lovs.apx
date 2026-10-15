@@ -310,24 +310,6 @@ lov lov-doc-datatype (
     }
 )
 
-lov lov-endpoints (
-    name: INTEGRATION ENDPOINTS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select endpoint_name || ' (' || endpoint_code || ')' as display_value, endpoint_code as return_value
-              from xxfnd_integration_endpoints
-             order by endpoint_name
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-entities (
     name: DOCUMENT ENTITIES
     source {
@@ -501,13 +483,13 @@ lov lov-applications (
         sqlQuery:
             ```sql
             -- release 73: the registered applications a row of this page's setup type may belong to (XXFND_SETUP_TYPES;
-            -- COMMON is the instance: the empty value "All applications (instance)"); delegated: its own application only
+            -- COMMON is the instance: the empty value "Workspace (all applications)"); delegated: its own application only
             select a.application_name || ' (' || a.application_code || ')' as display_value,
                    a.application_code as return_value
               from xxfnd_applications a
              where a.enabled_flag = 'Y'
                and a.application_code <> 'COMMON'
-               and xxfnd_setup_type_pkg.app_allowed(xxfnd_setup_type_pkg.page_type(:APP_PAGE_ID), a.application_code) = 'Y'
+               and xxfnd_application_pkg.app_allowed(xxfnd_application_pkg.page_type(:APP_PAGE_ID), a.application_code) = 'Y'
                and (nvl(:G_ADMIN_APP, 'ALL') = 'ALL' or a.application_code = :G_ADMIN_APP)
              order by a.application_name
             ```

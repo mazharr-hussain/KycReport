@@ -1,0 +1,14 @@
+appComputation notify-count (
+    itemName: NOTIFY_COUNT
+    execution {
+        sequence: 10
+        point: beforeHeader
+    }
+    computation {
+        type: expression
+        plsqlExpression: case when xxfnd_util_pkg.current_user <> 'NOBODY' then to_char(nullif(xxfnd_notify_pkg.unread_count, 0)) end
+    }
+    error {
+        errorMessage: The notification count could not be read.
+    }
+)

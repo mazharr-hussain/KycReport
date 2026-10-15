@@ -75,6 +75,14 @@ create table if not exists xxfnd_users (
 comment on table xxfnd_users is 'Users of all applications. SSO = linked to an employee, signs in with the identity domain (no password); LOCAL = no employee, Oracle APEX account (APEX keeps the password).';
 comment on column xxfnd_users.user_name is 'Sign-in name, upper case. SSO: the employee''s user name (identity-domain user name); LOCAL: the APEX account name.';
 
+-- release 79: every user has a language preference (lookup LANGUAGE, default English); notifications use the wording
+-- in that language and fall back to English
+begin
+    xxfnd_ddl_pkg.add_column('XXFND_USERS', 'LANGUAGE_CODE', q'~varchar2(10) default 'en' not null~');
+end;
+/
+comment on column xxfnd_users.language_code is 'Language of the user''s notifications (lookup LANGUAGE: en, ar); default English.';
+
 declare
     procedure run(p_sql in varchar2) is
     begin
@@ -116,14 +124,9 @@ end;
 
 comment on column xxfnd_applications.apex_application_id is 'APEX application ID in this environment (may differ between DEV / TEST / PROD); set at sign-in from the alias.';
 
--- the KYC application (found by its code and alias in every environment; the APEX ID is set at sign-in)
-merge into xxfnd_applications t
-using (select 'KYC' application_code, 'KYC Compliance Platform' application_name, 'KYC' apex_app_alias from dual) s
-   on (t.application_code = s.application_code)
- when not matched then insert (application_code, application_name, apex_app_alias,
-                               created_by, creation_date, last_updated_by, last_update_date)
-                       values (s.application_code, s.application_name, s.apex_app_alias,
-                               'INSTALL', systimestamp, 'INSTALL', systimestamp);
+-- release 86: COMMON no longer registers any business application here (it used to add the KYC row). Each
+-- application is onboarded by IT (Applications, or apex/db/admin/onboard-application.sql: XXFND_APPLICATION_PKG.ONBOARD);
+-- a row that exists already is kept as it is.
 
 -- existing roles belong to the application of their code
 update xxfnd_roles r
@@ -221,7 +224,7 @@ using (select column_value table_name
          from table(apex_t_varchar2(
               'XXFND_LOOKUP_TYPES','XXFND_LOOKUP_VALUES','XXFND_EMPLOYEES','XXFND_ROLES','XXFND_USER_ROLES',
               'XXFND_SOD_RULES','XXFND_NOTIFICATION_TEMPLATES','XXFND_RETENTION_POLICIES',
-              'XXFND_INTEGRATION_ENDPOINTS','XXFND_INTEGRATION_PURPOSES',
+              'XXFND_INTEGRATION_PURPOSES',
               'XXFND_DOCUMENT_ENTITIES','XXFND_DOCUMENT_CATEGORIES','XXFND_ATTACHMENT_FUNCTIONS',
               'XXFND_ATTACHMENT_BLOCKS','XXFND_ATTACHMENT_BLK_ENTITIES','XXFND_DOC_CATEGORY_USAGES',
               'XXFND_STORAGE_CONFIG','XXFND_WF_DELEGATIONS',
@@ -257,5 +260,5 @@ end;
 /
 comment on column xxfnd_applications.schema_name is 'Database schema of the application''s own objects (KYC: XXCUS; COMMON: XXFUSION, which owns the shared XXFND_ objects).';
 update xxfnd_applications set schema_name = user    where application_code = 'COMMON' and schema_name is null;
-update xxfnd_applications set schema_name = 'XXCUS' where application_code = 'KYC'    and schema_name is null;
+-- release 86: no KYC default any more (onboarding takes an application's schema from its APEX parsing schema)
 commit;

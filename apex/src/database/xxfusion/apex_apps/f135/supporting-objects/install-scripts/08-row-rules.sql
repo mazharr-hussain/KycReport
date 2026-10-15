@@ -27,28 +27,7 @@ begin
 end;
 /
 
--- Fusion-sourced people are owned by the HCM sync; only the sync (no APEX
--- session) may change their identity fields.
-create or replace trigger xxfnd_employees_src
-    before update or delete on xxfnd_employees
-    for each row
-begin
-    if xxfnd_util_pkg.in_apex_session and not xxfnd_security_pkg.sync_running
-       and :old.source_type = 'FUSION' then
-        if deleting
-           or :new.user_name     <> :old.user_name
-           or :new.full_name     <> :old.full_name
-           or :new.email_address <> :old.email_address
-           or :new.source_type   <> :old.source_type
-           or nvl(:new.fusion_person_id, -1) <> nvl(:old.fusion_person_id, -1) then
-            raise_application_error(-20132, 'This person comes from Oracle Fusion HCM; change them there.');
-        end if;
-    end if;
-    if updating then
-        :new.user_name := upper(:new.user_name);
-    end if;
-end;
-/
+-- release 83: XXFND_EMPLOYEES_SRC (Fusion-owned rows) is created in 05b, after XXFND_INTEGRATION_PKG.
 
 create or replace trigger xxfnd_employees_ins
     before insert on xxfnd_employees
@@ -74,13 +53,4 @@ begin
 end;
 /
 
--- An employee's user name changed (Fusion user name from the HCM sync, or a LOCAL edit): every stored reference
--- moves to the new name (xxfnd_security_pkg.rename_user), so the person keeps their requests, cases and tasks.
-create or replace trigger xxfnd_employees_rename
-    after update of user_name on xxfnd_employees
-    for each row
-    when (upper(new.user_name) <> upper(old.user_name))
-begin
-    xxfnd_security_pkg.rename_user(:old.user_name, :new.user_name);
-end;
-/
+-- (release 79: the trigger XXFND_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)

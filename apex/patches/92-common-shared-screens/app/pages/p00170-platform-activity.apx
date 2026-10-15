@@ -1,0 +1,493 @@
+page 170 (
+    name: Platform Activity
+    alias: PLATFORM-ACTIVITY
+    title: Platform Activity
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            How every registered application is used, from the APEX activity log (last 30 days): page views, the people who use
+            it most, the errors and the slowest pages.
+            ```
+    }
+
+    region breadcrumb (
+        name: Platform Activity
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region performance (
+        name: Slowest Pages
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: average and slowest time per page of every registered application (last 30 days)
+                select a.application_name, l.page_id, max(l.page_name) as page_name, count(*) as views,
+                       round(avg(l.elapsed_time), 3) as avg_seconds, round(max(l.elapsed_time), 3) as max_seconds
+                  from apex_workspace_activity_log l
+                  join xxfnd_applications a on a.apex_application_id = l.application_id
+                 where l.view_date > sysdate - 30
+                 group by a.application_name, l.page_id
+                 order by avg(l.elapsed_time) desc
+                 fetch first 10 rows only
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: performance
+        }
+        messages {
+            whenNoDataFound: No page view in the last 30 days.
+        }
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Page Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column VIEWS (
+            type: plainText
+            heading {
+                heading: Views
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column AVG_SECONDS (
+            type: plainText
+            heading {
+                heading: Average Seconds
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column MAX_SECONDS (
+            type: plainText
+            heading {
+                heading: Slowest
+            }
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    region top-users (
+        name: Top Users
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: the people who use the applications most (last 30 days)
+                select l.apex_user, count(*) as views, count(distinct l.application_id) as applications, max(l.view_date) as last_seen
+                  from apex_workspace_activity_log l
+                  join xxfnd_applications a on a.apex_application_id = l.application_id
+                 where l.view_date > sysdate - 30 and l.apex_user <> 'nobody'
+                 group by l.apex_user
+                 order by count(*) desc
+                 fetch first 10 rows only
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: top-users
+        }
+        messages {
+            whenNoDataFound: No page view in the last 30 days.
+        }
+
+        column APEX_USER (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column VIEWS (
+            type: plainText
+            heading {
+                heading: Page Views
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATIONS (
+            type: plainText
+            heading {
+                heading: Applications
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column LAST_SEEN (
+            type: plainText
+            heading {
+                heading: Last Seen
+            }
+            layout {
+                sequence: 40
+            }
+            appearance {
+                formatMask: SINCE
+            }
+        )
+    )
+
+    region errors (
+        name: Errors
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: the page views that ended in an error (last 30 days)
+                select l.view_date, a.application_name, l.page_id, l.page_name, l.apex_user, l.error_message
+                  from apex_workspace_activity_log l
+                  join xxfnd_applications a on a.apex_application_id = l.application_id
+                 where l.view_date > sysdate - 30 and l.error_message is not null
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: errors
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No error in the last 30 days.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column VIEW_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Page Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APEX_USER (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ERROR_MESSAGE (
+            type: plainText
+            heading {
+                heading: Error
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    region activity (
+        name: Page Views
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: every page view of the registered applications (last 30 days)
+                select l.view_date, a.application_name, l.page_id, l.page_name, l.apex_user, l.elapsed_time, l.rows_queried
+                  from apex_workspace_activity_log l
+                  join xxfnd_applications a on a.apex_application_id = l.application_id
+                 where l.view_date > sysdate - 30
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: activity
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No page view in the last 30 days.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column VIEW_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Page Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APEX_USER (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ELAPSED_TIME (
+            type: plainText
+            heading {
+                heading: Seconds
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ROWS_QUERIED (
+            type: plainText
+            heading {
+                heading: Rows
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+    )
+)

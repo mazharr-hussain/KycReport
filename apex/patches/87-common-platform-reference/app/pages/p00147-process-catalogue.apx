@@ -1,0 +1,518 @@
+page 147 (
+    name: Process Catalogue
+    alias: PROCESS-CATALOGUE
+    title: Process Catalogue
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The workflow processes of every application: approval workflow on or off (off: records are auto-approved) and e-mail on or off; e-mail for the workspace (all applications). Their shape is maintained by developers (App Builder) and deployed as a release.
+            ```
+    }
+
+    region breadcrumb (
+        name: Process Catalogue
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region email (
+        name: E-mail for All Applications
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: email
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:G_ADMIN_LOCK, 'N') <> 'Y'   -- the instance switch: IT only
+                ```
+        }
+    )
+
+    pageItem P147_INSTANCE_EMAIL (
+        type: switch
+        label {
+            label: E-mail (workspace)
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @email
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select nvl(max(email_enabled_flag), 'Y') from xxfnd_applications where application_code = 'COMMON'
+                ```
+            used: always
+        }
+        help {
+            helpText: Off - no e-mail is sent by any application. On - e-mail follows each application's and process's switch.
+        }
+    )
+
+    button save-email (
+        buttonName: SAVE_EMAIL
+        label: Save
+        layout {
+            sequence: 10
+            region: @email
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region processes (
+        name: Workflow Processes
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 73: per application and workflow process: approval workflow (off = auto-approved) and e-mail
+                select p.application_code, p.process_code, p.process_name, p.workflow_enabled_flag, p.email_enabled_flag
+                  from xxfnd_workflow_processes p
+                 where :G_ADMIN_APP = 'ALL' or p.application_code = :G_ADMIN_APP
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: processes
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No workflow process found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APPLICATION_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PROCESS_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @WORKFLOW_ENABLED_FLAG
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @EMAIL_ENABLED_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: displayOnly
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPLICATION_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column PROCESS_CODE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PROCESS_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column PROCESS_NAME (
+            type: displayOnly
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PROCESS_NAME
+                dataType: varchar2
+            }
+        )
+
+        column WORKFLOW_ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Approval Workflow
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: WORKFLOW_ENABLED_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column EMAIL_ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: EMAIL_ENABLED_FLAG
+                dataType: varchar2
+            }
+        )
+    )
+
+    region report (
+        name: Workflows and Task Definitions
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 73: the workflows and task definitions of every registered application
+                select a.application_code,
+                       'Workflow' as component_type,
+                       w.name,
+                       w.static_id,
+                       w.title as description,
+                       cast(null as varchar2(30)) as task_type,
+                       w.last_updated_on
+                  from apex_appl_workflows w
+                  join xxfnd_applications a on a.apex_application_id = w.application_id
+                 where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+                union all
+                select a.application_code,
+                       'Task Definition',
+                       t.name,
+                       t.static_id,
+                       t.subject,
+                       t.task_type,
+                       t.last_updated_on
+                  from apex_appl_taskdefs t
+                  join xxfnd_applications a on a.apex_application_id = t.application_id
+                 where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column COMPONENT_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Title / Subject
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TASK_TYPE (
+            type: plainText
+            heading {
+                heading: Task Type
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_UPDATED_ON (
+            type: plainText
+            heading {
+                heading: Last Changed
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: SINCE
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process sync-processes (
+        name: Workflow processes of the applications
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_workflow_switch_pkg.sync_processes;   -- release 73: new workflows get their switches
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-processes (
+        name: Save the process switches
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @processes
+        execution {
+            sequence: 10
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-email (
+        name: Save the instance e-mail switch
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                update xxfnd_applications set email_enabled_flag = nvl(:P147_INSTANCE_EMAIL, 'N') where application_code = 'COMMON';
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE_EMAIL
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)

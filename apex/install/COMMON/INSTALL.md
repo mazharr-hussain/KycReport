@@ -56,5 +56,100 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 86 (COMMON)
+Release 86 (COMMON only, patch 93): onboarding applications and workspace servers. **Applications** (Platform) is a
+guided journey: Register Application (165) picks an APEX application of the workspace that is not registered yet and
+walks through its roles, users, shared functions, setup types, processes, notifications, document storage and
+integrations; the application page (166) shows every section with Add / Edit / Remove, Disable / Enable and Delete
+(only when the application is disabled and nothing refers to it). Page 161 is retired. **Servers** (Integrations >
+Servers) are defined once for the workspace (APEX Remote Server + Web Credential + the details of the server's type:
+OCI Object Storage, SharePoint, UCM, Fusion, REST, Outlook); **Document storage** is set per application with category
+overrides (Attachments > Storage) and falls back to the database when nothing is set; OCI Object Storage is a new
+store. The retired endpoints table is removed (its servers copied first) and the old storage rules are converted.
+Scripted onboarding: `apex/db/admin/onboard-application.sql` (as XXFUSION; APEX application ID, code, description,
+e-mail switch, optional administrator). Upgrade as usual. **KYC needs its own release** (its seed still writes the
+retired endpoints table).
+
+## Release 85 (COMMON)
+Release 85 (COMMON only, patch 92): the shared screens every application uses from COMMON. **Attachments** (47) and
+**Document** (48): the documents of any application's record - download, add, replace with a new version, remove;
+the application opens page 47 with its alias, page, region, entity and key, its attachment page registration says
+who may change documents there, and the record must be one the user may see (its table's data security).
+**Platform Activity** (170): slowest pages, top users, errors and page views of every registered application (APEX
+activity log). **Feedback** (171, 172 follow-up) and **Give Feedback** (173, a link in the navigation bar; any
+application opens it with its application and page). New features DOCUMENTS, PLATFORM_ACTIVITY, GIVE_FEEDBACK and
+USAGE_FEEDBACK when missing (privileges given to the roles once). Upgrade as usual. **KYC needs its own release**
+(its attachment dialogs 90 / 91, activity reports 10030 and feedback pages 10050-10052 move to COMMON's).
+
+## Release 84 (COMMON)
+Release 84 (COMMON only, patch 91): workflow processes and notifications driven by data. The request for information
+(RFI) and the configuration change approval are APEX workflows of COMMON (Shared Components > Workflows: RFI,
+CONFIG_CHANGE) with their task definitions; XXFND_RFI_PKG and XXFND_APPROVAL_PKG keep the data and the rules and no
+longer create tasks. An outside person answers on the public page Provide Information (one-time link), which continues
+the waiting workflow. Notifications come from data (Workflow > Notification Delivery): channels (in the application -
+the bell and Notifications list, e-mail, push, Fusion prepared and off), events, rules (who, on which channel) and the
+queries that find the people; the wording stays on Notification Templates (English and Arabic). COMMON becomes a
+progressive web app with push notifications; each person turns push on per device (Notifications > This device).
+New COMMON settings MAIL_FROM (sender; empty = no e-mail) and MAIL_FOOTER: set them on Application Settings after the
+upgrade. The e-mails of a record (send, record a received one, history) are COMMON pages Communications and E-mail.
+An hourly COMMON automation "Task deadlines" raises the reminders and escalations of every application.
+Upgrade as usual (Install Supporting Objects, upgrade scripts). In a new workspace the push key pair is made by the
+install script while no device is subscribed. **KYC needs its own release** (its RFI and configuration change task
+definitions and pages move to COMMON's).
+
+## Release 83 (COMMON)
+Release 83 (COMMON only, patch 90): Integrations use APEX's own components. The servers COMMON calls are APEX Remote
+Servers (FUSION, UCM_MAIN, SHAREPOINT_MAIN, OUTLOOK_GRAPH) and their secrets APEX Web Credentials, kept by the workspace
+administrator (installed with placeholder URLs and no secrets; see ADMIN-GUIDE.md, "How to change a server"). Endpoints
+are REST Data Sources of COMMON (FUSION_HCM_WORKERS); purposes point to them. XXFND_INTEGRATION_PKG is the one call
+procedure: every call is logged with what is needed to retry it, and the Transmission Log shows APEX's own web service
+log. The registered endpoints are read-only and retiring (their rows stay). The Fusion HCM sync is a COMMON automation,
+installed disabled: switch it on once the FUSION server and its credential are set. Upgrade as usual (Install
+Supporting Objects, upgrade scripts). **KYC needs its own release** (its HCM sync automation and FUSION_* settings go).
+
+## Release 82 (COMMON)
+Release 82 (COMMON only, patch 89): Workflow uses one package per component. XXFND_WORKFLOW_PKG holds the workflow
+runtime, the workflow and e-mail switches and the task helpers; XXFND_NOTIFY_PKG holds notifications and the e-mails per
+record. XXFND_TASK_PKG, XXFND_WORKFLOW_SWITCH_PKG, XXFND_COMMUNICATION_PKG and the unused view XXFND_PENDING_APPROVALS_V
+are dropped (their DDL is kept in XXFND_DROPPED_OBJECTS). The Process Catalogue lists the Request for Information
+process of every application and who acts on each process, and asks before a workflow is switched off. A request for
+information goes to the requester unless someone else is chosen; an outside recipient gets the e-mail in the chosen
+language. E-mails use the APEX Email Template XXFND_STANDARD (layout, links, right to left for Arabic); the
+Notifications screen keeps only the wording (plain text, English and Arabic) with a preview and "Send Test to Me".
+New screens: My Tasks (tasks of every application) and the Workflow Monitor (act on anyone's behalf, Workflow Monitor -
+Manage). Upgrade as usual (Install Supporting Objects, upgrade scripts). **KYC needs its own release for the new names**
+(decided: no wrappers).
+
+## Release 81 (COMMON)
+Release 81 (COMMON only, patch 88): Documents and Records use one package per component. The document store transport
+(Oracle UCM, SharePoint, database) is now private code of XXFND_ATTACH_PKG; XXFND_ATTACH_STORE_PKG is dropped (its DDL
+is kept in XXFND_DROPPED_OBJECTS). New XXFND_RETENTION_PKG is a placeholder that flags, archives and deletes nothing.
+The Retention screen (112) shows only "Retention is not active yet". Document Entity (131) saves its display name
+through XXFND_ATTACH_PKG. Upgrade as usual (Install Supporting Objects, upgrade scripts).
+
+## Release 80 (COMMON)
+Release 80 (COMMON only, patch 87): Platform and Reference Data use one package per component - XXFND_APPLICATION_PKG
+(applications, setup types, administration scope), XXFND_APP_SETTING_PKG, XXFND_LOOKUP_PKG and XXFND_DFF_PKG; the old
+packages and two unused views are dropped. The level shown as "All applications (instance)" now reads "Workspace (all
+applications)". Upgrade as usual (Install Supporting Objects, upgrade scripts). KYC needs its own release for the new
+names (decided: no wrappers).
+
+## Release 79 (COMMON)
+Release 79 (COMMON only, patch 86): Security works as one module. A data access rule is assigned to users and to roles
+(existing rules keep their role as first assignment); a user sees what any rule of theirs or of their roles allows. The
+User, Role and Data access rule screens each show their record on top with two tabs and share one Assign dialog;
+the User screen shows the Effective access. Users have a language (default English). New Super Administrator role
+(nobody holds it until granted). XXFND_SECURITY_PKG and XXFND_AUTH_PKG are replaced by XXFND_USER_PKG,
+XXFND_PRIVILEGE_PKG and XXFND_INTEGRATION_PKG: **the KYC application stops working until its own release uses the new
+names** (decided: no wrappers). After the upgrade, run `apex/db/admin/qd-users-and-roles.sql` again for the QD users
+(department rules per user). Upgrade as usual (Install Supporting Objects, upgrade scripts).
+
+## Release 78 (COMMON)
+Release 78 (COMMON only, patch 85): COMMON is organised into six modules (Platform, Security, Reference Data,
+Documents and Records, Workflow, Integrations). The menu is Home and the six modules; a module opens its page with its
+components; Home shows the modules with their state; Approval Setup and Optional Features have their own menu entries
+(rights copied from Workflow Setup / Application Settings); new page Subscriptions under Platform > Applications.
+Upgrade as usual (Install Supporting Objects, upgrade scripts). KYC is not changed.
+
 ## Release 77 (COMMON)
 Release 77 (COMMON only): removes the unchanged release 76 error-log retention policy; no retention policy is seeded any more. Independent of KYC 77.

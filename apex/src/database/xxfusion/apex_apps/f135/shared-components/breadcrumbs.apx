@@ -15,7 +15,7 @@ breadcrumb breadcrumb (
     )
 
     entry admin (
-        name: Administration
+        name: &P100_MODULE_NAME.
         pageNumber: 100
         execution {
             sequence: 100
@@ -30,6 +30,144 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry module-platform (
+        name: Platform
+        pageNumber: 90010
+        execution {
+            sequence: 101
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: PLATFORM
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90010 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
+    entry module-security (
+        name: Security
+        pageNumber: 90020
+        execution {
+            sequence: 102
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: SECURITY
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90020 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
+    entry module-reference-data (
+        name: Reference Data
+        pageNumber: 90030
+        execution {
+            sequence: 103
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: REFERENCE_DATA
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90030 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
+    entry module-documents-records (
+        name: Documents and Records
+        pageNumber: 90040
+        execution {
+            sequence: 104
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: DOCUMENTS_RECORDS
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90040 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
+    entry module-workflow (
+        name: Workflow
+        pageNumber: 90050
+        execution {
+            sequence: 105
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: WORKFLOW
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90050 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
+    entry module-integrations (
+        name: Integrations
+        pageNumber: 90060
+        execution {
+            sequence: 106
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_MODULE: INTEGRATIONS
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90060 does not exist (an entry needs a page), the link opens the module on page 100.
+        }
+    )
+
     entry roles (
         name: Roles
         pageNumber: 105
@@ -37,7 +175,7 @@ breadcrumb breadcrumb (
             sequence: 150
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -53,7 +191,7 @@ breadcrumb breadcrumb (
             sequence: 200
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-workflow
         }
         link {
             target: {
@@ -69,7 +207,7 @@ breadcrumb breadcrumb (
             sequence: 156
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -85,7 +223,7 @@ breadcrumb breadcrumb (
             sequence: 152
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -95,7 +233,7 @@ breadcrumb breadcrumb (
     )
 
     entry employee (
-        name: Employee
+        name: User
         pageNumber: 104
         execution {
             sequence: 140
@@ -111,13 +249,13 @@ breadcrumb breadcrumb (
     )
 
     entry employees (
-        name: Employees and Access
+        name: Users and Access
         pageNumber: 103
         execution {
             sequence: 130
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -133,7 +271,7 @@ breadcrumb breadcrumb (
             sequence: 160
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -166,7 +304,7 @@ breadcrumb breadcrumb (
             sequence: 400
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-platform
         }
         link {
             target: {
@@ -176,10 +314,21 @@ breadcrumb breadcrumb (
     )
 
     entry application (
-        name: Application
-        pageNumber: 161
+        name: &P166_APPLICATION_CODE.
+        pageNumber: 166
         execution {
             sequence: 401
+        }
+        appearance {
+            parentEntry: @applications
+        }
+    )
+
+    entry application-journey (
+        name: &P165_TITLE.
+        pageNumber: 165
+        execution {
+            sequence: 405
         }
         appearance {
             parentEntry: @applications
@@ -193,11 +342,27 @@ breadcrumb breadcrumb (
             sequence: 402
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-platform
         }
         link {
             target: {
                 page: 162
+            }
+        }
+    )
+
+    entry subscriptions (
+        name: Subscriptions
+        pageNumber: 164
+        execution {
+            sequence: 403
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 164
             }
         }
     )
@@ -209,7 +374,7 @@ breadcrumb breadcrumb (
             sequence: 110
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-reference-data
         }
         link {
             target: {
@@ -225,7 +390,7 @@ breadcrumb breadcrumb (
             sequence: 170
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-workflow
         }
         link {
             target: {
@@ -258,7 +423,7 @@ breadcrumb breadcrumb (
             sequence: 340
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-reference-data
         }
         link {
             target: {
@@ -274,7 +439,7 @@ breadcrumb breadcrumb (
             sequence: 330
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-reference-data
         }
         link {
             target: {
@@ -307,7 +472,7 @@ breadcrumb breadcrumb (
             sequence: 260
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-documents-records
         }
         link {
             target: {
@@ -323,7 +488,7 @@ breadcrumb breadcrumb (
             sequence: 280
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-documents-records
         }
         link {
             target: {
@@ -339,7 +504,7 @@ breadcrumb breadcrumb (
             sequence: 250
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-documents-records
         }
         link {
             target: {
@@ -355,7 +520,7 @@ breadcrumb breadcrumb (
             sequence: 240
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-documents-records
         }
         link {
             target: {
@@ -372,7 +537,7 @@ breadcrumb breadcrumb (
             sequence: 220
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-integrations
         }
         link {
             target: {
@@ -382,13 +547,13 @@ breadcrumb breadcrumb (
     )
 
     entry endpoints (
-        name: Integration Endpoints
+        name: Servers
         pageNumber: 120
         execution {
             sequence: 210
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-integrations
         }
         link {
             target: {
@@ -404,7 +569,7 @@ breadcrumb breadcrumb (
             sequence: 230
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-integrations
         }
         link {
             target: {
@@ -421,7 +586,7 @@ breadcrumb breadcrumb (
             sequence: 265
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-workflow
         }
         link {
             target: {
@@ -437,7 +602,7 @@ breadcrumb breadcrumb (
             sequence: 264
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-workflow
         }
         link {
             target: {
@@ -453,7 +618,7 @@ breadcrumb breadcrumb (
             sequence: 190
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-documents-records
         }
         link {
             target: {
@@ -469,7 +634,7 @@ breadcrumb breadcrumb (
             sequence: 432
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-platform
         }
         link {
             target: {
@@ -485,7 +650,7 @@ breadcrumb breadcrumb (
             sequence: 262
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-workflow
         }
         link {
             target: {
@@ -495,13 +660,13 @@ breadcrumb breadcrumb (
     )
 
     entry features (
-        name: Feature Configuration
+        name: Optional Features
         pageNumber: 10020
         execution {
             sequence: 430
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-platform
         }
         link {
             target: {
@@ -517,7 +682,7 @@ breadcrumb breadcrumb (
             sequence: 180
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @module-security
         }
         link {
             target: {
@@ -526,4 +691,243 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry my-tasks (
+        name: My Tasks
+        pageNumber: 40
+        execution {
+            sequence: 20
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 40
+            }
+        }
+    )
+
+    entry workflow-monitor (
+        name: Workflow Monitor
+        pageNumber: 141
+        execution {
+            sequence: 590
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 141
+            }
+        }
+    )
+
+    entry notifications (
+        name: Notifications
+        pageNumber: 43
+        execution {
+            sequence: 25
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 43
+            }
+        }
+    )
+
+    entry notification-delivery (
+        name: Notification Delivery
+        pageNumber: 116
+        execution {
+            sequence: 175
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 116
+            }
+        }
+    )
+
+    entry notification-log (
+        name: Notification Log
+        pageNumber: 117
+        execution {
+            sequence: 176
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 117
+            }
+        }
+    )
+
+    entry information-request (
+        name: Information Request
+        pageNumber: 143
+        execution {
+            sequence: 30
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 143
+            }
+        }
+    )
+
+    entry configuration-change (
+        name: Configuration Change
+        pageNumber: 144
+        execution {
+            sequence: 35
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 144
+            }
+        }
+    )
+
+    entry communications (
+        name: Communications
+        pageNumber: 45
+        execution {
+            sequence: 40
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 45
+            }
+        }
+    )
+
+    entry e-mail (
+        name: E-mail
+        pageNumber: 46
+        execution {
+            sequence: 45
+        }
+        appearance {
+            parentEntry: @communications
+        }
+        link {
+            target: {
+                page: 46
+            }
+        }
+    )
+
+    entry attachments (
+        name: Attachments
+        pageNumber: 47
+        execution {
+            sequence: 50
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 47
+            }
+        }
+    )
+
+    entry document (
+        name: Document
+        pageNumber: 48
+        execution {
+            sequence: 55
+        }
+        appearance {
+            parentEntry: @attachments
+        }
+        link {
+            target: {
+                page: 48
+            }
+        }
+    )
+
+    entry platform-activity (
+        name: Platform Activity
+        pageNumber: 170
+        execution {
+            sequence: 90
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 170
+            }
+        }
+    )
+
+    entry feedback (
+        name: Feedback
+        pageNumber: 171
+        execution {
+            sequence: 95
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 171
+            }
+        }
+    )
+
+    entry feedback-follow-up (
+        name: Feedback Follow-up
+        pageNumber: 172
+        execution {
+            sequence: 96
+        }
+        appearance {
+            parentEntry: @feedback
+        }
+        link {
+            target: {
+                page: 172
+            }
+        }
+    )
+
+    entry give-feedback (
+        name: Give Feedback
+        pageNumber: 173
+        execution {
+            sequence: 60
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 173
+            }
+        }
+    )
 )

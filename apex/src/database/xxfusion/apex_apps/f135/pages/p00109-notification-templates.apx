@@ -12,6 +12,15 @@ page 109 (
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
+    help {
+        helpText:
+            ```
+            The wording of every system e-mail: a subject and a plain-text message per event, in English and Arabic.
+            Wording is plain text; links, formatting and the reading direction come from the layout template
+            XXFND_STANDARD (below: the applications that use it). Open a notification to change its wording, preview it
+            and send a test to yourself.
+            ```
+    }
 
     region breadcrumb (
         name: Notification Templates
@@ -220,4 +229,89 @@ page 109 (
 
     )
 
+
+    region layout (
+        name: Layout Template XXFND_STANDARD - Applications Using It
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82: the e-mail layout is the APEX Email Template XXFND_STANDARD of COMMON; applications subscribe to it
+                select t.application_name,
+                       case when t.application_id = :APP_ID then 'Master (COMMON)'
+                            when t.is_subscribed = 'Yes' then 'Subscribed'
+                            else 'Own copy' end                    as subscription,
+                       case when t.subscription_needs_refresh = 'Yes' then 'Refresh needed' else 'Up to date' end as refresh_state,
+                       t.last_updated_on
+                  from apex_appl_email_templates t
+                 where t.static_id = 'XXFND_STANDARD'
+                 order by case when t.application_id = :APP_ID then 0 else 1 end, t.application_name
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: layout
+        }
+        messages {
+            whenNoDataFound: No application uses the layout yet.
+        }
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SUBSCRIPTION (
+            type: plainText
+            heading {
+                heading: Subscription
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column REFRESH_STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column LAST_UPDATED_ON (
+            type: plainText
+            heading {
+                heading: Last Updated
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
 )

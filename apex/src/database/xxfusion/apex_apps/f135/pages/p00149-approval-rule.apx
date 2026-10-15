@@ -460,6 +460,166 @@ page 149 (
         )
     )
 
+    region test-rule (
+        name: Test the Rules
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82: the approvers a record with these attributes would get, in order, before any record uses the rules
+                select s.position,
+                       s.step_name,
+                       xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name) as approver,
+                       (select r.rule_name from xxfnd_approval_rules r
+                         where r.rule_id = xxfnd_approval_rule_pkg.matching_rule(:P149_APPROVAL_TYPE_CODE,
+                                                                                  apex_string.split(:P149_TEST_ATTRIBUTES, chr(10)))) as matched_rule
+                  from table(xxfnd_approval_rule_pkg.steps(:P149_APPROVAL_TYPE_CODE, null,
+                                                           apex_string.split(:P149_TEST_ATTRIBUTES, chr(10)))) s
+                 where :P149_TEST_ATTRIBUTES is not null
+                ```
+            pageItemsToSubmit: [
+                P149_APPROVAL_TYPE_CODE
+                P149_TEST_ATTRIBUTES
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: test-rule
+        }
+        messages {
+            whenNoDataFound: Enter the attributes and press Test: no rule matches, or the rule has no approver step (approved at once).
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P149_APPROVAL_TYPE_CODE is not null
+                ```
+        }
+
+        column POSITION (
+            type: plainText
+            heading {
+                heading: Order
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPROVER (
+            type: plainText
+            heading {
+                heading: Approver
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column MATCHED_RULE (
+            type: plainText
+            heading {
+                heading: Matching Rule
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    pageItem P149_TEST_ATTRIBUTES (
+        type: textarea
+        label {
+            label: Attributes
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @test-rule
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: One attribute per line as CODE=value, for example RISK_TIER=HIGH. The codes are the attributes of the process (shown in the conditions above).
+        }
+    )
+
+    button test-rule (
+        buttonName: TEST_RULE
+        label: Test
+        layout {
+            sequence: 10
+            region: @test-rule
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    dynamicAction test-rule (
+        name: Test the rules
+        execution {
+            sequence: 50
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @test-rule
+        }
+
+        action test-rule-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @test-rule
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
     region buttons (
         name: Buttons
         type: staticContent

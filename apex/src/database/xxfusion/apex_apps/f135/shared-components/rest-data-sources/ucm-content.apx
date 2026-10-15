@@ -1,0 +1,43 @@
+restDataSource UCM_CONTENT (
+    name: WebCenter Content
+    source {
+        type: http
+        remoteServer: @UCM_MAIN
+        urlPathPrefix: /cs/idcplg
+    }
+    authentication {
+        credentials: @XXFND_UCM_CRED
+    }
+    comments {
+        comments: Release 83 - the document store in Oracle WebCenter Content (attachments, server UCM_MAIN). Its server and Web Credential are kept by the workspace administrator; COMMON calls it through XXFND_INTEGRATION_PKG.
+    }
+
+    dataProfile {
+        name: UCM_CONTENT
+        rowSelector: ResultSets
+    }
+
+    dataProfileColumn id (
+        columnName: ID
+        source {
+            sequence: 1
+            dataType: varchar2
+            primaryKey: true
+        }
+        parsing {
+            pathExpression: dID
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    operation get-rows (
+        label: GET
+        operation {
+            urlPattern: .
+            httpMethod: get
+            databaseOperation: fetchRows
+        }
+    )
+)

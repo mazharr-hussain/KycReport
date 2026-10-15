@@ -135,6 +135,23 @@ installScript 05-core-packages-part-1-of-2 (
     }
 )
 
+installScript 05c-lookups-package (
+    execution {
+        sequence: 56
+    }
+    script {
+        contentFile: 05c-lookup-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 06-core-packages-part-2-of-2 (
     execution {
         sequence: 60
@@ -254,12 +271,12 @@ installScript 09c-shared-objects-formerly-in-kyc-scripts (
     }
 )
 
-installScript 09d-application-functions-table-and-package (
+installScript 09d-applications-package-functions-setup-types-administration-scope (
     execution {
         sequence: 98
     }
     script {
-        contentFile: 09d-application-functions.sql
+        contentFile: 09d-application-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -356,12 +373,12 @@ installScript 13a-database-document-store (
     }
 )
 
-installScript 13-document-store (
+installScript 05b-integrations-package (
     execution {
         sequence: 130
     }
     script {
-        contentFile: 13-document-store.sql
+        contentFile: 05b-integration-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -379,6 +396,23 @@ installScript 14-attachments (
     }
     script {
         contentFile: 14-attachments.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 14b-retention-placeholder (
+    execution {
+        sequence: 145
+    }
+    script {
+        contentFile: 14b-retention-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -413,23 +447,6 @@ installScript 15e-communications-e-mail-with-outside-parties (
     }
     script {
         contentFile: 15e-communications.sql
-    }
-    serverSideCondition {
-        type: expression
-        language: sql
-        sqlExpression:
-            ```sql
-            sys_context('userenv', 'current_schema') = 'XXFUSION'
-            ```
-    }
-)
-
-installScript 15b-common-workflow-runtime (
-    execution {
-        sequence: 152
-    }
-    script {
-        contentFile: 15b-workflow-runtime.sql
     }
     serverSideCondition {
         type: expression
@@ -526,12 +543,12 @@ installScript 16i-administration-scope (
     }
 )
 
-installScript 16j-authentication-and-authorization (
+installScript 16j-users-package-users-sign-in-authorization (
     execution {
         sequence: 175
     }
     script {
-        contentFile: 16j-auth-pkg.sql
+        contentFile: 16j-user-pkg.sql
     }
     serverSideCondition {
         type: expression
@@ -634,6 +651,176 @@ installScript 21c-setup-types (
     }
     script {
         contentFile: 21c-setup-types.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 22-common-modules (
+    execution {
+        sequence: 213
+    }
+    script {
+        contentFile: 22-common-modules.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 23-common-security-module (
+    execution {
+        sequence: 214
+    }
+    script {
+        contentFile: 23-security-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 21d-application-settings-package (
+    execution {
+        sequence: 216
+    }
+    script {
+        contentFile: 21d-app-setting-pkg.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 24-workflow-module (
+    execution {
+        sequence: 217
+    }
+    script {
+        contentFile: 24-workflow-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 25-integrations-module (
+    execution {
+        sequence: 218
+    }
+    script {
+        contentFile: 25-integrations-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 26-notifications-module (
+    execution {
+        sequence: 219
+    }
+    script {
+        contentFile: 26-notifications-module.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 27-shared-screens (
+    execution {
+        sequence: 220
+    }
+    script {
+        contentFile: 27-shared-screens.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 28-registration-and-onboarding (
+    execution {
+        sequence: 221
+    }
+    script {
+        contentFile: 28-registration.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 29-workspace-servers-and-storage-per-application (
+    execution {
+        sequence: 222
+    }
+    script {
+        contentFile: 29-servers.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 30-application-journey (
+    execution {
+        sequence: 223
+    }
+    script {
+        contentFile: 30-application-journey.sql
     }
     serverSideCondition {
         type: expression

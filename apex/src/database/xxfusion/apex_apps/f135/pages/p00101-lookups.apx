@@ -52,7 +52,7 @@ page 101 (
                                    t.meaning,
                                    t.description,
                                    nvl(t.application_code, 'Shared') as application_code,
-                                   xxfnd_util_pkg.lookup_meaning('CUSTOMIZATION_LEVEL', t.customization_level) as customization_level,
+                                   xxfnd_lookup_pkg.lookup_meaning('CUSTOMIZATION_LEVEL', t.customization_level) as customization_level,
                                    (select count(*) from xxfnd_lookup_values v where v.lookup_type = t.lookup_type) as value_count
                               from xxfnd_lookup_types t
                 ) q

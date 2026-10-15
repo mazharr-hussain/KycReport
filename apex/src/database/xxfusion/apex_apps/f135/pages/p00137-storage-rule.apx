@@ -1,17 +1,15 @@
 page 137 (
-    name: Storage Rule
+    name: Application Storage
     alias: STORAGE-RULE
-    title: Storage Rule
+    title: Application Storage
     pageGroup: @administration
     appearance {
         pageMode: modalDialog
-        dialogTemplate: @/drawer
-        templateOptions: [
-            #DEFAULT#
-            js-dialog-class-t-Drawer--pullOutEnd
-        ]
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
     }
     dialog {
+        width: 1100
         chained: false
     }
     security {
@@ -20,31 +18,403 @@ page 137 (
         formAutoComplete: false
     }
     help {
-        helpText: UCM needs a security group; SharePoint needs the site and drive IDs.
+        helpText:
+            ```
+            The one storage editor of an application (release 86; P137_APPLICATION_CODE, opened from the Storage tab and from the
+            application journey). Application default: a storage server of the workspace with the application's site and document
+            library (SharePoint), bucket (OCI Object Storage) or security group, account and document type (UCM), and the folder;
+            no server = the database. Categories: every field may override the application's (empty = as the application; the
+            server may be another one, or Database). Folder tokens: #CATEGORY#, #ENTITY_NAME#, #PK1_VALUE#, #YYYY#; default
+            /#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#. While the setup is incomplete the documents are kept in the database
+            (state "INCOMPLETE - using database"); documents already stored keep their place.
+            ```
     }
 
-    region form (
-        name: Storage Rule
-        type: form
-        source {
-            location: localDatabase
-            type: tableView
-            tableName: XXFND_STORAGE_CONFIG
-        }
+    region application (
+        name: Application Default
+        type: staticContent
         layout {
             sequence: 10
-            slot: contentBody
+            slot: BODY
         }
         appearance {
-            template: @/blank-with-attributes
+            template: @/standard
             templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: application-default
+        }
+    )
+
+    region categories (
+        name: Categories
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: each category the application uses, its overrides and the value each field takes
+                select v.category_code, v.category_name,
+                       case when v.server_type = 'DATABASE' then 'DATABASE'
+                            else v.server_code end                                  as server_code,
+                       v.site, v.library, v.bucket, v.security_group, v.account, v.document_type, v.folder,
+                       nvl(v.effective_server_name, 'Database')
+                         || case v.effective_server_type
+                                 when 'SHAREPOINT'     then ' - ' || v.effective_site || ' / ' || v.effective_library
+                                 when 'OBJECT_STORAGE' then ' - ' || v.effective_bucket
+                                 when 'UCM'            then ' - ' || v.effective_security_group
+                            end
+                         || case when v.effective_server_code is not null then ' - ' || v.effective_folder end as effective_storage,
+                       v.state || case when v.incomplete_reason is not null then ': needs ' || v.incomplete_reason end as state
+                  from xxfnd_app_storage_v v
+                 where v.application_code = :P137_APPLICATION_CODE
+                   and v.category_code is not null
+                ```
+            pageItemsToSubmit: P137_APPLICATION_CODE
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: categories
         }
         edit {
             enabled: true
+            allowedOperations: [
+                update
+            ]
         }
-        advanced {
-            htmlDomId: form
+        pagination {
+            type: scroll
+            showTotalCount: true
         }
+        messages {
+            whenNoDataFound: No document category for this application.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+            ]
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @SERVER_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @SITE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @LIBRARY
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @BUCKET
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @SECURITY_GROUP
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @ACCOUNT
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @DOCUMENT_TYPE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @FOLDER
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @EFFECTIVE_STORAGE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @STATE
+                layout {
+                    sequence: 11
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: displayOnly
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+        )
+
+        column SERVER_CODE (
+            type: selectList
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select display_value, return_value
+                      from (select 'Database' as display_value, 'DATABASE' as return_value, 0 as seq from dual
+                            union all
+                            select server_name || ' (' || server_type_name || ')', server_code, 1
+                              from xxfnd_servers_v
+                             where usage = 'STORAGE')
+                     order by seq, display_value
+                    ```
+                displayNullValue: true
+                nullDisplayValue: As the application
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SERVER_CODE
+                dataType: varchar2
+            }
+            help {
+                helpText: Empty = the application's server; Database = this category in the database; or another storage server.
+            }
+        )
+
+        column SITE (
+            type: textField
+            heading {
+                heading: Site
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SITE
+                dataType: varchar2
+            }
+        )
+
+        column LIBRARY (
+            type: textField
+            heading {
+                heading: Document Library
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LIBRARY
+                dataType: varchar2
+            }
+        )
+
+        column BUCKET (
+            type: textField
+            heading {
+                heading: Bucket
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BUCKET
+                dataType: varchar2
+            }
+        )
+
+        column SECURITY_GROUP (
+            type: textField
+            heading {
+                heading: Security Group
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SECURITY_GROUP
+                dataType: varchar2
+            }
+        )
+
+        column ACCOUNT (
+            type: textField
+            heading {
+                heading: Account
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ACCOUNT
+                dataType: varchar2
+            }
+        )
+
+        column DOCUMENT_TYPE (
+            type: textField
+            heading {
+                heading: Document Type
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DOCUMENT_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column FOLDER (
+            type: textField
+            heading {
+                heading: Folder
+            }
+            layout {
+                sequence: 100
+            }
+            validation {
+                maxLength: 1000
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FOLDER
+                dataType: varchar2
+            }
+        )
+
+        column EFFECTIVE_STORAGE (
+            type: displayOnly
+            heading {
+                heading: Stored In
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: EFFECTIVE_STORAGE
+                dataType: varchar2
+                queryOnly: true
+            }
+        )
+
+        column STATE (
+            type: displayOnly
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: STATE
+                dataType: varchar2
+                queryOnly: true
+            }
+        )
     )
 
     region buttons (
@@ -60,254 +430,202 @@ page 137 (
         }
     )
 
-    pageItem P137_STORAGE_CONFIG_ID (
+    pageItem P137_APPLICATION_CODE (
         type: hidden
         layout {
             sequence: 1
-            region: @form
+            region: @application
             slot: regionBody
-        }
-        source {
-            formRegion: @form
-            column: STORAGE_CONFIG_ID
-            dataType: number
-            primaryKey: true
         }
         security {
             sessionStateProtection: checksumRequiredSessionLevel
         }
     )
 
-    pageItem P137_APPLICATION_CODE (
-        type: selectList
+    pageItem P137_SERVER_TYPE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @application
+            slot: regionBody
+        }
+    )
+
+    pageItem P137_APPLICATION_NAME (
+        type: displayOnly
         label {
             label: Application
             alignment: left
         }
-        lov {
-            type: sharedComponent
-            lov: @lov-applications
-            displayNullValue: true
-            nullDisplayValue: All applications (instance)
-        }
         layout {
-            sequence: 15
-            region: @form
+            sequence: 5
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        readOnly {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
-                ```
-        }
-        source {
-            formRegion: @form
-            column: APPLICATION_CODE
-            dataType: varchar2
-        }
-        default {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                nullif(:G_ADMIN_APP, 'ALL')
-                ```
+        settings {
+            sendOnPageSubmit: false
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            helpText: 'The application whose storage this is (COMMON = the instance).'
         }
     )
 
-    pageItem P137_ENTITY_NAME (
+    pageItem P137_SERVER_CODE (
         type: selectList
         label {
-            label: Entity
+            label: Server
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-entities
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select server_name || ' (' || server_type_name || case when status <> 'OK' then ' - ' || status_text end || ')' as display_value,
+                       server_code as return_value
+                  from xxfnd_servers_v
+                 where usage = 'STORAGE'
+                 order by server_name
+                ```
             displayNullValue: true
-            nullDisplayValue: - Any -
+            nullDisplayValue: Database (no server)
         }
         layout {
             sequence: 10
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        source {
-            formRegion: @form
-            column: ENTITY_NAME
-            dataType: varchar2
-        }
         help {
-            helpText: Choose the entity.
+            helpText: 'A storage server of the workspace (Servers tab); empty = the database.'
         }
     )
 
-    pageItem P137_CATEGORY_CODE (
-        type: selectList
+    pageItem P137_SITE (
+        type: textField
         label {
-            label: Category
+            label: SharePoint Site
             alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-categories
-            displayNullValue: true
-            nullDisplayValue: - Any -
         }
         layout {
             sequence: 20
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        source {
-            formRegion: @form
-            column: CATEGORY_CODE
-            dataType: varchar2
+        validation {
+            maxLength: 500
         }
         help {
-            helpText: Choose the category.
+            helpText: 'SharePoint: the site (Microsoft Graph site ID).'
         }
     )
 
-    pageItem P137_STORAGE_TYPE (
-        type: selectList
+    pageItem P137_LIBRARY (
+        type: textField
         label {
-            label: Store
+            label: Document Library
             alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-storage-type
-            displayNullValue: true
-            nullDisplayValue: - Select -
         }
         layout {
             sequence: 30
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 6
         }
         appearance {
-            template: @/required-above
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
-            valueRequired: true
-        }
-        source {
-            formRegion: @form
-            column: STORAGE_TYPE
-            dataType: varchar2
+            maxLength: 500
         }
         help {
-            helpText: Choose the store.
+            helpText: 'SharePoint: the document library (Microsoft Graph drive ID).'
         }
     )
 
-    pageItem P137_ENDPOINT_CODE (
-        type: selectList
+    pageItem P137_BUCKET (
+        type: textField
         label {
-            label: Endpoint
+            label: Bucket
             alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-endpoints
-            displayNullValue: true
-            nullDisplayValue: - Select -
         }
         layout {
             sequence: 40
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
-            template: @/required-above
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
-            valueRequired: true
-        }
-        source {
-            formRegion: @form
-            column: ENDPOINT_CODE
-            dataType: varchar2
+            maxLength: 255
         }
         help {
-            helpText: Choose the endpoint.
+            helpText: 'OCI Object Storage: the bucket.'
         }
     )
 
-    pageItem P137_FOLDER_PATH_TEMPLATE (
+    pageItem P137_SECURITY_GROUP (
         type: textField
         label {
-            label: Folder Template
+            label: Security Group
             alignment: left
         }
         layout {
             sequence: 50
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
-            template: @/required-above
+            template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
-            valueRequired: true
-            maxLength: 1000
-        }
-        source {
-            formRegion: @form
-            column: FOLDER_PATH_TEMPLATE
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: /#ENTITY_NAME#/#PK1_VALUE#
+            maxLength: 100
         }
         help {
-            helpText:
-                ```
-                Tokens: #ENTITY_NAME#, #PK1_VALUE#..#PK5_VALUE#, #CATEGORY_CODE#, #YYYY#.
-                ```
+            helpText: 'UCM: the security group (required).'
         }
     )
 
-    pageItem P137_UCM_SECURITY_GROUP (
+    pageItem P137_ACCOUNT (
         type: textField
         label {
-            label: UCM Security Group
+            label: Account
             alignment: left
         }
         layout {
             sequence: 60
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -316,27 +634,24 @@ page 137 (
         validation {
             maxLength: 100
         }
-        source {
-            formRegion: @form
-            column: UCM_SECURITY_GROUP
-            dataType: varchar2
-        }
         help {
-            helpText: Enter the uCM Security Group.
+            helpText: 'UCM: the account (optional).'
         }
     )
 
-    pageItem P137_UCM_DOC_TYPE (
+    pageItem P137_DOCUMENT_TYPE (
         type: textField
         label {
-            label: UCM Document Type
+            label: Document Type
             alignment: left
         }
         layout {
             sequence: 70
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -345,169 +660,91 @@ page 137 (
         validation {
             maxLength: 100
         }
-        source {
-            formRegion: @form
-            column: UCM_DOC_TYPE
-            dataType: varchar2
-        }
         help {
-            helpText: Enter the uCM Document Type.
+            helpText: 'UCM: the document type (default Document).'
         }
     )
 
-    pageItem P137_UCM_DOC_ACCOUNT (
+    pageItem P137_FOLDER (
         type: textField
         label {
-            label: UCM Account
+            label: Folder
             alignment: left
         }
         layout {
             sequence: 80
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 12
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
         validation {
-            maxLength: 100
-        }
-        source {
-            formRegion: @form
-            column: UCM_DOC_ACCOUNT
-            dataType: varchar2
+            maxLength: 1000
         }
         help {
-            helpText: Enter the uCM Account.
+            helpText: 'Folder of new files; empty = /#CATEGORY#/#ENTITY_NAME#/#PK1_VALUE#. Tokens: #CATEGORY#, #ENTITY_NAME#, #PK1_VALUE#..#PK5_VALUE#, #YYYY#.'
         }
     )
 
-    pageItem P137_SHAREPOINT_SITE_ID (
-        type: textField
+    pageItem P137_STATE (
+        type: displayOnly
         label {
-            label: SharePoint Site ID
+            label: State
             alignment: left
         }
         layout {
             sequence: 90
-            region: @form
+            region: @application
             slot: regionBody
             alignment: left
+            columnSpan: 12
         }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 500
-        }
-        source {
-            formRegion: @form
-            column: SHAREPOINT_SITE_ID
-            dataType: varchar2
-        }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
+        settings {
+            sendOnPageSubmit: false
         }
         help {
-            helpText: Enter the sharePoint Site ID.
+            helpText: 'OK, or INCOMPLETE - using database with what is missing.'
         }
     )
 
-    pageItem P137_SHAREPOINT_DRIVE_ID (
-        type: textField
-        label {
-            label: SharePoint Drive ID
-            alignment: left
-        }
-        layout {
-            sequence: 100
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            maxLength: 500
-        }
+    process load-application (
+        name: Load the application default
+        type: executeCode
         source {
-            formRegion: @form
-            column: SHAREPOINT_DRIVE_ID
-            dataType: varchar2
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: the application line of XXFND_APP_STORAGE_V (reads only)
+                for v in (select application_name, server_code, site, library, bucket, security_group, account,
+                                 document_type, folder, effective_server_type,
+                                 state || case when incomplete_reason is not null then ': needs ' || incomplete_reason end as state
+                            from xxfnd_app_storage_v
+                           where application_code = :P137_APPLICATION_CODE and category_code is null) loop
+                    :P137_APPLICATION_NAME := v.application_name;
+                    :P137_SERVER_CODE      := v.server_code;
+                    :P137_SERVER_TYPE      := case when v.server_code is not null then v.effective_server_type end;
+                    :P137_SITE             := v.site;
+                    :P137_LIBRARY          := v.library;
+                    :P137_BUCKET           := v.bucket;
+                    :P137_SECURITY_GROUP   := v.security_group;
+                    :P137_ACCOUNT          := v.account;
+                    :P137_DOCUMENT_TYPE    := v.document_type;
+                    :P137_FOLDER           := v.folder;
+                    :P137_STATE            := v.state;
+                end loop;
+                ```
         }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
-        }
-        help {
-            helpText: Enter the sharePoint Drive ID.
-        }
-    )
-
-    pageItem P137_PRIORITY (
-        type: numberField
-        label {
-            label: Priority
-            alignment: left
-        }
-        layout {
-            sequence: 110
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-above
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-        }
-        source {
-            formRegion: @form
-            column: PRIORITY
-            dataType: number
-        }
-        default {
-            type: static
-            staticValue: 100
-        }
-        help {
-            helpText: Enter the priority.
-        }
-    )
-
-    pageItem P137_ENABLED_FLAG (
-        type: switch
-        label {
-            label: Enabled
-            alignment: left
-        }
-        layout {
-            sequence: 120
-            region: @form
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        source {
-            formRegion: @form
-            column: ENABLED_FLAG
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: Y
-        }
-        help {
-            helpText: Choose the enabled.
+        execution {
+            sequence: 10
+            point: beforeHeader
         }
     )
 
@@ -528,33 +765,6 @@ page 137 (
         }
     )
 
-    button create (
-        buttonName: CREATE
-        label: Create
-        layout {
-            sequence: 40
-            region: @buttons
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-            databaseAction: insert
-        }
-        serverSideCondition {
-            type: itemIsNull
-            item: P137_STORAGE_CONFIG_ID
-        }
-        security {
-            authorizationScheme: @page-create
-        }
-    )
-
     button save (
         buttonName: SAVE
         label: Apply Changes
@@ -571,46 +781,97 @@ page 137 (
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
-            databaseAction: update
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P137_STORAGE_CONFIG_ID
         }
         security {
             authorizationScheme: @page-manage
         }
     )
 
-    button delete (
-        buttonName: DELETE
-        label: Delete
-        layout {
-            sequence: 20
-            region: @buttons
-            slot: DELETE
+    process save-application (
+        name: Save the application default
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: saved by the attachments package (no DML in the page)
+                xxfnd_attach_pkg.save_app_storage(
+                    p_application_code => :P137_APPLICATION_CODE,
+                    p_server_code      => :P137_SERVER_CODE,
+                    p_site             => :P137_SITE,
+                    p_library          => :P137_LIBRARY,
+                    p_bucket           => :P137_BUCKET,
+                    p_security_group   => :P137_SECURITY_GROUP,
+                    p_account          => :P137_ACCOUNT,
+                    p_document_type    => :P137_DOCUMENT_TYPE,
+                    p_folder           => :P137_FOLDER);
+                ```
         }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
+        execution {
+            sequence: 10
+            point: processing
         }
-        behavior {
-            action: submitPage
-            executeValidations: false
-            warnOnUnsavedChanges: doNotCheck
-            databaseAction: delete
-            requiresConfirmation: true
-        }
-        confirmation {
-            message: &APP_TEXT$DELETE_MSG!RAW.
-            style: danger
+        successMessage {
+            successMessage: Storage saved.
         }
         serverSideCondition {
-            type: itemIsNotNull
-            item: P137_STORAGE_CONFIG_ID
+            type: requestIsContainedInValue
+            value: SAVE
         }
         security {
-            authorizationScheme: @page-manage
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-categories (
+        name: Save the category overrides
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @categories
+        target {
+            targetType: plsqlCode
+            dmlPlsqlCode:
+                ```plsql
+                -- release 86: each changed category through the attachments package (no DML in the page)
+                xxfnd_attach_pkg.save_category_storage(
+                    p_application_code => :P137_APPLICATION_CODE,
+                    p_category_code    => :CATEGORY_CODE,
+                    p_server_code      => :SERVER_CODE,
+                    p_site             => :SITE,
+                    p_library          => :LIBRARY,
+                    p_bucket           => :BUCKET,
+                    p_security_group   => :SECURITY_GROUP,
+                    p_account          => :ACCOUNT,
+                    p_document_type    => :DOCUMENT_TYPE,
+                    p_folder           => :FOLDER);
+                ```
+        }
+        lockRow {
+            preventLostUpdates: false
+            lockRow: false
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
         }
     )
 
@@ -635,47 +896,208 @@ page 137 (
 
     )
 
-    process initialize-form (
-        name: Initialize form
-        type: formInitialization
-        formRegion: @form
+    dynamicAction server-type (
+        name: The server decides the fields
         execution {
-            sequence: 10
-            point: beforeHeader
+            sequence: 20
         }
+        when {
+            event: change
+            selectionType: items
+            items: P137_SERVER_CODE
+        }
+
+        action server-type-set (
+            action: setValue
+            settings {
+                type: sqlQuery
+                itemsToSubmit: P137_SERVER_CODE
+                sqlQuery:
+                    ```sql
+                    select max(server_type) from xxfnd_servers where server_code = :P137_SERVER_CODE
+                    ```
+            }
+            affectedElements {
+                selectionType: items
+                items: P137_SERVER_TYPE
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
-    process process-form (
-        name: Process form
-        type: formAutoRowProcessing
-        formRegion: @form
+    dynamicAction show-sharepoint (
+        name: Fields of the server type - sharepoint
         execution {
-            sequence: 10
-            point: processing
+            sequence: 30
         }
-        successMessage {
-            successMessage: Changes saved.
+        when {
+            event: change
+            selectionType: items
+            items: P137_SERVER_TYPE
         }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P137_SERVER_TYPE.value === 'SHAREPOINT'
         }
-        security {
-            authorizationScheme: @page-submit
-        }
+
+        action show-sharepoint-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P137_SITE,P137_LIBRARY
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-sharepoint-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P137_SITE,P137_LIBRARY
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
     )
 
-    process close-dialog (
-        name: Close Dialog
-        type: closeDialog
+    dynamicAction show-object-storage (
+        name: Fields of the server type - object-storage
         execution {
-            sequence: 90
-            point: processing
+            sequence: 40
         }
-        serverSideCondition {
-            type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+        when {
+            event: change
+            selectionType: items
+            items: P137_SERVER_TYPE
         }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P137_SERVER_TYPE.value === 'OBJECT_STORAGE'
+        }
+
+        action show-object-storage-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P137_BUCKET
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-object-storage-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P137_BUCKET
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
     )
 
+    dynamicAction show-ucm (
+        name: Fields of the server type - ucm
+        execution {
+            sequence: 50
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P137_SERVER_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P137_SERVER_TYPE.value === 'UCM'
+        }
+
+        action show-ucm-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P137_SECURITY_GROUP,P137_ACCOUNT,P137_DOCUMENT_TYPE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-ucm-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P137_SECURITY_GROUP,P137_ACCOUNT,P137_DOCUMENT_TYPE
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    dynamicAction show-folder (
+        name: Fields of the server type - folder
+        execution {
+            sequence: 60
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P137_SERVER_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P137_SERVER_TYPE.value !== ''
+        }
+
+        action show-folder-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P137_FOLDER
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-folder-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P137_FOLDER
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
 )

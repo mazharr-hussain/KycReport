@@ -1,3 +1,10 @@
+-- Release 86: REGISTER_VALUE_SET reads the value set's application; on older databases 16i adds that column, a fresh
+-- install needs it before this body compiles (checked step: nothing when it exists).
+begin
+    xxfnd_ddl_pkg.add_column('XXFND_VALUE_SETS', 'APPLICATION_CODE', 'varchar2(30)');
+end;
+/
+
 create or replace package body xxfnd_dff_pkg as
 
     c_num_nls constant varchar2(40) := 'NLS_NUMERIC_CHARACTERS=''.,''';
@@ -378,6 +385,10 @@ create or replace package body xxfnd_dff_pkg as
         return l_html;
     end field_html;
 
+    -- The fields of a flexfield are defined at runtime (contexts and segments an administrator adds), so no APEX
+    -- page item or template component can render them: FIELD_HTML / RENDER build the Universal Theme field markup
+    -- here (every value escaped with APEX_ESCAPE) for one Dynamic Content region (CLAUDE.md: HTML in PL/SQL only
+    -- when no APEX component can do it).
     function render(p_table_name      in varchar2,
                     p_pk_value        in varchar2,
                     p_context_code    in varchar2 default null,
@@ -693,6 +704,257 @@ create or replace package body xxfnd_dff_pkg as
                 raise;
         end;
     end save;
+
+    ----------------------------------------------------------------------------
+    -- release 80: setup checks, DFV views and the flexfield name (from XXFND_DFF_SETUP_PKG / page 153)
+    ----------------------------------------------------------------------------
+    procedure check_flexfield(p_table_name in varchar2, p_pk_column in varchar2,
+                              p_context_column in varchar2, p_reference_column in varchar2) is
+        l_count pls_integer;
+        procedure need(p_column in varchar2) is
+        begin
+            if p_column is null then
+                return;
+            end if;
+            select count(*) into l_count
+              from all_tab_columns   -- release 54: the table may be in an application's schema
+             where owner = xxfnd_util_pkg.object_owner(p_table_name)
+               and table_name = upper(p_table_name) and column_name = upper(p_column);
+            if l_count = 0 then
+                raise_application_error(-20210, 'Table ' || p_table_name || ' has no column ' || p_column || '.');
+            end if;
+        end need;
+    begin
+        need(p_pk_column);
+        need(p_context_column);
+        need(p_reference_column);
+        need('ATTRIBUTE1');   -- proves the DFF column block is present
+    end check_flexfield;
+
+    procedure check_segment(p_dff_code      in varchar2,
+                            p_context_code  in varchar2,
+                            p_segment_code  in varchar2,
+                            p_column_name   in varchar2,
+                            p_value_set     in varchar2) is
+        l_format  xxfnd_value_sets.format_type%type;
+        l_table   xxfnd_df_flexfields.table_name%type;
+        l_global  varchar2(1);
+        l_count   pls_integer;
+    begin
+        select format_type into l_format from xxfnd_value_sets where value_set_code = p_value_set;
+        if column_family(p_column_name) <> l_format then
+            raise_application_error(-20211, 'Segment ' || p_segment_code || ': a ' || l_format
+                || ' value set needs a ' || l_format || ' column, not ' || p_column_name || '.');
+        end if;
+
+        select table_name into l_table from xxfnd_df_flexfields where descriptive_flexfield_code = p_dff_code;
+        select count(*) into l_count
+          from all_tab_columns
+         where owner = xxfnd_util_pkg.object_owner(l_table) and table_name = l_table and column_name = p_column_name;
+        if l_count = 0 then
+            raise_application_error(-20212, 'Table ' || l_table || ' has no column ' || p_column_name || '.');
+        end if;
+
+        -- A GLOBAL column is on every row, so no context may reuse it, and vice versa.
+        select global_flag into l_global
+          from xxfnd_df_contexts
+         where descriptive_flexfield_code = p_dff_code and context_code = p_context_code;
+        select count(*) into l_count
+          from xxfnd_df_segments s
+          join xxfnd_df_contexts c
+            on c.descriptive_flexfield_code = s.descriptive_flexfield_code and c.context_code = s.context_code
+         where s.descriptive_flexfield_code = p_dff_code
+           and s.column_name = p_column_name
+           and s.context_code <> p_context_code
+           and (l_global = 'Y' or c.global_flag = 'Y');
+        if l_count > 0 then
+            raise_application_error(-20213, 'Column ' || p_column_name
+                || ' is already used by a global segment or, for a global segment, by another context.');
+        end if;
+    end check_segment;
+
+    procedure generate_dfv_view(p_dff_code in varchar2) is
+        l_ff   xxfnd_df_flexfields%rowtype;
+        l_sql  clob;
+        l_name varchar2(128);
+    begin
+        select * into l_ff from xxfnd_df_flexfields where descriptive_flexfield_code = p_dff_code;
+        l_sql := 'create or replace view ' || dbms_assert.simple_sql_name(substr(l_ff.table_name, 1, 124) || '_DFV')
+              || ' as select t.' || dbms_assert.simple_sql_name(l_ff.pk_column_name)
+              || ', t.' || dbms_assert.simple_sql_name(l_ff.context_column_name) || ' context_code';
+        for s in (select s.segment_code, s.column_name, s.context_code, c.global_flag,
+                         count(*) over (partition by s.segment_code) same_code_count
+                    from xxfnd_df_segments s
+                    join xxfnd_df_contexts c
+                      on c.descriptive_flexfield_code = s.descriptive_flexfield_code
+                     and c.context_code = s.context_code
+                   where s.descriptive_flexfield_code = p_dff_code
+                     and s.enabled_flag = 'Y'
+                   order by c.global_flag desc, s.context_code, s.sequence_number)
+        loop
+            -- Segment code alone when unique across contexts, else CONTEXT_SEGMENT.
+            l_name := upper(substr(case when s.same_code_count = 1 then s.segment_code
+                                        else s.context_code || '_' || s.segment_code end, 1, 128));
+            l_name := dbms_assert.enquote_name(l_name, capitalize => false);
+            if s.global_flag = 'Y' then
+                l_sql := l_sql || ', t.' || dbms_assert.simple_sql_name(s.column_name) || ' ' || l_name;
+            else
+                l_sql := l_sql || ', case when t.' || dbms_assert.simple_sql_name(l_ff.context_column_name)
+                      || ' = ' || dbms_assert.enquote_literal(replace(s.context_code, '''', '''''')) || ' then t.'
+                      || dbms_assert.simple_sql_name(s.column_name) || ' end ' || l_name;
+            end if;
+        end loop;
+        l_sql := l_sql || ' from ' || xxfnd_util_pkg.qualified(l_ff.table_name) || ' t';
+        execute immediate l_sql;
+    end generate_dfv_view;
+
+    procedure generate_all_dfv_views is
+    begin
+        -- release 80: only for this schema's own tables - a view of another schema's table belongs to that schema
+        -- (its application creates it); the old views of other schemas' tables are dropped by 12
+        for f in (select descriptive_flexfield_code from xxfnd_df_flexfields d
+                   where enabled_flag = 'Y'
+                     and exists (select 1 from user_tables t where t.table_name = d.table_name)) loop
+            begin
+                generate_dfv_view(f.descriptive_flexfield_code);
+            exception
+                when others then
+                    -- release 54: an application table not (yet) granted to this schema - the view is generated
+                    -- on the next run (the application's install grants its tables, KYC script 19a)
+                    if sqlcode <> -20130 then
+                        raise;
+                    end if;
+            end;
+        end loop;
+    end generate_all_dfv_views;
+
+    procedure save_flexfield_name(p_dff_code in varchar2, p_flexfield_name in varchar2) is
+    begin
+        merge into xxfnd_df_flexfields_tl t
+        using (select p_dff_code code, 'en' lang from dual) s
+           on (t.descriptive_flexfield_code = s.code and t.language_code = s.lang)
+         when matched then update set t.flexfield_name = p_flexfield_name
+         when not matched then insert (descriptive_flexfield_code, language_code, flexfield_name)
+                               values (s.code, s.lang, p_flexfield_name);
+        -- every flexfield has a protected GLOBAL context
+        merge into xxfnd_df_contexts c
+        using (select p_dff_code code from dual) s
+           on (c.descriptive_flexfield_code = s.code and c.context_code = 'GLOBAL')
+         when not matched then insert (descriptive_flexfield_code, context_code, context_name, global_flag, protected_flag)
+                               values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
+    end save_flexfield_name;
+
+    ----------------------------------------------------------------------------
+    -- Release 86: registration
+    ----------------------------------------------------------------------------
+    procedure register_value_set(p_application_code      in varchar2,
+                                 p_value_set_code        in varchar2,
+                                 p_value_set_name        in varchar2,
+                                 p_validation_type       in varchar2 default 'NONE',
+                                 p_format_type           in varchar2 default 'CHAR',
+                                 p_maximum_size          in number   default null,
+                                 p_lookup_type           in varchar2 default null,
+                                 p_parent_value_set_code in varchar2 default null,
+                                 p_table_query           in clob     default null,
+                                 p_description           in varchar2 default null,
+                                 p_uppercase_only_flag   in varchar2 default 'N',
+                                 p_number_precision      in number   default null,
+                                 p_minimum_value         in varchar2 default null,
+                                 p_maximum_value         in varchar2 default null) is
+        l_code varchar2(30)    := xxfnd_application_pkg.setup_code(p_application_code);
+        l_n    pls_integer;
+        l_row  varchar2(30)   ;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_value_sets where value_set_code = upper(p_value_set_code);
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Value set', upper(p_value_set_code), l_row, p_application_code);
+            return;
+        end if;
+        insert into xxfnd_value_sets (value_set_code, value_set_name, description, validation_type, format_type,
+                                      maximum_size, number_precision, minimum_value, maximum_value, uppercase_only_flag,
+                                      lookup_type, parent_value_set_code, table_query, application_code)
+        values (upper(p_value_set_code), p_value_set_name, p_description, upper(nvl(p_validation_type, 'NONE')),
+                upper(nvl(p_format_type, 'CHAR')), p_maximum_size, p_number_precision, p_minimum_value, p_maximum_value,
+                nvl(p_uppercase_only_flag, 'N'), upper(p_lookup_type), upper(p_parent_value_set_code), p_table_query, l_code);
+    end register_value_set;
+
+    procedure register_flexfield(p_application_code             in varchar2,
+                                 p_dff_code                     in varchar2,
+                                 p_table_name                   in varchar2,
+                                 p_pk_column_name               in varchar2,
+                                 p_flexfield_name               in varchar2,
+                                 p_flexfield_name_ar            in varchar2 default null,
+                                 p_context_column_name          in varchar2 default 'ATTRIBUTE_CATEGORY',
+                                 p_context_reference_column     in varchar2 default null,
+                                 p_default_context_code         in varchar2 default null,
+                                 p_context_required_flag        in varchar2 default 'N',
+                                 p_context_user_selectable_flag in varchar2 default 'N',
+                                 p_description                  in varchar2 default null) is
+        l_code  xxfnd_df_flexfields.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
+        l_dff   varchar2(60) := upper(p_dff_code);
+        l_n     pls_integer;
+        l_row   xxfnd_df_flexfields.application_code%type;
+        l_other xxfnd_df_flexfields.descriptive_flexfield_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_df_flexfields where descriptive_flexfield_code = l_dff;
+        if l_n > 0 then
+            xxfnd_application_pkg.assert_same_application('Flexfield', l_dff, l_row, p_application_code);
+        else
+            select max(descriptive_flexfield_code) into l_other from xxfnd_df_flexfields where table_name = upper(p_table_name);
+            if l_other is not null then
+                xxfnd_error_pkg.raise_error('XXFND_REG_DFF_TABLE', apex_t_varchar2(upper(p_table_name), l_other));
+            end if;
+            insert into xxfnd_df_flexfields (descriptive_flexfield_code, application_code, table_name, pk_column_name,
+                                             context_column_name, context_reference_column, default_context_code,
+                                             context_required_flag, context_user_selectable_flag)
+            values (l_dff, l_code, upper(p_table_name), upper(p_pk_column_name),
+                    upper(nvl(p_context_column_name, 'ATTRIBUTE_CATEGORY')), upper(p_context_reference_column),
+                    p_default_context_code, nvl(p_context_required_flag, 'N'), nvl(p_context_user_selectable_flag, 'N'));
+        end if;
+        -- its name (English, Arabic when given) and its protected GLOBAL context, each when missing
+        merge into xxfnd_df_flexfields_tl t
+        using (select l_dff code, 'en' lang, p_flexfield_name name from dual
+               union all
+               select l_dff, 'ar', p_flexfield_name_ar from dual where p_flexfield_name_ar is not null) s
+           on (t.descriptive_flexfield_code = s.code and t.language_code = s.lang)
+         when not matched then insert (descriptive_flexfield_code, language_code, flexfield_name, description)
+                               values (s.code, s.lang, s.name, case when s.lang = 'en' then p_description end);
+        merge into xxfnd_df_contexts c
+        using (select l_dff code from dual) s
+           on (c.descriptive_flexfield_code = s.code and c.context_code = 'GLOBAL')
+         when not matched then insert (descriptive_flexfield_code, context_code, context_name, global_flag, protected_flag)
+                               values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
+    end register_flexfield;
+
+    procedure register_context(p_application_code in varchar2,
+                               p_dff_code         in varchar2,
+                               p_context_code     in varchar2,
+                               p_context_name     in varchar2,
+                               p_context_name_ar  in varchar2 default null,
+                               p_description      in varchar2 default null) is
+        l_dff varchar2(60) := upper(p_dff_code);
+        l_n   pls_integer;
+        l_row xxfnd_df_flexfields.application_code%type;
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+    begin
+        select count(*), max(application_code) into l_n, l_row from xxfnd_df_flexfields where descriptive_flexfield_code = l_dff;
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Flexfield', l_dff));
+        end if;
+        xxfnd_application_pkg.assert_same_application('Flexfield', l_dff, l_row, l_code);
+        merge into xxfnd_df_contexts c
+        using (select l_dff code, upper(p_context_code) ctx from dual) s
+           on (c.descriptive_flexfield_code = s.code and c.context_code = s.ctx)
+         when not matched then insert (descriptive_flexfield_code, context_code, context_name, description)
+                               values (s.code, s.ctx, p_context_name, p_description);
+        if p_context_name_ar is not null then
+            merge into xxfnd_df_contexts_tl t
+            using (select l_dff code, upper(p_context_code) ctx, 'ar' lang from dual) s
+               on (t.descriptive_flexfield_code = s.code and t.context_code = s.ctx and t.language_code = s.lang)
+             when not matched then insert (descriptive_flexfield_code, context_code, language_code, context_name)
+                                   values (s.code, s.ctx, s.lang, p_context_name_ar);
+        end if;
+    end register_context;
 
 end xxfnd_dff_pkg;
 /

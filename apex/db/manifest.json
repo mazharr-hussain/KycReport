@@ -86,6 +86,24 @@
   ]
  },
  {
+  "name": "05b Integrations package",
+  "file": "05b-integration-pkg.sql",
+  "install_sequence": 130,
+  "upgrade_sequence": 90,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "05c Lookups package",
+  "file": "05c-lookup-pkg.sql",
+  "install_sequence": 56,
+  "upgrade_sequence": 16,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "06 Core packages - part 2 of 2",
   "file": "06-core-packages-part-2-of-2.sql",
   "install_sequence": 60,
@@ -168,19 +186,19 @@
   ]
  },
  {
-  "name": "13 Document store",
-  "file": "13-document-store.sql",
-  "install_sequence": 130,
-  "upgrade_sequence": 90,
+  "name": "14 Attachments",
+  "file": "14-attachments.sql",
+  "install_sequence": 140,
+  "upgrade_sequence": 100,
   "apps": [
    "COMMON"
   ]
  },
  {
-  "name": "14 Attachments",
-  "file": "14-attachments.sql",
-  "install_sequence": 140,
-  "upgrade_sequence": 100,
+  "name": "14b Retention (placeholder)",
+  "file": "14b-retention-pkg.sql",
+  "install_sequence": 145,
+  "upgrade_sequence": 105,
   "apps": [
    "COMMON"
   ]
@@ -199,15 +217,6 @@
   "file": "15e-communications.sql",
   "install_sequence": 151,
   "upgrade_sequence": 111,
-  "apps": [
-   "COMMON"
-  ]
- },
- {
-  "name": "15b Common workflow runtime",
-  "file": "15b-workflow-runtime.sql",
-  "install_sequence": 152,
-  "upgrade_sequence": 112,
   "apps": [
    "COMMON"
   ]
@@ -246,8 +255,8 @@
   ]
  },
  {
-  "name": "16j Authentication and authorization",
-  "file": "16j-auth-pkg.sql",
+  "name": "16j Users package (users, sign-in, authorization)",
+  "file": "16j-user-pkg.sql",
   "install_sequence": 175,
   "upgrade_sequence": 135,
   "apps": [
@@ -497,8 +506,8 @@
   ]
  },
  {
-  "name": "09d Application functions - table and package",
-  "file": "09d-application-functions.sql",
+  "name": "09d Applications package (functions, setup types, administration scope)",
+  "file": "09d-application-pkg.sql",
   "install_sequence": 98,
   "upgrade_sequence": 58,
   "apps": [
@@ -534,6 +543,96 @@
   "file": "19c-share-with-applications.sql",
   "install_sequence": 198,
   "upgrade_sequence": 158,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "22 COMMON modules",
+  "file": "22-common-modules.sql",
+  "install_sequence": 213,
+  "upgrade_sequence": 173,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "23 COMMON Security module",
+  "file": "23-security-module.sql",
+  "install_sequence": 214,
+  "upgrade_sequence": 174,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21d Application settings package",
+  "file": "21d-app-setting-pkg.sql",
+  "install_sequence": 216,
+  "upgrade_sequence": 176,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "24 Workflow module",
+  "file": "24-workflow-module.sql",
+  "install_sequence": 217,
+  "upgrade_sequence": 177,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "25 Integrations module",
+  "file": "25-integrations-module.sql",
+  "install_sequence": 218,
+  "upgrade_sequence": 178,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "26 Notifications module",
+  "file": "26-notifications-module.sql",
+  "install_sequence": 219,
+  "upgrade_sequence": 179,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "27 Shared screens",
+  "file": "27-shared-screens.sql",
+  "install_sequence": 220,
+  "upgrade_sequence": 180,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "28 Registration and onboarding",
+  "file": "28-registration.sql",
+  "install_sequence": 221,
+  "upgrade_sequence": 181,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "29 Workspace servers and storage per application",
+  "file": "29-servers.sql",
+  "install_sequence": 222,
+  "upgrade_sequence": 182,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "30 Application journey",
+  "file": "30-application-journey.sql",
+  "install_sequence": 223,
+  "upgrade_sequence": 183,
   "apps": [
    "COMMON"
   ]

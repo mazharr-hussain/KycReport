@@ -20,7 +20,13 @@ page 110 (
         formAutoComplete: false
     }
     help {
-        helpText: The wording of a system email. Tokens are replaced when the email is sent.
+        helpText:
+            ```
+            The wording of a system e-mail: a subject and a plain-text message, in English and in Arabic. The wording is
+            plain text; links, formatting and the reading direction (right to left for Arabic) come from the layout
+            template XXFND_STANDARD, shared with every application. Tokens (#TOKEN#) are replaced when the e-mail is
+            sent. Preview shows the wording as it is sent; Send Test to Me e-mails it to you.
+            ```
     }
 
     region form (
@@ -140,7 +146,7 @@ page 110 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: All applications (instance)
+            nullDisplayValue: Workspace (all applications)
         }
         layout {
             sequence: 15
@@ -174,7 +180,7 @@ page 110 (
                 ```
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
         }
     )
 
@@ -208,10 +214,10 @@ page 110 (
         }
     )
 
-    pageItem P110_BODY_HTML (
-        type: richTextEditor
+    pageItem P110_MESSAGE_TEXT (
+        type: textarea
         label {
-            label: Body
+            label: Message
             alignment: left
         }
         layout {
@@ -224,19 +230,23 @@ page 110 (
             template: @/required-above
             templateOptions: #DEFAULT#
         }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
         validation {
             valueRequired: true
         }
         source {
             formRegion: @form
-            column: BODY_HTML
+            column: MESSAGE_TEXT
             dataType: clob
         }
         sessionState {
             dataType: clob
         }
         help {
-            helpText: Use #TOKEN# placeholders, e.g. #ACTIVITY_NAME#, #PK1_VALUE#, #DUE_DATE#.
+            helpText: The message in English, as plain text (no HTML). Use #TOKEN# placeholders such as #TASK_SUBJECT#, #DUE_DATE# or #RFI_NUMBER#. The link button, the formatting and the reading direction come from the layout template XXFND_STANDARD.
         }
     )
 
@@ -392,6 +402,335 @@ page 110 (
             }
         )
 
+    )
+
+    region translation (
+        name: Arabic Translation
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.template_code, t.language_code, t.subject, t.message_text
+                  from xxfnd_notification_templates_tl t
+                 where t.template_code = :P110_TEMPLATE_CODE
+                   and t.language_code = 'ar'
+                ```
+            pageItemsToSubmit: P110_TEMPLATE_CODE
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: translation
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: false
+        }
+        messages {
+            whenNoDataFound: No Arabic wording yet: the English wording is sent.
+        }
+        toolbar {
+            controls: [
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P110_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @SUBJECT
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @MESSAGE_TEXT
+                layout {
+                    sequence: 2
+                }
+            )
+        )
+
+        column TEMPLATE_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TEMPLATE_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P110_TEMPLATE_CODE
+            }
+        )
+
+        column LANGUAGE_CODE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LANGUAGE_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: static
+                staticValue: ar
+            }
+        )
+
+        column SUBJECT (
+            type: textField
+            heading {
+                heading: Subject - Arabic
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 500
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SUBJECT
+                dataType: varchar2
+            }
+        )
+
+        column MESSAGE_TEXT (
+            type: textarea
+            heading {
+                heading: Message - Arabic
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: MESSAGE_TEXT
+                dataType: clob
+            }
+        )
+    )
+
+    region preview (
+        name: Preview
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82: the wording as it is sent (XXFND_NOTIFY_PKG), in the chosen language
+                select xxfnd_notify_pkg.preview_subject(:P110_TEMPLATE_CODE, :P110_PREVIEW_LANGUAGE) as subject,
+                       dbms_lob.substr(xxfnd_notify_pkg.preview_message(:P110_TEMPLATE_CODE, :P110_PREVIEW_LANGUAGE), 4000, 1) as message
+                  from dual
+                ```
+            pageItemsToSubmit: [
+                P110_TEMPLATE_CODE
+                P110_PREVIEW_LANGUAGE
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: preview
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: No wording.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P110_SAVED
+        }
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Subject
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column MESSAGE (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 20
+            }
+        )
+    )
+
+    pageItem P110_PREVIEW_LANGUAGE (
+        type: selectList
+        label {
+            label: Language
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:English;en,Arabic;ar
+        }
+        layout {
+            sequence: 10
+            region: @preview
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: en
+        }
+        help {
+            helpText: The language to preview and to send the test in.
+        }
+    )
+
+    button send-test (
+        buttonName: SEND_TEST
+        label: Send Test to Me
+        layout {
+            sequence: 10
+            region: @preview
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+    dynamicAction refresh-preview (
+        name: Refresh the preview
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: [
+                P110_PREVIEW_LANGUAGE
+            ]
+        }
+
+        action refresh-preview-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @preview
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process send-test (
+        name: Send a test to me
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 82: the wording in the chosen language, to the current user's e-mail address
+                xxfnd_notify_pkg.send_test(:P110_TEMPLATE_CODE, :P110_PREVIEW_LANGUAGE);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: The test e-mail was sent to you.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SEND_TEST
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+    process save-translation (
+        name: Save the Arabic wording
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @translation
+        execution {
+            sequence: 20
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
     )
 
     process initialize-form (

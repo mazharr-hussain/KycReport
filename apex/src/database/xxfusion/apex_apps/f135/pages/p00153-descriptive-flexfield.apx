@@ -77,6 +77,7 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
@@ -147,6 +148,8 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 5
         }
         appearance {
             template: @/required-above
@@ -179,13 +182,15 @@ page 153 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: All applications (instance)
+            nullDisplayValue: Workspace (all applications)
         }
         layout {
             sequence: 15
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 3
         }
         appearance {
             template: @/optional-above
@@ -213,7 +218,7 @@ page 153 (
                 ```
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
         }
     )
 
@@ -246,6 +251,7 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/required-above
@@ -302,6 +308,7 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
@@ -350,6 +357,8 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
@@ -402,6 +411,8 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -428,6 +439,7 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 6
         }
         appearance {
             template: @/optional-above
@@ -457,6 +469,7 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -487,6 +500,8 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -517,6 +532,8 @@ page 153 (
             region: @form
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
@@ -1510,18 +1527,8 @@ page 153 (
             language: plsql
             plsqlCode:
                 ```plsql
-                merge into xxfnd_df_flexfields_tl t
-                using (select :P153_DESCRIPTIVE_FLEXFIELD_CODE code, 'en' lang from dual) s
-                   on (t.descriptive_flexfield_code = s.code and t.language_code = s.lang)
-                 when matched then update set t.flexfield_name = :P153_FLEXFIELD_NAME
-                 when not matched then insert (descriptive_flexfield_code, language_code, flexfield_name)
-                                       values (s.code, s.lang, :P153_FLEXFIELD_NAME);
-                -- Every flexfield has a protected GLOBAL context.
-                merge into xxfnd_df_contexts c
-                using (select :P153_DESCRIPTIVE_FLEXFIELD_CODE code from dual) s
-                   on (c.descriptive_flexfield_code = s.code and c.context_code = 'GLOBAL')
-                 when not matched then insert (descriptive_flexfield_code, context_code, context_name, global_flag, protected_flag)
-                                       values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
+                -- release 80: the Flexfields package saves the name and the protected GLOBAL context (no DML on the page)
+                xxfnd_dff_pkg.save_flexfield_name(:P153_DESCRIPTIVE_FLEXFIELD_CODE, :P153_FLEXFIELD_NAME);
                 ```
         }
         execution {

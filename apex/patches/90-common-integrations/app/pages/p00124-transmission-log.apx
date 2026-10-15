@@ -1,0 +1,291 @@
+page 124 (
+    name: Transmission Log
+    alias: TRANSMISSION-LOG
+    title: Transmission Log
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every request to an outside system, from APEX's own web service log: time, URL, method, HTTP status and elapsed time.
+            Calls made through the COMMON call procedure also show their purpose and record; a failed one can be retried from its
+            detail. Calls a page makes directly through a REST Data Source are shown but not retried: repeat the action on that page.
+            ```
+    }
+
+    region breadcrumb (
+        name: Transmission Log
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region log (
+        name: Transmission Log
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 83: APEX_WEBSERVICE_LOG with the purpose and record of the calls made through XXFND_INTEGRATION_PKG
+                select w.id                                     as log_id,
+                       w.request_date,
+                       c.purpose_code,
+                       c.server_static_id,
+                       case when c.entity_name is not null then c.entity_name || ': ' || c.pk1_value end as record,
+                       w.http_method,
+                       w.url,
+                       w.status_code                            as http_status,
+                       round(w.elapsed_sec, 3)                  as elapsed_sec,
+                       case when c.call_id is null then 'Direct (REST Data Source)'
+                            when c.status_code = 'FAILED' then 'Failed'
+                            else 'Done' end                     as call_status,
+                       w.apex_or_db_user                        as called_by,
+                       case when c.call_id is not null then
+                            apex_page.get_url(p_page => 125, p_items => 'P125_CALL_ID', p_values => to_char(c.call_id),
+                                              p_clear_cache => '125') end as open_url
+                  from apex_webservice_log w
+                  left join xxfnd_integration_calls c on c.webservice_log_id = w.id
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: log
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No request yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column LOG_ID (
+            type: hidden
+            heading {
+                heading: Log
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column REQUEST_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column PURPOSE_CODE (
+            type: plainText
+            heading {
+                heading: Purpose
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SERVER_STATIC_ID (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECORD (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HTTP_METHOD (
+            type: plainText
+            heading {
+                heading: Method
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HTTP_STATUS (
+            type: plainText
+            heading {
+                heading: HTTP Status
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ELAPSED_SEC (
+            type: plainText
+            heading {
+                heading: Seconds
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CALL_STATUS (
+            type: plainText
+            heading {
+                heading: Call
+            }
+            layout {
+                sequence: 100
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#CALL_STATUS#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CALLED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    dynamicAction refresh-log (
+        name: Refresh after the dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @log
+        }
+
+        action refresh-log-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @log
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+)

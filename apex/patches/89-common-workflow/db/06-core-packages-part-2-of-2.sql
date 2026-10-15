@@ -1,0 +1,2 @@
+-- release 74: the body of XXFND_APPROVAL_PKG is in 15-workflow.sql (it also creates the approval tasks, which need
+-- XXFND_WORKFLOW_PKG); nothing calls it before script 15.

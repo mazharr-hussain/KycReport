@@ -255,7 +255,7 @@ begin
     constraint xxfnd_wf_delegations_ck2 check (delegator_user_name <> delegate_user_name)
 )~') then
         xxfnd_ddl_pkg.run(q'~create index xxfnd_wf_delegations_n1 on xxfnd_wf_delegations (delegator_user_name, start_date, end_date)~');
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_wf_delegations is 'Delegations (vacation rules): tasks of the delegator are also offered to the delegate between the dates. Read by XXFND_TASK_PKG.VACATION_RULE.'~');
+        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_wf_delegations is 'Delegations (vacation rules): tasks of the delegator are also offered to the delegate between the dates. Read by XXFND_WORKFLOW_PKG.VACATION_RULE.'~');
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_wf_delegations.task_definition is 'Task definition static ID; null = every task.'~');
     end if;
 end;

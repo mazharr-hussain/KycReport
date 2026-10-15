@@ -47,7 +47,7 @@ page 132 (
 
                             select nvl(c.application_code, 'Shared') as application_code,
                                    c.category_code, c.category_name,
-                                   xxfnd_util_pkg.lookup_meaning('DOC_DATATYPE', c.default_datatype_code) as default_datatype,
+                                   xxfnd_lookup_pkg.lookup_meaning('DOC_DATATYPE', c.default_datatype_code) as default_datatype,
                                    c.has_expiry_flag, c.max_age_days, c.enabled_flag, c.start_date_active, c.end_date_active
                               from xxfnd_document_categories_vl c
                 ) q

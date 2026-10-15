@@ -1,0 +1,578 @@
+page 47 (
+    name: Attachments
+    alias: ATTACHMENTS
+    title: Attachments
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The documents of one record of any application (the application opens this page with its alias, page, region,
+            entity and key): download or view, add, replace with a new version, remove. Who may change them here is the calling
+            page's attachment registration (Documents and Records > Attachment Pages); the record must be one you may see.
+            ```
+    }
+
+    region breadcrumb (
+        name: Attachments
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region record (
+        name: Record
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: record
+        }
+    )
+    pageItem P47_APP_ALIAS (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The record is shown only when the user may see it (XXFND_ATTACH_PKG.RECORD_VISIBLE); changes are checked by XXFND_ATTACH_PKG.ASSERT_CHANGE (the calling page's attachment registration).
+                ```
+        }
+    )
+    pageItem P47_SOURCE_PAGE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The record is shown only when the user may see it (XXFND_ATTACH_PKG.RECORD_VISIBLE); changes are checked by XXFND_ATTACH_PKG.ASSERT_CHANGE (the calling page's attachment registration).
+                ```
+        }
+    )
+    pageItem P47_SOURCE_REGION (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The record is shown only when the user may see it (XXFND_ATTACH_PKG.RECORD_VISIBLE); changes are checked by XXFND_ATTACH_PKG.ASSERT_CHANGE (the calling page's attachment registration).
+                ```
+        }
+    )
+    pageItem P47_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The record is shown only when the user may see it (XXFND_ATTACH_PKG.RECORD_VISIBLE); changes are checked by XXFND_ATTACH_PKG.ASSERT_CHANGE (the calling page's attachment registration).
+                ```
+        }
+    )
+    pageItem P47_PK1_VALUE (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The record is shown only when the user may see it (XXFND_ATTACH_PKG.RECORD_VISIBLE); changes are checked by XXFND_ATTACH_PKG.ASSERT_CHANGE (the calling page's attachment registration).
+                ```
+        }
+    )
+    pageItem P47_DOCUMENT_ID (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P47_REMOVE_ID (
+        type: hidden
+        layout {
+            sequence: 7
+            region: @record
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P47_RECORD (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @record
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select nvl((select max(user_entity_name) from xxfnd_document_entities_tl
+                             where entity_name = :P47_ENTITY_NAME and language_code = 'en'), :P47_ENTITY_NAME) || ' ' || :P47_PK1_VALUE
+                  from dual
+                ```
+            used: always
+        }
+        help {
+            helpText: The record.
+        }
+    )
+    region not-allowed (
+        name: Not Available
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>This record is not available to you.</p>
+                ```
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: not-allowed
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.record_visible(:P47_ENTITY_NAME, :P47_PK1_VALUE) = 'N'
+                ```
+        }
+    )
+
+    region documents (
+        name: Documents
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: the documents of the record (current versions), with what the calling page lets the user do
+                select d.attached_document_id,
+                       d.category_name,
+                       d.title,
+                       d.file_name,
+                       d.version_number,
+                       d.document_date,
+                       d.expiry_date,
+                       case d.expired_flag when 'Y' then 'Expired' end                                        as expired,
+                       d.created_by,
+                       d.creation_date,
+                       case when d.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 47, p_request => 'DOWNLOAD', p_items => 'P47_DOCUMENT_ID',
+                                             p_values => to_char(d.document_id)) end                           as download_url,
+                       case when d.datatype_code = 'FILE'
+                             and xxfnd_attach_pkg.block_permission(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION,
+                                                                   :P47_ENTITY_NAME, 'UPDATE') = 'Y' then
+                           apex_page.get_url(p_page => 48, p_clear_cache => '48',
+                                             p_items  => 'P48_APP_ALIAS,P48_SOURCE_PAGE,P48_SOURCE_REGION,P48_ENTITY_NAME,P48_PK1_VALUE,P48_ATTACHED_DOCUMENT_ID',
+                                             p_values => :P47_APP_ALIAS || ',' || :P47_SOURCE_PAGE || ',' || :P47_SOURCE_REGION || ','
+                                                         || :P47_ENTITY_NAME || ',' || :P47_PK1_VALUE || ',' || d.attached_document_id) end
+                                                                                                                as replace_url,
+                       case when xxfnd_attach_pkg.block_permission(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION,
+                                                                   :P47_ENTITY_NAME, 'DELETE') = 'Y' then
+                           'javascript:apex.confirm(''Remove this document?'',{request:''REMOVE'',set:{''P47_REMOVE_ID'':'''
+                           || d.attached_document_id || '''}});' end                                            as remove_url,
+                       case when d.datatype_code = 'FILE' then 'Download' end                                as download_label,
+                       case when d.datatype_code = 'FILE'
+                             and xxfnd_attach_pkg.block_permission(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION,
+                                                                   :P47_ENTITY_NAME, 'UPDATE') = 'Y' then 'Replace' end as replace_label,
+                       case when xxfnd_attach_pkg.block_permission(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION,
+                                                                   :P47_ENTITY_NAME, 'DELETE') = 'Y' then 'Remove' end as remove_label
+                  from xxfnd_attached_documents_v d
+                 where d.entity_name = :P47_ENTITY_NAME
+                   and d.pk1_value = :P47_PK1_VALUE
+                   and xxfnd_attach_pkg.record_visible(:P47_ENTITY_NAME, :P47_PK1_VALUE) = 'Y'
+                 order by d.seq_num, d.creation_date
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: documents
+        }
+        messages {
+            whenNoDataFound: No document yet.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.record_visible(:P47_ENTITY_NAME, :P47_PK1_VALUE) = 'Y'
+                ```
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FILE_NAME (
+            type: plainText
+            heading {
+                heading: File
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VERSION_NUMBER (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Issued
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Expired
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added
+            }
+            layout {
+                sequence: 100
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: link
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 110
+            }
+            link {
+                target: {
+                    type: url
+                    url: #DOWNLOAD_URL#
+                }
+                linkText: #DOWNLOAD_LABEL#
+            }
+        )
+
+        column REPLACE_URL (
+            type: link
+            heading {
+                heading: New Version
+            }
+            layout {
+                sequence: 120
+            }
+            link {
+                target: {
+                    type: url
+                    url: #REPLACE_URL#
+                }
+                linkText: #REPLACE_LABEL#
+            }
+        )
+
+        column REMOVE_URL (
+            type: link
+            heading {
+                heading: Remove
+            }
+            layout {
+                sequence: 130
+            }
+            link {
+                target: {
+                    type: url
+                    url: #REMOVE_URL#
+                }
+                linkText: #REMOVE_LABEL#
+            }
+        )
+
+        column DOWNLOAD_LABEL (
+            type: hidden
+            layout {
+                sequence: 140
+            }
+        )
+
+        column REPLACE_LABEL (
+            type: hidden
+            layout {
+                sequence: 150
+            }
+        )
+
+        column REMOVE_LABEL (
+            type: hidden
+            layout {
+                sequence: 160
+            }
+        )
+    )
+    button add (
+        buttonName: ADD
+        label: Add Document
+        layout {
+            sequence: 10
+            region: @documents
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 48
+                items: {
+                    P48_APP_ALIAS: &P47_APP_ALIAS.
+                    P48_SOURCE_PAGE: &P47_SOURCE_PAGE.
+                    P48_SOURCE_REGION: &P47_SOURCE_REGION.
+                    P48_ENTITY_NAME: &P47_ENTITY_NAME.
+                    P48_PK1_VALUE: &P47_PK1_VALUE.
+                }
+                clearCache: 48
+            }
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION, :P47_ENTITY_NAME, 'INSERT') = 'Y'
+                ```
+        }
+    )
+    process download (
+        name: Open a document
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 85: the file of a document of a record the user may see (XXFND_ATTACH_PKG.DOWNLOAD_CHECKED)
+                xxfnd_attach_pkg.download_checked(to_number(:P47_DOCUMENT_ID));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DOWNLOAD
+        }
+    )
+    process remove (
+        name: Remove a document
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 85: allowed by the calling page's registration (checked by the attachment package); the row and the stored
+                -- file remain (soft delete)
+                xxfnd_attach_pkg.assert_change(:P47_APP_ALIAS, to_number(:P47_SOURCE_PAGE), :P47_SOURCE_REGION, :P47_ENTITY_NAME,
+                                               :P47_PK1_VALUE, 'DELETE', to_number(:P47_REMOVE_ID));
+                xxfnd_attach_pkg.remove(to_number(:P47_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: The document is removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)

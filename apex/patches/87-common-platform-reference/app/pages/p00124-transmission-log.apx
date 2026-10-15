@@ -1,0 +1,311 @@
+page 124 (
+    name: Transmission Log
+    alias: TRANSMISSION-LOG
+    title: Transmission Log
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Business-level log of every outbound call. File contents are never logged.
+    }
+
+    region breadcrumb (
+        name: Transmission Log
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Transmission Log
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 125, p_items => 'P125_TRANSMISSION_ID', p_values => to_char(q.transmission_id), p_clear_cache => '125') as open_url
+                  from (
+
+                                          select t.transmission_id, t.sent_date, t.endpoint_code, t.purpose_code, t.entity_name,
+                                                 t.pk1_value, t.http_method, t.request_url, t.response_status_code,
+                                                 xxfnd_lookup_pkg.lookup_meaning('TRANSMISSION_STATUS', t.status_code) as status_code,
+                                                 t.retry_count, t.error_message, t.created_by
+                                            from xxfnd_transmissions t
+                                          -- the application in scope: through its purpose (scoped by data security)
+                                          where exists (select 1 from xxfnd_integration_purposes ip where ip.purpose_code = t.purpose_code)
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column TRANSMISSION_ID (
+            type: hidden
+            heading {
+                heading: Transmission Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column SENT_DATE (
+            type: plainText
+            heading {
+                heading: Sent
+            }
+            layout {
+                sequence: 20
+            }
+            appearance {
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#SENT_DATE#</a>
+                    ```
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column ENDPOINT_CODE (
+            type: plainText
+            heading {
+                heading: Endpoint
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PURPOSE_CODE (
+            type: plainText
+            heading {
+                heading: Purpose
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENTITY_NAME (
+            type: plainText
+            heading {
+                heading: Record Type
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PK1_VALUE (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HTTP_METHOD (
+            type: plainText
+            heading {
+                heading: Method
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REQUEST_URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RESPONSE_STATUS_CODE (
+            type: plainText
+            heading {
+                heading: HTTP Status
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column STATUS_CODE (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RETRY_COUNT (
+            type: plainText
+            heading {
+                heading: Retries
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ERROR_MESSAGE (
+            type: plainText
+            heading {
+                heading: Error
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

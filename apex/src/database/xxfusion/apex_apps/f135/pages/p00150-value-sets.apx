@@ -53,8 +53,8 @@ page 150 (
 
                             select nvl(v.application_code, 'Shared') as application_code,
                                    v.value_set_code, v.value_set_name,
-                                   xxfnd_util_pkg.lookup_meaning('VS_VALIDATION_TYPE', v.validation_type) as validation_type,
-                                   xxfnd_util_pkg.lookup_meaning('VS_FORMAT_TYPE', v.format_type) as format_type,
+                                   xxfnd_lookup_pkg.lookup_meaning('VS_VALIDATION_TYPE', v.validation_type) as validation_type,
+                                   xxfnd_lookup_pkg.lookup_meaning('VS_FORMAT_TYPE', v.format_type) as format_type,
                                    v.maximum_size, v.lookup_type, v.parent_value_set_code
                               from xxfnd_value_sets v
                 ) q

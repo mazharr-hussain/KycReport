@@ -1,0 +1,73 @@
+page 112 (
+    name: Retention
+    alias: RETENTION-POLICIES
+    title: Retention
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Retention is not active yet: no record is flagged, archived or deleted, and no policy applies. When it is
+            built, each policy will send records to a review stage first, then archive or delete them as configured.
+            ```
+    }
+
+    region breadcrumb (
+        name: Retention Policies
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region message (
+        name: Retention
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                Retention is not active yet: no record is flagged, archived or deleted.
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--defaultIcons
+                t-Alert--info
+            ]
+        }
+        advanced {
+            htmlDomId: retention_message
+        }
+        comments {
+            comments: Release 81 - a message only until retention is built (decision D3); the policy report and the Create Policy button are gone, page 113 is no longer opened from here.
+        }
+    )
+
+)

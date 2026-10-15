@@ -13,9 +13,15 @@ begin
     xxfnd_audit_pkg.create_audit_trigger('XXFND_FEATURE_PAGES');
 end;
 /
--- one rule per role, table, rule type and column
-create unique index if not exists xxfnd_data_security_rules_u1
-    on xxfnd_data_security_rules (role_code, table_name, rule_type, nvl(column_name, '#'));
+-- one rule per role, table, rule type, column and values (release 79: rules without a role are assigned to users and
+-- roles, so two department rules on the same column differ by their values; U1 without the values is replaced)
+begin
+    xxfnd_ddl_pkg.drop_index('XXFND_DATA_SECURITY_RULES_U1');
+    xxfnd_ddl_pkg.ensure_index('XXFND_DATA_SECURITY_RULES_U2', q'~create unique index xxfnd_data_security_rules_u2
+        on xxfnd_data_security_rules (nvl(role_code, '#'), table_name, rule_type, nvl(column_name, '#'),
+                                      standard_hash(nvl(value_list, '#')))~');
+end;
+/
 
 comment on column xxfnd_features.home_page_id is 'Page opened by the feature''s menu entry.';
 comment on column xxfnd_feature_pages.tab_label is 'Tab shown on every list page of the same feature; null = not a tab (forms, dialogs).';

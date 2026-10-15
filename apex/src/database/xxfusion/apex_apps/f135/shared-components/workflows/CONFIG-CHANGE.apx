@@ -1,0 +1,114 @@
+workflow CONFIG_CHANGE (
+    name: Configuration Change Approval
+    title: Configuration change &APEX$WORKFLOW_DETAIL_PK.
+    comments {
+        comments: Release 84 - maker-checker of the setup of every application (record = '<table>:<key>' of a table registered with XXFND_CONFIG_TABLES.APPROVAL_FLAG = Y). Started by XXFND_APPROVAL_PKG.REQUEST; a second person approves or rejects in the CONFIG_CHANGE task, whose actions apply or reject the change in the approver's own session.
+    }
+
+    parameter APPLICATION_CODE (
+        label {
+            label: Application
+        }
+        parameter {
+            dataType: varchar2
+            direction: in
+        }
+        comments {
+            comments: The application the record belongs to (XXFND_APPLICATIONS): its workflow / e-mail switches and notification rules apply.
+        }
+    )
+
+    version 1.0 (
+        settings {
+            state: active
+        }
+
+        activity Start (
+            name: Start
+            type: workflowStart
+            layout {
+                sequence: 10
+            }
+            advanced {
+                diagram: {"position":{"x":40,"y":200},"z":10}
+            }
+
+            connection (
+                name: Submit
+                activity {
+                    to: @APPROVAL
+                }
+            )
+
+        )
+
+        activity APPROVAL (
+            name: Approve the change
+            type: humanTaskCreate
+            humanTask {
+                definition: @CONFIG_CHANGE
+                taskIdItem: V_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            result {
+                outcome: V_OUTCOME
+                owner: V_APPROVER
+            }
+            layout {
+                sequence: 20
+            }
+            advanced {
+                diagram: {"position":{"x":240,"y":180},"z":20}
+            }
+
+            connection (
+                name: Decided
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity End (
+            name: End
+            type: workflowEnd
+            layout {
+                sequence: 30
+            }
+            advanced {
+                diagram: {"position":{"x":460,"y":200},"z":30}
+            }
+
+        )
+
+        variable V_TASK_ID (
+            label {
+                label: Approval task
+            }
+        )
+
+        variable V_OUTCOME (
+            label {
+                label: Outcome
+            }
+        )
+
+        variable V_APPROVER (
+            label {
+                label: Approver
+            }
+        )
+
+        participant (
+            name: Workflow administrators
+            type: admin
+            value {
+                type: expression
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
+            }
+        )
+
+    )
+
+)

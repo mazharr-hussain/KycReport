@@ -1,0 +1,584 @@
+page 142 (
+    name: Workflow
+    alias: WORKFLOW
+    title: Workflow
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 960
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One workflow with its tasks. Suspend stops it until it is resumed; Retry runs a faulted step again; Terminate ends it
+            and its open tasks. For a task: Reassign makes the chosen user its owner, Delegate lets the chosen user act on it too,
+            Release gives it back to its potential owners. These actions need Workflow Monitor - Manage.
+            ```
+    }
+
+    region workflow (
+        name: Workflow
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: workflow
+        }
+    )
+
+    pageItem P142_WORKFLOW_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @workflow
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P142_TITLE (
+        type: displayOnly
+        label {
+            label: Workflow
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @workflow
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select title from apex_workflows where workflow_id = :P142_WORKFLOW_ID
+                ```
+        }
+        help {
+            helpText: The workflow of the workflow.
+        }
+    )
+    pageItem P142_APPLICATION (
+        type: displayOnly
+        label {
+            label: Application
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @workflow
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select application_name from apex_workflows where workflow_id = :P142_WORKFLOW_ID
+                ```
+        }
+        help {
+            helpText: The application of the workflow.
+        }
+    )
+    pageItem P142_STATE (
+        type: displayOnly
+        label {
+            label: State
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @workflow
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select state from apex_workflows where workflow_id = :P142_WORKFLOW_ID
+                ```
+        }
+        help {
+            helpText: The state of the workflow.
+        }
+    )
+    pageItem P142_INITIATOR (
+        type: displayOnly
+        label {
+            label: Initiated By
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @workflow
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select initiator from apex_workflows where workflow_id = :P142_WORKFLOW_ID
+                ```
+        }
+        help {
+            helpText: The initiated by of the workflow.
+        }
+    )
+    button suspend (
+        buttonName: SUSPEND
+        label: Suspend
+        layout {
+            sequence: 10
+            region: @workflow
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Suspend this workflow?
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_workflow_pkg.state(:P142_WORKFLOW_ID) in ('ACTIVE')
+                ```
+        }
+    )
+    button resume (
+        buttonName: RESUME
+        label: Resume
+        layout {
+            sequence: 20
+            region: @workflow
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_workflow_pkg.state(:P142_WORKFLOW_ID) in ('SUSPENDED')
+                ```
+        }
+    )
+    button retry (
+        buttonName: RETRY
+        label: Retry
+        layout {
+            sequence: 30
+            region: @workflow
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_workflow_pkg.state(:P142_WORKFLOW_ID) in ('FAULTED')
+                ```
+        }
+    )
+    button terminate (
+        buttonName: TERMINATE
+        label: Terminate
+        layout {
+            sequence: 40
+            region: @workflow
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Terminate this workflow and its open tasks? This cannot be undone.
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_workflow_pkg.state(:P142_WORKFLOW_ID) in ('ACTIVE', 'SUSPENDED', 'FAULTED')
+                ```
+        }
+    )
+    region tasks (
+        name: Tasks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.task_id, t.subject, t.task_def_name as task_type, t.state, t.actual_owner, t.due_on,
+                       (select listagg(p.participant, ', ') within group (order by p.participant) from apex_task_participants p
+                         where p.task_id = t.task_id and p.participant_type = 'POTENTIAL_OWNER') as potential_owners
+                  from apex_tasks t
+                 where t.workflow_id = :P142_WORKFLOW_ID
+                 order by t.created_on
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: tasks
+        }
+        messages {
+            whenNoDataFound: This workflow has no task.
+        }
+
+        column TASK_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TASK_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ACTUAL_OWNER (
+            type: plainText
+            heading {
+                heading: Owner
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column POTENTIAL_OWNERS (
+            type: plainText
+            heading {
+                heading: Potential Owners
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column DUE_ON (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 70
+            }
+        )
+    )
+
+    region task-action (
+        name: Act on a Task
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: task_action
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    pageItem P142_TASK_ID (
+        type: selectList
+        label {
+            label: Task
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select subject || ' (' || state || ')' as display_value, task_id as return_value
+                  from apex_tasks
+                 where workflow_id = :P142_WORKFLOW_ID
+                   and state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED')
+                 order by created_on
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Choose a task -
+        }
+        layout {
+            sequence: 10
+            region: @task-action
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The open task to act on.
+        }
+    )
+
+    pageItem P142_USER (
+        type: popupLov
+        label {
+            label: User
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-employees
+        }
+        layout {
+            sequence: 20
+            region: @task-action
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: For Reassign and Delegate - the user who gets the task.
+        }
+    )
+
+    button reassign (
+        buttonName: REASSIGN
+        label: Reassign
+        layout {
+            sequence: 10
+            region: @task-action
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button delegate (
+        buttonName: DELEGATE
+        label: Delegate
+        layout {
+            sequence: 20
+            region: @task-action
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button release (
+        buttonName: RELEASE
+        label: Release
+        layout {
+            sequence: 30
+            region: @task-action
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process workflow-action (
+        name: Workflow action
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_workflow_pkg.monitor_workflow(:P142_WORKFLOW_ID, :REQUEST);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Done.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUSPEND,RESUME,RETRY,TERMINATE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process task-action (
+        name: Task action
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_workflow_pkg.monitor_task(:P142_TASK_ID, :REQUEST, :P142_USER);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Done.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REASSIGN,DELEGATE,RELEASE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)

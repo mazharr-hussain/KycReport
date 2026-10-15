@@ -106,3 +106,17 @@ appItem G_ADMIN_LOCK (
             ```
     }
 )
+
+
+appItem NOTIFY_COUNT (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 84: the signed-in person's unread notifications (the badge of the bell in the navigation bar); empty when none.
+            ```
+    }
+)

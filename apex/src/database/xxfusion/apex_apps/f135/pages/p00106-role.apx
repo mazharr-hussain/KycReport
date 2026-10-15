@@ -111,6 +111,21 @@ page 106 (
         }
     )
 
+    pageItem P106_FOR_APP (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Release 86 - the application a new role is made for when the application journey (165 / 166) opens this dialog.
+        }
+    )
+
     process set-saved (
         name: Detect existing record
         type: executeCode
@@ -202,7 +217,7 @@ page 106 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                nullif(:G_ADMIN_APP, 'ALL')
+                coalesce(:P106_FOR_APP, nullif(:G_ADMIN_APP, 'ALL'))   -- release 86: the journey's application first
                 ```
         }
         help {
@@ -534,8 +549,466 @@ page 106 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+            value: SAVE,DELETE
         }
     )
 
+    branch (
+        name: After create: stay on the record for its tabs
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 106
+                items: {
+                    P106_ROLE_CODE: &P106_ROLE_CODE.
+                }
+                clearCache: 106
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE
+        }
+    )
+
+
+    pageItem P106_REMOVE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    region access (
+        name: Access
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/tabs-container
+            templateOptions: [
+                #DEFAULT#
+                t-TabsRegion-mod--simple
+            ]
+        }
+        advanced {
+            htmlDomId: access
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_SAVED
+        }
+    )
+
+    region tab-users (
+        name: Users
+        type: staticContent
+        layout {
+            sequence: 10
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_users
+        }
+    )
+    region tab-data (
+        name: Data access
+        type: staticContent
+        layout {
+            sequence: 20
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_data
+        }
+    )
+    region users (
+        name: Users with this role
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: the users holding the role (XXFND_USER_ROLES_V); Remove ends the grant (XXFND_USER_PKG.UNASSIGN_ROLE)
+                select ur.user_role_id,
+                       ur.full_name,
+                       ur.user_name,
+                       ur.start_date_active,
+                       'Remove' as remove
+                  from xxfnd_user_roles_v ur
+                 where ur.role_code = :P106_ROLE_CODE
+                   and ur.active_flag = 'Y'
+                 order by ur.full_name
+                ```
+            pageItemsToSubmit: [
+                P106_ROLE_CODE
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-users
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: role_users
+        }
+        messages {
+            whenNoDataFound: Nobody holds this role yet: Assign Users.
+        }
+
+        column USER_ROLE_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column FULL_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column USER_NAME (
+            type: plainText
+            heading {
+                heading: User Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column START_DATE_ACTIVE (
+            type: plainText
+            heading {
+                heading: Since
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 50
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove the role from this user?',{request:'REMOVE_USER',set:{'P106_REMOVE_ID':'#USER_ROLE_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    region rules (
+        name: Data access rules of this role
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: rules assigned to the role; Remove takes the assignment away (XXFND_VPD_PKG.UNASSIGN_RULE)
+                select a.assignment_id,
+                       d.table_name,
+                       decode(d.rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
+                       d.column_name,
+                       d.value_list,
+                       'Remove' as remove
+                  from xxfnd_data_rule_assignments a
+                  join xxfnd_data_security_rules d on d.rule_id = a.rule_id
+                 where a.role_code = :P106_ROLE_CODE
+                 order by d.table_name, d.rule_type
+                ```
+            pageItemsToSubmit: [
+                P106_ROLE_CODE
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-data
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: role_rules
+        }
+        messages {
+            whenNoDataFound: No data access rule: the role gives no rows of protected tables.
+        }
+
+        column ASSIGNMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RULE_TYPE (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VALUE_LIST (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove this rule from the role?',{request:'REMOVE_RULE',set:{'P106_REMOVE_ID':'#ASSIGNMENT_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    button assign-users (
+        buttonName: ASSIGN_USERS
+        label: Assign Users
+        layout {
+            sequence: 50
+            region: @users
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: ROLE
+                    P183_TARGET_ID: &P106_ROLE_CODE.
+                    P183_PICK: USER
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button assign-rules (
+        buttonName: ASSIGN_RULES
+        label: Assign Rules
+        layout {
+            sequence: 60
+            region: @rules
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: ROLE
+                    P183_TARGET_ID: &P106_ROLE_CODE.
+                    P183_PICK: RULE
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    dynamicAction refresh-after-assign (
+        name: Refresh after the Assign dialog
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @access
+        }
+
+        action refresh-after-assign-refresh-1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @users
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action refresh-after-assign-refresh-2 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rules
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+    process remove-user (
+        name: Remove the role from a user
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_user_pkg.unassign_role(to_number(:P106_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 60
+            point: processing
+        }
+        successMessage {
+            successMessage: Removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_USER
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process remove-rule (
+        name: Remove a data access rule
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_vpd_pkg.unassign_rule(to_number(:P106_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 70
+            point: processing
+        }
+        successMessage {
+            successMessage: Removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_RULE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
 )

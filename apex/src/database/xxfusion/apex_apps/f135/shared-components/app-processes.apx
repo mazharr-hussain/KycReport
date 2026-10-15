@@ -7,7 +7,7 @@ appProcess SET_ADMIN_APP (
             ```plsql
             -- release 73: no application filter - every application (ALL), unless an application opened a setup
             -- screen for itself (delegated: G_ADMIN_LOCK = Y, page 99)
-            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_admin_scope_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
+            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_application_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
             ```
     }
     execution {
@@ -16,5 +16,69 @@ appProcess SET_ADMIN_APP (
     }
     serverSideCondition {
         type: userIsAuthenticated
+    }
+)
+
+appProcess JOURNEY_ACTIONS (
+    name: JOURNEY_ACTIONS
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 86: the row actions of the application journey sections (Global Page regions of pages 165 and 166),
+            -- defined once for both pages. Each action needs the Manage privilege of its own feature and a row of the
+            -- application in P0_JRN_APP, then calls the routine of the component that owns the rule (no DML here).
+            declare
+                l_app varchar2(30)  := :P0_JRN_APP;
+                l_key varchar2(255) := :P0_JRN_KEY;
+                l_n   pls_integer;
+                procedure need(p_feature in varchar2) is
+                begin
+                    if l_app is null or l_key is null
+                       or xxfnd_privilege_pkg.has_privilege_yn(p_feature, 'MANAGE') <> 'Y' then
+                        raise_application_error(-20186, 'You are not allowed to change this for the application.');
+                    end if;
+                end need;
+            begin
+                case
+                    when :REQUEST = 'JRN_REMOVE_USER' then
+                        need('USERS_ACCESS');
+                        select count(*) into l_n from xxfnd_user_roles_v
+                         where user_role_id = to_number(l_key default null on conversion error) and application_code = l_app;
+                        if l_n = 0 then
+                            raise_application_error(-20187, 'The user does not hold a role of this application.');
+                        end if;
+                        xxfnd_user_pkg.unassign_role(to_number(l_key));
+                    when :REQUEST in ('JRN_PROCESS_ON', 'JRN_PROCESS_OFF') then
+                        need('WORKFLOW_SETUP');
+                        xxfnd_workflow_pkg.set_process_enabled(l_app, l_key, case :REQUEST when 'JRN_PROCESS_ON' then 'Y' else 'N' end);
+                    when :REQUEST in ('JRN_RULE_ON', 'JRN_RULE_OFF') then
+                        need('NOTIFICATIONS');
+                        select count(*) into l_n from xxfnd_notify_rules
+                         where rule_id = to_number(l_key default null on conversion error) and application_code = l_app;
+                        if l_n = 0 then
+                            raise_application_error(-20187, 'The notification rule is not a rule of this application.');
+                        end if;
+                        xxfnd_notify_pkg.set_rule_enabled(to_number(l_key), case :REQUEST when 'JRN_RULE_ON' then 'Y' else 'N' end);
+                end case;
+                :P0_JRN_KEY := null;
+            end;
+            ```
+    }
+    execution {
+        sequence: 20
+        point: processing
+    }
+    serverSideCondition {
+        type: expression
+        language: plsql
+        plsqlExpression:
+            ```plsql
+            :APP_PAGE_ID in (165, 166) and :REQUEST in ('JRN_REMOVE_USER', 'JRN_PROCESS_ON', 'JRN_PROCESS_OFF', 'JRN_RULE_ON', 'JRN_RULE_OFF')
+            ```
+    }
+    comments {
+        comments: Release 86 - Remove (a user from a role), Switch on / off (a process or notification rule of the application) in the journey sections shared by pages 165 and 166.
     }
 )

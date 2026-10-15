@@ -22,7 +22,8 @@ page 123 (
     help {
         helpText:
             ```
-            Maker-checker controlled: saving an approved purpose sends it back for approval.
+            Maker-checker controlled: saving an approved purpose sends it back for approval. The one purpose form: opened
+            from the Purposes tab, and from the application journey with the application preset (P123_APPLICATION_CODE).
             ```
     }
 
@@ -173,7 +174,7 @@ page 123 (
             type: sharedComponent
             lov: @lov-applications
             displayNullValue: true
-            nullDisplayValue: All applications (instance)
+            nullDisplayValue: Workspace (all applications)
         }
         layout {
             sequence: 15
@@ -207,7 +208,7 @@ page 123 (
                 ```
         }
         help {
-            inlineHelpText: The setup type decides which applications, and whether all applications (instance), may be chosen.
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
         }
     )
 
@@ -250,15 +251,22 @@ page 123 (
         }
     )
 
-    pageItem P123_ENDPOINT_CODE (
+    pageItem P123_REST_SOURCE_STATIC_ID (
         type: selectList
         label {
-            label: Endpoint
+            label: REST Data Source
             alignment: left
         }
         lov {
-            type: sharedComponent
-            lov: @lov-endpoints
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select m.module_name || ' (' || m.remote_server_name || ')' as display_value,
+                       m.module_static_id as return_value
+                  from apex_appl_web_src_modules m
+                 where m.application_id = :APP_ID
+                 order by m.module_name
+                ```
             displayNullValue: true
             nullDisplayValue: - Select -
         }
@@ -274,11 +282,49 @@ page 123 (
         }
         source {
             formRegion: @form
-            column: ENDPOINT_CODE
+            column: REST_SOURCE_STATIC_ID
             dataType: varchar2
         }
         help {
-            helpText: Required for automatic capture.
+            helpText: The REST Data Source of COMMON that serves the purpose (release 83); its server and Web Credential are kept by the workspace administrator. A purpose that runs by API needs a REST Data Source or a server.
+        }
+    )
+
+    pageItem P123_SERVER_CODE (
+        type: selectList
+        label {
+            label: Server
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select server_name || ' (' || server_type_name || ')' as display_value, server_code as return_value
+                  from xxfnd_servers_v
+                 where usage = 'INTEGRATION' or server_code = :P123_SERVER_CODE
+                 order by server_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 35
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: SERVER_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: The workspace server (Servers tab) the purpose uses (release 86). A purpose that runs by API needs a server or a REST Data Source.
         }
     )
 
@@ -392,7 +438,6 @@ page 123 (
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
-            databaseAction: insert
         }
         serverSideCondition {
             type: itemIsNull
@@ -419,7 +464,6 @@ page 123 (
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
-            databaseAction: update
         }
         serverSideCondition {
             type: itemIsNotNull
@@ -446,7 +490,6 @@ page 123 (
             action: submitPage
             executeValidations: false
             warnOnUnsavedChanges: doNotCheck
-            databaseAction: delete
             requiresConfirmation: true
         }
         confirmation {
@@ -493,10 +536,24 @@ page 123 (
         }
     )
 
-    process process-form (
-        name: Process form
-        type: formAutoRowProcessing
-        formRegion: @form
+    process save-purpose (
+        name: Save the purpose
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: saved by the integration package (no DML in the page); the maker-checker trigger applies
+                xxfnd_integration_pkg.save_purpose(
+                    p_purpose_code          => :P123_PURPOSE_CODE,
+                    p_purpose_name          => :P123_PURPOSE_NAME,
+                    p_application_code      => :P123_APPLICATION_CODE,
+                    p_capture_method        => :P123_CAPTURE_METHOD,
+                    p_server_code           => :P123_SERVER_CODE,
+                    p_rest_source_static_id => :P123_REST_SOURCE_STATIC_ID,
+                    p_new                   => case when :REQUEST = 'CREATE' then 'Y' else 'N' end);
+                ```
+        }
         execution {
             sequence: 10
             point: processing
@@ -506,10 +563,36 @@ page 123 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: CREATE,SAVE,DELETE
+            value: CREATE,SAVE
         }
         security {
             authorizationScheme: @page-submit
+        }
+    )
+
+    process delete-purpose (
+        name: Delete the purpose
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_integration_pkg.delete_purpose(:P123_PURPOSE_CODE);
+                ```
+        }
+        execution {
+            sequence: 15
+            point: processing
+        }
+        successMessage {
+            successMessage: Purpose deleted.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DELETE
+        }
+        security {
+            authorizationScheme: @page-manage
         }
     )
 

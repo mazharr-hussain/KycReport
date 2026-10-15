@@ -1,5 +1,10 @@
 --------------------------------------------------------------------------------
 -- 15c Request for Information workflow (release 74). COMMON only (XXFUSION); every application uses it.
+--   Release 84: the RFI runs as the APEX workflow process RFI of COMMON (Shared Components > Workflows): it creates
+--   the RFI_RESPONSE task (a user answers; one per provider), waits for an outside person's answer through the
+--   one-time link (public page Provide Information; the answer continues the workflow), then the RFI_REVIEW task;
+--   asked again, it loops. This package keeps the data (questions, answers, one-time link) and the rules; it no
+--   longer creates tasks itself.
 --   An application raises an RFI on one of its records (entity + key) to a person: a user (answers in My Tasks,
 --   RFI_RESPONSE task) or an external person (answers through a one-time e-mailed link). The answer is reviewed
 --   (RFI_REVIEW task); the reviewer resolves it or asks again - the same RFI loops, one round per question
@@ -65,6 +70,10 @@ begin
     xxfnd_schema_pkg.create_who_trigger('XXFND_RFIS');
     -- who provides the information can come from the Approval Setup (e.g. CASE_RFI: the requester by default)
     xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'APPROVAL_TYPE_CODE', 'varchar2(30)');
+    -- release 82: the language of the e-mail to an outside recipient (no user record), default English
+    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'LANGUAGE_CODE', q'~varchar2(10) default 'en'~');
+    -- release 84: the RFI workflow (COMMON process RFI) of the request
+    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'WORKFLOW_ID', 'number');
 
     if xxfnd_ddl_pkg.create_table('XXFND_RFI_ROUNDS', q'~create table xxfnd_rfi_rounds (
     rfi_id                 number         not null,
@@ -125,10 +134,16 @@ create or replace package xxfnd_rfi_pkg authid definer as
                          p_approval_type       in varchar2 default null,
                          p_attributes          in apex_t_varchar2 default null,
                          p_requester           in varchar2 default null,
+                         p_language            in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2);
-    -- p_approval_type: who provides the information comes from that Approval Setup type (p_attributes, p_requester);
+    -- Release 82: a USER recipient left empty is the requester (p_requester) - the default recipient of an RFI.
+    -- p_language: the language of the e-mail to an EXTERNAL recipient (default English); a user gets their own.
+    -- p_approval_type: who provides the information comes from that Approval Setup type (p_attributes, p_requester)
+    -- while the type is enabled (a disabled type, e.g. CASE_RFI, is ignored: the chosen recipient answers);
     -- each provider answers in turn (ad-hoc providers can be added), then the answer is reviewed.
+    -- Release 82: the RFI process of the application (Process Catalogue): workflow off = no response task; e-mail off
+    -- = no e-mail.
     -- p_with_tasks N: the application collects the answer in its own way (e.g. the requester resubmits a returned
     -- request) and resolves the RFI itself; no response task is created.
     -- Participant of the RFI_RESPONSE task: the user the RFI is addressed to.
@@ -142,8 +157,29 @@ create or replace package xxfnd_rfi_pkg authid definer as
     function ask_again(p_rfi_id in number, p_question in varchar2) return varchar2;
     -- The reviewer closes the round: RESOLVED, REJECTED_RETURNED, CANCELLED or ON_HOLD_INVESTIGATION.
     procedure resolve(p_rfi_id in number, p_status in varchar2, p_notes in varchar2);
-    -- E-mails the recipient (template RFI_RAISED_INTERNAL / RFI_RAISED_EXTERNAL; e-mail switches apply).
-    procedure send_email(p_rfi_id in number, p_response_url in varchar2 default null);
+    -- Tells the recipient (release 84: notification event RFI_RAISED - its rules say who and on which channel; an
+    -- outside person gets the e-mail with the one-time link P_TOKEN to the COMMON page Provide Information, or
+    -- P_RESPONSE_URL when the application gives its own page). E-mail switches apply.
+    procedure send_email(p_rfi_id in number, p_response_url in varchar2 default null, p_token in varchar2 default null);
+    ---------------------------------------------------------------- the RFI workflow (release 84)
+    -- Y when the RFI is addressed to an outside person (the workflow waits for the answer through the link).
+    function is_external(p_rfi_id in number) return varchar2;
+    -- Y while the RFI waits for an answer (a further provider, or asked again): the workflow goes back to the answer.
+    function is_waiting(p_rfi_id in number) return varchar2;
+    -- Until when the workflow waits for an outside person: the link's expiry (then the reviewer decides).
+    function answer_wait(p_rfi_id in number) return timestamp with time zone;
+    -- Who reviews the answer: the person who raised the RFI.
+    function reviewers(p_rfi_id in number) return varchar2;
+    -- Task definition action "on create" of RFI_RESPONSE / RFI_REVIEW: keeps the task on the RFI.
+    procedure task_created(p_task_id in number);
+    -- The question an outside person sees on the public page (null when the link is not valid any more).
+    function question_by_token(p_token in varchar2) return varchar2;
+    -- The task page (COMMON 143): the RFI of a task the signed-in user takes part in (XXFND_WORKFLOW_PKG.TASK_RECORD),
+    -- read whatever the user's data security on XXFND_RFIS (the task authorises them).
+    procedure task_values(p_task_id in number, p_rfi_id out number, p_rfi_number out varchar2, p_status out varchar2,
+                          p_asked out varchar2, p_due out varchar2, p_record out varchar2, p_raised_by out varchar2);
+    -- Its questions, answers and reviews, one row per message (round order).
+    function task_messages(p_task_id in number) return xxfnd_qa_tab pipelined;
     -- Open RFIs of a record (not resolved / cancelled).
     function open_count(p_entity_name in varchar2, p_pk1_value in varchar2) return number;
     -- After RFIs were copied in with their IDs and numbers: the sequences continue after them.
@@ -169,6 +205,36 @@ create or replace package body xxfnd_rfi_pkg as
         return nvl(l_code, 'COMMON');
     end app_code;
 
+    -- release 84: the RFI is read and changed in trusted mode once the caller is authorised: the person asked answers,
+    -- the person who raised it (or anyone its data security allows, or a workflow administrator) reviews it
+    function locked(p_rfi_id in number) return xxfnd_rfis%rowtype is
+        l_rfi xxfnd_rfis%rowtype;
+    begin
+        select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id for update;
+        return l_rfi;
+    exception
+        when no_data_found then
+            raise_application_error(-20507, 'Request for information ' || p_rfi_id || ' does not exist.');
+    end locked;
+
+    procedure assert_reviewer(p_rfi_id in number) is
+        l_seen  pls_integer;
+        l_maker xxfnd_rfis.created_by%type;
+    begin
+        select count(*) into l_seen from xxfnd_rfis where rfi_id = p_rfi_id;   -- under the caller's data security
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(created_by) into l_maker from xxfnd_rfis where rfi_id = p_rfi_id;
+        xxfnd_vpd_pkg.end_trusted;
+        if l_seen = 0 and upper(nvl(l_maker, '#')) <> upper(xxfnd_util_pkg.current_user)
+           and xxfnd_privilege_pkg.has_privilege_yn('WORKFLOW_MONITOR', 'MANAGE') = 'N' then
+            raise_application_error(-20511, 'You may not review this request for information.');
+        end if;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end assert_reviewer;
+
     function new_token(p_rfi_id in number, p_due_date in date) return varchar2 is
         l_token varchar2(64) := lower(rawtohex(dbms_crypto.randombytes(32)));
         l_hash  varchar2(128) := hash_token(l_token);
@@ -180,20 +246,27 @@ create or replace package body xxfnd_rfi_pkg as
         return l_token;
     end new_token;
 
-    procedure open_response(p_rfi_id in number) is
-        l_task_id number;
+    -- release 84: the tasks of the RFI belong to the COMMON workflow process RFI
+    procedure complete_task(p_task_definition in varchar2, p_rfi_id in number) is
     begin
-        l_task_id := xxfnd_task_pkg.create_task('RFI_RESPONSE', to_char(p_rfi_id));
-        update xxfnd_rfis set response_task_id = l_task_id where rfi_id = p_rfi_id;
-    end open_response;
+        xxfnd_workflow_pkg.complete_open(p_task_definition, to_char(p_rfi_id),
+                                         p_application_id => xxfnd_workflow_pkg.common_application_id);
+    end complete_task;
 
-    procedure start_review(p_rfi_id in number) is
-        l_task_id number;
+    -- release 84: an answer (or the end of the wait) moves the RFI workflow on: an outside person's answer continues
+    -- the workflow's wait for it
+    procedure continue_wait(p_rfi in xxfnd_rfis%rowtype) is
+        l_params wwv_flow_global.vc_map;
     begin
-        xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));   -- a newer answer replaces the older one
-        l_task_id := xxfnd_task_pkg.create_task('RFI_REVIEW', to_char(p_rfi_id));
-        update xxfnd_rfis set review_task_id = l_task_id where rfi_id = p_rfi_id;
-    end start_review;
+        if p_rfi.workflow_id is not null and xxfnd_workflow_pkg.is_running(p_rfi.workflow_id) = 'Y' then
+            for a in (select 1 from apex_workflow_activities
+                       where workflow_id = p_rfi.workflow_id and static_id = 'WAIT_ANSWER'
+                         and end_time is null) loop
+                apex_workflow.continue_activity(p_instance_id => p_rfi.workflow_id, p_static_id => 'WAIT_ANSWER',
+                                                p_activity_params => l_params);
+            end loop;
+        end if;
+    end continue_wait;
 
     procedure create_rfi(p_entity_name         in varchar2,
                          p_pk1_value           in varchar2,
@@ -211,28 +284,38 @@ create or replace package body xxfnd_rfi_pkg as
                          p_approval_type       in varchar2 default null,
                          p_attributes          in apex_t_varchar2 default null,
                          p_requester           in varchar2 default null,
+                         p_language            in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2) is
         l_rule  varchar2(100);
         l_users varchar2(4000);
+        l_type_on varchar2(1);
+        l_wf    number;
         l_app xxfnd_applications.application_code%type := app_code(p_application_code);
+        -- release 82: the requester is the default recipient
+        l_recipient varchar2(255) := case when p_recipient_type = 'USER'
+                                          then upper(coalesce(p_recipient_user_name, p_requester)) end;
     begin
-        xxfnd_util_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
+        xxfnd_lookup_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
+        select max(enabled_flag) into l_type_on from xxfnd_approval_types where approval_type_code = upper(p_approval_type);
+        if p_recipient_type = 'USER' and l_recipient is null and nvl(l_type_on, 'N') = 'N' then
+            raise_application_error(-20509, 'Choose who provides the information.');
+        end if;
         if p_due_date is not null and p_due_date < trunc(sysdate) then
             raise_application_error(-20501, 'The due date cannot be in the past.');
         end if;
         insert into xxfnd_rfis (application_code, entity_name, pk1_value, recipient_type, recipient_user_name,
                                 recipient_name, recipient_email, recipient_reference, rfi_category, description,
-                                continue_other_work_flag, rfi_status, due_date)
-        values (l_app, p_entity_name, p_pk1_value, p_recipient_type, upper(p_recipient_user_name),
+                                continue_other_work_flag, rfi_status, due_date, language_code)
+        values (l_app, p_entity_name, p_pk1_value, p_recipient_type, l_recipient,
                 p_recipient_name, p_recipient_email, p_recipient_reference, p_rfi_category, p_description,
                 nvl(p_continue_other_work, 'Y'),
                 case when nvl(p_continue_other_work, 'Y') = 'Y' then 'WAITING_FOR_INFORMATION' else 'ON_HOLD_PENDING' end,
-                p_due_date)
+                p_due_date, nvl(p_language, 'en'))
         returning rfi_id into p_rfi_id;
         insert into xxfnd_rfi_rounds (rfi_id, round_no, question, asked_by)
         values (p_rfi_id, 1, p_description, xxfnd_util_pkg.current_user);
-        if p_approval_type is not null then
+        if p_approval_type is not null and l_type_on = 'Y' then
             l_rule  := xxfnd_approval_rule_pkg.start_approval(p_approval_type, to_char(p_rfi_id), p_attributes, p_requester);
             l_users := xxfnd_approval_rule_pkg.current_approvers(p_approval_type, to_char(p_rfi_id));
             update xxfnd_rfis
@@ -240,13 +323,19 @@ create or replace package body xxfnd_rfi_pkg as
                    recipient_user_name = case when instr(l_users, ',') = 0 then l_users else recipient_user_name end
              where rfi_id = p_rfi_id;
         end if;
-        -- a user answers in My Tasks; an external person through the e-mailed link (no account, no task)
-        if p_recipient_type = 'USER' then
-            if nvl(p_with_tasks, 'Y') = 'Y' then
-                open_response(p_rfi_id);
-            end if;
-        else
+        -- an outside person answers through the e-mailed one-time link (no account)
+        if p_recipient_type <> 'USER' then
             p_token := new_token(p_rfi_id, p_due_date);
+        end if;
+        -- release 84: the COMMON workflow process RFI asks, waits and has the answer reviewed (workflow switch of the
+        -- application's RFI process; p_with_tasks N = the application collects the answer itself)
+        if nvl(p_with_tasks, 'Y') = 'Y'
+           and xxfnd_workflow_pkg.workflow_enabled(xxfnd_workflow_pkg.c_rfi_process, l_app) = 'Y' then
+            l_wf := xxfnd_workflow_pkg.start_process(p_static_id        => xxfnd_workflow_pkg.c_rfi_process,
+                                                     p_detail_pk        => to_char(p_rfi_id),
+                                                     p_application_id   => xxfnd_workflow_pkg.common_application_id,
+                                                     p_application_code => l_app);
+            update xxfnd_rfis set workflow_id = l_wf where rfi_id = p_rfi_id;
         end if;
     end create_rfi;
 
@@ -254,14 +343,29 @@ create or replace package body xxfnd_rfi_pkg as
         l_user xxfnd_rfis.recipient_user_name%type;
         l_type xxfnd_rfis.approval_type_code%type;
     begin
+        xxfnd_vpd_pkg.begin_trusted;
         select max(recipient_user_name), max(approval_type_code) into l_user, l_type from xxfnd_rfis where rfi_id = p_rfi_id;
+        xxfnd_vpd_pkg.end_trusted;
         if l_type is not null then
             return xxfnd_approval_rule_pkg.current_approvers(l_type, to_char(p_rfi_id));
         end if;
         return l_user;
     end recipient;
 
+    function rfi_tokens(p_rfi in xxfnd_rfis%rowtype) return clob is
+        l_json json_object_t := json_object_t();
+    begin
+        l_json.put('RFI_NUMBER',   p_rfi.rfi_number);
+        l_json.put('DESCRIPTION',  p_rfi.description);
+        l_json.put('DUE_DATE',     nvl(to_char(p_rfi.due_date, 'DD-Mon-YYYY'), '-'));
+        l_json.put('CONTACT_NAME', nvl(p_rfi.recipient_name, 'Sir/Madam'));
+        l_json.put('RECORD_KEY',   p_rfi.pk1_value);
+        return l_json.to_clob;
+    end rfi_tokens;
+
+    -- release 84: the answer is kept first, then the workflow moves on (the next provider, or the review)
     procedure record_answer(p_rfi in xxfnd_rfis%rowtype, p_response_text in clob, p_by in varchar2) is
+        l_next varchar2(1) := 'N';
     begin
         update xxfnd_rfis
            set response_text = p_response_text, responded_date = systimestamp, rfi_status = 'RESPONDED',
@@ -277,20 +381,28 @@ create or replace package body xxfnd_rfi_pkg as
                                       d.responded_date = systimestamp
          when not matched then insert (rfi_id, round_no, question, response_text, responded_by, responded_date)
                                values (s.rfi_id, s.round_no, p_rfi.description, p_response_text, p_by, systimestamp);
-        -- providers from the Approval Setup answer in turn: the next one, else the review
-        if p_rfi.approval_type_code is not null
-           and xxfnd_approval_rule_pkg.next_step(p_rfi.approval_type_code, to_char(p_rfi.rfi_id)) = 'Y' then
-            update xxfnd_rfis set rfi_status = 'WAITING_FOR_INFORMATION' where rfi_id = p_rfi.rfi_id;
-            open_response(p_rfi.rfi_id);
-        else
-            start_review(p_rfi.rfi_id);
+        -- providers from the Approval Setup answer in turn: the workflow asks the next one (IS_WAITING)
+        if p_rfi.approval_type_code is not null then
+            l_next := xxfnd_approval_rule_pkg.next_step(p_rfi.approval_type_code, to_char(p_rfi.rfi_id));
+            if l_next = 'Y' then
+                update xxfnd_rfis set rfi_status = 'WAITING_FOR_INFORMATION' where rfi_id = p_rfi.rfi_id;
+            end if;
+        end if;
+        if l_next = 'N' then
+            xxfnd_notify_pkg.raise_event(p_event_code       => xxfnd_notify_pkg.event_for('RFI_ANSWERED'),
+                                         p_application_code => p_rfi.application_code,
+                                         p_process_code     => xxfnd_workflow_pkg.c_rfi_process,
+                                         p_workflow_id      => p_rfi.workflow_id,
+                                         p_detail_pk        => to_char(p_rfi.rfi_id),
+                                         p_tokens           => rfi_tokens(p_rfi));
         end if;
     end record_answer;
 
     procedure respond(p_rfi_id in number, p_response_text in clob) is
         l_rfi xxfnd_rfis%rowtype;
     begin
-        select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id for update;
+        xxfnd_vpd_pkg.begin_trusted;   -- release 84: the person asked answers (checked below)
+        l_rfi := locked(p_rfi_id);
         if l_rfi.recipient_type <> 'USER'
            or instr(',' || recipient(p_rfi_id) || ',', ',' || upper(xxfnd_util_pkg.current_user) || ',') = 0 then
             raise_application_error(-20502, 'This request for information is not addressed to you.');
@@ -298,8 +410,13 @@ create or replace package body xxfnd_rfi_pkg as
         if l_rfi.rfi_status not in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED') then
             raise_application_error(-20503, 'This request for information is closed.');
         end if;
-        xxfnd_task_pkg.complete_open('RFI_RESPONSE', to_char(p_rfi_id));
         record_answer(l_rfi, p_response_text, xxfnd_util_pkg.current_user);
+        complete_task('RFI_RESPONSE', p_rfi_id);   -- the workflow goes on
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
     end respond;
 
     function respond_by_token(p_token in varchar2, p_response_text in clob) return number is
@@ -320,6 +437,7 @@ create or replace package body xxfnd_rfi_pkg as
             raise_application_error(-20505, 'This link has expired or the request is closed.');
         end if;
         record_answer(l_rfi, p_response_text, nvl(l_rfi.recipient_name, l_rfi.recipient_email));
+        continue_wait(l_rfi);   -- release 84: the workflow stops waiting and has the answer reviewed
         xxfnd_vpd_pkg.end_trusted;
         return l_rfi.rfi_id;
     exception
@@ -327,6 +445,28 @@ create or replace package body xxfnd_rfi_pkg as
             xxfnd_vpd_pkg.end_trusted;
             raise;
     end respond_by_token;
+
+    function question_by_token(p_token in varchar2) return varchar2 is
+        l_question xxfnd_rfis.description%type;
+        l_hash     varchar2(128);
+    begin
+        if p_token is null then
+            return null;
+        end if;
+        l_hash := hash_token(p_token);
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(description) into l_question
+          from xxfnd_rfis
+         where response_token_hash = l_hash
+           and token_expiry_date >= systimestamp
+           and rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING');
+        xxfnd_vpd_pkg.end_trusted;
+        return l_question;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end question_by_token;
 
     procedure close_round(p_rfi_id in number, p_round_no in number, p_outcome in varchar2, p_notes in varchar2) is
     begin
@@ -343,12 +483,13 @@ create or replace package body xxfnd_rfi_pkg as
         if trim(p_question) is null then
             raise_application_error(-20508, 'Enter the question to ask again.');
         end if;
-        select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id for update;
+        assert_reviewer(p_rfi_id);
+        xxfnd_vpd_pkg.begin_trusted;
+        l_rfi := locked(p_rfi_id);
         if l_rfi.rfi_status in ('RESOLVED', 'REJECTED_RETURNED', 'CANCELLED') then
             raise_application_error(-20503, 'This request for information is closed.');
         end if;
         close_round(p_rfi_id, l_rfi.round_no, 'ASKED_AGAIN', p_question);
-        xxfnd_task_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
         update xxfnd_rfis
            set round_no = round_no + 1, description = substr(p_question, 1, 4000), rfi_status = 'WAITING_FOR_INFORMATION',
                response_text = null, responded_date = null
@@ -363,95 +504,85 @@ create or replace package body xxfnd_rfi_pkg as
                                    where approval_type_code = l_rfi.approval_type_code and txn_id = to_char(p_rfi_id))
              where approval_type_code = l_rfi.approval_type_code and txn_id = to_char(p_rfi_id);
         end if;
-        if l_rfi.recipient_type = 'USER' then
-            open_response(p_rfi_id);
-        else
+        if l_rfi.recipient_type <> 'USER' then
             l_token := new_token(p_rfi_id, l_rfi.due_date);
         end if;
+        -- release 84: the review task completes; the workflow sees the RFI waiting and asks again (the loop)
+        complete_task('RFI_REVIEW', p_rfi_id);
+        xxfnd_vpd_pkg.end_trusted;
         return l_token;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
     end ask_again;
 
     procedure resolve(p_rfi_id in number, p_status in varchar2, p_notes in varchar2) is
-        l_rfi xxfnd_rfis%rowtype;
+        l_rfi    xxfnd_rfis%rowtype;
+        l_review pls_integer;
     begin
         if p_status not in ('RESOLVED', 'REJECTED_RETURNED', 'CANCELLED', 'ON_HOLD_INVESTIGATION') then
             raise_application_error(-20506, 'Status ' || p_status || ' cannot be set here.');
         end if;
-        begin
-            select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id for update;
-        exception
-            when no_data_found then
-                raise_application_error(-20507, 'Request for information ' || p_rfi_id || ' does not exist.');
-        end;
+        assert_reviewer(p_rfi_id);
+        xxfnd_vpd_pkg.begin_trusted;
+        l_rfi := locked(p_rfi_id);
         update xxfnd_rfis
            set rfi_status = p_status, resolution_notes = p_notes,
                resolved_date = case when p_status <> 'ON_HOLD_INVESTIGATION' then systimestamp end,
                response_token_hash = case when p_status <> 'ON_HOLD_INVESTIGATION' then null else response_token_hash end
          where rfi_id = p_rfi_id;
-        if p_status <> 'ON_HOLD_INVESTIGATION' then
-            close_round(p_rfi_id, l_rfi.round_no, p_status, p_notes);
+        if p_status = 'ON_HOLD_INVESTIGATION' then
+            xxfnd_vpd_pkg.end_trusted;
+            return;
         end if;
-        if p_status in ('RESOLVED', 'REJECTED_RETURNED') then
-            xxfnd_task_pkg.complete_open('RFI_REVIEW', to_char(p_rfi_id));
-        elsif p_status = 'CANCELLED' then
-            xxfnd_task_pkg.cancel_open('RFI_RESPONSE', to_char(p_rfi_id));
-            xxfnd_task_pkg.cancel_open('RFI_REVIEW', to_char(p_rfi_id));
+        close_round(p_rfi_id, l_rfi.round_no, p_status, p_notes);
+        -- release 84: a decided review ends the workflow; resolved or cancelled before the review, the workflow ends
+        select count(*) into l_review from apex_tasks
+         where task_def_static_id = 'RFI_REVIEW' and detail_pk = to_char(p_rfi_id)
+           and state_code in ('UNASSIGNED', 'ASSIGNED');
+        if p_status <> 'CANCELLED' and l_review > 0 then
+            complete_task('RFI_REVIEW', p_rfi_id);
+        else
+            xxfnd_workflow_pkg.end_process(l_rfi.workflow_id);
         end if;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
     end resolve;
 
-    procedure send_email(p_rfi_id in number, p_response_url in varchar2 default null) is
-        l_rfi      xxfnd_rfis%rowtype;
-        l_to       varchar2(320);
-        l_name     varchar2(360);
-        l_template varchar2(50);
-        l_subject  varchar2(500);
-        l_body     clob;
-        l_json     json_object_t := json_object_t();
-        l_tokens   clob;
-        l_mail_id  number;
+    procedure send_email(p_rfi_id in number, p_response_url in varchar2 default null, p_token in varchar2 default null) is
+        l_rfi    xxfnd_rfis%rowtype;
+        l_json   json_object_t;
+        l_before number;
     begin
+        xxfnd_vpd_pkg.begin_trusted;   -- the caller raised or reviews it (checked by the calling step)
         select * into l_rfi from xxfnd_rfis where rfi_id = p_rfi_id;
-        if xxfnd_workflow_switch_pkg.email_enabled(null, l_rfi.application_code) = 'N' then
-            return;
+        xxfnd_vpd_pkg.end_trusted;
+        l_json := json_object_t.parse(rfi_tokens(l_rfi));
+        if p_response_url is not null then
+            l_json.put('LINK', p_response_url);          -- the application's own answer page
         end if;
-        if l_rfi.recipient_type = 'USER' then
-            select max(email_address), max(full_name) into l_to, l_name
-              from xxfnd_employees where user_name = upper(l_rfi.recipient_user_name);
-            l_template := 'RFI_RAISED_INTERNAL';
-        else
-            l_to := l_rfi.recipient_email;
-            l_name := l_rfi.recipient_name;
-            l_template := 'RFI_RAISED_EXTERNAL';
-        end if;
-        if l_to is null then
-            return;
-        end if;
-        select nvl(t.subject, n.subject), nvl(t.body_html, n.body_html)
-          into l_subject, l_body
-          from xxfnd_notification_templates n
-          left join xxfnd_notification_templates_tl t
-            on t.template_code = n.template_code and t.language_code = xxfnd_util_pkg.current_lang
-         where n.template_code = l_template;
-        l_json.put('RFI_NUMBER',   l_rfi.rfi_number);
-        l_json.put('DESCRIPTION',  apex_escape.html(l_rfi.description));
-        l_json.put('DUE_DATE',     to_char(l_rfi.due_date, 'DD-Mon-YYYY'));
-        l_json.put('CONTACT_NAME', apex_escape.html(nvl(l_name, 'Sir/Madam')));
-        l_json.put('RESPONSE_URL', p_response_url);
-        l_tokens := l_json.to_clob;
-        l_mail_id := apex_mail.send(
-                         p_to        => l_to,
-                         p_from      => apex_app_setting.get_value('MAIL_FROM'),
-                         p_subj      => dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
-                         p_body      => to_clob(l_rfi.description),
-                         p_body_html => xxfnd_util_pkg.replace_tokens(l_body, l_tokens));
+        l_json.put('RESPONSE_TOKEN', p_token);           -- the COMMON Provide Information page (event link)
+        select nvl(max(notification_id), 0) into l_before from xxfnd_notifications;
+        -- release 84: who is told and how comes from the rules of event RFI_RAISED
+        xxfnd_notify_pkg.raise_event(p_event_code       => xxfnd_notify_pkg.event_for('RFI_RAISED'),
+                                     p_application_code => l_rfi.application_code,
+                                     p_process_code     => xxfnd_workflow_pkg.c_rfi_process,
+                                     p_workflow_id      => l_rfi.workflow_id,
+                                     p_detail_pk        => to_char(l_rfi.rfi_id),
+                                     p_tokens           => l_json.to_clob);
         -- release 74 (R27): an e-mail to an outside person is kept with the record's communications; the one-time
-        -- response link is masked (only its hash is stored with the RFI)
-        if l_rfi.recipient_type = 'EXTERNAL' then
-            l_json.put('RESPONSE_URL', '[secure response link]');
-            l_tokens := l_json.to_clob;
-            xxfnd_communication_pkg.record_sent(l_rfi.application_code, l_rfi.entity_name, l_rfi.pk1_value, l_to,
-                                                dbms_lob.substr(xxfnd_util_pkg.replace_tokens(l_subject, l_tokens), 500, 1),
-                                                xxfnd_util_pkg.replace_tokens(l_body, l_tokens), l_rfi.rfi_id, l_mail_id);
+        -- link is masked (only its hash is stored with the RFI)
+        if l_rfi.recipient_type <> 'USER' then
+            for n in (select subject, message_text, email_address, mail_id from xxfnd_notifications
+                       where notification_id > l_before and detail_pk = to_char(l_rfi.rfi_id)
+                         and user_name is null and status_code = 'SENT' and mail_id is not null) loop
+                xxfnd_notify_pkg.record_sent(l_rfi.application_code, l_rfi.entity_name, l_rfi.pk1_value, n.email_address,
+                                             n.subject, n.message_text, l_rfi.rfi_id, n.mail_id);
+            end loop;
         end if;
     end send_email;
 
@@ -472,6 +603,113 @@ create or replace package body xxfnd_rfi_pkg as
         select nvl(max(to_number(regexp_substr(rfi_number, '\d+$'))), 0) into l_max from xxfnd_rfis;
         execute immediate 'alter sequence xxfnd_rfi_number_s restart start with ' || (l_max + 1);
     end sync_sequences;
+
+    ---------------------------------------------------------------- the RFI workflow (release 84)
+    function is_external(p_rfi_id in number) return varchar2 is
+        l_type xxfnd_rfis.recipient_type%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(recipient_type) into l_type from xxfnd_rfis where rfi_id = to_number(p_rfi_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return case when l_type = 'USER' then 'N' else 'Y' end;
+    end is_external;
+
+    function is_waiting(p_rfi_id in number) return varchar2 is
+        l_status xxfnd_rfis.rfi_status%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(rfi_status) into l_status from xxfnd_rfis where rfi_id = to_number(p_rfi_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return case when l_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING') then 'Y' else 'N' end;
+    end is_waiting;
+
+    function answer_wait(p_rfi_id in number) return timestamp with time zone is
+        l_expiry timestamp;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(token_expiry_date) into l_expiry from xxfnd_rfis where rfi_id = to_number(p_rfi_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return from_tz(nvl(l_expiry, cast(trunc(sysdate) + 15 as timestamp)), sessiontimezone);
+    end answer_wait;
+
+    function reviewers(p_rfi_id in number) return varchar2 is
+        l_user xxfnd_rfis.created_by%type;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        select max(created_by) into l_user from xxfnd_rfis where rfi_id = to_number(p_rfi_id);
+        xxfnd_vpd_pkg.end_trusted;
+        return upper(l_user);
+    end reviewers;
+
+    procedure task_created(p_task_id in number) is
+    begin
+        for t in (select task_def_static_id, detail_pk from apex_tasks where task_id = p_task_id) loop
+            update xxfnd_rfis
+               set response_task_id = case when t.task_def_static_id = 'RFI_RESPONSE' then p_task_id else response_task_id end,
+                   review_task_id   = case when t.task_def_static_id = 'RFI_REVIEW' then p_task_id else review_task_id end
+             where rfi_id = to_number(t.detail_pk);
+        end loop;
+    end task_created;
+
+    procedure task_values(p_task_id in number, p_rfi_id out number, p_rfi_number out varchar2, p_status out varchar2,
+                          p_asked out varchar2, p_due out varchar2, p_record out varchar2, p_raised_by out varchar2) is
+        l_pk varchar2(4000) := xxfnd_workflow_pkg.task_record(p_task_id);
+    begin
+        if l_pk is null then
+            return;   -- not the user's task
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        for r in (select r.rfi_id, r.rfi_number, nvl(l.meaning, r.rfi_status) status,
+                         coalesce(r.recipient_user_name, r.recipient_name, r.recipient_email) asked,
+                         to_char(r.due_date, 'DD-Mon-YYYY') due,
+                         r.application_code || ' - ' || r.entity_name || ' ' || r.pk1_value record_, r.created_by
+                    from xxfnd_rfis r
+                    left join xxfnd_lookup_values l on l.lookup_type = 'RFI_STATUS' and l.lookup_code = r.rfi_status
+                   where r.rfi_id = to_number(l_pk)) loop
+            p_rfi_id := r.rfi_id; p_rfi_number := r.rfi_number; p_status := r.status; p_asked := r.asked;
+            p_due := r.due; p_record := r.record_; p_raised_by := r.created_by;
+        end loop;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end task_values;
+
+    function task_messages(p_task_id in number) return xxfnd_qa_tab pipelined is
+        l_pk   varchar2(4000) := xxfnd_workflow_pkg.task_record(p_task_id);
+        l_rows xxfnd_qa_tab := xxfnd_qa_tab();
+    begin
+        if l_pk is null then
+            return;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        begin
+            select xxfnd_qa_row(r.application_code, 'ROUND ' || q.round_no, m.kind, r.pk1_value, r.rfi_id,
+                                m.text, m.author, cast(m.at as timestamp with time zone))
+              bulk collect into l_rows
+              from xxfnd_rfis r
+              join xxfnd_rfi_rounds q on q.rfi_id = r.rfi_id
+              cross apply (select 'QUESTION' kind, q.question text, q.asked_by author, q.asked_date at, 1 seq from dual
+                           union all
+                           select 'ANSWER', dbms_lob.substr(q.response_text, 4000, 1), q.responded_by, q.responded_date, 2
+                             from dual where q.response_text is not null
+                           union all
+                           select 'REVIEW: ' || q.review_outcome, q.review_notes, q.reviewed_by, q.reviewed_date, 3
+                             from dual where q.review_outcome is not null) m
+             where r.rfi_id = to_number(l_pk)
+             order by q.round_no, m.seq;
+        exception
+            when others then
+                xxfnd_vpd_pkg.end_trusted;
+                raise;
+        end;
+        xxfnd_vpd_pkg.end_trusted;
+        for i in 1 .. l_rows.count loop
+            pipe row (l_rows(i));
+        end loop;
+        return;
+    end task_messages;
 
 end xxfnd_rfi_pkg;
 /

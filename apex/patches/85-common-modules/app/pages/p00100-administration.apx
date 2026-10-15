@@ -1,0 +1,170 @@
+page 100 (
+    name: Modules
+    alias: ADMINISTRATION
+    title: &P100_MODULE_NAME.
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            // release 78: the module opened from the menu is expanded there, showing its components
+            function expandCurrentModule() {
+                var nav = apex.jQuery("#t_TreeNav");
+                if (nav.length && nav.data("apex-treeView")) {
+                    var sel = nav.treeView("getSelection");
+                    if (sel.length) {
+                        nav.treeView("expand", sel);
+                    }
+                }
+            }
+            expandCurrentModule();
+            apex.jQuery(window).on("theme42ready", expandCurrentModule);
+            ```
+    }
+    security {
+        authorizationScheme: @admin-area
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The COMMON modules. Without a module the page shows every module you may open, with its state (for example
+            inactive endpoints or e-mail switched off). Choose a module, here or in the menu, to see its components;
+            each component opens its own screens, and the screens of a component are tabs inside it.
+            ```
+    }
+
+    region breadcrumb (
+        name: Modules
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region modules (
+        name: Modules
+        type: list
+        source {
+            list: @module-cards
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: modules
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P100_MODULE
+        }
+    )
+
+    region components (
+        name: Components
+        type: list
+        source {
+            list: @module-components
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: components
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P100_MODULE
+        }
+    )
+
+    pageItem P100_MODULE (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P100_MODULE_NAME (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process module (
+        name: Find the module
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 78: the module the user may open (XXFND_MODULES_V), else every module
+                select max(module_code), nvl(max(module_name), 'Modules')
+                  into :P100_MODULE, :P100_MODULE_NAME
+                  from xxfnd_modules_v
+                 where module_code = :P100_MODULE;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+)

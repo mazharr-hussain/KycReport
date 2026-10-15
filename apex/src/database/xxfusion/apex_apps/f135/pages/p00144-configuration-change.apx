@@ -1,0 +1,472 @@
+page 144 (
+    name: Configuration Change
+    alias: CONFIGURATION-CHANGE
+    title: Configuration Change
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A configuration change waiting for a second person's approval (workflow CONFIG_CHANGE). Approve applies it; Reject
+            sends it back to the person who made it with your reason. The person who made the change cannot approve it.
+            ```
+    }
+
+    region breadcrumb (
+        name: Configuration Change
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region change (
+        name: Change
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: change
+        }
+    )
+    pageItem P144_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @change
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                'Unrestricted on purpose: APEX opens a task page from My Tasks with the task ID and no checksum (the task details link). The page shows the record only to the task's own people or a workflow administrator (XXFND_WORKFLOW_PKG.TASK_RECORD) and acts only through APEX task operations the user is allowed.'
+                ```
+        }
+    )
+    pageItem P144_DETAIL_PK (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @change
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P144_CAN_ACT (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @change
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P144_CHANGE_TYPE (
+        type: displayOnly
+        label {
+            label: Change
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @change
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(change_type) from table(xxfnd_approval_pkg.task_change(to_number(:P144_TASK_ID)))
+                ```
+            used: always
+        }
+        help {
+            helpText: The change.
+        }
+    )
+    pageItem P144_SUBMITTED_BY (
+        type: displayOnly
+        label {
+            label: Made By
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @change
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(submitted_by) from table(xxfnd_approval_pkg.task_change(to_number(:P144_TASK_ID)))
+                ```
+            used: always
+        }
+        help {
+            helpText: The made by.
+        }
+    )
+    pageItem P144_CHANGE_TITLE (
+        type: displayOnly
+        label {
+            label: What
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @change
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(change_title) from table(xxfnd_approval_pkg.task_change(to_number(:P144_TASK_ID)))
+                ```
+            used: always
+        }
+        help {
+            helpText: The what.
+        }
+    )
+    pageItem P144_CHANGE_SUMMARY (
+        type: displayOnly
+        label {
+            label: Summary
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @change
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(change_summary) from table(xxfnd_approval_pkg.task_change(to_number(:P144_TASK_ID)))
+                ```
+            used: always
+        }
+        help {
+            helpText: The summary.
+        }
+    )
+    pageItem P144_STATE (
+        type: displayOnly
+        label {
+            label: Task Status
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @change
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(state) from apex_tasks where task_id = to_number(:P144_TASK_ID) and :P144_DETAIL_PK is not null
+                ```
+            used: always
+        }
+        help {
+            helpText: The task status.
+        }
+    )
+
+    region comments (
+        name: Comments
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: the comments of the approval task (questions, answers, reasons)
+                select c.created_by, c.created_on, c.text
+                  from apex_task_comments c
+                 where c.task_id = to_number(:P144_TASK_ID) and :P144_DETAIL_PK is not null
+                 order by c.created_on
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: comments
+        }
+        messages {
+            whenNoDataFound: No comment.
+        }
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CREATED_ON (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 20
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column TEXT (
+            type: plainText
+            heading {
+                heading: Comment
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+    region decide (
+        name: Decision
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: decide
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P144_CAN_ACT
+        }
+    )
+    pageItem P144_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @decide
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        help {
+            helpText: Your comment; for Reject, the reason (required).
+        }
+    )
+    button approve (
+        buttonName: APPROVE
+        label: Approve
+        layout {
+            sequence: 10
+            region: @decide
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    button reject (
+        buttonName: REJECT
+        label: Reject
+        layout {
+            sequence: 20
+            region: @decide
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    process load-task (
+        name: The task and its change
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: only the task's own people (or a workflow administrator) see the change (XXFND_WORKFLOW_PKG.TASK_RECORD)
+                :P144_DETAIL_PK := xxfnd_workflow_pkg.task_record(to_number(:P144_TASK_ID));
+                :P144_CAN_ACT := case when :P144_DETAIL_PK is not null
+                                       and (apex_human_task.is_allowed(p_task_id => to_number(:P144_TASK_ID),
+                                                                        p_operation => apex_human_task.c_task_op_complete)
+                                            or apex_human_task.is_allowed(p_task_id => to_number(:P144_TASK_ID),
+                                                                           p_operation => apex_human_task.c_task_op_claim))
+                                      then 'Y' end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+    process decide (
+        name: Approve or reject
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: the one task decision of every application (XXFND_APPROVAL_RULE_PKG.DECIDE_TASK); the task's actions
+                -- apply or reject the change in this session
+                declare
+                    l_done varchar2(1);
+                begin
+                    if :REQUEST = 'REJECT' and trim(:P144_COMMENT) is null then
+                        raise_application_error(-20537, 'Enter the reason for rejecting the change.');
+                    end if;
+                    l_done := xxfnd_approval_rule_pkg.decide_task(to_number(:P144_TASK_ID), :REQUEST, :P144_COMMENT);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Your decision is saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,REJECT
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    branch (
+        name: Back to My Tasks
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 40
+                clearCache: 40
+            }
+        }
+    )
+)
