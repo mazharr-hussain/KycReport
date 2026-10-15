@@ -107,7 +107,7 @@ with sync_playwright() as p:
     check(pg.locator('#jrn-wizard .t-WizardSteps-step').count() == 10, 'the wizard shows ten steps')
     options = pg.locator('#P165_APEX_APPLICATION_ID option').all_inner_texts()
     check(any(f'({app_id})' in o for o in options), 'the unregistered APEX application is offered')
-    check(not any('(134)' in o or '(135)' in o for o in options), 'registered applications are not offered')
+    check(not any('(135)' in o or '(860)' in o for o in options), 'registered applications (COMMON, R86TEST) are not offered')
 
     # step 1: Next without a choice is refused, then the application
     # (the required fields are checked in the browser: no page submit)

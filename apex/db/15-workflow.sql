@@ -1509,8 +1509,10 @@ create or replace package body xxfnd_workflow_pkg as
            on (d.application_code = s.application_code and d.process_code = s.process_code)
          when matched then update set d.process_name = s.process_name
                             where decode(d.process_name, s.process_name, 0, 1) = 1
-         when not matched then insert (application_code, process_code, process_name)
-                               values (s.application_code, s.process_code, s.process_name);
+         -- release 86: the RFI process's participants are chosen by the user (as 24 sets for the existing rows)
+         when not matched then insert (application_code, process_code, process_name, participants_type)
+                               values (s.application_code, s.process_code, s.process_name,
+                                       case when s.process_code = c_rfi_process then 'CHOSEN' else 'RULE' end);
     end sync_processes;
 
 

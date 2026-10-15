@@ -277,6 +277,10 @@ create or replace package xxfnd_privilege_pkg authid definer as
                                  p_feature_code     in varchar2,
                                  p_action_code      in varchar2,
                                  p_privilege_name   in varchar2 default null);
+    -- Release 86: the privileges every role holds (each user works his own tasks, sends the e-mails and sees the
+    -- documents of the records he may see, gives feedback): given to a new role (trigger XXFND_ROLES_EVERY_ROLE, 28),
+    -- only those that exist; nothing else is changed.
+    procedure give_every_role_privileges(p_role_code in varchar2);
     procedure register_role(p_application_code    in varchar2,
                             p_role_code           in varchar2,
                             p_role_name           in varchar2,
@@ -645,6 +649,18 @@ create or replace package body xxfnd_privilege_pkg as
                                values (s.privilege_code, upper(p_feature_code), upper(p_action_code),
                                        substr(nvl(p_privilege_name, l_name || ' - ' || initcap(p_action_code)), 1, 240));
     end register_privilege;
+
+    procedure give_every_role_privileges(p_role_code in varchar2) is
+    begin
+        merge into xxfnd_role_privileges t
+        using (select upper(p_role_code) role_code, p.privilege_code
+                 from xxfnd_privileges p
+                where p.privilege_code in ('MY_TASKS.VIEW', 'MY_TASKS.MANAGE', 'COMMUNICATIONS.VIEW',
+                                           'COMMUNICATIONS.CREATE', 'DOCUMENTS.VIEW', 'DOCUMENTS.CREATE',
+                                           'DOCUMENTS.MANAGE', 'GIVE_FEEDBACK.VIEW', 'GIVE_FEEDBACK.CREATE')) s
+           on (t.role_code = s.role_code and t.privilege_code = s.privilege_code)
+         when not matched then insert (role_code, privilege_code) values (s.role_code, s.privilege_code);
+    end give_every_role_privileges;
 
     procedure register_role(p_application_code    in varchar2,
                             p_role_code           in varchar2,

@@ -2,7 +2,7 @@
 -- COMMON is tested on its own, without any business application. The tests of the earlier releases need one
 -- registered application (its roles, an RFI category): the test application R86TEST (APEX application 860) is
 -- registered through the onboarding routine and gets the RFI categories through the registration routine.
--- Re-runnable (both routines add only what is missing); its rows stay.
+-- Also the local user TEST1. Re-runnable (only what is missing is added); its rows stay.
 set serveroutput on feedback off
 declare
     l_app number;
@@ -20,7 +20,20 @@ begin
         xxfnd_lookup_pkg.register_lookup_value('R86TEST', 'RFI_CATEGORY', 'CLARIFICATION', 'Clarification', 10);
         xxfnd_lookup_pkg.register_lookup_value('R86TEST', 'RFI_CATEGORY', 'OTHER', 'Other', 20);
     end if;
+    -- a plain local user for the security screens' tests (TEST1); its APEX account may exist from an earlier database
+    select count(*) into l_app from xxfnd_users where user_name = 'TEST1';
+    if l_app = 0 then
+        select count(*) into l_app from apex_workspace_apex_users where user_name = 'TEST1';
+        if l_app = 0 then
+            apex_util.set_workspace('XXCUS');
+            apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
+            l_app := xxfnd_user_pkg.create_local_user('TEST1', 'Test User 1', 'test1@example.com', 'KycTest#2026');
+        else
+            insert into xxfnd_users (user_name, user_type, full_name, email_address)
+            values ('TEST1', 'LOCAL', 'Test User 1', 'test1@example.com');
+        end if;
+    end if;
     commit;
-    dbms_output.put_line('COMMON test fixture ready: R86TEST');
+    dbms_output.put_line('COMMON test fixture ready: R86TEST, TEST1');
 end;
 /
