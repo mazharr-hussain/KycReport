@@ -18,6 +18,9 @@ authorization kyc-user (
 
 authorization page-view (
     name: Page - View
+    subscription {
+        master: @/135/page-view
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
@@ -36,6 +39,9 @@ authorization page-view (
 
 authorization page-create (
     name: Page - Create
+    subscription {
+        master: @/135/page-create
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
@@ -54,6 +60,9 @@ authorization page-create (
 
 authorization page-manage (
     name: Page - Manage
+    subscription {
+        master: @/135/page-manage
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
@@ -72,6 +81,9 @@ authorization page-manage (
 
 authorization page-submit (
     name: Page - Submit
+    subscription {
+        master: @/135/page-submit
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
@@ -108,6 +120,9 @@ authorization workflow-administer (
 
 authorization admin-area (
     name: Administration Area
+    subscription {
+        master: @/135/admin-area
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:

@@ -2095,16 +2095,18 @@ page 0 (
             icon: fa-paperclip
         }
         behavior {
-            action: redirectThisApp
+            action: redirectOtherApp
             target: {
-                page: 90
+                app: COMMON
+                page: 47
                 items: {
-                    P90_ENTITY_NAME: XXCMP_PARTIES
-                    P90_PK1_VALUE: &P0_SUMMARY_PARTY_ID.
-                    P90_SOURCE_PAGE: &APP_PAGE_ID.
-                    P90_SOURCE_REGION: party_attachments
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: &APP_PAGE_ID.
+                    P47_SOURCE_REGION: party_attachments
+                    P47_ENTITY_NAME: XXCMP_PARTIES
+                    P47_PK1_VALUE: &P0_SUMMARY_PARTY_ID.
                 }
-                clearCache: 90
+                clearCache: 47
             }
             warnOnUnsavedChanges: doNotCheck
         }
@@ -2696,16 +2698,18 @@ page 0 (
             icon: fa-paperclip
         }
         behavior {
-            action: redirectThisApp
+            action: redirectOtherApp
             target: {
-                page: 90
+                app: COMMON
+                page: 47
                 items: {
-                    P90_ENTITY_NAME: XXCMP_REQUESTS
-                    P90_PK1_VALUE: &P0_REQUEST_ID.
-                    P90_SOURCE_PAGE: 203
-                    P90_SOURCE_REGION: request_attachments
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: 203
+                    P47_SOURCE_REGION: request_attachments
+                    P47_ENTITY_NAME: XXCMP_REQUESTS
+                    P47_PK1_VALUE: &P0_REQUEST_ID.
                 }
-                clearCache: 90
+                clearCache: 47
             }
             warnOnUnsavedChanges: doNotCheck
         }

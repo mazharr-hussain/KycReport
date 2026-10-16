@@ -42,9 +42,9 @@ begin
        cnt(q'[select count(*) from xxfnd_feature_pages where upper(app_alias) = 'KYC'
                and ((page_id = 211 and feature_code = 'CASES')
                     or (page_id = 165 and feature_code in ('KYC_RULES', 'WORKFLOW_SETUP')))]') = 2);
-    ok('My Tasks (40) and the Workflow Monitor (41) are COMMON features used by KYC pages',
-       cnt(q'[select count(*) from xxfnd_feature_pages where upper(app_alias) = 'KYC'
-               and ((page_id = 40 and feature_code = 'MY_TASKS') or (page_id = 41 and feature_code = 'WORKFLOW_MONITOR'))]') = 2);
+    -- release 88: KYC has no copy of My Tasks (40) or the Workflow Monitor (41): they are COMMON's pages
+    ok('My Tasks (40) and the Workflow Monitor (41) are COMMON pages, not KYC pages (kyc88_shared_test checks COMMON''s)',
+       cnt('select count(*) from apex_application_pages where application_id = ' || l_app || ' and page_id in (40, 41)') = 0);
     ok('KYC lookups are KYC''s (RISK_TIER, CASE_STATUS, PARTY_TYPE, KYC_PARAMETER, ALERT_TYPE)',
        cnt(q'[select count(*) from xxfnd_lookup_types where application_code = 'KYC'
                and lookup_type in ('RISK_TIER','CASE_STATUS','PARTY_TYPE','KYC_PARAMETER','ALERT_TYPE')]') = 5);
