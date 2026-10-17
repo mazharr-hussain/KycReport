@@ -16,6 +16,9 @@ file, statement or component is copied as it is, and `SOURCE-MAP.json` records w
   prerequisites, who / audit triggers, recompile): kept once, here.
 - `docs/` - install notes and the COMMON issue list; `tests/` - tests of the whole application.
 
+## Build
+`./build.sh [--release N]` - the one build, `common/tools/build.py` (no build logic in this repository); output in `dist/` (not kept in git).
+
 ## Not copied
-- `supporting-objects/` of the APEX application: generated from the database scripts by `apex/tools/build.py`.
+- the generated install / upgrade scripts of `supporting-objects/` (the build makes them from the database scripts).
 - History and tooling stay in `apex/`: release zips, patches, tools, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md.

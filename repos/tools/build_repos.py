@@ -9,7 +9,7 @@ from classify import classify
 ROOT = '/home/user/KycReport'
 OUT = f'{ROOT}/repos'
 APPS = {'kyc': f'{ROOT}/apex/src/database/xxcus/apex_apps/f134', 'common': f'{ROOT}/apex/src/database/xxfusion/apex_apps/f135'}
-FP = '/tmp/claude-0/-home-user-KycReport/5e8c20fd-6c82-5747-8066-a7d503f76bd3/scratchpad/fpages.txt'
+FP = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'feature-pages.txt')
 
 # ---------------------------------------------------------------- feature of a database object (by name)
 RULES = [
@@ -194,7 +194,8 @@ for repo, app in APPS.items():
         if os.path.isdir(fpath):
             continue
         rel = os.path.relpath(fpath, app)
-        if rel.startswith(('pages/', 'shared-components/', 'supporting-objects/')):
+        if rel.startswith(('pages/', 'shared-components/')) or (rel.startswith('supporting-objects/')
+                                                                and rel != 'supporting-objects/supporting-objects.apx'):
             continue
         put(f'{base}/app/{rel}', rd(fpath), os.path.relpath(fpath, ROOT), whole=True)
 
@@ -230,8 +231,10 @@ for fpath in sorted(glob.glob(f'{ROOT}/apex/src/database/sys/**/*.sql', recursiv
 put(f'{OUT}/common/docs/COMMON-ISSUES.md', rd(f'{ROOT}/apex/COMMON-ISSUES.md'), 'apex/COMMON-ISSUES.md', whole=True)
 
 # ---------------------------------------------------------------- write, then check
-if os.path.exists(OUT):
-    shutil.rmtree(OUT)
+# rewrite what the split makes; the build (common/tools, the build.sh wrappers) and dist/ stay
+for repo in APPS:
+    for part in ('app', 'db', 'docs', 'features', 'tests'):
+        shutil.rmtree(f'{OUT}/{repo}/{part}', ignore_errors=True)
 for t, pieces in targets.items():
     os.makedirs(os.path.dirname(t), exist_ok=True)
     with open(t, 'wb') as fh:
@@ -294,9 +297,10 @@ for repo in APPS:
         ('  prerequisites, who / audit triggers, recompile): kept once, here.' if repo == 'common'
          else '  `common/db/framework/`: KYC runs it from there (no copy).'),
         '- `docs/` - install notes' + (' and the COMMON issue list' if repo == 'common' else '') + '; `tests/` - tests of the whole application.', '',
-        '## Not copied', '- `supporting-objects/` of the APEX application: generated from the database scripts by `apex/tools/build.py`.',
+        '## Build', f'`./build.sh [--release N]` - the one build, `common/tools/build.py` (no build logic in this repository' + ('' if repo == 'common' else ' - it is COMMON\'s') + '); output in `dist/` (not kept in git).', '',
+        '## Not copied', '- the generated install / upgrade scripts of `supporting-objects/` (the build makes them from the database scripts).',
         '- History and tooling stay in `apex/`: release zips, patches, tools, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md.', ''])]
-targets[f'{OUT}/verify.py'] = [open(os.path.join(os.path.dirname(__file__), 'verify_template.py')).read()]
+targets[f'{OUT}/verify.py'] = [open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'verify_template.py')).read()]
 for t in [t for t in targets if t.endswith(('README.md', 'verify.py')) and not any(x['target'] == os.path.relpath(t, OUT) for v in placed.values() for x in v)]:
     os.makedirs(os.path.dirname(t), exist_ok=True)
     open(t, 'wb').write(''.join(targets[t]).encode('latin-1'))
