@@ -39,7 +39,7 @@ declare
         xxfnd_lookup_pkg.register_lookup_value(c_app, p_type, p_code, p_meaning, p_seq, p_tag => p_tag, p_meaning_ar => p_ar);
     end lookup_value;
 
-    -- KYC pages of a feature (KYC's own, or a COMMON feature for the KYC copies of shared screens until release 88)
+    -- KYC pages of a feature
     procedure pages(p_feature in varchar2, p_pages in varchar2) is
         l_parts apex_t_varchar2;
         l_tab   pls_integer := 0;
@@ -118,13 +118,15 @@ begin
     ----------------------------------------------------------------------------
     -- Features, privileges and pages
     ----------------------------------------------------------------------------
-    feature('HOME',            'Home',                 'BUSINESS', 10, 'N', 'VIEW', p_pages => '1|10010|10050|90|91');
+    -- release 88: KYC has no copy of a COMMON screen (attachments 90/91, feedback 10050 are COMMON's pages 47/48, 173)
+    feature('HOME',            'Home',                 'BUSINESS', 10, 'N', 'VIEW', p_pages => '1|10010');
     feature('KYC_REQUESTS',    'KYC Requests',         'BUSINESS', 30, 'N', 'VIEW,CREATE,MANAGE',
             p_pages => '200|201|202|203|204|205|206');
     feature('PARTIES',         'Parties',              'BUSINESS', 40, 'N', 'VIEW,CREATE,MANAGE',
             p_pages => '20|21|22|23|24|25|26|27');
+    -- release 88: the RFI pages 32 and 34 are gone (information requests are COMMON's, release 89)
     feature('CASES',           'Cases',                'BUSINESS', 50, 'N', 'VIEW,CREATE,MANAGE',
-            p_pages => '32|34|210|211|213|214|215|216|217|218|219');
+            p_pages => '210|211|213|214|215|216|217|218|219');
     feature('CASE_ASSIGNMENT', 'Case Assignment',      'BUSINESS', 55, 'N', 'MANAGE');
     feature('MONITORING',      'Monitoring Watchlist', 'BUSINESS', 60, 'N', 'VIEW,MANAGE',
             p_pages => '220=Watchlist|221=Alerts|222');
@@ -135,11 +137,10 @@ begin
             '160=Questionnaires|163=Conclusion Templates|167=Risk Model|138=Mandatory Documents|165=SAR Gate|161|162|164|139');
     feature('ALERT_RULES',     'Alert Rules',          'WORKFLOW_INTEGRATION', 220, 'Y', 'VIEW,CREATE,MANAGE', 225,
             'fa-bell-o', 'What the monitoring watches, who is alerted and when a review starts by itself.', '225|226');
-    -- KYC copies of COMMON's shared screens (removed in release 88): pages of COMMON's features
-    pages('MY_TASKS',         '40=Tasks|30=Requests for Information|31|172');
-    pages('WORKFLOW_MONITOR', '41=Tasks|44=Workflows|45');
-    pages('APP_SETTINGS',     '10022=Settings|10020=Optional Features|10021|10023');
-    pages('USAGE_FEEDBACK',   '10030=Activity|10051=Feedback|10031|10032|10033|10052');
+    -- release 88: KYC's copies of COMMON's shared screens are removed (My Tasks, Workflow Monitor, Application Settings,
+    -- Usage and Feedback, RFI pages 30/31): KYC registers no page of a COMMON feature; the menu links to COMMON's pages.
+    -- Rows registered by an earlier release stay (no data deleted; COMMON has no routine to retire a page row) and show
+    -- nowhere: KYC's menus list only pages the application has (XXFND_APPLICATION_PKG.LOCAL_PAGE).
 
     ----------------------------------------------------------------------------
     -- Lookups (KYC's own; the shared ones are COMMON's)
@@ -398,7 +399,7 @@ begin
         grant_to(c_staff, 'PARTIES.VIEW,PARTIES.CREATE,PARTIES.MANAGE,CASES.VIEW,CASES.CREATE,CASES.MANAGE,CASE_ASSIGNMENT.MANAGE');
         grant_to('COMPLIANCE_MANAGER,HEAD_OF_COMPLIANCE,SYSTEM_ADMIN',
                  'KYC_RULES.VIEW,KYC_RULES.CREATE,KYC_RULES.MANAGE,CHANGE_APPROVALS.VIEW,CHANGE_APPROVALS.MANAGE');
-        -- the KYC copies of the shared screens until release 88 (COMMON's own setup stays with COMMON's administrator)
+        -- Alert Rules, and COMMON's shared screens KYC's System Administrator uses (opened in COMMON since release 88)
         grant_to('SYSTEM_ADMIN', 'ALERT_RULES.VIEW,ALERT_RULES.CREATE,ALERT_RULES.MANAGE,'
                               || 'WORKFLOW_MONITOR.VIEW,WORKFLOW_MONITOR.MANAGE,APP_SETTINGS.VIEW,APP_SETTINGS.MANAGE,'
                               || 'USAGE_FEEDBACK.VIEW,USAGE_FEEDBACK.MANAGE');

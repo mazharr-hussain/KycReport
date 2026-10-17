@@ -68,7 +68,7 @@ page 1 (
                          where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED')
                  where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
                 union all
-                select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'u-warning'
+                select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_application => 'COMMON', p_page => 40), 'fa-check-square-o', 'u-warning'
                   from (select count(*) cnt from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
                          where state_code in ('ASSIGNED', 'UNASSIGNED')
                            and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH'))
@@ -395,8 +395,9 @@ page 1 (
             templateOptions: #DEFAULT#
         }
         behavior {
-            action: redirectThisApp
+            action: redirectOtherApp
             target: {
+                app: COMMON
                 page: 40
             }
             warnOnUnsavedChanges: doNotCheck

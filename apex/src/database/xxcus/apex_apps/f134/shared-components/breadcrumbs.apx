@@ -46,98 +46,11 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry rfis (
-        name: Requests for Information
-        pageNumber: 30
-        execution {
-            sequence: 40
-        }
-        appearance {
-            parentEntry: @home
-        }
-        link {
-            target: {
-                page: 30
-            }
-        }
-    )
 
-    entry rfi (
-        name: Request for Information
-        pageNumber: 31
-        execution {
-            sequence: 50
-        }
-        appearance {
-            parentEntry: @rfis
-        }
-        link {
-            target: {
-                page: 31
-            }
-        }
-    )
 
-    entry provide-information (
-        name: Provide Information
-        pageNumber: 33
-        execution {
-            sequence: 60
-        }
-        link {
-            target: {
-                page: 33
-            }
-        }
-    )
 
-    entry worklist (
-        name: My Tasks
-        pageNumber: 40
-        execution {
-            sequence: 70
-        }
-        appearance {
-            parentEntry: @home
-        }
-        link {
-            target: {
-                page: 40
-            }
-        }
-    )
 
-    entry wf-monitor (
-        name: Workflow Monitor
-        pageNumber: 41
-        execution {
-            sequence: 80
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 41
-            }
-        }
-    )
 
-    entry admin (
-        name: Administration
-        pageNumber: 100
-        execution {
-            sequence: 100
-        }
-        appearance {
-            parentEntry: @home
-        }
-        link {
-            target: {
-                page: 100
-            }
-        }
-    )
 
     entry doc-rules (
         name: Mandatory Document Rules
@@ -146,7 +59,7 @@ breadcrumb breadcrumb (
             sequence: 290
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {
@@ -162,7 +75,7 @@ breadcrumb breadcrumb (
             sequence: 360
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {
@@ -210,7 +123,7 @@ breadcrumb breadcrumb (
             sequence: 390
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {
@@ -226,7 +139,7 @@ breadcrumb breadcrumb (
             sequence: 405
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {
@@ -242,7 +155,7 @@ breadcrumb breadcrumb (
             sequence: 400
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {
@@ -267,133 +180,13 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry features (
-        name: Feature Configuration
-        pageNumber: 10020
-        execution {
-            sequence: 430
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 10020
-            }
-        }
-    )
 
-    entry activity (
-        name: Activity Reports
-        pageNumber: 10030
-        execution {
-            sequence: 440
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 10030
-            }
-        }
-    )
 
-    entry top-users (
-        name: Top Users
-        pageNumber: 10031
-        execution {
-            sequence: 450
-        }
-        appearance {
-            parentEntry: @activity
-        }
-        link {
-            target: {
-                page: 10031
-            }
-        }
-    )
 
-    entry app-errors (
-        name: Application Errors
-        pageNumber: 10032
-        execution {
-            sequence: 460
-        }
-        appearance {
-            parentEntry: @activity
-        }
-        link {
-            target: {
-                page: 10032
-            }
-        }
-    )
 
-    entry page-performance (
-        name: Page Performance
-        pageNumber: 10033
-        execution {
-            sequence: 470
-        }
-        appearance {
-            parentEntry: @activity
-        }
-        link {
-            target: {
-                page: 10033
-            }
-        }
-    )
 
-    entry feedback-admin (
-        name: Manage Feedback
-        pageNumber: 10051
-        execution {
-            sequence: 480
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 10051
-            }
-        }
-    )
 
-    entry app-settings (
-        name: Application Settings
-        pageNumber: 10022
-        execution {
-            sequence: 432
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 10022
-            }
-        }
-    )
 
-    entry workflows (
-        name: Workflows
-        pageNumber: 44
-        execution {
-            sequence: 112
-        }
-        appearance {
-            parentEntry: @admin
-        }
-        link {
-            target: {
-                page: 44
-            }
-        }
-    )
 
     entry kyc-requests (
         name: KYC Requests
@@ -626,7 +419,7 @@ breadcrumb breadcrumb (
             sequence: 322
         }
         appearance {
-            parentEntry: @admin
+            parentEntry: @home
         }
         link {
             target: {

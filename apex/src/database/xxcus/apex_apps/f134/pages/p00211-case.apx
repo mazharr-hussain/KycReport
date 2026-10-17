@@ -2578,16 +2578,18 @@ page 211 (
             templateOptions: #DEFAULT#
         }
         behavior {
-            action: redirectThisApp
+            action: redirectOtherApp
             target: {
-                page: 90
+                app: COMMON
+                page: 47
                 items: {
-                    P90_ENTITY_NAME: XXCMP_PARTIES
-                    P90_PK1_VALUE: &P211_PARTY_ID.
-                    P90_SOURCE_PAGE: 211
-                    P90_SOURCE_REGION: party_documents
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: 211
+                    P47_SOURCE_REGION: party_documents
+                    P47_ENTITY_NAME: XXCMP_PARTIES
+                    P47_PK1_VALUE: &P211_PARTY_ID.
                 }
-                clearCache: 90
+                clearCache: 47
             }
             warnOnUnsavedChanges: doNotCheck
         }

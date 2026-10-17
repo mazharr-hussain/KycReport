@@ -35,10 +35,10 @@ def login(b, user):
 
 
 def open_task(pg, s, number):
-    pg.goto(f'{HOST}/ords/f?p={APP}:40:{s}'); pg.wait_for_load_state('networkidle')
+    # release 88: My Tasks is COMMON's page 40 (same session); RIR clears earlier searches of the report
+    pg.goto(f'{HOST}/ords/f?p=COMMON:40:{s}:RIR'); pg.wait_for_load_state('networkidle')
     if pg.locator(f'a:has-text("{number}")').count() == 0:
-        search = pg.locator('input[type=search]').first
-        search.fill(number); pg.keyboard.press('Enter'); pg.wait_for_timeout(2500)
+        pg.locator('.a-IRR-search-field').first.fill(number); pg.keyboard.press('Enter'); pg.wait_for_timeout(2500)
     with pg.expect_navigation():
         pg.locator(f'a:has-text("{number}")').first.click()
     pg.wait_for_load_state('networkidle')
