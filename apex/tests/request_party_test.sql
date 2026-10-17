@@ -218,6 +218,12 @@ begin
     commit;
 
     ---------------------------------------------------------------- approval path from setup (release 74: the common Approval Setup)
+    -- release 90: a run stopped by an error left its test rule behind (priority 1: every AE organisation request then
+    -- had two steps in the other tests); the test's own rule is removed at the end, so a leftover one goes here
+    delete from xxfnd_approval_rules
+     where approval_type_code = 'KYC_REQUEST' and rule_name like 'Test %' and priority = 1
+       and exists (select 1 from xxfnd_approval_rule_steps s where s.rule_id = xxfnd_approval_rules.rule_id
+                    and s.step_name = 'Finance sign-off');
     insert into xxfnd_approval_rules (approval_type_code, rule_name, priority)
     values ('KYC_REQUEST', 'Test ' || l_tag, 1) returning rule_id into l_rule;
     insert into xxfnd_approval_rule_conds (rule_id, attribute_code, attribute_value)

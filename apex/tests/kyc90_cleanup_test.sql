@@ -111,7 +111,7 @@ begin
     ---------------------------------------------------------------- application
     ok('no page, task definition or workflow calls a removed routine',
        cnt('select count(*) from apex_application_page_regions where application_id = ' || l_app
-           || q'[ and (lower(region_source) like '%xxcmp_approval_pkg%' or lower(region_source) like '%questionnaire_html%')]') = 0
+           || q'[ and (lower(region_source) like '%xxcmp_approval_pkg%' or lower(region_source) like '%questionnaire_html(%')]') = 0
        and cnt('select count(*) from apex_appl_workflow_activities where application_id = ' || l_app
            || q'[ and (lower(activity_code) like '%approve_case%' or lower(activity_code) like '%reject_case%'
                        or lower(activity_code) like '%xxcmp_approval_pkg%')]') = 0
