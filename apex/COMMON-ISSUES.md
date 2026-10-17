@@ -1,15 +1,58 @@
 # COMMON issues found by KYC (for the COMMON team)
 
-KYC does not change COMMON. Each issue below was found while adapting KYC to COMMON 86. Until COMMON fixes it, KYC keeps its
-own copy of what it needs (from the user: "anything linked to common will be reported to common team, and we will
-duplicate anything in our module").
+KYC does not change COMMON and does not duplicate COMMON components (golden rule). Each issue below was found while
+adapting KYC (releases 87-91) to COMMON 86. KYC uses COMMON as it is; the COMMON team fixes these in COMMON.
 
-| # | Issue | Where | Effect | KYC until fixed |
-|---|-------|-------|--------|-----------------|
-| C1 | Business users cannot open COMMON. The application authorization APP_USER lets only IT (Common Administrator) and delegated administrators in (rule since COMMON 71). | XXFND_USER_PKG.AUTHORIZED('APP_USER'), f135 authorization app-user | A requester or officer who follows a link to COMMON's shared user pages (My Tasks 40, E-mail 46, Information Request 143, Feedback 173) gets "You do not have access to this application". | KYC keeps its own My Tasks, information request, e-mail and feedback screens. |
-| C2 | A cancelled configuration change leaves its CONFIG_CHANGE workflow faulted, and the change cannot be submitted again. | XXFND_APPROVAL_PKG / CONFIG_CHANGE workflow | The same change is blocked until the faulted workflow is removed by hand. | none (reported) |
-| C3 | Script 17 rewrites KYC's lookups on every COMMON upgrade. | apex/db/17 | An administrator's change to a KYC lookup is lost after a COMMON upgrade. | KYC registers its lookups in 18h (keeps administrator changes). |
-| C4 | DELEGATED_URL points to KYC page 98, which KYC no longer has. | XXFND_APPLICATION_PKG.DELEGATED_URL | The "managed in the application" link of a delegated function opens "page not found". | none (reported) |
-| C5 | Information Request page 143 has no documents region; information requests have no due dates or task settings. | f135 page 143, XXFND_RFI_PKG | Documents asked for in an RFI cannot be attached or seen there; no deadline reminders. | KYC keeps its own RFI screens. |
-| C6 | The E-mail page 46 has no list of the party's contacts. | f135 page 46 | The sender types the address by hand. | KYC keeps its own e-mail screen. |
-| C7 | The Application Settings screen changes the settings of the running application only (XXFND_APP_SETTING_PKG.SET_VALUE refuses another application). | XXFND_APP_SETTING_PKG | A KYC setting (for example CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS) cannot be changed from COMMON's console. | Changed in App Builder (Shared Components > Application Settings). |
+## C1 - Business users of an application cannot open COMMON's shared user pages (blocking)
+- **Where:** `XXFND_USER_PKG.AUTHORIZED('APP_USER')` (apex/db/16j-user-pkg.sql), used by COMMON's application
+  authorization `app-user` (f135 `shared-components/authorizations.apx`, evaluated on every page view).
+- **Rule today (since COMMON 71):** in COMMON, APP_USER is true only for a Common Administrator
+  (`XXFND_APPLICATION_PKG.IS_COMMON_ADMIN`) or a delegated administrator (`DELEGATED_ANY`).
+- **Effect:** KYC's menu and pages link to COMMON's shared pages: My Tasks (40), E-mail (46), Information Request (143)
+  and Feedback (173). A KYC requester or officer (for example REQ1, OFFICER1) who follows such a link gets
+  "You do not have access to this application. Ask an administrator to grant you a role." A KYC user who is also a
+  COMMON administrator (ADMIN) gets in.
+- **Seen in:** KYC browser tests kyc88_shared_ui (REQ1 My Tasks), kyc89_rfi_ui (Information Request), r74_email_ui
+  (Send E-mail), r75_ui, kyc_ui and request_party_ui (task steps open My Tasks as a business user), r74_risk_ui.
+- **Needed:** a user who has a privilege in any registered application may open COMMON's shared user pages; every
+  other COMMON page stays for IT and delegated administrators.
+
+## C2 - A cancelled configuration change cannot be submitted again
+- **Where:** `XXFND_APPROVAL_PKG.REQUEST` and the CONFIG_CHANGE workflow (COMMON 84).
+- **Effect:** after a cancel, the CONFIG_CHANGE workflow of the row stays faulted; submitting the same change again is
+  refused until the faulted workflow is removed by hand.
+- **Seen in:** r74_risk_test ("submitted: one approval task for the factors") on a database where an earlier run left
+  the workflow faulted.
+
+## C3 - COMMON's script 17 rewrites KYC's lookups on every COMMON upgrade
+- **Where:** apex/db/17 (runs for COMMON).
+- **Effect:** an administrator's change to a KYC lookup value (meaning, order, enabled) is lost after a COMMON upgrade.
+  KYC registers its lookups itself (18h, REGISTER_LOOKUP_*), which keeps administrator changes.
+- **Needed:** 17 leaves other applications' lookups alone.
+
+## C4 - DELEGATED_URL points to KYC page 98, which no longer exists
+- **Where:** `XXFND_APPLICATION_PKG.DELEGATED_URL`.
+- **Effect:** the "managed in the application" link of a delegated function opens "page not found" in KYC.
+- **Needed:** the link goes to the function's page in COMMON (or to a page the application registers).
+
+## C5 - Information Request page 143: no documents, no due dates, no task settings
+- **Where:** f135 page 143, `XXFND_RFI_PKG`, workflow RFI.
+- **Effect:** documents asked for in an information request cannot be attached or seen on the page; information
+  requests have no due date and no task setting, so no deadline reminders. KYC's case documents block (RFI_DOCUMENTS
+  on KYC_CASE) is a workaround on the case side only.
+
+## C6 - E-mail page 46 has no list of the party's contacts
+- **Where:** f135 page 46.
+- **Effect:** the sender types the recipient address by hand; the contacts the application already holds (KYC party
+  contacts) cannot be picked.
+- **Needed:** an optional recipient list the calling application passes (entity and key), or a registered contact
+  source.
+
+## C7 - Application settings of another application cannot be changed from COMMON
+- **Where:** `XXFND_APP_SETTING_PKG.SET_VALUE` (apex/db/21d) refuses an application other than the running one
+  (APEX changes the settings of the running application only).
+- **Effect:** KYC's settings (MAIL_FROM, ATTACH_*, FUSION_*, and from release 91 CASE_SLA_DAYS, PEP_REVIEW_MONTHS,
+  REVIEW_LEAD_DAYS) cannot be changed on COMMON's Application Settings screen; today only in App Builder (Shared
+  Components > Application Settings).
+- **Needed:** a way for COMMON's screen to set another registered application's settings (for example through
+  `APEX_APP_SETTING` in a session of that application).

@@ -44,6 +44,11 @@
 - **COMMON first:** the KYC freeze (until COMMON was finished) ended with release 68 (approved plan: clean script,
   COMMON screens, data move, KYC uses COMMON). Shared setup screens live in COMMON only; KYC links to them
   (XXFND_ADMIN_SCOPE_PKG.SETUP_PAGE_URL). Build one app with `python3 apex/tools/build.py --release N --app COMMON`.
+- **Golden rule: COMMON components are never duplicated (from the user).** No application copies a COMMON component
+  (screen, package logic, LOV, authorization, workflow, task, setup). An issue in COMMON is not fixed in COMMON from an
+  application release and not worked around with a copy: it is listed for the COMMON team in `apex/COMMON-ISSUES.md`
+  with its details. Even if the user asks to duplicate a COMMON component in future, it must be reconfirmed with the
+  user three times before anything is done.
 - **COMMON scope only (from the user):** a component that belongs to COMMON lives only in COMMON scope; KYC (and every
   other application) uses it as it is - no change, no redevelopment, no duplication.
 - **COMMON is completed on its own (from the user):** KYC and COMMON are two different applications. For now treat KYC
