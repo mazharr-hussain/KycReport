@@ -59,7 +59,8 @@ begin
        and src('XXCMP_REQUEST_PKG', '%function param(%') = 0
        and src('XXCMP_REQUEST_PKG', '%function get_party(%') = 0
        and src('XXCMP_REQUEST_PKG', '%function party_status(%') = 0);
-    ok('PARAM: one copy, in the case package', src('XXCMP_CASE_PKG', '%function param(%') = 1);
+    -- release 91: the one copy is the public XXCMP_CASE_PKG.PARAMETER (KYC application settings)
+    ok('PARAMETER: one copy, in the case package', src('XXCMP_CASE_PKG', '%function parameter(%') = 1);
     ok('the party reads are the party package''s (GET_PARTY, PARTY_STATUS public)',
        pub('XXCMP_PARTY_PKG', q'['GET_PARTY','PARTY_STATUS','PARTY_TYPE']') = 3);
     ok('PARTY_CANDIDATE_COUNT is private', pub('XXCMP_PARTY_PKG', q'['PARTY_CANDIDATE_COUNT']') = 0
