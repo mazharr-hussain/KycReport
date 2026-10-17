@@ -1,0 +1,95 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Install Test
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region installs (
+        name: Installs
+        title: Installs of this application
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select ping_id, installed_in, session_user, installed_on
+                  from xxftest_ping
+                 order by ping_id desc
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--rowHighlight
+            ]
+        }
+        messages {
+            whenNoDataFound: No install recorded: the supporting objects did not run.
+        }
+
+        column PING_ID (
+            type: plainText
+            heading {
+                heading: Install
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column INSTALLED_IN (
+            type: plainText
+            heading {
+                heading: Installed in schema
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SESSION_USER (
+            type: plainText
+            heading {
+                heading: Session user
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column INSTALLED_ON (
+            type: plainText
+            heading {
+                heading: Installed on
+            }
+            layout {
+                sequence: 40
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI:SS
+            }
+        )
+    )
+
+)

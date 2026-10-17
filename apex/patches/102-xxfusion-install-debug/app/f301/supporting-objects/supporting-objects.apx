@@ -1,0 +1,22 @@
+supportingObject (
+    installationMessages {
+        welcome:
+            ```
+            Creates the table XXFTEST_PING in the parsing schema and adds one row that records the schema the install ran in.
+            ```
+        installSuccess:
+            ```
+            Installed. Open the application: the row shows the schema the install ran in (expected XXFUSION).
+            ```
+        installFailure:
+            ```
+            Installation failed. Run apex/db/admin/debug-xxfusion-install.sql as ADMIN and send its report.
+            ```
+    }
+    deinstall {
+        scriptFile: deinstall-script.sql
+    }
+    advanced {
+        includeInAppExport: true
+    }
+)
