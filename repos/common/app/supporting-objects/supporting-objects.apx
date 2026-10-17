@@ -1,0 +1,37 @@
+supportingObject (
+    installationMessages {
+        welcome:
+            ```
+            Installs the shared XXFND_ database objects (security, flexfields, attachments, workflow), the common seed data and the first administrator into the parsing schema (XXFUSION).
+            ```
+        confirmation:
+            ```
+            The first script checks the schema's privileges; if one is missing it stops with the exact statements to run as ADMIN (see apex/install/COMMON/INSTALL.md).
+            Install the database objects now? Existing XXFND_ tables are upgraded instead of recreated.
+            ```
+        installSuccess:
+            ```
+            Installed. You are the first Common Administrator.
+            ```
+        installFailure:
+            ```
+            Installation failed. If script 00a Prerequisites check failed (ORA-20900 ACTION NEEDED), its message lists the statements to run as ADMIN: run them, then come back and Install Supporting Objects again (Utilities > Supporting Objects). Otherwise check the script results, fix the cause and reinstall; every script can be re-run.
+            ```
+    }
+    upgrade {
+        upgradeWhenSqlQuery:
+            ```sql
+            select null from user_tables where table_name = 'XXFND_LOOKUP_TYPES'
+            ```
+    }
+    upgradeMessages {
+        welcome:
+            ```
+            Upgrades the shared packages, views and seed data. Tables and data are kept.
+            ```
+        success:
+            ```
+            Upgrade complete.
+            ```
+    }
+)

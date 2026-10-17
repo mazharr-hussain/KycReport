@@ -1725,6 +1725,14 @@
    "whole": true
   }
  ],
+ "apex/src/database/xxcus/apex_apps/f134/supporting-objects/supporting-objects.apx": [
+  {
+   "from": 0,
+   "target": "kyc/app/supporting-objects/supporting-objects.apx",
+   "to": 4814,
+   "whole": true
+  }
+ ],
  "apex/src/database/xxcus/apex_apps/f134/workspace-components/credentials/apex-fa-iabwbn-dev1-dbms-cred.apx": [
   {
    "from": 0,

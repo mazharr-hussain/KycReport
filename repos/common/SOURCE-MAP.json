@@ -2957,6 +2957,14 @@
    "whole": true
   }
  ],
+ "apex/src/database/xxfusion/apex_apps/f135/supporting-objects/supporting-objects.apx": [
+  {
+   "from": 0,
+   "target": "common/app/supporting-objects/supporting-objects.apx",
+   "to": 1542,
+   "whole": true
+  }
+ ],
  "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/XXFND-PUSH-CREDENTIALS.apx": [
   {
    "from": 0,
