@@ -100,24 +100,6 @@ authorization page-submit (
     }
 )
 
-authorization workflow-administer (
-    name: Workflow - Administer
-    type: plSqlFunctionBody
-    settings {
-        plsqlFunctionBody:
-            ```plsql
-            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
-            return xxfnd_user_pkg.authorized('WORKFLOW_ADMINISTER');
-            ```
-    }
-    error {
-        errorMessage: You are not allowed to administer workflow items.
-    }
-    advanced {
-        evaluationType: perPageView
-    }
-)
-
 authorization admin-area (
     name: Administration Area
     subscription {

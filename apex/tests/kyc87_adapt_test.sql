@@ -45,9 +45,10 @@ begin
     -- release 88: KYC has no copy of My Tasks (40) or the Workflow Monitor (41): they are COMMON's pages
     ok('My Tasks (40) and the Workflow Monitor (41) are COMMON pages, not KYC pages (kyc88_shared_test checks COMMON''s)',
        cnt('select count(*) from apex_application_pages where application_id = ' || l_app || ' and page_id in (40, 41)') = 0);
-    ok('KYC lookups are KYC''s (RISK_TIER, CASE_STATUS, PARTY_TYPE, KYC_PARAMETER, ALERT_TYPE)',
+    -- release 91: KYC_PARAMETER is no longer registered (the parameters are application settings)
+    ok('KYC lookups are KYC''s (RISK_TIER, CASE_STATUS, PARTY_TYPE, ALERT_TYPE)',
        cnt(q'[select count(*) from xxfnd_lookup_types where application_code = 'KYC'
-               and lookup_type in ('RISK_TIER','CASE_STATUS','PARTY_TYPE','KYC_PARAMETER','ALERT_TYPE')]') = 5);
+               and lookup_type in ('RISK_TIER','CASE_STATUS','PARTY_TYPE','ALERT_TYPE')]') = 4);
     ok('the risk tiers LOW, MEDIUM and HIGH are there',
        cnt(q'[select count(*) from xxfnd_lookup_values where lookup_type = 'RISK_TIER'
                and lookup_code in ('LOW','MEDIUM','HIGH')]') = 3);

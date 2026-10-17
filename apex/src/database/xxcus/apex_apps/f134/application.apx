@@ -163,3 +163,39 @@ appSetting FUSION_CREDENTIAL_STATIC_ID (
             ```
     }
 )
+
+appSetting CASE_SLA_DAYS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Case investigation SLA in days (empty: the value kept in the old KYC_PARAMETER lookup, else 10).
+            ```
+    }
+)
+
+appSetting PEP_REVIEW_MONTHS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Longest review interval for PEP parties, in months (empty: the old KYC_PARAMETER lookup value, else 12).
+            ```
+    }
+)
+
+appSetting REVIEW_LEAD_DAYS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            The watchlist shows a review as due this many days ahead (empty: the old KYC_PARAMETER lookup value, else 30).
+            ```
+    }
+)

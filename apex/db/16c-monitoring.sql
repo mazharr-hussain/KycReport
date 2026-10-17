@@ -85,9 +85,8 @@ with latest as (
       from xxcmp_cases c
      where c.case_status = 'APPROVED'
 ), lead_days as (
-    select nvl(max(to_number(tag default null on conversion error)), 30) as days
-      from xxfnd_lookup_values
-     where lookup_type = 'KYC_PARAMETER' and lookup_code = 'REVIEW_LEAD_DAYS' and enabled_flag = 'Y'
+    -- release 91: the KYC setting REVIEW_LEAD_DAYS (XXCMP_CASE_PKG.PARAMETER)
+    select xxcmp_case_pkg.parameter('REVIEW_LEAD_DAYS', 30) as days from dual
 ), open_review as (
     select r.party_id, max(r.request_id) as request_id, max(r.request_number) as request_number
       from xxcmp_requests r

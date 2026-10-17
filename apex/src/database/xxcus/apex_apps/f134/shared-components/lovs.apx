@@ -1,24 +1,3 @@
-lov lov-yes-no (
-    name: YES_NO
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'YES_NO'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-jurisdiction (
     name: JURISDICTION
     subscription {
@@ -64,48 +43,6 @@ lov lov-entity-type (
     }
 )
 
-lov lov-party-type (
-    name: PARTY_TYPE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'PARTY_TYPE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-contact-type (
-    name: CONTACT_TYPE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'CONTACT_TYPE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-relationship-type (
     name: RELATIONSHIP_TYPE
     source {
@@ -117,48 +54,6 @@ lov lov-relationship-type (
                    lookup_code as return_value
               from xxfnd_lookup_values_vl
              where lookup_type = 'RELATIONSHIP_TYPE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-data-provenance (
-    name: DATA_PROVENANCE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'DATA_PROVENANCE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-ubo-status (
-    name: UBO_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'UBO_STATUS'
                and active_flag = 'Y'
              order by display_sequence, meaning
             ```
@@ -256,69 +151,6 @@ lov lov-approval-status (
     }
 )
 
-lov lov-upload-status (
-    name: UPLOAD_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'UPLOAD_STATUS'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-doc-check-status (
-    name: DOC_CHECK_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'DOC_CHECK_STATUS'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-notification-status (
-    name: NOTIFICATION_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'NOTIFICATION_STATUS'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-rfi-category (
     name: RFI_CATEGORY
     source {
@@ -332,131 +164,6 @@ lov lov-rfi-category (
              where lookup_type = 'RFI_CATEGORY'
                and active_flag = 'Y'
              order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-rfi-recipient-type (
-    name: RFI_RECIPIENT_TYPE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'RFI_RECIPIENT_TYPE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-rfi-status (
-    name: RFI_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'RFI_STATUS'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-integration-purpose (
-    name: INTEGRATION_PURPOSE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'INTEGRATION_PURPOSE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-transmission-status (
-    name: TRANSMISSION_STATUS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'TRANSMISSION_STATUS'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-language (
-    name: LANGUAGE
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select meaning as display_value,
-                   lookup_code as return_value
-              from xxfnd_lookup_values_vl
-             where lookup_type = 'LANGUAGE'
-               and active_flag = 'Y'
-             order by display_sequence, meaning
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-parties (
-    name: PARTIES
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select party_name || ' (' || party_number || ')' as display_value,
-                   party_id as return_value
-              from xxcmp_parties
-             where enabled_flag = 'Y'
-             order by party_name
             ```
     }
     columnMapping {
@@ -480,25 +187,6 @@ lov lov-employees (
               from xxfnd_employees
              where enabled_flag = 'Y'
              order by full_name
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-roles (
-    name: ROLES
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select role_name as display_value, role_code as return_value
-              from xxfnd_roles
-             where enabled_flag = 'Y'
-             order by role_name
             ```
     }
     columnMapping {
@@ -550,43 +238,6 @@ lov lov-entities (
     }
 )
 
-lov lov-templates (
-    name: NOTIFICATION TEMPLATES
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select template_code || ' - ' || subject as display_value, template_code as return_value
-              from xxfnd_notification_templates
-             where enabled_flag = 'Y'
-             order by template_code
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-questionnaires (
-    name: QUESTIONNAIRES
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select questionnaire_name as display_value, questionnaire_code as return_value
-              from xxcmp_questionnaires
-             order by questionnaire_name
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-lookup-types (
     name: LOOKUP TYPES
     subscription {
@@ -600,24 +251,6 @@ lov lov-lookup-types (
             select meaning || ' (' || lookup_type || ')' as display_value, lookup_type as return_value
               from xxfnd_lookup_types
              order by lookup_type
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
-lov lov-integration-purposes (
-    name: INTEGRATION PURPOSES
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select purpose_name as display_value, purpose_code as return_value
-              from xxfnd_integration_purposes
-             order by purpose_name
             ```
     }
     columnMapping {

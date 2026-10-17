@@ -126,7 +126,7 @@ begin
             p_pages => '20|21|22|23|24|25|26|27');
     -- release 88: the RFI pages 32 and 34 are gone (information requests are COMMON's, release 89)
     feature('CASES',           'Cases',                'BUSINESS', 50, 'N', 'VIEW,CREATE,MANAGE',
-            p_pages => '210|211|213|214|215|216|217|218|219');
+            p_pages => '210|211|213|215|216|217|218|219');
     feature('CASE_ASSIGNMENT', 'Case Assignment',      'BUSINESS', 55, 'N', 'MANAGE');
     feature('MONITORING',      'Monitoring Watchlist', 'BUSINESS', 60, 'N', 'VIEW,MANAGE',
             p_pages => '220=Watchlist|221=Alerts|222');
@@ -212,10 +212,8 @@ begin
         'OWNERSHIP=Ownership|CONTROL=Control|FALLBACK=Fallback (senior managing official)');
     lookups('REQUESTING_DEPARTMENT', 'Requesting Departments', 'E',
         'FINANCE=Finance|PROCUREMENT=Procurement|SALES=Sales|TREASURY=Treasury|LEGAL=Legal|OTHER=Other');
-    -- parameters administrators maintain in Lookups (value in TAG)
-    lookups('KYC_PARAMETER', 'KYC Parameters', 'E',
-        'CASE_SLA_DAYS=Case investigation SLA (days)=10|PEP_REVIEW_MONTHS=Review interval for PEP parties (months)=12'
-        || '|REVIEW_LEAD_DAYS=Show upcoming reviews this many days ahead=30');
+    -- release 91: the KYC parameters are application settings (CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS); the
+    -- lookup KYC_PARAMETER is no longer registered (an existing database keeps it and its values still apply)
     lookups('ID_VERIFICATION_METHOD', 'ID Verification Methods', 'S',
         'ORIGINAL_SEEN=Original seen in person|CERTIFIED_COPY=Certified copy|VIDEO_CALL=Video call'
         || '|GOVERNMENT_PORTAL=Government portal checked by hand');
