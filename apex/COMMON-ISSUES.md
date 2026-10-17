@@ -56,3 +56,13 @@ adapting KYC (releases 87-91) to COMMON 86. KYC uses COMMON as it is; the COMMON
   Components > Application Settings).
 - **Needed:** a way for COMMON's screen to set another registered application's settings (for example through
   `APEX_APP_SETTING` in a session of that application).
+
+## C8 - A page registration cannot be removed or retired
+- **Where:** `XXFND_PRIVILEGE_PKG.REGISTER_FEATURE_PAGE` (apex/db/09b) only adds a row to XXFND_FEATURE_PAGES; COMMON has
+  no routine and no console screen that removes or retires one, and the table has no enabled flag.
+- **Effect:** on an upgraded database, XXFND_FEATURE_PAGES keeps the rows of pages KYC has removed: 40, 41, 44, 45, 90,
+  91, 98, 100, 172, 10020-10023, 10030-10033, 10050-10052 (release 88), 30-34 (release 89) and 214 (release 91, under
+  CASES). Nothing shows them (KYC's menus list only pages it has), but they are stale setup rows KYC cannot clean up
+  (no direct writes to COMMON tables).
+- **Needed:** an UNREGISTER_FEATURE_PAGE routine (refuses another application's row, like the REGISTER_* routines), or
+  a delete on the feature page screen.
