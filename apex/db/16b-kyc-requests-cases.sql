@@ -613,6 +613,8 @@ create or replace package xxcmp_case_pkg authid definer as
     -- release 74: an RFI raised from a case (or its request / party) - its own workflow process (common RFI).
     -- p_recipient_type SETUP (default): the providers come from the Approval Setup (CASE_RFI, default the requester);
     -- REQUESTING_DEPARTMENT: a named user; EXTERNAL_PARTY: a contact person of the party (name and e-mail).
+    -- release 89: COMMON's RFI process runs it (XXFND_RFI_PKG): a user answers and the raiser reviews on COMMON's task
+    -- page Information Request (143); an outside person answers on COMMON's public page Provide Information (50).
     -- release 74: the attributes the Approval Setup tests for a case (transaction type KYC_CASE)
     function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2;
     procedure raise_rfi(p_entity_name      in varchar2,
@@ -624,6 +626,9 @@ create or replace package xxcmp_case_pkg authid definer as
                         p_description      in varchar2,
                         p_continue_work    in varchar2,
                         p_due_date         in date);
+    -- release 89: the open step of an RFI the signed-in user takes in COMMON's RFI process (the RFI_RESPONSE or RFI_REVIEW
+    -- task of COMMON in the user's My Tasks), for the link to COMMON's task page 143; null when there is none.
+    function rfi_task(p_rfi_id in number) return number;
     procedure apply_screening(p_case_id in number);
 
     -- Case screen (211, release 27): the sections an officer works through, in order.
