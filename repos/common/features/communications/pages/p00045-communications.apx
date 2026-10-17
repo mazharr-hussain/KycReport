@@ -1,0 +1,351 @@
+page 45 (
+    name: Communications
+    alias: COMMUNICATIONS
+    title: Communications
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The e-mails with outside people of one record of any application (the application opens this page with its
+            application code, entity and key): what was sent and received, newest first. Send an e-mail or record one that was
+            received.
+            ```
+    }
+
+    region breadcrumb (
+        name: Communications
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region record (
+        name: Record
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: record
+        }
+    )
+    pageItem P45_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
+        }
+    )
+    pageItem P45_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
+        }
+    )
+    pageItem P45_PK1_VALUE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @record
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page for its record (no COMMON checksum). The rows shown are filtered by the data security of XXFND_COMMUNICATIONS.
+                ```
+        }
+    )
+    pageItem P45_RECORD (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @record
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select :P45_APPLICATION_CODE || ' - ' || :P45_ENTITY_NAME || ' ' || :P45_PK1_VALUE from dual
+                ```
+            used: always
+        }
+        help {
+            helpText: The record.
+        }
+    )
+    button send (
+        buttonName: SEND
+        label: Send E-mail
+        layout {
+            sequence: 10
+            region: @record
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 46
+                items: {
+                    P46_APPLICATION_CODE: &P45_APPLICATION_CODE.
+                    P46_ENTITY_NAME: &P45_ENTITY_NAME.
+                    P46_PK1_VALUE: &P45_PK1_VALUE.
+                    P46_DIRECTION: OUT
+                }
+                clearCache: 46
+            }
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+    button received (
+        buttonName: RECEIVED
+        label: Record Received E-mail
+        layout {
+            sequence: 20
+            region: @record
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 46
+                items: {
+                    P46_APPLICATION_CODE: &P45_APPLICATION_CODE.
+                    P46_ENTITY_NAME: &P45_ENTITY_NAME.
+                    P46_PK1_VALUE: &P45_PK1_VALUE.
+                    P46_DIRECTION: IN
+                }
+                clearCache: 46
+            }
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region history (
+        name: E-mails
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: the e-mails of the record (XXFND_COMMUNICATIONS), newest first
+                select c.communication_id,
+                       case c.direction when 'OUT' then 'Sent' else 'Received' end as direction,
+                       case c.direction when 'OUT' then c.to_address else c.from_address end as other_party,
+                       c.subject,
+                       dbms_lob.substr(c.body, 1000, 1) as body,
+                       c.status,
+                       c.communication_date,
+                       c.recorded_by,
+                       -- release 85: the documents of the e-mail (COMMON Attachments; this page and region are registered for them)
+                       apex_page.get_url(p_page => 47, p_clear_cache => '47',
+                                         p_items  => 'P47_APP_ALIAS,P47_SOURCE_PAGE,P47_SOURCE_REGION,P47_ENTITY_NAME,P47_PK1_VALUE',
+                                         p_values => 'COMMON,45,history,XXFND_COMMUNICATIONS,' || c.communication_id) as documents_url
+                  from xxfnd_communications c
+                 where c.application_code = :P45_APPLICATION_CODE
+                   and c.entity_name = :P45_ENTITY_NAME
+                   and c.pk1_value = :P45_PK1_VALUE
+                 order by c.communication_date desc
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: history
+        }
+        messages {
+            whenNoDataFound: No e-mail for this record yet.
+        }
+
+        column COMMUNICATION_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Direction
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column OTHER_PARTY (
+            type: plainText
+            heading {
+                heading: With
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Subject
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column BODY (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMUNICATION_DATE (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 70
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column RECORDED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column DOCUMENTS_URL (
+            type: link
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 90
+            }
+            link {
+                target: {
+                    type: url
+                    url: #DOCUMENTS_URL#
+                }
+                linkText: Documents
+            }
+        )
+    )
+)

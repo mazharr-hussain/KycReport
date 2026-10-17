@@ -1,0 +1,407 @@
+page 48 (
+    name: Document
+    alias: DOCUMENT
+    title: Document
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-create
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Add a document to the record, or replace a document with a new version (the earlier versions are kept). The
+            categories offered are those the calling page allows.
+            ```
+    }
+
+    region breadcrumb (
+        name: Document
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region doc (
+        name: Document
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: doc
+        }
+    )
+    pageItem P48_APP_ALIAS (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_SOURCE_PAGE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_SOURCE_REGION (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_PK1_VALUE (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_ATTACHED_DOCUMENT_ID (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @doc
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P48_CATEGORY_CODE (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.category_name as display_value, c.category_code as return_value
+                  from xxfnd_document_categories_vl c
+                 where c.enabled_flag = 'Y'
+                   and trunc(sysdate) between c.start_date_active and nvl(c.end_date_active, trunc(sysdate))
+                   and xxfnd_attach_pkg.category_allowed(:P48_APP_ALIAS, to_number(:P48_SOURCE_PAGE), c.category_code) = 'Y'
+                 order by c.category_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P48_ATTACHED_DOCUMENT_ID
+        }
+        help {
+            helpText: The category of the document (those the calling page allows).
+        }
+    )
+    pageItem P48_CURRENT (
+        type: displayOnly
+        label {
+            label: Current Version
+            alignment: left
+        }
+        layout {
+            sequence: 15
+            region: @doc
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(title || ' (' || file_name || ', version ' || version_number || ')')
+                  from xxfnd_attached_documents_v where attached_document_id = to_number(:P48_ATTACHED_DOCUMENT_ID)
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P48_ATTACHED_DOCUMENT_ID
+        }
+        help {
+            helpText: The current version.
+        }
+    )
+    pageItem P48_FILE (
+        type: fileUpload
+        label {
+            label: File
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop the file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: The file to keep with the record.
+        }
+    )
+    pageItem P48_TITLE (
+        type: textField
+        label {
+            label: Title
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        help {
+            helpText: A title for the document (the file name when empty).
+        }
+    )
+    pageItem P48_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        help {
+            helpText: What the document is.
+        }
+    )
+    pageItem P48_DOCUMENT_DATE (
+        type: datePicker
+        label {
+            label: Issue Date
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The date printed on the document.
+        }
+    )
+    pageItem P48_EXPIRY_DATE (
+        type: datePicker
+        label {
+            label: Expiry Date
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @doc
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: For documents that expire, such as passports and licences.
+        }
+    )
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 10
+            region: @doc
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    process save (
+        name: Add or replace the document
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 85: the attachment package keeps the file (its store, its limits); the calling page's registration decides
+                declare
+                    l_id number;
+                begin
+                    if :P48_ATTACHED_DOCUMENT_ID is null then
+                        xxfnd_attach_pkg.assert_change(:P48_APP_ALIAS, to_number(:P48_SOURCE_PAGE), :P48_SOURCE_REGION, :P48_ENTITY_NAME,
+                                                       :P48_PK1_VALUE, 'INSERT');
+                        l_id := xxfnd_attach_pkg.add_file(p_entity_name    => :P48_ENTITY_NAME,
+                                                          p_pk1_value      => :P48_PK1_VALUE,
+                                                          p_category_code  => :P48_CATEGORY_CODE,
+                                                          p_temp_file_name => :P48_FILE,
+                                                          p_title          => :P48_TITLE,
+                                                          p_description    => :P48_DESCRIPTION,
+                                                          p_document_date  => to_date(:P48_DOCUMENT_DATE, 'DD-MON-YYYY'),
+                                                          p_expiry_date    => to_date(:P48_EXPIRY_DATE, 'DD-MON-YYYY'),
+                                                          p_page_id        => to_number(:P48_SOURCE_PAGE));
+                    else
+                        xxfnd_attach_pkg.assert_change(:P48_APP_ALIAS, to_number(:P48_SOURCE_PAGE), :P48_SOURCE_REGION, :P48_ENTITY_NAME,
+                                                       :P48_PK1_VALUE, 'UPDATE', to_number(:P48_ATTACHED_DOCUMENT_ID));
+                        xxfnd_attach_pkg.add_version(p_attached_document_id => to_number(:P48_ATTACHED_DOCUMENT_ID),
+                                                     p_temp_file_name       => :P48_FILE,
+                                                     p_document_date        => to_date(:P48_DOCUMENT_DATE, 'DD-MON-YYYY'),
+                                                     p_expiry_date          => to_date(:P48_EXPIRY_DATE, 'DD-MON-YYYY'),
+                                                     p_page_id              => to_number(:P48_SOURCE_PAGE));
+                        if :P48_TITLE is not null or :P48_DESCRIPTION is not null then
+                            xxfnd_attach_pkg.update_details(to_number(:P48_ATTACHED_DOCUMENT_ID), :P48_TITLE, :P48_DESCRIPTION,
+                                                            to_date(:P48_DOCUMENT_DATE, 'DD-MON-YYYY'), to_date(:P48_EXPIRY_DATE, 'DD-MON-YYYY'));
+                        end if;
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: The document is kept with the record.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+    branch (
+        name: Back to the documents
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 47
+                items: {
+                    P47_APP_ALIAS: &P48_APP_ALIAS.
+                    P47_SOURCE_PAGE: &P48_SOURCE_PAGE.
+                    P47_SOURCE_REGION: &P48_SOURCE_REGION.
+                    P47_ENTITY_NAME: &P48_ENTITY_NAME.
+                    P47_PK1_VALUE: &P48_PK1_VALUE.
+                }
+                clearCache: 47
+            }
+        }
+    )
+)

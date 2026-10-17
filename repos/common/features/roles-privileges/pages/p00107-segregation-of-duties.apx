@@ -1,0 +1,242 @@
+page 107 (
+    name: Segregation of Duties
+    alias: SEGREGATION-OF-DUTIES
+    title: Segregation of Duties
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Segregation of Duties
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Segregation of Duties
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 108, p_items => 'P108_SOD_RULE_ID', p_values => to_char(q.sod_rule_id), p_clear_cache => '108') as open_url
+                  from (
+
+                            select s.sod_rule_id,
+                                   r1.role_name as role_1,
+                                   r2.role_name as role_2,
+                                   xxfnd_lookup_pkg.lookup_meaning('SOD_SCOPE', s.conflict_scope) as conflict_scope,
+                                   s.description,
+                                   s.enabled_flag
+                              from xxfnd_sod_rules s
+                              join xxfnd_roles r1 on r1.role_code = s.role_code_1
+                              join xxfnd_roles r2 on r2.role_code = s.role_code_2
+                             where (:G_ADMIN_APP = 'ALL' or :G_ADMIN_APP in (r1.application_code, r2.application_code))   -- the application filter
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column SOD_RULE_ID (
+            type: hidden
+            heading {
+                heading: Sod Rule Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column ROLE_1 (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#ROLE_1#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROLE_2 (
+            type: plainText
+            heading {
+                heading: Conflicts With
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CONFLICT_SCOPE (
+            type: plainText
+            heading {
+                heading: Scope
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Rule
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 108
+                clearCache: 108
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

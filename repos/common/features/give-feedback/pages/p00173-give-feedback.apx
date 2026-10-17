@@ -1,0 +1,261 @@
+page 173 (
+    name: Give Feedback
+    alias: GIVE-FEEDBACK
+    title: Give Feedback
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Tell the team what you think of the page you were on - a comment, an idea for an improvement or a problem. Any
+            application opens this page with its application and page.
+            ```
+    }
+
+    region breadcrumb (
+        name: Give Feedback
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region give (
+        name: Your Feedback
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: give
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P173_DONE
+        }
+    )
+    region thanks (
+        name: Thank You
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Thank you for your feedback.</p>
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: thanks
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P173_DONE
+        }
+    )
+    pageItem P173_APPLICATION_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @give
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page with its application and page (no COMMON checksum); they only label the feedback, and XXFND_APPLICATION_PKG.SUBMIT_FEEDBACK takes registered applications only.
+                ```
+        }
+    )
+    pageItem P173_PAGE_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @give
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose: any application opens this page with its application and page (no COMMON checksum); they only label the feedback, and XXFND_APPLICATION_PKG.SUBMIT_FEEDBACK takes registered applications only.
+                ```
+        }
+    )
+    pageItem P173_DONE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @give
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P173_ABOUT (
+        type: displayOnly
+        label {
+            label: About
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @give
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(a.application_name) || ' - ' || nvl(max(p.page_name), 'page ' || :P173_PAGE_ID)
+                  from xxfnd_applications a
+                  left join apex_application_pages p on p.application_id = a.apex_application_id and p.page_id = to_number(:P173_PAGE_ID)
+                 where a.apex_application_id = to_number(:P173_APPLICATION_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The about.
+        }
+    )
+    pageItem P173_TYPE (
+        type: selectList
+        label {
+            label: Type
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Comment;1,Idea for an improvement;2,Something does not work;3
+        }
+        layout {
+            sequence: 10
+            region: @give
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+        help {
+            helpText: The kind of feedback (the APEX feedback types).
+        }
+    )
+    pageItem P173_FEEDBACK (
+        type: textarea
+        label {
+            label: Feedback
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @give
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 6
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: What you think of the page.
+        }
+    )
+    button submit (
+        buttonName: SUBMIT
+        label: Send Feedback
+        layout {
+            sequence: 10
+            region: @give
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    process submit (
+        name: Send the feedback
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 85: through the Platform package (registered applications only; kept by APEX)
+                xxfnd_application_pkg.submit_feedback(to_number(nvl(:P173_APPLICATION_ID, :APP_ID)), to_number(nvl(:P173_PAGE_ID, 0)),
+                                                      to_number(:P173_TYPE), :P173_FEEDBACK);
+                :P173_DONE := 'Y';
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+)

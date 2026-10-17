@@ -1,0 +1,43 @@
+restDataSource OUTLOOK_MESSAGES (
+    name: Outlook Messages
+    source {
+        type: http
+        remoteServer: @OUTLOOK_GRAPH
+        urlPathPrefix: /me/messages
+    }
+    authentication {
+        credentials: @XXFND_GRAPH_CRED
+    }
+    comments {
+        comments: Release 83 - planned: the e-mails of the RFI and Notes screens through Microsoft Graph (server OUTLOOK_GRAPH). Its server and Web Credential are kept by the workspace administrator; COMMON calls it through XXFND_INTEGRATION_PKG.
+    }
+
+    dataProfile {
+        name: OUTLOOK_MESSAGES
+        rowSelector: value
+    }
+
+    dataProfileColumn id (
+        columnName: ID
+        source {
+            sequence: 1
+            dataType: varchar2
+            primaryKey: true
+        }
+        parsing {
+            pathExpression: id
+        }
+        advanced {
+            sourceDataType: string
+        }
+    )
+
+    operation get-rows (
+        label: GET
+        operation {
+            urlPattern: .
+            httpMethod: get
+            databaseOperation: fetchRows
+        }
+    )
+)

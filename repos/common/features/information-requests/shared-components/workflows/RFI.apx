@@ -1,0 +1,260 @@
+workflow RFI (
+    name: Request for Information
+    title: Request for information &APEX$WORKFLOW_DETAIL_PK.
+    comments {
+        comments: Release 84 - the request for information of every application (record = XXFND_RFIS.RFI_ID). A user answers in the RFI_RESPONSE task (each provider from the Approval Setup in turn); an outside person answers on the public page Provide Information through the one-time link, which continues the wait. The person who raised it reviews the answer (RFI_REVIEW): resolved, returned or cancelled ends it; asked again loops back. XXFND_RFI_PKG keeps the data; XXFND_WORKFLOW_PKG starts it (switch of the application's RFI process).
+    }
+
+    parameter APPLICATION_CODE (
+        label {
+            label: Application
+        }
+        parameter {
+            dataType: varchar2
+            direction: in
+        }
+        comments {
+            comments: The application the record belongs to (XXFND_APPLICATIONS): its workflow / e-mail switches and notification rules apply.
+        }
+    )
+
+    version 1.0 (
+        settings {
+            state: active
+        }
+
+        activity Start (
+            name: Start
+            type: workflowStart
+            layout {
+                sequence: 10
+            }
+            advanced {
+                diagram: {"position":{"x":40,"y":200},"z":10}
+            }
+
+            connection (
+                name: Ask
+                activity {
+                    to: @RECIPIENT
+                }
+            )
+
+        )
+
+        activity RECIPIENT (
+            name: Outside person?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxfnd_rfi_pkg.is_external(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+            }
+            layout {
+                sequence: 20
+            }
+            advanced {
+                diagram: {"position":{"x":180,"y":200},"z":20}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @WAIT_ANSWER
+                }
+            )
+
+            connection (
+                name: No
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @RESPONSE
+                }
+            )
+
+        )
+
+        activity RESPONSE (
+            name: Provide the information
+            type: humanTaskCreate
+            humanTask {
+                definition: @RFI_RESPONSE
+                taskIdItem: V_RESPONSE_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            layout {
+                sequence: 30
+            }
+            advanced {
+                diagram: {"position":{"x":360,"y":300},"z":30}
+            }
+
+            connection (
+                name: Answered
+                activity {
+                    to: @MORE_PROVIDERS
+                }
+            )
+
+        )
+
+        activity MORE_PROVIDERS (
+            name: Another provider?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxfnd_rfi_pkg.is_waiting(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+            }
+            layout {
+                sequence: 40
+            }
+            advanced {
+                diagram: {"position":{"x":540,"y":300},"z":40}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @RESPONSE
+                }
+            )
+
+            connection (
+                name: No
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @REVIEW
+                }
+            )
+
+        )
+
+        activity WAIT_ANSWER (
+            name: Wait for the outside answer
+            type: wait
+            timeout {
+                timeoutType: expression
+                language: plsql
+                plsqlExpression: xxfnd_rfi_pkg.answer_wait(:APEX$WORKFLOW_DETAIL_PK)
+            }
+            layout {
+                sequence: 50
+            }
+            advanced {
+                diagram: {"position":{"x":360,"y":100},"z":50}
+            }
+
+            connection (
+                name: Answered or expired
+                activity {
+                    to: @REVIEW
+                }
+            )
+
+        )
+
+        activity REVIEW (
+            name: Review the answer
+            type: humanTaskCreate
+            humanTask {
+                definition: @RFI_REVIEW
+                taskIdItem: V_REVIEW_TASK_ID
+                detailsPkItem: APEX$WORKFLOW_DETAIL_PK
+            }
+            layout {
+                sequence: 60
+            }
+            advanced {
+                diagram: {"position":{"x":720,"y":200},"z":60}
+            }
+
+            connection (
+                name: Reviewed
+                activity {
+                    to: @ASKED_AGAIN
+                }
+            )
+
+        )
+
+        activity ASKED_AGAIN (
+            name: Asked again?
+            type: switch
+            condition {
+                conditionType: functionBody
+                plsqlFunctionBody: return xxfnd_rfi_pkg.is_waiting(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+            }
+            layout {
+                sequence: 70
+            }
+            advanced {
+                diagram: {"position":{"x":900,"y":200},"z":70}
+            }
+
+            connection (
+                name: Yes
+                condition {
+                    when: true
+                }
+                activity {
+                    to: @RECIPIENT
+                }
+            )
+
+            connection (
+                name: No
+                condition {
+                    when: false
+                }
+                activity {
+                    to: @End
+                }
+            )
+
+        )
+
+        activity End (
+            name: End
+            type: workflowEnd
+            layout {
+                sequence: 80
+            }
+            advanced {
+                diagram: {"position":{"x":1080,"y":200},"z":80}
+            }
+
+        )
+
+        variable V_RESPONSE_TASK_ID (
+            label {
+                label: Answer task
+            }
+        )
+
+        variable V_REVIEW_TASK_ID (
+            label {
+                label: Review task
+            }
+        )
+
+        participant (
+            name: Workflow administrators
+            type: admin
+            value {
+                type: expression
+                plsqlExpression: xxfnd_workflow_pkg.business_admins
+            }
+        )
+
+    )
+
+)

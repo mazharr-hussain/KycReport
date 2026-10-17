@@ -1,0 +1,3400 @@
+{
+ "apex/COMMON-ISSUES.md": [
+  {
+   "from": 0,
+   "target": "common/docs/COMMON-ISSUES.md",
+   "to": 6640,
+   "whole": true
+  }
+ ],
+ "apex/db/00-deployment-framework.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/00-deployment-framework.sql",
+   "to": 1303,
+   "whole": false
+  },
+  {
+   "from": 1303,
+   "target": "common/db/framework/00-deployment-framework.sql",
+   "to": 1763,
+   "whole": false
+  },
+  {
+   "from": 1763,
+   "target": "common/db/framework/00-deployment-framework.sql",
+   "to": 4595,
+   "whole": false
+  },
+  {
+   "from": 4595,
+   "target": "common/db/framework/00-deployment-framework.sql",
+   "to": 11965,
+   "whole": false
+  },
+  {
+   "from": 11965,
+   "target": "common/db/framework/00-deployment-framework.sql",
+   "to": 12108,
+   "whole": false
+  }
+ ],
+ "apex/db/00a-prerequisites-check.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/00a-prerequisites-check.sql",
+   "to": 2981,
+   "whole": false
+  }
+ ],
+ "apex/db/00b-common-schema-check.sql": [
+  {
+   "from": 0,
+   "target": "common/db/scripts/00b-common-schema-check.sql",
+   "to": 1180,
+   "whole": false
+  }
+ ],
+ "apex/db/01-common-tables-xxfnd-part-1-of-3.sql": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_types.sql",
+   "to": 2708,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "to": 2036,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 981,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/tables/xxfnd_employees.sql",
+   "to": 2455,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_roles.sql",
+   "to": 1243,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/tables/xxfnd_user_roles.sql",
+   "to": 1682,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_sod_rules.sql",
+   "to": 1852,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "to": 1305,
+   "whole": false
+  },
+  {
+   "from": 981,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 1918,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/audit-log/db/tables/xxfnd_audit_log.sql",
+   "to": 1216,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/retention/db/tables/xxfnd_retention_policies.sql",
+   "to": 1316,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_endpoints.sql",
+   "to": 2098,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "to": 1616,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_transmissions.sql",
+   "to": 1824,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_document_entities.sql",
+   "to": 1643,
+   "whole": false
+  },
+  {
+   "from": 1918,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 2818,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "to": 1841,
+   "whole": false
+  },
+  {
+   "from": 2818,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 3734,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_attachment_functions.sql",
+   "to": 1275,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_attachment_blocks.sql",
+   "to": 1176,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_attachment_blk_entities.sql",
+   "to": 1951,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_doc_category_usages.sql",
+   "to": 1303,
+   "whole": false
+  }
+ ],
+ "apex/db/02-common-tables-xxfnd-part-2-of-3.sql": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 2626,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "to": 3988,
+   "whole": false
+  },
+  {
+   "from": 3734,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 4587,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_attached_documents.sql",
+   "to": 4624,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_entity_containers.sql",
+   "to": 1397,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql",
+   "to": 1982,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "to": 2828,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/tables/xxfnd_df_flexfields.sql",
+   "to": 2065,
+   "whole": false
+  },
+  {
+   "from": 4587,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 5525,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/tables/xxfnd_df_contexts.sql",
+   "to": 1941,
+   "whole": false
+  },
+  {
+   "from": 1941,
+   "target": "common/features/flexfields/db/tables/xxfnd_df_contexts.sql",
+   "to": 2043,
+   "whole": false
+  }
+ ],
+ "apex/db/03-common-tables-xxfnd-part-3-of-3.sql": [
+  {
+   "from": 5525,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 6546,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/tables/xxfnd_df_segments.sql",
+   "to": 3090,
+   "whole": false
+  },
+  {
+   "from": 6546,
+   "target": "common/db/framework/objects/xxfnd_ddl_pkg.sql",
+   "to": 7662,
+   "whole": false
+  }
+ ],
+ "apex/db/04a-employee-fusion-user.sql": [
+  {
+   "from": 2455,
+   "target": "common/features/users-access/db/tables/xxfnd_employees.sql",
+   "to": 3008,
+   "whole": false
+  },
+  {
+   "from": 3008,
+   "target": "common/features/users-access/db/tables/xxfnd_employees.sql",
+   "to": 3182,
+   "whole": false
+  },
+  {
+   "from": 3182,
+   "target": "common/features/users-access/db/tables/xxfnd_employees.sql",
+   "to": 3308,
+   "whole": false
+  }
+ ],
+ "apex/db/04b-applications-and-users.sql": [
+  {
+   "from": 0,
+   "target": "common/features/applications/db/sequences/xxfnd_applications_s.sql",
+   "to": 1226,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 1083,
+   "whole": false
+  },
+  {
+   "from": 1083,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 1366,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/triggers/xxfnd_applications_id.sql",
+   "to": 285,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "to": 1611,
+   "whole": false
+  },
+  {
+   "from": 1611,
+   "target": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "to": 1819,
+   "whole": false
+  },
+  {
+   "from": 1819,
+   "target": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "to": 1981,
+   "whole": false
+  },
+  {
+   "from": 1981,
+   "target": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "to": 2261,
+   "whole": false
+  },
+  {
+   "from": 2261,
+   "target": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "to": 2393,
+   "whole": false
+  },
+  {
+   "from": 1366,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 3727,
+   "whole": false
+  },
+  {
+   "from": 3727,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 3902,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/seed/xxfnd_roles.sql",
+   "to": 612,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/seed/xxfnd_users.sql",
+   "to": 808,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/seed/xxfnd_user_roles.sql",
+   "to": 181,
+   "whole": false
+  },
+  {
+   "from": 181,
+   "target": "common/features/users-access/db/seed/xxfnd_user_roles.sql",
+   "to": 189,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/triggers/xxfnd_user_roles_user.sql",
+   "to": 924,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/tables/xxfnd_config_tables.sql",
+   "to": 2345,
+   "whole": false
+  },
+  {
+   "from": 2345,
+   "target": "common/features/change-approvals/db/tables/xxfnd_config_tables.sql",
+   "to": 2558,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/seed/xxfnd_applications.sql",
+   "to": 745,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/seed/xxfnd_config_tables.sql",
+   "to": 1132,
+   "whole": false
+  },
+  {
+   "from": 1132,
+   "target": "common/features/change-approvals/db/seed/xxfnd_config_tables.sql",
+   "to": 1334,
+   "whole": false
+  },
+  {
+   "from": 1334,
+   "target": "common/features/change-approvals/db/seed/xxfnd_config_tables.sql",
+   "to": 1342,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/types/xxfnd_config_change_row.sql",
+   "to": 374,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/types/xxfnd_config_change_tab.sql",
+   "to": 92,
+   "whole": false
+  },
+  {
+   "from": 3902,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 4261,
+   "whole": false
+  },
+  {
+   "from": 4261,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 4436,
+   "whole": false
+  },
+  {
+   "from": 745,
+   "target": "common/features/applications/db/seed/xxfnd_applications.sql",
+   "to": 856,
+   "whole": false
+  },
+  {
+   "from": 856,
+   "target": "common/features/applications/db/seed/xxfnd_applications.sql",
+   "to": 975,
+   "whole": false
+  }
+ ],
+ "apex/db/05-core-packages-part-1-of-2-upgrade.sql": [
+  {
+   "from": 0,
+   "target": "common/db/scripts/05-core-packages-part-1-of-2-upgrade.sql",
+   "to": 23841,
+   "whole": true
+  }
+ ],
+ "apex/db/05-core-packages-part-1-of-2.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_schema_pkg.sql",
+   "to": 2071,
+   "whole": false
+  },
+  {
+   "from": 2071,
+   "target": "common/db/framework/objects/xxfnd_schema_pkg.sql",
+   "to": 9961,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_util_pkg.sql",
+   "to": 1814,
+   "whole": false
+  },
+  {
+   "from": 1814,
+   "target": "common/db/framework/objects/xxfnd_util_pkg.sql",
+   "to": 5094,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/audit-log/db/packages/xxfnd_audit_pkg.sql",
+   "to": 1041,
+   "whole": false
+  },
+  {
+   "from": 1041,
+   "target": "common/features/audit-log/db/packages/xxfnd_audit_pkg.sql",
+   "to": 2544,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/views/xxfnd_user_roles_v.sql",
+   "to": 1366,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/packages/xxfnd_approval_pkg.sql",
+   "to": 3741,
+   "whole": false
+  }
+ ],
+ "apex/db/05b-integration-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_calls.sql",
+   "to": 5544,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_servers.sql",
+   "to": 3656,
+   "whole": false
+  },
+  {
+   "from": 2558,
+   "target": "common/features/change-approvals/db/tables/xxfnd_config_tables.sql",
+   "to": 3398,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/views/xxfnd_servers_v.sql",
+   "to": 4480,
+   "whole": false
+  },
+  {
+   "from": 4480,
+   "target": "common/features/integrations/db/views/xxfnd_servers_v.sql",
+   "to": 4802,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/packages/xxfnd_integration_pkg.sql",
+   "to": 7246,
+   "whole": false
+  },
+  {
+   "from": 7246,
+   "target": "common/features/integrations/db/packages/xxfnd_integration_pkg.sql",
+   "to": 34046,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/triggers/xxfnd_employees_src.sql",
+   "to": 977,
+   "whole": false
+  }
+ ],
+ "apex/db/05c-lookup-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/db/packages/xxfnd_lookup_pkg.sql",
+   "to": 2786,
+   "whole": false
+  },
+  {
+   "from": 2786,
+   "target": "common/features/lookups/db/packages/xxfnd_lookup_pkg.sql",
+   "to": 9323,
+   "whole": false
+  }
+ ],
+ "apex/db/06-core-packages-part-2-of-2.sql": [
+  {
+   "from": 0,
+   "target": "common/db/scripts/06-core-packages-part-2-of-2.sql",
+   "to": 175,
+   "whole": false
+  }
+ ],
+ "apex/db/07-who-and-audit-triggers.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/07-who-and-audit-triggers.sql",
+   "to": 252,
+   "whole": false
+  }
+ ],
+ "apex/db/08-row-rules.sql": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/db/triggers/xxfnd_lookup_values_lvl.sql",
+   "to": 1376,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/triggers/xxfnd_employees_ins.sql",
+   "to": 316,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/triggers/xxfnd_sod_rules_order.sql",
+   "to": 436,
+   "whole": false
+  },
+  {
+   "from": 436,
+   "target": "common/features/roles-privileges/db/triggers/xxfnd_sod_rules_order.sql",
+   "to": 532,
+   "whole": false
+  }
+ ],
+ "apex/db/09-views.sql": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/db/views/xxfnd_lookup_values_vl.sql",
+   "to": 1129,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/views/xxfnd_document_categories_vl.sql",
+   "to": 555,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/views/xxfnd_document_entities_vl.sql",
+   "to": 474,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/views/xxfnd_attached_documents_v.sql",
+   "to": 1170,
+   "whole": false
+  },
+  {
+   "from": 1170,
+   "target": "common/features/attachments/db/views/xxfnd_attached_documents_v.sql",
+   "to": 1397,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/views/xxfnd_document_versions_v.sql",
+   "to": 431,
+   "whole": false
+  },
+  {
+   "from": 431,
+   "target": "common/features/attachments/db/views/xxfnd_document_versions_v.sql",
+   "to": 568,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/views/xxfnd_df_contexts_vl.sql",
+   "to": 512,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/views/xxfnd_df_segments_vl.sql",
+   "to": 182,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/views/xxfnd_integration_changes_v.sql",
+   "to": 983,
+   "whole": false
+  },
+  {
+   "from": 983,
+   "target": "common/features/integrations/db/views/xxfnd_integration_changes_v.sql",
+   "to": 1127,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/views/xxfnd_config_changes_v.sql",
+   "to": 288,
+   "whole": false
+  },
+  {
+   "from": 288,
+   "target": "common/features/change-approvals/db/views/xxfnd_config_changes_v.sql",
+   "to": 455,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/my-tasks/db/views/xxfnd_pending_approvals_v.sql",
+   "to": 202,
+   "whole": false
+  }
+ ],
+ "apex/db/09b-security-framework-objects.sql": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 1484,
+   "whole": false
+  },
+  {
+   "from": 1484,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 1613,
+   "whole": false
+  },
+  {
+   "from": 1613,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 2055,
+   "whole": false
+  },
+  {
+   "from": 2055,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 2214,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_privileges.sql",
+   "to": 1035,
+   "whole": false
+  },
+  {
+   "from": 1035,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_privileges.sql",
+   "to": 1177,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 740,
+   "whole": false
+  },
+  {
+   "from": 740,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 879,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_role_privileges.sql",
+   "to": 844,
+   "whole": false
+  },
+  {
+   "from": 844,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_role_privileges.sql",
+   "to": 966,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "to": 1550,
+   "whole": false
+  },
+  {
+   "from": 1550,
+   "target": "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "to": 1763,
+   "whole": false
+  },
+  {
+   "from": 1763,
+   "target": "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "to": 1876,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-security/db/tables/xxfnd_data_rule_assignments.sql",
+   "to": 2466,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-security/db/seed/xxfnd_data_rule_assignments.sql",
+   "to": 494,
+   "whole": false
+  },
+  {
+   "from": 494,
+   "target": "common/features/data-security/db/seed/xxfnd_data_rule_assignments.sql",
+   "to": 502,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/views/xxfnd_effective_access_v.sql",
+   "to": 902,
+   "whole": false
+  },
+  {
+   "from": 902,
+   "target": "common/features/roles-privileges/db/views/xxfnd_effective_access_v.sql",
+   "to": 1034,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-security/db/triggers/xxfnd_data_rules_assign.sql",
+   "to": 553,
+   "whole": false
+  },
+  {
+   "from": 2214,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 2952,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/packages/xxfnd_privilege_pkg.sql",
+   "to": 7017,
+   "whole": false
+  },
+  {
+   "from": 7017,
+   "target": "common/features/roles-privileges/db/packages/xxfnd_privilege_pkg.sql",
+   "to": 28970,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-security/db/packages/xxfnd_vpd_pkg.sql",
+   "to": 2987,
+   "whole": false
+  },
+  {
+   "from": 2987,
+   "target": "common/features/data-security/db/packages/xxfnd_vpd_pkg.sql",
+   "to": 13098,
+   "whole": false
+  }
+ ],
+ "apex/db/09c-shared-objects-from-kyc-scripts.sql": [
+  {
+   "from": 2952,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 3897,
+   "whole": false
+  },
+  {
+   "from": 1876,
+   "target": "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "to": 2480,
+   "whole": false
+  },
+  {
+   "from": 3897,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 3992,
+   "whole": false
+  },
+  {
+   "from": 879,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 1018,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_admin_menu_v.sql",
+   "to": 506,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/triggers/xxfnd_int_purposes_mc.sql",
+   "to": 323,
+   "whole": false
+  },
+  {
+   "from": 323,
+   "target": "common/features/integrations/db/triggers/xxfnd_int_purposes_mc.sql",
+   "to": 324,
+   "whole": false
+  }
+ ],
+ "apex/db/09d-application-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/applications/db/tables/xxfnd_application_functions.sql",
+   "to": 3360,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/tables/xxfnd_setup_types.sql",
+   "to": 2744,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
+   "to": 10828,
+   "whole": false
+  },
+  {
+   "from": 10828,
+   "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
+   "to": 47564,
+   "whole": false
+  }
+ ],
+ "apex/db/09e-workflow-switches.sql": [
+  {
+   "from": 4436,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 8144,
+   "whole": false
+  },
+  {
+   "from": 8144,
+   "target": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "to": 8145,
+   "whole": false
+  }
+ ],
+ "apex/db/09f-error-handling.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 3563,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_error_pkg.sql",
+   "to": 1394,
+   "whole": false
+  },
+  {
+   "from": 1394,
+   "target": "common/db/framework/objects/xxfnd_error_pkg.sql",
+   "to": 7867,
+   "whole": false
+  },
+  {
+   "from": 3563,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 4508,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/retention/db/seed/xxfnd_retention_policies.sql",
+   "to": 345,
+   "whole": false
+  },
+  {
+   "from": 345,
+   "target": "common/features/retention/db/seed/xxfnd_retention_policies.sql",
+   "to": 353,
+   "whole": false
+  }
+ ],
+ "apex/db/10-flexfield-runtime-part-1-of-2.sql": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/packages/xxfnd_dff_pkg.sql",
+   "to": 8371,
+   "whole": false
+  }
+ ],
+ "apex/db/11-flexfield-runtime-part-2-of-2.sql": [
+  {
+   "from": 2828,
+   "target": "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "to": 3131,
+   "whole": false
+  },
+  {
+   "from": 8371,
+   "target": "common/features/flexfields/db/packages/xxfnd_dff_pkg.sql",
+   "to": 59206,
+   "whole": false
+  }
+ ],
+ "apex/db/12-flexfield-setup.sql": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/triggers/xxfnd_df_flexfields_chk.sql",
+   "to": 1334,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/triggers/xxfnd_df_segments_chk.sql",
+   "to": 1354,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/triggers/xxfnd_df_contexts_protect.sql",
+   "to": 494,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/db/packages/xxfnd_dff_setup_pkg.sql",
+   "to": 601,
+   "whole": false
+  }
+ ],
+ "apex/db/13a-database-document-store.sql": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/tables/xxfnd_document_files.sql",
+   "to": 757,
+   "whole": false
+  },
+  {
+   "from": 757,
+   "target": "common/features/attachments/db/tables/xxfnd_document_files.sql",
+   "to": 968,
+   "whole": false
+  },
+  {
+   "from": 3988,
+   "target": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "to": 4778,
+   "whole": false
+  }
+ ],
+ "apex/db/14-attachments.sql": [
+  {
+   "from": 1841,
+   "target": "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "to": 3183,
+   "whole": false
+  },
+  {
+   "from": 3183,
+   "target": "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "to": 3344,
+   "whole": false
+  },
+  {
+   "from": 3344,
+   "target": "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "to": 3546,
+   "whole": false
+  },
+  {
+   "from": 1275,
+   "target": "common/features/attachments/db/tables/xxfnd_attachment_functions.sql",
+   "to": 1454,
+   "whole": false
+  },
+  {
+   "from": 1454,
+   "target": "common/features/attachments/db/tables/xxfnd_attachment_functions.sql",
+   "to": 1633,
+   "whole": false
+  },
+  {
+   "from": 2626,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 5666,
+   "whole": false
+  },
+  {
+   "from": 5666,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 5861,
+   "whole": false
+  },
+  {
+   "from": 5861,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6103,
+   "whole": false
+  },
+  {
+   "from": 6103,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6288,
+   "whole": false
+  },
+  {
+   "from": 6288,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6407,
+   "whole": false
+  },
+  {
+   "from": 6407,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6540,
+   "whole": false
+  },
+  {
+   "from": 6540,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6636,
+   "whole": false
+  },
+  {
+   "from": 6636,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 6884,
+   "whole": false
+  },
+  {
+   "from": 6884,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 7042,
+   "whole": false
+  },
+  {
+   "from": 7042,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 7184,
+   "whole": false
+  },
+  {
+   "from": 4778,
+   "target": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "to": 4917,
+   "whole": false
+  },
+  {
+   "from": 4917,
+   "target": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "to": 5083,
+   "whole": false
+  },
+  {
+   "from": 5083,
+   "target": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "to": 5955,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/views/xxfnd_app_storage_v.sql",
+   "to": 4989,
+   "whole": false
+  },
+  {
+   "from": 4989,
+   "target": "common/features/attachments/db/views/xxfnd_app_storage_v.sql",
+   "to": 5393,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/packages/xxfnd_attach_pkg.sql",
+   "to": 13374,
+   "whole": false
+  },
+  {
+   "from": 13374,
+   "target": "common/features/attachments/db/packages/xxfnd_attach_pkg.sql",
+   "to": 96592,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/db/packages/xxfnd_attach_store_pkg.sql",
+   "to": 186,
+   "whole": false
+  }
+ ],
+ "apex/db/14b-retention-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/retention/db/packages/xxfnd_retention_pkg.sql",
+   "to": 1321,
+   "whole": false
+  },
+  {
+   "from": 1321,
+   "target": "common/features/retention/db/packages/xxfnd_retention_pkg.sql",
+   "to": 1816,
+   "whole": false
+  }
+ ],
+ "apex/db/15-workflow.sql": [
+  {
+   "from": 1982,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql",
+   "to": 5910,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_task_settings.sql",
+   "to": 1305,
+   "whole": false
+  },
+  {
+   "from": 1305,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_task_settings.sql",
+   "to": 1492,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_task_alerts.sql",
+   "to": 384,
+   "whole": false
+  },
+  {
+   "from": 384,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_task_alerts.sql",
+   "to": 506,
+   "whole": false
+  },
+  {
+   "from": 1492,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_task_settings.sql",
+   "to": 1699,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/communications/db/tables/xxfnd_communications.sql",
+   "to": 3174,
+   "whole": false
+  },
+  {
+   "from": 1305,
+   "target": "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "to": 2306,
+   "whole": false
+  },
+  {
+   "from": 2306,
+   "target": "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "to": 14342,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/types/xxfnd_qa_row.sql",
+   "to": 455,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/types/xxfnd_qa_tab.sql",
+   "to": 70,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/packages/xxfnd_workflow_pkg.sql",
+   "to": 10034,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/notifications/db/packages/xxfnd_notify_pkg.sql",
+   "to": 10216,
+   "whole": false
+  },
+  {
+   "from": 10216,
+   "target": "common/features/notifications/db/packages/xxfnd_notify_pkg.sql",
+   "to": 50157,
+   "whole": false
+  },
+  {
+   "from": 10034,
+   "target": "common/features/workflow-setup/db/packages/xxfnd_workflow_pkg.sql",
+   "to": 37414,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/db/packages/xxfnd_config_approval_pkg.sql",
+   "to": 706,
+   "whole": false
+  },
+  {
+   "from": 3741,
+   "target": "common/features/change-approvals/db/packages/xxfnd_approval_pkg.sql",
+   "to": 18294,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/packages/xxfnd_task_pkg.sql",
+   "to": 588,
+   "whole": false
+  }
+ ],
+ "apex/db/15c-rfi-workflow.sql": [
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/tables/xxfnd_rfis.sql",
+   "to": 6807,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/triggers/xxfnd_rfis_bi.sql",
+   "to": 318,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/packages/xxfnd_rfi_pkg.sql",
+   "to": 5746,
+   "whole": false
+  },
+  {
+   "from": 5746,
+   "target": "common/features/information-requests/db/packages/xxfnd_rfi_pkg.sql",
+   "to": 33471,
+   "whole": false
+  },
+  {
+   "from": 5634,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 6090,
+   "whole": false
+  },
+  {
+   "from": 6090,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 6098,
+   "whole": false
+  }
+ ],
+ "apex/db/15d-approval-setup.sql": [
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/db/tables/xxfnd_approval_types.sql",
+   "to": 10125,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql",
+   "to": 205,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/db/types/xxfnd_approval_step_row.sql",
+   "to": 366,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/db/types/xxfnd_approval_step_tab.sql",
+   "to": 92,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/db/packages/xxfnd_approval_rule_pkg.sql",
+   "to": 6091,
+   "whole": false
+  },
+  {
+   "from": 6091,
+   "target": "common/features/approval-setup/db/packages/xxfnd_approval_rule_pkg.sql",
+   "to": 26695,
+   "whole": false
+  },
+  {
+   "from": 4508,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 5626,
+   "whole": false
+  },
+  {
+   "from": 5626,
+   "target": "common/db/framework/objects/xxfnd_messages.sql",
+   "to": 5634,
+   "whole": false
+  }
+ ],
+ "apex/db/15e-communications.sql": [
+  {
+   "from": 2036,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "to": 5977,
+   "whole": false
+  }
+ ],
+ "apex/db/16h-ui-helpers.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_ui_pkg.sql",
+   "to": 1335,
+   "whole": false
+  },
+  {
+   "from": 1335,
+   "target": "common/db/framework/objects/xxfnd_ui_pkg.sql",
+   "to": 5398,
+   "whole": false
+  }
+ ],
+ "apex/db/16i-admin-scope.sql": [
+  {
+   "from": 3131,
+   "target": "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "to": 4970,
+   "whole": false
+  },
+  {
+   "from": 4970,
+   "target": "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "to": 5114,
+   "whole": false
+  },
+  {
+   "from": 1316,
+   "target": "common/features/retention/db/tables/xxfnd_retention_policies.sql",
+   "to": 1456,
+   "whole": false
+  },
+  {
+   "from": 7184,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 7379,
+   "whole": false
+  },
+  {
+   "from": 47564,
+   "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
+   "to": 50957,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_admin_applications_v.sql",
+   "to": 194,
+   "whole": false
+  },
+  {
+   "from": 194,
+   "target": "common/features/applications/db/views/xxfnd_admin_applications_v.sql",
+   "to": 195,
+   "whole": false
+  }
+ ],
+ "apex/db/16j-user-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/packages/xxfnd_user_pkg.sql",
+   "to": 6292,
+   "whole": false
+  },
+  {
+   "from": 6292,
+   "target": "common/features/users-access/db/packages/xxfnd_user_pkg.sql",
+   "to": 32953,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/triggers/xxfnd_employees_rename.sql",
+   "to": 470,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/users-access/db/packages/xxfnd_auth_pkg.sql",
+   "to": 219,
+   "whole": false
+  }
+ ],
+ "apex/db/17-seed-data-and-administrator-part-1-of-2.sql": [
+  {
+   "from": 2708,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_types.sql",
+   "to": 15104,
+   "whole": false
+  }
+ ],
+ "apex/db/19-reporting-views-and-recompile.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/19-reporting-views-and-recompile.sql",
+   "to": 838,
+   "whole": false
+  }
+ ],
+ "apex/db/19c-share-with-applications.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 2294,
+   "whole": false
+  },
+  {
+   "from": 2294,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 23200,
+   "whole": false
+  },
+  {
+   "from": 23200,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 23348,
+   "whole": false
+  }
+ ],
+ "apex/db/20-common-seed.sql": [
+  {
+   "from": 23348,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 24358,
+   "whole": false
+  }
+ ],
+ "apex/db/21-common-admin.sql": [
+  {
+   "from": 24358,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 25428,
+   "whole": false
+  }
+ ],
+ "apex/db/21b-application-functions.sql": [
+  {
+   "from": 3360,
+   "target": "common/features/applications/db/tables/xxfnd_application_functions.sql",
+   "to": 5111,
+   "whole": false
+  }
+ ],
+ "apex/db/21c-setup-types.sql": [
+  {
+   "from": 2744,
+   "target": "common/features/applications/db/tables/xxfnd_setup_types.sql",
+   "to": 10157,
+   "whole": false
+  },
+  {
+   "from": 50957,
+   "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
+   "to": 51014,
+   "whole": false
+  },
+  {
+   "from": 1018,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 1940,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_setup_tables_v.sql",
+   "to": 611,
+   "whole": false
+  },
+  {
+   "from": 611,
+   "target": "common/features/applications/db/views/xxfnd_setup_tables_v.sql",
+   "to": 793,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_setup_columns_v.sql",
+   "to": 248,
+   "whole": false
+  },
+  {
+   "from": 248,
+   "target": "common/features/applications/db/views/xxfnd_setup_columns_v.sql",
+   "to": 341,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_setup_rows_v.sql",
+   "to": 2697,
+   "whole": false
+  },
+  {
+   "from": 2697,
+   "target": "common/features/applications/db/views/xxfnd_setup_rows_v.sql",
+   "to": 2854,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/packages/xxfnd_setup_type_pkg.sql",
+   "to": 441,
+   "whole": false
+  }
+ ],
+ "apex/db/21d-app-setting-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/app-settings/db/packages/xxfnd_app_setting_pkg.sql",
+   "to": 1267,
+   "whole": false
+  },
+  {
+   "from": 1267,
+   "target": "common/features/app-settings/db/packages/xxfnd_app_setting_pkg.sql",
+   "to": 2778,
+   "whole": false
+  }
+ ],
+ "apex/db/22-common-modules.sql": [
+  {
+   "from": 5977,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "to": 15168,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/db/views/xxfnd_modules_v.sql",
+   "to": 2420,
+   "whole": false
+  },
+  {
+   "from": 2420,
+   "target": "common/features/applications/db/views/xxfnd_modules_v.sql",
+   "to": 2542,
+   "whole": false
+  }
+ ],
+ "apex/db/23-security-module.sql": [
+  {
+   "from": 3992,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 5255,
+   "whole": false
+  }
+ ],
+ "apex/db/24-workflow-module.sql": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_workflow_processes.sql",
+   "to": 1822,
+   "whole": false
+  },
+  {
+   "from": 1940,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 5922,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/information-requests/db/views/xxfnd_qa_history_v.sql",
+   "to": 1251,
+   "whole": false
+  },
+  {
+   "from": 1251,
+   "target": "common/features/information-requests/db/views/xxfnd_qa_history_v.sql",
+   "to": 1488,
+   "whole": false
+  },
+  {
+   "from": 25428,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 25579,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/24-workflow-module.sql",
+   "to": 198,
+   "whole": false
+  }
+ ],
+ "apex/db/25-integrations-module.sql": [
+  {
+   "from": 1616,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "to": 3237,
+   "whole": false
+  },
+  {
+   "from": 2098,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_endpoints.sql",
+   "to": 2862,
+   "whole": false
+  },
+  {
+   "from": 3237,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "to": 4407,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/25-integrations-module.sql",
+   "to": 186,
+   "whole": false
+  }
+ ],
+ "apex/db/26-notifications-module.sql": [
+  {
+   "from": 14342,
+   "target": "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "to": 23843,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/notifications/db/tables/xxfnd_notify_channels.sql",
+   "to": 11138,
+   "whole": false
+  },
+  {
+   "from": 5922,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 12242,
+   "whole": false
+  },
+  {
+   "from": 1822,
+   "target": "common/features/workflow-setup/db/tables/xxfnd_workflow_processes.sql",
+   "to": 3621,
+   "whole": false
+  },
+  {
+   "from": 25579,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 25703,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/26-notifications-module.sql",
+   "to": 186,
+   "whole": false
+  }
+ ],
+ "apex/db/27-shared-screens.sql": [
+  {
+   "from": 5255,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "to": 11793,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/27-shared-screens.sql",
+   "to": 186,
+   "whole": false
+  }
+ ],
+ "apex/db/28-registration.sql": [
+  {
+   "from": 7867,
+   "target": "common/db/framework/objects/xxfnd_error_pkg.sql",
+   "to": 11152,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/28-registration.sql",
+   "to": 186,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/db/triggers/xxfnd_roles_every_role.sql",
+   "to": 411,
+   "whole": false
+  }
+ ],
+ "apex/db/29-servers.sql": [
+  {
+   "from": 15168,
+   "target": "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "to": 19136,
+   "whole": false
+  },
+  {
+   "from": 3656,
+   "target": "common/features/integrations/db/tables/xxfnd_servers.sql",
+   "to": 6501,
+   "whole": false
+  },
+  {
+   "from": 4407,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "to": 5251,
+   "whole": false
+  },
+  {
+   "from": 7379,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 8261,
+   "whole": false
+  },
+  {
+   "from": 8261,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 12340,
+   "whole": false
+  },
+  {
+   "from": 12340,
+   "target": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "to": 12742,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/db/tables/xxfnd_int_endpoints.sql",
+   "to": 642,
+   "whole": false
+  },
+  {
+   "from": 5251,
+   "target": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "to": 5399,
+   "whole": false
+  },
+  {
+   "from": 1824,
+   "target": "common/features/integrations/db/tables/xxfnd_transmissions.sql",
+   "to": 1992,
+   "whole": false
+  },
+  {
+   "from": 10157,
+   "target": "common/features/applications/db/tables/xxfnd_setup_types.sql",
+   "to": 11375,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/29-servers.sql",
+   "to": 186,
+   "whole": false
+  }
+ ],
+ "apex/db/30-application-journey.sql": [
+  {
+   "from": 12242,
+   "target": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "to": 14335,
+   "whole": false
+  }
+ ],
+ "apex/db/admin/clean-common.sql": [
+  {
+   "from": 0,
+   "target": "common/db/admin/clean-common.sql",
+   "to": 6136,
+   "whole": true
+  }
+ ],
+ "apex/db/admin/create-xxfusion-schema.sql": [
+  {
+   "from": 0,
+   "target": "common/db/admin/create-xxfusion-schema.sql",
+   "to": 1776,
+   "whole": true
+  }
+ ],
+ "apex/db/admin/onboard-application.sql": [
+  {
+   "from": 0,
+   "target": "common/db/admin/onboard-application.sql",
+   "to": 2664,
+   "whole": true
+  }
+ ],
+ "apex/install/COMMON/ADMIN-GUIDE.md": [
+  {
+   "from": 0,
+   "target": "common/docs/install/ADMIN-GUIDE.md",
+   "to": 7815,
+   "whole": true
+  }
+ ],
+ "apex/install/COMMON/INSTALL.md": [
+  {
+   "from": 0,
+   "target": "common/docs/install/INSTALL.md",
+   "to": 13104,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/application.apx": [
+  {
+   "from": 0,
+   "target": "common/app/application.apx",
+   "to": 3292,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/deployments/default.json": [
+  {
+   "from": 0,
+   "target": "common/app/deployments/default.json",
+   "to": 75,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/page-groups.apx": [
+  {
+   "from": 0,
+   "target": "common/app/page-groups.apx",
+   "to": 109,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00000-global-page.apx": [
+  {
+   "from": 0,
+   "target": "common/app/pages/p00000-global-page.apx",
+   "to": 48348,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00001-home.apx": [
+  {
+   "from": 0,
+   "target": "common/features/home/pages/p00001-home.apx",
+   "to": 3364,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00040-my-tasks.apx": [
+  {
+   "from": 0,
+   "target": "common/features/my-tasks/pages/p00040-my-tasks.apx",
+   "to": 5523,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00043-notifications.apx": [
+  {
+   "from": 0,
+   "target": "common/features/my-tasks/pages/p00043-notifications.apx",
+   "to": 10215,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00045-communications.apx": [
+  {
+   "from": 0,
+   "target": "common/features/communications/pages/p00045-communications.apx",
+   "to": 9512,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00046-e-mail.apx": [
+  {
+   "from": 0,
+   "target": "common/features/communications/pages/p00046-e-mail.apx",
+   "to": 10562,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00047-attachments.apx": [
+  {
+   "from": 0,
+   "target": "common/features/documents/pages/p00047-attachments.apx",
+   "to": 17955,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00048-document.apx": [
+  {
+   "from": 0,
+   "target": "common/features/documents/pages/p00048-document.apx",
+   "to": 12174,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00050-provide-information.apx": [
+  {
+   "from": 0,
+   "target": "common/features/information-requests/pages/p00050-provide-information.apx",
+   "to": 5350,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00099-open-setup.apx": [
+  {
+   "from": 0,
+   "target": "common/app/pages/p00099-open-setup.apx",
+   "to": 1683,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00100-administration.apx": [
+  {
+   "from": 0,
+   "target": "common/app/pages/p00100-administration.apx",
+   "to": 4583,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00101-lookups.apx": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/pages/p00101-lookups.apx",
+   "to": 5303,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00102-lookup-type.apx": [
+  {
+   "from": 0,
+   "target": "common/features/lookups/pages/p00102-lookup-type.apx",
+   "to": 23483,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00103-users.apx": [
+  {
+   "from": 0,
+   "target": "common/features/users-access/pages/p00103-users.apx",
+   "to": 7430,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00104-user.apx": [
+  {
+   "from": 0,
+   "target": "common/features/users-access/pages/p00104-user.apx",
+   "to": 36450,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00105-roles.apx": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/pages/p00105-roles.apx",
+   "to": 5895,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00106-role.apx": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/pages/p00106-role.apx",
+   "to": 24714,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00107-segregation-of-duties.apx": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/pages/p00107-segregation-of-duties.apx",
+   "to": 5956,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00108-segregation-of-duties-rule.apx": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/pages/p00108-segregation-of-duties-rule.apx",
+   "to": 9475,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00109-notification-templates.apx": [
+  {
+   "from": 0,
+   "target": "common/features/notifications/pages/p00109-notification-templates.apx",
+   "to": 8129,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00110-notification-template.apx": [
+  {
+   "from": 0,
+   "target": "common/features/notifications/pages/p00110-notification-template.apx",
+   "to": 19144,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00111-audit-log.apx": [
+  {
+   "from": 0,
+   "target": "common/features/audit-log/pages/p00111-audit-log.apx",
+   "to": 4978,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00112-retention-policies.apx": [
+  {
+   "from": 0,
+   "target": "common/features/retention/pages/p00112-retention-policies.apx",
+   "to": 1985,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00113-retention-policy.apx": [
+  {
+   "from": 0,
+   "target": "common/features/retention/pages/p00113-retention-policy.apx",
+   "to": 11325,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00114-delegations.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/pages/p00114-delegations.apx",
+   "to": 6012,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00115-delegation.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/pages/p00115-delegation.apx",
+   "to": 9867,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00116-notification-delivery.apx": [
+  {
+   "from": 0,
+   "target": "common/features/notifications/pages/p00116-notification-delivery.apx",
+   "to": 25790,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00117-notification-log.apx": [
+  {
+   "from": 0,
+   "target": "common/features/notifications/pages/p00117-notification-log.apx",
+   "to": 6404,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00120-servers.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00120-servers.apx",
+   "to": 8444,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00121-server.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00121-server.apx",
+   "to": 24274,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00122-integration-purposes.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00122-integration-purposes.apx",
+   "to": 6932,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00123-integration-purpose.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00123-integration-purpose.apx",
+   "to": 17237,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00124-transmission-log.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00124-transmission-log.apx",
+   "to": 7492,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00125-call.apx": [
+  {
+   "from": 0,
+   "target": "common/features/integrations/pages/p00125-call.apx",
+   "to": 7722,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00130-document-entities.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00130-document-entities.apx",
+   "to": 5892,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00131-document-entity.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00131-document-entity.apx",
+   "to": 18721,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00132-document-categories.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00132-document-categories.apx",
+   "to": 6690,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00133-document-category.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00133-document-category.apx",
+   "to": 16196,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00134-attachment-pages.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00134-attachment-pages.apx",
+   "to": 5566,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00135-attachment-page.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00135-attachment-page.apx",
+   "to": 30034,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00136-document-storage.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00136-document-storage.apx",
+   "to": 7391,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00137-storage-rule.apx": [
+  {
+   "from": 0,
+   "target": "common/features/attachments/pages/p00137-storage-rule.apx",
+   "to": 29918,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00141-workflow-monitor.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-monitor/pages/p00141-workflow-monitor.apx",
+   "to": 6847,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00142-workflow.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-monitor/pages/p00142-workflow.apx",
+   "to": 14632,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00143-information-request.apx": [
+  {
+   "from": 0,
+   "target": "common/features/my-tasks/pages/p00143-information-request.apx",
+   "to": 16580,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00144-configuration-change.apx": [
+  {
+   "from": 0,
+   "target": "common/features/my-tasks/pages/p00144-configuration-change.apx",
+   "to": 12696,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00145-deadlines-and-escalation.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/pages/p00145-deadlines-and-escalation.apx",
+   "to": 6474,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00146-task-deadline.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/pages/p00146-task-deadline.apx",
+   "to": 9764,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00147-process-catalogue.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/pages/p00147-process-catalogue.apx",
+   "to": 15203,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00148-approval-setup.apx": [
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/pages/p00148-approval-setup.apx",
+   "to": 7466,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00149-approval-rule.apx": [
+  {
+   "from": 0,
+   "target": "common/features/approval-setup/pages/p00149-approval-rule.apx",
+   "to": 26971,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00150-value-sets.apx": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/pages/p00150-value-sets.apx",
+   "to": 6448,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00151-value-set.apx": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/pages/p00151-value-set.apx",
+   "to": 17652,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00152-descriptive-flexfields.apx": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/pages/p00152-descriptive-flexfields.apx",
+   "to": 6390,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00153-descriptive-flexfield.apx": [
+  {
+   "from": 0,
+   "target": "common/features/flexfields/pages/p00153-descriptive-flexfield.apx",
+   "to": 40679,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00160-applications.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00160-applications.apx",
+   "to": 6344,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00162-setup-types.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00162-setup-types.apx",
+   "to": 6148,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00163-setup-type.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00163-setup-type.apx",
+   "to": 10603,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00164-subscriptions.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00164-subscriptions.apx",
+   "to": 5323,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00165-application-journey.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00165-application-journey.apx",
+   "to": 37063,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00166-application.apx": [
+  {
+   "from": 0,
+   "target": "common/features/applications/pages/p00166-application.apx",
+   "to": 14697,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00170-platform-activity.apx": [
+  {
+   "from": 0,
+   "target": "common/features/platform-activity/pages/p00170-platform-activity.apx",
+   "to": 12122,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00171-feedback.apx": [
+  {
+   "from": 0,
+   "target": "common/features/usage-feedback/pages/p00171-feedback.apx",
+   "to": 5378,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00172-feedback-follow-up.apx": [
+  {
+   "from": 0,
+   "target": "common/features/usage-feedback/pages/p00172-feedback-follow-up.apx",
+   "to": 9906,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00173-give-feedback.apx": [
+  {
+   "from": 0,
+   "target": "common/features/give-feedback/pages/p00173-give-feedback.apx",
+   "to": 6948,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00180-data-security.apx": [
+  {
+   "from": 0,
+   "target": "common/features/data-security/pages/p00180-data-security.apx",
+   "to": 7883,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00181-data-security-rule.apx": [
+  {
+   "from": 0,
+   "target": "common/features/data-security/pages/p00181-data-security-rule.apx",
+   "to": 24424,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00182-privileges.apx": [
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/pages/p00182-privileges.apx",
+   "to": 4340,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00183-assign.apx": [
+  {
+   "from": 0,
+   "target": "common/features/users-access/pages/p00183-assign.apx",
+   "to": 9873,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p09999-login.apx": [
+  {
+   "from": 0,
+   "target": "common/app/pages/p09999-login.apx",
+   "to": 5793,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p10020-optional-features.apx": [
+  {
+   "from": 0,
+   "target": "common/features/optional-features/pages/p10020-optional-features.apx",
+   "to": 5508,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p10021-optional-feature.apx": [
+  {
+   "from": 0,
+   "target": "common/features/optional-features/pages/p10021-optional-feature.apx",
+   "to": 6064,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p10022-application-settings.apx": [
+  {
+   "from": 0,
+   "target": "common/features/app-settings/pages/p10022-application-settings.apx",
+   "to": 4969,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p10023-application-setting.apx": [
+  {
+   "from": 0,
+   "target": "common/features/app-settings/pages/p10023-application-setting.apx",
+   "to": 5717,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/app-computations.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/app-computations.apx",
+   "to": 395,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/app-items.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/app-items.apx",
+   "to": 2756,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/app-processes.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/app-processes.apx",
+   "to": 3871,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/authentications.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/authentications.apx",
+   "to": 1536,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/authorizations.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 478,
+   "whole": false
+  },
+  {
+   "from": 478,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 905,
+   "whole": false
+  },
+  {
+   "from": 905,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 1345,
+   "whole": false
+  },
+  {
+   "from": 1345,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 1785,
+   "whole": false
+  },
+  {
+   "from": 1785,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 2225,
+   "whole": false
+  },
+  {
+   "from": 2225,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 2667,
+   "whole": false
+  },
+  {
+   "from": 2667,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 3171,
+   "whole": false
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/automations/fusion-hcm-sync.apx": [
+  {
+   "from": 0,
+   "target": "common/features/users-access/shared-components/automations/fusion-hcm-sync.apx",
+   "to": 833,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/automations/task-deadlines.apx": [
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/shared-components/automations/task-deadlines.apx",
+   "to": 818,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/breadcrumbs.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/breadcrumbs.apx",
+   "to": 18566,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/component-settings.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/component-settings.apx",
+   "to": 1257,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/email-templates.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/email-templates.apx",
+   "to": 1020,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/lists.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lists.apx",
+   "to": 2104,
+   "whole": false
+  },
+  {
+   "from": 2104,
+   "target": "common/app/shared-components/lists.apx",
+   "to": 5467,
+   "whole": false
+  },
+  {
+   "from": 5467,
+   "target": "common/app/shared-components/lists.apx",
+   "to": 6664,
+   "whole": false
+  },
+  {
+   "from": 6664,
+   "target": "common/app/shared-components/lists.apx",
+   "to": 8229,
+   "whole": false
+  },
+  {
+   "from": 8229,
+   "target": "common/app/shared-components/lists.apx",
+   "to": 9124,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/shared-components/lists.apx",
+   "to": 4662,
+   "whole": false
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/lovs.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 537,
+   "whole": false
+  },
+  {
+   "from": 537,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 1031,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/shared-components/lovs.apx",
+   "to": 981,
+   "whole": false
+  },
+  {
+   "from": 1031,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 1661,
+   "whole": false
+  },
+  {
+   "from": 981,
+   "target": "common/features/roles-privileges/shared-components/lovs.apx",
+   "to": 1501,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/shared-components/lovs.apx",
+   "to": 753,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/lookups/shared-components/lovs.apx",
+   "to": 550,
+   "whole": false
+  },
+  {
+   "from": 1661,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 2098,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "to": 538,
+   "whole": false
+  },
+  {
+   "from": 538,
+   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "to": 1192,
+   "whole": false
+  },
+  {
+   "from": 1192,
+   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "to": 1639,
+   "whole": false
+  },
+  {
+   "from": 1639,
+   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "to": 2174,
+   "whole": false
+  },
+  {
+   "from": 2174,
+   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "to": 2721,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/shared-components/lovs.apx",
+   "to": 470,
+   "whole": false
+  },
+  {
+   "from": 470,
+   "target": "common/features/attachments/shared-components/lovs.apx",
+   "to": 999,
+   "whole": false
+  },
+  {
+   "from": 999,
+   "target": "common/features/attachments/shared-components/lovs.apx",
+   "to": 1459,
+   "whole": false
+  },
+  {
+   "from": 2098,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 2627,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/shared-components/lovs.apx",
+   "to": 538,
+   "whole": false
+  },
+  {
+   "from": 538,
+   "target": "common/features/integrations/shared-components/lovs.apx",
+   "to": 1073,
+   "whole": false
+  },
+  {
+   "from": 2627,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 3165,
+   "whole": false
+  },
+  {
+   "from": 3165,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 3697,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/retention/shared-components/lovs.apx",
+   "to": 529,
+   "whole": false
+  },
+  {
+   "from": 529,
+   "target": "common/features/retention/shared-components/lovs.apx",
+   "to": 1070,
+   "whole": false
+  },
+  {
+   "from": 3697,
+   "target": "common/app/shared-components/lovs.apx",
+   "to": 4739,
+   "whole": false
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/fusion-hcm-workers.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/rest-data-sources/fusion-hcm-workers.apx",
+   "to": 1946,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/outlook-messages.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/rest-data-sources/outlook-messages.apx",
+   "to": 1058,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/sharepoint-drives.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/rest-data-sources/sharepoint-drives.apx",
+   "to": 1056,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/ucm-content.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/rest-data-sources/ucm-content.apx",
+   "to": 1027,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files.apx",
+   "to": 404,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-144-rounded.png": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/icons/app-icon-144-rounded.png",
+   "to": 4938,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-192.png": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/icons/app-icon-192.png",
+   "to": 6299,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-256-rounded.png": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/icons/app-icon-256-rounded.png",
+   "to": 9330,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-32.png": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/icons/app-icon-32.png",
+   "to": 866,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-512.png": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/icons/app-icon-512.png",
+   "to": 21140,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/task-definitions/CONFIG-CHANGE.apx": [
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/shared-components/task-definitions/CONFIG-CHANGE.apx",
+   "to": 4381,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/task-definitions/RFI-RESPONSE.apx": [
+  {
+   "from": 0,
+   "target": "common/features/information-requests/shared-components/task-definitions/RFI-RESPONSE.apx",
+   "to": 1879,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/task-definitions/RFI-REVIEW.apx": [
+  {
+   "from": 0,
+   "target": "common/features/information-requests/shared-components/task-definitions/RFI-REVIEW.apx",
+   "to": 1947,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/themes/universal-theme/theme.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/themes/universal-theme/theme.apx",
+   "to": 1618,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/workflows/CONFIG-CHANGE.apx": [
+  {
+   "from": 0,
+   "target": "common/features/change-approvals/shared-components/workflows/CONFIG-CHANGE.apx",
+   "to": 2839,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/workflows/RFI.apx": [
+  {
+   "from": 0,
+   "target": "common/features/information-requests/shared-components/workflows/RFI.apx",
+   "to": 6758,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/XXFND-PUSH-CREDENTIALS.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/credentials/XXFND-PUSH-CREDENTIALS.apx",
+   "to": 526,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/apex-fa-iabwbn-dev1-dbms-cred.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/credentials/apex-fa-iabwbn-dev1-dbms-cred.apx",
+   "to": 126,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/fusion-credentials.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/credentials/fusion-credentials.apx",
+   "to": 437,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/xxfnd-graph-cred.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/credentials/xxfnd-graph-cred.apx",
+   "to": 548,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/credentials/xxfnd-ucm-cred.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/credentials/xxfnd-ucm-cred.apx",
+   "to": 307,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/rest-data-source-servers/fusion.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/rest-data-source-servers/fusion.apx",
+   "to": 434,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/rest-data-source-servers/outlook-graph.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/rest-data-source-servers/outlook-graph.apx",
+   "to": 477,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/rest-data-source-servers/sharepoint-main.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/rest-data-source-servers/sharepoint-main.apx",
+   "to": 478,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/workspace-components/rest-data-source-servers/ucm-main.apx": [
+  {
+   "from": 0,
+   "target": "common/app/workspace-components/rest-data-source-servers/ucm-main.apx",
+   "to": 430,
+   "whole": true
+  }
+ ],
+ "apex/tests/admin_scope_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/admin_scope_test.sql",
+   "to": 3173,
+   "whole": true
+  }
+ ],
+ "apex/tests/admin_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/admin_ui.py",
+   "to": 5097,
+   "whole": true
+  }
+ ],
+ "apex/tests/apxparse.py": [
+  {
+   "from": 0,
+   "target": "common/tests/apxparse.py",
+   "to": 2944,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_admin_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/common_admin_ui.py",
+   "to": 1897,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_apps_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/common_apps_ui.py",
+   "to": 7881,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_it_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/common_it_ui.py",
+   "to": 3336,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_test_fixture.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/common_test_fixture.sql",
+   "to": 2458,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/common_ui.py",
+   "to": 1048,
+   "whole": true
+  }
+ ],
+ "apex/tests/forced_save.py": [
+  {
+   "from": 0,
+   "target": "common/tests/forced_save.py",
+   "to": 1131,
+   "whole": true
+  }
+ ],
+ "apex/tests/ig_save.py": [
+  {
+   "from": 0,
+   "target": "common/tests/ig_save.py",
+   "to": 1381,
+   "whole": true
+  }
+ ],
+ "apex/tests/kyc_functions_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/kyc_functions_test.sql",
+   "to": 2288,
+   "whole": true
+  }
+ ],
+ "apex/tests/kyc_functions_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/kyc_functions_ui.py",
+   "to": 1483,
+   "whole": true
+  }
+ ],
+ "apex/tests/r73_common_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r73_common_test.sql",
+   "to": 5310,
+   "whole": true
+  }
+ ],
+ "apex/tests/r76_departments_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r76_departments_test.sql",
+   "to": 3007,
+   "whole": true
+  }
+ ],
+ "apex/tests/r78_common_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r78_common_test.sql",
+   "to": 4766,
+   "whole": true
+  }
+ ],
+ "apex/tests/r78_modules_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r78_modules_ui.py",
+   "to": 6303,
+   "whole": true
+  }
+ ],
+ "apex/tests/r79_security_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r79_security_test.sql",
+   "to": 7964,
+   "whole": true
+  }
+ ],
+ "apex/tests/r79_security_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r79_security_ui.py",
+   "to": 7385,
+   "whole": true
+  }
+ ],
+ "apex/tests/r80_platform_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r80_platform_test.sql",
+   "to": 6173,
+   "whole": true
+  }
+ ],
+ "apex/tests/r80_platform_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r80_platform_ui.py",
+   "to": 4503,
+   "whole": true
+  }
+ ],
+ "apex/tests/r81_documents_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r81_documents_test.sql",
+   "to": 4062,
+   "whole": true
+  }
+ ],
+ "apex/tests/r81_documents_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r81_documents_ui.py",
+   "to": 3789,
+   "whole": true
+  }
+ ],
+ "apex/tests/r82_workflow_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r82_workflow_test.sql",
+   "to": 8602,
+   "whole": true
+  }
+ ],
+ "apex/tests/r82_workflow_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r82_workflow_ui.py",
+   "to": 7099,
+   "whole": true
+  }
+ ],
+ "apex/tests/r83_integrations_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r83_integrations_test.sql",
+   "to": 7179,
+   "whole": true
+  }
+ ],
+ "apex/tests/r83_integrations_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r83_integrations_ui.py",
+   "to": 5011,
+   "whole": true
+  }
+ ],
+ "apex/tests/r84_notifications_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r84_notifications_test.sql",
+   "to": 19918,
+   "whole": true
+  }
+ ],
+ "apex/tests/r84_notifications_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r84_notifications_ui.py",
+   "to": 7144,
+   "whole": true
+  }
+ ],
+ "apex/tests/r85_shared_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r85_shared_test.sql",
+   "to": 6968,
+   "whole": true
+  }
+ ],
+ "apex/tests/r85_shared_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r85_shared_ui.py",
+   "to": 8447,
+   "whole": true
+  }
+ ],
+ "apex/tests/r86_registration_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r86_registration_test.sql",
+   "to": 35360,
+   "whole": true
+  }
+ ],
+ "apex/tests/r86_test_apps.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r86_test_apps.sql",
+   "to": 2792,
+   "whole": true
+  }
+ ],
+ "apex/tests/r87_servers_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r87_servers_test.sql",
+   "to": 18088,
+   "whole": true
+  }
+ ],
+ "apex/tests/r87_servers_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r87_servers_ui.py",
+   "to": 8644,
+   "whole": true
+  }
+ ],
+ "apex/tests/r88_journey_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r88_journey_test.sql",
+   "to": 8183,
+   "whole": true
+  }
+ ],
+ "apex/tests/r88_journey_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r88_journey_ui.py",
+   "to": 12592,
+   "whole": true
+  }
+ ],
+ "apex/tests/rules.py": [
+  {
+   "from": 0,
+   "target": "common/tests/rules.py",
+   "to": 21870,
+   "whole": true
+  }
+ ],
+ "apex/tests/save21.py": [
+  {
+   "from": 0,
+   "target": "common/tests/save21.py",
+   "to": 1627,
+   "whole": true
+  }
+ ],
+ "apex/tests/smoke.py": [
+  {
+   "from": 0,
+   "target": "common/tests/smoke.py",
+   "to": 3267,
+   "whole": true
+  }
+ ],
+ "apex/tests/tasks_prep.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/tasks_prep.sql",
+   "to": 2116,
+   "whole": true
+  }
+ ],
+ "apex/tests/tasks_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/tasks_ui.py",
+   "to": 3402,
+   "whole": true
+  }
+ ],
+ "apex/tests/test_users.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/test_users.sql",
+   "to": 1685,
+   "whole": true
+  }
+ ],
+ "apex/tests/upload_limits_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/upload_limits_test.sql",
+   "to": 2727,
+   "whole": true
+  }
+ ],
+ "apex/tests/upload_limits_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/upload_limits_ui.py",
+   "to": 4227,
+   "whole": true
+  }
+ ],
+ "apex/tests/viewonly_role.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/viewonly_role.sql",
+   "to": 1237,
+   "whole": true
+  }
+ ],
+ "apex/tests/viewonly_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/viewonly_ui.py",
+   "to": 1323,
+   "whole": true
+  }
+ ]
+}

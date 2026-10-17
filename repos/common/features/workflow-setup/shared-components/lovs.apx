@@ -1,0 +1,22 @@
+
+lov lov-task-definitions (
+    name: TASK DEFINITIONS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select t.name || case when :G_ADMIN_APP = 'ALL' then ' (' || a.application_code || ')' end as display_value,
+                   t.static_id as return_value
+              from apex_appl_taskdefs t
+              join xxfnd_applications a on a.apex_application_id = t.application_id
+             -- release 71: the application chosen, or every registered application (ALL)
+             where :G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+             order by 1
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

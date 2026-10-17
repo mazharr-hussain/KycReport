@@ -1,0 +1,245 @@
+page 152 (
+    name: Descriptive Flexfields
+    alias: DESCRIPTIVE-FLEXFIELDS
+    title: Descriptive Flexfields
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: One flexfield per table. Once contexts and segments are enabled, every screen with the Additional Information region shows the fields; no page change is needed.
+    }
+
+    region breadcrumb (
+        name: Descriptive Flexfields
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Descriptive Flexfields
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       apex_page.get_url(p_page => 153, p_items => 'P153_DESCRIPTIVE_FLEXFIELD_CODE', p_values => to_char(q.descriptive_flexfield_code), p_clear_cache => '153') as open_url
+                  from (
+
+                            select nvl(f.application_code, 'Shared') as application_code,
+                                   f.descriptive_flexfield_code,
+                                   (select t.flexfield_name from xxfnd_df_flexfields_tl t
+                                     where t.descriptive_flexfield_code = f.descriptive_flexfield_code and t.language_code = 'en') as flexfield_name,
+                                   f.table_name, f.context_reference_column, f.enabled_flag,
+                                   (select count(*) from xxfnd_df_contexts c where c.descriptive_flexfield_code = f.descriptive_flexfield_code) as contexts,
+                                   (select count(*) from xxfnd_df_segments s where s.descriptive_flexfield_code = f.descriptive_flexfield_code) as segments
+                              from xxfnd_df_flexfields f
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTIVE_FLEXFIELD_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#DESCRIPTIVE_FLEXFIELD_CODE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FLEXFIELD_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CONTEXT_REFERENCE_COLUMN (
+            type: plainText
+            heading {
+                heading: Context From Column
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CONTEXTS (
+            type: plainText
+            heading {
+                heading: Contexts
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column SEGMENTS (
+            type: plainText
+            heading {
+                heading: Segments
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Register Flexfield
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 153
+                clearCache: 153
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+)

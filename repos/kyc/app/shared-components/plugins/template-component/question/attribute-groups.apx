@@ -1,0 +1,7 @@
+attributeGroup question (
+    name: Question
+    sequence: 10
+    advanced {
+        staticId: question
+    }
+)

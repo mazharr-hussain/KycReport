@@ -1,0 +1,14 @@
+--------------------------------------------------------------------------------
+-- 04b Applications and users - shared access module (release 46)
+--   XXFND_APPLICATIONS: every APEX application that uses the shared access module. APPLICATION_ID is an internal
+--     key (sequence), never changed, used by the foreign keys (roles, features). APPLICATION_CODE and the APEX alias
+--     are the same in every environment; APEX_APPLICATION_ID is the APEX ID in this environment (DEV / TEST / PROD
+--     may differ) and is kept up to date at sign-in (release 47).
+--   XXFND_USERS: the users of all applications. A user linked to an employee (USER_TYPE SSO) signs in with the
+--     identity domain only; a LOCAL user (no employee) has an Oracle APEX account (APEX keeps the password),
+--     created from the access console (XXFND_USER_PKG).
+--   XXFND_USER_ROLES.USER_ID: grants belong to the user (EMPLOYEE_ID kept for the grants made before release 46;
+--     trigger XXFND_USER_ROLES_USER fills USER_ID from it).
+-- Idempotent: safe on install and on every upgrade.
+--------------------------------------------------------------------------------
+create sequence if not exists xxfnd_applications_s start with 1000 nocache;

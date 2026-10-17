@@ -1,0 +1,226 @@
+page 171 (
+    name: Feedback
+    alias: FEEDBACK
+    title: Feedback
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The feedback people gave on every registered application (comments, enhancement requests, bugs), kept by APEX. Open
+            one to read it and add a follow-up.
+            ```
+    }
+
+    region breadcrumb (
+        name: Feedback
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region feedback (
+        name: Feedback
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: the feedback of every registered application (APEX_TEAM_FEEDBACK)
+                select f.feedback_id, f.created_on, a.application_name, f.page_id, f.page_name, f.feedback_type, f.feedback_status,
+                       f.feedback, f.created_by,
+                       apex_page.get_url(p_page => 172, p_items => 'P172_FEEDBACK_ID', p_values => to_char(f.feedback_id),
+                                         p_clear_cache => '172') as open_url
+                  from apex_team_feedback f
+                  join xxfnd_applications a on a.apex_application_id = f.application_id
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: feedback
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No feedback yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column FEEDBACK_ID (
+            type: plainText
+            heading {
+                heading: ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CREATED_ON (
+            type: plainText
+            heading {
+                heading: Given
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Page Name
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FEEDBACK_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FEEDBACK_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FEEDBACK (
+            type: plainText
+            heading {
+                heading: Feedback
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#FEEDBACK#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

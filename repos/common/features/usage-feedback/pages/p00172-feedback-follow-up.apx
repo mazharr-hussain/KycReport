@@ -1,0 +1,403 @@
+page 172 (
+    name: Feedback Follow-up
+    alias: FEEDBACK-FOLLOW-UP
+    title: Feedback Follow-up
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One feedback with its follow-ups; add a follow-up (Usage and Feedback - Manage).
+            ```
+    }
+
+    region breadcrumb (
+        name: Feedback Follow-up
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region fb (
+        name: Feedback
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: fb
+        }
+    )
+    pageItem P172_FEEDBACK_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @fb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P172_APPLICATION (
+        type: displayOnly
+        label {
+            label: Application
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @fb
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(application_name || ' - page ' || page_id || ' ' || page_name) from apex_team_feedback where feedback_id = to_number(:P172_FEEDBACK_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The application.
+        }
+    )
+    pageItem P172_BY (
+        type: displayOnly
+        label {
+            label: Given By
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @fb
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(created_by || ', ' || to_char(created_on, 'DD-Mon-YYYY HH24:MI')) from apex_team_feedback where feedback_id = to_number(:P172_FEEDBACK_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The given by.
+        }
+    )
+    pageItem P172_TYPE (
+        type: displayOnly
+        label {
+            label: Type
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @fb
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(feedback_type) from apex_team_feedback where feedback_id = to_number(:P172_FEEDBACK_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The type.
+        }
+    )
+    pageItem P172_STATUS (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @fb
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(feedback_status) from apex_team_feedback where feedback_id = to_number(:P172_FEEDBACK_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The status.
+        }
+    )
+    pageItem P172_FEEDBACK (
+        type: displayOnly
+        label {
+            label: Feedback
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @fb
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(feedback) from apex_team_feedback where feedback_id = to_number(:P172_FEEDBACK_ID)
+                ```
+            used: always
+        }
+        help {
+            helpText: The feedback.
+        }
+    )
+
+    region followups (
+        name: Follow-ups
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 85: the follow-ups of the feedback
+                select u.created_on, u.created_by, u.follow_up
+                  from apex_team_feedback_followup u
+                 where u.feedback_id = to_number(:P172_FEEDBACK_ID)
+                 order by u.created_on
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: followups
+        }
+        messages {
+            whenNoDataFound: No follow-up yet.
+        }
+
+        column CREATED_ON (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 10
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column FOLLOW_UP (
+            type: plainText
+            heading {
+                heading: Follow-up
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+    region add (
+        name: Add a Follow-up
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: add
+        }
+    )
+    pageItem P172_FOLLOW_UP (
+        type: textarea
+        label {
+            label: Follow-up
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @add
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Your answer or note on the feedback.
+        }
+    )
+    button save (
+        buttonName: SAVE
+        label: Add Follow-up
+        layout {
+            sequence: 10
+            region: @add
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process save (
+        name: Add the follow-up
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 85: through the Platform package (USAGE_FEEDBACK - Manage)
+                xxfnd_application_pkg.feedback_follow_up(to_number(:P172_FEEDBACK_ID), :P172_FOLLOW_UP);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Follow-up added.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    branch (
+        name: Back to the feedback
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 172
+                items: {
+                    P172_FEEDBACK_ID: &P172_FEEDBACK_ID.
+                }
+                clearCache: 172
+            }
+        }
+    )
+)

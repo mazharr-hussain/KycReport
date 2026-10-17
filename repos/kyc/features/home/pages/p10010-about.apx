@@ -1,0 +1,67 @@
+page 10010 (
+    name: About
+    alias: ABOUT
+    title: About
+    pageGroup: @features
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    config {
+        buildOption: @feature-about
+    }
+    help {
+        helpText: What this application is for.
+    }
+
+    region breadcrumb (
+        name: About
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region about (
+        name: About KYC Compliance Platform
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p><strong>KYC Compliance Platform</strong> supports Know Your Customer and Know Your Business
+                due diligence: party master data, document collection, requests for information, configurable
+                workflows and approvals, with every configuration change audited.</p>
+                <p>Version &APP_VERSION.</p>
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: about
+        }
+    )
+
+)

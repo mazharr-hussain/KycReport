@@ -1,0 +1,84 @@
+taskDefinition DOC_CHECKLIST_REVIEW (
+    name: Document Checklist Review
+    type: approval
+    task {
+        subject: &STEP_NAME.: &REQUEST_NUMBER. - &PARTY_NAME.
+        initiatorCanComplete: true
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row: the task stays manageable whatever the data security of the user
+            select nvl(r.request_number, 'Request ' || :APEX$TASK_PK) as request_number, r.party_name,
+                   xxcmp_request_pkg.step_name(to_number(:APEX$TASK_PK)) as step_name
+              from dual
+              left join xxcmp_requests r on r.request_id = to_number(:APEX$TASK_PK)
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 206
+            items: {
+                P206_TASK_ID: &TASK_ID.
+            }
+            clearCache: 206
+        }
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
+    }
+    comments {
+        comments: Compliance checks that the documents of a KYC request are complete before investigation (Module 1). Approve approves the request and its party and opens the case; Reject rejects the request; Request Information asks the requester (the request is Information Needed until they answer). Created by the KYC_REQUEST workflow.
+    }
+
+    action notify-owners (
+        name: Notify potential owners
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.notify_created(:APEX$TASK_ID);
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    action info-requested (
+        name: Request is Pending Information
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_request_pkg.info_requested(:APEX$TASK_PK);
+        }
+        execution {
+            onEvent: requestInformation
+            sequence: 20
+        }
+    )
+
+    action info-submitted (
+        name: Request back In Progress
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_request_pkg.info_submitted(:APEX$TASK_PK);
+        }
+        execution {
+            onEvent: submitInformation
+            sequence: 30
+        }
+    )
+
+    participant (
+        value {
+            type: expression
+            plsqlExpression: xxcmp_request_pkg.step_approvers(to_number(:APEX$TASK_PK))
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
+        }
+    )
+
+)

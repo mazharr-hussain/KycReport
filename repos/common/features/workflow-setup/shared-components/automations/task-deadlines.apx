@@ -1,0 +1,26 @@
+automation task-deadlines (
+    name: Task deadlines
+    execution {
+        scheduleExpression: FREQ=HOURLY;INTERVAL=1;BYMINUTE=15
+        scheduleStatus: active
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Release 84 - raises the deadline events of the open tasks of every application: TASK_REMINDER before the due date and TASK_ESCALATED once overdue (Deadlines and Escalation per task definition; who is told and how: Notification Delivery). Each is raised once per task.
+    }
+
+    action process-deadlines (
+        name: Process the deadlines
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                xxfnd_workflow_pkg.process_deadlines;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)

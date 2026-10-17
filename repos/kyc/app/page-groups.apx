@@ -1,0 +1,19 @@
+pageGroup parties (
+    name: Parties
+)
+
+pageGroup kyc (
+    name: KYC Requests and Cases
+)
+
+pageGroup monitoring (
+    name: Monitoring and Dashboard
+)
+
+pageGroup administration (
+    name: Administration
+)
+
+pageGroup features (
+    name: Application Features
+)
