@@ -83,3 +83,21 @@ adapting KYC (releases 87-91) to COMMON 86. KYC uses COMMON as it is; the COMMON
 - **Needed:** an UNREGISTER_* routine (or a retire flag) for each REGISTER_* routine, refusing another application's
   rows; and a DELETE_APPLICATION that removes (or offers to remove) the application's own registered rows, still
   refusing when business data refers to them.
+
+## C10 - Applications are granted direct write access on every COMMON table
+- **Where:** `XXFND_SHARE_PKG.GRANT_TO` (apex/db/19c) grants each application schema INSERT, UPDATE, DELETE and
+  REFERENCES on every XXFND_ table (with SELECT), as well as EXECUTE on the packages.
+- **Effect:** an application can change COMMON data with plain SQL, bypassing COMMON's routines (their checks, ownership
+  rules and audit). This breaks the golden rule "data changes in COMMON only through COMMON routines". Today one KYC
+  script does so: 16l copies the case approval rules from the approval matrix into XXFND_APPROVAL_RULES,
+  XXFND_APPROVAL_RULE_STEPS and XXFND_APPROVAL_RULE_CONDS, because COMMON registers only one default rule per type
+  (REGISTER_DEFAULT_RULE) and has no routine to register several rules for one type.
+- **Needed:** grant applications SELECT (with grant option, for their views) and EXECUTE only - no INSERT, UPDATE or
+  DELETE; and a routine to register an application's approval rules (several per type, with steps and conditions), so
+  KYC 16l can call it instead of writing the tables.
+
+## C11 - The grants to applications depend on script order
+- **Where:** `XXFND_SHARE_PKG.GRANT_TO_APPLICATIONS` is called in scripts 19c, 24 and 26; scripts 27-30 run after it.
+- **Effect:** none today (27-30 create no object), but an object a later script creates is not granted to the
+  applications until the next COMMON install or upgrade, so an application using it fails until then.
+- **Needed:** call GRANT_TO_APPLICATIONS once, as the last COMMON install and upgrade script.
