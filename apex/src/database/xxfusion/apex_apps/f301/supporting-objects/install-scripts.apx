@@ -1,0 +1,8 @@
+installScript 01-xxftest-ping (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: 01-xxftest-ping.sql
+    }
+)

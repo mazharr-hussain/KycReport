@@ -1,0 +1,63 @@
+app XXFTEST (
+    name: XXFUSION Install Test
+    version: Release 1
+    logo {
+        type: text
+        text: &APP_TITLE.
+    }
+    navigation {
+        homeUrl: {
+            page: 1
+        }
+        loginUrl: {
+            page: LOGIN
+        }
+    }
+    navigationMenu {
+        listTemplate: @/side-navigation-menu
+        templateOptions: [
+            #DEFAULT#
+            js-defaultCollapsed
+            js-navCollapsed--hidden
+            t-TreeNav--styleA
+        ]
+        list: @navigation-menu
+    }
+    navigationBar {
+        list: @navigation-bar
+        listTemplate: @/navigation-bar
+        templateOptions: #DEFAULT#
+    }
+    databaseSession {
+        parsingSchema: XXFUSION
+    }
+    userInterface {
+        currentTheme: @universal-theme
+        globalPage: 0
+        usersCanChooseThemeStyle: false
+        addBuiltWithApexToFooter: false
+    }
+    appFormatMasks {
+        date: DD-MON-YYYY
+        timestamp: DS
+        timestampTimeZone: DS
+    }
+    authentication {
+        scheme: @oracle-apex-accounts
+    }
+    sessionStateProtection {
+        checksumSalt: 6A1F3C0B9E2D47A58C61F0B3D2E94A7C15B8E06D3F2A9C47B1E5D80A6C3F2B91
+    }
+    runtime {
+        allowFeedback: false
+        compatibilityMode: 26.1
+    }
+    comments {
+        comments:
+            ```
+            Test application (patch 102): one page and one table (XXFTEST_PING), parsing schema XXFUSION. It checks whether
+            the App Builder import wizard can install an application in XXFUSION. Delete it after the test (Remove
+            Application with its supporting objects drops the table).
+            ```
+    }
+)
