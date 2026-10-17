@@ -102,15 +102,19 @@ end;
 
 create or replace package body xxcmp_case_pkg as
 
-    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG). Release 90: the one copy
-    -- (the request package's unused duplicate is gone); where the parameters are stored is open decision D3.
-    function param(p_code in varchar2, p_default in number) return number is
+    function parameter(p_name in varchar2, p_default in number) return number is
         l_value number;
     begin
-        select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
-         where lookup_type = 'KYC_PARAMETER' and lookup_code = p_code and enabled_flag = 'Y';
+        select max(to_number(value default null on conversion error)) into l_value
+          from apex_application_settings
+         where application_id = xxfnd_application_pkg.apex_app_id('KYC') and name = upper(p_name);
+        if l_value is null then
+            -- an existing database: the value kept in the old lookup (no longer registered on a new database)
+            select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
+             where lookup_type = 'KYC_PARAMETER' and lookup_code = upper(p_name) and enabled_flag = 'Y';
+        end if;
         return nvl(l_value, p_default);
-    end param;
+    end parameter;
 
     function get_case(p_case_id in number) return xxcmp_cases%rowtype is
         l_case xxcmp_cases%rowtype;
@@ -123,7 +127,7 @@ create or replace package body xxcmp_case_pkg as
         l_req  xxcmp_requests%rowtype;
         l_id   number;
         l_wf   number;
-        l_sla  number := param('CASE_SLA_DAYS', 10);   -- private function: not callable inside SQL
+        l_sla  number := parameter('CASE_SLA_DAYS', 10);
     begin
         xxfnd_vpd_pkg.begin_trusted;
         select * into l_req from xxcmp_requests where request_id = p_request_id;
@@ -621,7 +625,7 @@ create or replace package body xxcmp_case_pkg as
     begin
         l_months := xxcmp_risk_pkg.review_months(l_case.risk_tier);     -- release 74: the risk model's review interval
         if l_case.pep_flag = 'Y' then
-            l_months := least(nvl(l_months, 12), param('PEP_REVIEW_MONTHS', 12));
+            l_months := least(nvl(l_months, 12), parameter('PEP_REVIEW_MONTHS', 12));
         end if;
         return add_months(trunc(sysdate), nvl(l_months, 12));
     end next_review_date;

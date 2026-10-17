@@ -967,12 +967,5 @@ create or replace package body xxcmp_party_pkg as
          where registry_check_id = p_registry_check_id and source = 'API' and changed_by_person_flag = 'N';
     end registry_check_saved;
 
-    procedure review_registry_check(p_registry_check_id in number) is
-    begin
-        update xxcmp_party_registry_checks
-           set reviewed_by = xxfnd_util_pkg.current_user, reviewed_date = trunc(sysdate)
-         where registry_check_id = p_registry_check_id;
-    end review_registry_check;
-
 end xxcmp_party_pkg;
 /
