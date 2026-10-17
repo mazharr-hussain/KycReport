@@ -97,3 +97,7 @@ objects (upgrade); a re-run changes nothing. Patches 95 (88), 96 (89), 97 (90) a
 - The KYC parameters are application settings from release 91 (CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS).
   Empty means the value kept in the old KYC_PARAMETER lookup applies, then the default (10, 12, 30). Change them in
   App Builder > Shared Components > Application Settings (COMMON issue C7).
+
+## Release 92 (KYC)
+KYC only. Import `KYC-Compliance-Platform-APEXlang_92.zip` over KYC and run the supporting objects (upgrade); a re-run
+changes nothing. XXCMP_UBO_DETERMINATIONS is retired (rows and its foreign key index stay). Patch 99.
