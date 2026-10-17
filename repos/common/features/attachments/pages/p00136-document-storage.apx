@@ -1,0 +1,258 @@
+page 136 (
+    name: Document Storage
+    alias: DOCUMENT-STORAGE
+    title: Document Storage
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Where each application keeps its documents (release 86): a storage server of the workspace (OCI Object Storage,
+            SharePoint, UCM) with the application's site and library, bucket or security group, and folder; each category may
+            override them. Without a server, or while the setup is incomplete, documents are kept in the database. Open an
+            application to change its storage.
+            ```
+    }
+
+    region breadcrumb (
+        name: Document Storage
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Document Storage
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: one line per application (XXFND_APP_STORAGE_V, category empty = the application default)
+                select v.application_code,
+                       v.application_name,
+                       nvl((select max(l.meaning) from xxfnd_lookup_values_vl l
+                             where l.lookup_type = 'STORAGE_TYPE' and l.lookup_code = v.effective_storage_type),
+                           v.effective_storage_type)                                      as storage,
+                       v.effective_server_name                                            as server_name,
+                       case v.effective_server_type
+                            when 'SHAREPOINT'     then v.effective_site || ' / ' || v.effective_library
+                            when 'OBJECT_STORAGE' then v.effective_bucket
+                            when 'UCM'            then v.effective_security_group
+                       end                                                                as location,
+                       case when v.effective_server_code is not null then v.effective_folder end as folder,
+                       (select count(*) from xxfnd_app_storage_v c
+                         where c.application_code = v.application_code and c.category_code is not null
+                           and coalesce(c.server_code, c.server_type, c.site, c.library, c.bucket, c.security_group,
+                                        c.account, c.document_type, c.folder) is not null) as category_overrides,
+                       v.state || case when v.incomplete_reason is not null then ': needs ' || v.incomplete_reason end as state,
+                       apex_page.get_url(p_page => 137, p_items => 'P137_APPLICATION_CODE', p_values => v.application_code,
+                                         p_clear_cache => '137') as open_url
+                  from xxfnd_app_storage_v v
+                 where v.category_code is null
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No registered application.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#APPLICATION_CODE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STORAGE (
+            type: plainText
+            heading {
+                heading: Storage
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SERVER_NAME (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LOCATION (
+            type: plainText
+            heading {
+                heading: Site / Library / Bucket / Security Group
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FOLDER (
+            type: plainText
+            heading {
+                heading: Folder
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CATEGORY_OVERRIDES (
+            type: plainText
+            heading {
+                heading: Category Overrides
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

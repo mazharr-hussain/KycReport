@@ -1,0 +1,1240 @@
+page 135 (
+    name: Attachment Page
+    alias: ATTACHMENT-PAGE
+    title: Attachment Page
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: onlyForSuccess
+    }
+    help {
+        helpText: Register a page, its attachment regions, the entity each region shows and the user's rights. No categories listed means every category is offered.
+    }
+
+    region breadcrumb (
+        name: Attachment Page
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region form (
+        name: Attachment Page
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_ATTACHMENT_FUNCTIONS
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    pageItem P135_FUNCTION_CODE (
+        type: textField
+        label {
+            label: Function Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 60
+        }
+        source {
+            formRegion: @form
+            column: FUNCTION_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P135_SAVED = 'Y'
+                ```
+        }
+        help {
+            helpText: Enter the function Code.
+        }
+    )
+
+    pageItem P135_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P135_SAVED
+                  from XXFND_ATTACHMENT_FUNCTIONS
+                 where FUNCTION_CODE = :P135_FUNCTION_CODE;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P135_FUNCTION_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: FUNCTION_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the name.
+        }
+    )
+
+    pageItem P135_APPLICATION_CODE (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-applications
+            displayNullValue: true
+            nullDisplayValue: Workspace (all applications)
+        }
+        layout {
+            sequence: 15
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_CODE
+            dataType: varchar2
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nullif(:G_ADMIN_APP, 'ALL')
+                ```
+        }
+        help {
+            inlineHelpText: The setup type decides which applications, and whether the workspace (all applications), may be chosen.
+        }
+    )
+
+    pageItem P135_APEX_APP_ALIAS (
+        type: textField
+        label {
+            label: Application Alias
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @form
+            column: APEX_APP_ALIAS
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: KYC
+        }
+        help {
+            helpText: Enter the application Alias.
+        }
+    )
+
+    pageItem P135_APEX_PAGE_ID (
+        type: numberField
+        label {
+            label: Page Number
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: APEX_PAGE_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Enter the page Number.
+        }
+    )
+
+    pageItem P135_MAX_FILE_SIZE_MB (
+        type: numberField
+        label {
+            label: Maximum File Size (MB)
+            alignment: left
+        }
+        layout {
+            sequence: 51
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: MAX_FILE_SIZE_MB
+            dataType: number
+        }
+        help {
+            helpText: Largest file accepted for this page. Empty = use the application setting (a category setting wins over this).
+        }
+    )
+
+    pageItem P135_ALLOWED_FILE_TYPES (
+        type: textField
+        label {
+            label: Allowed File Types
+            alignment: left
+        }
+        layout {
+            sequence: 52
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ALLOWED_FILE_TYPES
+            dataType: varchar2
+        }
+        help {
+            helpText: File extensions accepted for this page, separated by commas (e.g. pdf, jpg, png); * = any type. Empty = use the application setting (a category setting wins over this).
+        }
+    )
+
+    pageItem P135_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @form
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 134
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 20
+            region: @form
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P135_SAVED, 'N') = 'N'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @form
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P135_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region blocks (
+        name: Regions
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select b.function_code, b.block_code, b.region_static_id, b.block_name, b.display_sequence
+                  from xxfnd_attachment_blocks b
+                 where b.function_code = :P135_FUNCTION_CODE
+                ```
+            pageItemsToSubmit: P135_FUNCTION_CODE
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: blocks
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P135_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @BLOCK_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @REGION_STATIC_ID
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @BLOCK_NAME
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 5
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column FUNCTION_CODE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FUNCTION_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P135_FUNCTION_CODE
+            }
+        )
+
+        column BLOCK_CODE (
+            type: textField
+            heading {
+                heading: Block Code
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 60
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BLOCK_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column REGION_STATIC_ID (
+            type: textField
+            heading {
+                heading: Region Static ID
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: REGION_STATIC_ID
+                dataType: varchar2
+            }
+        )
+
+        column BLOCK_NAME (
+            type: textField
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 240
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BLOCK_NAME
+                dataType: varchar2
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+
+    )
+
+    region block-entities (
+        name: Entities per Region
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select be.function_code, be.block_code, be.entity_name, be.pk1_page_item, be.pk2_page_item,
+                       be.pk3_page_item, be.insert_allowed_flag, be.update_allowed_flag, be.delete_allowed_flag,
+                       be.display_sequence
+                  from xxfnd_attachment_blk_entities be
+                 where be.function_code = :P135_FUNCTION_CODE
+                ```
+            pageItemsToSubmit: P135_FUNCTION_CODE
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: block-entities
+        }
+        masterDetail {
+            masterRegion: @blocks
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P135_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @ENTITY_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PK1_PAGE_ITEM
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PK2_PAGE_ITEM
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PK3_PAGE_ITEM
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @INSERT_ALLOWED_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATE_ALLOWED_FLAG
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @DELETE_ALLOWED_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @DISPLAY_SEQUENCE
+                layout {
+                    sequence: 9
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column FUNCTION_CODE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FUNCTION_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P135_FUNCTION_CODE
+            }
+        )
+
+        column BLOCK_CODE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BLOCK_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            masterDetail {
+                masterColumn: @BLOCK_CODE
+            }
+        )
+
+        column ENTITY_NAME (
+            type: selectList
+            heading {
+                heading: Entity
+            }
+            layout {
+                sequence: 40
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-entities
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENTITY_NAME
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column PK1_PAGE_ITEM (
+            type: textField
+            heading {
+                heading: Key Item 1
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                valueRequired: true
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PK1_PAGE_ITEM
+                dataType: varchar2
+            }
+        )
+
+        column PK2_PAGE_ITEM (
+            type: textField
+            heading {
+                heading: Key Item 2
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PK2_PAGE_ITEM
+                dataType: varchar2
+            }
+        )
+
+        column PK3_PAGE_ITEM (
+            type: textField
+            heading {
+                heading: Key Item 3
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 255
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PK3_PAGE_ITEM
+                dataType: varchar2
+            }
+        )
+
+        column INSERT_ALLOWED_FLAG (
+            type: switch
+            heading {
+                heading: Add
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: INSERT_ALLOWED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+        column UPDATE_ALLOWED_FLAG (
+            type: switch
+            heading {
+                heading: Update
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: UPDATE_ALLOWED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+        column DELETE_ALLOWED_FLAG (
+            type: switch
+            heading {
+                heading: Remove
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DELETE_ALLOWED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: N
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: numberField
+            heading {
+                heading: Sequence
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DISPLAY_SEQUENCE
+                dataType: number
+            }
+        )
+
+    )
+
+    region usages (
+        name: Categories Offered
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select u.function_code, u.category_code, u.enabled_flag
+                  from xxfnd_doc_category_usages u
+                 where u.function_code = :P135_FUNCTION_CODE
+                ```
+            pageItemsToSubmit: P135_FUNCTION_CODE
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: usages
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P135_SAVED
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 3
+                }
+            )
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column FUNCTION_CODE (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: FUNCTION_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+            default {
+                type: item
+                item: P135_FUNCTION_CODE
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: selectList
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-categories
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: switch
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ENABLED_FLAG
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: Y
+            }
+        )
+
+    )
+
+    validation upload-limits (
+        name: Upload limits
+        execution {
+            sequence: 50
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                if :P135_MAX_FILE_SIZE_MB is not null and to_number(:P135_MAX_FILE_SIZE_MB) <= 0 then
+                    return 'The maximum file size must be more than 0 MB.';
+                end if;
+                if :P135_ALLOWED_FILE_TYPES is not null
+                   and not regexp_like(:P135_ALLOWED_FILE_TYPES, '^ *(\*|\.?[A-Za-z0-9]+( *, *\.?[A-Za-z0-9]+)*) *$') then
+                    return 'List the file extensions separated by commas, e.g. pdf, jpg, png (or * for any type).';
+                end if;
+                return null;
+                ```
+        }
+        error {
+            associatedItem: @P135_ALLOWED_FILE_TYPES
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-blocks (
+        name: Save blocks
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @blocks
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-block-entities (
+        name: Save block-entities
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @block-entities
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-usages (
+        name: Save usages
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @usages
+        execution {
+            sequence: 40
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)

@@ -1,0 +1,5136 @@
+page 211 (
+    name: Case
+    alias: CASE
+    title: Case
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/left-side-column
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            // the investigation questionnaire opens ready to type (the grid toolbar with its Edit button is hidden)
+            var findings = apex.region('findings');
+            if (findings && findings.call('getViews', 'grid').model.getOption('editable')) {
+                findings.call('getActions').set('edit', true);
+            }
+            ```
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The case screen: the officer works through the sections on the left (Summary, Party, Contacts and Ownership, Screening, Documents, Risk Assessment, Notes and RFIs) and submits on Review and Submit. Each section saves on its own. The party sections are the common Global Page regions. Approvers open the case from their task in review mode and decide at the top or the bottom.
+            ```
+    }
+
+    region breadcrumb (
+        name: Case
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region top-buttons (
+        name: Case Actions
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: top_buttons
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    region section-nav (
+        name: Sections · progress &P211_PROGRESS.
+        type: list
+        source {
+            list: @case-sections
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_02
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/links-list
+            templateOptions: [
+                #DEFAULT#
+                t-LinksList--showIcons
+            ]
+        }
+        advanced {
+            htmlDomId: case_sections
+        }
+    )
+
+    pageItem P211_PROGRESS (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @section-nav
+            slot: regionBody
+        }
+    )
+
+    region case-history (
+        name: Approval History
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 75 (U-09): person names (a role or System stays as it is)
+                select rownum as seq, h.step_no, h.step_name, xxfnd_ui_pkg.person_name(h.assigned_to) as assigned_to, h.action,
+                       xxfnd_ui_pkg.person_name(h.action_by) as action_by,
+                       to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
+                  from table(xxcmp_case_pkg.case_history_rows(to_number(:P211_CASE_ID))) h
+                 order by seq
+                ```
+            pageItemsToSubmit: P211_CASE_ID
+        }
+        layout {
+            sequence: 95
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_history
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No history yet.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: plainText
+            heading {
+                heading: Approver
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action / Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ACTION_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ACTION_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comments
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column STEP_NO (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+    )
+
+    region case-decision (
+        name: Decision
+        type: staticContent
+        layout {
+            sequence: 96
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_decision
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
+        }
+    )
+
+    region decision-buttons (
+        name: Decision Buttons
+        type: staticContent
+        layout {
+            sequence: 989
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: decision_buttons
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL' and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve) or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
+        }
+    )
+
+    region case (
+        name: &P211_SECTION_LABEL.
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_CASES
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        advanced {
+            htmlDomId: case
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N' or :P211_SECTION = 'REVIEW'
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 29: the form keeps the case keys on Summary / Risk / Review; its fields show only in an editable Risk
+                -- Assessment (the summary grid shows the rest) and the region hides itself without visible fields (kyc-app.css)
+                :P211_SECTION in ('SUMMARY', 'RISK', 'REVIEW')
+                ```
+        }
+    )
+
+    region case-header (
+        name: Case Header
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R7, R11): the case header card from data (no HTML from PL/SQL); data security applies
+                select c.case_number || ' · ' || p.party_name as title,
+                       xxfnd_ui_pkg.status_label('CASE', c.case_status) as status_label,
+                       xxfnd_ui_pkg.status_tone('CASE', c.case_status) as status_tone,
+                       xxfnd_ui_pkg.status_label('RISK', c.risk_tier) as risk_label,
+                       xxfnd_ui_pkg.status_tone('RISK', c.risk_tier) as risk_tone,
+                       case when c.enhanced_kyc_flag = 'Y' then 'Enhanced KYC' end as edd_label,
+                       case when c.pep_flag = 'Y' then 'PEP' end as pep_label,
+                       case when c.closed_date is null then
+                           case when c.sla_due_date < trunc(sysdate) then 'Overdue'
+                                when c.sla_due_date <= trunc(sysdate) + 2 then 'Due soon' else 'On time' end
+                           || ' · SLA ' || to_char(c.sla_due_date, 'DD-MON-YYYY') end as sla_label,
+                       case when c.sla_due_date < trunc(sysdate) then 'danger'
+                            when c.sla_due_date <= trunc(sysdate) + 2 then 'warning' else 'success' end as sla_tone,
+                       ltrim(xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction)
+                             || nvl2(c.business_relationship, ' · ' || xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship), null)
+                             || nvl2(r.request_number, ' · request ' || r.request_number, null), ' ·') as info_line,
+                       c.assigned_to,
+                       nvl(xxfnd_ui_pkg.person_name(c.assigned_to), 'nobody') as assigned_name,
+                       case c.case_status
+                           when 'PENDING_APPROVAL' then 'Pending approval (level ' || nvl(c.current_level, 1) || ')'
+                           when 'PENDING_INFORMATION' then 'Pending information from the requester (level ' || nvl(c.current_level, 1) || ')'
+                       end as pending_line,
+                       a.owner as approver,
+                       xxfnd_ui_pkg.person_name(a.owner) as approver_name,
+                       to_char(a.since, 'DD-MON-YYYY HH24:MI') as approver_since
+                  from xxcmp_cases c
+                  join xxcmp_parties p on p.party_id = c.party_id
+                  left join xxcmp_requests r on r.request_id = c.request_id
+                 outer apply (select max(t.actual_owner) keep (dense_rank last order by t.created_on) as owner,
+                                     max(t.created_on) as since
+                                from apex_tasks t
+                               where t.detail_pk = to_char(c.case_id) and t.task_def_static_id = 'CASE_APPROVAL'
+                                 and t.state_code in ('UNASSIGNED', 'ASSIGNED')
+                                 and c.case_status = 'PENDING_APPROVAL') a
+                 where c.case_id = :P211_CASE_ID
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_header
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+            ]
+        }
+        heading {
+            type: none
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: The case is not available.
+        }
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Case
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <div class="kyc-hcard"><div class="kyc-hcard-top"><span class="kyc-hcard-title">#TITLE#</span><span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS_LABEL#</span>{if RISK_LABEL/}<span class="kyc-badge kyc-badge--#RISK_TONE#">#RISK_LABEL#</span>{endif/}{if EDD_LABEL/}<span class="kyc-badge kyc-badge--warning">#EDD_LABEL#</span>{endif/}{if PEP_LABEL/}<span class="kyc-badge kyc-badge--danger">#PEP_LABEL#</span>{endif/}{if SLA_LABEL/}<span class="kyc-badge kyc-badge--#SLA_TONE#">#SLA_LABEL#</span>{endif/}</div><div class="kyc-hcard-line">#INFO_LINE# · assigned to {if ASSIGNED_TO/}<span class="kyc-person" tabindex="0" data-user="#ASSIGNED_TO#">#ASSIGNED_NAME#</span>{else/}<span class="u-color-subtle">nobody</span>{endif/}</div>{if PENDING_LINE/}<div class="kyc-hcard-line">#PENDING_LINE#{if APPROVER/} with <b><span class="kyc-person" tabindex="0" data-user="#APPROVER#">#APPROVER_NAME#</span></b>{endif/}{if APPROVER_SINCE/} since #APPROVER_SINCE#{endif/} · the case is read only</div>{endif/}</div>
+                    ```
+            }
+        )
+
+        column STATUS_LABEL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column RISK_LABEL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RISK_TONE (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EDD_LABEL (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column PEP_LABEL (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column SLA_LABEL (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column SLA_TONE (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+        column INFO_LINE (
+            type: hidden
+            layout {
+                sequence: 100
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: hidden
+            layout {
+                sequence: 110
+            }
+        )
+
+        column ASSIGNED_NAME (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column PENDING_LINE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+        column APPROVER (
+            type: hidden
+            layout {
+                sequence: 140
+            }
+        )
+
+        column APPROVER_NAME (
+            type: hidden
+            layout {
+                sequence: 150
+            }
+        )
+
+        column APPROVER_SINCE (
+            type: hidden
+            layout {
+                sequence: 160
+            }
+        )
+
+    )
+
+    region case-summary (
+        name: &P211_SECTION_LABEL.
+        type: appTemplateComponent/fieldGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R7, R11): the case summary as data (XXCMP_CASE_PKG.CASE_SUMMARY_JSON)
+                select j.group_name, j.seq, j.label, j.value, j.tone, j.url, j.link_text, j.user_name,
+                         min(j.seq) over (partition by j.group_name) as group_seq,
+                         case when length(j.value) > 80 then 'Y' end as full_width
+                  from json_table(xxcmp_case_pkg.case_summary_json(to_number(:P211_CASE_ID), to_number(:P211_TASK_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    link_text  varchar2(200)  path '$.link_text',
+                                    user_name  varchar2(255)  path '$.user_name')) j
+                   order by j.seq
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_summary
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('SUMMARY', 'REVIEW') or (:P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N')
+                ```
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            person: &USER_NAME.
+            linkText: &LINK_TEXT.
+            fullWidth: &FULL_WIDTH.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
+        }
+        messages {
+            whenNoDataFound: The case is not available.
+        }
+        comments {
+            comments: Release 75 (U-01, U-02): the KYC Field Grid template component (grouped 3-column grid).
+        }
+
+        column GROUP_NAME (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column SEQ (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LABEL (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column LINK_TEXT (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: LINK_TEXT
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column FULL_WIDTH (
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: FULL_WIDTH
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    pageItem P211_SECTION (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @buttons
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: The section shown (codes in XXCMP_CASE_PKG.C_SECTIONS). Approvers (CASE_APPROVAL task) always see REVIEW.
+        }
+    )
+
+    pageItem P211_SECTION_LABEL (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @buttons
+            slot: regionBody
+        }
+    )
+
+    pageItem P211_NEXT_SECTION (
+        type: hidden
+        layout {
+            sequence: 7
+            region: @buttons
+            slot: regionBody
+        }
+    )
+
+    pageItem P211_TASK_TYPE (
+        type: hidden
+        layout {
+            sequence: 8
+            region: @buttons
+            slot: regionBody
+        }
+        comments {
+            comments: CASE_APPROVAL when an approver opened the case from the task: review mode with the decision.
+        }
+    )
+
+    pageItem P211_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @case
+            slot: regionBody
+        }
+        source {
+            formRegion: @case
+            column: CASE_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P211_TASK_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @case
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P211_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @case
+            slot: regionBody
+        }
+        source {
+            formRegion: @case
+            column: PARTY_ID
+            dataType: number
+        }
+        sessionState {
+            storage: session
+        }
+    )
+
+    pageItem P211_WORKFLOW_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @case
+            slot: regionBody
+        }
+        source {
+            formRegion: @case
+            column: WORKFLOW_ID
+            dataType: number
+        }
+    )
+
+    pageItem P211_CASE_NUMBER (
+        type: displayOnly
+        label {
+            label: Case
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @case
+            column: CASE_NUMBER
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+    pageItem P211_PARTY (
+        type: displayOnly
+        label {
+            label: Party
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select p.party_number || ' - ' || p.party_name
+                       || nvl2(p.jurisdiction, ' (' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) || ')', null)
+                  from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id where c.case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+
+    pageItem P211_STATUS (
+        type: displayOnly
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_lookup_pkg.lookup_meaning('CASE_STATUS', case_status)
+                       || case when case_status = 'PENDING_APPROVAL' then ' (level ' || current_level || ')' end
+                       || nvl2(closed_date, ' - closed ' || to_char(closed_date, 'DD-Mon-YYYY'), null)
+                  from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+
+    pageItem P211_SLA (
+        type: displayOnly
+        label {
+            label: SLA Due
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select to_char(sla_due_date, 'DD-Mon-YYYY')
+                       || case when closed_date is null and sla_due_date < trunc(sysdate) then ' - OVERDUE' end
+                  from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+
+    pageItem P211_REQUEST (
+        type: displayOnly
+        label {
+            label: Request
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select r.request_number || ' - '
+                       || xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
+                       || ' - intake score ' || nvl(to_char(r.intake_score), '-') || ' (reference only)'
+                  from xxcmp_cases c join xxcmp_requests r on r.request_id = c.request_id where c.case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+
+    pageItem P211_ASSIGNED_TO (
+        type: selectList
+        label {
+            label: Assigned To
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select distinct e.full_name || ' (' || ur.user_name || ')' as display_value, ur.user_name as return_value
+                  from xxfnd_user_roles_v ur
+                  join xxfnd_employees e on e.user_name = ur.user_name
+                 where ur.role_code in ('COMPLIANCE_OFFICER','COMPLIANCE_MANAGER','HEAD_OF_COMPLIANCE') and ur.active_flag = 'Y'
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Unassigned -
+        }
+        layout {
+            sequence: 60
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @case
+            column: ASSIGNED_TO
+            dataType: varchar2
+        }
+        help {
+            helpText: The investigating officer. A manager can reassign the case.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 0   -- release 29: shown in the case header and summary grid
+                ```
+        }
+    )
+    pageItem P211_RISK_TIER (
+        type: selectList
+        label {
+            label: Risk Classification
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values
+                 where lookup_type = 'RISK_TIER' and enabled_flag = 'Y' order by display_sequence
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Not classified -
+        }
+        layout {
+            sequence: 70
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @case
+            column: RISK_TIER
+            dataType: varchar2
+        }
+        help {
+            helpText: Your own judgement from everything found in the investigation. The intake score is reference only.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    pageItem P211_DUE_DILIGENCE_TYPE (
+        type: selectList
+        label {
+            label: Due Diligence Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value from xxfnd_lookup_values
+                 where lookup_type = 'DUE_DILIGENCE_TYPE' and enabled_flag = 'Y' order by display_sequence
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 80
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @case
+            column: DUE_DILIGENCE_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: Simplified, Standard or Enhanced KYC. A confirmed screening match or a PEP flag sets Enhanced; Enhanced KYC needs two approval levels and the source of funds and wealth answers.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    pageItem P211_PEP_FLAG (
+        type: displayOnly
+        label {
+            label: PEP
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 75 (U-07): Yes / No, not the code
+                select xxfnd_lookup_pkg.lookup_meaning('YES_NO', nvl(pep_flag, 'N')) from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    pageItem P211_NEXT_REVIEW_DATE (
+        type: displayOnly
+        label {
+            label: Next Review
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @case
+            column: NEXT_REVIEW_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                -- release 75 (U-07): shown once set (on approval)
+                and :P211_NEXT_REVIEW_DATE is not null
+                ```
+        }
+    )
+    pageItem P211_CONDITIONS (
+        type: displayOnly
+        label {
+            label: Conditions
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @case
+            column: CONDITIONS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                -- release 75 (U-07): shown once set (on approval)
+                and :P211_CONDITIONS is not null
+                ```
+        }
+    )
+    pageItem P211_REPORT_CONCLUSION (
+        type: textarea
+        label {
+            label: Report Conclusion
+            alignment: left
+        }
+        layout {
+            sequence: 112
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @case
+            column: REPORT_CONCLUSION
+            dataType: varchar2
+        }
+        help {
+            helpText: The conclusion of the KYC report (what was checked and found). Required to submit for approval.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    pageItem P211_NEXT_STEPS (
+        type: textarea
+        label {
+            label: Next Steps
+            alignment: left
+        }
+        layout {
+            sequence: 114
+            region: @case
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 4000
+        }
+        source {
+            formRegion: @case
+            column: NEXT_STEPS
+            dataType: varchar2
+        }
+        help {
+            helpText: What follows the KYC, e.g. on-going monitoring applied. Required to submit for approval.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+    region findings (
+        name: Investigation Questionnaire
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.answer_id,
+                       a.question_id,
+                       (select q.section_name from xxcmp_questions q where q.question_id = a.question_id) as section_name,
+                       (select q.question_text from xxcmp_questions q where q.question_id = a.question_id) as question_text,
+                       a.answer_option_id,
+                       a.answer_text
+                  from xxcmp_request_answers a
+                 where a.case_id = :P211_CASE_ID
+                   and a.respondent_type = 'OFFICER'
+                   -- the Enhanced Due Diligence questions only when the case is Enhanced KYC
+                   and (nvl((select q.section_name from xxcmp_questions q where q.question_id = a.question_id), '#') <> 'Enhanced Due Diligence'
+                        or (select c.enhanced_kyc_flag from xxcmp_cases c where c.case_id = a.case_id) = 'Y')
+                 order by (select q.display_sequence from xxcmp_questions q where q.question_id = a.question_id)
+                ```
+            pageItemsToSubmit: P211_CASE_ID
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: findings
+        }
+        componentAppearance {
+            selectFirstRow: false
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No investigation questions are configured.
+        }
+        toolbar {
+            show: false
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @SECTION_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @QUESTION_TEXT
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ANSWER_OPTION_ID
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ANSWER_TEXT
+                layout {
+                    sequence: 4
+                }
+            )
+        )
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N' or :P211_SECTION = 'REVIEW'
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+
+        column ANSWER_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ANSWER_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column QUESTION_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: QUESTION_ID
+                dataType: number
+            }
+        )
+
+        column SECTION_NAME (
+            type: displayOnly
+            heading {
+                heading: Section
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SECTION_NAME
+                dataType: varchar2
+                queryOnly: true
+            }
+        )
+
+        column QUESTION_TEXT (
+            type: displayOnly
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: QUESTION_TEXT
+                dataType: varchar2
+                queryOnly: true
+            }
+        )
+
+        column ANSWER_OPTION_ID (
+            type: selectList
+            heading {
+                heading: Choice
+            }
+            layout {
+                sequence: 50
+            }
+            serverSideCondition {
+                type: rowsReturned
+                sqlQuery:
+                    ```sql
+                    select 1
+                      from xxcmp_answer_options o
+                      join xxcmp_questions q on q.question_id = o.question_id
+                      join xxcmp_questionnaires qn on qn.questionnaire_code = q.questionnaire_code
+                     where qn.audience = 'OFFICER' and o.enabled_flag = 'Y'
+                    ```
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select answer_label as display_value, answer_option_id as return_value
+                      from xxcmp_answer_options
+                     where question_id = :QUESTION_ID and approval_status = 'APPROVED' and enabled_flag = 'Y'
+                     order by display_sequence
+                    ```
+                displayNullValue: true
+                nullDisplayValue: -
+            }
+            cascadingLov {
+                parentColumns: QUESTION_ID
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ANSWER_OPTION_ID
+                dataType: number
+            }
+        )
+
+        column ANSWER_TEXT (
+            type: textarea
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 4000
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ANSWER_TEXT
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    region screenings (
+        name: Screenings
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select s.screening_id,
+                       xxfnd_lookup_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as screening_type,
+                       p.party_name,
+                       xxfnd_lookup_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as match_status,
+                       xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', s.risk_tier) as risk_tier,
+                       rtrim(case when s.pep_flag = 'Y' then 'PEP, ' end || case when s.sanctions_flag = 'Y' then 'Sanctions, ' end
+                             || case when s.adverse_media_flag = 'Y' then 'Adverse media, ' end, ', ') as flags,
+                       -- release 74 (R14): by hand or from the provider; a provider's result shows whether a person reviewed it
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', s.capture_method)
+                       || case when s.capture_method = 'API' then
+                              case when s.reviewed_by is null then ' · not reviewed'
+                                   else ' · reviewed by ' || xxfnd_ui_pkg.person_name(s.reviewed_by) end
+                              || case when s.changed_by_person_flag = 'Y' then ' · changed by a person' end end as capture_method,
+                       s.screened_date, s.result_notes,
+                       apex_page.get_url(p_page => 213, p_items => 'P213_SCREENING_ID,P213_CASE_ID', p_values => to_char(s.screening_id) || ',' || :P211_CASE_ID, p_clear_cache => '213') as open_url
+                  from xxcmp_screenings s
+                  join xxcmp_parties p on p.party_id = s.party_id
+                 where s.case_id = :P211_CASE_ID
+                 order by s.screened_date desc, s.screening_id desc
+                ```
+            pageItemsToSubmit: P211_CASE_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: screenings
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No screening recorded yet.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('SCREENING', 'REVIEW')
+                ```
+        }
+
+        column SCREENING_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SCREENING_TYPE (
+            type: plainText
+            heading {
+                heading: Check
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#SCREENING_TYPE#</a>
+                    ```
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column MATCH_STATUS (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk Level
+            }
+            layout {
+                sequence: 35
+            }
+        )
+
+        column FLAGS (
+            type: plainText
+            heading {
+                heading: Flags
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CAPTURE_METHOD (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SCREENED_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column RESULT_NOTES (
+            type: plainText
+            heading {
+                heading: Conclusion
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+    )
+
+    region party_documents (
+        name: Documents and Verification
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id,
+                       a.title, a.category_name, a.document_date, a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       case a.entity_name when 'XXCMP_REQUESTS' then 'Request' when 'XXCMP_CASES' then 'Case' else 'Party' end as attached_to,
+                       nvl(xxfnd_lookup_pkg.lookup_meaning('DOC_VERIFICATION_STATUS', v.verification_status), 'Not verified') as verification,
+                       v.notes,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id)) end as download_url,
+                       apex_page.get_url(p_page => 215, p_items => 'P215_VERIFICATION_ID,P215_CASE_ID,P215_ATTACHED_DOCUMENT_ID', p_values => to_char(v.verification_id) || ',' || :P211_CASE_ID || ',' || to_char(a.attached_document_id), p_clear_cache => '215') as verify_url
+                  from xxfnd_attached_documents_v a
+                  left join xxcmp_doc_verifications v on v.attached_document_id = a.attached_document_id and v.case_id = :P211_CASE_ID
+                 where (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = :P211_PARTY_ID)
+                    or (a.entity_name = 'XXCMP_CASES' and a.pk1_value = :P211_CASE_ID)
+                    or (a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = (select to_char(request_id) from xxcmp_cases where case_id = :P211_CASE_ID))
+                 order by a.category_name, a.creation_date
+                ```
+            pageItemsToSubmit: P211_CASE_ID,P211_PARTY_ID
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_documents
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No documents on the party, the request or the case.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('DOCUMENTS', 'REVIEW')
+                ```
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#DOWNLOAD_URL#">#TITLE#</a>
+                    ```
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ATTACHED_TO (
+            type: plainText
+            heading {
+                heading: On
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Dated
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Expired
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column VERIFICATION (
+            type: plainText
+            heading {
+                heading: Verification
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#VERIFY_URL#">#VERIFICATION#</a>
+                    ```
+            }
+        )
+
+        column NOTES (
+            type: plainText
+            heading {
+                heading: Notes
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+        column DOWNLOAD_URL (
+            type: hidden
+            layout {
+                sequence: 100
+            }
+        )
+
+        column VERIFY_URL (
+            type: hidden
+            layout {
+                sequence: 110
+            }
+        )
+
+    )
+
+    region notes (
+        name: Notes and Requests for Information
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select * from (
+                    select 'Note' as kind, n.note_text as text, p.party_name as detail, null as status, n.created_by as by_user,
+                           to_char(n.creation_date, 'DD-MON-YYYY HH24:MI') as at_time, n.creation_date as sort_date,
+                           null as open_url, null as docs_url
+                      from xxcmp_case_notes n
+                      left join xxcmp_parties p on p.party_id = n.related_party_id
+                     where n.case_id = :P211_CASE_ID
+                    union all
+                    -- release 89: the RFIs run in COMMON's RFI process; the link opens COMMON's task page Information
+                    -- Request (143) for the user's open step (answer or review); documents of an earlier KYC RFI
+                    -- (entity XXCMP_RFIS) open on COMMON's Attachments page (47)
+                    select 'RFI ' || r.rfi_number,
+                           xxfnd_lookup_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category) || ': ' || r.description,
+                           case r.continue_other_work_flag when 'N' then 'Pauses the case' end
+                           || nvl2(r.due_date, ' - due ' || to_char(r.due_date, 'DD-MON-YYYY'), null)
+                           || nvl2(r.responded_date, ' - answered ' || to_char(r.responded_date, 'DD-MON-YYYY'), null),
+                           xxfnd_lookup_pkg.lookup_meaning('RFI_STATUS', r.rfi_status), r.created_by,
+                           to_char(r.creation_date, 'DD-MON-YYYY HH24:MI'), r.creation_date,
+                           (select apex_page.get_url(p_application => 'COMMON', p_page => 143, p_items => 'P143_TASK_ID',
+                                                     p_values => to_char(t.task_id), p_clear_cache => '143')
+                              from (select xxcmp_case_pkg.rfi_task(r.rfi_id) as task_id from dual) t
+                             where t.task_id is not null),
+                           case when exists (select 1 from xxfnd_attached_documents_v a
+                                              where a.entity_name = 'XXCMP_RFIS' and a.pk1_value = to_char(r.rfi_id))
+                                then apex_page.get_url(p_application => 'COMMON', p_page => 47, p_clear_cache => '47',
+                                         p_items  => 'P47_APP_ALIAS,P47_SOURCE_PAGE,P47_SOURCE_REGION,P47_ENTITY_NAME,P47_PK1_VALUE',
+                                         p_values => 'KYC,211,notes,XXCMP_RFIS,' || r.rfi_id) end
+                      from xxfnd_rfis r
+                     where (r.entity_name = 'XXCMP_CASES' and r.pk1_value = :P211_CASE_ID)
+                        or (r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = (select to_char(request_id) from xxcmp_cases where case_id = :P211_CASE_ID))
+                )
+                 where :P211_NOTE_FILTER is null
+                    or (:P211_NOTE_FILTER = 'NOTES' and kind = 'Note')
+                    or (:P211_NOTE_FILTER = 'RFIS' and kind like 'RFI%')
+                    or (:P211_NOTE_FILTER = 'OPEN' and kind like 'RFI%' and status in (select meaning from xxfnd_lookup_values
+                                                                                         where lookup_type = 'RFI_STATUS'
+                                                                                           and lookup_code in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')))
+                 order by sort_date desc
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_NOTE_FILTER
+            ]
+        }
+        layout {
+            sequence: 70
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: notes
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('NOTES', 'REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No notes or requests for information yet.
+        }
+
+        column KIND (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if OPEN_URL/}<a href="#OPEN_URL#">#KIND#</a>{else/}#KIND#{endif/}
+                    ```
+            }
+        )
+
+        column TEXT (
+            type: plainText
+            heading {
+                heading: Note / Question
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DETAIL (
+            type: plainText
+            heading {
+                heading: Details
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column BY_USER (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column AT_TIME (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column SORT_DATE (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column DOCS_URL (
+            type: plainText
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if DOCS_URL/}<a href="#DOCS_URL#">Documents</a>{endif/}
+                    ```
+            }
+        )
+
+    )
+
+    pageItem P211_NOTE_FILTER (
+        type: radioGroup
+        label {
+            label: Show
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @notes
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+            ]
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:All;,Notes;NOTES,RFIs;RFIS,Open RFIs;OPEN
+            displayNullValue: false
+        }
+    )
+
+    dynamicAction filter-notes (
+        name: Filter notes and RFIs
+        execution {
+            sequence: 30
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P211_NOTE_FILTER
+        }
+
+        action filter-notes-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @notes
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    pageItem P211_NEW_NOTE (
+        type: textarea
+        label {
+            label: New Note
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @note-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 4
+        }
+        validation {
+            maxLength: 4000
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+    )
+
+    button open-assign (
+        buttonName: OPEN_ASSIGN
+        label: Assign
+        layout {
+            sequence: 1
+            region: @top-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-user
+            cssClasses: kyc-open-assign_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_TYPE is null and xxcmp_case_pkg.can_assign(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    region assign-dialog (
+        name: Assign Case
+        type: staticContent
+        layout {
+            sequence: 97
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign_dialog
+        }
+    )
+
+    pageItem P211_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Officer
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P211_ASSIGN_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process assign-case (
+        name: Assign case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.assign(:P211_CASE_ID, :P211_ASSIGN_TO, :P211_ASSIGN_COMMENT);
+                :P211_ASSIGN_TO := null;
+                :P211_ASSIGN_COMMENT := null;
+                ```
+        }
+        execution {
+            sequence: 32
+            point: processing
+        }
+        successMessage {
+            successMessage: Case assigned.
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+    button open-withdraw (
+        buttonName: OPEN_WITHDRAW
+        label: Withdraw from Approval
+        layout {
+            sequence: 2
+            region: @top-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-open-withdraw_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_TYPE is null and xxcmp_case_pkg.can_withdraw(:P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    region withdraw-dialog (
+        name: Withdraw from Approval
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>The open approval is cancelled and the case goes back to investigation, editable again. Submit it for approval when it is ready.</p>
+                ```
+        }
+        layout {
+            sequence: 98
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: withdraw_dialog
+        }
+    )
+
+    pageItem P211_WITHDRAW_REASON (
+        type: textarea
+        label {
+            label: Reason
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @withdraw-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button withdraw (
+        buttonName: WITHDRAW
+        label: Withdraw
+        layout {
+            sequence: 10
+            region: @withdraw-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process withdraw-case (
+        name: Withdraw from approval
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.withdraw(:P211_CASE_ID, :P211_WITHDRAW_REASON);
+                :P211_WITHDRAW_REASON := null;
+                ```
+        }
+        execution {
+            sequence: 33
+            point: processing
+        }
+        successMessage {
+            successMessage: The case is back under investigation.
+        }
+        serverSideCondition {
+            whenButtonPressed: @withdraw
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                   and :P211_SECTION not in ('REVIEW', 'SUMMARY', 'TREE')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+
+    button next-section (
+        buttonName: NEXT_SECTION
+        label: Next Section
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-chevron-right
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                   and :P211_SECTION <> 'REVIEW'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button submit-approval (
+        buttonName: SUBMIT_APPROVAL
+        label: Submit for Approval
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Submit the case for approval? It can no longer be changed.
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                   and :P211_SECTION = 'REVIEW' and :P211_TASK_TYPE is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button raise-rfi (
+        buttonName: RAISE_RFI
+        label: Raise RFI
+        layout {
+            sequence: 5
+            region: @notes
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-open-rfi_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button add-screening (
+        buttonName: ADD_SCREENING
+        label: Add Screening
+        layout {
+            sequence: 5
+            region: @screenings
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 213
+                items: {
+                    P213_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 213
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button party_documents-add (
+        buttonName: PARTY_DOCUMENTS_ADD
+        label: Add Document
+        layout {
+            sequence: 5
+            region: @party_documents
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectOtherApp
+            target: {
+                app: COMMON
+                page: 47
+                items: {
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: 211
+                    P47_SOURCE_REGION: party_documents
+                    P47_ENTITY_NAME: XXCMP_PARTIES
+                    P47_PK1_VALUE: &P211_PARTY_ID.
+                }
+                clearCache: 47
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_attach_pkg.block_permission(:APP_ALIAS, 211, 'party_documents', 'XXCMP_PARTIES', 'INSERT') = 'Y'
+                ```
+        }
+    )
+
+    button open-note (
+        buttonName: OPEN_NOTE
+        label: Add Note
+        layout {
+            sequence: 5
+            region: @notes
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-open-note_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region note-dialog (
+        name: Add Note
+        type: staticContent
+        layout {
+            sequence: 96
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: note_dialog
+        }
+    )
+
+    button add-note (
+        buttonName: ADD_NOTE
+        label: Add
+        layout {
+            sequence: 10
+            region: @note-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region rfi-dialog (
+        name: Raise Request for Information
+        type: staticContent
+        layout {
+            sequence: 99
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rfi_dialog
+        }
+        comments {
+            comments: Release 89 (was page 32): KYC raises the RFI (XXCMP_CASE_PKG.RAISE_RFI); COMMON's RFI process asks, waits and has the answer reviewed (COMMON task page 143).
+        }
+    )
+
+    pageItem P211_RFI_RECIPIENT_TYPE (
+        type: radioGroup
+        label {
+            label: Send To
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:As set up (Approval Setup - by default the requester);SETUP,A colleague I choose;REQUESTING_DEPARTMENT
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: SETUP
+        }
+        help {
+            helpText: Who provides the information. As set up - the providers from COMMON > Approval Setup (process Case request for information; by default the requester of the case). A colleague - a person you choose.
+        }
+    )
+
+    pageItem P211_RFI_USER (
+        type: popupLov
+        label {
+            label: Colleague
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-employees
+        }
+        layout {
+            sequence: 20
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The colleague who answers (A colleague I choose).
+        }
+    )
+
+    pageItem P211_RFI_CATEGORY (
+        type: selectList
+        label {
+            label: Category
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-rfi-category
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The kind of information requested.
+        }
+    )
+
+    pageItem P211_RFI_DESCRIPTION (
+        type: textarea
+        label {
+            label: Information Requested
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 5
+        }
+        validation {
+            maxLength: 4000
+        }
+        help {
+            helpText: The question - what is needed and why.
+        }
+    )
+
+    pageItem P211_RFI_CONTINUE (
+        type: switch
+        label {
+            label: Continue Other Work Meanwhile
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Off pauses the case - it cannot go to approval until the information arrives.
+        }
+    )
+
+    pageItem P211_RFI_DUE_DATE (
+        type: datePicker
+        label {
+            label: Due Date
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @rfi-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: When the information is needed (not in the past).
+        }
+    )
+
+    button send-rfi (
+        buttonName: SEND_RFI
+        label: Send Request
+        layout {
+            sequence: 10
+            region: @rfi-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and case_status = 'INVESTIGATION'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction rfi-recipient (
+        name: Colleague only when chosen
+        execution {
+            sequence: 80
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P211_RFI_RECIPIENT_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P211_RFI_RECIPIENT_TYPE
+            value: REQUESTING_DEPARTMENT
+        }
+
+        action rfi-recipient-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P211_RFI_USER
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action rfi-recipient-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P211_RFI_USER
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    button report (
+        buttonName: REPORT
+        label: Compliance Report
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 217
+                items: {
+                    P217_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 217
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1 from xxcmp_cases where case_id = :P211_CASE_ID and closed_date is not null
+                ```
+        }
+    )
+
+    dynamicAction refresh-screenings (
+        name: Refresh screenings
+        execution {
+            sequence: 40
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @screenings
+        }
+
+        action refresh-screenings-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @screenings
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+    dynamicAction refresh-party_documents (
+        name: Refresh party_documents
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party_documents
+        }
+
+        action refresh-party_documents-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party_documents
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+    validation submit-check (
+        name: Case complete
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_case_pkg.submit_error(:P211_CASE_ID);
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SUBMIT_APPROVAL
+        }
+    )
+
+    validation note-text (
+        name: Note entered
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_NEW_NOTE is null then 'Enter the note.' end;
+                ```
+        }
+        error {
+            associatedItem: @P211_NEW_NOTE
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ADD_NOTE
+        }
+    )
+
+    validation rfi-entered (
+        name: RFI entered
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case
+                         when :P211_RFI_RECIPIENT_TYPE = 'REQUESTING_DEPARTMENT' and :P211_RFI_USER is null
+                              then 'Choose the colleague who should answer.'
+                         when :P211_RFI_CATEGORY is null then 'Choose the category.'
+                         when trim(:P211_RFI_DESCRIPTION) is null then 'Enter the information requested.'
+                       end;
+                ```
+        }
+        error {
+            associatedItem: @P211_RFI_DESCRIPTION
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SEND_RFI
+        }
+    )
+
+    process open-from-task (
+        name: Open from task
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select to_number(detail_pk) into :P211_CASE_ID
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'SINGLE_TASK',
+                                   p_task_id        => :P211_TASK_ID,
+                                   p_application_id => :APP_ID ) )
+                 where task_def_static_id in ('CASE_INVESTIGATION', 'CASE_APPROVAL');
+                select max(task_def_static_id) into :P211_TASK_TYPE from apex_tasks
+                 where task_id = :P211_TASK_ID and task_def_static_id = 'CASE_APPROVAL';
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P211_TASK_ID
+        }
+    )
+
+    process set-section (
+        name: Section and the common party regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_list apex_t_varchar2 := apex_string.split(xxcmp_case_pkg.c_sections, ':');
+                begin
+                    if :P211_TASK_TYPE = 'CASE_APPROVAL' or :P211_SECTION is null and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N' then
+                        :P211_SECTION := 'REVIEW';
+                    end if;
+                    :P211_SECTION := nvl(:P211_SECTION, 'SUMMARY');
+                    :P211_SECTION_LABEL := xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', :P211_SECTION);
+                    :P211_PROGRESS := xxcmp_case_pkg.section_progress(:P211_CASE_ID);
+                    :P211_NEXT_SECTION := :P211_SECTION;
+                    for i in 1 .. l_list.count - 1 loop
+                        if l_list(i) = :P211_SECTION then
+                            :P211_NEXT_SECTION := l_list(i + 1);
+                        end if;
+                    end loop;
+                    -- the party regions of the Global Page: Compliance edits through Parties - Manage (no request context)
+                    :P0_REQUEST_ID := null;
+                    :P0_CASE_ID := :P211_CASE_ID;
+                    -- release 73: a case the user cannot see (data security) or that does not exist: a clear message, not ORA-01403
+                    select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_cases where case_id = :P211_CASE_ID;
+                    if :P0_SUMMARY_PARTY_ID is null then
+                        raise_application_error(-20611, 'Case not found, or you are not allowed to see it.');
+                    end if;
+                    :P0_PARTY_DFF_CONTEXT := null;
+                end;
+                ```
+        }
+        execution {
+            sequence: 8
+            point: beforeHeader
+        }
+    )
+
+    branch (
+        name: Next section
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 211
+                items: {
+                    P211_CASE_ID: &P211_CASE_ID.
+                    P211_TASK_ID: &P211_TASK_ID.
+                    P211_SECTION: &P211_NEXT_SECTION.
+                }
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT_SECTION
+        }
+    )
+
+    process load-decision (
+        name: Load the decision
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select sar_required_flag, sar_notes, conditions,
+                       to_char(nvl(next_review_date, xxcmp_case_pkg.next_review_date(case_id)), 'DD-MON-YYYY'),
+                       xxcmp_case_pkg.sar_gate(case_id)
+                  into :P211_DEC_SAR_REQUIRED_FLAG, :P211_DEC_SAR_NOTES, :P211_DEC_CONDITIONS, :P211_DEC_NEXT_REVIEW_DATE, :P211_DEC_SAR_GATE
+                  from xxcmp_cases where case_id = :P211_CASE_ID;
+                ```
+        }
+        execution {
+            sequence: 9
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                ```
+        }
+    )
+
+    pageItem P211_DEC_SAR_GATE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @case-decision
+            slot: regionBody
+        }
+    )
+
+    pageItem P211_DEC_CASE (
+        type: displayOnly
+        label {
+            label: Case
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select c.case_number || ' - ' || p.party_name || ' (' || p.party_number || ')'
+                  from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id where c.case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_LEVEL (
+        type: displayOnly
+        label {
+            label: Approval Level
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select c.current_level || ' of ' || xxcmp_case_pkg.required_levels(c.case_id)
+                       || ' - ' || (select role_name from xxfnd_roles where role_code = xxcmp_case_pkg.level_role(c.case_id, c.current_level))
+                  from xxcmp_cases c where c.case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_RISK (
+        type: displayOnly
+        label {
+            label: Risk
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', risk_tier)
+                       || ' - ' || xxfnd_lookup_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', due_diligence_type) || case when pep_flag = 'Y' then ' - PEP' end
+                  from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_INVESTIGATOR (
+        type: displayOnly
+        label {
+            label: Investigated By
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select assigned_to from xxcmp_cases where case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_SCREENING (
+        type: displayOnly
+        label {
+            label: Screening
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select count(*) || ' check(s); ' || count(case when match_status = 'CONFIRMED_MATCH' then 1 end) || ' confirmed match(es); '
+                       || count(case when pep_flag = 'Y' then 1 end) || ' PEP flag(s)'
+                  from xxcmp_screenings where case_id = :P211_CASE_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_READINESS (
+        type: displayOnly
+        label {
+            label: Ready to Approve
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select nvl(xxcmp_case_pkg.approval_error(:P211_CASE_ID), 'Yes') from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P211_DEC_SAR_REQUIRED_FLAG (
+        type: radioGroup
+        label {
+            label: Suspicious Activity Report Required
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Yes' as display_value, 'Y' as return_value from dual union all select 'No', 'N' from dual
+                ```
+            displayNullValue: false
+        }
+        layout {
+            sequence: 70
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--radioButtonGroup
+            ]
+        }
+        help {
+            helpText: Required before approval for high-risk and Enhanced KYC cases.
+        }
+    )
+
+    pageItem P211_DEC_SAR_NOTES (
+        type: textarea
+        label {
+            label: SAR Notes
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 4000
+        }
+    )
+
+    pageItem P211_DEC_CONDITIONS (
+        type: textarea
+        label {
+            label: Conditions of Approval
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 4000
+        }
+    )
+
+    pageItem P211_DEC_NEXT_REVIEW_DATE (
+        type: datePicker
+        label {
+            label: Next Review Date
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Calculated from the risk tier (sooner for a PEP); change it only with a reason in the comment.
+        }
+    )
+
+    pageItem P211_DEC_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 2
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: Recorded with the decision; required when rejecting.
+        }
+    )
+
+    pageItem P211_DEC_FILE (
+        type: fileUpload
+        label {
+            label: Attachment
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop a file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: Optional: a document that goes with your comment (kept with the case's documents).
+        }
+    )
+
+    pageItem P211_DEC_ADD_USER (
+        type: popupLov
+        label {
+            label: Approver to Add
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-employees
+        }
+        layout {
+            sequence: 130
+            region: @case-decision
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Release 74: for Add Approver - the person who approves next, after you (the Comment says why).
+        }
+    )
+
+    validation decision-info-question (
+        name: Information to request
+        execution {
+            sequence: 30
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_COMMENT is null then 'Enter the information you need from the requester.' end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_COMMENT
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    validation decision-add-user (
+        name: Approver to add
+        execution {
+            sequence: 40
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_ADD_USER is null then xxfnd_error_pkg.message('XXFND_APPROVAL_APPROVER_REQUIRED') end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_ADD_USER
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'ADD_APPROVER'
+                ```
+        }
+    )
+
+    validation decision-reject-reason (
+        name: Reason for rejection
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_COMMENT is null then 'Enter why the case is rejected.' end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_COMMENT
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REJECT,REJECT_TOP
+        }
+    )
+
+    validation decision-sar (
+        name: SAR determination
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P211_DEC_SAR_GATE = 'Y' and :P211_DEC_SAR_REQUIRED_FLAG is null then 'Record whether a Suspicious Activity Report is required.' end;
+                ```
+        }
+        error {
+            associatedItem: @P211_DEC_SAR_REQUIRED_FLAG
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,APPROVE_TOP
+        }
+    )
+
+    process save-decision-data (
+        name: Save SAR, conditions and review date
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                update xxcmp_cases
+                   set sar_required_flag = :P211_DEC_SAR_REQUIRED_FLAG,
+                       sar_notes         = :P211_DEC_SAR_NOTES,
+                       conditions        = :P211_DEC_CONDITIONS,
+                       next_review_date  = to_date(:P211_DEC_NEXT_REVIEW_DATE, 'DD-MON-YYYY')
+                 where case_id = :P211_CASE_ID;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,APPROVE_TOP,REJECT,REJECT_TOP
+        }
+    )
+
+    process check-approval (
+        name: Check the case can be approved
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_error varchar2(4000) := xxcmp_case_pkg.approval_error(:P211_CASE_ID);
+                begin
+                    if l_error is not null then
+                        raise_application_error(-20615, l_error);
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 15
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,APPROVE_TOP
+        }
+    )
+
+    process add-decision-comment (
+        name: Record comment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.add_task_comment(p_task_id => :P211_TASK_ID, p_text => :P211_DEC_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_DEC_COMMENT is not null and :REQUEST in ('APPROVE', 'APPROVE_TOP', 'REJECT', 'REJECT_TOP', 'ADD_APPROVER')
+                ```
+        }
+    )
+
+    process approve-task (
+        name: Approve
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.approve_task(p_task_id => :P211_TASK_ID, p_autoclaim => true);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Case approved at this level.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,APPROVE_TOP
+        }
+    )
+
+    process reject-task (
+        name: Reject
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                apex_human_task.reject_task(p_task_id => :P211_TASK_ID, p_autoclaim => true);
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        successMessage {
+            successMessage: Case rejected.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REJECT,REJECT_TOP
+        }
+    )
+
+    process attach-decision-file (
+        name: Keep the attachment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_attach_pkg.add_file(
+                                p_entity_name    => 'XXCMP_CASES',
+                                p_pk1_value      => :P211_CASE_ID,
+                                p_category_code  => 'OTHER',
+                                p_temp_file_name => :P211_DEC_FILE,
+                                p_title          => initcap(replace(replace(:REQUEST, '_TOP'), '_', ' ')) || ' - ' || :APP_USER,
+                                p_description    => substr(:P211_DEC_COMMENT, 1, 4000),
+                                p_page_id        => 211);
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_DEC_FILE is not null and :REQUEST in ('APPROVE', 'APPROVE_TOP', 'REJECT', 'REJECT_TOP', 'REQUEST_INFO', 'ADD_APPROVER')
+                ```
+        }
+    )
+
+    process request-info (
+        name: Request information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the question goes to the requester (task initiator); the case is Pending Information
+                -- until they submit it (task actions)
+                for t in (select 1 from apex_tasks where task_id = :P211_TASK_ID and state_code = 'UNASSIGNED') loop
+                    apex_human_task.claim_task(p_task_id => :P211_TASK_ID);
+                end loop;
+                apex_human_task.request_more_information(p_task_id => :P211_TASK_ID, p_text => :P211_DEC_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 35
+            point: processing
+        }
+        successMessage {
+            successMessage: Information requested: the case is Pending Information until the requester answers.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'REQUEST_INFO'
+                ```
+        }
+    )
+
+    process add-approver (
+        name: Add an approver
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+                xxfnd_approval_rule_pkg.add_approver('KYC_CASE', :P211_CASE_ID, 'USER', p_user_name => :P211_DEC_ADD_USER,
+                                                     p_position => 'NEXT', p_comment => :P211_DEC_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 36
+            point: processing
+        }
+        successMessage {
+            successMessage: Approver added: they approve after you.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'ADD_APPROVER'
+                ```
+        }
+    )
+
+    button request-info (
+        buttonName: REQUEST_INFO
+        label: Request Information
+        layout {
+            sequence: 22
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                and xxfnd_workflow_pkg.can_request_info(:P211_TASK_ID) = 'Y'
+                ```
+        }
+    )
+
+    button add-approver (
+        buttonName: ADD_APPROVER
+        label: Add Approver
+        layout {
+            sequence: 24
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                and xxfnd_approval_rule_pkg.is_started('KYC_CASE', :P211_CASE_ID) = 'Y'
+                ```
+        }
+    )
+
+    button reject (
+        buttonName: REJECT
+        label: Reject
+        layout {
+            sequence: 20
+            region: @decision-buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Reject this case?
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
+        }
+    )
+
+
+    button approve (
+        buttonName: APPROVE
+        label: Approve
+        layout {
+            sequence: 30
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_TASK_ID is not null and :P211_TASK_TYPE = 'CASE_APPROVAL'
+                and (apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_approve)
+                     or apex_human_task.is_allowed(p_task_id => :P211_TASK_ID, p_operation => apex_human_task.c_task_op_claim))
+                ```
+        }
+    )
+
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @case
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Save case
+        type: formAutoRowProcessing
+        formRegion: @case
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Case saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,NEXT_SECTION,SUBMIT_APPROVAL
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-findings (
+        name: Save questionnaire
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @findings
+        execution {
+            sequence: 15
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process apply-screening (
+        name: Enhanced KYC from screening
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.apply_screening(:P211_CASE_ID);
+                ```
+        }
+        execution {
+            sequence: 18
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,NEXT_SECTION,SUBMIT_APPROVAL
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process submit-for-approval (
+        name: Submit for approval
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_case_pkg.submit_for_approval(:P211_CASE_ID);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Case submitted for approval.
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit-approval
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process add-note (
+        name: Add note
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                insert into xxcmp_case_notes (case_id, note_text) values (:P211_CASE_ID, :P211_NEW_NOTE);
+                :P211_NEW_NOTE := null;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: Note added.
+        }
+        serverSideCondition {
+            whenButtonPressed: @add-note
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process raise-rfi (
+        name: Raise RFI
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the case package raises it; COMMON's RFI process runs it (XXFND_RFI_PKG)
+                xxcmp_case_pkg.raise_rfi(
+                    p_entity_name      => 'XXCMP_CASES',
+                    p_pk1_value        => :P211_CASE_ID,
+                    p_recipient_type   => :P211_RFI_RECIPIENT_TYPE,
+                    p_recipient_user   => :P211_RFI_USER,
+                    p_party_contact_id => null,
+                    p_rfi_category     => :P211_RFI_CATEGORY,
+                    p_description      => :P211_RFI_DESCRIPTION,
+                    p_continue_work    => :P211_RFI_CONTINUE,
+                    p_due_date         => to_date(:P211_RFI_DUE_DATE));
+                :P211_RFI_DESCRIPTION := null;
+                :P211_RFI_USER := null;
+                :P211_RFI_DUE_DATE := null;
+                ```
+        }
+        execution {
+            sequence: 31
+            point: processing
+        }
+        successMessage {
+            successMessage: Request for information sent.
+        }
+        serverSideCondition {
+            whenButtonPressed: @send-rfi
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    region case-funds (
+        name: Source of Funds and Wealth
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R19): guided source of funds / wealth - each source with the evidence expected and seen
+                select f.case_funds_id,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_TYPE', f.funds_type) as funds_type,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_CATEGORY', f.category) as category,
+                       ltrim(to_char(f.amount, 'FM999G999G999G990D00') || ' ' || f.currency_code) as amount,
+                       xxcmp_case_pkg.expected_evidence_text(f.category) as expected,
+                       xxfnd_lookup_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', f.evidence_type) as evidence,
+                       ltrim(f.bank_name || nvl2(f.account_reference, ' · ' || f.account_reference, null)
+                             || nvl2(f.period_from, ' · ' || to_char(f.period_from, 'DD-MON-YYYY') || ' - ' || to_char(f.period_to, 'DD-MON-YYYY'), null), ' ·') as bank_data,
+                       case when f.verified_flag = 'Y' then 'Verified' when f.evidence_type is null then 'Evidence missing' else 'To verify' end as state,
+                       case when f.verified_flag = 'Y' then 'success' when f.evidence_type is null then 'danger' else 'warning' end as state_tone,
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', f.source) as source,
+                       f.creation_date,
+                       apex_page.get_url(p_page => 218, p_items => 'P218_CASE_FUNDS_ID,P218_CASE_ID,P218_PARTY_ID',
+                                         p_values => to_char(f.case_funds_id) || ',' || f.case_id || ',' || f.party_id, p_clear_cache => '218') as open_url
+                  from xxcmp_case_funds f
+                 where f.case_id = :P211_CASE_ID
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 55
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_funds
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No source of funds or wealth recorded yet.
+        }
+        comments {
+            comments: Release 74 (R19): guided source of funds / wealth - the evidence expected for each source, the evidence and bank data seen (by hand now, from a bank data provider later).
+        }
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#"><strong>#CATEGORY#</strong></a><br><span class="u-color-subtle">#FUNDS_TYPE#</span>
+                    ```
+            }
+        )
+
+        column AMOUNT (
+            type: plainText
+            heading {
+                heading: Amount
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column EXPECTED (
+            type: plainText
+            heading {
+                heading: Evidence Expected
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EVIDENCE (
+            type: plainText
+            heading {
+                heading: Evidence Seen
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column BANK_DATA (
+            type: plainText
+            heading {
+                heading: Bank Data
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 60
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATE_TONE#">#STATE#</span>
+                    ```
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CASE_FUNDS_ID (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column FUNDS_TYPE (
+            type: hidden
+            layout {
+                sequence: 81
+            }
+        )
+
+        column STATE_TONE (
+            type: hidden
+            layout {
+                sequence: 82
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 83
+            }
+        )
+
+        column CREATION_DATE (
+            type: hidden
+            layout {
+                sequence: 84
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+    )
+
+    button add-funds (
+        buttonName: ADD_FUNDS
+        label: Add Source
+        layout {
+            sequence: 5
+            region: @case-funds
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 218
+                items: {
+                    P218_CASE_ID: &P211_CASE_ID.
+                    P218_PARTY_ID: &P211_PARTY_ID.
+                }
+                clearCache: 218
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'RISK' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction refresh-case-funds (
+        name: Refresh case-funds
+        execution {
+            sequence: 45
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @case-funds
+        }
+
+        action refresh-case-funds-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @case-funds
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region case-fiu-reports (
+        name: FIU Reports (goAML)
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): FIU / goAML reports of the case (filed by hand now)
+                select r.fiu_report_id,
+                       xxfnd_lookup_pkg.lookup_meaning('FIU_REPORT_TYPE', r.report_type) as report_type,
+                       xxfnd_lookup_pkg.lookup_meaning('FIU_REPORT_STATUS', r.report_status) as report_status,
+                       decode(r.report_status, 'FILED', 'success', 'APPROVED', 'info', 'CANCELLED', 'neutral', 'warning') as status_tone,
+                       xxfnd_ui_pkg.person_name(r.prepared_by) as prepared_by,
+                       xxfnd_ui_pkg.person_name(r.approved_by) as approved_by,
+                       r.goaml_reference,
+                       r.filed_date,
+                       r.creation_date,
+                       apex_page.get_url(p_page => 219, p_items => 'P219_FIU_REPORT_ID,P219_CASE_ID,P219_PARTY_ID',
+                                         p_values => to_char(r.fiu_report_id) || ',' || r.case_id || ',' || r.party_id, p_clear_cache => '219') as open_url
+                  from xxcmp_fiu_reports r
+                 where r.case_id = :P211_CASE_ID
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+                P211_TASK_ID
+            ]
+        }
+        layout {
+            sequence: 56
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: case_fiu_reports
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW') and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No FIU report.
+        }
+        comments {
+            comments: Release 74 (R14): suspicious transaction / activity reports to the FIU - prepared, approved by a second person, filed in goAML by hand (a goAML integration later).
+        }
+
+        column REPORT_TYPE (
+            type: plainText
+            heading {
+                heading: Report
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#"><strong>#REPORT_TYPE#</strong></a>
+                    ```
+            }
+        )
+
+        column REPORT_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#REPORT_STATUS#</span>
+                    ```
+            }
+        )
+
+        column PREPARED_BY (
+            type: plainText
+            heading {
+                heading: Prepared By
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column GOAML_REFERENCE (
+            type: plainText
+            heading {
+                heading: goAML Reference
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column FILED_DATE (
+            type: plainText
+            heading {
+                heading: Filed On
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column FIU_REPORT_ID (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 71
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 72
+            }
+        )
+
+        column CREATION_DATE (
+            type: hidden
+            layout {
+                sequence: 73
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+    )
+
+    button add-fiu-report (
+        buttonName: ADD_FIU_REPORT
+        label: Raise FIU Report
+        layout {
+            sequence: 5
+            region: @case-fiu-reports
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 219
+                items: {
+                    P219_CASE_ID: &P211_CASE_ID.
+                    P219_PARTY_ID: &P211_PARTY_ID.
+                }
+                clearCache: 219
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW') and xxcmp_case_pkg.fiu_editable(null, :P211_CASE_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-case-fiu-reports (
+        name: Refresh case-fiu-reports
+        execution {
+            sequence: 45
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @case-fiu-reports
+        }
+
+        action refresh-case-fiu-reports-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @case-fiu-reports
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region emails (
+        name: E-mails
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R27): e-mails with outside people kept with the record (COMMON XXFND_COMMUNICATIONS)
+                select c.communication_id,
+                       case c.direction when 'OUT' then 'Sent' else 'Received' end as direction,
+                       case c.direction when 'OUT' then c.to_address || nvl2(c.cc_address, ' (cc ' || c.cc_address || ')', null)
+                            else c.from_address end as counterpart,
+                       c.subject,
+                       dbms_lob.substr(c.body, 600, 1) as body_text,
+                       xxfnd_lookup_pkg.lookup_meaning('COMMUNICATION_STATUS', c.status) as status,
+                       case c.status when 'SENT' then 'success' when 'RECEIVED' then 'info' when 'FAILED' then 'danger' else 'warning' end as status_tone,
+                       to_char(c.communication_date, 'DD-MON-YYYY HH24:MI') as sent_on,
+                       c.communication_date,
+                       xxfnd_ui_pkg.person_name(c.recorded_by) as recorded_by,
+                       (select count(*) from xxfnd_attached_documents_v a
+                         where a.entity_name = 'XXFND_COMMUNICATIONS' and a.pk1_value = to_char(c.communication_id)) as attachments
+                  from xxfnd_communications c
+                 where c.entity_name = 'XXCMP_CASES' and c.pk1_value = to_char(:P211_CASE_ID)
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 72
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: emails
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('NOTES', 'REVIEW') and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No e-mails yet.
+        }
+        comments {
+            comments: Release 74 (R27): e-mails sent to or received from outside people, kept with the record; sent through APEX mail now, Outlook later.
+        }
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--neutral">#DIRECTION#</span> <strong>#SUBJECT#</strong><br><span class="u-color-subtle">#COUNTERPART#</span>
+                    ```
+            }
+        )
+
+        column BODY_TEXT (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS#</span>
+                    ```
+            }
+        )
+
+        column SENT_ON (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RECORDED_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ATTACHMENTS (
+            type: plainText
+            heading {
+                heading: Files
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMUNICATION_ID (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column COUNTERPART (
+            type: hidden
+            layout {
+                sequence: 71
+            }
+        )
+
+        column SUBJECT (
+            type: hidden
+            layout {
+                sequence: 72
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 73
+            }
+        )
+
+        column COMMUNICATION_DATE (
+            type: hidden
+            layout {
+                sequence: 74
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+    )
+
+    button send-email (
+        buttonName: SEND_EMAIL
+        label: Send E-mail
+        layout {
+            sequence: 10
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-send
+        }
+        behavior {
+            action: redirectUrl
+            targetUrl: &P211_EMAIL_OUT_URL.
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'NOTES' and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    button record-email (
+        buttonName: RECORD_EMAIL
+        label: Record Received E-mail
+        layout {
+            sequence: 20
+            region: @emails
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-inbox
+        }
+        behavior {
+            action: redirectUrl
+            targetUrl: &P211_EMAIL_IN_URL.
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'NOTES' and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    pageItem P211_EMAIL_OUT_URL (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @emails
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P211_EMAIL_IN_URL (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @emails
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process email-links (
+        name: E-mail links to COMMON
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the e-mails of the case are sent and recorded on COMMON's E-mail page (46; it goes back to
+                -- COMMON's Communications page 45 of the case)
+                :P211_EMAIL_OUT_URL := apex_page.get_url(p_application => 'COMMON', p_page => 46, p_clear_cache => '46',
+                    p_items  => 'P46_APPLICATION_CODE,P46_ENTITY_NAME,P46_PK1_VALUE,P46_DIRECTION',
+                    p_values => 'KYC,XXCMP_CASES,' || :P211_CASE_ID || ',OUT');
+                :P211_EMAIL_IN_URL := apex_page.get_url(p_application => 'COMMON', p_page => 46, p_clear_cache => '46',
+                    p_items  => 'P46_APPLICATION_CODE,P46_ENTITY_NAME,P46_PK1_VALUE,P46_DIRECTION',
+                    p_values => 'KYC,XXCMP_CASES,' || :P211_CASE_ID || ',IN');
+                ```
+        }
+        execution {
+            sequence: 30
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION = 'NOTES' and xxfnd_privilege_pkg.has_privilege('CASES', 'CREATE')
+                ```
+        }
+    )
+
+    dynamicAction refresh-emails (
+        name: Refresh e-mails
+        execution {
+            sequence: 70
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @emails
+        }
+
+        action refresh-emails-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @emails
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region risk-score (
+        name: Risk Score &P211_RISK_SCORE_TEXT.
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R16): how the risk score is made up - live (approved model) while the case is investigated,
+                -- as kept at submission once it is with the approvers
+                select rownum as seq, x.factor_name, x.detail, x.points, x.force_tier
+                  from (select j.factor_name, j.detail, j.points, j.force_tier
+                          from json_table(xxcmp_risk_pkg.breakdown_json(to_number(:P211_CASE_ID)), '$[*]'
+                                   columns (factor_name varchar2(200)  path '$.factor_name',
+                                            detail      varchar2(1000) path '$.detail',
+                                            points      number         path '$.points',
+                                            force_tier  varchar2(30)   path '$.force_tier')) j
+                         where xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y'
+                        union all
+                        select f.factor_name, s.detail, s.points, s.force_tier
+                          from xxcmp_case_risk_scores s
+                          left join xxcmp_risk_factors f on f.factor_code = s.factor_code
+                         where s.case_id = :P211_CASE_ID and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'N') x
+                ```
+            pageItemsToSubmit: [
+                P211_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 54
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: risk_score
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No risk factor applies.
+        }
+        comments {
+            comments: Release 74 (R16): the configurable risk model (page 167) suggests the tier; the officer still classifies the case.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column FACTOR_NAME (
+            type: plainText
+            heading {
+                heading: Factor
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#FACTOR_NAME#</strong>
+                    ```
+            }
+        )
+
+        column DETAIL (
+            type: plainText
+            heading {
+                heading: Why
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column POINTS (
+            type: plainText
+            heading {
+                heading: Points
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FORCE_TIER (
+            type: plainText
+            heading {
+                heading: Forces Tier
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+    )
+
+    pageItem P211_RISK_SCORE_TEXT (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @risk-score
+            slot: regionBody
+        }
+    )
+
+    process risk-score-text (
+        name: Risk score and suggested tier
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 74 (R16): the region title - total score, the tier the model suggests, the officer's tier
+                declare
+                    l_tier varchar2(30) := xxcmp_risk_pkg.suggested_tier(:P211_CASE_ID);
+                    l_case varchar2(30);
+                begin
+                    select max(risk_tier) into l_case from xxcmp_cases where case_id = :P211_CASE_ID;
+                    :P211_RISK_SCORE_TEXT := xxcmp_risk_pkg.score(:P211_CASE_ID) || ' · suggested tier '
+                        || nvl(xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', l_tier), '-')
+                        || case when l_case is not null and l_case <> nvl(l_tier, '#')
+                                then ' · classified ' || xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', l_case) end;
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P211_SECTION in ('RISK', 'REVIEW')
+                ```
+        }
+    )
+
+)

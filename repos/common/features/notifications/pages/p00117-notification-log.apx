@@ -1,0 +1,272 @@
+page 117 (
+    name: Notification Log
+    alias: NOTIFICATION-LOG
+    title: Notification Log
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every notification made: the event, the person (or the outside address), the channel and what happened to it -
+            sent, skipped with the reason (e.g. e-mail switched off, no device subscribed) or failed with the error.
+            ```
+    }
+
+    region breadcrumb (
+        name: Notification Log
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region log (
+        name: Notification Log
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: every notification (one row per person and channel); one-time links are never kept
+                select n.notification_id, n.creation_date, e.event_name, c.channel_name, n.application_code, n.process_code,
+                       coalesce(n.user_name, n.email_address) as recipient, n.language_code, n.subject, n.status_code,
+                       n.status_text, n.read_date, n.task_id, n.detail_pk
+                  from xxfnd_notifications n
+                  join xxfnd_notify_events e on e.event_code = n.event_code
+                  join xxfnd_notify_channels c on c.channel_code = n.channel_code
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: log
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No notification yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column NOTIFICATION_ID (
+            type: plainText
+            heading {
+                heading: ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Made
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column EVENT_NAME (
+            type: plainText
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CHANNEL_NAME (
+            type: plainText
+            heading {
+                heading: Channel
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PROCESS_CODE (
+            type: plainText
+            heading {
+                heading: Process
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RECIPIENT (
+            type: plainText
+            heading {
+                heading: To
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LANGUAGE_CODE (
+            type: plainText
+            heading {
+                heading: Language
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Subject
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_CODE (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS_TEXT (
+            type: plainText
+            heading {
+                heading: Reason / Error
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column READ_DATE (
+            type: plainText
+            heading {
+                heading: Read
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column TASK_ID (
+            type: plainText
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column DETAIL_PK (
+            type: plainText
+            heading {
+                heading: Record
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

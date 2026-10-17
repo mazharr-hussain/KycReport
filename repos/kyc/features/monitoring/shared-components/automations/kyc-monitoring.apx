@@ -1,0 +1,23 @@
+automation kyc-monitoring (
+    name: KYC monitoring
+    execution {
+        scheduleExpression: FREQ=DAILY;INTERVAL=1;BYHOUR=6;BYMINUTE=30
+        scheduleStatus: active
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Starts the periodic reviews that fall due within the lead days (KYC parameter REVIEW_LEAD_DAYS) and evaluates the alert rules (Administration > Alert Rules), which may start early reviews.
+    }
+
+    action run-monitoring (
+        name: Periodic reviews and alerts
+        type: executeCode
+        source {
+            plsqlCode: xxcmp_monitor_pkg.run_daily;
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)

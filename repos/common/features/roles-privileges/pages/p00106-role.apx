@@ -1,0 +1,1014 @@
+page 106 (
+    name: Role
+    alias: ROLE
+    title: Role
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: An application role. Authorization schemes in the application check these codes.
+    }
+
+    region form (
+        name: Role
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_ROLES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P106_ROLE_CODE (
+        type: textField
+        label {
+            label: Role Code
+            alignment: left
+        }
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: ROLE_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P106_SAVED = 'Y'
+                ```
+        }
+        help {
+            inlineHelpText: Upper case, no spaces. Cannot be changed once saved.
+        }
+    )
+
+    pageItem P106_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P106_FOR_APP (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        help {
+            helpText: Release 86 - the application a new role is made for when the application journey (165 / 166) opens this dialog.
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P106_SAVED
+                  from XXFND_ROLES
+                 where ROLE_CODE = :P106_ROLE_CODE;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P106_ROLE_NAME (
+        type: textField
+        label {
+            label: Role Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @form
+            column: ROLE_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the role Name.
+        }
+    )
+
+    pageItem P106_APPLICATION_CODE (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-applications
+            displayNullValue: false
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :G_ADMIN_LOCK = 'Y'   -- release 73: delegated - the application that opened the screen
+                ```
+        }
+        source {
+            formRegion: @form
+            column: APPLICATION_CODE
+            dataType: varchar2
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                coalesce(:P106_FOR_APP, nullif(:G_ADMIN_APP, 'ALL'))   -- release 86: the journey's application first
+                ```
+        }
+        help {
+            inlineHelpText: The application the role belongs to.
+        }
+    )
+
+    pageItem P106_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the description.
+        }
+    )
+
+    pageItem P106_VIEW_SENSITIVE_FLAG (
+        type: switch
+        label {
+            label: Sees Sensitive Data
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: VIEW_SENSITIVE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: N
+        }
+        help {
+            helpText: Choose the sees Sensitive Data.
+        }
+    )
+
+    pageItem P106_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    pageItem P106_PRIVILEGES (
+        type: shuttle
+        label {
+            label: Privileges
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-privileges
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: What holders of this role may do, per feature. View opens the feature, Create adds records, Manage changes them.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P106_SAVED
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process load-privileges (
+        name: Load privileges
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P106_PRIVILEGES := xxfnd_privilege_pkg.role_privilege_list(:P106_ROLE_CODE);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_ROLE_CODE
+        }
+    )
+
+    process save-privileges (
+        name: Save privileges
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_privilege_pkg.set_role_privileges(:P106_ROLE_CODE, :P106_PRIVILEGES);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,DELETE
+        }
+    )
+
+    branch (
+        name: After create: stay on the record for its tabs
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 106
+                items: {
+                    P106_ROLE_CODE: &P106_ROLE_CODE.
+                }
+                clearCache: 106
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE
+        }
+    )
+
+
+    pageItem P106_REMOVE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    region access (
+        name: Access
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/tabs-container
+            templateOptions: [
+                #DEFAULT#
+                t-TabsRegion-mod--simple
+            ]
+        }
+        advanced {
+            htmlDomId: access
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P106_SAVED
+        }
+    )
+
+    region tab-users (
+        name: Users
+        type: staticContent
+        layout {
+            sequence: 10
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_users
+        }
+    )
+    region tab-data (
+        name: Data access
+        type: staticContent
+        layout {
+            sequence: 20
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_data
+        }
+    )
+    region users (
+        name: Users with this role
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: the users holding the role (XXFND_USER_ROLES_V); Remove ends the grant (XXFND_USER_PKG.UNASSIGN_ROLE)
+                select ur.user_role_id,
+                       ur.full_name,
+                       ur.user_name,
+                       ur.start_date_active,
+                       'Remove' as remove
+                  from xxfnd_user_roles_v ur
+                 where ur.role_code = :P106_ROLE_CODE
+                   and ur.active_flag = 'Y'
+                 order by ur.full_name
+                ```
+            pageItemsToSubmit: [
+                P106_ROLE_CODE
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-users
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: role_users
+        }
+        messages {
+            whenNoDataFound: Nobody holds this role yet: Assign Users.
+        }
+
+        column USER_ROLE_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column FULL_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column USER_NAME (
+            type: plainText
+            heading {
+                heading: User Name
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column START_DATE_ACTIVE (
+            type: plainText
+            heading {
+                heading: Since
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 50
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove the role from this user?',{request:'REMOVE_USER',set:{'P106_REMOVE_ID':'#USER_ROLE_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    region rules (
+        name: Data access rules of this role
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: rules assigned to the role; Remove takes the assignment away (XXFND_VPD_PKG.UNASSIGN_RULE)
+                select a.assignment_id,
+                       d.table_name,
+                       decode(d.rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
+                       d.column_name,
+                       d.value_list,
+                       'Remove' as remove
+                  from xxfnd_data_rule_assignments a
+                  join xxfnd_data_security_rules d on d.rule_id = a.rule_id
+                 where a.role_code = :P106_ROLE_CODE
+                 order by d.table_name, d.rule_type
+                ```
+            pageItemsToSubmit: [
+                P106_ROLE_CODE
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-data
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: role_rules
+        }
+        messages {
+            whenNoDataFound: No data access rule: the role gives no rows of protected tables.
+        }
+
+        column ASSIGNMENT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RULE_TYPE (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VALUE_LIST (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove this rule from the role?',{request:'REMOVE_RULE',set:{'P106_REMOVE_ID':'#ASSIGNMENT_ID#'}});
+                }
+                linkText: Remove
+            }
+        )
+    )
+    button assign-users (
+        buttonName: ASSIGN_USERS
+        label: Assign Users
+        layout {
+            sequence: 50
+            region: @users
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: ROLE
+                    P183_TARGET_ID: &P106_ROLE_CODE.
+                    P183_PICK: USER
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button assign-rules (
+        buttonName: ASSIGN_RULES
+        label: Assign Rules
+        layout {
+            sequence: 60
+            region: @rules
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 183
+                items: {
+                    P183_TARGET: ROLE
+                    P183_TARGET_ID: &P106_ROLE_CODE.
+                    P183_PICK: RULE
+                }
+                clearCache: 183
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    dynamicAction refresh-after-assign (
+        name: Refresh after the Assign dialog
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @access
+        }
+
+        action refresh-after-assign-refresh-1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @users
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action refresh-after-assign-refresh-2 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rules
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+    process remove-user (
+        name: Remove the role from a user
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_user_pkg.unassign_role(to_number(:P106_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 60
+            point: processing
+        }
+        successMessage {
+            successMessage: Removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_USER
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process remove-rule (
+        name: Remove a data access rule
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_vpd_pkg.unassign_rule(to_number(:P106_REMOVE_ID));
+                ```
+        }
+        execution {
+            sequence: 70
+            point: processing
+        }
+        successMessage {
+            successMessage: Removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_RULE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+)

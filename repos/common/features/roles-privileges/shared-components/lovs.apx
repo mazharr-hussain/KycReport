@@ -1,0 +1,47 @@
+
+lov lov-privileges (
+    name: PRIVILEGES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select f.feature_name || ' - ' || initcap(p.action_code) as display_value,
+                   p.privilege_code as return_value
+              from xxfnd_privileges p
+              join xxfnd_features f on f.feature_code = p.feature_code
+             where f.enabled_flag = 'Y'
+               -- the features of the application in scope and the admin features
+               and (f.admin_flag = 'Y'
+                    or :G_ADMIN_APP = 'ALL'
+                    or f.application_id = (select a.application_id from xxfnd_applications a
+                                            where a.application_code = :G_ADMIN_APP))
+             order by f.display_sequence, decode(p.action_code, 'VIEW', 1, 'CREATE', 2, 3)
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-sod-scope (
+    name: SOD_SCOPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'SOD_SCOPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

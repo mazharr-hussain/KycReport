@@ -1,0 +1,135 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Home
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Your open tasks from every application (open them in My Tasks), and the COMMON modules you may open, each with its state. A module card opens the module and its components.
+            Registered applications are under Platform, Applications.
+            ```
+    }
+
+    region breadcrumb (
+        name: Home
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region my-tasks (
+        name: My Tasks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82: the user's open tasks of every application (D20); the count opens COMMON My Tasks
+                select xxfnd_workflow_pkg.open_task_count as open_tasks,
+                       apex_page.get_url(p_page => 40) as open_url
+                  from dual
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: my_tasks
+        }
+        componentAppearance {
+            template: @/badge-list
+            templateOptions: [
+                #DEFAULT#
+                t-BadgeList--large
+                t-BadgeList--flex
+            ]
+        }
+        pagination {
+            type: rowRangesXToYNoPagination
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+
+        column OPEN_TASKS (
+            type: link
+            heading {
+                heading: Open Tasks
+            }
+            layout {
+                sequence: 10
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #OPEN_TASKS#
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+    )
+
+    region modules (
+        name: Modules
+        type: list
+        source {
+            list: @module-cards
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: modules
+        }
+    )
+)

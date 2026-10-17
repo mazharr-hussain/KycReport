@@ -1,0 +1,145 @@
+taskDefinition CONFIG_CHANGE (
+    name: Configuration Change Approval
+    type: approval
+    task {
+        subject: &CHANGE_TYPE.: &CHANGE_TITLE.
+        initiatorCanComplete: false
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- always one row: the task stays manageable after the change is withdrawn or decided
+            select nvl(c.change_type, 'Configuration change') as change_type,
+                   nvl(c.change_title, :APEX$TASK_PK)         as change_title,
+                   c.change_summary,
+                   c.submitted_by
+              from dual
+              left join xxfnd_config_changes_v c on c.detail_pk = :APEX$TASK_PK
+            ```
+    }
+    advanced {
+        detailsPage: {
+            page: 144
+            items: {
+                P144_TASK_ID: &TASK_ID.
+            }
+            clearCache: 144
+        }
+        vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
+    }
+    comments {
+        comments: Release 84 - the approval step of the COMMON workflow process CONFIG_CHANGE (maker-checker of every application's registered setup tables, XXFND_CONFIG_TABLES.APPROVAL_FLAG = Y). The maker cannot approve (initiator cannot complete; XXFND_APPROVAL_PKG refuses it too). The change is applied or rejected in the approver's own session.
+    }
+
+    action notify-create (
+        name: Notify - task assigned
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'CREATE');
+        }
+        execution {
+            onEvent: create
+            sequence: 10
+        }
+    )
+
+    action apply-change (
+        name: Apply the change
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_approval_pkg.approve_change(:APEX$TASK_PK);
+        }
+        execution {
+            onEvent: complete
+            outcome: approved
+            sequence: 20
+        }
+    )
+
+    action reject-change (
+        name: Reject the change
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_approval_pkg.reject_change(:APEX$TASK_PK, xxfnd_workflow_pkg.last_comment(:APEX$TASK_ID));
+        }
+        execution {
+            onEvent: complete
+            outcome: rejected
+            sequence: 30
+        }
+    )
+
+    action notify-approved (
+        name: Notify - approved
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'COMPLETE', 'APPROVED');
+        }
+        execution {
+            onEvent: complete
+            outcome: approved
+            sequence: 40
+        }
+    )
+
+    action notify-rejected (
+        name: Notify - rejected
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'COMPLETE', 'REJECTED');
+        }
+        execution {
+            onEvent: complete
+            outcome: rejected
+            sequence: 50
+        }
+    )
+
+    action notify-info-requested (
+        name: Notify - information requested
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'REQUEST_INFO');
+        }
+        execution {
+            onEvent: requestInformation
+            sequence: 60
+        }
+    )
+
+    action notify-info-submitted (
+        name: Notify - information submitted
+        type: executeCode
+        source {
+            plsqlCode: xxfnd_workflow_pkg.on_task_event(:APEX$TASK_ID, 'SUBMIT_INFO');
+        }
+        execution {
+            onEvent: submitInformation
+            sequence: 70
+        }
+    )
+
+    participant (
+        value {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the approvers of configuration changes, except the person who made this change (maker-checker)
+                select column_value
+                  from table(apex_string.split(xxfnd_workflow_pkg.users_with_privilege('CHANGE_APPROVALS', 'MANAGE'), ','))
+                 where column_value <> (select nvl(upper(max(c.submitted_by)), '#')
+                                          from xxfnd_config_changes_v c where c.detail_pk = :APEX$TASK_PK)
+                ```
+        }
+    )
+
+    participant (
+        type: businessAdministrator
+        value {
+            type: expression
+            plsqlExpression: xxfnd_workflow_pkg.business_admins
+        }
+    )
+
+)

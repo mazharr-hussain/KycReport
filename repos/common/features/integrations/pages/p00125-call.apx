@@ -1,0 +1,307 @@
+page 125 (
+    name: Call
+    alias: CALL
+    title: Call
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 800
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One call made through the COMMON call procedure: its purpose, server, record and result. A failed call can be retried
+            (Integrations - Manage); the retry is a new call in the log. File transfers of the attachments are logged, not retried.
+            ```
+    }
+
+    region call (
+        name: Call
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: call
+        }
+    )
+
+    pageItem P125_CALL_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @call
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P125_PURPOSE (
+        type: displayOnly
+        label {
+            label: Purpose
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @call
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select purpose_code from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The purpose.
+        }
+    )
+    pageItem P125_SERVER (
+        type: displayOnly
+        label {
+            label: Server
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @call
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select server_static_id from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The server.
+        }
+    )
+    pageItem P125_URL (
+        type: displayOnly
+        label {
+            label: URL
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @call
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select http_method || ' ' || request_url from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The url.
+        }
+    )
+    pageItem P125_RECORD (
+        type: displayOnly
+        label {
+            label: Record
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @call
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select entity_name || ': ' || pk1_value from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The record.
+        }
+    )
+    pageItem P125_STATUS (
+        type: displayOnly
+        label {
+            label: Result
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @call
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select status_code || nvl2(http_status, ' (HTTP ' || http_status || ')', '') from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The result.
+        }
+    )
+    pageItem P125_CALLED (
+        type: displayOnly
+        label {
+            label: Called
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @call
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select called_by || ', ' || to_char(called_date, 'DD-Mon-YYYY HH24:MI:SS') from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The called.
+        }
+    )
+    pageItem P125_ERROR (
+        type: displayOnly
+        label {
+            label: Error
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @call
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select error_message from xxfnd_integration_calls where call_id = :P125_CALL_ID
+                ```
+        }
+        help {
+            helpText: The error.
+        }
+    )
+    button retry (
+        buttonName: RETRY
+        label: Retry
+        layout {
+            sequence: 10
+            region: @call
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_integration_pkg.can_retry(:P125_CALL_ID) = 'Y'
+                ```
+        }
+    )
+    process retry (
+        name: Retry the call
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_integration_pkg.retry(:P125_CALL_ID);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Retried: see the new call in the log.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: RETRY
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)
