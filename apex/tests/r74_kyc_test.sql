@@ -112,7 +112,7 @@ begin
            and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(r.request_id)) = 'Y';
         ok('request approvers come from the Approval Setup',
            xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(l_req)) = 'Y'
-           and xxcmp_approval_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));
+           and xxcmp_request_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));
         select max(case_id) keep (dense_rank last order by case_id), max(risk_tier) keep (dense_rank last order by case_id)
           into l_case, l_tier from xxcmp_cases where case_status = 'INVESTIGATION' and risk_tier is not null;
         if l_case is null then

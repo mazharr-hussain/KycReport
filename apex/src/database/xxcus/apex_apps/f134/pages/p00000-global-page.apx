@@ -1027,8 +1027,9 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
-                -- hidden when the party type has no Additional Information fields
-                and dbms_lob.instr(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N'), 't-Form-fieldContainer') > 0
+                -- hidden when the party type has no Additional Information fields (release 90: COMMON's rendering returns
+                -- nothing then; no test on the markup)
+                and nvl(dbms_lob.getlength(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N')), 0) > 0
                 ```
         }
     )
@@ -2325,6 +2326,261 @@ page 0 (
 
     )
 
+    region request-details (
+        name: Request
+        type: appTemplateComponent/fieldGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
+                select j.group_name, j.seq, j.label, j.value, j.tone, j.url, j.user_name,
+                         min(j.seq) over (partition by j.group_name) as group_seq,
+                         case when length(j.value) > 80 then 'Y' end as full_width
+                  from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P0_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    user_name  varchar2(255)  path '$.user_name')) j
+                   order by j.seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_details
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            person: &USER_NAME.
+            fullWidth: &FULL_WIDTH.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+        comments {
+            comments: Release 75 (U-01, U-02): the KYC Field Grid template component (grouped 3-column grid). Release 90: defined once here for the request (205) and its approval (206); each page sets P0_REQUEST_ID before header.
+        }
+
+        column GROUP_NAME (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column SEQ (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LABEL (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column FULL_WIDTH (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: FULL_WIDTH
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    region checklist (
+        name: Document Checklist
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_value as category_code,
+                       (select nvl(tl.category_name, dc.category_name) from xxfnd_document_categories dc
+                          left join xxfnd_document_categories_tl tl on tl.category_code = dc.category_code and tl.language_code = xxfnd_util_pkg.current_lang
+                         where dc.category_code = c.column_value) as category,
+                       case when exists (select 1 from xxfnd_attached_documents_v a
+                                          where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                            and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P0_REQUEST_ID)
+                                              or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P0_REQUEST_ID))))
+                            then 'Present' else 'Missing' end as status
+                  from table(xxcmp_doc_rule_pkg.mandatory_categories('XXCMP_PARTIES',
+                                 (select jurisdiction from xxcmp_requests where request_id = :P0_REQUEST_ID),
+                                 (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P0_REQUEST_ID))) c
+                ```
+            pageItemsToSubmit: P0_REQUEST_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: checklist
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No mandatory documents are configured for this counterparty.
+        }
+        comments {
+            comments: Release 90: defined once here for the request (205) and its approval (206) - the mandatory documents of the counterparty and whether each is attached.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Mandatory Document
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
     region request-answers (
         name: Questionnaire
         type: staticContent
@@ -2761,7 +3017,7 @@ page 0 (
                 select rownum as seq, h.step_no, h.step_name, xxfnd_ui_pkg.person_name(h.assigned_to) as assigned_to, h.action,
                        xxfnd_ui_pkg.person_name(h.action_by) as action_by,
                        to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
-                  from table(xxcmp_approval_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                  from table(xxcmp_request_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
                  order by seq
                 ```
             pageItemsToSubmit: [

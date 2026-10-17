@@ -11,6 +11,7 @@
 --   XXCMP_CASE_NOTES          investigation notes
 --   XXCMP_REQUEST_PKG / XXCMP_CASE_PKG  specifications only (release 74): the bodies are the request component
 --                             (16r) and the case component (16s); specs here so both compile in any order
+--                             (release 90: the request approval of XXCMP_APPROVAL_PKG is in XXCMP_REQUEST_PKG)
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 -- release 48 (from 15): the requests for information follow APEX approval tasks (no item of the former engine)
@@ -376,26 +377,7 @@ end;
 
 create or replace package xxcmp_request_pkg authid definer as
 
-    -- Requester questionnaire for a party type (PERSON -> INDIVIDUAL, ORGANIZATION -> CORPORATE).
-    function questionnaire_for(p_party_type in varchar2) return varchar2;
-
-    -- New DRAFT request with one empty answer row per question of its questionnaire. The counterparty columns
-    -- are shared by organisations and individuals (see XXCMP_PARTY_PKG).
-    function create_request(p_party_type            in varchar2,
-                            p_party_name            in varchar2,
-                            p_registration_number   in varchar2 default null,
-                            p_jurisdiction          in varchar2 default null,
-                            p_entity_type           in varchar2 default null,
-                            p_incorporation_date    in date     default null,
-                            p_requesting_department in varchar2 default null,
-                            p_justification         in varchar2 default null,
-                            p_request_type          in varchar2 default 'NEW_ONBOARDING',
-                            p_trigger_source        in varchar2 default 'MANUAL',
-                            p_parent_request_id     in number   default null,
-                            p_parent_case_id        in number   default null,
-                            p_party_id              in number   default null,
-                            p_registration_type     in varchar2 default null,
-                            p_business_relationship in varchar2 default null) return number;
+    -- release 90: QUESTIONNAIRE_FOR and CREATE_REQUEST are private (used only inside the package).
 
     -- Requesting department of the signed-in user: the department of the employee profile (matched to the
     -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
@@ -468,11 +450,9 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Y while an older request (workflow 1.1) still waits for Compliance's match decision.
     function match_pending(p_request_id in number) return varchar2;
 
-    -- Create Request step 2: the questionnaire as a form. Questions grouped by section (translated), each with its
-    -- answer control (Yes/No and single choice: radio buttons; text, number, date: an input) and the saved answer.
-    -- kyc-app.js (kycQuestionnaire.bind) copies the answers into a JSON item before submit:
-    --   [{"q": question_id, "o": answer_option_id, "t": "text answer"}, ...]
-    function questionnaire_html(p_request_id in number, p_respondent in varchar2 default 'REQUESTER') return clob;
+    -- Create Request step 2 (page 202): release 90 - the questionnaire form is the KYC Question template component fed by
+    -- SQL on the page (no HTML here; QUESTIONNAIRE_HTML removed). kyc-app.js (kycQuestionnaire.bind) copies the answers
+    -- into a JSON item before submit: [{"q": question_id, "o": answer_option_id, "t": "text answer"}, ...]
     -- Required questions without an answer in P_ANSWERS (null = all answered).
     function answers_error(p_request_id in number, p_answers in clob) return varchar2;
     -- Saves the answers of a Draft or Information Needed request; only its own questions and approved options.
@@ -541,6 +521,28 @@ create or replace package xxcmp_request_pkg authid definer as
     function start_review(p_case_id in number, p_request_type in varchar2, p_trigger_source in varchar2,
                           p_justification in varchar2) return number;
 
+    -- Release 90 (from XXCMP_APPROVAL_PKG, dropped): the request approval - who approves the request now, from the common
+    -- Approval Setup (transaction type KYC_REQUEST), and the request's approval history. The path is chosen and started
+    -- by SUBMIT; the request's own columns APPROVAL_PATH_NAME (the rule) and CURRENT_STEP (the position) follow it.
+    -- Approvers (comma-separated user names) of the request's current step (task DOC_CHECKLIST_REVIEW).
+    function step_approvers(p_request_id in number) return varchar2;
+    -- Name of the current step (task subject).
+    function step_name(p_request_id in number) return varchar2;
+    -- Moves to the next step: Y when there is one, N when the path is complete (KYC_REQUEST workflow).
+    function next_step(p_request_id in number) return varchar2;
+    -- The approval history table: what happened (submit, decisions, information requests, withdraw, cancel) with
+    -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
+    -- (Waiting); before submit, the expected steps (Expected) with their role or user.
+    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined;
+    -- Release 90 (pages 205, 206): the case opened for the request, or null.
+    function request_case(p_request_id in number) return number;
+    -- Release 90 (page 206): Y when the user may decide the request's approval task P_TASK_ID (a document checklist
+    -- task the user may approve or claim): Approve, Reject, Request Information.
+    function can_decide(p_task_id in number) return varchar2;
+    -- Y when the current approver may add an approver after them (the Approval Setup approval has started and the task
+    -- is open).
+    function can_add_approver(p_request_id in number, p_task_id in number) return varchar2;
+
 end xxcmp_request_pkg;
 /
 
@@ -606,8 +608,9 @@ create or replace package xxcmp_case_pkg authid definer as
     -- Setup rule has steps (a rule without steps approves the case at once). The KYC_CASE workflow (version 1.3) asks it.
     function approval_required(p_case_id in number) return varchar2;
     function has_next_level(p_case_id in number) return varchar2;
-    procedure approve_case(p_case_id in number);
-    procedure reject_case(p_case_id in number);
+    -- Release 90: the decision that closes the case (APPROVE_CASE / REJECT_CASE were one routine twice).
+    -- P_DECISION = APPROVED or REJECTED; the party's next KYC date follows (KYC_CASE workflow, trusted).
+    procedure close_case(p_case_id in number, p_decision in varchar2);
 
     -- Screening results: a confirmed match or PEP flag forces Enhanced KYC.
     -- release 74: an RFI raised from a case (or its request / party) - its own workflow process (common RFI).
@@ -615,8 +618,6 @@ create or replace package xxcmp_case_pkg authid definer as
     -- REQUESTING_DEPARTMENT: a named user; EXTERNAL_PARTY: a contact person of the party (name and e-mail).
     -- release 89: COMMON's RFI process runs it (XXFND_RFI_PKG): a user answers and the raiser reviews on COMMON's task
     -- page Information Request (143); an outside person answers on COMMON's public page Provide Information (50).
-    -- release 74: the attributes the Approval Setup tests for a case (transaction type KYC_CASE)
-    function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2;
     procedure raise_rfi(p_entity_name      in varchar2,
                         p_pk1_value        in varchar2,
                         p_recipient_type   in varchar2,
@@ -661,7 +662,6 @@ create or replace package xxcmp_case_pkg authid definer as
                          p_filed_date in date default null);
     -- release 74 (R19): guided source of funds / wealth. The evidence expected for a category (lookup FUNDS_CATEGORY
     -- tag, codes of FUNDS_EVIDENCE_TYPE), its meanings for the screen, the check of a line and its verification.
-    function expected_evidence(p_category in varchar2) return varchar2;
     function expected_evidence_text(p_category in varchar2) return varchar2;
     function funds_error(p_case_id in number, p_funds_type in varchar2, p_category in varchar2, p_evidence_type in varchar2,
                          p_amount in number, p_period_from in date, p_period_to in date) return varchar2;

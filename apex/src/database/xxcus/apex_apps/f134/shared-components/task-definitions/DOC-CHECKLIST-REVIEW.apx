@@ -11,7 +11,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
             ```sql
             -- always one row: the task stays manageable whatever the data security of the user
             select nvl(r.request_number, 'Request ' || :APEX$TASK_PK) as request_number, r.party_name,
-                   xxcmp_approval_pkg.step_name(to_number(:APEX$TASK_PK)) as step_name
+                   xxcmp_request_pkg.step_name(to_number(:APEX$TASK_PK)) as step_name
               from dual
               left join xxcmp_requests r on r.request_id = to_number(:APEX$TASK_PK)
             ```
@@ -69,7 +69,7 @@ taskDefinition DOC_CHECKLIST_REVIEW (
     participant (
         value {
             type: expression
-            plsqlExpression: xxcmp_approval_pkg.step_approvers(to_number(:APEX$TASK_PK))
+            plsqlExpression: xxcmp_request_pkg.step_approvers(to_number(:APEX$TASK_PK))
         }
     )
 

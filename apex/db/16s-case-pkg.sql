@@ -102,7 +102,8 @@ end;
 
 create or replace package body xxcmp_case_pkg as
 
-    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG).
+    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG). Release 90: the one copy
+    -- (the request package's unused duplicate is gone); where the parameters are stored is open decision D3.
     function param(p_code in varchar2, p_default in number) return number is
         l_value number;
     begin
@@ -344,13 +345,13 @@ create or replace package body xxcmp_case_pkg as
             xxfnd_error_pkg.raise_error('KYC_CASE_NO_MATRIX_ROW', apex_t_varchar2(p_case.risk_tier));
     end matrix;
 
-    -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE)
+    -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE).
+    -- Release 90: private (used only here); the party type is read by the party package.
     function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2 is
-        l_party_type xxcmp_parties.party_type%type;
     begin
-        select max(party_type) into l_party_type from xxcmp_parties where party_id = p_case.party_id;
         return apex_t_varchar2('RISK_TIER=' || p_case.risk_tier, 'ENHANCED_KYC=' || nvl(p_case.enhanced_kyc_flag, 'N'),
-                               'PARTY_TYPE=' || l_party_type, 'BUSINESS_RELATIONSHIP=' || p_case.business_relationship);
+                               'PARTY_TYPE=' || xxcmp_party_pkg.party_type(p_case.party_id),
+                               'BUSINESS_RELATIONSHIP=' || p_case.business_relationship);
     end case_attributes;
 
     function level_step(p_case_id in number, p_level in number) return xxfnd_approval_step_row is
@@ -659,11 +660,18 @@ create or replace package body xxcmp_case_pkg as
             raise;
     end has_next_level;
 
+    -- release 90: one routine for the two outcomes (was APPROVE_CASE / REJECT_CASE); the KYC_CASE workflow calls it
     procedure close_case(p_case_id in number, p_decision in varchar2) is
-        l_case xxcmp_cases%rowtype := get_case(p_case_id);
-        -- computed first: the function reads XXCMP_CASES, which would be mutating inside the UPDATE
-        l_next date := case when p_decision = 'APPROVED' then nvl(l_case.next_review_date, next_review_date(p_case_id)) end;
+        l_case xxcmp_cases%rowtype;
+        l_next date;
     begin
+        if p_decision is null or p_decision not in ('APPROVED', 'REJECTED') then
+            raise_application_error(-20615, 'Unknown case decision: ' || p_decision);
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        -- computed first: the function reads XXCMP_CASES, which would be mutating inside the UPDATE
+        l_next := case when p_decision = 'APPROVED' then nvl(l_case.next_review_date, next_review_date(p_case_id)) end;
         update xxcmp_cases
            set case_status      = p_decision,
                decision         = p_decision,
@@ -673,29 +681,12 @@ create or replace package body xxcmp_case_pkg as
          where case_id = p_case_id;
         -- the party's next KYC date follows its latest decided case (cleared when the KYC is rejected)
         update xxcmp_parties set next_kyc_date = l_next where party_id = l_case.party_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
     end close_case;
-
-    procedure approve_case(p_case_id in number) is
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        close_case(p_case_id, 'APPROVED');
-        xxfnd_vpd_pkg.end_trusted;
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end approve_case;
-
-    procedure reject_case(p_case_id in number) is
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        close_case(p_case_id, 'REJECTED');
-        xxfnd_vpd_pkg.end_trusted;
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end reject_case;
 
     procedure raise_rfi(p_entity_name      in varchar2,
                         p_pk1_value        in varchar2,
@@ -1066,6 +1057,7 @@ create or replace package body xxcmp_case_pkg as
         end if;
     end fiu_action;
 
+    -- release 90: private (used only here)
     function expected_evidence(p_category in varchar2) return varchar2 is
         l_tag xxfnd_lookup_values.tag%type;
     begin
@@ -1074,11 +1066,12 @@ create or replace package body xxcmp_case_pkg as
     end expected_evidence;
 
     function expected_evidence_text(p_category in varchar2) return varchar2 is
-        l_text varchar2(4000);
+        l_text     varchar2(4000);
+        l_expected varchar2(4000) := expected_evidence(p_category);    -- a private function is not called inside SQL
     begin
         select listagg(xxfnd_lookup_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', column_value), ', ') within group (order by rownum)
           into l_text
-          from table(apex_string.split(expected_evidence(p_category), ','));
+          from table(apex_string.split(l_expected, ','));
         return l_text;
     end expected_evidence_text;
 

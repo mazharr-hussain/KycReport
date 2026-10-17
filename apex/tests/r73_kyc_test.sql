@@ -41,7 +41,7 @@ begin
     xxfnd_vpd_pkg.end_trusted;
     ok('auto-approved: no workflow, auto-approved date set', l_r.workflow_id is null and l_r.auto_approved_date is not null);
     ok('the request moved on without approval: ' || l_r.request_status, l_r.request_status <> 'IN_PROGRESS');
-    select count(*) into l_n from table(xxcmp_approval_pkg.history_rows(l_req)) where action = 'Auto-approved (workflow disabled)';
+    select count(*) into l_n from table(xxcmp_request_pkg.history_rows(l_req)) where action = 'Auto-approved (workflow disabled)';
     ok('history shows "Auto-approved (workflow disabled)"', l_n = 1);
     select count(*) into l_n from apex_tasks where detail_pk = to_char(l_req) and task_def_static_id = 'DOC_CHECKLIST_REVIEW'
        and created_on >= l_start;
@@ -111,10 +111,10 @@ begin
                and xxcmp_request_pkg.returned_for_info(l_rid) = 'Y');
             select count(*) into l_n from apex_workflows where workflow_id = l_r.workflow_id and state_code = 'TERMINATED';
             ok('the approval workflow ended', l_n = 1);
-            select count(*) into l_n from table(xxcmp_approval_pkg.history_rows(l_rid))
+            select count(*) into l_n from table(xxcmp_request_pkg.history_rows(l_rid))
              where action = 'Information requested' and comments like '%' || l_tag;
             ok('history shows the question', l_n = 1);
-            select count(*) into l_n from table(xxcmp_approval_pkg.history_rows(l_rid))
+            select count(*) into l_n from table(xxcmp_request_pkg.history_rows(l_rid))
              where action = 'Withdrawn' and action_date >= l_start;
             ok('not shown as Withdrawn', l_n = 0);
             ok('the requester can submit again: ' || nvl(xxcmp_request_pkg.submit_error(l_rid), 'no error'),

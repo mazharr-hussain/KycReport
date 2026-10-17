@@ -44,7 +44,8 @@ page 165 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select m.risk_tier, m.required_levels, m.level1_role_code, m.level2_role_code, m.sar_gate_flag
+                -- release 90: the SAR gate only (who approves a case is COMMON's Approval Setup); the table is unchanged
+                select m.risk_tier, m.sar_gate_flag
                   from xxcmp_approval_matrix m
                 ```
         }
@@ -103,13 +104,10 @@ page 165 (
                 }
             )
 
-
-
-
             displayColumn (
                 column: @SAR_GATE_FLAG
                 layout {
-                    sequence: 6
+                    sequence: 3
                 }
             )
         )
@@ -151,42 +149,6 @@ page 165 (
             }
             readOnly {
                 type: always
-            }
-        )
-
-        column REQUIRED_LEVELS (
-            type: hidden
-            layout {
-                sequence: 30
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: REQUIRED_LEVELS
-                dataType: number
-            }
-        )
-
-        column LEVEL1_ROLE_CODE (
-            type: hidden
-            layout {
-                sequence: 40
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: LEVEL1_ROLE_CODE
-                dataType: varchar2
-            }
-        )
-
-        column LEVEL2_ROLE_CODE (
-            type: hidden
-            layout {
-                sequence: 50
-            }
-            source {
-                type: databaseColumn
-                databaseColumn: LEVEL2_ROLE_CODE
-                dataType: varchar2
             }
         )
 

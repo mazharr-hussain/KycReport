@@ -1043,7 +1043,7 @@ workflow KYC_REQUEST (
             type: switch
             condition {
                 conditionType: functionBody
-                plsqlFunctionBody: return xxcmp_approval_pkg.next_step(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
+                plsqlFunctionBody: return xxcmp_request_pkg.next_step(:APEX$WORKFLOW_DETAIL_PK) = 'Y';
             }
             layout {
                 sequence: 65
