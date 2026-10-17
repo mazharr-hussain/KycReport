@@ -15,7 +15,7 @@ Row-level security (VPD) for every application from one set of rules.
 applications, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-applications, approval-setup, attachments, change-approvals, information-requests, notifications, roles-privileges, users-access, workflow-setup
+applications, approval-setup, attachments, change-approvals, data-model, information-requests, notifications, roles-privileges, users-access, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).

@@ -12,10 +12,10 @@ IT registers (onboards) every application here (pages 160, 166), defines setup t
 One register of every application: COMMON knows each application, its APEX ID and schema, and grants and scopes everything (security, setup, workflow) by it.
 
 ## Depends on (objects of these components are named in its files)
-approval-setup, attachments, data-security, flexfields, integrations, lookups, notifications, retention, roles-privileges, users-access, workflow-setup
+approval-setup, attachments, data-model, data-security, flexfields, integrations, lookups, notifications, retention, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-app-settings, approval-setup, attachments, change-approvals, data-security, flexfields, give-feedback, information-requests, integrations, lookups, notifications, optional-features, platform-activity, retention, roles-privileges, usage-feedback, users-access, workflow-monitor, workflow-setup
+app-settings, approval-setup, attachments, change-approvals, data-model, data-security, flexfields, give-feedback, information-requests, integrations, lookups, notifications, optional-features, platform-activity, retention, roles-privileges, usage-feedback, users-access, workflow-monitor, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Script `db/admin/onboard-application.sql` (as XXFUSION) registers a new application; its schema then gets the grants.

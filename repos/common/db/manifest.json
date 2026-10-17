@@ -522,10 +522,20 @@
   "source_index": 82
  },
  {
+  "name": "33 Data Model",
+  "file": "33-data-model.sql",
+  "install_sequence": 226,
+  "upgrade_sequence": 186,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 83
+ },
+ {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",
   "apps": [],
-  "source_index": 83
+  "source_index": 84
  },
  {
   "name": "99 Sharing with the applications - last",
@@ -535,6 +545,6 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 84
+  "source_index": 85
  }
 ]

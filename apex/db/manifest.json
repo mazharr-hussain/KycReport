@@ -655,6 +655,15 @@
   ]
  },
  {
+  "name": "33 Data Model",
+  "file": "33-data-model.sql",
+  "install_sequence": 226,
+  "upgrade_sequence": 186,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",
   "apps": []

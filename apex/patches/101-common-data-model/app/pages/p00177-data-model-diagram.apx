@@ -1,0 +1,318 @@
+page 177 (
+    name: Data Model Diagram
+    alias: DATA-MODEL-DIAGRAM
+    title: Data Model Diagram
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    javaScript {
+        fileUrls: #APP_FILES#mermaid/mermaid.min.js
+        executeWhenPageLoads:
+            ```javascript
+            // release 89: the diagram is drawn from the Mermaid text XXFND_DATA_MODEL_PKG.ERD_SOURCE returns (Ajax callback
+            // ERD_SOURCE). No APEX component draws an entity-relationship diagram, so the Mermaid library (static application file)
+            // draws it into the region.
+            (function () {
+                var el = document.getElementById("dm-erd");
+                if (!el || !window.mermaid) { return; }
+                mermaid.initialize({ startOnLoad: false, securityLevel: "strict", maxTextSize: 1000000, theme: "default",
+                                     er: { useMaxWidth: false } });
+                el.textContent = "Drawing the diagram...";
+                apex.server.process("ERD_SOURCE", { pageItems: "#P177_APPLICATION,#P177_GROUP,#P177_TABLE" }, { dataType: "text" })
+                    .then(function (src) { return mermaid.render("dmErdSvg", src); })
+                    .then(function (r) { el.innerHTML = r.svg; })
+                    .catch(function (e) { el.textContent = "The diagram could not be drawn: " + (e && e.message ? e.message : e); });
+            })();
+            ```
+    }
+    css {
+        inline:
+            ```css
+            /* release 89: the diagram scrolls inside its region */
+            #dm-erd { overflow: auto; max-height: 75vh; min-height: 200px; }
+            #dm-erd svg { max-width: none; }
+            ```
+    }
+    help {
+        helpText:
+            ```
+            The entity-relationship diagram of the application's tables, read live from the database dictionary. Each table shows
+            only its key columns (primary key, foreign keys, unique and indexed columns). Choose a group to see its tables, or a
+            table to see it with the tables it refers to and the tables that refer to it; with neither, every table and foreign key
+            of the application.
+            ```
+    }
+
+    region breadcrumb (
+        name: Data Model Diagram
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region choose (
+        name: Diagram
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: choose
+        }
+    )
+
+    pageItem P177_APPLICATION (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.application_name || ' (' || a.application_code || ')' as display_value, a.application_code as return_value
+                  from xxfnd_dm_apps_v a
+                 order by 1
+                ```
+            displayNullValue: false
+        }
+        settings {
+            pageActionOnSelection: submitPage
+            executeValidations: false
+        }
+        layout {
+            sequence: 10
+            region: @choose
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                -- the application of COMMON's application selector (an application's administrators: their own), else COMMON
+                select coalesce(max(case when a.application_code = upper(v('G_ADMIN_APP')) then a.application_code end),
+                                max(case when a.application_code = 'COMMON' then a.application_code end),
+                                min(a.application_code))
+                  from xxfnd_dm_apps_v a
+                ```
+        }
+        help {
+            helpText: The application whose tables are drawn.
+        }
+    )
+
+    pageItem P177_GROUP (
+        type: selectList
+        label {
+            label: Group
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select distinct o.group_name as display_value, o.group_name as return_value
+                  from xxfnd_dm_objects_v o
+                 where o.application_code = :P177_APPLICATION and o.object_type = 'TABLE' and o.group_name is not null
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Every table -
+        }
+        settings {
+            pageActionOnSelection: submitPage
+            executeValidations: false
+        }
+        layout {
+            sequence: 20
+            region: @choose
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: A group of tables (for COMMON: its module).
+        }
+    )
+
+    pageItem P177_TABLE (
+        type: selectList
+        label {
+            label: Table
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select o.object_name as display_value, o.object_name as return_value
+                  from xxfnd_dm_objects_v o
+                 where o.application_code = :P177_APPLICATION and o.object_type = 'TABLE'
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - None -
+        }
+        settings {
+            pageActionOnSelection: submitPage
+            executeValidations: false
+        }
+        layout {
+            sequence: 30
+            region: @choose
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: One table with the tables it refers to and the tables that refer to it.
+        }
+    )
+
+    button objects (
+        buttonName: OBJECTS
+        label: Objects
+        layout {
+            sequence: 10
+            region: @choose
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 175
+                items: {
+                    P175_APPLICATION: &P177_APPLICATION.
+                }
+                clearCache: 175
+            }
+        }
+    )
+
+    region dictionary-note (
+        name: Dictionary Access
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Only the objects COMMON may read are listed: the database administrator has not given COMMON access to the
+                database dictionary of other schemas yet (script <code>apex/db/admin/grant-dictionary-to-xxfusion.sql</code>, then
+                Install Supporting Objects again).</p>
+                ```
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--info
+            ]
+        }
+        advanced {
+            htmlDomId: dictionary-note
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_data_model_pkg.full_dictionary = 'N'
+                ```
+        }
+    )
+
+    region diagram (
+        name: Entity-Relationship Diagram
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <div id="dm-erd" role="img" aria-label="Entity-relationship diagram of the chosen tables"></div>
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: diagram
+        }
+    )
+
+    process erd-source (
+        name: ERD_SOURCE
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the Mermaid text of the diagram (data, not HTML) for the page's script, which draws it
+                declare
+                    l_src clob := xxfnd_data_model_pkg.erd_source(:P177_APPLICATION, :P177_GROUP, :P177_TABLE);
+                    l_pos pls_integer := 1;
+                begin
+                    while l_pos <= nvl(dbms_lob.getlength(l_src), 0) loop
+                        htp.prn(dbms_lob.substr(l_src, 8000, l_pos));
+                        l_pos := l_pos + 8000;
+                    end loop;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+)

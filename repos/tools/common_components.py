@@ -64,6 +64,21 @@ C = {
     benefit='One feedback form for all applications.', roles=f'Every role, at install (27).',
     other='Link to COMMON page 173 (`app: COMMON`) passing &APP_ID. and &APP_PAGE_ID. (or the entry Give '
           'Feedback of `XXFND_APP_MENU_V`); every signed-in user opens it (release 87).'),
+ 'data-model': dict(
+    feature='DATA_MODEL', name='Data Model', module='Platform', actions='VIEW, MANAGE',
+    purpose='The database objects of every registered application, read live from the database dictionary: the object '
+            'catalogue and the entity-relationship diagram (release 89).',
+    usage='Page 175 lists an application\'s objects (tables, views, packages, types, sequences, triggers) and sets its object '
+          'prefix; page 176 shows one object (columns, constraints, indexes, triggers, routines with parameters, grants, uses / '
+          'used by); page 177 draws the diagram of the application, a group of tables or one table with its neighbours.',
+    benefit='Always current documentation of every application\'s data model, without exports or diagram tools.',
+    req='To read other applications\' schemas, ADMIN runs `db/admin/grant-dictionary-to-xxfusion.sql` once (SELECT on the DBA_ '
+        'dictionary views), then the supporting objects again; without it only COMMON\'s objects (and what COMMON may already '
+        'read) are listed. The diagram uses the Mermaid library (a COMMON static file).',
+    roles=ADMIN,
+    other='Nothing to install in the application. IT may set its object prefix (page 175) and the application may group its '
+          'tables for the diagram (`XXFND_DATA_MODEL_PKG.REGISTER_TABLE_GROUP`). Its administrators open it from the application\'s '
+          'menu once IT lets the application manage Data Model (managed in the application): they see their own application only.'),
  'users-access': dict(
     feature='USERS_ACCESS', name='Users & Access', module='Security', actions='VIEW, CREATE, MANAGE',
     purpose='Users, their roles and their data access.',
@@ -109,7 +124,7 @@ C = {
     roles=ADMIN,
     other='The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REGISTER_LOOKUP_TYPE` / '
           '`REGISTER_LOOKUP_VALUE` (KYC: 18h) and reads them with `LOOKUP_MEANING`, `IS_VALID_LOOKUP` or the lookup views. '
-          'COMMON issue C3: script 17 rewrites KYC lookups on upgrade.'),
+          'It sees and maintains only its own lookups and the shared ones (release 87).'),
  'flexfields': dict(
     feature='FLEXFIELDS', name='Flexfields', module='Reference Data', actions='VIEW, CREATE, MANAGE',
     purpose='Descriptive flexfields and their value sets.', usage='Pages 150-153: value sets, flexfields, contexts, segments.',

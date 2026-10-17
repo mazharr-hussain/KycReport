@@ -1,0 +1,412 @@
+page 175 (
+    name: Data Model
+    alias: DATA-MODEL
+    title: Data Model
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The database objects of a registered application, read live from the database dictionary: tables, views, packages,
+            types, sequences and triggers. Choose the application; open an object for its columns, keys, indexes, routines,
+            grants and dependencies, or open the diagram. An application's objects are those of its schema whose name starts with
+            its object prefix (no prefix: every object of the schema).
+            ```
+    }
+
+    region breadcrumb (
+        name: Data Model
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region choose (
+        name: Application
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: choose
+        }
+    )
+
+    pageItem P175_APPLICATION (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.application_name || ' (' || a.application_code || ')' as display_value, a.application_code as return_value
+                  from xxfnd_dm_apps_v a
+                 order by 1
+                ```
+            displayNullValue: false
+        }
+        settings {
+            pageActionOnSelection: submitPage
+            executeValidations: false
+        }
+        layout {
+            sequence: 10
+            region: @choose
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: sqlQuerySingleValue
+            sqlQuerySingleValue:
+                ```sql
+                -- the application of COMMON's application selector (an application's administrators: their own), else COMMON
+                select coalesce(max(case when a.application_code = upper(v('G_ADMIN_APP')) then a.application_code end),
+                                max(case when a.application_code = 'COMMON' then a.application_code end),
+                                min(a.application_code))
+                  from xxfnd_dm_apps_v a
+                ```
+        }
+        help {
+            helpText: The application whose objects are listed.
+        }
+    )
+
+    pageItem P175_PREFIX (
+        type: textField
+        label {
+            label: Object Prefix
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @choose
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(object_prefix) from xxfnd_dm_apps_v where application_code = :P175_APPLICATION
+                ```
+            used: always
+        }
+        help {
+            helpText: Only the objects whose name starts with this prefix belong to the application (for example XXCMP_). Empty = every object of its schema.
+        }
+    )
+
+    button save-prefix (
+        buttonName: SAVE_PREFIX
+        label: Save Prefix
+        layout {
+            sequence: 10
+            region: @choose
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button diagram (
+        buttonName: DIAGRAM
+        label: Diagram
+        layout {
+            sequence: 20
+            region: @choose
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 177
+                items: {
+                    P177_APPLICATION: &P175_APPLICATION.
+                }
+                clearCache: 177
+            }
+        }
+    )
+
+    region dictionary-note (
+        name: Dictionary Access
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Only the objects COMMON may read are listed: the database administrator has not given COMMON access to the
+                database dictionary of other schemas yet (script <code>apex/db/admin/grant-dictionary-to-xxfusion.sql</code>, then
+                Install Supporting Objects again).</p>
+                ```
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--info
+            ]
+        }
+        advanced {
+            htmlDomId: dictionary-note
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_data_model_pkg.full_dictionary = 'N'
+                ```
+        }
+    )
+
+    region objects (
+        name: Objects
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 89: the objects of the application (XXFND_DM_OBJECTS_V: the dictionary, only what the user may see)
+                select o.object_name, o.object_type, o.group_name, o.status, o.created, o.last_ddl_time, o.comments,
+                       apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => o.application_code || ',' || o.object_name) as open_url
+                  from xxfnd_dm_objects_v o
+                 where o.application_code = :P175_APPLICATION
+                ```
+            pageItemsToSubmit: P175_APPLICATION
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: objects
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No object of this application can be read.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column OBJECT_NAME (
+            type: link
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #OBJECT_NAME#
+            }
+        )
+
+        column OBJECT_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column GROUP_NAME (
+            type: plainText
+            heading {
+                heading: Group
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED (
+            type: plainText
+            heading {
+                heading: Created
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: DATE
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column LAST_DDL_TIME (
+            type: plainText
+            heading {
+                heading: Last Changed
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: DATE
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comment
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    process save-prefix (
+        name: Save the object prefix
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 89: the application's object prefix (XXFND_DATA_MODEL_PKG.SET_OBJECT_PREFIX; Data Model - Manage)
+                xxfnd_data_model_pkg.set_object_prefix(:P175_APPLICATION, :P175_PREFIX);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: The object prefix is saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE_PREFIX
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+)

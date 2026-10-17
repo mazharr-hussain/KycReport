@@ -56,6 +56,18 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 89 (COMMON)
+Release 89 (COMMON only, patch 101): **Data Model** (Platform) - the database objects of every registered application,
+read live from the database dictionary: the object catalogue (175), one object (176) and the entity-relationship
+diagram (177). Upgrade as usual (data kept, a re-run changes nothing). Then, once:
+1. **ADMIN** (Database Actions > SQL): run `apex/db/admin/grant-dictionary-to-xxfusion.sql` (SELECT on the DBA_ dictionary
+   views COMMON reads). If ADMIN may not grant them (Autonomous Database), run `grant select any dictionary to xxfusion;`.
+2. App Builder > COMMON > Utilities > Supporting Objects > **Install Supporting Objects** again (the views switch to the
+   full dictionary). Without steps 1-2 the Data Model shows COMMON's own objects only and says so on the page.
+3. Per application (Data Model page, Manage): set its **object prefix** when its schema holds other applications'
+   objects too (for KYC in XXCUS: `XXCMP_`). An application's administrators see it from their menu once IT lets the
+   application manage Data Model (Applications > the application).
+
 ## Release 88 (COMMON; includes 87)
 Release 88 (COMMON only, patch 100): basic onboarding, the application menu and the COMMON issues C1-C6, C8-C11
 (`apex/COMMON-ISSUES.md`). Import `COMMON-Application-APEXlang_88.zip` as usual (upgrade; data kept, a re-run changes

@@ -883,6 +883,54 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry data-model (
+        name: Data Model
+        pageNumber: 175
+        execution {
+            sequence: 97
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 175
+            }
+        }
+    )
+
+    entry database-object (
+        name: &P176_OBJECT.
+        pageNumber: 176
+        execution {
+            sequence: 98
+        }
+        appearance {
+            parentEntry: @data-model
+        }
+        link {
+            target: {
+                page: 176
+            }
+        }
+    )
+
+    entry data-model-diagram (
+        name: Diagram
+        pageNumber: 177
+        execution {
+            sequence: 99
+        }
+        appearance {
+            parentEntry: @data-model
+        }
+        link {
+            target: {
+                page: 177
+            }
+        }
+    )
+
     entry feedback (
         name: Feedback
         pageNumber: 171
