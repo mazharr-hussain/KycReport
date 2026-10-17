@@ -123,3 +123,21 @@ authorization admin-app (
         evaluationType: perPageView
     }
 )
+
+authorization signed-in-user (
+    name: Signed-in User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- release 87 (C1): every signed-in user - the shared pages show only the user's own data
+            return xxfnd_user_pkg.authorized('SIGNED_IN');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

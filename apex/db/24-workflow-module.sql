@@ -124,7 +124,8 @@ comment on table xxfnd_qa_history_v is 'Release 82: questions and answers of a r
 
 -- the applications reach the new view through the usual grants (19c runs before this script)
 begin
-    xxfnd_share_pkg.grant_to_applications;
+    -- release 87 (C11): the grants to the applications run once, last (script 99)
+    null;
 end;
 /
 

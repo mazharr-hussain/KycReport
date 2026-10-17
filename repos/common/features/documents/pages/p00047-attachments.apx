@@ -8,7 +8,7 @@ page 47 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @signed-in-user
         pageAccessProtection: unrestricted
         formAutoComplete: false
     }
@@ -515,7 +515,7 @@ page 47 (
             }
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @signed-in-user
         }
         serverSideCondition {
             type: expression

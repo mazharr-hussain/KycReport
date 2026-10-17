@@ -8,7 +8,7 @@ page 143 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @signed-in-user
         pageAccessProtection: unrestricted
         formAutoComplete: false
     }
@@ -344,6 +344,83 @@ page 143 (
             }
         )
     )
+    region documents (
+        name: Documents
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 88 (C5): the documents of the RFI (COMMON Attachments; this page and region are registered for them)
+                select to_number(:P143_RFI_ID) as rfi_id,
+                       (select count(*) from xxfnd_attached_documents d
+                         where d.entity_name = 'XXFND_RFIS' and d.pk1_value = :P143_RFI_ID) as document_count,
+                       apex_page.get_url(p_page => 47, p_clear_cache => '47',
+                                         p_items  => 'P47_APP_ALIAS,P47_SOURCE_PAGE,P47_SOURCE_REGION,P47_ENTITY_NAME,P47_PK1_VALUE',
+                                         p_values => 'COMMON,143,documents,XXFND_RFIS,' || :P143_RFI_ID) as documents_url
+                  from dual
+                 where :P143_RFI_ID is not null
+                ```
+        }
+        layout {
+            sequence: 35
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: documents
+        }
+        messages {
+            whenNoDataFound: The request for information is not available.
+        }
+
+        column RFI_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DOCUMENT_COUNT (
+            type: plainText
+            heading {
+                heading: Documents
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DOCUMENTS_URL (
+            type: link
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    type: url
+                    url: #DOCUMENTS_URL#
+                }
+                linkText: Add or View Documents
+            }
+        )
+    )
     region answer (
         name: Your Answer
         type: staticContent
@@ -567,7 +644,7 @@ page 143 (
             value: SUBMIT_ANSWER
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @signed-in-user
         }
     )
     process review (
@@ -604,7 +681,7 @@ page 143 (
             value: RESOLVE,RETURN,CANCEL_RFI,ASK_AGAIN
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @signed-in-user
         }
     )
     branch (

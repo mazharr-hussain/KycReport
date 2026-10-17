@@ -1,0 +1,408 @@
+page 46 (
+    name: E-mail
+    alias: E-MAIL
+    title: E-mail
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @signed-in-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Send an e-mail about the record (it is kept with the record; when e-mail is switched off it is kept as not sent), or
+            record an e-mail that was received from an outside person. A file can go with it.
+            ```
+    }
+
+    region breadcrumb (
+        name: E-mail
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region mail (
+        name: E-mail
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: mail
+        }
+    )
+    pageItem P46_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @mail
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P46_ENTITY_NAME (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @mail
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P46_PK1_VALUE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @mail
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P46_DIRECTION (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @mail
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P46_TO (
+        type: textField
+        label {
+            label: To
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        serverSideCondition {
+            type: item=value
+            item: P46_DIRECTION
+            value: OUT
+        }
+        quickPicks {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 88 (C6): the contacts the application holds for the record (registered contact source)
+                select contact_name || ' (' || email_address || ')' as d, email_address as r
+                  from table(xxfnd_notify_pkg.contacts(:P46_ENTITY_NAME, :P46_PK1_VALUE))
+                ```
+            maxDisplayedEntries: 10
+        }
+        help {
+            helpText: The e-mail addresses (comma-separated). A contact of the record listed below the field fills it in.
+        }
+    )
+    pageItem P46_CC (
+        type: textField
+        label {
+            label: Cc
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 4000
+        }
+        serverSideCondition {
+            type: item=value
+            item: P46_DIRECTION
+            value: OUT
+        }
+        help {
+            helpText: Copy to (comma-separated).
+        }
+    )
+    pageItem P46_FROM (
+        type: textField
+        label {
+            label: From
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        serverSideCondition {
+            type: item=value
+            item: P46_DIRECTION
+            value: IN
+        }
+        help {
+            helpText: The sender of the e-mail received.
+        }
+    )
+    pageItem P46_SUBJECT (
+        type: textField
+        label {
+            label: Subject
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 500
+        }
+        help {
+            helpText: The subject.
+        }
+    )
+    pageItem P46_BODY (
+        type: textarea
+        label {
+            label: Message
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 10
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: The message.
+        }
+    )
+    pageItem P46_FILE (
+        type: fileUpload
+        label {
+            label: File
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @mail
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        display {
+            displayAs: blockDropzone
+            dropzoneTitle: Drop the file here
+            dropzoneDesc: or click to browse
+        }
+        storage {
+            type: appTempFiles
+        }
+        help {
+            helpText: A file sent with the e-mail (or received with it); it is kept with the e-mail.
+        }
+    )
+    button send (
+        buttonName: SEND
+        label: Send
+        layout {
+            sequence: 10
+            region: @mail
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        serverSideCondition {
+            type: item=value
+            item: P46_DIRECTION
+            value: OUT
+        }
+    )
+    button save-received (
+        buttonName: SAVE_RECEIVED
+        label: Save
+        layout {
+            sequence: 20
+            region: @mail
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: item=value
+            item: P46_DIRECTION
+            value: IN
+        }
+    )
+    process send (
+        name: Send the e-mail
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: the COMMON e-mail of a record (XXFND_NOTIFY_PKG.SEND_EMAIL, APEX mail, kept in XXFND_COMMUNICATIONS)
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_notify_pkg.send_email(p_application_code => :P46_APPLICATION_CODE,
+                                                        p_entity_name      => :P46_ENTITY_NAME,
+                                                        p_pk1_value        => :P46_PK1_VALUE,
+                                                        p_to               => :P46_TO,
+                                                        p_subject          => :P46_SUBJECT,
+                                                        p_body             => :P46_BODY,
+                                                        p_cc               => :P46_CC,
+                                                        p_temp_file_name   => :P46_FILE);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: The e-mail is sent and kept with the record.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SEND
+        }
+        security {
+            authorizationScheme: @signed-in-user
+        }
+    )
+    process save-received (
+        name: Record the received e-mail
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id number;
+                begin
+                    l_id := xxfnd_notify_pkg.record_received(p_application_code => :P46_APPLICATION_CODE,
+                                                             p_entity_name      => :P46_ENTITY_NAME,
+                                                             p_pk1_value        => :P46_PK1_VALUE,
+                                                             p_from             => :P46_FROM,
+                                                             p_subject          => :P46_SUBJECT,
+                                                             p_body             => :P46_BODY,
+                                                             p_temp_file_name   => :P46_FILE);
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: The received e-mail is kept with the record.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE_RECEIVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    branch (
+        name: Back to the communications
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 45
+                items: {
+                    P45_APPLICATION_CODE: &P46_APPLICATION_CODE.
+                    P45_ENTITY_NAME: &P46_ENTITY_NAME.
+                    P45_PK1_VALUE: &P46_PK1_VALUE.
+                }
+                clearCache: 45
+            }
+        }
+    )
+)

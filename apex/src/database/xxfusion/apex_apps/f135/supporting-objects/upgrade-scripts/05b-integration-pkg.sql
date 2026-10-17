@@ -283,6 +283,10 @@ create or replace package xxfnd_integration_pkg authid definer as
                                p_purpose_name          in varchar2,
                                p_capture_method        in varchar2 default 'MANUAL',
                                p_rest_source_static_id in varchar2 default null);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_purpose(p_application_code in varchar2, p_purpose_code in varchar2);
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_integration_pkg;
 /
 
@@ -786,6 +790,18 @@ create or replace package body xxfnd_integration_pkg as
                                                 rest_source_static_id, approval_status)
         values (l_key, l_code, p_purpose_name, upper(nvl(p_capture_method, 'MANUAL')), p_rest_source_static_id, 'APPROVED');
     end register_purpose;
+
+    -- release 88 (C8, C9)
+    procedure unregister_purpose(p_application_code in varchar2, p_purpose_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Integration purpose', 'XXFND_INTEGRATION_PURPOSES',
+            apex_t_varchar2('PURPOSE_CODE'), apex_t_varchar2(upper(trim(p_purpose_code))));
+    end unregister_purpose;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Integration purposes', 'XXFND_INTEGRATION_PURPOSES');
+    end unregister_application;
 
 end xxfnd_integration_pkg;
 /

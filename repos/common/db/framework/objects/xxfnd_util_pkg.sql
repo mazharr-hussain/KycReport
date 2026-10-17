@@ -125,3 +125,50 @@ create or replace package body xxfnd_util_pkg as
 
 end xxfnd_util_pkg;
 /
+
+-- every registered application gets its menu entries (only what is missing)
+begin
+    xxfnd_util_pkg.set_install_mode(true);
+    for a in (select application_code from xxfnd_applications where application_code <> 'COMMON') loop
+        xxfnd_application_pkg.ensure_menu(a.application_code);
+    end loop;
+    xxfnd_util_pkg.set_install_mode(false);
+    commit;
+exception
+    when others then
+        xxfnd_util_pkg.set_install_mode(false);
+        raise;
+end;
+/
+
+-- C5: the documents of an RFI on page 143 (region "documents"; add and replace, no remove) and the RFI task settings
+-- (no due days: the RFI's own due date applies to the answer; IT sets the rest in Task Settings), added when missing
+begin
+    xxfnd_util_pkg.set_install_mode(true);
+    xxfnd_attach_pkg.register_attachment_page(p_application_code    => 'COMMON',
+                                              p_function_code       => 'COMMON_RFI',
+                                              p_function_name       => 'Information Request - documents of the RFI',
+                                              p_page_id             => 143,
+                                              p_block_code          => 'DOCUMENTS',
+                                              p_region_static_id    => 'documents',
+                                              p_entity_name         => 'XXFND_RFIS',
+                                              p_pk1_page_item       => 'RFI_ID',
+                                              p_block_name          => 'Documents',
+                                              p_insert_allowed_flag => 'Y',
+                                              p_update_allowed_flag => 'Y',
+                                              p_delete_allowed_flag => 'N');
+    xxfnd_workflow_pkg.register_task_setting(p_application_code     => 'COMMON',
+                                             p_task_definition      => 'RFI_RESPONSE',
+                                             p_reminder_days_before => 1,
+                                             p_description          => 'Provide the requested information: due on the RFI''s due date.');
+    xxfnd_workflow_pkg.register_task_setting(p_application_code     => 'COMMON',
+                                             p_task_definition      => 'RFI_REVIEW',
+                                             p_description          => 'Review the information received.');
+    xxfnd_util_pkg.set_install_mode(false);
+    commit;
+exception
+    when others then
+        xxfnd_util_pkg.set_install_mode(false);
+        raise;
+end;
+/

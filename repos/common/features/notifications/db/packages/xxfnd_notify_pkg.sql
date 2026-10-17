@@ -73,6 +73,10 @@ create or replace package xxfnd_notify_pkg authid definer as
     function common_setting(p_name in varchar2) return varchar2;
 
     ---------------------------------------------------------------- communications (e-mails per record)
+    -- Release 87 (C1): Y when the signed-in user may see the record of the e-mails: its row is visible under the
+    -- user's data security (XXFND_ATTACH_PKG.RECORD_VISIBLE, for a registered document entity); Y outside an APEX
+    -- session (scripts, jobs) and for an entity that is not registered. The e-mail pages show and act only then.
+    function record_open(p_entity_name in varchar2, p_pk1_value in varchar2) return varchar2;
     -- Sends an e-mail for a record and keeps it (status SENT; NOT_SENT when e-mail is switched off for the instance or
     -- the application, or MAIL_FROM is not set - the e-mail is still recorded). P_TEMP_FILE_NAME: an uploaded file
     -- (APEX temporary file) sent with it and kept as the communication's attachment. Returns the communication ID.
@@ -128,6 +132,21 @@ create or replace package xxfnd_notify_pkg authid definer as
     -- A notification rule on (Y) or off (N). In an APEX session: Applications - Manage or Notifications - Manage.
     -- ORA-20187 for an unknown rule.
     procedure set_rule_enabled(p_rule_id in number, p_enabled_flag in varchar2);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_template(p_application_code in varchar2, p_template_code in varchar2);
+    -- Release 88 (C6): the contacts of P_ENTITY_NAME's records come from P_SOURCE_VIEW, a view of the application's
+    -- own schema with the columns PK1_VALUE, CONTACT_NAME, EMAIL_ADDRESS, on which the application granted SELECT
+    -- to COMMON's schema (ORA-20197 otherwise). Re-registering changes the view.
+    procedure register_contact_source(p_application_code in varchar2,
+                                      p_entity_name      in varchar2,
+                                      p_source_view      in varchar2,
+                                      p_description      in varchar2 default null);
+    procedure unregister_contact_source(p_application_code in varchar2, p_entity_name in varchar2);
+    -- The contacts of one record (empty when no source is registered or the user may not see the record).
+    function contacts(p_entity_name in varchar2, p_pk1_value in varchar2) return xxfnd_contact_tab pipelined;
+    -- the application's templates, contact sources and its own notification rules
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_notify_pkg;
 /
 
@@ -736,6 +755,19 @@ create or replace package body xxfnd_notify_pkg as
         end if;
     end keep_file;
 
+    function record_open(p_entity_name in varchar2, p_pk1_value in varchar2) return varchar2 is
+        l_n pls_integer;
+    begin
+        if not xxfnd_util_pkg.in_apex_session or xxfnd_vpd_pkg.is_trusted then
+            return 'Y';
+        end if;
+        select count(*) into l_n from xxfnd_document_entities where entity_name = upper(p_entity_name);
+        if l_n = 0 then
+            return 'Y';
+        end if;
+        return xxfnd_attach_pkg.record_visible(p_entity_name, p_pk1_value);
+    end record_open;
+
     function send_email(p_application_code in varchar2,
                         p_entity_name      in varchar2,
                         p_pk1_value        in varchar2,
@@ -751,7 +783,12 @@ create or replace package body xxfnd_notify_pkg as
         l_status  varchar2(30)   := 'NOT_SENT';
         l_mail_id number;
         l_id      number;
+        l_code    xxfnd_applications.application_code%type;
     begin
+        l_code := xxfnd_application_pkg.registered_code(p_application_code);   -- release 88 (C10): its own records only
+        if record_open(p_entity_name, p_pk1_value) = 'N' then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');    -- release 87 (C1): only the e-mails of a record the user sees
+        end if;
         if l_error is not null then
             raise_application_error(-20540, l_error);
         end if;
@@ -784,6 +821,7 @@ create or replace package body xxfnd_notify_pkg as
                           p_body             in clob,
                           p_rfi_id           in number default null,
                           p_mail_id          in number default null) is
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);   -- release 88 (C10)
     begin
         insert into xxfnd_communications (application_code, entity_name, pk1_value, rfi_id, direction, from_address,
                                           to_address, subject, body, status, source, mail_id, recorded_by)
@@ -807,7 +845,12 @@ create or replace package body xxfnd_notify_pkg as
                              p_temp_file_name      in varchar2 default null) return number is
         l_error varchar2(4000) := email_error('IN', p_from, p_subject, p_body);
         l_id    number;
+        l_code  xxfnd_applications.application_code%type;
     begin
+        l_code := xxfnd_application_pkg.registered_code(p_application_code);   -- release 88 (C10)
+        if record_open(p_entity_name, p_pk1_value) = 'N' then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');    -- release 87 (C1)
+        end if;
         if l_error is not null then
             raise_application_error(-20540, l_error);
         end if;
@@ -866,6 +909,85 @@ create or replace package body xxfnd_notify_pkg as
             xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Notification rule', to_char(p_rule_id)));
         end if;
     end set_rule_enabled;
+
+    -- release 88 (C8, C9)
+    -- release 88 (C6)
+    procedure register_contact_source(p_application_code in varchar2,
+                                      p_entity_name      in varchar2,
+                                      p_source_view      in varchar2,
+                                      p_description      in varchar2 default null) is
+        l_code   xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_schema xxfnd_applications.schema_name%type;
+        l_view   varchar2(128) := upper(trim(p_source_view));
+        l_owner  xxfnd_contact_sources.application_code%type;
+        l_n      pls_integer;
+    begin
+        select max(schema_name) into l_schema from xxfnd_applications where application_code = l_code;
+        select count(distinct column_name) into l_n from all_tab_columns
+         where owner = l_schema and table_name = l_view and column_name in ('PK1_VALUE', 'CONTACT_NAME', 'EMAIL_ADDRESS');
+        if l_n < 3 then
+            xxfnd_error_pkg.raise_error('XXFND_CONTACT_SOURCE_VIEW', apex_t_varchar2(l_view, l_schema));
+        end if;
+        select max(application_code) into l_owner from xxfnd_contact_sources where entity_name = upper(trim(p_entity_name));
+        xxfnd_application_pkg.assert_same_application('Contact source', upper(trim(p_entity_name)), l_owner, l_code);
+        merge into xxfnd_contact_sources t
+        using (select upper(trim(p_entity_name)) entity_name from dual) s
+           on (t.entity_name = s.entity_name)
+         when matched then update set t.source_view = l_view, t.description = nvl(p_description, t.description)
+         when not matched then insert (entity_name, application_code, source_view, description)
+                               values (s.entity_name, l_code, l_view, p_description);
+    end register_contact_source;
+
+    procedure unregister_contact_source(p_application_code in varchar2, p_entity_name in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Contact source', 'XXFND_CONTACT_SOURCES',
+            apex_t_varchar2('ENTITY_NAME'), apex_t_varchar2(upper(trim(p_entity_name))));
+    end unregister_contact_source;
+
+    function contacts(p_entity_name in varchar2, p_pk1_value in varchar2) return xxfnd_contact_tab pipelined is
+        l_src  varchar2(300);
+        l_cur  sys_refcursor;
+        l_name varchar2(400);
+        l_mail varchar2(320);
+    begin
+        select max(dbms_assert.enquote_name(a.schema_name, false) || '.' || dbms_assert.enquote_name(c.source_view, false))
+          into l_src
+          from xxfnd_contact_sources c
+          join xxfnd_applications a on a.application_code = c.application_code
+         where c.entity_name = upper(p_entity_name) and c.enabled_flag = 'Y';
+        if l_src is null or p_pk1_value is null or record_open(p_entity_name, p_pk1_value) = 'N' then
+            return;
+        end if;
+        open l_cur for 'select substr(contact_name, 1, 400), substr(email_address, 1, 320) from ' || l_src
+                    || ' where pk1_value = :p and email_address is not null order by contact_name' using p_pk1_value;
+        loop
+            fetch l_cur into l_name, l_mail;
+            exit when l_cur%notfound;
+            pipe row (xxfnd_contact_row(l_name, l_mail));
+        end loop;
+        close l_cur;
+        return;
+    exception
+        when no_data_needed then
+            if l_cur%isopen then close l_cur; end if;
+        when others then
+            if l_cur%isopen then close l_cur; end if;
+            xxfnd_error_pkg.log_error('XXFND_NOTIFY_PKG.CONTACTS', sqlerrm);
+            return;
+    end contacts;
+
+    procedure unregister_template(p_application_code in varchar2, p_template_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Notification template', 'XXFND_NOTIFICATION_TEMPLATES',
+            apex_t_varchar2('TEMPLATE_CODE'), apex_t_varchar2(upper(trim(p_template_code))));
+    end unregister_template;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Contact sources', 'XXFND_CONTACT_SOURCES');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Notification rules', 'XXFND_NOTIFY_RULES');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Notification templates', 'XXFND_NOTIFICATION_TEMPLATES');
+    end unregister_application;
 
 end xxfnd_notify_pkg;
 /

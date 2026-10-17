@@ -780,3 +780,54 @@ upgradeScript 30-application-journey (
             ```
     }
 )
+
+upgradeScript 31-basic-onboarding-and-the-application-menu (
+    execution {
+        sequence: 184
+    }
+    script {
+        contentFile: 31-onboarding-and-menu.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 32-removing-registrations-rfi-documents-and-deadlines-contacts (
+    execution {
+        sequence: 185
+    }
+    script {
+        contentFile: 32-registration-removal-rfi-contacts.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 99-sharing-with-the-applications-last (
+    execution {
+        sequence: 990
+    }
+    script {
+        contentFile: 99-share-with-applications-last.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

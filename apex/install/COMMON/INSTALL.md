@@ -56,6 +56,29 @@ the same release. Release 74 needs no new database privilege.
 Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops with ORA-20904, changing nothing, when COMMON 76 is not there yet). From this release the delivery is the APEXlang zip of each application (App Builder import) - no SQL Developer Web install script. QD only, once after both: run `apex/db/admin/qd-users-and-roles.sql` connected as XXFUSION (users and roles; first password Welcome#2026, changed at first sign-in). Upgrades no longer give back a privilege removed from a role in the console.
 
 
+## Release 88 (COMMON; includes 87)
+Release 88 (COMMON only, patch 100): basic onboarding, the application menu and the COMMON issues C1-C6, C8-C11
+(`apex/COMMON-ISSUES.md`). Import `COMMON-Application-APEXlang_88.zip` as usual (upgrade; data kept, a re-run changes
+nothing). What changes for the people and the applications:
+- **Every signed-in user** opens the shared pages (My Tasks, Notifications, Communications, E-mail, Attachments,
+  Information Request, Configuration Change, Give Feedback) and sees only their own tasks and the records they may see.
+- **Applications change COMMON data only through COMMON routines**: the upgrade revokes INSERT, UPDATE and DELETE on
+  COMMON's tables from the application schemas (SELECT, REFERENCES and EXECUTE stay). An application script that writes
+  COMMON's tables directly fails from now on (KYC 16l: it must use XXFND_APPROVAL_RULE_PKG.REGISTER_RULE). An
+  application sees only its own setup rows and the shared ones.
+- **Basic onboarding**: an application's own install can register it in COMMON (script `apex/db/00c-onboard-with-common.sql`
+  in the application's install, run as its schema; optional substitutions ONBOARD_APP_CODE and ONBOARD_ADMIN_USER).
+  IT switches it off with the COMMON application setting **ONBOARD_SELF_ALLOWED = N** (Shared Components >
+  Application Settings, kept on upgrade). The full setup stays in Applications (165 / 166).
+- **Application menu**: each registered application has menu entries for the common functions (maintained in
+  Applications > the application > Menu in the Application: Show / Hide). The application's navigation list is
+  `select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS order by display_sequence`.
+- **Unregister and delete**: every REGISTER_* routine has an UNREGISTER_* routine; deleting a disabled application
+  removes the setup it registered (only business data blocks it).
+- **Information requests** keep documents on page 143 and the answer task is due on the RFI's due date (Task Settings
+  RFI_RESPONSE / RFI_REVIEW for reminders). **E-mail** (46) offers the record's contacts when the application registered
+  a contact source.
+
 ## Release 86 (COMMON)
 Release 86 (COMMON only, patch 93): onboarding applications and workspace servers. **Applications** (Platform) is a
 guided journey: Register Application (165) picks an APEX application of the workspace that is not registered yet and

@@ -8,7 +8,7 @@ page 45 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @signed-in-user
         pageAccessProtection: unrestricted
         formAutoComplete: false
     }
@@ -166,7 +166,7 @@ page 45 (
             }
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @signed-in-user
         }
     )
     button received (
@@ -224,6 +224,8 @@ page 45 (
                  where c.application_code = :P45_APPLICATION_CODE
                    and c.entity_name = :P45_ENTITY_NAME
                    and c.pk1_value = :P45_PK1_VALUE
+                   -- release 87 (C1): every signed-in user opens the page; only the e-mails of a record the user sees
+                   and xxfnd_notify_pkg.record_open(:P45_ENTITY_NAME, :P45_PK1_VALUE) = 'Y'
                  order by c.communication_date desc
                 ```
         }

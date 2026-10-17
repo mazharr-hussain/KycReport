@@ -3,7 +3,7 @@
   {
    "from": 0,
    "target": "common/docs/COMMON-ISSUES.md",
-   "to": 6640,
+   "to": 11645,
    "whole": true
   }
  ],
@@ -52,6 +52,20 @@
    "from": 0,
    "target": "common/db/scripts/00b-common-schema-check.sql",
    "to": 1180,
+   "whole": false
+  }
+ ],
+ "apex/db/00c-onboard-with-common.sql": [
+  {
+   "from": 0,
+   "target": "common/db/framework/00c-onboard-with-common.sql",
+   "to": 2921,
+   "whole": false
+  },
+  {
+   "from": 2921,
+   "target": "common/db/framework/00c-onboard-with-common.sql",
+   "to": 4086,
    "whole": false
   }
  ],
@@ -559,13 +573,13 @@
   {
    "from": 0,
    "target": "common/features/integrations/db/packages/xxfnd_integration_pkg.sql",
-   "to": 7246,
+   "to": 7632,
    "whole": false
   },
   {
-   "from": 7246,
+   "from": 7632,
    "target": "common/features/integrations/db/packages/xxfnd_integration_pkg.sql",
-   "to": 34046,
+   "to": 35049,
    "whole": false
   },
   {
@@ -579,13 +593,13 @@
   {
    "from": 0,
    "target": "common/features/lookups/db/packages/xxfnd_lookup_pkg.sql",
-   "to": 2786,
+   "to": 3435,
    "whole": false
   },
   {
-   "from": 2786,
+   "from": 3435,
    "target": "common/features/lookups/db/packages/xxfnd_lookup_pkg.sql",
-   "to": 9323,
+   "to": 13031,
    "whole": false
   }
  ],
@@ -841,13 +855,13 @@
   {
    "from": 0,
    "target": "common/features/roles-privileges/db/packages/xxfnd_privilege_pkg.sql",
-   "to": 7017,
+   "to": 8035,
    "whole": false
   },
   {
-   "from": 7017,
+   "from": 8035,
    "target": "common/features/roles-privileges/db/packages/xxfnd_privilege_pkg.sql",
-   "to": 28970,
+   "to": 35413,
    "whole": false
   },
   {
@@ -911,7 +925,13 @@
   {
    "from": 0,
    "target": "common/features/applications/db/tables/xxfnd_application_functions.sql",
-   "to": 3360,
+   "to": 3708,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/09d-application-pkg.sql",
+   "to": 2633,
    "whole": false
   },
   {
@@ -923,13 +943,13 @@
   {
    "from": 0,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 10828,
+   "to": 15319,
    "whole": false
   },
   {
-   "from": 10828,
+   "from": 15319,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 47564,
+   "to": 68799,
    "whole": false
   }
  ],
@@ -989,7 +1009,7 @@
   {
    "from": 0,
    "target": "common/features/flexfields/db/packages/xxfnd_dff_pkg.sql",
-   "to": 8371,
+   "to": 9035,
    "whole": false
   }
  ],
@@ -1001,9 +1021,9 @@
    "whole": false
   },
   {
-   "from": 8371,
+   "from": 9035,
    "target": "common/features/flexfields/db/packages/xxfnd_dff_pkg.sql",
-   "to": 59206,
+   "to": 61496,
    "whole": false
   }
  ],
@@ -1177,13 +1197,13 @@
   {
    "from": 0,
    "target": "common/features/attachments/db/packages/xxfnd_attach_pkg.sql",
-   "to": 13374,
+   "to": 14099,
    "whole": false
   },
   {
-   "from": 13374,
+   "from": 14099,
    "target": "common/features/attachments/db/packages/xxfnd_attach_pkg.sql",
-   "to": 96592,
+   "to": 98994,
    "whole": false
   },
   {
@@ -1264,6 +1284,24 @@
   },
   {
    "from": 0,
+   "target": "common/db/scripts/15-workflow.sql",
+   "to": 1741,
+   "whole": false
+  },
+  {
+   "from": 1741,
+   "target": "common/db/scripts/15-workflow.sql",
+   "to": 1873,
+   "whole": false
+  },
+  {
+   "from": 1873,
+   "target": "common/db/scripts/15-workflow.sql",
+   "to": 1953,
+   "whole": false
+  },
+  {
+   "from": 0,
    "target": "common/features/information-requests/db/types/xxfnd_qa_row.sql",
    "to": 455,
    "whole": false
@@ -1277,25 +1315,25 @@
   {
    "from": 0,
    "target": "common/features/workflow-setup/db/packages/xxfnd_workflow_pkg.sql",
-   "to": 10034,
+   "to": 10488,
    "whole": false
   },
   {
    "from": 0,
    "target": "common/features/notifications/db/packages/xxfnd_notify_pkg.sql",
-   "to": 10216,
+   "to": 12049,
    "whole": false
   },
   {
-   "from": 10216,
+   "from": 12049,
    "target": "common/features/notifications/db/packages/xxfnd_notify_pkg.sql",
-   "to": 50157,
+   "to": 57851,
    "whole": false
   },
   {
-   "from": 10034,
+   "from": 10488,
    "target": "common/features/workflow-setup/db/packages/xxfnd_workflow_pkg.sql",
-   "to": 37414,
+   "to": 38685,
    "whole": false
   },
   {
@@ -1307,7 +1345,7 @@
   {
    "from": 3741,
    "target": "common/features/change-approvals/db/packages/xxfnd_approval_pkg.sql",
-   "to": 18294,
+   "to": 18725,
    "whole": false
   },
   {
@@ -1333,13 +1371,13 @@
   {
    "from": 0,
    "target": "common/features/information-requests/db/packages/xxfnd_rfi_pkg.sql",
-   "to": 5746,
+   "to": 6091,
    "whole": false
   },
   {
-   "from": 5746,
+   "from": 6091,
    "target": "common/features/information-requests/db/packages/xxfnd_rfi_pkg.sql",
-   "to": 33471,
+   "to": 34502,
    "whole": false
   },
   {
@@ -1383,13 +1421,13 @@
   {
    "from": 0,
    "target": "common/features/approval-setup/db/packages/xxfnd_approval_rule_pkg.sql",
-   "to": 6091,
+   "to": 7481,
    "whole": false
   },
   {
-   "from": 6091,
+   "from": 7481,
    "target": "common/features/approval-setup/db/packages/xxfnd_approval_rule_pkg.sql",
-   "to": 26695,
+   "to": 30555,
    "whole": false
   },
   {
@@ -1453,9 +1491,9 @@
    "whole": false
   },
   {
-   "from": 47564,
+   "from": 68799,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 50957,
+   "to": 72192,
    "whole": false
   },
   {
@@ -1475,13 +1513,13 @@
   {
    "from": 0,
    "target": "common/features/users-access/db/packages/xxfnd_user_pkg.sql",
-   "to": 6292,
+   "to": 6407,
    "whole": false
   },
   {
-   "from": 6292,
+   "from": 6407,
    "target": "common/features/users-access/db/packages/xxfnd_user_pkg.sql",
-   "to": 32953,
+   "to": 33951,
    "whole": false
   },
   {
@@ -1501,7 +1539,7 @@
   {
    "from": 2708,
    "target": "common/features/lookups/db/tables/xxfnd_lookup_types.sql",
-   "to": 15104,
+   "to": 15630,
    "whole": false
   }
  ],
@@ -1517,43 +1555,43 @@
   {
    "from": 0,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 2294,
+   "to": 2808,
    "whole": false
   },
   {
-   "from": 2294,
+   "from": 2808,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 23200,
+   "to": 24988,
    "whole": false
   },
   {
-   "from": 23200,
+   "from": 24988,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 23348,
+   "to": 25136,
    "whole": false
   }
  ],
  "apex/db/20-common-seed.sql": [
   {
-   "from": 23348,
+   "from": 25136,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 24358,
+   "to": 26146,
    "whole": false
   }
  ],
  "apex/db/21-common-admin.sql": [
   {
-   "from": 24358,
+   "from": 26146,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 25428,
+   "to": 27216,
    "whole": false
   }
  ],
  "apex/db/21b-application-functions.sql": [
   {
-   "from": 3360,
+   "from": 3708,
    "target": "common/features/applications/db/tables/xxfnd_application_functions.sql",
-   "to": 5111,
+   "to": 5459,
    "whole": false
   }
  ],
@@ -1565,9 +1603,9 @@
    "whole": false
   },
   {
-   "from": 50957,
+   "from": 72192,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 51014,
+   "to": 72249,
    "whole": false
   },
   {
@@ -1687,15 +1725,15 @@
    "whole": false
   },
   {
-   "from": 25428,
-   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 25579,
+   "from": 0,
+   "target": "common/db/scripts/24-workflow-module.sql",
+   "to": 201,
    "whole": false
   },
   {
-   "from": 0,
+   "from": 201,
    "target": "common/db/scripts/24-workflow-module.sql",
-   "to": 198,
+   "to": 399,
    "whole": false
   }
  ],
@@ -1751,15 +1789,15 @@
    "whole": false
   },
   {
-   "from": 25579,
-   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 25703,
+   "from": 0,
+   "target": "common/db/scripts/26-notifications-module.sql",
+   "to": 174,
    "whole": false
   },
   {
-   "from": 0,
+   "from": 174,
    "target": "common/db/scripts/26-notifications-module.sql",
-   "to": 186,
+   "to": 360,
    "whole": false
   }
  ],
@@ -1873,6 +1911,72 @@
    "whole": false
   }
  ],
+ "apex/db/31-onboarding-and-menu.sql": [
+  {
+   "from": 11152,
+   "target": "common/db/framework/objects/xxfnd_error_pkg.sql",
+   "to": 13081,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/31-onboarding-and-menu.sql",
+   "to": 957,
+   "whole": false
+  },
+  {
+   "from": 957,
+   "target": "common/db/scripts/31-onboarding-and-menu.sql",
+   "to": 1144,
+   "whole": false
+  },
+  {
+   "from": 1144,
+   "target": "common/db/scripts/31-onboarding-and-menu.sql",
+   "to": 2248,
+   "whole": false
+  },
+  {
+   "from": 2248,
+   "target": "common/db/scripts/31-onboarding-and-menu.sql",
+   "to": 5063,
+   "whole": false
+  },
+  {
+   "from": 5094,
+   "target": "common/db/framework/objects/xxfnd_util_pkg.sql",
+   "to": 5558,
+   "whole": false
+  }
+ ],
+ "apex/db/32-registration-removal-rfi-contacts.sql": [
+  {
+   "from": 13081,
+   "target": "common/db/framework/objects/xxfnd_error_pkg.sql",
+   "to": 14588,
+   "whole": false
+  },
+  {
+   "from": 5558,
+   "target": "common/db/framework/objects/xxfnd_util_pkg.sql",
+   "to": 7661,
+   "whole": false
+  }
+ ],
+ "apex/db/99-share-with-applications-last.sql": [
+  {
+   "from": 27216,
+   "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
+   "to": 27964,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/db/scripts/99-share-with-applications-last.sql",
+   "to": 85,
+   "whole": false
+  }
+ ],
  "apex/db/admin/clean-common.sql": [
   {
    "from": 0,
@@ -1909,7 +2013,7 @@
   {
    "from": 0,
    "target": "common/docs/install/INSTALL.md",
-   "to": 13104,
+   "to": 15266,
    "whole": true
   }
  ],
@@ -1917,7 +2021,7 @@
   {
    "from": 0,
    "target": "common/app/application.apx",
-   "to": 3292,
+   "to": 3646,
    "whole": true
   }
  ],
@@ -1941,7 +2045,7 @@
   {
    "from": 0,
    "target": "common/app/pages/p00000-global-page.apx",
-   "to": 48348,
+   "to": 52946,
    "whole": true
   }
  ],
@@ -1957,7 +2061,7 @@
   {
    "from": 0,
    "target": "common/features/my-tasks/pages/p00040-my-tasks.apx",
-   "to": 5523,
+   "to": 5528,
    "whole": true
   }
  ],
@@ -1965,7 +2069,7 @@
   {
    "from": 0,
    "target": "common/features/my-tasks/pages/p00043-notifications.apx",
-   "to": 10215,
+   "to": 10223,
    "whole": true
   }
  ],
@@ -1973,7 +2077,7 @@
   {
    "from": 0,
    "target": "common/features/communications/pages/p00045-communications.apx",
-   "to": 9512,
+   "to": 9731,
    "whole": true
   }
  ],
@@ -1981,7 +2085,7 @@
   {
    "from": 0,
    "target": "common/features/communications/pages/p00046-e-mail.apx",
-   "to": 10562,
+   "to": 11084,
    "whole": true
   }
  ],
@@ -1989,7 +2093,7 @@
   {
    "from": 0,
    "target": "common/features/documents/pages/p00047-attachments.apx",
-   "to": 17955,
+   "to": 17963,
    "whole": true
   }
  ],
@@ -1997,7 +2101,7 @@
   {
    "from": 0,
    "target": "common/features/documents/pages/p00048-document.apx",
-   "to": 12174,
+   "to": 12180,
    "whole": true
   }
  ],
@@ -2293,7 +2397,7 @@
   {
    "from": 0,
    "target": "common/features/my-tasks/pages/p00143-information-request.apx",
-   "to": 16580,
+   "to": 18925,
    "whole": true
   }
  ],
@@ -2301,7 +2405,7 @@
   {
    "from": 0,
    "target": "common/features/my-tasks/pages/p00144-configuration-change.apx",
-   "to": 12696,
+   "to": 12704,
    "whole": true
   }
  ],
@@ -2421,7 +2525,7 @@
   {
    "from": 0,
    "target": "common/features/applications/pages/p00166-application.apx",
-   "to": 14697,
+   "to": 14696,
    "whole": true
   }
  ],
@@ -2453,7 +2557,7 @@
   {
    "from": 0,
    "target": "common/features/give-feedback/pages/p00173-give-feedback.apx",
-   "to": 6948,
+   "to": 6956,
    "whole": true
   }
  ],
@@ -2549,7 +2653,7 @@
   {
    "from": 0,
    "target": "common/app/shared-components/app-processes.apx",
-   "to": 3871,
+   "to": 4435,
    "whole": true
   }
  ],
@@ -2602,6 +2706,12 @@
    "from": 2667,
    "target": "common/app/shared-components/authorizations.apx",
    "to": 3171,
+   "whole": false
+  },
+  {
+   "from": 3171,
+   "target": "common/app/shared-components/authorizations.apx",
+   "to": 3638,
    "whole": false
   }
  ],
@@ -2921,7 +3031,7 @@
   {
    "from": 0,
    "target": "common/features/information-requests/shared-components/task-definitions/RFI-RESPONSE.apx",
-   "to": 1879,
+   "to": 2137,
    "whole": true
   }
  ],
@@ -2929,7 +3039,7 @@
   {
    "from": 0,
    "target": "common/features/information-requests/shared-components/task-definitions/RFI-REVIEW.apx",
-   "to": 1947,
+   "to": 2189,
    "whole": true
   }
  ],
@@ -3281,7 +3391,7 @@
   {
    "from": 0,
    "target": "common/tests/r86_registration_test.sql",
-   "to": 35360,
+   "to": 35480,
    "whole": true
   }
  ],
@@ -3290,6 +3400,30 @@
    "from": 0,
    "target": "common/tests/r86_test_apps.sql",
    "to": 2792,
+   "whole": true
+  }
+ ],
+ "apex/tests/r87_app_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r87_app_test.sql",
+   "to": 5026,
+   "whole": true
+  }
+ ],
+ "apex/tests/r87_common_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r87_common_test.sql",
+   "to": 9646,
+   "whole": true
+  }
+ ],
+ "apex/tests/r87_delete_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r87_delete_test.sql",
+   "to": 1588,
    "whole": true
   }
  ],

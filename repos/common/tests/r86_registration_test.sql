@@ -389,8 +389,9 @@ begin
     check_(cnt(q'~select count(*) from xxfnd_applications where application_code = 'R86TEST' and enabled_flag = 'N'~') = 1,
            'SET_ENABLED disables the application');
     l_txt := xxfnd_application_pkg.delete_blocker('R86TEST');
-    check_(l_txt like '%Features%' and l_txt like '%Lookup Types%' and l_txt like '%Roles in use%',
-           'a disabled application its data refers to may not be deleted: ' || l_txt);
+    -- release 88 (C9): only business data blocks the delete (the setup it registered is removed with it)
+    check_(l_txt like '%Documents%' and l_txt not like '%Features%' and l_txt not like '%Lookup Types%',
+           'a disabled application its business data refers to may not be deleted: ' || l_txt);
     expect_error(-20184, 'DELETE_APPLICATION refuses it', q'~begin xxfnd_application_pkg.delete_application('R86TEST'); end;~');
     xxfnd_application_pkg.set_enabled('R86TEST', 'Y');
     commit;

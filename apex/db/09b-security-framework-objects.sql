@@ -296,6 +296,17 @@ create or replace package xxfnd_privilege_pkg authid definer as
                                 p_role_code_2      in varchar2,
                                 p_conflict_scope   in varchar2 default 'SAME_RECORD',
                                 p_description      in varchar2 default null);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    -- C8: a page of the application no longer mapped to a feature
+    procedure unregister_feature_page(p_application_code in varchar2, p_page_id in number);
+    procedure unregister_privilege(p_application_code in varchar2, p_privilege_code in varchar2);
+    -- the feature with its privileges and pages (refused while a role holds one of its privileges: in use)
+    procedure unregister_feature(p_application_code in varchar2, p_feature_code in varchar2);
+    -- a role given to nobody (its privileges and data rules go with it)
+    procedure unregister_role(p_application_code in varchar2, p_role_code in varchar2);
+    -- the pages, privileges and features of the application (its roles are deleted with the application)
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_privilege_pkg;
 /
 
@@ -545,6 +556,29 @@ create or replace package body xxfnd_privilege_pkg as
         return l_row;
     end app_row;
 
+    -- release 88: XXFND_APPLICATION_PKG is created after this package (09d): called by name
+    function registered_code(p_application_code in varchar2) return varchar2 is
+        l_code varchar2(30);
+    begin
+        execute immediate 'begin :r := xxfnd_application_pkg.registered_code(:c); end;' using out l_code, in p_application_code;
+        return l_code;
+    end registered_code;
+
+    procedure remove_registered(p_application_code in varchar2, p_what in varchar2, p_table in varchar2,
+                                p_key_columns in apex_t_varchar2, p_keys in apex_t_varchar2,
+                                p_owner_sql in varchar2 default 't.application_code') is
+    begin
+        execute immediate 'begin xxfnd_application_pkg.remove_registered(:a, :w, :t, :c, :k, :o); end;'
+            using p_application_code, p_what, p_table, p_key_columns, p_keys, p_owner_sql;
+    end remove_registered;
+
+    procedure remove_all_registered(p_application_code in varchar2, p_what in varchar2, p_table in varchar2,
+                                    p_owner_sql in varchar2 default 't.application_code') is
+    begin
+        execute immediate 'begin xxfnd_application_pkg.remove_all_registered(:a, :w, :t, :o); end;'
+            using p_application_code, p_what, p_table, p_owner_sql;
+    end remove_all_registered;
+
     procedure same_application(p_what in varchar2, p_key in varchar2, p_row_application in varchar2,
                                p_application_code in varchar2) is
     begin
@@ -720,6 +754,61 @@ create or replace package body xxfnd_privilege_pkg as
          when not matched then insert (role_code_1, role_code_2, conflict_scope, description)
                                values (s.r1, s.r2, s.scope, p_description);
     end register_sod_rule;
+
+    -- release 88 (C8, C9)
+    procedure unregister_feature_page(p_application_code in varchar2, p_page_id in number) is
+        l_app xxfnd_applications%rowtype := app_row(p_application_code);
+    begin
+        remove_registered(p_application_code, 'Feature page', 'XXFND_FEATURE_PAGES', apex_t_varchar2('APP_ALIAS', 'PAGE_ID'),
+            apex_t_varchar2(nvl(l_app.apex_app_alias, l_app.application_code), to_char(p_page_id)),
+            '(select max(a.application_code) from xxfnd_applications a where upper(nvl(a.apex_app_alias, a.application_code)) = upper(t.app_alias))');
+    end unregister_feature_page;
+
+    procedure unregister_privilege(p_application_code in varchar2, p_privilege_code in varchar2) is
+    begin
+        remove_registered(p_application_code, 'Privilege', 'XXFND_PRIVILEGES', apex_t_varchar2('PRIVILEGE_CODE'),
+            apex_t_varchar2(upper(trim(p_privilege_code))),
+            '(select a.application_code from xxfnd_features f join xxfnd_applications a on a.application_id = f.application_id where f.feature_code = t.feature_code)');
+    end unregister_privilege;
+
+    procedure unregister_feature(p_application_code in varchar2, p_feature_code in varchar2) is
+        l_feature xxfnd_features.feature_code%type := upper(trim(p_feature_code));
+        l_exists  boolean;
+        l_owner   xxfnd_applications.application_code%type := feature_application(l_feature, l_exists);
+    begin
+        if l_exists and nvl(l_owner, 'COMMON') = registered_code(p_application_code) then
+            for p in (select app_alias, page_id from xxfnd_feature_pages where feature_code = l_feature) loop
+                unregister_feature_page(p_application_code, p.page_id);
+            end loop;
+            for p in (select privilege_code from xxfnd_privileges where feature_code = l_feature) loop
+                unregister_privilege(p_application_code, p.privilege_code);
+            end loop;
+        end if;
+        remove_registered(p_application_code, 'Feature', 'XXFND_FEATURES', apex_t_varchar2('FEATURE_CODE'), apex_t_varchar2(l_feature),
+            '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
+    end unregister_feature;
+
+    procedure unregister_role(p_application_code in varchar2, p_role_code in varchar2) is
+    begin
+        remove_registered(p_application_code, 'Role', 'XXFND_ROLES', apex_t_varchar2('ROLE_CODE'), apex_t_varchar2(upper(trim(p_role_code))));
+    end unregister_role;
+
+    procedure unregister_application(p_application_code in varchar2) is
+        l_app xxfnd_applications%rowtype := app_row(p_application_code);
+    begin
+        -- the application's own roles are taken back from their users (the roles go with the application)
+        delete from xxfnd_user_roles
+         where role_code in (select role_code from xxfnd_roles where application_code = l_app.application_code);
+        -- the application's roles keep no privilege of its features (the roles go with the application)
+        delete from xxfnd_role_privileges rp
+         where rp.role_code in (select role_code from xxfnd_roles where application_code = l_app.application_code)
+           and rp.privilege_code in (select p.privilege_code from xxfnd_privileges p
+                                       join xxfnd_features f on f.feature_code = p.feature_code
+                                      where f.application_id = l_app.application_id);
+        remove_all_registered(p_application_code, 'Feature pages', 'XXFND_FEATURE_PAGES', '(select max(a.application_code) from xxfnd_applications a where upper(nvl(a.apex_app_alias, a.application_code)) = upper(t.app_alias))');
+        remove_all_registered(p_application_code, 'Privileges', 'XXFND_PRIVILEGES', '(select a.application_code from xxfnd_features f join xxfnd_applications a on a.application_id = f.application_id where f.feature_code = t.feature_code)');
+        remove_all_registered(p_application_code, 'Features', 'XXFND_FEATURES', '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
+    end unregister_application;
 
 end xxfnd_privilege_pkg;
 /

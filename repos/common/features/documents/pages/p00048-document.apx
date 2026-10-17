@@ -8,7 +8,7 @@ page 48 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-create
+        authorizationScheme: @signed-in-user
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -382,7 +382,7 @@ page 48 (
             value: SAVE
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @signed-in-user
         }
     )
     branch (

@@ -129,6 +129,11 @@ create or replace package xxfnd_workflow_pkg authid definer as
     -- session: Applications - Manage or Workflow Setup - Manage. ORA-20187 for a process not in the catalogue.
     procedure set_process_enabled(p_application_code in varchar2, p_process_code in varchar2, p_enabled_flag in varchar2);
 
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    -- a configuration table no longer changed through approvals
+    procedure unregister_config_table(p_application_code in varchar2, p_table_name in varchar2);
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_workflow_pkg;
 /
 
@@ -664,6 +669,19 @@ create or replace package body xxfnd_workflow_pkg as
             xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Process', l_code || ' ' || upper(p_process_code)));
         end if;
     end set_process_enabled;
+
+    -- release 88 (C8, C9)
+    procedure unregister_config_table(p_application_code in varchar2, p_table_name in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Configuration table', 'XXFND_CONFIG_TABLES', apex_t_varchar2('TABLE_NAME'),
+            apex_t_varchar2(upper(trim(p_table_name))),
+            '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
+    end unregister_config_table;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Configuration tables', 'XXFND_CONFIG_TABLES', '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
+    end unregister_application;
 
 end xxfnd_workflow_pkg;
 /

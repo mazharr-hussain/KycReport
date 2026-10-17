@@ -182,6 +182,14 @@ create or replace package xxfnd_attach_pkg authid definer as
     -- files stay where they are. (COPY_ATTACHMENTS shares documents instead.)
     procedure move_documents(p_entity_name in varchar2, p_from_pk1 in varchar2, p_to_pk1 in varchar2);
 
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_entity(p_application_code in varchar2, p_entity_name in varchar2);
+    procedure unregister_category(p_application_code in varchar2, p_category_code in varchar2);
+    -- C8: an attachment page (function) with its blocks
+    procedure unregister_attachment_page(p_application_code in varchar2, p_function_code in varchar2);
+    -- the application's attachment pages, categories, entities and storage settings
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_attach_pkg;
 /
 
@@ -1676,6 +1684,33 @@ create or replace package body xxfnd_attach_pkg as
          where entity_name = l_entity
            and pk1_value   = p_from_pk1;
     end move_documents;
+
+    -- release 88 (C8, C9)
+    procedure unregister_entity(p_application_code in varchar2, p_entity_name in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Document entity', 'XXFND_DOCUMENT_ENTITIES', apex_t_varchar2('ENTITY_NAME'),
+            apex_t_varchar2(upper(trim(p_entity_name))));
+    end unregister_entity;
+
+    procedure unregister_category(p_application_code in varchar2, p_category_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Document category', 'XXFND_DOCUMENT_CATEGORIES', apex_t_varchar2('CATEGORY_CODE'),
+            apex_t_varchar2(upper(trim(p_category_code))));
+    end unregister_category;
+
+    procedure unregister_attachment_page(p_application_code in varchar2, p_function_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Attachment page', 'XXFND_ATTACHMENT_FUNCTIONS', apex_t_varchar2('FUNCTION_CODE'),
+            apex_t_varchar2(upper(trim(p_function_code))));
+    end unregister_attachment_page;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Storage settings', 'XXFND_STORAGE_CONFIG');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Attachment pages', 'XXFND_ATTACHMENT_FUNCTIONS');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Document categories', 'XXFND_DOCUMENT_CATEGORIES');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Document entities', 'XXFND_DOCUMENT_ENTITIES');
+    end unregister_application;
 
 end xxfnd_attach_pkg;
 /

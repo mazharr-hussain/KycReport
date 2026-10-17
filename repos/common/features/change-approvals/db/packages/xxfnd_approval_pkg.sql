@@ -245,11 +245,18 @@ create or replace package body xxfnd_approval_pkg as
         else
             submit(l_reg.table_name, p_key);
         end if;
+        -- release 87 (C2): a CONFIG_CHANGE that faulted (e.g. after a cancel) is ended, so the change can be
+        -- submitted again; a running one is kept
+        for w in (select workflow_id from apex_workflows
+                   where workflow_def_static_id = 'CONFIG_CHANGE' and detail_pk = l_detail_pk
+                     and state_code = 'FAULTED') loop
+            xxfnd_workflow_pkg.end_process(w.workflow_id);
+        end loop;
         -- release 84: the change is approved in the COMMON workflow process CONFIG_CHANGE (one running per change)
         select count(*) into l_open
           from apex_workflows
          where workflow_def_static_id = 'CONFIG_CHANGE' and detail_pk = l_detail_pk
-           and state_code in ('ACTIVE', 'SUSPENDED', 'FAULTED');
+           and state_code in ('ACTIVE', 'SUSPENDED');
         if l_open = 0 then
             select max(change_type) into l_type from xxfnd_config_changes_v where detail_pk = l_detail_pk;
             if l_type is null then

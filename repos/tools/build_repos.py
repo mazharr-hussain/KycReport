@@ -81,7 +81,8 @@ manifest = json.load(open(f'{ROOT}/apex/db/manifest.json'))
 order = {e['file']: e for e in manifest}
 def script_repo(e):
     apps = e.get('apps', ['KYC'])
-    if set(apps) == {'COMMON', 'KYC'}:
+    # release 87: a generic script no application runs yet (00c-onboard-with-common.sql) is COMMON's framework too
+    if set(apps) == {'COMMON', 'KYC'} or apps == []:
         return 'common', True      # the install framework every application runs: kept once, in COMMON
     return ('common' if apps == ['COMMON'] else 'kyc'), False
 
@@ -253,6 +254,54 @@ for repo, entries in MAN.items():
     json.dump(entries, open(f'{OUT}/{repo}/db/manifest.json', 'w'), indent=1)
 
 # ---------------------------------------------------------------- READMEs (what each feature has, uses and is used by)
+
+from common_components import C as COMPONENTS, COMMON_REQ, OTHER_APP
+
+def component_readme(repo, f, d, files, uses_f, used_by):
+    """README of a COMMON component: the curated answers (common_components.py) and the lists read from its files."""
+    c = COMPONENTS.get(f, {})
+    texts = {x: ''.join(targets[f'{d}/{x}']) for x in files}
+    pages = []
+    for x in files:
+        if x.startswith('pages/'):
+            m = re.search(r'^\s+name:\s*(.+)$', texts[x], re.M)
+            pages.append(f'- {int(os.path.basename(x)[1:6])} {m.group(1).strip() if m else ""} (`{x}`)')
+    shared = [f'- `{x}`' for x in files if x.startswith('shared-components/')]
+    dbo = collections.defaultdict(list)
+    for x in files:
+        if x.startswith('db/'):
+            dbo[x.split('/')[1]].append(os.path.basename(x)[:-4].upper())
+    api = []
+    for x in files:
+        if x.startswith('db/packages/'):
+            m = re.search(r'create\s+or\s+replace\s+package\s+(?!body)(\w+).*?\n(.*?)\nend\s+\1\s*;', texts[x], re.I | re.S)
+            if m:
+                names = sorted(set(n.upper() for n in re.findall(r'^\s+(?:procedure|function)\s+(\w+)', m.group(2), re.M | re.I)))
+                reg = [n for n in names if n.startswith('REGISTER_')]
+                api.append(f'- `{m.group(1).upper()}`: ' + ', '.join(names) + (f' (registration: {", ".join(reg)})' if reg else ''))
+    tests = [f'- `{x}`' for x in files if x.startswith('tests/')]
+    title = c.get('name', f)
+    L = [f'# {title}', '', f'COMMON component, module {c.get("module", "-")}'
+         + (f' (feature `{c["feature"]}`).' if c.get('feature') else '.'), '',
+         '## Purpose', c.get('purpose', '-'), '', '## Usage', c.get('usage', '-'), '', '## Benefit', c.get('benefit', '-'), '',
+         '## Depends on (objects of these components are named in its files)', ', '.join(uses_f) or '-', '',
+         '## Used by (COMMON components)', ', '.join(used_by) or '-', '',
+         '## Installation requirements', COMMON_REQ + (' ' + c['req'] if c.get('req') else ''), '',
+         '## Application objects', '### Pages'] + (pages or ['-']) + ['', '### Shared components'] + (shared or ['-']) + [
+         '', '## Database objects (schema XXFUSION)']
+    for kind in ('tables', 'views', 'packages', 'types', 'sequences', 'triggers', 'seed', 'objects'):
+        if dbo.get(kind):
+            L.append(f'- {kind}: ' + ', '.join(f'`{n}`' for n in sorted(dbo[kind])))
+    if not dbo:
+        L.append('- none of its own (it uses the objects of the components above)')
+    L += ['', '## Roles and privileges',
+          (f'Privileges `{c["feature"]}.<action>` for {c.get("actions")} (VIEW opens its pages, CREATE adds, MANAGE changes and '
+           'deletes); a page opens with the privilege on the feature it is mapped to.' if c.get('feature') else 'No feature of its own.'),
+          f'Roles at install: {c.get("roles", "-")}', '',
+          '## How another application uses it', OTHER_APP, '', c.get('other', '-'), '', '### Public routines'] + (api or ['-'])
+    L += ['', '## Tests'] + (tests or ['- in `../../tests/` (whole application)']) + ['', '## Files'] + [f'- `{x}`' for x in files] + ['']
+    return L
+
 TITLE = {'kyc': 'KYC Compliance Platform (application 134, schema XXCUS)',
          'common': 'COMMON (application 135, schema XXFUSION): shared security, setup, documents, workflow, integrations'}
 def objects_of(feat_dir):
@@ -272,7 +321,7 @@ for repo in APPS:
         lines = [f'# {f}', '', f'Feature of {TITLE[repo].split(" (")[0]}. Copied as it is from the current application (no change).', '']
         lines += ['## Uses (objects of these features are named in its files)', ', '.join(uses[f]) or '-', '', '## Used by', ', '.join(used_by) or '-', '', '## Files']
         lines += [f'- `{x}`' for x in files] + ['']
-        targets[f'{d}/README.md'] = ['\n'.join(lines)]
+        targets[f'{d}/README.md'] = ['\n'.join(component_readme(repo, f, d, files, uses[f], used_by) if repo == 'common' else lines)]
     if repo == 'kyc':
         os.makedirs(f'{OUT}/kyc/features/case-assignment', exist_ok=True)
         targets[f'{OUT}/kyc/features/case-assignment/README.md'] = ['\n'.join([
@@ -300,6 +349,28 @@ for repo in APPS:
         '## Build', f'`./build.sh [--release N]` - the one build, `common/tools/build.py` (no build logic in this repository' + ('' if repo == 'common' else ' - it is COMMON\'s') + '); output in `dist/` (not kept in git).', '',
         '## Not copied', '- the generated install / upgrade scripts of `supporting-objects/` (the build makes them from the database scripts).',
         '- History and tooling stay in `apex/`: release zips, patches, tools, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md.', ''])]
+targets[f'{OUT}/common/db/framework/README.md'] = ['\n'.join([
+    '# Framework (COMMON)', '',
+    'The base every COMMON component and every application runs on. No feature, no page: database only.', '',
+    '## Purpose',
+    'Install and upgrade safety (checked DDL steps, release tracking), the who / audit columns, errors and messages, shared',
+    'utilities, the sharing of COMMON objects with the application schemas, and the final recompile.', '',
+    '## Usage',
+    '- `00a-prerequisites-check.sql` - first script of every install and upgrade of every application: checks the privileges.',
+    '- `00-deployment-framework.sql` - `XXFND_DDL_PKG` (CREATE_TABLE, ADD_COLUMN, ADD_CONSTRAINT, ENSURE_INDEX, ... , RELEASE_APPLIED,',
+    '  MARK_RELEASE) and `XXFND_SCHEMA_RELEASES`, `XXFND_DROPPED_OBJECTS`: runs in each schema (COMMON and every application).',
+    '- `07-who-and-audit-triggers.sql`, `19-reporting-views-and-recompile.sql` - run for every application.',
+    '- `objects/`: `XXFND_UTIL_PKG` (install mode, current user, language), `XXFND_ERROR_PKG` / `XXFND_MESSAGES` (messages and',
+    '  error handling), `XXFND_SCHEMA_PKG` (who triggers, policies), `XXFND_UI_PKG` (status colours), `XXFND_SHARE_PKG` (grants',
+    '  to the application schemas, COMMON seed).', '',
+    '## Benefit', 'No install error (no ORA-00955): every database gets exactly what it is missing and a re-run does nothing.', '',
+    '## Depends on', '-', '', '## Installation requirements', 'Runs first; 00a lists the grants the schema needs when one is missing.', '',
+    '## Roles and privileges', 'None (database only). `XXFND_SHARE_PKG.GRANT_TO` gives application schemas SELECT and EXECUTE (and today',
+    'also INSERT / UPDATE / DELETE: COMMON issue C10) on the COMMON objects.', '',
+    '## How another application uses it',
+    'Its install runs 00a, 00, 07 and 19 from here (no copy) and uses `XXFND_DDL_PKG` for every change to its own objects;',
+    'it reaches the shared packages through grants and synonyms (KYC script 03). `XXFND_DDL_PKG` and `XXFND_SCHEMA_RELEASES` are',
+    'local to each schema (never granted).', ''])]
 targets[f'{OUT}/verify.py'] = [open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'verify_template.py')).read()]
 for t in [t for t in targets if t.endswith(('README.md', 'verify.py')) and not any(x['target'] == os.path.relpath(t, OUT) for v in placed.values() for x in v)]:
     os.makedirs(os.path.dirname(t), exist_ok=True)

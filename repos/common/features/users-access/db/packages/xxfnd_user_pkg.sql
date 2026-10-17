@@ -86,7 +86,8 @@ create or replace package xxfnd_user_pkg authid definer as
     ----------------------------------------------------------------------------
     -- One entry for the authorization schemes: KYC_USER / APP_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
     -- WORKFLOW_ADMINISTER, ADMIN_AREA, ADMIN_APP, PARTY_DETAILS_VIEW, PARTY_DETAILS_CREATE, PARTY_DETAILS_MANAGE,
-    -- PARTY_DETAILS_SUBMIT. Reads APP_PAGE_ID, REQUEST and the Global Page party context from session state.
+    -- PARTY_DETAILS_SUBMIT, SIGNED_IN (release 87: any enabled user - the shared pages of COMMON, which show only the
+    -- user's own data). Reads APP_PAGE_ID, REQUEST and the Global Page party context from session state.
     function authorized(p_scheme in varchar2) return boolean;
     -- True when the signed-in user has the Fusion role / identity-domain group (dynamic group) P_GROUP.
     function in_group(p_group in varchar2) return boolean;
@@ -432,6 +433,16 @@ create or replace package body xxfnd_user_pkg as
         return upper(l_value) = 'Y';
     end login_type_enforced;
 
+    -- release 87: an enabled user of the access module or an enabled employee (who may sign in)
+    function signed_in return boolean is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from dual
+         where exists (select 1 from xxfnd_users u where u.user_name = upper(v('APP_USER')) and u.enabled_flag = 'Y')
+            or exists (select 1 from xxfnd_employees e where upper(e.user_name) = upper(v('APP_USER')) and e.enabled_flag = 'Y');
+        return l_n > 0;
+    end signed_in;
+
     function user_type return varchar2 is
         l_type xxfnd_users.user_type%type;
     begin
@@ -556,9 +567,12 @@ create or replace package body xxfnd_user_pkg as
                    -- of an application maintain its setup on the COMMON screens)
                    -- release 71: COMMON is for IT only (Common Administrator)
                    -- release 73: and an application's administrators on the functions IT lets them manage (delegated)
+                   -- release 87 (C1): and every signed-in user: the shared pages (tasks, notifications, documents, e-mails,
+                   -- feedback) show only the user's own data; every other COMMON page keeps its privilege check
                    when 'APP_USER'             then case when upper(v('APP_ALIAS')) = 'COMMON'
                                                          then xxfnd_application_pkg.is_common_admin = 'Y'
                                                               or xxfnd_application_pkg.delegated_any = 'Y'
+                                                              or signed_in
                                                          else xxfnd_privilege_pkg.has_any_privilege
                                                               or xxfnd_application_pkg.administers_any = 'Y' end
                    -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
@@ -582,6 +596,7 @@ create or replace package body xxfnd_user_pkg as
                    when 'PARTY_DETAILS_VIEW'   then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW') or party_details_editable
                    when 'PARTY_DETAILS_CREATE' then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE') or party_details_editable
                    when 'PARTY_DETAILS_MANAGE' then xxfnd_privilege_pkg.has_page_privilege(page_id, 'MANAGE') or party_details_editable
+                   when 'SIGNED_IN'            then signed_in
                    when 'PARTY_DETAILS_SUBMIT' then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
                                                     or party_details_editable
                    else false

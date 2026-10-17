@@ -1,6 +1,6 @@
 app COMMON (
     name: Common
-    version: Release 86
+    version: Release 88
     logo {
         type: text
         text: &APP_TITLE.
@@ -114,5 +114,15 @@ appSetting MAIL_FOOTER (
     }
     comments {
         comments: Release 84 - the footer of every notification e-mail (layout XXFND_STANDARD), e.g. the company name and a no-reply note. Empty = no footer.
+    }
+)
+
+appSetting ONBOARD_SELF_ALLOWED (
+    value {
+        staticValue: Y
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments: Release 87 - Y: an application's own install may register it in COMMON with the bare minimum (generic script 00c, XXFND_ONBOARD_PKG.ONBOARD_SELF). N: only IT registers applications (Application Journey).
     }
 )
