@@ -26,9 +26,9 @@ def db(sql):
     return [l.strip() for l in out.splitlines() if l.strip() and 'JAVA_TOOL' not in l]
 
 
-def wait_db(sql, secs=120):
+def wait_db(sql, secs=300):
     for _ in range(secs // 3):
-        r = db(sql)
+        r = db("exec apex_util.set_workspace('XXCUS')\n" + sql)   # the APEX task views need the workspace
         if r and r[0] not in ('', 'null'):
             return r[0]
         time.sleep(3)
@@ -90,7 +90,7 @@ with sync_playwright() as p:
     rfi = rfi[0] if rfi else None
     ok(f'the RFI is raised for the case ({rfi})', rfi and rfi != '')
     ok('it is listed in Notes and RFIs', f'RFI ' in pg.inner_text('#notes') and question in pg.inner_text('#notes'))
-    task = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'RFI_RESPONSE' and detail_pk = '{rfi}' "
+    task = wait_db(f"select to_char(max(task_id)) from apex_tasks where task_def_static_id = 'RFI_RESPONSE' and detail_pk = '{rfi}' "
                    f"and state_code in ('UNASSIGNED', 'ASSIGNED')")
     ok(f'COMMON\'s workflow asks REQ1 (task {task})', task is not None)
 
@@ -118,7 +118,7 @@ with sync_playwright() as p:
         ok(f'the answer is kept ({st})', st == ['RESPONDED'])
 
     # 3. the officer reviews it from the case's RFI row
-    review = wait_db(f"select max(task_id) from apex_tasks where task_def_static_id = 'RFI_REVIEW' and detail_pk = '{rfi}' "
+    review = wait_db(f"select to_char(max(task_id)) from apex_tasks where task_def_static_id = 'RFI_REVIEW' and detail_pk = '{rfi}' "
                      f"and state_code in ('UNASSIGNED', 'ASSIGNED')")
     ok(f'the workflow has it reviewed (task {review})', review is not None)
     open_notes(pg, s, cnum)
