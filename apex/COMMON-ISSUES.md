@@ -114,3 +114,14 @@ COMMON 87 and 88 fixed C1-C6 and C8-C11 (each issue's **Status**); C7 stays open
 - **Effect:** none today (27-30 create no object), but an object a later script creates is not granted to the
   applications until the next COMMON install or upgrade, so an application using it fails until then.
 - **Needed:** call GRANT_TO_APPLICATIONS once, as the last COMMON install and upgrade script.
+
+## C12 - My Tasks opens another application's task page without a checksum
+- **Status:** Open (found while recording the KYC user guide on COMMON 89 and KYC 92).
+- **Where:** COMMON page 40 (My Tasks) opens a task with `APEX_TASKS.DETAILS_LINK_TARGET` (`open_url`). For a task of
+  another application this is the plain task-definition link, e.g. `f?p=134:206:<session>::NO:206:P206_TASK_ID:<task>`,
+  with no checksum.
+- **Effect:** the application's task page refuses it when its page access protection is "Arguments Must Have Checksum"
+  (KYC pages 206 and 211): "Session state protection violation". Users must open the task from the application's own
+  task list instead (KYC Home > My Tasks, whose link carries a checksum).
+- **Needed:** My Tasks opens another application's task page with a valid checksum (for example a URL prepared for that
+  application), so every application's task opens from COMMON.
