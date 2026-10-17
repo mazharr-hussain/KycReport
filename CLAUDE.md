@@ -52,7 +52,9 @@
 - **Golden rule: data in COMMON changes only through COMMON routines (from the user).** An application never changes
   COMMON data (XXFND_ tables) with a direct database command (INSERT, UPDATE, DELETE, MERGE); it calls the COMMON
   routine for it. Where no routine exists, the gap is listed for the COMMON team in `apex/COMMON-ISSUES.md` - never
-  worked around with direct SQL.
+  worked around with direct SQL. Every COMMON routine that changes data has a parameter for the application (its code
+  or ID) and changes only that application's rows (another application's rows are refused); applications are granted
+  SELECT and EXECUTE on COMMON objects only, never INSERT, UPDATE or DELETE.
 - **COMMON scope only (from the user):** a component that belongs to COMMON lives only in COMMON scope; KYC (and every
   other application) uses it as it is - no change, no redevelopment, no duplication.
 - **COMMON is completed on its own (from the user):** KYC and COMMON are two different applications. For now treat KYC

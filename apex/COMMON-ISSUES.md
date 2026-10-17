@@ -94,7 +94,8 @@ adapting KYC (releases 87-91) to COMMON 86. KYC uses COMMON as it is; the COMMON
   (REGISTER_DEFAULT_RULE) and has no routine to register several rules for one type.
 - **Needed:** grant applications SELECT (with grant option, for their views) and EXECUTE only - no INSERT, UPDATE or
   DELETE; and a routine to register an application's approval rules (several per type, with steps and conditions), so
-  KYC 16l can call it instead of writing the tables.
+  KYC 16l can call it instead of writing the tables. Every data-changing COMMON routine takes the application (code or
+  ID) and changes only that application's rows (golden rule, from the user).
 
 ## C11 - The grants to applications depend on script order
 - **Where:** `XXFND_SHARE_PKG.GRANT_TO_APPLICATIONS` is called in scripts 19c, 24 and 26; scripts 27-30 run after it.
