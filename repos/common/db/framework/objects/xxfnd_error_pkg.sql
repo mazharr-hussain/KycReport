@@ -193,3 +193,47 @@ begin
     commit;
 end;
 /
+--------------------------------------------------------------------------------
+-- 31 Basic onboarding and the application menu (release 87). COMMON only (XXFUSION), after 30.
+--   XXFND_ONBOARD_PKG.ONBOARD_SELF: the bare minimum an application needs to use the common components, called from
+--   the application's own install (generic script 00c-onboard-with-common.sql, run as the application's schema): it
+--   registers the APEX application of that schema through XXFND_APPLICATION_PKG.ONBOARD (registration rows, grants to
+--   the schema, the <CODE>_ADMIN role, the menu entries). Nothing else (no APEX setting); the full onboarding is the
+--   Application Journey (page 165). IT switches it off with the COMMON setting ONBOARD_SELF_ALLOWED = N.
+--   XXFND_APP_MENU_V: the menu of the running application for the common functions (entries of
+--   XXFND_APP_MENU_ENTRIES the signed-in user may see, with their links): the whole navigation list of an application
+--   is "select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS order by display_sequence".
+-- Idempotent: a re-run changes nothing.
+--------------------------------------------------------------------------------
+begin
+    xxfnd_error_pkg.register_message('XXFND_REG_WRONG_CALLER',
+        'Application {1} may only be changed by itself or by COMMON (called by {2}).', -20192);
+    xxfnd_error_pkg.register_message('XXFND_ONBOARD_SELF_OFF',
+        'Applications may not register themselves here: ask IT to register the application in COMMON (Applications).', -20193);
+    xxfnd_error_pkg.register_message('XXFND_ONBOARD_SELF_APP',
+        'No single APEX application of schema {1} matches {2}: give the application code (its alias).', -20194);
+    xxfnd_error_pkg.register_message('XXFND_MENU_TARGET',
+        'Menu entry {1}: the target type is COMMON_PAGE, APP_PAGE, MANAGED or SHARED_SETUP, and a page needs its number.', -20195);
+    commit;
+end;
+/
+--------------------------------------------------------------------------------
+-- 32 Removing registrations, RFI documents and deadlines, contacts of a record (release 88). COMMON only (XXFUSION),
+--   after 31 and before 99.
+--   C8 / C9: every REGISTER_* routine has its UNREGISTER_* routine in the same package (the application's own rows
+--     only, through XXFND_APPLICATION_PKG.REMOVE_REGISTERED), and DELETE_APPLICATION removes the setup an application
+--     registered (each component's UNREGISTER_APPLICATION) - only business data still blocks it.
+--   C5: the Information Request page 143 keeps the documents of the RFI (attachment page COMMON_RFI, entity
+--     XXFND_RFIS); its tasks get a due date (the RFI's own, else the task setting) and their task settings.
+--   C6: the contacts of a record (XXFND_NOTIFY_PKG.REGISTER_CONTACT_SOURCE) are offered as recipients on page 46.
+--   C10: REGISTER_RULE (several approval rules per type); the applications are granted SELECT / EXECUTE only.
+-- Idempotent: a re-run changes nothing.
+--------------------------------------------------------------------------------
+begin
+    xxfnd_error_pkg.register_message('XXFND_REG_IN_USE',
+        '{1} {2} is still used by the application''s data and cannot be removed.', -20196);
+    xxfnd_error_pkg.register_message('XXFND_CONTACT_SOURCE_VIEW',
+        'View {1} of schema {2} needs the columns PK1_VALUE, CONTACT_NAME and EMAIL_ADDRESS, and SELECT on it granted to COMMON.', -20197);
+    commit;
+end;
+/

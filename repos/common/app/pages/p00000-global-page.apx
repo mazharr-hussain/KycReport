@@ -1006,6 +1006,154 @@ page 0 (
         )
     )
 
+    region jrn-menu (
+        name: Menu in the Application
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 87: the entries of the application's menu for the common functions (XXFND_APP_MENU_V reads them
+                -- in the application); Show / Hide calls XXFND_APPLICATION_PKG.SAVE_MENU_ENTRY (application process
+                -- JOURNEY_ACTIONS)
+                select e.entry_code,
+                       e.display_sequence,
+                       e.label,
+                       case e.target_type when 'COMMON_PAGE' then 'COMMON page ' || e.page_id
+                                          when 'APP_PAGE' then 'Application page ' || e.page_id
+                                          when 'MANAGED' then 'Managed function ' || e.feature_code
+                                          else 'Shared setup' end as target,
+                       case e.made_by when 'APP' then 'The application' else 'COMMON' end as made_by,
+                       case e.enabled_flag when 'Y' then 'Shown' else 'Hidden' end as state,
+                       case when xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'MANAGE') = 'Y'
+                            then case e.enabled_flag when 'Y' then 'JRN_MENU_OFF' else 'JRN_MENU_ON' end
+                       end as action_request,
+                       case e.enabled_flag when 'Y' then 'Hide' else 'Show' end as action_label
+                  from xxfnd_app_menu_entries e
+                 where e.application_code = :P0_JRN_APP
+                 order by e.display_sequence, e.label
+                ```
+            pageItemsToSubmit: [
+                P0_JRN_APP
+            ]
+        }
+        layout {
+            sequence: 165
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: jrn-menu
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        messages {
+            whenNoDataFound: The application has no menu entry yet (made when it is onboarded).
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_JRN_APP is not null and (:APP_PAGE_ID = 166 or (:APP_PAGE_ID = 165 and :P165_STEP = '10'))
+                ```
+        }
+        comments {
+            comments: Release 87 - the application's menu for the common functions, shared by 165 (review step) and 166; Applications privileges.
+        }
+
+        column ENTRY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: plainText
+            heading {
+                heading: Order
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Entry
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column TARGET (
+            type: plainText
+            heading {
+                heading: Opens
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column MADE_BY (
+            type: plainText
+            heading {
+                heading: Made By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column ACTION_LABEL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if ACTION_REQUEST/}<a href="javascript:apex.page.submit({request:'#ACTION_REQUEST#',set:{'P0_JRN_KEY':'#ENTRY_CODE#'}});">#ACTION_LABEL#</a>{endif/}
+                    ```
+            }
+        )
+
+        column ACTION_REQUEST (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+    )
+
     region jrn-notifications (
         name: Notifications
         type: classicReport

@@ -39,12 +39,12 @@ Privileges `NOTIFICATIONS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pag
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application registers its templates with `XXFND_NOTIFY_PKG.REGISTER_TEMPLATE` (KYC: KYC_ALERT) and sends with `SEND`, `SEND_TO_USERS` or `RAISE_EVENT`.
 
 ### Public routines
-- `XXFND_NOTIFY_PKG`: COMMON_SETTING, DELIVER_EMAIL, DELIVER_FUSION, DELIVER_IN_APP, DELIVER_PUSH, EMAIL_ERROR, EVENT_FOR, HAS_PUSH, MARK_ALL_READ, MARK_READ, PREVIEW_MESSAGE, PREVIEW_SUBJECT, RAISE_EVENT, RECORD_RECEIVED, RECORD_SENT, REGISTER_TEMPLATE, RULE_RECIPIENTS, SEND, SEND_EMAIL, SEND_MESSAGE, SEND_TEST, SEND_TO_USERS, SET_RULE_ENABLED, UNREAD_COUNT, USER_LANGUAGE (registration: REGISTER_TEMPLATE)
+- `XXFND_NOTIFY_PKG`: COMMON_SETTING, CONTACTS, DELIVER_EMAIL, DELIVER_FUSION, DELIVER_IN_APP, DELIVER_PUSH, EMAIL_ERROR, EVENT_FOR, HAS_PUSH, MARK_ALL_READ, MARK_READ, PREVIEW_MESSAGE, PREVIEW_SUBJECT, RAISE_EVENT, RECORD_OPEN, RECORD_RECEIVED, RECORD_SENT, REGISTER_CONTACT_SOURCE, REGISTER_TEMPLATE, RULE_RECIPIENTS, SEND, SEND_EMAIL, SEND_MESSAGE, SEND_TEST, SEND_TO_USERS, SET_RULE_ENABLED, UNREAD_COUNT, UNREGISTER_APPLICATION, UNREGISTER_CONTACT_SOURCE, UNREGISTER_TEMPLATE, USER_LANGUAGE (registration: REGISTER_CONTACT_SOURCE, REGISTER_TEMPLATE)
 
 ## Tests
 - in `../../tests/` (whole application)

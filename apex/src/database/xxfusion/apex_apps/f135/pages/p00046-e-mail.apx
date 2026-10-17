@@ -8,7 +8,7 @@ page 46 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-create
+        authorizationScheme: @signed-in-user
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -123,8 +123,18 @@ page 46 (
             item: P46_DIRECTION
             value: OUT
         }
+        quickPicks {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 88 (C6): the contacts the application holds for the record (registered contact source)
+                select contact_name || ' (' || email_address || ')' as d, email_address as r
+                  from table(xxfnd_notify_pkg.contacts(:P46_ENTITY_NAME, :P46_PK1_VALUE))
+                ```
+            maxDisplayedEntries: 10
+        }
         help {
-            helpText: The e-mail addresses (comma-separated).
+            helpText: The e-mail addresses (comma-separated). A contact of the record listed below the field fills it in.
         }
     )
     pageItem P46_CC (
@@ -340,7 +350,7 @@ page 46 (
             value: SEND
         }
         security {
-            authorizationScheme: @page-create
+            authorizationScheme: @signed-in-user
         }
     )
     process save-received (

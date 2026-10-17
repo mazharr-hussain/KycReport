@@ -129,5 +129,12 @@ create or replace package xxfnd_dff_pkg authid definer as
                                p_context_name     in varchar2,
                                p_context_name_ar  in varchar2 default null,
                                p_description      in varchar2 default null);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_context(p_application_code in varchar2, p_flexfield_code in varchar2, p_context_code in varchar2);
+    -- the flexfield with its contexts and segments
+    procedure unregister_flexfield(p_application_code in varchar2, p_flexfield_code in varchar2);
+    procedure unregister_value_set(p_application_code in varchar2, p_value_set_code in varchar2);
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_dff_pkg;
 /

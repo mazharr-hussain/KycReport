@@ -39,12 +39,12 @@ Privileges `LOOKUPS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pages, CR
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REGISTER_LOOKUP_TYPE` / `REGISTER_LOOKUP_VALUE` (KYC: 18h) and reads them with `LOOKUP_MEANING`, `IS_VALID_LOOKUP` or the lookup views. COMMON issue C3: script 17 rewrites KYC lookups on upgrade.
 
 ### Public routines
-- `XXFND_LOOKUP_PKG`: ASSERT_LOOKUP, IS_VALID_LOOKUP, LOOKUP_MEANING, REGISTER_LOOKUP_TYPE, REGISTER_LOOKUP_VALUE (registration: REGISTER_LOOKUP_TYPE, REGISTER_LOOKUP_VALUE)
+- `XXFND_LOOKUP_PKG`: ASSERT_LOOKUP, IS_VALID_LOOKUP, LOOKUP_MEANING, REGISTER_LOOKUP_TYPE, REGISTER_LOOKUP_VALUE, UNREGISTER_APPLICATION, UNREGISTER_LOOKUP_TYPE, UNREGISTER_LOOKUP_VALUE (registration: REGISTER_LOOKUP_TYPE, REGISTER_LOOKUP_VALUE)
 
 ## Tests
 - in `../../tests/` (whole application)

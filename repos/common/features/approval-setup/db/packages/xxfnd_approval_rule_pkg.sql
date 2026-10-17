@@ -68,6 +68,22 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
                                     p_conditions       in apex_t_varchar2 default null,
                                     p_priority         in number   default 100,
                                     p_description      in varchar2 default null);
+    -- Release 88 (C10): one more rule of an application's type (several rules per type: different conditions or
+    -- priorities), added only while the type has no rule of that name (a rule the administrators changed is kept).
+    -- Same parameters and errors as REGISTER_DEFAULT_RULE; the type must belong to P_APPLICATION_CODE.
+    procedure register_rule(p_application_code in varchar2,
+                            p_type             in varchar2,
+                            p_rule_name        in varchar2,
+                            p_steps            in apex_t_varchar2 default null,
+                            p_conditions       in apex_t_varchar2 default null,
+                            p_priority         in number   default 100,
+                            p_description      in varchar2 default null);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_rule(p_application_code in varchar2, p_type in varchar2, p_rule_name in varchar2);
+    -- the type with its rules (refused while a transaction of the type exists: in use)
+    procedure unregister_type(p_application_code in varchar2, p_type in varchar2);
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_approval_rule_pkg;
 /
 
@@ -380,14 +396,15 @@ create or replace package body xxfnd_approval_rule_pkg as
         return 'Y';
     end decide_task;
 
-    -- release 86: registration
-    procedure register_default_rule(p_application_code in varchar2,
-                                    p_type             in varchar2,
-                                    p_rule_name        in varchar2,
-                                    p_steps            in apex_t_varchar2 default null,
-                                    p_conditions       in apex_t_varchar2 default null,
-                                    p_priority         in number   default 100,
-                                    p_description      in varchar2 default null) is
+    -- release 86: registration (release 88: shared by REGISTER_DEFAULT_RULE and REGISTER_RULE)
+    procedure add_rule(p_application_code in varchar2,
+                       p_type             in varchar2,
+                       p_rule_name        in varchar2,
+                       p_steps            in apex_t_varchar2,
+                       p_conditions       in apex_t_varchar2,
+                       p_priority         in number,
+                       p_description      in varchar2,
+                       p_first_only       in boolean) is
         l_code  xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
         l_type  xxfnd_approval_types.approval_type_code%type := upper(p_type);
         l_owner xxfnd_approval_types.application_code%type;
@@ -402,9 +419,11 @@ create or replace package body xxfnd_approval_rule_pkg as
             xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Approval type', l_type));
         end if;
         xxfnd_application_pkg.assert_same_application('Approval type', l_type, l_owner, l_code);
-        select count(*) into l_n from xxfnd_approval_rules where approval_type_code = l_type;
+        select count(*) into l_n from xxfnd_approval_rules
+         where approval_type_code = l_type
+           and (p_first_only or upper(rule_name) = upper(trim(p_rule_name)));
         if l_n > 0 then
-            return;   -- the type has its rules: the administrators own them
+            return;   -- the type has its rules (or this rule): the administrators own them
         end if;
         -- every step is checked before anything is written
         if p_steps is not null then
@@ -442,7 +461,48 @@ create or replace package body xxfnd_approval_rule_pkg as
                         case when l_kind = 'USER' then l_who end);
             end loop;
         end if;
+    end add_rule;
+
+    procedure register_default_rule(p_application_code in varchar2,
+                                    p_type             in varchar2,
+                                    p_rule_name        in varchar2,
+                                    p_steps            in apex_t_varchar2 default null,
+                                    p_conditions       in apex_t_varchar2 default null,
+                                    p_priority         in number   default 100,
+                                    p_description      in varchar2 default null) is
+    begin
+        add_rule(p_application_code, p_type, p_rule_name, p_steps, p_conditions, p_priority, p_description, true);
     end register_default_rule;
+
+    procedure register_rule(p_application_code in varchar2,
+                            p_type             in varchar2,
+                            p_rule_name        in varchar2,
+                            p_steps            in apex_t_varchar2 default null,
+                            p_conditions       in apex_t_varchar2 default null,
+                            p_priority         in number   default 100,
+                            p_description      in varchar2 default null) is
+    begin
+        add_rule(p_application_code, p_type, p_rule_name, p_steps, p_conditions, p_priority, p_description, false);
+    end register_rule;
+
+    -- release 88 (C8, C9)
+    procedure unregister_rule(p_application_code in varchar2, p_type in varchar2, p_rule_name in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Approval rule', 'XXFND_APPROVAL_RULES', apex_t_varchar2('APPROVAL_TYPE_CODE', 'RULE_NAME'),
+            apex_t_varchar2(upper(trim(p_type)), p_rule_name),
+            '(select y.application_code from xxfnd_approval_types y where y.approval_type_code = t.approval_type_code)');
+    end unregister_rule;
+
+    procedure unregister_type(p_application_code in varchar2, p_type in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Approval type', 'XXFND_APPROVAL_TYPES', apex_t_varchar2('APPROVAL_TYPE_CODE'),
+            apex_t_varchar2(upper(trim(p_type))));
+    end unregister_type;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Approval types', 'XXFND_APPROVAL_TYPES');
+    end unregister_application;
 
 end xxfnd_approval_rule_pkg;
 /

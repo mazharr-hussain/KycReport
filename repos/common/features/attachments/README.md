@@ -15,7 +15,7 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 applications, audit-log, data-security, integrations, lookups
 
 ## Used by (COMMON components)
-applications, change-approvals, documents, flexfields, integrations, lookups, notifications, roles-privileges
+applications, change-approvals, documents, flexfields, integrations, lookups, my-tasks, notifications, roles-privileges
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Documents are kept in the database until a server is set up (Integrations > Servers, Storage).
@@ -44,12 +44,12 @@ Privileges `ATTACHMENTS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pages
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application registers its entities, categories and attachment pages (`XXFND_ATTACH_PKG.REGISTER_ENTITY`, `REGISTER_CATEGORY`, `REGISTER_ATTACHMENT_PAGE`; KYC: 18h), adds files with `ADD_FILE` / `ADD_TEXT`, moves them with `MOVE_DOCUMENTS`, and opens COMMON page 47 (Documents) for a record.
 
 ### Public routines
-- `XXFND_ATTACH_PKG`: ADD_FILE, ADD_TEXT, ADD_VERSION, ALLOWED_FILE_TYPES, ASSERT_CHANGE, BLOCK_PERMISSION, CATEGORY_ALLOWED, COPY_ATTACHMENTS, DOWNLOAD, DOWNLOAD_CHECKED, MAX_FILE_SIZE_MB, MOVE_DOCUMENTS, OBJECT_NAME, OBJECT_STORAGE_URL, RECORD_VISIBLE, REGISTER_ATTACHMENT_PAGE, REGISTER_CATEGORY, REGISTER_ENTITY, REMOVE, RESOLVE_STORAGE, SAVE_APP_STORAGE, SAVE_CATEGORY_STORAGE, SAVE_ENTITY_DISPLAY_NAME, STORAGE_APPLICATION, UPDATE_DETAILS, UPLOAD_RULES_TEXT (registration: REGISTER_ATTACHMENT_PAGE, REGISTER_CATEGORY, REGISTER_ENTITY)
+- `XXFND_ATTACH_PKG`: ADD_FILE, ADD_TEXT, ADD_VERSION, ALLOWED_FILE_TYPES, ASSERT_CHANGE, BLOCK_PERMISSION, CATEGORY_ALLOWED, COPY_ATTACHMENTS, DOWNLOAD, DOWNLOAD_CHECKED, MAX_FILE_SIZE_MB, MOVE_DOCUMENTS, OBJECT_NAME, OBJECT_STORAGE_URL, RECORD_VISIBLE, REGISTER_ATTACHMENT_PAGE, REGISTER_CATEGORY, REGISTER_ENTITY, REMOVE, RESOLVE_STORAGE, SAVE_APP_STORAGE, SAVE_CATEGORY_STORAGE, SAVE_ENTITY_DISPLAY_NAME, STORAGE_APPLICATION, UNREGISTER_APPLICATION, UNREGISTER_ATTACHMENT_PAGE, UNREGISTER_CATEGORY, UNREGISTER_ENTITY, UPDATE_DETAILS, UPLOAD_RULES_TEXT (registration: REGISTER_ATTACHMENT_PAGE, REGISTER_CATEGORY, REGISTER_ENTITY)
 
 ## Tests
 - in `../../tests/` (whole application)

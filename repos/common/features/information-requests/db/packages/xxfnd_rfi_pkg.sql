@@ -62,6 +62,9 @@ create or replace package xxfnd_rfi_pkg authid definer as
     -- read whatever the user's data security on XXFND_RFIS (the task authorises them).
     procedure task_values(p_task_id in number, p_rfi_id out number, p_rfi_number out varchar2, p_status out varchar2,
                           p_asked out varchar2, p_due out varchar2, p_record out varchar2, p_raised_by out varchar2);
+    -- Release 88 (C5): the due date of a task of the RFI (task definitions RFI_RESPONSE / RFI_REVIEW): the RFI's own due
+    -- date (end of that day) for the answer, else the due days of the task setting (Task Settings), else none.
+    function task_due_date(p_rfi_id in number, p_task_definition in varchar2) return timestamp with time zone;
     -- Its questions, answers and reviews, one row per message (round order).
     function task_messages(p_task_id in number) return xxfnd_qa_tab pipelined;
     -- Open RFIs of a record (not resolved / cancelled).
@@ -82,7 +85,8 @@ create or replace package body xxfnd_rfi_pkg as
         l_code xxfnd_applications.application_code%type;
     begin
         if p_application_code is not null then
-            return upper(p_application_code);
+            -- release 88 (C10): an application raises RFIs for its own records only (COMMON for any application)
+            return xxfnd_application_pkg.registered_code(p_application_code);
         end if;
         select max(application_code) into l_code from xxfnd_applications
          where upper(apex_app_alias) = upper(v('APP_ALIAS')) or apex_application_id = to_number(v('APP_ID'));
@@ -534,6 +538,18 @@ create or replace package body xxfnd_rfi_pkg as
              where rfi_id = to_number(t.detail_pk);
         end loop;
     end task_created;
+
+    function task_due_date(p_rfi_id in number, p_task_definition in varchar2) return timestamp with time zone is
+        l_due date;
+    begin
+        if upper(p_task_definition) = 'RFI_RESPONSE' then
+            select max(due_date) into l_due from xxfnd_rfis where rfi_id = p_rfi_id;
+        end if;
+        if l_due is not null then
+            return from_tz(cast(trunc(l_due) + 1 - 1 / 86400 as timestamp), sessiontimezone);
+        end if;
+        return xxfnd_workflow_pkg.due_date(upper(p_task_definition));
+    end task_due_date;
 
     procedure task_values(p_task_id in number, p_rfi_id out number, p_rfi_number out varchar2, p_status out varchar2,
                           p_asked out varchar2, p_due out varchar2, p_record out varchar2, p_raised_by out varchar2) is

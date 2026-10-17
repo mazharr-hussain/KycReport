@@ -12,7 +12,7 @@ Page 40 (the task list), 43 (notifications), 143 (answer / review an information
 One inbox for all applications.
 
 ## Depends on (objects of these components are named in its files)
-approval-setup, change-approvals, information-requests, notifications, workflow-setup
+approval-setup, attachments, change-approvals, information-requests, notifications, workflow-setup
 
 ## Used by (COMMON components)
 -
@@ -38,9 +38,9 @@ Privileges `MY_TASKS.<action>` for VIEW, MANAGE (VIEW opens its pages, CREATE ad
 Roles at install: every role, at install (each user then acts only on what the data and the task allow).
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
-Link to COMMON page 40 (`app: COMMON`); the tasks of the application's workflows appear by themselves. The user must be able to open COMMON (COMMON issue C1).
+Link to COMMON page 40 (`app: COMMON`, or the entry My Tasks of `XXFND_APP_MENU_V`); the tasks of the application's workflows appear by themselves. Every signed-in user opens it (release 87) and sees only their own tasks.
 
 ### Public routines
 -

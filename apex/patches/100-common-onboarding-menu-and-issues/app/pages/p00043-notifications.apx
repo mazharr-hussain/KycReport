@@ -1,0 +1,375 @@
+page 43 (
+    name: Notifications
+    alias: NOTIFICATIONS
+    title: Notifications
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @signed-in-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Your notifications from every application: tasks assigned to you, decisions on your requests, reminders, answers to
+            your requests for information. Open one to go to its task or record; it is then marked as read. The bell in the
+            navigation bar shows how many are unread. Push notifications: turn them on for this device (browser or phone) to be
+            told even when the application is closed. What is sent, to whom and on which channel is set up by the administrators
+            (Notification Delivery).
+            ```
+    }
+
+    region breadcrumb (
+        name: Notifications
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region device (
+        name: Push Notifications on This Device
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: device
+        }
+    )
+    pageItem P43_PUSH_STATUS (
+        type: displayOnly
+        label {
+            label: Your Devices
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @device
+            slot: regionBody
+            alignment: left
+            columnSpan: 12
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 84: APEX progressive web app push of COMMON (XXFND_NOTIFY_PKG.HAS_PUSH)
+                select case xxfnd_notify_pkg.has_push
+                            when 'Y' then 'At least one of your devices receives push notifications.'
+                            else 'None of your devices receives push notifications.' end
+                  from dual
+                ```
+            used: always
+        }
+        help {
+            helpText: The your devices.
+        }
+    )
+    button turn-on (
+        buttonName: TURN_ON
+        label: Turn On for This Device
+        layout {
+            sequence: 10
+            region: @device
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+    button turn-off (
+        buttonName: TURN_OFF
+        label: Turn Off for This Device
+        layout {
+            sequence: 20
+            region: @device
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    region notifications (
+        name: My Notifications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 84: the signed-in person's notifications on the inbox channel (XXFND_NOTIFY_CHANNELS.INBOX_FLAG), newest first
+                select n.notification_id,
+                       n.subject,
+                       dbms_lob.substr(n.message_text, 400, 1)                   as message_text,
+                       case when n.read_date is null then 'New' else 'Read' end  as read_status,
+                       n.creation_date
+                  from xxfnd_notifications n
+                  join xxfnd_notify_channels c on c.channel_code = n.channel_code and c.inbox_flag = 'Y'
+                 where n.user_name = :APP_USER
+                   and n.status_code = 'SENT'
+                 order by n.creation_date desc
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: notifications
+        }
+        messages {
+            whenNoDataFound: You have no notification.
+        }
+
+        column NOTIFICATION_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column SUBJECT (
+            type: link
+            heading {
+                heading: Notification
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 43
+                    items: {
+                        P43_OPEN_ID: #NOTIFICATION_ID#
+                    }
+                    clearCache: 43
+                }
+                linkText: #SUBJECT#
+            }
+        )
+
+        column MESSAGE_TEXT (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column READ_STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Received
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: SINCE
+            }
+        )
+    )
+    pageItem P43_OPEN_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @notifications
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    button mark-all (
+        buttonName: MARK_ALL
+        label: Mark All as Read
+        layout {
+            sequence: 10
+            region: @notifications
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+    dynamicAction turn-on-push (
+        name: Subscribe this device
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @turn-on
+        }
+
+        action turn-on-push-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.pwa.subscribePushNotifications().then(function () {
+                        apex.submit('PUSH');
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+    dynamicAction turn-off-push (
+        name: Unsubscribe this device
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @turn-off
+        }
+
+        action turn-off-push-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.pwa.unsubscribePushNotifications().then(function () {
+                        apex.submit('PUSH');
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+    process open-notification (
+        name: Open a notification
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 84: a notification of the signed-in person opens its link and is marked as read
+                declare
+                    l_url xxfnd_notifications.link_url%type;
+                begin
+                    select max(link_url) into l_url
+                      from xxfnd_notifications
+                     where notification_id = to_number(:P43_OPEN_ID) and user_name = :APP_USER;
+                    xxfnd_notify_pkg.mark_read(to_number(:P43_OPEN_ID));
+                    :P43_OPEN_ID := null;
+                    if l_url is not null then
+                        apex_util.redirect_url(l_url);
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P43_OPEN_ID
+        }
+    )
+    process mark-all-read (
+        name: Mark all as read
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_notify_pkg.mark_all_read;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: All notifications are marked as read.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: MARK_ALL
+        }
+        security {
+            authorizationScheme: @signed-in-user
+        }
+    )
+)

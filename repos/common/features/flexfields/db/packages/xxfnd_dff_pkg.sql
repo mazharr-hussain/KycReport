@@ -129,6 +129,13 @@ create or replace package xxfnd_dff_pkg authid definer as
                                p_context_name     in varchar2,
                                p_context_name_ar  in varchar2 default null,
                                p_description      in varchar2 default null);
+    -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
+    -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
+    procedure unregister_context(p_application_code in varchar2, p_flexfield_code in varchar2, p_context_code in varchar2);
+    -- the flexfield with its contexts and segments
+    procedure unregister_flexfield(p_application_code in varchar2, p_flexfield_code in varchar2);
+    procedure unregister_value_set(p_application_code in varchar2, p_value_set_code in varchar2);
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_dff_pkg;
 /
 
@@ -1082,6 +1089,33 @@ create or replace package body xxfnd_dff_pkg as
                                    values (s.code, s.ctx, s.lang, p_context_name_ar);
         end if;
     end register_context;
+
+    -- release 88 (C8, C9)
+    procedure unregister_context(p_application_code in varchar2, p_flexfield_code in varchar2, p_context_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Flexfield context', 'XXFND_DF_CONTEXTS',
+            apex_t_varchar2('DESCRIPTIVE_FLEXFIELD_CODE', 'CONTEXT_CODE'),
+            apex_t_varchar2(upper(trim(p_flexfield_code)), upper(trim(p_context_code))),
+            '(select f.application_code from xxfnd_df_flexfields f where f.descriptive_flexfield_code = t.descriptive_flexfield_code)');
+    end unregister_context;
+
+    procedure unregister_flexfield(p_application_code in varchar2, p_flexfield_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Flexfield', 'XXFND_DF_FLEXFIELDS', apex_t_varchar2('DESCRIPTIVE_FLEXFIELD_CODE'),
+            apex_t_varchar2(upper(trim(p_flexfield_code))));
+    end unregister_flexfield;
+
+    procedure unregister_value_set(p_application_code in varchar2, p_value_set_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_registered(p_application_code, 'Value set', 'XXFND_VALUE_SETS', apex_t_varchar2('VALUE_SET_CODE'),
+            apex_t_varchar2(upper(trim(p_value_set_code))));
+    end unregister_value_set;
+
+    procedure unregister_application(p_application_code in varchar2) is
+    begin
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Flexfields', 'XXFND_DF_FLEXFIELDS');
+        xxfnd_application_pkg.remove_all_registered(p_application_code, 'Value sets', 'XXFND_VALUE_SETS');
+    end unregister_application;
 
 end xxfnd_dff_pkg;
 /

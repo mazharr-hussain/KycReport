@@ -81,7 +81,8 @@ manifest = json.load(open(f'{ROOT}/apex/db/manifest.json'))
 order = {e['file']: e for e in manifest}
 def script_repo(e):
     apps = e.get('apps', ['KYC'])
-    if set(apps) == {'COMMON', 'KYC'}:
+    # release 87: a generic script no application runs yet (00c-onboard-with-common.sql) is COMMON's framework too
+    if set(apps) == {'COMMON', 'KYC'} or apps == []:
         return 'common', True      # the install framework every application runs: kept once, in COMMON
     return ('common' if apps == ['COMMON'] else 'kyc'), False
 

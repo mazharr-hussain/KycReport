@@ -43,12 +43,12 @@ Privileges `INTEGRATIONS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its page
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application registers its purposes with `XXFND_INTEGRATION_PKG.REGISTER_PURPOSE` (KYC: 18h) and calls a service with `CALL` (logged, retried with `RETRY`).
 
 ### Public routines
-- `XXFND_INTEGRATION_PKG`: CALL, CAN_RETRY, DELETE_PURPOSE, DELETE_SERVER, LOG_END, LOG_START, REGISTER_PURPOSE, RETRY, SAVE_PURPOSE, SAVE_SERVER, SERVER, SYNC_FROM_FUSION, SYNC_HCM, SYNC_RUNNING, SYNC_USER_NAMES, TEST_CONNECTION, UPSERT_FUSION_WORKER (registration: REGISTER_PURPOSE)
+- `XXFND_INTEGRATION_PKG`: CALL, CAN_RETRY, DELETE_PURPOSE, DELETE_SERVER, LOG_END, LOG_START, REGISTER_PURPOSE, RETRY, SAVE_PURPOSE, SAVE_SERVER, SERVER, SYNC_FROM_FUSION, SYNC_HCM, SYNC_RUNNING, SYNC_USER_NAMES, TEST_CONNECTION, UNREGISTER_APPLICATION, UNREGISTER_PURPOSE, UPSERT_FUSION_WORKER (registration: REGISTER_PURPOSE)
 
 ## Tests
 - in `../../tests/` (whole application)

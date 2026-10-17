@@ -32,6 +32,9 @@ declare
          when matched then update set t.meaning = p_meaning, t.customization_level = p_level,
                                       t.application_code = p_app, t.description = p_desc
                            where t.customization_level = 'S'
+                             -- release 87 (C3): never another application's type
+                             and (t.application_code is null or t.application_code = 'COMMON'
+                                  or t.application_code = p_app)
          when not matched then insert (lookup_type, meaning, customization_level, application_code, description)
                                values (p_type, p_meaning, p_level, p_app, p_desc);
     end lt;
@@ -41,9 +44,12 @@ declare
                  p_parent_type in varchar2 default null, p_parent_code in varchar2 default null) is
         l_n pls_integer;
     begin
-        select count(*) into l_n from xxfnd_lookup_types where lookup_type = p_type;
+        -- release 87 (C3): COMMON seeds only its own lookups; another application's type (registered by that
+        -- application, XXFND_LOOKUP_PKG.REGISTER_LOOKUP_*) and its values are left as they are
+        select count(*) into l_n from xxfnd_lookup_types
+         where lookup_type = p_type and (application_code is null or application_code = 'COMMON');
         if l_n = 0 then
-            return;   -- the type was skipped by LT (another application's lookup)
+            return;   -- the type was skipped by LT, or it is another application's lookup
         end if;
         merge into xxfnd_lookup_values t
         using (select p_type lookup_type, p_code lookup_code from dual) s

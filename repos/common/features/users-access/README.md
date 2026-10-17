@@ -41,7 +41,7 @@ Privileges `USERS_ACCESS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its page
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` / `POST_AUTH_SSO`, and its authorization schemes call `XXFND_USER_PKG.AUTHORIZED(<scheme>)` (KYC subscribes to them). The first administrator: `XXFND_USER_PKG.BOOTSTRAP_ADMIN`.
 

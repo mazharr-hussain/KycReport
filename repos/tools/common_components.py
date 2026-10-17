@@ -25,7 +25,11 @@ C = {
     other='Before anything else an application is onboarded: `XXFND_APPLICATION_PKG.ONBOARD` (or `apex/db/admin/onboard-application.sql`) '
           'with its APEX application ID and code. That grants the application schema the COMMON objects (`XXFND_SHARE_PKG.GRANT_TO`); '
           'the application then creates synonyms for them (KYC: script 03). Its own pages call PAGE_ALLOWED / IS_DELEGATED to respect '
-          'what IT lets it manage.'),
+          'what IT lets it manage. Release 87: the application\'s own install can register it with the generic script '
+          '`00c-onboard-with-common.sql` (XXFND_ONBOARD_PKG.ONBOARD_SELF; IT switch: COMMON setting ONBOARD_SELF_ALLOWED), and its '
+          'navigation list for the common functions is `select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS` (entries '
+          'maintained here; the application adds its own with REGISTER_MENU_ENTRY). Release 88: every REGISTER_* routine has an '
+          'UNREGISTER_* routine, and deleting a disabled application removes the setup it registered.'),
  'app-settings': dict(
     feature='APP_SETTINGS', name='Application Settings', module='Platform', actions='VIEW, MANAGE',
     purpose='Application settings.',
@@ -58,8 +62,8 @@ C = {
     purpose='Everyone gives feedback on the page they are on, in any application.',
     usage='Page 173, opened from an application\'s navigation bar (with P173_APPLICATION_ID and P173_PAGE_ID).',
     benefit='One feedback form for all applications.', roles=f'Every role, at install (27).',
-    other='Link to COMMON page 173 (`app: COMMON`) passing &APP_ID. and &APP_PAGE_ID.; the user must be able to open COMMON '
-          '(COMMON issue C1).'),
+    other='Link to COMMON page 173 (`app: COMMON`) passing &APP_ID. and &APP_PAGE_ID. (or the entry Give '
+          'Feedback of `XXFND_APP_MENU_V`); every signed-in user opens it (release 87).'),
  'users-access': dict(
     feature='USERS_ACCESS', name='Users & Access', module='Security', actions='VIEW, CREATE, MANAGE',
     purpose='Users, their roles and their data access.',
@@ -81,7 +85,8 @@ C = {
     other='The application registers its features, privileges, pages, roles and SoD rules with `REGISTER_FEATURE`, '
           '`REGISTER_PRIVILEGE`, `REGISTER_FEATURE_PAGE`, `REGISTER_ROLE`, `ADD_ROLE_PRIVILEGE`, `REGISTER_SOD_RULE` (KYC: 18h), '
           'and checks access with `HAS_PRIVILEGE`, `HAS_PAGE_PRIVILEGE`, `HAS_ROLE`. A registration never overrides what an '
-          'administrator changed. Removing a registration: COMMON issues C8 / C9.'),
+          'administrator changed. `UNREGISTER_FEATURE_PAGE`, `UNREGISTER_FEATURE`, `UNREGISTER_PRIVILEGE`, `UNREGISTER_ROLE` '
+          'remove the application\'s own rows (release 88).'),
  'data-security': dict(
     feature='DATA_SECURITY', name='Data Security', module='Security', actions='VIEW, CREATE, MANAGE',
     purpose='Data access rules: which rows each user and role can see.',
@@ -130,7 +135,7 @@ C = {
     usage='Pages 47 (Attachments of a record) and 48 (Document), opened from the application with the record\'s entity and key.',
     benefit='Applications need no document screens of their own.', roles='Every role, at install (27).',
     other='Link to COMMON page 47 (`app: COMMON`) with P47_APP_ALIAS, the source page, region, entity and key (KYC: pages 0 and '
-          '211). The user must be able to open COMMON (COMMON issue C1).'),
+          '211). Every signed-in user opens it (release 87) and sees only the records they may see.'),
  'retention': dict(
     feature='RETENTION', name='Retention', module='Documents and Records', actions='VIEW, CREATE, MANAGE',
     purpose='How long records and documents are kept.', usage='Pages 112 / 113: retention policies.',
@@ -154,7 +159,8 @@ C = {
     benefit='Approval chains are data (AME style), not code.', roles=ADMIN,
     other='The application registers its approval types and default rule (`XXFND_APPROVAL_RULE_PKG.REGISTER_TYPE`, '
           '`REGISTER_DEFAULT_RULE`), starts an approval with `START_APPROVAL`, reads `CURRENT_APPROVERS` / `NEXT_STEP` and '
-          'decides with `DECIDE_TASK`. COMMON issue C10: no routine yet for several rules per type.'),
+          'decides with `DECIDE_TASK`. Several rules per type: `REGISTER_RULE` (release 88); `UNREGISTER_RULE` / `UNREGISTER_TYPE` '
+          'remove them.'),
  'change-approvals': dict(
     feature='CHANGE_APPROVALS', name='Configuration Change Approvals', module='Workflow', actions='VIEW, MANAGE',
     purpose='Who approves the configuration changes of every application (maker-checker, process CONFIG_CHANGE).',
@@ -162,14 +168,14 @@ C = {
     benefit='Maker-checker on setup data for every application without code in the application.',
     roles='The roles that manage the Approval Setup, once at install (26).',
     other='The application registers its controlled setup tables with `XXFND_APPROVAL_PKG.REGISTER_CONFIG_TABLE` and submits a '
-          'change with `REQUEST`. COMMON issue C2: a cancelled change cannot be submitted again.'),
+          'change with `REQUEST` (release 87: a faulted earlier change no longer blocks it).'),
  'my-tasks': dict(
     feature='MY_TASKS', name='My Tasks', module='Workflow', actions='VIEW, MANAGE',
     purpose='The tasks of the signed-in user from every application.',
     usage='Page 40 (the task list), 43 (notifications), 143 (answer / review an information request), 144 (configuration change).',
     benefit='One inbox for all applications.', roles=EVERY,
-    other='Link to COMMON page 40 (`app: COMMON`); the tasks of the application\'s workflows appear by themselves. The user must '
-          'be able to open COMMON (COMMON issue C1).'),
+    other='Link to COMMON page 40 (`app: COMMON`, or the entry My Tasks of `XXFND_APP_MENU_V`); the tasks of the application\'s '
+          'workflows appear by themselves. Every signed-in user opens it (release 87) and sees only their own tasks.'),
  'workflow-monitor': dict(
     feature='WORKFLOW_MONITOR', name='Workflow Monitor', module='Workflow', actions='VIEW, MANAGE',
     purpose="Running workflows and tasks of every application: act on anyone's behalf.",
@@ -186,7 +192,8 @@ C = {
     req='The RFI process switched on for the application (Workflow Setup > Process Catalogue); e-mail for outside people.',
     roles='No feature of its own: answering uses My Tasks; the public page 50 needs no sign-in (a one-time token).',
     other='The application creates an RFI with `XXFND_RFI_PKG.CREATE_RFI` (entity, key, recipient), sends the link with '
-          '`SEND_EMAIL`, and reads `OPEN_COUNT` / `IS_WAITING`. COMMON issue C5: no documents or due dates on RFIs.'),
+          '`SEND_EMAIL`, and reads `OPEN_COUNT` / `IS_WAITING`. Page 143 keeps the RFI\'s documents and the answer is due on '
+          'the RFI\'s due date (release 88).'),
  'notifications': dict(
     feature='NOTIFICATIONS', name='Notifications', module='Workflow', actions='VIEW, CREATE, MANAGE',
     purpose='E-mail and in-app notification templates.',
@@ -204,7 +211,9 @@ C = {
     req='APEX e-mail (SMTP).',
     roles='Every role: VIEW and CREATE; MANAGE (record a received e-mail): the roles that manage the notifications (26).',
     other='Link to COMMON page 46 (`app: COMMON`) for the record (KYC: page 211); `XXFND_NOTIFY_PKG.RECORD_SENT` / '
-          '`RECORD_RECEIVED` store them. COMMON issues C1 and C6.'),
+          '`RECORD_RECEIVED` store them (only for the application\'s own records). Every signed-in user opens the pages (release 87). '
+          'The record\'s contacts are offered as recipients when the application registers a contact source '
+          '(`REGISTER_CONTACT_SOURCE`: a view of its schema with PK1_VALUE, CONTACT_NAME, EMAIL_ADDRESS, SELECT granted to COMMON).'),
  'integrations': dict(
     feature='INTEGRATIONS', name='Integrations', module='Integrations', actions='VIEW, CREATE, MANAGE',
     purpose='Endpoints, purposes and the transmission log.',
@@ -218,8 +227,9 @@ C = {
 
 COMMON_REQ = ('COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites '
               'check 00a first; 00b stops an install in the wrong schema).')
-OTHER_APP = ('1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON '
-             'objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON '
+OTHER_APP = ('1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). '
+             '2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the '
+             'COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON '
              'data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type '
              '"page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles '
              'in the COMMON console.')

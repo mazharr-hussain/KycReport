@@ -6,6 +6,9 @@
 --   Release 80 merges XXFND_APP_FUNCTION_PKG, XXFND_SETUP_TYPE_PKG and XXFND_ADMIN_SCOPE_PKG into
 --   XXFND_APPLICATION_PKG (the old packages are dropped by 21c; old callers break on purpose: no wrappers).
 --   The scope policies and <table>_SC triggers are (re)created by 16i, the <table>_LV triggers by 21c.
+--   Release 87: the menu of every application (XXFND_APP_MENU_ENTRIES, made by ONBOARD, read through XXFND_APP_MENU_V);
+--   the caller rule of every registration routine (REGISTERED_CODE: an application changes only its own rows); the
+--   setup of another application is hidden from an application (scope policy, SQL issued by the application).
 --   COMMON only. Idempotent (release 69 rule: CREATE_TABLE only when missing; changes as checked steps).
 --------------------------------------------------------------------------------
 begin

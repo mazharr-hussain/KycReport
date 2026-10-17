@@ -41,12 +41,12 @@ Privileges `FLEXFIELDS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pages,
 Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
 The application registers its value sets, flexfields and contexts (`XXFND_DFF_PKG.REGISTER_VALUE_SET`, `REGISTER_FLEXFIELD`, `REGISTER_CONTEXT`), shows them with `RENDER`, checks with `VALIDATE` and saves with `SAVE`.
 
 ### Public routines
-- `XXFND_DFF_PKG`: ADMIN_SQL_ERROR, CHECK_FLEXFIELD, CHECK_SEGMENT, DERIVE_CONTEXT, FLEXFIELD_FOR_TABLE, GENERATE_ALL_DFV_VIEWS, GENERATE_DFV_VIEW, REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET, RENDER, SAVE, SAVE_FLEXFIELD_NAME, VALIDATE, VALUE_LIST (registration: REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET)
+- `XXFND_DFF_PKG`: ADMIN_SQL_ERROR, CHECK_FLEXFIELD, CHECK_SEGMENT, DERIVE_CONTEXT, FLEXFIELD_FOR_TABLE, GENERATE_ALL_DFV_VIEWS, GENERATE_DFV_VIEW, REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET, RENDER, SAVE, SAVE_FLEXFIELD_NAME, UNREGISTER_APPLICATION, UNREGISTER_CONTEXT, UNREGISTER_FLEXFIELD, UNREGISTER_VALUE_SET, VALIDATE, VALUE_LIST (registration: REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET)
 
 ## Tests
 - in `../../tests/` (whole application)

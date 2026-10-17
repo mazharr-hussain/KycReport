@@ -14,6 +14,11 @@ taskDefinition RFI_RESPONSE (
               left join xxfnd_rfis r on r.rfi_id = to_number(:APEX$TASK_PK)
             ```
     }
+    deadline {
+        dueOnType: expression
+        language: plsql
+        plsqlExpression: xxfnd_rfi_pkg.task_due_date(to_number(:APEX$TASK_PK), 'RFI_RESPONSE')
+    }
     advanced {
         detailsPage: {
             page: 143
@@ -25,7 +30,7 @@ taskDefinition RFI_RESPONSE (
         vacationRuleProcedureName: xxfnd_workflow_pkg.vacation_rule
     }
     comments {
-        comments: Release 84 - a step of the COMMON workflow process RFI: the user (or each provider from the Approval Setup) answers on page 143 (XXFND_RFI_PKG.RESPOND completes it).
+        comments: Release 88 (C5) - due date: the RFIs due date (end of that day), else the task setting. Release 84 - a step of the COMMON workflow process RFI: the user (or each provider from the Approval Setup) answers on page 143 (XXFND_RFI_PKG.RESPOND completes it).
     }
 
     action keep-task (

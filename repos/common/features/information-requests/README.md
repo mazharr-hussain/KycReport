@@ -41,12 +41,12 @@ No feature of its own.
 Roles at install: No feature of its own: answering uses My Tasks; the public page 50 needs no sign-in (a one-time token).
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
-The application creates an RFI with `XXFND_RFI_PKG.CREATE_RFI` (entity, key, recipient), sends the link with `SEND_EMAIL`, and reads `OPEN_COUNT` / `IS_WAITING`. COMMON issue C5: no documents or due dates on RFIs.
+The application creates an RFI with `XXFND_RFI_PKG.CREATE_RFI` (entity, key, recipient), sends the link with `SEND_EMAIL`, and reads `OPEN_COUNT` / `IS_WAITING`. Page 143 keeps the RFI's documents and the answer is due on the RFI's due date (release 88).
 
 ### Public routines
-- `XXFND_RFI_PKG`: ANSWER_WAIT, ASK_AGAIN, CREATE_RFI, IS_EXTERNAL, IS_WAITING, OPEN_COUNT, QUESTION_BY_TOKEN, RECIPIENT, RESOLVE, RESPOND, RESPOND_BY_TOKEN, REVIEWERS, SEND_EMAIL, SYNC_SEQUENCES, TASK_CREATED, TASK_MESSAGES, TASK_VALUES
+- `XXFND_RFI_PKG`: ANSWER_WAIT, ASK_AGAIN, CREATE_RFI, IS_EXTERNAL, IS_WAITING, OPEN_COUNT, QUESTION_BY_TOKEN, RECIPIENT, RESOLVE, RESPOND, RESPOND_BY_TOKEN, REVIEWERS, SEND_EMAIL, SYNC_SEQUENCES, TASK_CREATED, TASK_DUE_DATE, TASK_MESSAGES, TASK_VALUES
 
 ## Tests
 - in `../../tests/` (whole application)

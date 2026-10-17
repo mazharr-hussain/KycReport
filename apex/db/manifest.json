@@ -635,5 +635,37 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "31 Basic onboarding and the application menu",
+  "file": "31-onboarding-and-menu.sql",
+  "install_sequence": 224,
+  "upgrade_sequence": 184,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "32 Removing registrations, RFI documents and deadlines, contacts",
+  "file": "32-registration-removal-rfi-contacts.sql",
+  "install_sequence": 225,
+  "upgrade_sequence": 185,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "00c Onboard with COMMON (generic, for applications)",
+  "file": "00c-onboard-with-common.sql",
+  "apps": []
+ },
+ {
+  "name": "99 Sharing with the applications - last",
+  "file": "99-share-with-applications-last.sql",
+  "install_sequence": 990,
+  "upgrade_sequence": 990,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]

@@ -7,15 +7,21 @@
 --     grant_to / grant_to_applications - the grants (re-run on every install and upgrade: new objects too)
 --     import_schema - one-time move of an application schema's own copy of the shared data into XXFUSION
 --     seed_common   - the COMMON application's own access (role COMMON_ADMIN, feature COMMON_HOME, first admin)
+--     grant_onboarding (release 87) - EXECUTE on XXFND_ONBOARD_PKG to the workspace's schemas; the grants run last
+--       (script 99, C11)
 --------------------------------------------------------------------------------
 create or replace package xxfnd_share_pkg authid definer as
     -- Shared objects that stay local to each schema (never granted, never replaced by synonyms).
     function is_local(p_object_name in varchar2) return boolean;
-    -- Tables: SELECT (with grant option, for the application's views), INSERT, UPDATE, DELETE, REFERENCES;
+    -- Tables: SELECT (with grant option, for the application's views) and REFERENCES (release 88: no INSERT, UPDATE or
+    -- DELETE - data changes only through the COMMON routines; an earlier grant is taken back);
     -- views: SELECT; sequences: SELECT; packages, types, procedures, functions: EXECUTE.
     procedure grant_to(p_schema in varchar2);
     -- grant_to for the schema of every registered application that exists in this database.
     procedure grant_to_applications;
+    -- release 87: EXECUTE on XXFND_ONBOARD_PKG to every schema of COMMON's workspace, so an application's own install
+    -- can register it (generic script 00c); everything else is granted only once the application is registered.
+    procedure grant_onboarding;
     -- One-time move: replaces the shared data here with the copy kept so far in p_schema (same keys, so the
     -- application's rows that refer to them stay valid), then re-applies seed_common. Every column of p_schema's
     -- tables must exist here, otherwise nothing is changed (-20140). Called by the application's install
@@ -64,7 +70,15 @@ create or replace package body xxfnd_share_pkg as
             case o.object_type
                 when 'TABLE' then
                     run('grant select on ' || o.object_name || ' to ' || l_to || ' with grant option');
-                    run('grant insert, update, delete, references on ' || o.object_name || ' to ' || l_to);
+                    -- release 88 (C10): data in COMMON changes only through COMMON routines (EXECUTE): no INSERT,
+                    -- UPDATE or DELETE for the applications, an earlier grant is taken back; REFERENCES stays (the
+                    -- applications' foreign keys to COMMON keys, it changes no data)
+                    run('grant references on ' || o.object_name || ' to ' || l_to);
+                    for w in (select privilege from user_tab_privs_made
+                               where grantee = upper(p_schema) and table_name = o.object_name
+                                 and privilege in ('INSERT', 'UPDATE', 'DELETE')) loop
+                        run('revoke ' || w.privilege || ' on ' || o.object_name || ' from ' || l_to);
+                    end loop;
                 when 'VIEW' then
                     run('grant select on ' || o.object_name || ' to ' || l_to || ' with grant option');
                 when 'SEQUENCE' then
@@ -83,6 +97,19 @@ create or replace package body xxfnd_share_pkg as
             grant_to(a.schema_name);
         end loop;
     end grant_to_applications;
+
+    procedure grant_onboarding is
+        l_ws varchar2(255);
+    begin
+        select max(workspace) into l_ws from apex_applications
+         where application_id = (select apex_application_id from xxfnd_applications where application_code = 'COMMON');
+        if l_ws is null then
+            return;
+        end if;
+        for w in (select schema from apex_workspace_schemas where workspace_name = l_ws and schema <> $$PLSQL_UNIT_OWNER) loop
+            run('grant execute on xxfnd_onboard_pkg to ' || dbms_assert.enquote_name(w.schema, false));
+        end loop;
+    end grant_onboarding;
 
     procedure seed_common is
         l_app   number;
@@ -407,15 +434,15 @@ begin
     xxfnd_share_pkg.seed_admin;
 end;
 /
-
--- the applications reach the new view through the usual grants (19c runs before this script)
+--------------------------------------------------------------------------------
+-- 99 Sharing with the applications - last (release 87, C11). COMMON only (XXFUSION). The LAST script of every COMMON
+--   install and upgrade: whatever an earlier script created is granted to every registered application's schema
+--   (XXFND_SHARE_PKG.GRANT_TO_APPLICATIONS), the onboarding entry to every schema of the workspace (GRANT_ONBOARDING),
+--   and anything left invalid is compiled again. Later releases add their scripts before this one.
+-- Idempotent: a re-run changes nothing.
+--------------------------------------------------------------------------------
 begin
     xxfnd_share_pkg.grant_to_applications;
-end;
-/
-
--- the applications reach the new objects through the usual grants
-begin
-    xxfnd_share_pkg.grant_to_applications;
+    xxfnd_share_pkg.grant_onboarding;
 end;
 /

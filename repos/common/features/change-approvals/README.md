@@ -15,7 +15,7 @@ Maker-checker on setup data for every application without code in the applicatio
 applications, attachments, audit-log, data-security, flexfields, integrations, lookups, notifications, retention, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-applications, integrations, my-tasks, workflow-setup
+integrations, my-tasks, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).
@@ -40,9 +40,9 @@ Privileges `CHANGE_APPROVALS.<action>` for VIEW, MANAGE (VIEW opens its pages, C
 Roles at install: The roles that manage the Approval Setup, once at install (26).
 
 ## How another application uses it
-1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+1. The application is onboarded (Applications, or its own install with the generic script 00c-onboard-with-common.sql). 2. Its schema gets the grants (SELECT, REFERENCES, EXECUTE - no INSERT, UPDATE or DELETE) and creates synonyms for the COMMON objects (script 00c does both). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
 
-The application registers its controlled setup tables with `XXFND_APPROVAL_PKG.REGISTER_CONFIG_TABLE` and submits a change with `REQUEST`. COMMON issue C2: a cancelled change cannot be submitted again.
+The application registers its controlled setup tables with `XXFND_APPROVAL_PKG.REGISTER_CONFIG_TABLE` and submits a change with `REQUEST` (release 87: a faulted earlier change no longer blocks it).
 
 ### Public routines
 - `XXFND_APPROVAL_PKG`: APPLY_RULES, APPROVE, APPROVE_CHANGE, CONFIG_CHANGES, IS_CONTROLLED, IS_PENDING, REGISTER_CONFIG_TABLE, REJECT, REJECT_CHANGE, REQUEST, SUBMIT, TASK_CHANGE (registration: REGISTER_CONFIG_TABLE)

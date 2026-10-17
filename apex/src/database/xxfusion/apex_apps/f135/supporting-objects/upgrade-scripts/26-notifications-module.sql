@@ -395,7 +395,8 @@ end;
 
 -- the applications reach the new objects through the usual grants
 begin
-    xxfnd_share_pkg.grant_to_applications;
+    -- release 87 (C11): the grants to the applications run once, last (script 99)
+    null;
 end;
 /
 

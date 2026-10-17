@@ -8,7 +8,7 @@ page 43 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @signed-in-user
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -369,7 +369,7 @@ page 43 (
             value: MARK_ALL
         }
         security {
-            authorizationScheme: @page-submit
+            authorizationScheme: @signed-in-user
         }
     )
 )
