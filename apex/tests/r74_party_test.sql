@@ -66,9 +66,7 @@ begin
     xxcmp_party_pkg.registry_check_saved(l_id);
     select count(*) into l_n from xxcmp_party_registry_checks where registry_check_id = l_id and changed_by_person_flag = 'N';
     ok('a manual check is not marked as changed by a person', l_n = 1);
-    xxcmp_party_pkg.review_registry_check(l_id);
-    select count(*) into l_n from xxcmp_party_registry_checks where registry_check_id = l_id and reviewed_by is not null;
-    ok('review records who reviewed it', l_n = 1);
+    -- release 91: REVIEW_REGISTRY_CHECK is removed (no screen called it)
     ok('Compliance may record a check on the party', xxcmp_party_pkg.can_record_verification(l_org) = 'Y');
 
     -- merge: the duplicate's checks move to the kept party

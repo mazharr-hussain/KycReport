@@ -10,18 +10,6 @@ pageGroup monitoring (
     name: Monitoring and Dashboard
 )
 
-pageGroup rfi (
-    name: Requests for Information
-)
-
-pageGroup workflow (
-    name: Workflow
-)
-
-pageGroup attachments (
-    name: Attachments
-)
-
 pageGroup administration (
     name: Administration
 )

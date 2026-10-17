@@ -548,6 +548,11 @@ end xxcmp_request_pkg;
 
 create or replace package xxcmp_case_pkg authid definer as
 
+    -- Release 91: a numeric KYC parameter (CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS). It is a KYC application
+    -- setting; while the setting is empty, the value an administrator kept in the old lookup KYC_PARAMETER (TAG)
+    -- applies, then P_DEFAULT. Read from the APEX dictionary, so it also works without an APEX session (views).
+    function parameter(p_name in varchar2, p_default in number) return number;
+
     -- Opens the case of a request and starts the KYC_CASE workflow.
     function create_case(p_request_id in number, p_assigned_to in varchar2 default null) return number;
     -- A case opened by an officer without an intake request (a request is recorded for the trail).

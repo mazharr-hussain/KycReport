@@ -10,6 +10,7 @@
 --   Release 74: the approvers come from the common Approval Setup (type KYC_REQUEST, COMMON 15d); XXCMP_APPROVAL_PATHS
 --   is kept unchanged as history (page 166 removed). Request only (R6): the case history is in XXCMP_CASE_PKG; the
 --   HTML functions path_html / history_html are gone (R11) - the screens use HISTORY_ROWS in a standard report.
+--   Release 91: retired (not seeded, not read); the table and its rows stay as history.
 -- Idempotent: safe on install and on every upgrade.
 --------------------------------------------------------------------------------
 create table if not exists xxcmp_approval_paths (
@@ -39,7 +40,7 @@ create table if not exists xxcmp_approval_paths (
                                             or (approver_type = 'USER' and user_name is not null)),
     constraint xxcmp_approval_paths_ck3 check (enabled_flag in ('Y', 'N'))
 );
-comment on table xxcmp_approval_paths is 'KYC request approval paths: one row per step; the path whose criteria match the request best applies.';
+comment on table xxcmp_approval_paths is 'Retired in KYC release 91 (kept as history): the request approvers come from COMMON Approval Setup (type KYC_REQUEST).';
 begin
     xxfnd_schema_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
     xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
@@ -48,13 +49,8 @@ begin
     xxfnd_ddl_pkg.add_column('XXCMP_APPROVAL_PATHS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
 end;
 /
--- the default path (any request): one Compliance review
-merge into xxcmp_approval_paths t
-using (select 'Default' path_name, 1 step_sequence from dual) s
-   on (t.path_name = s.path_name and t.step_sequence = s.step_sequence)
- when not matched then insert (path_name, priority, step_sequence, step_name, approver_type, role_code)
-                       values ('Default', 999, 1, 'Compliance review', 'ROLE', 'COMPLIANCE_OFFICER');
-commit;
+-- Release 91: XXCMP_APPROVAL_PATHS is retired. Nothing reads it (the approvers come from COMMON's Approval Setup, type
+-- KYC_REQUEST) and its 'Default' path is no longer seeded. The table and its rows are kept as history.
 
 -- Release 90: the request approval routines (path, steps, approvers, history) are XXCMP_REQUEST_PKG's (request logic in
 -- the request package; 16b specification, 16r body). The old package is dropped (checked: nothing when it is gone).
