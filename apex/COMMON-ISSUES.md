@@ -66,3 +66,20 @@ adapting KYC (releases 87-91) to COMMON 86. KYC uses COMMON as it is; the COMMON
   (no direct writes to COMMON tables).
 - **Needed:** an UNREGISTER_FEATURE_PAGE routine (refuses another application's row, like the REGISTER_* routines), or
   a delete on the feature page screen.
+
+## C9 - An application cannot be unregistered, and a registered application cannot be deleted
+- **Where:** the REGISTER_* routines (XXFND_PRIVILEGE_PKG, XXFND_VPD_PKG, XXFND_LOOKUP_PKG, XXFND_DFF_PKG, XXFND_ATTACH_PKG,
+  XXFND_NOTIFY_PKG, XXFND_WORKFLOW_PKG, XXFND_APPROVAL_RULE_PKG, XXFND_APPROVAL_PKG, XXFND_INTEGRATION_PKG,
+  XXFND_ERROR_PKG) only add rows; there is no UNREGISTER_* routine for any of them.
+  `XXFND_APPLICATION_PKG.DELETE_APPLICATION` (apex/db/09d) refuses through DELETE_BLOCKER while the application is
+  enabled or owns any row in an XXFND_ table with APPLICATION_CODE, or any feature.
+- **Effect:**
+  - An application cannot retire what it registered (features, privileges, feature pages - see C8 -, lookups and
+    values, flexfields, value sets, document entities / categories / attachment pages, templates, task settings,
+    processes, approval types / rules, configuration tables, purposes, messages, data rules). Removed KYC items stay as
+    stale rows (for example the KYC_RFI attachment page, the KYC_PARAMETER lookup, the page mappings of C8).
+  - An application that has registered its setup can never be deleted: every registered row blocks the delete and
+    there is no way to remove those rows first. Taking an application out means writing COMMON's tables by hand.
+- **Needed:** an UNREGISTER_* routine (or a retire flag) for each REGISTER_* routine, refusing another application's
+  rows; and a DELETE_APPLICATION that removes (or offers to remove) the application's own registered rows, still
+  refusing when business data refers to them.
