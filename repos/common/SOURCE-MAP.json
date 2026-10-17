@@ -949,7 +949,7 @@
   {
    "from": 15319,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 68799,
+   "to": 68943,
    "whole": false
   }
  ],
@@ -1491,9 +1491,9 @@
    "whole": false
   },
   {
-   "from": 68799,
+   "from": 68943,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 72192,
+   "to": 72336,
    "whole": false
   },
   {
@@ -1561,29 +1561,29 @@
   {
    "from": 2808,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 24988,
+   "to": 25187,
    "whole": false
   },
   {
-   "from": 24988,
+   "from": 25187,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 25136,
+   "to": 25335,
    "whole": false
   }
  ],
  "apex/db/20-common-seed.sql": [
   {
-   "from": 25136,
+   "from": 25335,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 26146,
+   "to": 26345,
    "whole": false
   }
  ],
  "apex/db/21-common-admin.sql": [
   {
-   "from": 26146,
+   "from": 26345,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 27216,
+   "to": 27415,
    "whole": false
   }
  ],
@@ -1603,9 +1603,9 @@
    "whole": false
   },
   {
-   "from": 72192,
+   "from": 72336,
    "target": "common/features/applications/db/packages/xxfnd_application_pkg.sql",
-   "to": 72249,
+   "to": 72393,
    "whole": false
   },
   {
@@ -1963,11 +1963,49 @@
    "whole": false
   }
  ],
+ "apex/db/33-data-model.sql": [
+  {
+   "from": 0,
+   "target": "common/features/data-model/db/tables/xxfnd_dm_app_scopes.sql",
+   "to": 3648,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-model/db/packages/xxfnd_data_model_pkg.sql",
+   "to": 2315,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-model/db/views/xxfnd_dm_apps_v.sql",
+   "to": 9486,
+   "whole": false
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-model/db/views/xxfnd_dm_objects_v.sql",
+   "to": 151,
+   "whole": false
+  },
+  {
+   "from": 2315,
+   "target": "common/features/data-model/db/packages/xxfnd_data_model_pkg.sql",
+   "to": 17409,
+   "whole": false
+  },
+  {
+   "from": 7661,
+   "target": "common/db/framework/objects/xxfnd_util_pkg.sql",
+   "to": 13595,
+   "whole": false
+  }
+ ],
  "apex/db/99-share-with-applications-last.sql": [
   {
-   "from": 27216,
+   "from": 27415,
    "target": "common/db/framework/objects/xxfnd_share_pkg.sql",
-   "to": 27964,
+   "to": 28163,
    "whole": false
   },
   {
@@ -2013,7 +2051,7 @@
   {
    "from": 0,
    "target": "common/docs/install/INSTALL.md",
-   "to": 15266,
+   "to": 16381,
    "whole": true
   }
  ],
@@ -2561,6 +2599,30 @@
    "whole": true
   }
  ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00175-data-model.apx": [
+  {
+   "from": 0,
+   "target": "common/features/data-model/pages/p00175-data-model.apx",
+   "to": 10989,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00176-database-object.apx": [
+  {
+   "from": 0,
+   "target": "common/features/data-model/pages/p00176-database-object.apx",
+   "to": 32743,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00177-data-model-diagram.apx": [
+  {
+   "from": 0,
+   "target": "common/features/data-model/pages/p00177-data-model-diagram.apx",
+   "to": 9925,
+   "whole": true
+  }
+ ],
  "apex/src/database/xxfusion/apex_apps/f135/pages/p00180-data-security.apx": [
   {
    "from": 0,
@@ -2735,7 +2797,7 @@
   {
    "from": 0,
    "target": "common/app/shared-components/breadcrumbs.apx",
-   "to": 18566,
+   "to": 19451,
    "whole": true
   }
  ],
@@ -2975,7 +3037,7 @@
   {
    "from": 0,
    "target": "common/app/shared-components/static-files.apx",
-   "to": 404,
+   "to": 488,
    "whole": true
   }
  ],
@@ -3016,6 +3078,14 @@
    "from": 0,
    "target": "common/app/shared-components/static-files/icons/app-icon-512.png",
    "to": 21140,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/mermaid/mermaid.min.js": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/static-files/mermaid/mermaid.min.js",
+   "to": 3335717,
    "whole": true
   }
  ],
@@ -3456,6 +3526,30 @@
    "from": 0,
    "target": "common/tests/r88_journey_ui.py",
    "to": 12592,
+   "whole": true
+  }
+ ],
+ "apex/tests/r89_data_model_apps.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r89_data_model_apps.sql",
+   "to": 947,
+   "whole": true
+  }
+ ],
+ "apex/tests/r89_data_model_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r89_data_model_test.sql",
+   "to": 7310,
+   "whole": true
+  }
+ ],
+ "apex/tests/r89_data_model_ui.py": [
+  {
+   "from": 0,
+   "target": "common/tests/r89_data_model_ui.py",
+   "to": 2736,
    "whole": true
   }
  ],

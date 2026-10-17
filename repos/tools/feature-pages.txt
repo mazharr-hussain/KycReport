@@ -171,3 +171,6 @@ KYC|44|WORKFLOW_MONITOR|WORKFLOW_INTEGRATION
 KYC|45|WORKFLOW_MONITOR|WORKFLOW_INTEGRATION                                        
 KYC|90|HOME|BUSINESS                                                                
 KYC|91|HOME|BUSINESS                                                                
+COMMON|175|DATA_MODEL|PLATFORM                                                      
+COMMON|176|DATA_MODEL|PLATFORM                                                      
+COMMON|177|DATA_MODEL|PLATFORM                                                      

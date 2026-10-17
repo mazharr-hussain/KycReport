@@ -815,6 +815,23 @@ upgradeScript 32-removing-registrations-rfi-documents-and-deadlines-contacts (
     }
 )
 
+upgradeScript 33-data-model (
+    execution {
+        sequence: 186
+    }
+    script {
+        contentFile: 33-data-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 99-sharing-with-the-applications-last (
     execution {
         sequence: 990

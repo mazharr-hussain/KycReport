@@ -1,6 +1,6 @@
 app COMMON (
     name: Common
-    version: Release 88
+    version: Release 89
     logo {
         type: text
         text: &APP_TITLE.

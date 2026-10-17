@@ -26,6 +26,7 @@ RULES = [
  ('common', 'app-settings', r'^XXFND_APP_SETTING'),
  ('common', 'users-access', r'^XXFND_(USER|EMPLOYEES|AUTH_PKG)'),
  ('common', 'roles-privileges', r'^XXFND_(ROLE|PRIVILEGE|FEATURE|SOD_|EFFECTIVE_ACCESS)'),
+ ('common', 'data-model', r'^XXFND_(DM_|DATA_MODEL)'),          # release 89 (before data-security: XXFND_DATA_MODEL_PKG)
  ('common', 'data-security', r'^XXFND_(DATA_|VPD)'),
  ('common', 'audit-log', r'^XXFND_AUDIT'),
  ('common', 'lookups', r'^XXFND_LOOKUP'),

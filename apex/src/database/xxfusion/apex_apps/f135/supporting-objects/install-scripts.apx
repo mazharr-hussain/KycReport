@@ -866,6 +866,23 @@ installScript 32-removing-registrations-rfi-documents-and-deadlines-contacts (
     }
 )
 
+installScript 33-data-model (
+    execution {
+        sequence: 226
+    }
+    script {
+        contentFile: 33-data-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 99-sharing-with-the-applications-last (
     execution {
         sequence: 990

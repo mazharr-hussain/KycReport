@@ -1,0 +1,1272 @@
+page 176 (
+    name: Database Object
+    alias: DATABASE-OBJECT
+    title: Database Object
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One database object of the application: its columns, constraints, indexes and triggers (tables), its procedures and
+            functions with their parameters (packages), its attributes (types), the grants on it, and the objects it uses and that
+            use it. Every object name opens that object.
+            ```
+    }
+
+    region breadcrumb (
+        name: Database Object
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region object (
+        name: Object
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: object
+        }
+    )
+
+    pageItem P176_APPLICATION (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P176_OBJECT (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P176_TYPE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @object
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(object_type) from xxfnd_dm_objects_v
+                 where application_code = :P176_APPLICATION and object_name = :P176_OBJECT
+                ```
+            used: always
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    region summary (
+        name: Summary
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 89: the object (XXFND_DM_OBJECTS_V: only an object the user may see)
+                select o.object_name, o.object_type, o.group_name, o.status, o.created, o.last_ddl_time, o.comments
+                  from xxfnd_dm_objects_v o
+                 where o.application_code = :P176_APPLICATION and o.object_name = :P176_OBJECT
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 21
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: summary
+        }
+        messages {
+            whenNoDataFound: The object is not available.
+        }
+
+        column OBJECT_NAME (
+            type: plainText
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column OBJECT_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column GROUP_NAME (
+            type: plainText
+            heading {
+                heading: Group
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CREATED (
+            type: plainText
+            heading {
+                heading: Created
+            }
+            layout {
+                sequence: 50
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column LAST_DDL_TIME (
+            type: plainText
+            heading {
+                heading: Last Changed
+            }
+            layout {
+                sequence: 60
+            }
+            appearance {
+                formatMask: DD-MON-YYYY HH24:MI
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comment
+            }
+            layout {
+                sequence: 70
+            }
+        )
+    )
+
+    region columns (
+        name: Columns
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name, c.data_type, case c.nullable when 'N' then 'No' else 'Yes' end as nullable, c.data_default,
+                       (select listagg(k.type_code, ', ') within group (order by decode(k.type_code, 'P', 1, 'R', 2, 3))
+                          from xxfnd_dm_constraints_v k
+                         where k.application_code = c.application_code and k.table_name = c.table_name and k.type_code in ('P', 'R', 'U')
+                           and ', ' || k.column_list || ', ' like '%, ' || c.column_name || ', %') as keys,
+                       c.comments
+                  from xxfnd_dm_columns_v c
+                 where c.application_code = :P176_APPLICATION and c.table_name = :P176_OBJECT
+                 order by c.column_id
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: columns
+        }
+        messages {
+            whenNoDataFound: No column.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') in ('TABLE', 'VIEW', 'MATERIALIZED VIEW')
+                ```
+        }
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DATA_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column NULLABLE (
+            type: plainText
+            heading {
+                heading: Null
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column DATA_DEFAULT (
+            type: plainText
+            heading {
+                heading: Default
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column KEYS (
+            type: plainText
+            heading {
+                heading: Keys
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comment
+            }
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    region constraints (
+        name: Constraints
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select k.constraint_name, k.constraint_type, k.column_list, k.ref_table, k.ref_column_list, k.delete_rule, k.condition,
+                       case when k.ref_table is not null then apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => :P176_APPLICATION || ',' || k.ref_table) end as ref_url
+                  from xxfnd_dm_constraints_v k
+                 where k.application_code = :P176_APPLICATION and k.table_name = :P176_OBJECT
+                 order by decode(k.type_code, 'P', 1, 'U', 2, 'R', 3, 4), k.constraint_name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: constraints
+        }
+        messages {
+            whenNoDataFound: No constraint.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TABLE'
+                ```
+        }
+
+        column CONSTRAINT_NAME (
+            type: plainText
+            heading {
+                heading: Constraint
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CONSTRAINT_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column COLUMN_LIST (
+            type: plainText
+            heading {
+                heading: Columns
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column REF_TABLE (
+            type: link
+            heading {
+                heading: References
+            }
+            layout {
+                sequence: 40
+            }
+            link {
+                target: {
+                    type: url
+                    url: #REF_URL#
+                }
+                linkText: #REF_TABLE#
+            }
+        )
+
+        column REF_COLUMN_LIST (
+            type: plainText
+            heading {
+                heading: Referenced Columns
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column DELETE_RULE (
+            type: plainText
+            heading {
+                heading: On Delete
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CONDITION (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column REF_URL (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+    )
+
+    region indexes (
+        name: Indexes
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select i.index_name, lower(i.uniqueness) as uniqueness, i.index_type, i.column_list
+                  from xxfnd_dm_indexes_v i
+                 where i.application_code = :P176_APPLICATION and i.table_name = :P176_OBJECT
+                 order by i.index_name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: indexes
+        }
+        messages {
+            whenNoDataFound: No index.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TABLE'
+                ```
+        }
+
+        column INDEX_NAME (
+            type: plainText
+            heading {
+                heading: Index
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column UNIQUENESS (
+            type: plainText
+            heading {
+                heading: Unique
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column INDEX_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column COLUMN_LIST (
+            type: plainText
+            heading {
+                heading: Columns
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    region triggers (
+        name: Triggers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.trigger_name, lower(t.trigger_type) as trigger_type, lower(t.triggering_event) as triggering_event, t.status,
+                       apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => :P176_APPLICATION || ',' || t.trigger_name) as open_url
+                  from xxfnd_dm_triggers_v t
+                 where t.application_code = :P176_APPLICATION and t.table_name = :P176_OBJECT
+                 order by t.trigger_name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: triggers
+        }
+        messages {
+            whenNoDataFound: No trigger.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TABLE'
+                ```
+        }
+
+        column TRIGGER_NAME (
+            type: link
+            heading {
+                heading: Trigger
+            }
+            layout {
+                sequence: 10
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #TRIGGER_NAME#
+            }
+        )
+
+        column TRIGGER_TYPE (
+            type: plainText
+            heading {
+                heading: Timing
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TRIGGERING_EVENT (
+            type: plainText
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region trigger-detail (
+        name: Trigger
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.table_name, lower(t.trigger_type) as trigger_type, lower(t.triggering_event) as triggering_event, t.status,
+                       apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => :P176_APPLICATION || ',' || t.table_name) as open_url
+                  from xxfnd_dm_triggers_v t
+                 where t.application_code = :P176_APPLICATION and t.trigger_name = :P176_OBJECT
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 61
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: trigger-detail
+        }
+        messages {
+            whenNoDataFound: -
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TRIGGER'
+                ```
+        }
+
+        column TABLE_NAME (
+            type: link
+            heading {
+                heading: On Table
+            }
+            layout {
+                sequence: 10
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #TABLE_NAME#
+            }
+        )
+
+        column TRIGGER_TYPE (
+            type: plainText
+            heading {
+                heading: Timing
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column TRIGGERING_EVENT (
+            type: plainText
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region policies (
+        name: Data Security Policies
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select p.policy_name, p.policy_function, p.statements
+                  from xxfnd_dm_policies_v p
+                 where p.application_code = :P176_APPLICATION and p.object_name = :P176_OBJECT
+                 order by p.policy_name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 65
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: policies
+        }
+        messages {
+            whenNoDataFound: No data security policy.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TABLE'
+                ```
+        }
+
+        column POLICY_NAME (
+            type: plainText
+            heading {
+                heading: Policy
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column POLICY_FUNCTION (
+            type: plainText
+            heading {
+                heading: Function
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATEMENTS (
+            type: plainText
+            heading {
+                heading: Statements
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+
+    region routines (
+        name: Procedures and Functions
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select lower(r.routine_name) as routine_name,
+                       case when r.returns is not null then 'function' else 'procedure' end as kind,
+                       r.overload, r.parameters, lower(r.returns) as returns
+                  from xxfnd_dm_routines_v r
+                 where r.application_code = :P176_APPLICATION and r.object_name = :P176_OBJECT
+                 order by r.subprogram_id
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 70
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: routines
+        }
+        messages {
+            whenNoDataFound: No procedure or function.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') in ('PACKAGE', 'PROCEDURE', 'FUNCTION')
+                ```
+        }
+
+        column ROUTINE_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column KIND (
+            type: plainText
+            heading {
+                heading: Kind
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column OVERLOAD (
+            type: plainText
+            heading {
+                heading: Overload
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PARAMETERS (
+            type: plainText
+            heading {
+                heading: Parameters
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column RETURNS (
+            type: plainText
+            heading {
+                heading: Returns
+            }
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region attributes (
+        name: Attributes
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select t.attr_name, t.attr_type_name, t.length, t.precision, t.scale
+                  from xxfnd_dm_type_attrs_v t
+                 where t.application_code = :P176_APPLICATION and t.type_name = :P176_OBJECT
+                 order by t.attr_no
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 75
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: attributes
+        }
+        messages {
+            whenNoDataFound: No attribute (a collection type).
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P176_TYPE, '#') = 'TYPE'
+                ```
+        }
+
+        column ATTR_NAME (
+            type: plainText
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ATTR_TYPE_NAME (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column LENGTH (
+            type: plainText
+            heading {
+                heading: Length
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PRECISION (
+            type: plainText
+            heading {
+                heading: Precision
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column SCALE (
+            type: plainText
+            heading {
+                heading: Scale
+            }
+            layout {
+                sequence: 50
+            }
+        )
+    )
+
+    region grants (
+        name: Granted To
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select g.grantee, g.privileges
+                  from xxfnd_dm_grants_v g
+                 where g.application_code = :P176_APPLICATION and g.object_name = :P176_OBJECT
+                 order by g.grantee
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 80
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: grants
+        }
+        messages {
+            whenNoDataFound: Not granted to another schema.
+        }
+
+        column GRANTEE (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PRIVILEGES (
+            type: plainText
+            heading {
+                heading: Privileges
+            }
+            layout {
+                sequence: 20
+            }
+        )
+    )
+
+    region uses (
+        name: Uses
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.referenced_owner, d.referenced_name, lower(d.referenced_type) as referenced_type,
+                       case when d.referenced_owner = d.owner then apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => :P176_APPLICATION || ',' || d.referenced_name) end as open_url
+                  from xxfnd_dm_dependencies_v d
+                 where d.application_code = :P176_APPLICATION and d.name = :P176_OBJECT
+                 order by d.referenced_owner, d.referenced_name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: uses
+        }
+        messages {
+            whenNoDataFound: It uses no other object.
+        }
+
+        column REFERENCED_OWNER (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column REFERENCED_NAME (
+            type: link
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #REFERENCED_NAME#
+            }
+        )
+
+        column REFERENCED_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    region used-by (
+        name: Used By
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.owner, d.name, lower(d.type) as type, apex_page.get_url(p_page => 176, p_clear_cache => '176', p_items => 'P176_APPLICATION,P176_OBJECT',
+                                         p_values => :P176_APPLICATION || ',' || d.name) as open_url
+                  from xxfnd_dm_dependencies_v d
+                 where d.application_code = :P176_APPLICATION and d.referenced_owner = (select max(o.owner) from xxfnd_dm_objects_v o
+                                                                                       where o.application_code = :P176_APPLICATION
+                                                                                         and o.object_name = :P176_OBJECT)
+                   and d.referenced_name = :P176_OBJECT
+                 order by d.name
+                ```
+            pageItemsToSubmit: P176_APPLICATION,P176_OBJECT
+        }
+        layout {
+            sequence: 100
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: used-by
+        }
+        messages {
+            whenNoDataFound: No object of the application uses it.
+        }
+
+        column OWNER (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column NAME (
+            type: link
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    type: url
+                    url: #OPEN_URL#
+                }
+                linkText: #NAME#
+            }
+        )
+
+        column TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+    )
+)

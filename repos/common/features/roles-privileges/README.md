@@ -15,7 +15,7 @@ Page access is data driven: every page is mapped to a feature and opened with th
 applications, attachments, audit-log, communications, data-security, information-requests, lookups, notifications, users-access
 
 ## Used by (COMMON components)
-app-settings, applications, approval-setup, change-approvals, data-security, information-requests, integrations, lookups, notifications, users-access, workflow-setup
+app-settings, applications, approval-setup, change-approvals, data-model, data-security, information-requests, integrations, lookups, notifications, users-access, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).

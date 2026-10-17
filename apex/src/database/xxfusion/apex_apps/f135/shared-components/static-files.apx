@@ -22,3 +22,8 @@ file "icons/app-icon-512.png" (
     mimeType: image/png
     charSet: utf-8
 )
+
+file "mermaid/mermaid.min.js" (
+    mimeType: text/javascript
+    charSet: utf-8
+)
