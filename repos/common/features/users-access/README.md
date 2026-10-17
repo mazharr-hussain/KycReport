@@ -1,12 +1,55 @@
-# users-access
+# Users & Access
 
-Feature of COMMON. Copied as it is from the current application (no change).
+COMMON component, module Security (feature `USERS_ACCESS`).
 
-## Uses (objects of these features are named in its files)
+## Purpose
+Users, their roles and their data access.
+
+## Usage
+Pages 103 / 104 maintain users (local or SSO, mapped to employees); page 183 assigns roles and data access rules. XXFND_USER_PKG is also every application's sign-in (post-authentication) and authorization logic.
+
+## Benefit
+One user record and one role assignment for all applications; sign-in and authorization rules in one place.
+
+## Depends on (objects of these components are named in its files)
 applications, audit-log, data-security, integrations, lookups, roles-privileges
 
-## Used by
+## Used by (COMMON components)
 applications, approval-setup, change-approvals, data-security, integrations, lookups, notifications, roles-privileges, workflow-setup
+
+## Installation requirements
+COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Single sign-on: the Fusion web credential and FUSION_BASE_URL (Fusion HCM worker sync).
+
+## Application objects
+### Pages
+- 103 Users and Access (`pages/p00103-users.apx`)
+- 104 User (`pages/p00104-user.apx`)
+- 183 Assign (`pages/p00183-assign.apx`)
+
+### Shared components
+- `shared-components/automations/fusion-hcm-sync.apx`
+
+## Database objects (schema XXFUSION)
+- tables: `XXFND_EMPLOYEES`, `XXFND_USERS`, `XXFND_USER_ROLES`
+- views: `XXFND_USER_ROLES_V`
+- packages: `XXFND_AUTH_PKG`, `XXFND_USER_PKG`
+- triggers: `XXFND_EMPLOYEES_INS`, `XXFND_EMPLOYEES_RENAME`, `XXFND_EMPLOYEES_SRC`, `XXFND_USER_ROLES_USER`
+- seed: `XXFND_USERS`, `XXFND_USER_ROLES`
+
+## Roles and privileges
+Privileges `USERS_ACCESS.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pages, CREATE adds, MANAGE changes and deletes); a page opens with the privilege on the feature it is mapped to.
+Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of an admin feature (19c); other roles get them from the COMMON console.
+
+## How another application uses it
+1. The application is onboarded (Applications). 2. Its schema gets the grants and creates synonyms for the COMMON objects (as KYC script 03 does). 3. It registers its rows through the COMMON REGISTER_* routines and changes COMMON data only through COMMON routines (golden rule; no direct SQL). 4. It links to COMMON pages with link type "page in a different application" (`app: COMMON`, same session). 5. Its users get the privileges through roles in the COMMON console.
+
+The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` / `POST_AUTH_SSO`, and its authorization schemes call `XXFND_USER_PKG.AUTHORIZED(<scheme>)` (KYC subscribes to them). The first administrator: `XXFND_USER_PKG.BOOTSTRAP_ADMIN`.
+
+### Public routines
+- `XXFND_USER_PKG`: ASSIGN_ROLE, AUTHORIZED, BOOTSTRAP_ADMIN, CREATE_LOCAL_USER, EMPLOYEE_USER, IN_GROUP, IS_LOCAL, LOAD_USER_ROLES, MAP_LOGIN_USER, POST_AUTH_LOCAL, POST_AUTH_SSO, RENAME_USER, RENAMING, RESET_PASSWORD, SAVE_USER, SET_ENABLED, UNASSIGN_ROLE
+
+## Tests
+- in `../../tests/` (whole application)
 
 ## Files
 - `db/packages/xxfnd_auth_pkg.sql`
