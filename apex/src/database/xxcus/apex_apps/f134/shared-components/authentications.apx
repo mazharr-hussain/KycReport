@@ -2,7 +2,7 @@ authentication oracle-apex-accounts (
     name: Oracle APEX Accounts
     type: oracleApexAccounts
     loginProcessing {
-        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_local
+        postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_local
     }
     sessionSharing {
         type: workspaceSharing
@@ -14,7 +14,7 @@ authentication oracle-database-accounts (
     name: Oracle Database Accounts
     type: databaseAccounts
     loginProcessing {
-        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_local
+        postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_local
     }
     sessionSharing {
         type: workspaceSharing
@@ -37,12 +37,12 @@ authentication apex-fa-iabwbn-dev1-oauth (
         verifyAttrs: true
     }
     loginProcessing {
-        postAuthenticationProcedureName: xxfnd_auth_pkg.post_auth_sso
+        postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_sso
     }
     comments {
         comments:
             ```
-            Created for federated authentication with the iabwbn-dev1 Fusion instance (same scheme as application 132). All logic is in XXFND_AUTH_PKG.
+            Created for federated authentication with the iabwbn-dev1 Fusion instance (same scheme as application 132). All logic is in XXFND_USER_PKG.
             ```
     }
     sessionSharing {

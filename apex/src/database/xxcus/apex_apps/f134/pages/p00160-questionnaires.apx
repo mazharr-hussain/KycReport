@@ -52,7 +52,7 @@ page 160 (
                   from (
 
                             select q.questionnaire_code, q.questionnaire_name,
-                                   xxfnd_util_pkg.lookup_meaning('QUESTIONNAIRE_AUDIENCE', q.audience) as audience,
+                                   xxfnd_lookup_pkg.lookup_meaning('QUESTIONNAIRE_AUDIENCE', q.audience) as audience,
                                    q.low_risk_max_score, q.medium_risk_max_score, q.current_version_number, q.enabled_flag,
                                    (select count(*) from xxcmp_questions x where x.questionnaire_code = q.questionnaire_code) as questions
                               from xxcmp_questionnaires q

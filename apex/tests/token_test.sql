@@ -15,8 +15,8 @@ begin
         p_recipient_reference => to_char(l_contact), p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_tok);
     commit;
     apex_session.delete_session;
-    -- the public page runs as nobody
-    apex_session.create_session(134, 33, 'nobody');
+    -- the public page runs as nobody (release 89: COMMON's Provide Information page 50; KYC page 33 is gone)
+    apex_session.create_session(xxfnd_application_pkg.apex_app_id('COMMON'), 50, 'nobody');
     begin
         l_cnt := xxfnd_rfi_pkg.respond_by_token('wrong-token', to_clob('no'));
     exception when others then dbms_output.put_line('bad token -> '||sqlerrm);

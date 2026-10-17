@@ -250,24 +250,6 @@ installScript 16g-request-approval-paths (
     }
 )
 
-installScript 17-seed-data-and-administrator-part-1-of-2 (
-    execution {
-        sequence: 170
-    }
-    script {
-        contentFile: 17-seed-data-and-administrator-part-1-of-2.sql
-    }
-    serverSideCondition {
-        type: rowsReturned
-        sqlQuery:
-            ```sql
-            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables
-                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
-            ```
-    }
-)
-
 installScript 16w-kyc-case-assignment-from-the-request (
     execution {
         sequence: 171
@@ -292,24 +274,6 @@ installScript 16i-request-ui (
     }
     script {
         contentFile: 16i-request-ui.sql
-    }
-    serverSideCondition {
-        type: rowsReturned
-        sqlQuery:
-            ```sql
-            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables
-                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
-            ```
-    }
-)
-
-installScript 16k-kyc-rfis-use-the-common-rfi-workflow (
-    execution {
-        sequence: 173
-    }
-    script {
-        contentFile: 16k-rfi-to-common.sql
     }
     serverSideCondition {
         type: rowsReturned
@@ -394,24 +358,6 @@ installScript 16s-kyc-case-package-body (
     }
 )
 
-installScript 18-seed-data-and-administrator-part-2-of-2 (
-    execution {
-        sequence: 180
-    }
-    script {
-        contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
-    }
-    serverSideCondition {
-        type: rowsReturned
-        sqlQuery:
-            ```sql
-            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables
-                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
-            ```
-    }
-)
-
 installScript 16u-kyc-risk-model-tables-package-body-starting-model-with-the-fatf-lists (
     execution {
         sequence: 181
@@ -436,6 +382,42 @@ installScript 16v-kyc-performance-foreign-key-and-data-security-indexes (
     }
     script {
         contentFile: 16v-performance.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
+installScript 18h-kyc-registers-itself-in-common (
+    execution {
+        sequence: 183
+    }
+    script {
+        contentFile: 18h-register-with-common.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
+installScript 18-seed-data-and-administrator-part-2-of-2 (
+    execution {
+        sequence: 184
+    }
+    script {
+        contentFile: 18-seed-data-and-administrator-part-2-of-2.sql
     }
     serverSideCondition {
         type: rowsReturned

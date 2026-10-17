@@ -62,13 +62,13 @@ page 1 (
                 union all
                 select 20, 'Pending information', cnt, cnt,
                        apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
-                                         p_values => xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
+                                         p_values => xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
                        'fa-question-circle-o', 'u-warning'
                   from (select count(*) cnt from xxcmp_requests
                          where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED')
                  where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
                 union all
-                select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_page => 40), 'fa-check-square-o', 'u-warning'
+                select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_application => 'COMMON', p_page => 40), 'fa-check-square-o', 'u-warning'
                   from (select count(*) cnt from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
                          where state_code in ('ASSIGNED', 'UNASSIGNED')
                            and task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL', 'CASE_INVESTIGATION', 'COUNTERPARTY_MATCH'))
@@ -86,10 +86,14 @@ page 1 (
                   from (select count(*) cnt from xxcmp_cases where closed_date is null and sla_due_date < trunc(sysdate))
                  where xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
                 union all
-                select 60, 'Open RFIs', cnt, cnt, apex_page.get_url(p_page => 30), 'fa-comments-o', 'u-warning'
-                  from (select count(*) cnt from xxfnd_rfis
-                         where rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING', 'RESPONDED')
-                           and (upper(recipient_user_name) = upper(:APP_USER) or upper(created_by) = upper(:APP_USER)))
+                -- release 89: the user's open steps of KYC RFIs in COMMON's RFI process (answer or review), in COMMON My Tasks
+                select 60, 'Open RFIs', cnt, cnt, apex_page.get_url(p_application => 'COMMON', p_page => 40), 'fa-comments-o', 'u-warning'
+                  from (select count(*) cnt
+                          from table(apex_human_task.get_tasks(p_context        => 'MY_TASKS',
+                                                               p_application_id => xxfnd_workflow_pkg.common_application_id)) t
+                          join xxfnd_rfis r on to_char(r.rfi_id) = t.detail_pk and r.application_code = 'KYC'
+                         where t.task_def_static_id in ('RFI_RESPONSE', 'RFI_REVIEW')
+                           and t.state_code in ('UNASSIGNED', 'ASSIGNED'))
                        ) k
                  order by k.seq
                 ```
@@ -241,19 +245,23 @@ page 1 (
                  where t.state_code = 'INFO_REQUESTED'
                    and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'CASE_APPROVAL')
                 union all
-                select apex_page.get_url(p_page => 31, p_items => 'P31_RFI_ID', p_values => to_char(r.rfi_id), p_clear_cache => '31'),
-                       r.rfi_number || ' - ' || nvl(xxfnd_util_pkg.lookup_meaning('RFI_CATEGORY', r.rfi_category), substr(r.description, 1, 80)),
-                       'Information request',
+                -- release 89: the steps of KYC RFIs in COMMON's RFI process (answer or review) open COMMON's task page 143
+                select apex_page.get_url(p_application => 'COMMON', p_page => 143, p_items => 'P143_TASK_ID',
+                                         p_values => to_char(t.task_id), p_clear_cache => '143'),
+                       t.subject,
+                       case t.task_def_static_id when 'RFI_REVIEW' then 'Review the answer' else 'Information request' end,
                        'warning',
-                       to_char(r.due_date, 'DD-MON-YYYY'),
-                       case when r.due_date < trunc(sysdate) then 'danger'
-                            when r.due_date < trunc(sysdate) + 2 then 'warning' end,
-                       cast(r.creation_date as date),
-                       cast(r.due_date as timestamp with time zone)
-                  from xxfnd_rfis r
-                 where upper(r.recipient_user_name) = upper(:APP_USER)
-                   and r.rfi_status in ('WAITING_FOR_INFORMATION', 'ON_HOLD_PENDING')
-                   and r.responded_date is null
+                       to_char(t.due_on, 'DD-MON-YYYY'),
+                       case when t.due_on < systimestamp then 'danger'
+                            when t.due_on < systimestamp + 2 then 'warning' end,
+                       cast(t.created_on as date),
+                       t.due_on
+                  from table ( apex_human_task.get_tasks (
+                                   p_context        => 'MY_TASKS',
+                                   p_application_id => xxfnd_workflow_pkg.common_application_id ) ) t
+                  join xxfnd_rfis r on to_char(r.rfi_id) = t.detail_pk and r.application_code = 'KYC'
+                 where t.task_def_static_id in ('RFI_RESPONSE', 'RFI_REVIEW')
+                   and t.state_code in ('UNASSIGNED', 'ASSIGNED')
                  order by 8 nulls last, 7
                 ```
         }
@@ -287,7 +295,7 @@ page 1 (
             whenNoDataFound: You're all caught up.
         }
         comments {
-            comments: All actionable items in one list: the user's APEX tasks (links get their checksum from apex_util.prepare_url; the task definitions' detail links carry none) and the RFIs addressed to the user.
+            comments: All actionable items in one list: the user's APEX tasks (links get their checksum from apex_util.prepare_url; the task definitions' detail links carry none) and the user's steps of KYC RFIs in COMMON's RFI process (release 89: COMMON task page 143).
         }
 
         column TASK_URL (
@@ -395,8 +403,9 @@ page 1 (
             templateOptions: #DEFAULT#
         }
         behavior {
-            action: redirectThisApp
+            action: redirectOtherApp
             target: {
+                app: COMMON
                 page: 40
             }
             warnOnUnsavedChanges: doNotCheck

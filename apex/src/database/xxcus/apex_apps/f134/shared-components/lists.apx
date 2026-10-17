@@ -11,11 +11,14 @@ list navigation-bar (
         }
         link {
             target: {
-                page: 10050
+                type: otherApp
+                app: COMMON
+                page: 173
                 items: {
-                    P10050_PAGE_ID: &APP_PAGE_ID.
+                    P173_APPLICATION_ID: &APP_ID.
+                    P173_PAGE_ID: &APP_PAGE_ID.
                 }
-                clearCache: 10050
+                clearCache: 173
             }
         }
         serverSideCondition {
@@ -157,6 +160,8 @@ list navigation-menu (
         }
         link {
             target: {
+                type: otherApp
+                app: COMMON
                 page: 40
             }
         }
@@ -165,7 +170,8 @@ list navigation-menu (
             language: plsql
             plsqlExpression:
                 ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(40, 'VIEW')
+                -- release 88: COMMON's My Tasks (the tasks of every application); KYC has no copy
+                xxfnd_privilege_pkg.has_privilege('MY_TASKS', 'VIEW')
                 ```
         }
     )
@@ -292,11 +298,7 @@ list navigation-menu (
         }
         layout {
             sequence: 90
-        }
-        link {
-            target: {
-                page: 100
-            }
+            subentriesList: @administration
         }
         serverSideCondition {
             type: expression
@@ -310,25 +312,30 @@ list navigation-menu (
 
 )
 
-list admin-basic-setup (
-    name: Administration - Basic Setup
+list administration (
+    name: Administration
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
-            -- release 73: plus each common function IT lets KYC manage (Setup dialog, page 98), as its own entry
+            -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
+            --   1. KYC's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. each common function IT lets KYC's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
             select lvl, label, target, is_current, image, image_attribute, image_alt, a01
               from (
             select null                                    as lvl,
                    m.feature_name                          as label,
                    apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
+                   case when exists (select 1 from xxfnd_feature_pages c
+                                      where c.app_alias = :APP_ALIAS and c.feature_code = m.feature_code
+                                        and c.page_id = :APP_PAGE_ID) then 'YES' else 'NO' end as is_current,
                    m.icon_css                              as image,
                    null                                    as image_attribute,
                    null                                    as image_alt,
                    m.description                           as a01,
+                   1                                       as part,
+                   m.feature_group                         as grp,
                    m.display_sequence                      as seq
               from xxfnd_admin_menu_v m
               cross apply (select min(fp.page_id) keep (dense_rank first order by
@@ -336,168 +343,44 @@ list admin-basic-setup (
                                       fp.tab_sequence nulls last, fp.page_id) as page_id
                              from xxfnd_feature_pages fp
                             where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
-                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
-             where m.feature_group = 'BASIC_SETUP'
-               and t.page_id is not null
+                              and xxfnd_application_pkg.local_page(fp.page_id) = 'Y') t
+             where t.page_id is not null
             union all
             select null,
                    m.feature_name || ' (shared setup)',
-                   xxfnd_admin_scope_pkg.delegated_url(m.feature_code),
+                   apex_page.get_url(p_application => 'COMMON', p_page => 99,
+                                     p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
+                                     p_values => a.application_code || ',Y,' || to_char(m.home_page_id)),
                    'NO',
                    m.icon_css,
                    null,
                    null,
                    m.description,
-                   m.display_sequence + 0.5
+                   2,
+                   m.feature_group,
+                   m.display_sequence
               from xxfnd_admin_menu_v m
-             where m.feature_group = 'BASIC_SETUP'
-               and xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null
-                   )
-             order by seq
-            ```
-    }
-)
-
-list admin-workflow-integration (
-    name: Administration - Workflow and Integration
-    source {
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
-            -- release 73: plus each common function IT lets KYC manage (Setup dialog, page 98), as its own entry
-            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
-              from (
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01,
-                   m.display_sequence                      as seq
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
-                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
-             where m.feature_group = 'WORKFLOW_INTEGRATION'
-               and t.page_id is not null
+              join xxfnd_applications a on upper(a.apex_app_alias) = upper(:APP_ALIAS)
+             where xxfnd_application_pkg.is_delegated(a.application_code, m.feature_code) = 'Y'
             union all
             select null,
-                   m.feature_name || ' (shared setup)',
-                   xxfnd_admin_scope_pkg.delegated_url(m.feature_code),
+                   'Shared Setup',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 100),
                    'NO',
-                   m.icon_css,
+                   'fa-cogs',
                    null,
                    null,
-                   m.description,
-                   m.display_sequence + 0.5
-              from xxfnd_admin_menu_v m
-             where m.feature_group = 'WORKFLOW_INTEGRATION'
-               and xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null
+                   'The common setup of every application, in COMMON.',
+                   3,
+                   null,
+                   null
+              from dual
+             where exists (select 1 from xxfnd_admin_menu_v m
+                            where not exists (select 1 from xxfnd_feature_pages fp
+                                               where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                                 and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'))
                    )
-             order by seq
-            ```
-    }
-)
-
-list admin-security (
-    name: Administration - Security
-    source {
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
-            -- release 73: plus each common function IT lets KYC manage (Setup dialog, page 98), as its own entry
-            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
-              from (
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01,
-                   m.display_sequence                      as seq
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
-                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
-             where m.feature_group = 'SECURITY'
-               and t.page_id is not null
-            union all
-            select null,
-                   m.feature_name || ' (shared setup)',
-                   xxfnd_admin_scope_pkg.delegated_url(m.feature_code),
-                   'NO',
-                   m.icon_css,
-                   null,
-                   null,
-                   m.description,
-                   m.display_sequence + 0.5
-              from xxfnd_admin_menu_v m
-             where m.feature_group = 'SECURITY'
-               and xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null
-                   )
-             order by seq
-            ```
-    }
-)
-
-list admin-application (
-    name: Administration - Application
-    source {
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            -- One entry per feature of this group that the user may open and that has a page in this application
-            -- (release 72: the feature's home page here, else its first tab here; the shared setup is IT's, in COMMON).
-            -- release 73: plus each common function IT lets KYC manage (Setup dialog, page 98), as its own entry
-            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
-              from (
-            select null                                    as lvl,
-                   m.feature_name                          as label,
-                   apex_page.get_url(p_page => t.page_id)  as target,
-                   'NO'                                    as is_current,
-                   m.icon_css                              as image,
-                   null                                    as image_attribute,
-                   null                                    as image_alt,
-                   m.description                           as a01,
-                   m.display_sequence                      as seq
-              from xxfnd_admin_menu_v m
-              cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                      fp.tab_sequence nulls last, fp.page_id) as page_id
-                             from xxfnd_feature_pages fp
-                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
-                              and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y') t
-             where m.feature_group = 'APPLICATION'
-               and t.page_id is not null
-            union all
-            select null,
-                   m.feature_name || ' (shared setup)',
-                   xxfnd_admin_scope_pkg.delegated_url(m.feature_code),
-                   'NO',
-                   m.icon_css,
-                   null,
-                   null,
-                   m.description,
-                   m.display_sequence + 0.5
-              from xxfnd_admin_menu_v m
-             where m.feature_group = 'APPLICATION'
-               and xxfnd_admin_scope_pkg.delegated_url(m.feature_code) is not null
-                   )
-             order by seq
+             order by part, grp, seq, label
             ```
     }
 )
@@ -511,68 +394,18 @@ list feature-tabs (
             -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
             select null                                  as lvl,
                    fp.tab_label                          as label,
-                   xxfnd_admin_scope_pkg.setup_page_url(fp.page_id) as target,
+                   xxfnd_application_pkg.setup_page_url(fp.page_id) as target,
                    case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
               from xxfnd_feature_pages fp
              where fp.app_alias = :APP_ALIAS
                and fp.tab_label is not null
                -- release 72: only tabs whose page is in this application
-               and xxfnd_admin_scope_pkg.local_page(fp.page_id) = 'Y'
+               and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'
                and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
                                        where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
              order by fp.tab_sequence
             ```
     }
-)
-
-list activity-menu (
-    name: Activity Reports
-
-    entry top-users (
-        label: Top Users
-        icon {
-            imageIconCssClasses: fa-users
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 10031
-            }
-        }
-    )
-
-    entry app-errors (
-        label: Application Errors
-        icon {
-            imageIconCssClasses: fa-warning
-        }
-        layout {
-            sequence: 20
-        }
-        link {
-            target: {
-                page: 10032
-            }
-        }
-    )
-
-    entry page-performance (
-        label: Page Performance
-        icon {
-            imageIconCssClasses: fa-clock-o
-        }
-        layout {
-            sequence: 30
-        }
-        link {
-            target: {
-                page: 10033
-            }
-        }
-    )
-
 )
 
 list request-wizard (
@@ -676,7 +509,7 @@ list case-sections (
             -- release 74 (R5, R11): the case screen's section menu as a dynamic list (was HTML from PL/SQL); the state of
             -- each section (done / warning / to do) from XXCMP_CASE_PKG.SECTION_STATE, shown as the icon and item class
             select null as lvl,
-                   s.n || ' ' || xxfnd_util_pkg.lookup_meaning('CASE_SECTION', s.code) as label,
+                   s.n || ' ' || xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', s.code) as label,
                    apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
                                      p_values => :P211_CASE_ID || ',' || :P211_TASK_ID || ',' || s.code) as target,
                    case when s.code = :P211_SECTION then 'YES' else 'NO' end as is_current,

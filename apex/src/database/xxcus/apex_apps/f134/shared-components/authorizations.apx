@@ -4,8 +4,8 @@ authorization kyc-user (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('KYC_USER');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('KYC_USER');
             ```
     }
     error {
@@ -18,12 +18,15 @@ authorization kyc-user (
 
 authorization page-view (
     name: Page - View
+    subscription {
+        master: @/135/page-view
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_VIEW');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_VIEW');
             ```
     }
     error {
@@ -36,12 +39,15 @@ authorization page-view (
 
 authorization page-create (
     name: Page - Create
+    subscription {
+        master: @/135/page-create
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_CREATE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_CREATE');
             ```
     }
     error {
@@ -54,12 +60,15 @@ authorization page-create (
 
 authorization page-manage (
     name: Page - Manage
+    subscription {
+        master: @/135/page-manage
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_MANAGE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_MANAGE');
             ```
     }
     error {
@@ -72,12 +81,15 @@ authorization page-manage (
 
 authorization page-submit (
     name: Page - Submit
+    subscription {
+        master: @/135/page-submit
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PAGE_SUBMIT');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_SUBMIT');
             ```
     }
     error {
@@ -88,32 +100,17 @@ authorization page-submit (
     }
 )
 
-authorization workflow-administer (
-    name: Workflow - Administer
-    type: plSqlFunctionBody
-    settings {
-        plsqlFunctionBody:
-            ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('WORKFLOW_ADMINISTER');
-            ```
-    }
-    error {
-        errorMessage: You are not allowed to administer workflow items.
-    }
-    advanced {
-        evaluationType: perPageView
-    }
-)
-
 authorization admin-area (
     name: Administration Area
+    subscription {
+        master: @/135/admin-area
+    }
     type: plSqlFunctionBody
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('ADMIN_AREA');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('ADMIN_AREA');
             ```
     }
     error {
@@ -130,8 +127,8 @@ authorization party-details-view (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_VIEW');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_VIEW');
             ```
     }
     error {
@@ -148,8 +145,8 @@ authorization party-details-create (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_CREATE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_CREATE');
             ```
     }
     error {
@@ -166,8 +163,8 @@ authorization party-details-manage (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_MANAGE');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_MANAGE');
             ```
     }
     error {
@@ -184,8 +181,8 @@ authorization party-details-submit (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_AUTH_PKG.AUTHORIZED
-            return xxfnd_auth_pkg.authorized('PARTY_DETAILS_SUBMIT');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_SUBMIT');
             ```
     }
     error {

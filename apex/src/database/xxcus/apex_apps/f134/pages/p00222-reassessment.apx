@@ -259,7 +259,7 @@ page 222 (
             sqlQuery:
                 ```sql
                 select p.party_name || ' (' || p.party_number || ') - ' || c.case_number
-                       || ', risk ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
+                       || ', risk ' || xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
                        || ', next review ' || to_char(c.next_review_date, 'DD-Mon-YYYY')
                   from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id
                  where c.case_id = :P222_CASE_ID
@@ -291,7 +291,7 @@ page 222 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select alert_message || ' (' || xxfnd_util_pkg.lookup_meaning('ALERT_STATUS', alert_status) || ')'
+                select alert_message || ' (' || xxfnd_lookup_pkg.lookup_meaning('ALERT_STATUS', alert_status) || ')'
                   from xxcmp_alerts where alert_id = :P222_ALERT_ID
                 ```
             used: always

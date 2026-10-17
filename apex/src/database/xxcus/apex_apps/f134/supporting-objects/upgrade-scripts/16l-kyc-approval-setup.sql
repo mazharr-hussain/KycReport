@@ -4,11 +4,15 @@
 --     KYC_REQUEST  request approval (was Approval Paths, page 166)
 --     KYC_CASE     case approval levels (was the Case Approval Matrix, page 165)
 --     CASE_RFI     a request for information raised on a case (default: the requester provides the information)
---   Once, when a type has no rule yet, today's setup is copied into rules, so the same people approve on day one;
---   approvals already running continue at the same step. Afterwards the rules are maintained in COMMON > Approval
---   Setup (or delegated to KYC); a re-run changes nothing.
+--   Once, when a type has no rule yet, its default rules are added, so the same people approve on day one.
+--   Afterwards the rules are maintained in COMMON > Approval Setup (or delegated to KYC); a re-run changes nothing.
 --   XXCMP_APPROVAL_PATHS / XXCMP_APPROVAL_MATRIX are kept unchanged (the matrix still holds the SAR gate).
--- Install: after the seed (18, 18b), which creates the matrix, the paths and the roles on a new database.
+--   Release 87: the request and RFI defaults are registered with COMMON's REGISTER_DEFAULT_RULE. The case rules
+--   (one per risk tier, two levels for high risk and enhanced KYC) are still copied from the matrix here, because
+--   COMMON registers only one default rule per type: the one place KYC still writes COMMON rows, and only on a
+--   database whose KYC_CASE type has no rule yet. The 74 hand-over of running approvals and the page clean-up are
+--   gone (every supported database has them).
+-- Install: after 18h (roles) and 18 (the matrix) and 16g (the paths) on a new database.
 -- Idempotent.
 --------------------------------------------------------------------------------
 declare
@@ -52,27 +56,9 @@ begin
         'Who provides the information asked on a case (default: the requester of the case).',
         apex_t_varchar2('RFI_CATEGORY=RFI category=RFI_CATEGORY', 'RISK_TIER=Risk tier=RISK_TIER'));
 
-    -- request approval: one rule per approval path (its criteria as conditions, its steps as approvers)
-    select count(*) into l_n from xxfnd_approval_rules where approval_type_code = 'KYC_REQUEST';
-    if l_n = 0 then
-        for p in (select path_name, min(priority) priority from xxcmp_approval_paths
-                   where enabled_flag = 'Y' group by path_name order by path_name) loop
-            l_rule := new_rule('KYC_REQUEST', p.path_name, p.priority);
-            for c in (select distinct requesting_department, party_type, jurisdiction, request_type, business_relationship
-                        from xxcmp_approval_paths where path_name = p.path_name and enabled_flag = 'Y') loop
-                cond(l_rule, 'REQUESTING_DEPARTMENT', c.requesting_department);
-                cond(l_rule, 'PARTY_TYPE', c.party_type);
-                cond(l_rule, 'JURISDICTION', c.jurisdiction);
-                cond(l_rule, 'REQUEST_TYPE', c.request_type);
-                cond(l_rule, 'BUSINESS_RELATIONSHIP', c.business_relationship);
-            end loop;
-            for s in (select step_sequence, step_name, approver_type, role_code, user_name,
-                             row_number() over (order by step_sequence) n
-                        from xxcmp_approval_paths where path_name = p.path_name and enabled_flag = 'Y') loop
-                step(l_rule, s.n, s.step_name, s.approver_type, s.role_code, s.user_name);
-            end loop;
-        end loop;
-    end if;
+    -- request approval: the default path (any request) - one Compliance review
+    xxfnd_approval_rule_pkg.register_default_rule('KYC', 'KYC_REQUEST', 'Default',
+        apex_t_varchar2('Compliance review=ROLE=COMPLIANCE_OFFICER'), p_priority => 999);
 
     -- case approval: one rule per risk tier; enhanced KYC needs at least two levels (as before)
     select count(*) into l_n from xxfnd_approval_rules where approval_type_code = 'KYC_CASE';
@@ -95,11 +81,8 @@ begin
     end if;
 
     -- case RFI: the requester provides the information
-    select count(*) into l_n from xxfnd_approval_rules where approval_type_code = 'CASE_RFI';
-    if l_n = 0 then
-        l_rule := new_rule('CASE_RFI', 'Requester provides the information', 100);
-        step(l_rule, 1, 'Information from the requester', 'REQUESTER', null);
-    end if;
+    xxfnd_approval_rule_pkg.register_default_rule('KYC', 'CASE_RFI', 'Requester provides the information',
+        apex_t_varchar2('Information from the requester=REQUESTER'));
     commit;
     xxfnd_util_pkg.set_install_mode(false);
 exception
@@ -109,67 +92,3 @@ exception
 end;
 /
 
--- approvals already running continue at the same step
-declare
-    l_name varchar2(100);
-begin
-    xxfnd_vpd_pkg.begin_trusted;
-    for r in (select q.* from xxcmp_requests q
-               where q.request_status = 'IN_PROGRESS' and q.current_step is not null
-                 and not exists (select 1 from xxfnd_approval_txns t
-                                  where t.approval_type_code = 'KYC_REQUEST' and t.txn_id = to_char(q.request_id))) loop
-        begin
-            l_name := xxfnd_approval_rule_pkg.start_approval('KYC_REQUEST', to_char(r.request_id),
-                          apex_t_varchar2('REQUESTING_DEPARTMENT=' || r.requesting_department, 'PARTY_TYPE=' || r.party_type,
-                                          'JURISDICTION=' || r.jurisdiction, 'REQUEST_TYPE=' || r.request_type,
-                                          'BUSINESS_RELATIONSHIP=' || r.business_relationship),
-                          r.requester_user_name);
-            update xxfnd_approval_txns
-               set current_seq = 10 * (select count(*) from xxcmp_approval_paths p
-                                        where p.path_name = r.approval_path_name and p.enabled_flag = 'Y'
-                                          and p.step_sequence <= r.current_step)
-             where approval_type_code = 'KYC_REQUEST' and txn_id = to_char(r.request_id);
-        exception
-            when others then
-                -- no rule applies: logged for IT; the request keeps its approval path name
-                xxfnd_error_pkg.log_error('16l in-flight request ' || r.request_id);
-        end;
-    end loop;
-    for c in (select k.* from xxcmp_cases k
-               where k.case_status = 'PENDING_APPROVAL' and k.current_level is not null
-                 and not exists (select 1 from xxfnd_approval_txns t
-                                  where t.approval_type_code = 'KYC_CASE' and t.txn_id = to_char(k.case_id))) loop
-        begin
-            l_name := xxfnd_approval_rule_pkg.start_approval('KYC_CASE', to_char(c.case_id),
-                          apex_t_varchar2('RISK_TIER=' || c.risk_tier, 'ENHANCED_KYC=' || nvl(c.enhanced_kyc_flag, 'N')),
-                          null);
-            update xxfnd_approval_txns set current_seq = 10 * c.current_level
-             where approval_type_code = 'KYC_CASE' and txn_id = to_char(c.case_id);
-        exception
-            when others then
-                xxfnd_error_pkg.log_error('16l in-flight case ' || c.case_id);
-        end;
-    end loop;
-    xxfnd_vpd_pkg.end_trusted;
-    commit;
-exception
-    when others then
-        xxfnd_vpd_pkg.end_trusted;
-        raise;
-end;
-/
-
--- KYC's own approval pages give way to the common Approval Setup: Approval Paths (166) is removed, the Approval Matrix
--- (165) keeps only the SAR gate
-begin
-    xxfnd_util_pkg.set_install_mode(true);
-    delete from xxfnd_feature_pages where app_alias = 'KYC' and page_id = 166;
-    update xxfnd_feature_pages set tab_label = 'SAR Gate' where app_alias = 'KYC' and page_id = 165 and tab_label is not null;
-    commit;
-    xxfnd_util_pkg.set_install_mode(false);
-exception
-    when others then
-        xxfnd_util_pkg.set_install_mode(false);
-        raise;
-end;
-/

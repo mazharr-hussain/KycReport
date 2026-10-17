@@ -56,24 +56,24 @@ page 20 (
                     select p.party_id,
                            p.party_number,
                            p.party_name,
-                           (select listagg(distinct xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), ', ')
+                           (select listagg(distinct xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), ', ')
                                      within group (order by 1)
                               from xxcmp_requests r
                              where r.party_id = p.party_id and r.business_relationship is not null
                                and r.request_status not in ('CANCELLED', 'DRAFT')) as business_relationships,
-                           xxfnd_util_pkg.lookup_meaning('PARTY_TYPE', p.party_type) as party_type,
+                           xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', p.party_type) as party_type,
                            p.registration_number,
-                           xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
-                           xxfnd_util_pkg.lookup_meaning(xxcmp_party_pkg.entity_lookup(p.party_type), p.entity_type) as entity_type,
+                           xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction) as jurisdiction,
+                           xxfnd_lookup_pkg.lookup_meaning(xxcmp_party_pkg.entity_lookup(p.party_type), p.entity_type) as entity_type,
                            p.incorporation_date,
                            p.email,
                            p.phone,
                            (select max(c.contact_name) keep (dense_rank first order by c.primary_flag desc, c.party_contact_id)
                               from xxcmp_party_contacts c where c.party_id = p.party_id and c.enabled_flag = 'Y') as primary_contact,
-                           xxfnd_util_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as party_status,
+                           xxfnd_lookup_pkg.lookup_meaning('PARTY_STATUS', p.party_status) as party_status,
                            p.party_status as party_status_code,
                            p.next_kyc_date,
-                           xxfnd_util_pkg.lookup_meaning('DATA_PROVENANCE', p.data_provenance) as data_provenance,
+                           xxfnd_lookup_pkg.lookup_meaning('DATA_PROVENANCE', p.data_provenance) as data_provenance,
                            p.last_verified_date,
                            p.enabled_flag,
                            (select m.party_number from xxcmp_parties m where m.party_id = p.merged_into_party_id) as merged_into,

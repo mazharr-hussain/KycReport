@@ -57,20 +57,20 @@ page 210 (
                         select c.case_id,
                                c.case_number,
                                p.party_name,
-                               xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship) as business_relationship,
-                               xxfnd_util_pkg.lookup_meaning('CASE_STATUS', c.case_status) as case_status,
+                               xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship) as business_relationship,
+                               xxfnd_lookup_pkg.lookup_meaning('CASE_STATUS', c.case_status) as case_status,
                                c.case_status as case_status_code,
                                c.risk_tier as risk_tier_code,
                                c.assigned_to,
-                               xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
-                               xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) as kyc_level,
+                               xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier,
+                               xxfnd_lookup_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) as kyc_level,
                                c.sla_due_date,
                                case when c.closed_date is not null then 'Closed'
                                     when c.sla_due_date < trunc(sysdate) then 'Overdue'
                                     when c.sla_due_date <= trunc(sysdate) + 2 then 'Due soon'
                                     else 'On time' end as sla_status,
                                r.request_number,
-                               xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type,
+                               xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type,
                                c.next_review_date,
                                c.creation_date
                           from xxcmp_cases c

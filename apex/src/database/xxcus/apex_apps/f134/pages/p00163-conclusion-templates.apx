@@ -45,7 +45,7 @@ page 163 (
                        apex_page.get_url(p_page => 164, p_items => 'P164_RISK_TIER', p_values => to_char(q.risk_tier), p_clear_cache => '164') as open_url
                   from (
 
-                            select c.risk_tier, xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier_name,
+                            select c.risk_tier, xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', c.risk_tier) as risk_tier_name,
                                    c.template_name, c.enabled_flag, c.last_update_date
                               from xxcmp_conclusion_templates c
                 ) q

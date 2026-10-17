@@ -1,5 +1,7 @@
 """Release 74 R27 in the browser: on the case's Notes and RFIs section the officer sends an e-mail to a contact person
-of the party (chosen from the list) and records the reply received; both are listed with the case.
+of the party and records the reply received; both are listed with the case.
+Release 89: KYC's E-mail page (34) is gone - the case's buttons open COMMON's E-mail page (46), which goes back to
+COMMON's Communications page (45) of the case.
 Usage: r74_email_ui.py [app-id]   (SQLCL env var: the SQLcl command; connection name kyc_local)"""
 import os, random, re, string, subprocess, sys
 from playwright.sync_api import sync_playwright
@@ -55,31 +57,38 @@ with sync_playwright() as p:
     ok('Notes and RFIs shows E-mails with Send E-mail and Record Received E-mail',
        pg.locator('#emails').count() == 1 and pg.locator('button:has-text("Send E-mail")').count() == 1
        and pg.locator('button:has-text("Record Received E-mail")').count() == 1)
-    # send
-    pg.click('button:has-text("Send E-mail")')
-    f = pg.frame_locator('iframe').first
-    f.locator('#P34_CONTACT').wait_for()
-    f.locator('#P34_CONTACT').select_option(f'mail.{TAG.lower()}@example.com')
-    pg.wait_for_timeout(500)
-    fr = [x for x in pg.frames if x != pg.main_frame][-1]
-    ok('choosing the contact person fills To', fr.evaluate("$v('P34_TO')") == f'mail.{TAG.lower()}@example.com')
-    f.locator('#P34_SUBJECT').fill(f'Documents needed {TAG}')
-    f.locator('#P34_BODY').fill('Please send the renewed trade licence.')
-    f.locator('button:has-text("Send")').click()
-    pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000); pg.wait_for_timeout(1500)
-    r = db(f"select direction || '|' || status || '|' || to_address from xxfnd_communications where subject = 'Documents needed {TAG}'")
-    ok(f'e-mail sent and kept: {r}', r and r[0].startswith('OUT|') and r[0].endswith(f'mail.{TAG.lower()}@example.com'))
+    case_url = pg.url
+    # send (COMMON page 46)
+    with pg.expect_navigation():
+        pg.click('button:has-text("Send E-mail")')
+    pg.wait_for_load_state('networkidle')
+    ok(f'Send E-mail opens COMMON\'s E-mail page in the same session: {pg.url.split("?")[0][-40:]}',
+       '/common/' in pg.url.lower() and pg.locator('#P46_TO').count() == 1)
+    pg.fill('#P46_TO', f'mail.{TAG.lower()}@example.com')
+    pg.fill('#P46_SUBJECT', f'Documents needed {TAG}')
+    pg.fill('#P46_BODY', 'Please send the renewed trade licence.')
+    with pg.expect_navigation():
+        pg.click('button:has-text("Send")')
+    pg.wait_for_load_state('networkidle')
+    r = db(f"select direction || '|' || application_code || '|' || entity_name || '|' || pk1_value || '|' || to_address "
+           f"from xxfnd_communications where subject = 'Documents needed {TAG}'")
+    ok(f'e-mail sent and kept with the case: {r}',
+       r and r[0].startswith(f'OUT|KYC|XXCMP_CASES|{case_id}|') and r[0].endswith(f'mail.{TAG.lower()}@example.com'))
+    ok('COMMON goes back to the Communications page of the case', pg.locator('body', has_text=f'Documents needed {TAG}').count() == 1)
     # record the reply
-    pg.click('button:has-text("Record Received E-mail")')
-    f = pg.frame_locator('iframe').first
-    f.locator('#P34_FROM').wait_for()
-    f.locator('#P34_FROM').fill(f'mail.{TAG.lower()}@example.com')
-    f.locator('#P34_SUBJECT').fill(f'RE: Documents needed {TAG}')
-    f.locator('#P34_BODY').fill('Attached, regards.')
-    f.locator('button:has-text("Record E-mail")').click()
-    pg.locator('.ui-dialog iframe').wait_for(state='detached', timeout=30000); pg.wait_for_timeout(1500)
+    pg.goto(case_url); pg.wait_for_load_state('networkidle')
+    with pg.expect_navigation():
+        pg.click('button:has-text("Record Received E-mail")')
+    pg.wait_for_load_state('networkidle')
+    pg.fill('#P46_FROM', f'mail.{TAG.lower()}@example.com')
+    pg.fill('#P46_SUBJECT', f'RE: Documents needed {TAG}')
+    pg.fill('#P46_BODY', 'Attached, regards.')
+    with pg.expect_navigation():
+        pg.click('button:has-text("Save")')
+    pg.wait_for_load_state('networkidle')
     r = db(f"select direction || '|' || status || '|' || source from xxfnd_communications where subject = 'RE: Documents needed {TAG}'")
     ok(f'reply recorded: {r}', r == ['IN|RECEIVED|MANUAL'])
+    pg.goto(case_url); pg.wait_for_load_state('networkidle')
     txt = pg.inner_text('#emails')
     ok('both listed with the case', f'Documents needed {TAG}' in txt and 'Received' in txt)
     b.close()

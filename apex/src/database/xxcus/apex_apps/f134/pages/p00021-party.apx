@@ -401,7 +401,7 @@ page 21 (
                        m.party_number,
                        m.party_name,
                        m.registration_number,
-                       xxfnd_util_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
+                       xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', m.jurisdiction) as jurisdiction,
                        case when m.same_registration = 'Y'
                             then 'Same ' || lower(xxcmp_party_pkg.field_label(m.party_type, 'REGISTRATION_NUMBER'))
                             else round(m.similarity) || '% name match'

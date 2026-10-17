@@ -395,7 +395,7 @@ page 161 (
             sqlQuery:
                 ```sql
                 select q.question_id, q.display_sequence, q.section_name, q.question_text,
-                       xxfnd_util_pkg.lookup_meaning('QA_ANSWER_TYPE', q.answer_type) as answer_type,
+                       xxfnd_lookup_pkg.lookup_meaning('QA_ANSWER_TYPE', q.answer_type) as answer_type,
                        q.gate_question_flag, q.required_flag, q.enabled_flag,
                        (select count(*) from xxcmp_answer_options o
                          where o.question_id = q.question_id and o.approval_status = 'PENDING_APPROVAL') as pending

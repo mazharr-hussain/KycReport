@@ -1,0 +1,598 @@
+page 161 (
+    name: Questionnaire
+    alias: QUESTIONNAIRE
+    title: Questionnaire
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    advanced {
+        reloadOnSubmit: always
+    }
+    help {
+        helpText: Thresholds turn the total score into a risk tier.
+    }
+
+    region breadcrumb (
+        name: Questionnaire
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region form (
+        name: Questionnaire
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXCMP_QUESTIONNAIRES
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    pageItem P161_QUESTIONNAIRE_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @form
+            column: QUESTIONNAIRE_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P161_SAVED = 'Y'
+                ```
+        }
+        help {
+            helpText: Enter the code.
+        }
+    )
+
+    pageItem P161_SAVED (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process set-saved (
+        name: Detect existing record
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P161_SAVED
+                  from XXCMP_QUESTIONNAIRES
+                 where QUESTIONNAIRE_CODE = :P161_QUESTIONNAIRE_CODE;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    pageItem P161_QUESTIONNAIRE_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 240
+        }
+        source {
+            formRegion: @form
+            column: QUESTIONNAIRE_NAME
+            dataType: varchar2
+        }
+        help {
+            helpText: Enter the name.
+        }
+    )
+
+    pageItem P161_AUDIENCE (
+        type: selectList
+        label {
+            label: Audience
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-questionnaire-audience
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: AUDIENCE
+            dataType: varchar2
+        }
+        help {
+            helpText: Choose the audience.
+        }
+    )
+
+    pageItem P161_LOW_RISK_MAX_SCORE (
+        type: numberField
+        label {
+            label: Low Risk Up To Score
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: LOW_RISK_MAX_SCORE
+            dataType: number
+        }
+        help {
+            helpText: Requester questionnaires only.
+        }
+    )
+
+    pageItem P161_MEDIUM_RISK_MAX_SCORE (
+        type: numberField
+        label {
+            label: Medium Risk Up To Score
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: MEDIUM_RISK_MAX_SCORE
+            dataType: number
+        }
+        help {
+            helpText: Above this score the case is high risk.
+        }
+    )
+
+    pageItem P161_CURRENT_VERSION_NUMBER (
+        type: displayOnly
+        label {
+            label: Version
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            formRegion: @form
+            column: CURRENT_VERSION_NUMBER
+            dataType: number
+            queryOnly: true
+        }
+    )
+
+    pageItem P161_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Choose the enabled.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @form
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 160
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 20
+            region: @form
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P161_SAVED, 'N') = 'N'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @form
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    region questions (
+        name: Questions
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.question_id, q.display_sequence, q.section_name, q.question_text,
+                       xxfnd_lookup_pkg.lookup_meaning('QA_ANSWER_TYPE', q.answer_type) as answer_type,
+                       q.gate_question_flag, q.required_flag, q.enabled_flag,
+                       (select count(*) from xxcmp_answer_options o
+                         where o.question_id = q.question_id and o.approval_status = 'PENDING_APPROVAL') as pending
+                  from xxcmp_questions q
+                 where q.questionnaire_code = :P161_QUESTIONNAIRE_CODE
+                 order by q.display_sequence
+                ```
+            pageItemsToSubmit: P161_QUESTIONNAIRE_CODE
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: questions
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P161_SAVED
+        }
+
+        column QUESTION_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: plainText
+            heading {
+                heading: #
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column SECTION_NAME (
+            type: plainText
+            heading {
+                heading: Section
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column QUESTION_TEXT (
+            type: link
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 40
+            }
+            link {
+                target: {
+                    page: 162
+                    items: {
+                        P162_QUESTION_ID: #QUESTION_ID#
+                        P162_QUESTIONNAIRE_CODE: &P161_QUESTIONNAIRE_CODE.
+                    }
+                    clearCache: 162
+                }
+                linkText: #QUESTION_TEXT#
+            }
+        )
+
+        column ANSWER_TYPE (
+            type: plainText
+            heading {
+                heading: Answer Type
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column GATE_QUESTION_FLAG (
+            type: plainText
+            heading {
+                heading: Gate
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column REQUIRED_FLAG (
+            type: plainText
+            heading {
+                heading: Required
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column PENDING (
+            type: plainText
+            heading {
+                heading: Answers Pending Approval
+            }
+            layout {
+                sequence: 90
+            }
+        )
+
+    )
+
+    button add-question (
+        buttonName: ADD_QUESTION
+        label: Add Question
+        layout {
+            sequence: 10
+            region: @questions
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 162
+                items: {
+                    P162_QUESTIONNAIRE_CODE: &P161_QUESTIONNAIRE_CODE.
+                }
+                clearCache: 162
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+)

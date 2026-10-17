@@ -229,12 +229,12 @@ create or replace package body xxcmp_risk_pkg as
             add('QUESTIONNAIRE', 'Questionnaire score ' || l_score, l_score);
         end if;
         if on_list('FATF_BLACK', l_country, p_model) then
-            add('COUNTRY_FATF_BLACK', 'Country ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_country) || ' (FATF black list)');
+            add('COUNTRY_FATF_BLACK', 'Country ' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_country) || ' (FATF black list)');
         elsif on_list('FATF_GREY', l_country, p_model) then
-            add('COUNTRY_FATF_GREY', 'Country ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_country) || ' (FATF grey list)');
+            add('COUNTRY_FATF_GREY', 'Country ' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_country) || ' (FATF grey list)');
         end if;
         if on_list('INTERNAL', l_country, p_model) then
-            add('COUNTRY_INTERNAL', 'Country ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', l_country) || ' (company list)');
+            add('COUNTRY_INTERNAL', 'Country ' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_country) || ' (company list)');
         end if;
         if l_case.pep_flag = 'Y' then
             add('PEP', 'Politically exposed person');

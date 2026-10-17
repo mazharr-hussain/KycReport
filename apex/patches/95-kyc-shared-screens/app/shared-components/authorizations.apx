@@ -1,0 +1,212 @@
+authorization kyc-user (
+    name: KYC User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('KYC_USER');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to the KYC Compliance Platform. Ask an administrator to grant you a role.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-view (
+    name: Page - View
+    subscription {
+        master: @/135/page-view
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_VIEW');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-create (
+    name: Page - Create
+    subscription {
+        master: @/135/page-create
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-manage (
+    name: Page - Manage
+    subscription {
+        master: @/135/page-manage
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization page-submit (
+    name: Page - Submit
+    subscription {
+        master: @/135/page-submit
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_SUBMIT');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization workflow-administer (
+    name: Workflow - Administer
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('WORKFLOW_ADMINISTER');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to administer workflow items.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization admin-area (
+    name: Administration Area
+    subscription {
+        master: @/135/admin-area
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('ADMIN_AREA');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to Administration.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-view (
+    name: Party Details - View
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_VIEW');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to this page.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-create (
+    name: Party Details - Create
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-manage (
+    name: Party Details - Manage
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)
+
+authorization party-details-submit (
+    name: Party Details - Submit
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PARTY_DETAILS_SUBMIT');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

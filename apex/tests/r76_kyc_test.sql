@@ -96,7 +96,7 @@ begin
 
     -- 2. a step nobody can approve (no active Compliance officer): the submit stops with the message
     update xxfnd_user_roles set enabled_flag = 'N' where role_code = 'COMPLIANCE_OFFICER';
-    ok('nobody holds the Compliance officer role now', xxfnd_task_pkg.users_in_role('COMPLIANCE_OFFICER') is null);
+    ok('nobody holds the Compliance officer role now', xxfnd_workflow_pkg.users_in_role('COMPLIANCE_OFFICER') is null);
     l_txt := submit_message;
     ok('a step without an approver stops the submit: ' || l_txt, l_txt like '-20535 The approval step "%" has no approver%');
     select count(*) into l_n from xxfnd_approval_txns where approval_type_code = 'KYC_REQUEST' and txn_id = to_char(l_req);

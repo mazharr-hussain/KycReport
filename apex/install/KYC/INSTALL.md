@@ -70,3 +70,30 @@ Install COMMON 76 first and wait until it has finished, then KYC 76 (KYC stops w
 
 ## Release 77 (KYC)
 Release 77 (KYC only): removes the unchanged seeded retention policies of the KYC tables; no retention policy is seeded any more. Needs COMMON 76 or later; independent of COMMON 77.
+
+## Release 87 (KYC)
+Release 87 (KYC only) adapts KYC to COMMON 86. COMMON is not changed. Order:
+1. COMMON 86 is installed and its install has finished.
+2. Import KYC 87 (`KYC-Compliance-Platform-APEXlang_87.zip`). If the import runs the supporting objects before step 3,
+   the install stops with **ORA-20905 ACTION NEEDED** and changes nothing.
+3. Register KYC in COMMON once, connected as **XXFUSION**: `apex/db/admin/onboard-application.sql` with the KYC APEX
+   application ID and the code **KYC** (an existing registration is kept; re-running changes nothing).
+4. **App Builder → KYC → Utilities → Supporting Objects → Install Supporting Objects** (or Upgrade).
+
+KYC now registers its own setup in COMMON (roles, features, lookups, flexfields, document categories, attachment pages,
+data rules, task deadlines) through COMMON's registration routines; it no longer writes COMMON's tables. The task
+deadlines and the Fusion HCM sync are COMMON's automations for every application (KYC's copies are removed). Documents
+stay in the database until COMMON's administrator sets up a server and KYC's storage (COMMON > Attachments > Storage).
+A database must already be at KYC release 74 or later (the one-time RFI copy of release 74 is retired).
+
+## Releases 88-91 (KYC)
+KYC only; COMMON 86 is not changed. Import `KYC-Compliance-Platform-APEXlang_91.zip` over KYC and run the supporting
+objects (upgrade); a re-run changes nothing. Patches 95 (88), 96 (89), 97 (90) and 98 (91) describe each step.
+- **COMMON must be application 135** in the workspace: KYC subscribes to COMMON's lists of values and authorizations
+  (`@/135/...`) and opens COMMON's shared pages (My Tasks, E-mail, Information Request, Attachments, Feedback, Shared
+  Setup) in the same session.
+- **Known COMMON issue C1** (`apex/COMMON-ISSUES.md`): until COMMON lets business users open its shared user pages, a
+  KYC requester or officer who is not a COMMON administrator is refused on those pages.
+- The KYC parameters are application settings from release 91 (CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS).
+  Empty means the value kept in the old KYC_PARAMETER lookup applies, then the default (10, 12, 30). Change them in
+  App Builder > Shared Components > Application Settings (COMMON issue C7).

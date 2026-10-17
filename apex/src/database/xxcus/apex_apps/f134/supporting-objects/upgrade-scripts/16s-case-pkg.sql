@@ -102,14 +102,19 @@ end;
 
 create or replace package body xxcmp_case_pkg as
 
-    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG).
-    function param(p_code in varchar2, p_default in number) return number is
+    function parameter(p_name in varchar2, p_default in number) return number is
         l_value number;
     begin
-        select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
-         where lookup_type = 'KYC_PARAMETER' and lookup_code = p_code and enabled_flag = 'Y';
+        select max(to_number(value default null on conversion error)) into l_value
+          from apex_application_settings
+         where application_id = xxfnd_application_pkg.apex_app_id('KYC') and name = upper(p_name);
+        if l_value is null then
+            -- an existing database: the value kept in the old lookup (no longer registered on a new database)
+            select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
+             where lookup_type = 'KYC_PARAMETER' and lookup_code = upper(p_name) and enabled_flag = 'Y';
+        end if;
         return nvl(l_value, p_default);
-    end param;
+    end parameter;
 
     function get_case(p_case_id in number) return xxcmp_cases%rowtype is
         l_case xxcmp_cases%rowtype;
@@ -122,7 +127,7 @@ create or replace package body xxcmp_case_pkg as
         l_req  xxcmp_requests%rowtype;
         l_id   number;
         l_wf   number;
-        l_sla  number := param('CASE_SLA_DAYS', 10);   -- private function: not callable inside SQL
+        l_sla  number := parameter('CASE_SLA_DAYS', 10);
     begin
         xxfnd_vpd_pkg.begin_trusted;
         select * into l_req from xxcmp_requests where request_id = p_request_id;
@@ -317,7 +322,7 @@ create or replace package body xxcmp_case_pkg as
         xxfnd_vpd_pkg.begin_trusted;
         l_case := get_case(p_case_id);
         xxfnd_vpd_pkg.end_trusted;
-        return nvl(l_case.assigned_to, xxfnd_task_pkg.users_with_privilege('CASES', 'MANAGE'));
+        return nvl(l_case.assigned_to, xxfnd_workflow_pkg.users_with_privilege('CASES', 'MANAGE'));
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -328,8 +333,8 @@ create or replace package body xxcmp_case_pkg as
         l_list varchar2(32767);
     begin
         select listagg(distinct column_value, ',') within group (order by column_value) into l_list
-          from apex_string.split(xxfnd_task_pkg.business_admins
-                                 || ',' || xxfnd_task_pkg.users_with_privilege('CASE_ASSIGNMENT', 'MANAGE'), ',')
+          from apex_string.split(xxfnd_workflow_pkg.business_admins
+                                 || ',' || xxfnd_workflow_pkg.users_with_privilege('CASE_ASSIGNMENT', 'MANAGE'), ',')
          where column_value is not null;
         return l_list;
     end investigation_admins;
@@ -344,13 +349,13 @@ create or replace package body xxcmp_case_pkg as
             xxfnd_error_pkg.raise_error('KYC_CASE_NO_MATRIX_ROW', apex_t_varchar2(p_case.risk_tier));
     end matrix;
 
-    -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE)
+    -- release 74: the approval levels come from the common Approval Setup (transaction type KYC_CASE).
+    -- Release 90: private (used only here); the party type is read by the party package.
     function case_attributes(p_case in xxcmp_cases%rowtype) return apex_t_varchar2 is
-        l_party_type xxcmp_parties.party_type%type;
     begin
-        select max(party_type) into l_party_type from xxcmp_parties where party_id = p_case.party_id;
         return apex_t_varchar2('RISK_TIER=' || p_case.risk_tier, 'ENHANCED_KYC=' || nvl(p_case.enhanced_kyc_flag, 'N'),
-                               'PARTY_TYPE=' || l_party_type, 'BUSINESS_RELATIONSHIP=' || p_case.business_relationship);
+                               'PARTY_TYPE=' || xxcmp_party_pkg.party_type(p_case.party_id),
+                               'BUSINESS_RELATIONSHIP=' || p_case.business_relationship);
     end case_attributes;
 
     function level_step(p_case_id in number, p_level in number) return xxfnd_approval_step_row is
@@ -437,7 +442,7 @@ create or replace package body xxcmp_case_pkg as
             select role_code bulk collect into l_roles from xxcmp_case_decisions
              where case_id = p_case_id and decided_by = u.user_name and role_code is not null;
             -- role-based only: the role conflict rules (Segregation of Duties) decide, not who acted before
-            if not xxfnd_security_pkg.sod_conflict(l_role, l_roles, u.user_name) then
+            if not xxfnd_privilege_pkg.sod_conflict(l_role, l_roles, u.user_name) then
                 l_out := l_out || case when l_out is not null then ',' end || u.user_name;
             end if;
         end loop;
@@ -484,7 +489,7 @@ create or replace package body xxcmp_case_pkg as
             end if;
         end if;
         -- release 76 (A-11): the Approval Setup rule must have an approver for every step (or no step at all)
-        if xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y' then
+        if xxfnd_workflow_pkg.workflow_enabled('KYC_CASE') = 'Y' then
             return xxfnd_approval_rule_pkg.approval_error('KYC_CASE', case_attributes(l_case));
         end if;
         return null;
@@ -496,7 +501,7 @@ create or replace package body xxcmp_case_pkg as
         xxfnd_vpd_pkg.begin_trusted;
         l_steps := xxfnd_approval_rule_pkg.step_count('KYC_CASE', to_char(p_case_id));
         xxfnd_vpd_pkg.end_trusted;
-        return case when xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'Y' and l_steps > 0 then 'Y' else 'N' end;
+        return case when xxfnd_workflow_pkg.workflow_enabled('KYC_CASE') = 'Y' and l_steps > 0 then 'Y' else 'N' end;
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -512,7 +517,7 @@ create or replace package body xxcmp_case_pkg as
         -- release 74 (R16): the risk score behind the case is kept for the approvers (approved risk model)
         xxcmp_risk_pkg.calculate(p_case_id);
         -- completing the investigation task moves the KYC_CASE workflow on
-        xxfnd_task_pkg.complete_open('CASE_INVESTIGATION', to_char(p_case_id));
+        xxfnd_workflow_pkg.complete_open('CASE_INVESTIGATION', to_char(p_case_id));
     end submit_for_approval;
 
     function approval_error(p_case_id in number) return varchar2 is
@@ -570,7 +575,7 @@ create or replace package body xxcmp_case_pkg as
     begin
         xxfnd_vpd_pkg.begin_trusted;
         for c in (select case_id from xxcmp_cases where request_id = p_request_id and case_status = 'PENDING_INFORMATION') loop
-            l_task_id := nvl(l_task_id, xxfnd_task_pkg.info_task('CASE_APPROVAL', to_char(c.case_id)));
+            l_task_id := nvl(l_task_id, xxfnd_workflow_pkg.info_task('CASE_APPROVAL', to_char(c.case_id)));
         end loop;
         xxfnd_vpd_pkg.end_trusted;
         return l_task_id;
@@ -620,7 +625,7 @@ create or replace package body xxcmp_case_pkg as
     begin
         l_months := xxcmp_risk_pkg.review_months(l_case.risk_tier);     -- release 74: the risk model's review interval
         if l_case.pep_flag = 'Y' then
-            l_months := least(nvl(l_months, 12), param('PEP_REVIEW_MONTHS', 12));
+            l_months := least(nvl(l_months, 12), parameter('PEP_REVIEW_MONTHS', 12));
         end if;
         return add_months(trunc(sysdate), nvl(l_months, 12));
     end next_review_date;
@@ -635,7 +640,7 @@ create or replace package body xxcmp_case_pkg as
            set case_status = 'PENDING_APPROVAL', current_level = 1, investigation_completed_date = systimestamp,
                -- release 73: approval workflow switched off - the workflow (version 1.1) approves the case next
                -- release 76 (A-11): or the matching rule has no steps (APPROVAL_REQUIRED = N)
-               auto_approved_date = case when xxfnd_workflow_switch_pkg.workflow_enabled('KYC_CASE') = 'N'
+               auto_approved_date = case when xxfnd_workflow_pkg.workflow_enabled('KYC_CASE') = 'N'
                                            or xxfnd_approval_rule_pkg.step_count('KYC_CASE', to_char(p_case_id)) = 0
                                          then systimestamp end
          where case_id = p_case_id;
@@ -659,11 +664,18 @@ create or replace package body xxcmp_case_pkg as
             raise;
     end has_next_level;
 
+    -- release 90: one routine for the two outcomes (was APPROVE_CASE / REJECT_CASE); the KYC_CASE workflow calls it
     procedure close_case(p_case_id in number, p_decision in varchar2) is
-        l_case xxcmp_cases%rowtype := get_case(p_case_id);
-        -- computed first: the function reads XXCMP_CASES, which would be mutating inside the UPDATE
-        l_next date := case when p_decision = 'APPROVED' then nvl(l_case.next_review_date, next_review_date(p_case_id)) end;
+        l_case xxcmp_cases%rowtype;
+        l_next date;
     begin
+        if p_decision is null or p_decision not in ('APPROVED', 'REJECTED') then
+            raise_application_error(-20615, 'Unknown case decision: ' || p_decision);
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        -- computed first: the function reads XXCMP_CASES, which would be mutating inside the UPDATE
+        l_next := case when p_decision = 'APPROVED' then nvl(l_case.next_review_date, next_review_date(p_case_id)) end;
         update xxcmp_cases
            set case_status      = p_decision,
                decision         = p_decision,
@@ -673,29 +685,12 @@ create or replace package body xxcmp_case_pkg as
          where case_id = p_case_id;
         -- the party's next KYC date follows its latest decided case (cleared when the KYC is rejected)
         update xxcmp_parties set next_kyc_date = l_next where party_id = l_case.party_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
     end close_case;
-
-    procedure approve_case(p_case_id in number) is
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        close_case(p_case_id, 'APPROVED');
-        xxfnd_vpd_pkg.end_trusted;
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end approve_case;
-
-    procedure reject_case(p_case_id in number) is
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        close_case(p_case_id, 'REJECTED');
-        xxfnd_vpd_pkg.end_trusted;
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end reject_case;
 
     procedure raise_rfi(p_entity_name      in varchar2,
                         p_pk1_value        in varchar2,
@@ -764,12 +759,23 @@ create or replace package body xxcmp_case_pkg as
             p_application_code    => 'KYC',
             p_rfi_id              => l_rfi_id,
             p_token               => l_token);
-        -- an external person answers on the public page 33 with the one-time token
-        xxfnd_rfi_pkg.send_email(l_rfi_id,
-            case when l_token is not null
-                 then apex_page.get_url(p_page => 33, p_session => 0, p_items => 'P33_TOKEN', p_values => l_token,
-                                        p_absolute_url => true) end);
+        -- release 89: an outside person answers on COMMON's public page Provide Information (50) through the one-time
+        -- link of the RFI_RAISED e-mail (COMMON builds it from the token); a user answers on COMMON's task page 143
+        xxfnd_rfi_pkg.send_email(l_rfi_id, p_token => l_token);
     end raise_rfi;
+
+    function rfi_task(p_rfi_id in number) return number is
+        l_task number;
+    begin
+        -- the tasks belong to COMMON's application (workflow RFI); APEX gives only the user's own (or delegated) ones
+        select max(t.task_id) into l_task
+          from table(apex_human_task.get_tasks(p_context        => 'MY_TASKS',
+                                               p_application_id => xxfnd_workflow_pkg.common_application_id)) t
+         where t.task_def_static_id in ('RFI_RESPONSE', 'RFI_REVIEW')
+           and t.detail_pk = to_char(p_rfi_id)
+           and t.state_code in ('UNASSIGNED', 'ASSIGNED');
+        return l_task;
+    end rfi_task;
 
     procedure apply_screening(p_case_id in number) is
         l_pep pls_integer;
@@ -876,15 +882,15 @@ create or replace package body xxcmp_case_pkg as
             fld('Assessment', p_label, p_text, 'missing',
                 apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
                                   p_values => p_case_id || ',' || p_task_id || ',' || p_section),
-                xxfnd_util_pkg.lookup_meaning('CASE_SECTION', p_section));
+                xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', p_section));
         end missing;
     begin
-        for c in (select c.*, r.request_number, xxfnd_util_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type
+        for c in (select c.*, r.request_number, xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type) as request_type
                     from xxcmp_cases c
                     left join xxcmp_requests r on r.request_id = c.request_id
                    where c.case_id = p_case_id) loop     -- data security applies
             fld('Case', 'Request', c.request_number || nvl2(c.request_type, ' · ' || c.request_type, null));
-            fld('Case', 'Business relationship', xxfnd_util_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship));
+            fld('Case', 'Business relationship', xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', c.business_relationship));
             fld('Case', 'Assigned to', nvl(xxfnd_ui_pkg.person_name(c.assigned_to), 'Nobody'), null, null, null, c.assigned_to);
             fld('Case', 'Opened', to_char(c.creation_date, 'DD-MON-YYYY'));
             fld('Case', 'SLA due', to_char(c.sla_due_date, 'DD-MON-YYYY'));
@@ -895,7 +901,7 @@ create or replace package body xxcmp_case_pkg as
             else
                 missing('Risk classification', 'Not classified', 'RISK');
             end if;
-            fld('Assessment', 'Due Diligence Type', xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type),
+            fld('Assessment', 'Due Diligence Type', xxfnd_lookup_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type),
                 case when c.enhanced_kyc_flag = 'Y' then 'warning' end);
             fld('Assessment', 'PEP', case when c.pep_flag = 'Y' then 'Yes' else 'No' end,
                 case when c.pep_flag = 'Y' then 'danger' end);
@@ -951,7 +957,7 @@ create or replace package body xxcmp_case_pkg as
         end loop;
         if l_case.auto_approved_date is not null then
             -- release 73: approval workflow switched off for the process
-            pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_switch_pkg.c_auto_approved, 'System',
+            pipe row (xxcmp_history_row(null, 'Approval', null, xxfnd_workflow_pkg.c_auto_approved, 'System',
                                         l_case.auto_approved_date, null));
         end if;
         if l_case.case_status = 'INVESTIGATION' then
@@ -1055,6 +1061,7 @@ create or replace package body xxcmp_case_pkg as
         end if;
     end fiu_action;
 
+    -- release 90: private (used only here)
     function expected_evidence(p_category in varchar2) return varchar2 is
         l_tag xxfnd_lookup_values.tag%type;
     begin
@@ -1063,11 +1070,12 @@ create or replace package body xxcmp_case_pkg as
     end expected_evidence;
 
     function expected_evidence_text(p_category in varchar2) return varchar2 is
-        l_text varchar2(4000);
+        l_text     varchar2(4000);
+        l_expected varchar2(4000) := expected_evidence(p_category);    -- a private function is not called inside SQL
     begin
-        select listagg(xxfnd_util_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', column_value), ', ') within group (order by rownum)
+        select listagg(xxfnd_lookup_pkg.lookup_meaning('FUNDS_EVIDENCE_TYPE', column_value), ', ') within group (order by rownum)
           into l_text
-          from table(apex_string.split(expected_evidence(p_category), ','));
+          from table(apex_string.split(l_expected, ','));
         return l_text;
     end expected_evidence_text;
 

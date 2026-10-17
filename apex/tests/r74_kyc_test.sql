@@ -1,5 +1,7 @@
 -- Release 74 (KYC, run as XXCUS): common error handling, common workflow runtime, common RFI workflow with its loop.
 -- Uses an open case and a requester (REQ1, see security_test.sql); everything is rolled back.
+-- Release 89: the RFI runs in COMMON's workflow RFI, whose tasks the workflow engine creates in the background after a
+-- commit; this test rolls back, so it checks the workflow and the RFI data (the tasks: kyc89_rfi_test.sql).
 set serveroutput on size unlimited feedback off
 declare
     l_app    number;
@@ -39,9 +41,9 @@ begin
     xxcmp_case_pkg.raise_rfi('XXCMP_CASES', to_char(l_case), 'REQUESTING_DEPARTMENT', 'REQ1', null,
                              'CLARIFICATION', 'Please confirm the trade licence number', 'N', null);
     select max(rfi_id) into l_rfi from xxfnd_rfis where entity_name = 'XXCMP_CASES' and pk1_value = to_char(l_case);
-    select count(*) into l_n from apex_tasks where task_def_static_id = 'RFI_RESPONSE' and detail_pk = to_char(l_rfi)
-       and state_code in ('UNASSIGNED', 'ASSIGNED');
-    ok('raised from the case: common RFI with a response task', l_rfi is not null and l_n = 1);
+    select count(*) into l_n from xxfnd_rfis r join apex_workflows w on w.workflow_id = r.workflow_id
+     where r.rfi_id = l_rfi and w.application_id = xxfnd_workflow_pkg.common_application_id;
+    ok('raised from the case: common RFI in COMMON''s workflow RFI', l_rfi is not null and l_n = 1);
     ok('a pausing RFI blocks the case submit', xxcmp_case_pkg.submit_error(l_case) like '%request for information%'
                                               or xxfnd_rfi_pkg.open_count('XXCMP_CASES', to_char(l_case)) > 0);
     xxfnd_vpd_pkg.end_trusted;
@@ -110,7 +112,7 @@ begin
            and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(r.request_id)) = 'Y';
         ok('request approvers come from the Approval Setup',
            xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(l_req)) = 'Y'
-           and xxcmp_approval_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));
+           and xxcmp_request_pkg.step_approvers(l_req) = xxfnd_approval_rule_pkg.current_approvers('KYC_REQUEST', to_char(l_req)));
         select max(case_id) keep (dense_rank last order by case_id), max(risk_tier) keep (dense_rank last order by case_id)
           into l_case, l_tier from xxcmp_cases where case_status = 'INVESTIGATION' and risk_tier is not null;
         if l_case is null then
@@ -169,9 +171,8 @@ begin
             apex_session.create_session(l_app, 1, 'OFFICER1');
             xxfnd_rfi_pkg.respond(l_rfi2, 'Checked');
             select rfi_status into l_st from xxfnd_rfis where rfi_id = l_rfi2;
-            select count(*) into l_n from apex_tasks where task_def_static_id = 'RFI_REVIEW' and detail_pk = to_char(l_rfi2)
-               and state_code in ('UNASSIGNED', 'ASSIGNED');
-            ok('then it goes to review (' || l_st || ')', l_st = 'RESPONDED' and l_n = 1);
+            -- release 89: no provider is waiting any more, so COMMON's workflow goes on to the review
+            ok('then it goes to review (' || l_st || ')', l_st = 'RESPONDED' and xxfnd_rfi_pkg.is_waiting(l_rfi2) = 'N');
         end if;
         rollback;
     end;

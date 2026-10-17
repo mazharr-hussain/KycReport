@@ -23,15 +23,15 @@ begin
     apex_app_setting.set_value('MAIL_FROM', 'kyc@example.com');
     select max(case_id) into l_case from xxcmp_cases;
 
-    ok('rules: an address is needed', xxfnd_communication_pkg.email_error('OUT', null, 'S', to_clob('B')) is not null);
-    ok('rules: addresses are checked', xxfnd_communication_pkg.email_error('OUT', 'a@b.com, wrong', 'S', to_clob('B')) is not null);
-    ok('rules: several valid addresses', xxfnd_communication_pkg.email_error('OUT', 'a@b.com, c@d.org', 'S', to_clob('B')) is null);
+    ok('rules: an address is needed', xxfnd_notify_pkg.email_error('OUT', null, 'S', to_clob('B')) is not null);
+    ok('rules: addresses are checked', xxfnd_notify_pkg.email_error('OUT', 'a@b.com, wrong', 'S', to_clob('B')) is not null);
+    ok('rules: several valid addresses', xxfnd_notify_pkg.email_error('OUT', 'a@b.com, c@d.org', 'S', to_clob('B')) is null);
 
-    l_id := xxfnd_communication_pkg.send_email('KYC', 'XXCMP_CASES', to_char(l_case), 'party@example.com',
+    l_id := xxfnd_notify_pkg.send_email('KYC', 'XXCMP_CASES', to_char(l_case), 'party@example.com',
                                                'Missing trade licence', to_clob('Please send the renewed licence.'));
     select status || '|' || direction || '|' || nvl2(mail_id, 'Q', '-') into l_txt from xxfnd_communications where communication_id = l_id;
     ok('sent and kept with the case: ' || l_txt, l_txt in ('SENT|OUT|Q', 'NOT_SENT|OUT|-'));
-    l_in := xxfnd_communication_pkg.record_received('KYC', 'XXCMP_CASES', to_char(l_case), 'party@example.com',
+    l_in := xxfnd_notify_pkg.record_received('KYC', 'XXCMP_CASES', to_char(l_case), 'party@example.com',
                                                     'RE: Missing trade licence', to_clob('Attached.'), p_in_reply_to_id => l_id);
     select count(*) into l_n from xxfnd_communications
      where communication_id = l_in and direction = 'IN' and status = 'RECEIVED' and source = 'MANUAL' and in_reply_to_id = l_id;

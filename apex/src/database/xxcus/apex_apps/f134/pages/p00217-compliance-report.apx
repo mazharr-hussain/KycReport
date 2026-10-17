@@ -120,7 +120,7 @@ page 217 (
             sqlQuery:
                 ```sql
                 select p.party_number || ' - ' || p.party_name || nvl2(p.registration_number, ' - ' || p.registration_number, null)
-                       || nvl2(p.jurisdiction, ' - ' || xxfnd_util_pkg.lookup_meaning('JURISDICTION', p.jurisdiction), null)
+                       || nvl2(p.jurisdiction, ' - ' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', p.jurisdiction), null)
                   from xxcmp_cases c join xxcmp_parties p on p.party_id = c.party_id where c.case_id = :P217_CASE_ID
                 ```
             used: always
@@ -150,8 +150,8 @@ page 217 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select c.decision || ' - risk ' || xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
-                       || ' - ' || xxfnd_util_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) || case when c.pep_flag = 'Y' then ' - PEP' end
+                select c.decision || ' - risk ' || xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', c.risk_tier)
+                       || ' - ' || xxfnd_lookup_pkg.lookup_meaning('DUE_DILIGENCE_TYPE', c.due_diligence_type) || case when c.pep_flag = 'Y' then ' - PEP' end
                        || ' - next review ' || to_char(c.next_review_date, 'DD-Mon-YYYY')
                   from xxcmp_cases c where c.case_id = :P217_CASE_ID
                 ```
@@ -213,8 +213,8 @@ page 217 (
                 ```sql
                 select xxfnd_util_pkg.replace_tokens(t.template_text,
                            json_object('PARTY_NAME' value p.party_name, 'REQUEST_NUMBER' value r.request_number,
-                                       'RISK_TIER' value xxfnd_util_pkg.lookup_meaning('RISK_TIER', c.risk_tier),
-                                       'RISK_FACTORS' value nvl((select listagg(xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type), ', ')
+                                       'RISK_TIER' value xxfnd_lookup_pkg.lookup_meaning('RISK_TIER', c.risk_tier),
+                                       'RISK_FACTORS' value nvl((select listagg(xxfnd_lookup_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type), ', ')
                                                                    from xxcmp_screenings s where s.case_id = c.case_id
                                                                     and (s.match_status = 'CONFIRMED_MATCH' or s.pep_flag = 'Y' or s.sanctions_flag = 'Y' or s.adverse_media_flag = 'Y')), 'none')))
                   from xxcmp_cases c
@@ -342,8 +342,8 @@ page 217 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select xxfnd_util_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as check_type, p.party_name,
-                       xxfnd_util_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as result, s.screened_date, s.result_notes
+                select xxfnd_lookup_pkg.lookup_meaning('SCREENING_TYPE', s.screening_type) as check_type, p.party_name,
+                       xxfnd_lookup_pkg.lookup_meaning('SCREENING_MATCH_STATUS', s.match_status) as result, s.screened_date, s.result_notes
                   from xxcmp_screenings s join xxcmp_parties p on p.party_id = s.party_id
                  where s.case_id = :P217_CASE_ID order by s.screened_date
                 ```
