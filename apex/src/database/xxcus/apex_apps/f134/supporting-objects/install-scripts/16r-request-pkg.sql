@@ -4,19 +4,16 @@
 --   KYC_REQUEST workflow steps and statuses. Party logic is in XXCMP_PARTY_PKG; the case is opened by
 --   XXCMP_CASE_PKG.CREATE_CASE (OPEN_CASE calls it). The specification is in 16b (with the tables), so the request,
 --   case and other packages compile in any order.
+--   Release 90: + the request approval (path, steps, approvers, history; was XXCMP_APPROVAL_PKG); party reads through
+--   XXCMP_PARTY_PKG; PARAM removed (unused here; the case package keeps the one copy); QUESTIONNAIRE_HTML removed.
 -- Idempotent: create or replace only.
 --------------------------------------------------------------------------------
 create or replace package body xxcmp_request_pkg as
 
-    -- Numeric KYC parameter maintained by administrators (lookup KYC_PARAMETER, value in TAG).
-    function param(p_code in varchar2, p_default in number) return number is
-        l_value number;
-    begin
-        select max(to_number(tag default null on conversion error)) into l_value from xxfnd_lookup_values
-         where lookup_type = 'KYC_PARAMETER' and lookup_code = p_code and enabled_flag = 'Y';
-        return nvl(l_value, p_default);
-    end param;
+    c_type constant varchar2(30) := 'KYC_REQUEST';     -- Approval Setup transaction type of the request approval
 
+    -- release 90: private (used only here). Requester questionnaire for a party type (PERSON -> INDIVIDUAL,
+    -- ORGANIZATION -> CORPORATE).
     function questionnaire_for(p_party_type in varchar2) return varchar2 is
     begin
         return case p_party_type when 'PERSON' then 'INDIVIDUAL' else 'CORPORATE' end;
@@ -48,37 +45,85 @@ create or replace package body xxcmp_request_pkg as
             raise;
     end get_request;
 
-    function get_party(p_party_id in number) return xxcmp_parties%rowtype is
-        l_party xxcmp_parties%rowtype;
-    begin
-        xxfnd_vpd_pkg.begin_trusted;
-        select * into l_party from xxcmp_parties where party_id = p_party_id;
-        xxfnd_vpd_pkg.end_trusted;
-        return l_party;
-    exception
-        when others then
-            xxfnd_vpd_pkg.end_trusted;
-            raise;
-    end get_party;
+    -- release 90: the party reads (row, status) are the party package's (XXCMP_PARTY_PKG.GET_PARTY / PARTY_STATUS)
 
-    function party_status(p_party_id in number) return varchar2 is
-        l_status xxcmp_parties.party_status%type;
+    -- release 90 (from XXCMP_APPROVAL_PKG): the request approval. The approvers come from the common Approval Setup
+    -- (transaction type KYC_REQUEST, C_TYPE); the request's own columns (APPROVAL_PATH_NAME = the rule, CURRENT_STEP = the
+    -- position) are kept up to date for the screens.
+    function attributes(p_req in xxcmp_requests%rowtype) return apex_t_varchar2 is
     begin
+        return apex_t_varchar2('REQUESTING_DEPARTMENT=' || p_req.requesting_department, 'PARTY_TYPE=' || p_req.party_type,
+                               'JURISDICTION=' || p_req.jurisdiction, 'REQUEST_TYPE=' || p_req.request_type,
+                               'BUSINESS_RELATIONSHIP=' || p_req.business_relationship);
+    end attributes;
+
+    -- private: the rule (path) that applies to the request (most matching criteria, then lowest priority)
+    function path_for(p_request_id in number) return varchar2 is
+        l_rule number := xxfnd_approval_rule_pkg.matching_rule(c_type, attributes(get_request(p_request_id)));
+        l_name varchar2(100);
+    begin
+        select max(rule_name) into l_name from xxfnd_approval_rules where rule_id = l_rule;
+        return l_name;
+    end path_for;
+
+    -- private: starts the path on submit (first step); no rule or a step nobody can approve raises the rule's error
+    procedure start_path(p_request_id in number) is
+        l_req  xxcmp_requests%rowtype := get_request(p_request_id);
+        l_rule varchar2(100);
+    begin
+        l_rule := xxfnd_approval_rule_pkg.start_approval(c_type, to_char(p_request_id), attributes(l_req),
+                                                         l_req.requester_user_name);
         xxfnd_vpd_pkg.begin_trusted;
-        select max(party_status) into l_status from xxcmp_parties where party_id = p_party_id;
+        update xxcmp_requests set approval_path_name = l_rule, current_step = 1 where request_id = p_request_id;
         xxfnd_vpd_pkg.end_trusted;
-        return l_status;
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
             raise;
-    end party_status;
+    end start_path;
+
+    function step_approvers(p_request_id in number) return varchar2 is
+    begin
+        return coalesce(xxfnd_approval_rule_pkg.current_approvers(c_type, to_char(p_request_id)),
+                        -- a request whose approval started before the Approval Setup: Compliance, as before
+                        xxfnd_workflow_pkg.users_with_privilege('CASES', 'CREATE'));
+    end step_approvers;
+
+    function step_name(p_request_id in number) return varchar2 is
+    begin
+        return nvl(xxfnd_approval_rule_pkg.current_step_name(c_type, to_char(p_request_id)), 'Compliance review');
+    end step_name;
+
+    -- private (release 75): Y when the current step is the last one (a request approved before the Approval Setup has one)
+    function is_last_step(p_request_id in number) return varchar2 is
+        l_pos number := xxfnd_approval_rule_pkg.current_position(c_type, to_char(p_request_id));
+    begin
+        return case when l_pos is null or l_pos >= xxfnd_approval_rule_pkg.step_count(c_type, to_char(p_request_id))
+                    then 'Y' else 'N' end;
+    end is_last_step;
+
+    function next_step(p_request_id in number) return varchar2 is
+        l_more varchar2(1) := xxfnd_approval_rule_pkg.next_step(c_type, to_char(p_request_id));
+        l_pos  number      := xxfnd_approval_rule_pkg.current_position(c_type, to_char(p_request_id));
+    begin
+        if l_more = 'N' then
+            return 'N';
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests set current_step = l_pos, last_action_date = sysdate where request_id = p_request_id;
+        xxfnd_vpd_pkg.end_trusted;
+        return 'Y';
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end next_step;
 
     -- a Pending party created with a request that no other open or approved request uses gets P_STATUS
     procedure release_party(p_party_id in number, p_request_id in number, p_status in varchar2) is
         l_other pls_integer;
     begin
-        if p_party_id is null or party_status(p_party_id) <> 'PENDING' then
+        if p_party_id is null or xxcmp_party_pkg.party_status(p_party_id) <> 'PENDING' then
             return;
         end if;
         xxfnd_vpd_pkg.begin_trusted;
@@ -95,6 +140,8 @@ create or replace package body xxcmp_request_pkg as
             raise;
     end release_party;
 
+    -- release 90: private. New DRAFT request with one empty answer row per question of its questionnaire. The
+    -- counterparty columns are shared by organisations and individuals (see XXCMP_PARTY_PKG).
     function create_request(p_party_type            in varchar2,
                             p_party_name            in varchar2,
                             p_registration_number   in varchar2 default null,
@@ -174,7 +221,7 @@ create or replace package body xxcmp_request_pkg as
         if p_party_selection = 'EXISTING' then
             if p_party_id is null then
                 return 'Choose the existing counterparty.';
-            elsif party_status(p_party_id) <> 'APPROVED' or xxcmp_party_pkg.is_enabled(p_party_id) = 'N' then
+            elsif xxcmp_party_pkg.party_status(p_party_id) <> 'APPROVED' or xxcmp_party_pkg.is_enabled(p_party_id) = 'N' then
                 return 'Choose an approved, enabled party.';
             end if;
         else
@@ -226,6 +273,7 @@ create or replace package body xxcmp_request_pkg as
         l_party_id number;
         l_new      boolean := false;
         l_dept     xxcmp_requests.requesting_department%type := p_requesting_department;
+        l_qnr      varchar2(30);
     begin
         if p_request_id is not null then
             l_old := get_request(p_request_id);
@@ -246,7 +294,7 @@ create or replace package body xxcmp_request_pkg as
         end if;
         -- a rejected request is corrected and submitted again: back to Draft, its own party back to Pending
         if l_old.request_status = 'REJECTED' then
-            if l_old.party_selection = 'NEW' and l_old.party_id is not null and party_status(l_old.party_id) = 'REJECTED' then
+            if l_old.party_selection = 'NEW' and l_old.party_id is not null and xxcmp_party_pkg.party_status(l_old.party_id) = 'REJECTED' then
                 xxcmp_party_pkg.set_status(l_old.party_id, 'PENDING');
             end if;
             update xxcmp_requests
@@ -279,7 +327,7 @@ create or replace package body xxcmp_request_pkg as
             end if;
         else
             -- the request's own Pending party is updated; otherwise a new Pending party is created
-            if l_old.party_selection = 'NEW' and party_status(l_old.party_id) = 'PENDING' then
+            if l_old.party_selection = 'NEW' and xxcmp_party_pkg.party_status(l_old.party_id) = 'PENDING' then
                 l_party_id := l_old.party_id;
             elsif l_old.party_selection = 'NEW' and l_old.party_id is not null then
                 xxfnd_error_pkg.raise_error('KYC_REQUEST_PARTY_APPROVED');
@@ -302,7 +350,8 @@ create or replace package body xxcmp_request_pkg as
                 xxfnd_vpd_pkg.end_trusted;
             end if;
         end if;
-        l_party := get_party(l_party_id);
+        l_party := xxcmp_party_pkg.get_party(l_party_id);
+        l_qnr   := questionnaire_for(l_party.party_type);    -- a private function is not called inside SQL
 
         if p_request_id is null then
             p_request_id := create_request(p_party_type => l_party.party_type, p_party_name => l_party.party_name,
@@ -328,14 +377,13 @@ create or replace package body xxcmp_request_pkg as
                contact_phone         = trim(p_contact_phone),
                requesting_department = case when l_old.request_status = 'DRAFT' then l_dept else requesting_department end,
                justification         = p_justification,
-               questionnaire_code    = case when l_old.request_status = 'DRAFT' then questionnaire_for(l_party.party_type)
-                                            else questionnaire_code end,
+               questionnaire_code    = case when l_old.request_status = 'DRAFT' then l_qnr else questionnaire_code end,
                last_action_date      = sysdate
          where request_id = p_request_id;
         -- another type answers another questionnaire
-        if l_old.request_status = 'DRAFT' and nvl(l_old.questionnaire_code, '#') <> questionnaire_for(l_party.party_type) then
+        if l_old.request_status = 'DRAFT' and nvl(l_old.questionnaire_code, '#') <> l_qnr then
             delete from xxcmp_request_answers where request_id = p_request_id and respondent_type = 'REQUESTER';
-            add_answer_rows(p_request_id, null, questionnaire_for(l_party.party_type), 'REQUESTER');
+            add_answer_rows(p_request_id, null, l_qnr, 'REQUESTER');
         end if;
     end save_request;
 
@@ -382,75 +430,8 @@ create or replace package body xxcmp_request_pkg as
             return 'N';
     end match_pending;
 
-    function questionnaire_html(p_request_id in number, p_respondent in varchar2 default 'REQUESTER') return clob is
-        -- HTML on purpose (golden rule exception): the questions, their kind and their answer options are setup rows
-        -- defined at run time (any number per questionnaire version), so no fixed APEX items or report can show them as
-        -- a form; values are escaped and the answers are posted back as JSON and checked by ANSWERS_ERROR.
-        l_html    clob;
-        l_section varchar2(240) := chr(0);
-        l_lang    varchar2(10) := xxfnd_util_pkg.current_lang;
-        l_id      varchar2(100);
-
-        procedure add(p_text in varchar2) is
-        begin
-            dbms_lob.writeappend(l_html, length(p_text), p_text);
-        end add;
-    begin
-        dbms_lob.createtemporary(l_html, true);
-        add('<div class="kyc-questionnaire">');
-        for q in (select a.question_id, a.answer_option_id, a.answer_text, qu.answer_type, qu.required_flag,
-                         nvl(tl.question_text, qu.question_text) as question_text,
-                         nvl(nvl(tl.section_name, qu.section_name), 'General') as section_name
-                    from xxcmp_request_answers a
-                    join xxcmp_questions qu on qu.question_id = a.question_id
-                    left join xxcmp_questions_tl tl on tl.question_id = qu.question_id and tl.language_code = l_lang
-                   where a.request_id = p_request_id
-                     and a.respondent_type = p_respondent
-                   -- a section's questions stay together, in the order of its first question
-                   order by min(qu.display_sequence) over (partition by nvl(nvl(tl.section_name, qu.section_name), 'General')),
-                            qu.display_sequence, qu.question_id) loop
-            if q.section_name <> l_section then
-                if l_section <> chr(0) then
-                    add('</div>');
-                end if;
-                l_section := q.section_name;
-                add('<div class="kyc-section"><h3 class="kyc-section-title">' || apex_escape.html(q.section_name) || '</h3>');
-            end if;
-            l_id := 'kycq_' || q.question_id;
-            add('<fieldset class="kyc-q" data-kyc-q="' || q.question_id || '" data-kyc-type="' || q.answer_type || '">'
-                || '<legend class="kyc-q-text">' || apex_escape.html(q.question_text)
-                || case when q.required_flag = 'Y' then ' <span class="kyc-q-required" title="Required">*</span>' end
-                || '</legend>');
-            if q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then
-                add('<div class="kyc-q-options" role="radiogroup">');
-                for o in (select answer_option_id, answer_label
-                            from xxcmp_answer_options
-                           where question_id = q.question_id and approval_status = 'APPROVED' and enabled_flag = 'Y'
-                           order by display_sequence, answer_option_id) loop
-                    add('<label class="kyc-q-option"><input type="radio" name="' || l_id || '" value="' || o.answer_option_id || '"'
-                        || case when o.answer_option_id = q.answer_option_id then ' checked' end
-                        || '> <span>' || apex_escape.html(o.answer_label) || '</span></label>');
-                end loop;
-                add('</div>');
-            elsif q.answer_type = 'TEXT' then
-                add('<textarea class="textarea apex-item-textarea kyc-q-input" rows="3" maxlength="4000" aria-label="'
-                    || apex_escape.html_attribute(q.question_text) || '">' || apex_escape.html(q.answer_text) || '</textarea>');
-            else
-                add('<input class="text_field apex-item-text kyc-q-input" type="'
-                    || case q.answer_type when 'DATE' then 'date' else 'text" inputmode="decimal' end
-                    || '" value="' || apex_escape.html_attribute(q.answer_text) || '" aria-label="'
-                    || apex_escape.html_attribute(q.question_text) || '">');
-            end if;
-            add('</fieldset>');
-        end loop;
-        if l_section <> chr(0) then
-            add('</div>');
-        else
-            add('<p class="kyc-q-empty">No questions are configured for this counterparty type.</p>');
-        end if;
-        add('</div>');
-        return l_html;
-    end questionnaire_html;
+    -- release 90: QUESTIONNAIRE_HTML removed - page 202 shows the questionnaire with the KYC Question template component
+    -- fed by SQL (no HTML built here).
 
     function answers_error(p_request_id in number, p_answers in clob) return varchar2 is
         l_missing varchar2(4000);
@@ -538,7 +519,7 @@ create or replace package body xxcmp_request_pkg as
             return 'Choose or enter the counterparty.';
         end if;
         if l_req.party_selection = 'NEW' then
-            l_party := get_party(l_req.party_id);
+            l_party := xxcmp_party_pkg.get_party(l_req.party_id);
             l_error := request_error(p_request_id, 'NEW', null, l_party.party_type, l_party.party_name, l_party.jurisdiction,
                                      l_party.registration_number, l_party.entity_type, l_party.incorporation_date,
                                      l_party.email, l_party.phone, l_req.justification,
@@ -593,7 +574,7 @@ create or replace package body xxcmp_request_pkg as
         if xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST') = 'Y' then
             -- release 76 (A-11): the Approval Setup rule - no rule or a step nobody can approve stops the submit with its
             -- message; a rule without steps approves the request at once, like the switched-off approval below
-            xxcmp_approval_pkg.start_path(p_request_id);
+            start_path(p_request_id);
             xxfnd_vpd_pkg.begin_trusted;       -- the approval steps are not the requester's to see
             l_auto := xxfnd_approval_rule_pkg.step_count('KYC_REQUEST', to_char(p_request_id)) = 0;
             xxfnd_vpd_pkg.end_trusted;
@@ -826,7 +807,7 @@ create or replace package body xxcmp_request_pkg as
          where request_id = p_request_id
         returning party_id into l_party;
         xxfnd_vpd_pkg.end_trusted;
-        if party_status(l_party) = 'PENDING' then
+        if xxcmp_party_pkg.party_status(l_party) = 'PENDING' then
             xxcmp_party_pkg.set_status(l_party, 'APPROVED');
         end if;
     exception
@@ -899,7 +880,7 @@ create or replace package body xxcmp_request_pkg as
 
     function opens_case_on_approval(p_request_id in number) return varchar2 is
     begin
-        return case when outcome(p_request_id) = 'ASSIGNED' and xxcmp_approval_pkg.is_last_step(p_request_id) = 'Y'
+        return case when outcome(p_request_id) = 'ASSIGNED' and is_last_step(p_request_id) = 'Y'
                     then 'Y' else 'N' end;
     end opens_case_on_approval;
 
@@ -908,7 +889,7 @@ create or replace package body xxcmp_request_pkg as
         l_party xxcmp_parties%rowtype;
         l_req   number;
     begin
-        select * into l_party from xxcmp_parties where party_id = p_party_id;
+        l_party := xxcmp_party_pkg.get_party(p_party_id);
         l_req := create_request(
                      p_party_type            => l_party.party_type,
                      p_party_name            => l_party.party_name,
@@ -995,7 +976,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         xxfnd_vpd_pkg.begin_trusted;
         select * into l_case from xxcmp_cases where case_id = p_case_id;
-        select * into l_party from xxcmp_parties where party_id = l_case.party_id;
+        l_party := xxcmp_party_pkg.get_party(l_case.party_id);
         l_id := create_request(p_party_type          => l_party.party_type,
                                p_party_name          => l_party.party_name,
                                p_registration_number => l_party.registration_number,
@@ -1019,6 +1000,123 @@ create or replace package body xxcmp_request_pkg as
             xxfnd_vpd_pkg.end_trusted;
             raise;
     end start_review;
+
+    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined is
+        l_req    xxcmp_requests%rowtype;
+        l_path   varchar2(100);
+        l_owners varchar2(1000);
+        l_attrs  apex_t_varchar2;
+    begin
+        if p_request_id is null then
+            return;
+        end if;
+        l_req  := get_request(p_request_id);
+        l_path := nvl(l_req.approval_path_name, path_for(p_request_id));
+        l_attrs := attributes(l_req);
+        for h in (select null as step_no, 'Request' as step_name, null as assigned_to, 'Submitted' as action,
+                         l_req.requester_user_name as action_by, cast(l_req.submitted_date as timestamp) as action_date,
+                         null as comments
+                    from dual where l_req.submitted_date is not null
+                  union all
+                  -- release 73: approval workflow switched off for the process
+                  select null, 'Approval', null, xxfnd_workflow_pkg.c_auto_approved, 'System',
+                         cast(l_req.auto_approved_date as timestamp), null
+                    from dual where l_req.auto_approved_date is not null
+                  union all
+                  select null, regexp_substr(t.subject, '^[^:]+'), t.actual_owner,
+                         case h.event_type_code when 'COMPLETE'     then nvl(h.outcome, 'Completed')
+                                                when 'REQUEST_INFO' then 'Information requested'
+                                                when 'SUBMIT_INFO'  then 'Information submitted'
+                                                when 'CLAIM'        then 'Claimed'
+                                                when 'DELEGATE'     then 'Delegated'
+                                                when 'CANCEL'       then 'Ended' end,
+                         h.event_creator, cast(h.event_timestamp as timestamp),
+                         (select substr(listagg(c.text, ' / ') within group (order by c.created_on), 1, 4000)
+                            from apex_task_comments c
+                           where c.task_id = h.task_id and upper(c.created_by) = upper(h.event_creator)
+                             and c.created_on between h.event_timestamp - interval '2' minute and h.event_timestamp + interval '5' second)
+                    from apex_task_history h
+                    join apex_tasks t on t.task_id = h.task_id
+                   where t.detail_pk = to_char(p_request_id)
+                     and t.task_def_static_id in ('DOC_CHECKLIST_REVIEW', 'COUNTERPARTY_MATCH')
+                     and h.event_type_code in ('COMPLETE', 'REQUEST_INFO', 'SUBMIT_INFO', 'CLAIM', 'DELEGATE')
+                  union all
+                  -- release 73: questions returned to the requester by an approver who is the requester (return_for_info)
+                  select null, 'Approval', null, 'Information requested', r.created_by, cast(r.creation_date as timestamp),
+                         r.description
+                    from xxfnd_rfis r
+                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                  union all
+                  select null, 'Request', null, 'Information submitted', r.recipient_user_name,
+                         cast(coalesce(r.responded_date, r.resolved_date) as timestamp), null
+                    from xxfnd_rfis r
+                   where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                     and coalesce(r.responded_date, r.resolved_date) is not null and r.rfi_status <> 'CANCELLED'
+                  union all
+                  select null, 'Request', null, 'Withdrawn', l_req.requester_user_name, cast(w.last_updated_on as timestamp), null
+                    from apex_workflows w
+                   where w.detail_pk = to_char(p_request_id) and w.state_code = 'TERMINATED'
+                     and not (l_req.request_status = 'CANCELLED'
+                              and abs(cast(w.last_updated_on as date) - cast(l_req.completed_date as date)) < 1 / 1440)
+                     and not exists (select 1 from xxfnd_rfis r
+                                      where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                                        and abs(cast(w.last_updated_on as date) - cast(r.creation_date as date)) < 1 / 1440)
+                  union all
+                  select null, 'Request', null, 'Cancelled', l_req.last_updated_by, cast(l_req.completed_date as timestamp), l_req.match_note
+                    from dual where l_req.request_status = 'CANCELLED' and l_req.completed_date is not null
+                   order by 6) loop
+            pipe row (xxcmp_history_row(h.step_no, h.step_name, h.assigned_to, h.action, h.action_by, h.action_date, h.comments));
+        end loop;
+        if l_req.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
+            for p in (select * from table(xxfnd_approval_rule_pkg.steps(c_type, to_char(p_request_id), l_attrs))
+                       where step_state in ('EXPECTED', 'CURRENT', 'WAITING')
+                       order by position) loop
+                l_owners := null;
+                if p.step_state = 'CURRENT' then
+                    select max(coalesce(t.actual_owner,
+                                        (select listagg(pp.participant, ', ') within group (order by pp.participant)
+                                           from apex_task_participants pp
+                                          where pp.task_id = t.task_id and pp.participant_type = 'POTENTIAL_OWNER')))
+                      into l_owners
+                      from apex_tasks t
+                     where t.detail_pk = to_char(p_request_id) and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                       and t.state_code in ('ASSIGNED', 'UNASSIGNED', 'INFO_REQUESTED');
+                end if;
+                pipe row (xxcmp_history_row(p.position, p.step_name,
+                              nvl(l_owners, xxfnd_approval_rule_pkg.approver_label(p.approver_type, p.role_code, p.user_name)),
+                              case when p.step_state = 'EXPECTED' then 'Expected'
+                                   when p.step_state = 'CURRENT' and l_req.request_status = 'INFO_NEEDED' then 'Information needed'
+                                   when p.step_state = 'CURRENT' then 'Pending'
+                                   else 'Waiting' end,
+                              null, null, null));
+            end loop;
+        end if;
+        return;
+    end history_rows;
+
+    -- release 90 (page 206): one place for the decision buttons' check (it was repeated six times on the page)
+    function can_decide(p_task_id in number) return varchar2 is
+    begin
+        -- the document checklist task of the request (the page also opens from the Counterparty Match task)
+        for t in (select 1 from apex_tasks where task_id = p_task_id and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+            return case when apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_approve)
+                          or apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_claim)
+                        then 'Y' else 'N' end;
+        end loop;
+        return 'N';
+    end can_decide;
+
+    function can_add_approver(p_request_id in number, p_task_id in number) return varchar2 is
+        l_open pls_integer;
+    begin
+        -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+        if xxfnd_approval_rule_pkg.is_started(c_type, to_char(p_request_id)) = 'N' then
+            return 'N';
+        end if;
+        select count(*) into l_open from apex_tasks
+         where task_id = p_task_id and task_def_static_id = 'DOC_CHECKLIST_REVIEW' and state_code in ('ASSIGNED', 'UNASSIGNED');
+        return case when l_open > 0 then can_decide(p_task_id) else 'N' end;
+    end can_add_approver;
 
 end xxcmp_request_pkg;
 /

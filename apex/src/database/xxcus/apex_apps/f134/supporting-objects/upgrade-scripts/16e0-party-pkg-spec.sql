@@ -96,7 +96,10 @@ create or replace package xxcmp_party_pkg authid definer as
     -- With P_CASE_ID: a first row for the case's party itself (level 0) and, on every row, the party's latest
     -- screening in the case (results, conclusion, source, risk level).
     function ownership_tree_json(p_party_id in number, p_request_id in number default null, p_case_id in number default null) return clob;
-    -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y.
+    -- Additional information (DFF) of the party: read only unless CAN_EDIT_DETAILS and P_EDIT = Y; empty when the user may
+    -- not see the party or the party type has no field. Release 90: KYC builds no HTML here - the fields are drawn by
+    -- COMMON's reusable flexfield rendering (XXFND_DFF_PKG.RENDER, runtime-defined fields: no APEX component fits); this
+    -- function only adds the party's access rules and reads the party past data security for a requester.
     function dff_html(p_party_id in number, p_request_id in number, p_context_code in varchar2, p_edit in varchar2) return clob;
     function dff_error(p_party_id in number, p_values_json in clob, p_context_code in varchar2) return varchar2;
     procedure save_dff(p_party_id in number, p_request_id in number, p_values_json in clob, p_context_code in varchar2);
@@ -151,15 +154,15 @@ create or replace package xxcmp_party_pkg authid definer as
                                    p_date                in date,
                                    p_country             in varchar2,
                                    p_exclude_party_id    in number default null) return clob;
-    function party_candidate_count(p_party_type          in varchar2,
-                                   p_party_name          in varchar2,
-                                   p_registration_number in varchar2,
-                                   p_date                in date,
-                                   p_country             in varchar2,
-                                   p_exclude_party_id    in number default null) return number;
+    -- release 90: PARTY_CANDIDATE_COUNT is private (PARTY_ERROR counts the candidates).
 
     -- Party type (ORGANIZATION / PERSON) of a party, or null (only the type is read past data security).
     function party_type(p_party_id in number) return varchar2;
+    -- Release 90 (from the request package): the party reads other components need, past data security. PARTY_STATUS:
+    -- PENDING, APPROVED, REJECTED, CANCELLED or null. GET_PARTY: the whole row (NO_DATA_FOUND when missing) - for other
+    -- components' packages only (the request copies the party's fields); never shown on a page as it is.
+    function party_status(p_party_id in number) return varchar2;
+    function get_party(p_party_id in number) return xxcmp_parties%rowtype;
     -- release 74 (R14): party verifications (identity document checks, company registry / KYB checks).
     -- Y when the user may record one for the party (Parties Create; from a case only while it is investigated).
     function can_record_verification(p_party_id in number, p_case_id in number default null) return varchar2;

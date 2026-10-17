@@ -56,8 +56,9 @@ begin
               'XXCMP_CASES','XXCMP_PARTY_ID_VERIFICATIONS','XXCMP_PARTY_REGISTRY_CHECKS')]') = 6);
     ok('the 16 KYC document categories are KYC''s',
        cnt(q'[select count(*) from xxfnd_document_categories where application_code = 'KYC']') >= 16);
-    ok('the 7 KYC attachment pages are registered',
-       cnt(q'[select count(*) from xxfnd_attachment_functions where function_code like 'KYC\_%' escape '\']') >= 7);
+    -- release 89: the KYC_RFI attachment page is gone (information requests are COMMON's); an upgraded database keeps it
+    ok('the 6 KYC attachment pages are registered',
+       cnt(q'[select count(*) from xxfnd_attachment_functions where function_code like 'KYC\_%' escape '\']') >= 6);
     ok('the KYC integration purposes are KYC''s (5)',
        cnt(q'[select count(*) from xxfnd_integration_purposes where application_code = 'KYC'
                and purpose_code in ('SCREENING','DOC_AUTHENTICITY','REGISTRY_LOOKUP','BANK_DATA','GOAML_FILING')]') = 5);

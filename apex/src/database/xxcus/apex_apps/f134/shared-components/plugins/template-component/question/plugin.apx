@@ -15,11 +15,13 @@ plugin question (
             ```
         reportGroup:
             ```html
-            {if ?SECTION_TITLE/}<h3 class="kyc-section-title">#SECTION_TITLE#</h3>{endif/}
-            <fieldset class="kyc-q" data-kyc-q="#GROUP_QUESTION_ID#" data-kyc-type="#GROUP_ANSWER_TYPE#" #APEX$GROUP_IDENTIFICATION#>
-              <legend class="kyc-q-text">#QUESTION_TEXT#{if ?REQUIRED/} <span class="kyc-q-required" title="Required">*</span>{endif/}</legend>
-              {if ?CHOICE/}<div class="kyc-q-options" role="radiogroup">#APEX$ROWS#</div>{else/}#APEX$ROWS#{endif/}
-            </fieldset>
+            <div class="kyc-q-group" #APEX$GROUP_IDENTIFICATION#>
+              {if ?SECTION_TITLE/}<h3 class="kyc-section-title">#SECTION_TITLE#</h3>{endif/}
+              <fieldset class="kyc-q" data-kyc-q="#GROUP_QUESTION_ID#" data-kyc-type="#GROUP_ANSWER_TYPE#">
+                <legend class="kyc-q-text">#QUESTION_TEXT#{if ?REQUIRED/} <span class="kyc-q-required" title="Required">*</span>{endif/}</legend>
+                {if ?CHOICE/}<div class="kyc-q-options" role="radiogroup">#APEX$ROWS#</div>{else/}#APEX$ROWS#{endif/}
+              </fieldset>
+            </div>
             ```
         reportRow:
             ```html
@@ -31,6 +33,6 @@ plugin question (
     }
     information {
         version: 1.0
-        helpText: Release 90: the questionnaire as a form - one group per question (legend, required mark), one row per answer option (radio button) or one input for a text, number or date answer; the section title before a section's first question. Rows come from SQL (data only); the markup lives here, not in PL/SQL. kyc-app.js (kycQuestionnaire) reads fieldset[data-kyc-q] for the answers.
+        helpText: Release 90: the questionnaire as a form - one group per question (legend, required mark), one row per answer option (radio button) or one input for a text, number or date answer; the section title before a section's first question. One root element per group (it carries the group identification, so APEX puts the rows in the right group). Rows come from SQL (data only); the markup lives here, not in PL/SQL. kyc-app.js (kycQuestionnaire) reads fieldset[data-kyc-q] for the answers.
     }
 )

@@ -14,7 +14,7 @@ if [ "$1" != "ui" ]; then
     echo "== test users"; db test_users | grep -i "error\|ORA-"
     for t in security_test workflow_test kyc_flow_test party_test request_party_test token_test \
              r73_kyc_test r74_kyc_test r74_party_test r74_case_test r74_email_test r74_risk_test r74_perf_test \
-             r75_kyc_test r76_kyc_test monitoring_test; do
+             r75_kyc_test r76_kyc_test monitoring_test kyc87_adapt_test kyc88_shared_test kyc89_rfi_test kyc90_cleanup_test; do
         out=$(db $t)
         echo "== $t: $(grep -c '^PASS' <<<"$out") pass, $(grep -c '^FAIL' <<<"$out") fail"
         grep -E '^FAIL|ORA-' <<<"$out" | head -5
@@ -23,7 +23,7 @@ fi
 if [ "$1" != "db" ]; then
     echo "== warm-up"
     for app in kyc common; do curl -s -o /dev/null -m 120 -w "$app %{http_code} %{time_total}s\n" "$HOST/ords/r/xxcus/$app/login"; done
-    for t in kyc_ui party_ui request_party_ui r74_party_ui r74_case_ui r74_email_ui r74_risk_ui r75_ui; do
+    for t in kyc_ui party_ui request_party_ui r74_party_ui r74_case_ui r74_email_ui r74_risk_ui r75_ui kyc88_shared_ui kyc89_rfi_ui; do
         echo "== $t"; timeout 1500 python3 apex/tests/$t.py 2>&1 | grep -E 'FAIL|passed|Error' | tail -4
     done
 fi
