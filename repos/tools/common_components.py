@@ -124,7 +124,7 @@ C = {
     roles=ADMIN,
     other='The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REGISTER_LOOKUP_TYPE` / '
           '`REGISTER_LOOKUP_VALUE` (KYC: 18h) and reads them with `LOOKUP_MEANING`, `IS_VALID_LOOKUP` or the lookup views. '
-          'COMMON issue C3: script 17 rewrites KYC lookups on upgrade.'),
+          'It sees and maintains only its own lookups and the shared ones (release 87).'),
  'flexfields': dict(
     feature='FLEXFIELDS', name='Flexfields', module='Reference Data', actions='VIEW, CREATE, MANAGE',
     purpose='Descriptive flexfields and their value sets.', usage='Pages 150-153: value sets, flexfields, contexts, segments.',
