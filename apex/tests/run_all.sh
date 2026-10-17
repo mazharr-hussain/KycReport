@@ -14,7 +14,7 @@ if [ "$1" != "ui" ]; then
     echo "== test users"; db test_users | grep -i "error\|ORA-"
     for t in security_test workflow_test kyc_flow_test party_test request_party_test token_test \
              r73_kyc_test r74_kyc_test r74_party_test r74_case_test r74_email_test r74_risk_test r74_perf_test \
-             r75_kyc_test r76_kyc_test monitoring_test kyc87_adapt_test kyc88_shared_test kyc89_rfi_test kyc90_cleanup_test kyc91_unused_test; do
+             r75_kyc_test r76_kyc_test monitoring_test kyc87_adapt_test kyc88_shared_test kyc89_rfi_test kyc90_cleanup_test kyc91_unused_test kyc92_retire_test; do
         out=$(db $t)
         echo "== $t: $(grep -c '^PASS' <<<"$out") pass, $(grep -c '^FAIL' <<<"$out") fail"
         grep -E '^FAIL|ORA-' <<<"$out" | head -5

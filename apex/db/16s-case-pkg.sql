@@ -811,8 +811,7 @@ create or replace package body xxcmp_case_pkg as
                     return 'DONE';
                 end if;
                 select count(*) into l_count from dual
-                 where exists (select 1 from xxcmp_party_relationships where object_party_id = l_party.party_id)
-                    or exists (select 1 from xxcmp_ubo_determinations where case_id = p_case_id);
+                 where exists (select 1 from xxcmp_party_relationships where object_party_id = l_party.party_id);
                 return case when l_count > 0 then 'DONE' else 'TODO' end;
             when 'TREE' then
                 -- every party in the ownership tree has a screening in this case

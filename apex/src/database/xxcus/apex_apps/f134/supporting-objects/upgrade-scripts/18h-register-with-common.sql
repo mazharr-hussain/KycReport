@@ -159,7 +159,7 @@ begin
         || '|AUTHORISED_SIGNATORY=Authorised Signatory|PARENT_COMPANY=Parent Company|BENEFICIAL_OWNER=Beneficial Owner'
         || '|TRUSTEE=Trustee|SETTLOR=Settlor|BENEFICIARY=Beneficiary|OTHER=Other');
     lookups('DATA_PROVENANCE', 'Data Provenance', 'S', 'SELF_DECLARED=Self-declared|REGISTRY_VERIFIED=Registry verified');
-    lookups('UBO_STATUS', 'UBO Determination', 'S', 'UBO=Ultimate beneficial owner|NOT_UBO=Not a UBO|NOT_YET_ASSESSED=Not yet assessed');
+    -- release 92: UBO_STATUS is no longer registered (its column went in 16f; the UBO table is retired)
     lookups('DUE_DILIGENCE_TYPE', 'Due Diligence Types', 'S', 'SIMPLIFIED=Simplified KYC|STANDARD=Standard KYC|ENHANCED=Enhanced KYC');
     -- review interval per risk tier, in months (TAG), until an administrator sets another
     xxfnd_lookup_pkg.register_lookup_type(c_app, 'RISK_TIER', 'Risk Tiers', 'S');
