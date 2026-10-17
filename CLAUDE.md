@@ -55,6 +55,11 @@
   worked around with direct SQL. Every COMMON routine that changes data has a parameter for the application (its code
   or ID) and changes only that application's rows (another application's rows are refused); applications are granted
   SELECT and EXECUTE on COMMON objects only, never INSERT, UPDATE or DELETE.
+- **Golden rule: who sees COMMON data (from the user).** Setup data (lookups, flexfields, document categories,
+  attachment pages, approval rules, templates, roles, menu entries, ...) is visible per application: an application and
+  its administrators see the setup rows that belong to that application (plus COMMON's shared ones); IT sees all.
+  Transaction data (tasks, notifications, documents, information requests, e-mails, ...) is visible per user: each user
+  sees what they are allowed to see, from any application (e.g. My Tasks shows their tasks of every application).
 - **COMMON scope only (from the user):** a component that belongs to COMMON lives only in COMMON scope; KYC (and every
   other application) uses it as it is - no change, no redevelopment, no duplication.
 - **COMMON is completed on its own (from the user):** KYC and COMMON are two different applications. For now treat KYC
