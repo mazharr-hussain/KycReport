@@ -774,11 +774,6 @@ create or replace package body xxcmp_party_pkg as
         update xxcmp_screenings set party_id = p_into_party_id where party_id = p_from_party_id;
         update xxcmp_alerts     set party_id = p_into_party_id where party_id = p_from_party_id;
         update xxcmp_case_notes set related_party_id = p_into_party_id where related_party_id = p_from_party_id;
-        -- one beneficial-owner decision per case and owner
-        delete from xxcmp_ubo_determinations u
-         where u.owner_party_id = p_from_party_id
-           and exists (select 1 from xxcmp_ubo_determinations k where k.case_id = u.case_id and k.owner_party_id = p_into_party_id);
-        update xxcmp_ubo_determinations set owner_party_id = p_into_party_id where owner_party_id = p_from_party_id;
         -- contacts move as non-primary (the kept party keeps its primary contact)
         update xxcmp_party_contacts set party_id = p_into_party_id, primary_flag = 'N' where party_id = p_from_party_id;
         -- relationships: a relationship between the two parties would point to itself

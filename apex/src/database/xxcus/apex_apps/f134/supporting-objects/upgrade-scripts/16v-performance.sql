@@ -23,6 +23,7 @@ begin
               union all select 'XXCMP_REQUEST_ANSWERS_N3',    'xxcmp_request_answers (answer_option_id)' from dual
               union all select 'XXCMP_SCREENINGS_N1',         'xxcmp_screenings (case_id)' from dual
               union all select 'XXCMP_SCREENINGS_N2',         'xxcmp_screenings (party_id)' from dual
+              -- release 92: the table is retired, but its foreign key to the parties keeps its index
               union all select 'XXCMP_UBO_DETERMINATIONS_N1', 'xxcmp_ubo_determinations (owner_party_id)' from dual) loop
         xxfnd_ddl_pkg.ensure_index(i.n, 'create index ' || lower(i.n) || ' on ' || i.d);
     end loop;

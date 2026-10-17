@@ -157,13 +157,8 @@ begin
        not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim)
        and not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_approve));
 
-    session_as('HOC1');
-    ok('HOC1 sees it in My Tasks: ' || my_tasks('CONFIG_CHANGE'), instr(my_tasks('CONFIG_CHANGE'), to_char(l_task)) > 0);
-    ok('HOC1 may claim it', apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim));
-    apex_human_task.approve_task(p_task_id => l_task, p_autoclaim => true);
-    commit;
-    select approval_status || '/' || approved_by into l_list from xxcmp_attachment_rules where attachment_rule_id = l_rule;
-    ok('HOC1 approves -> rule ' || l_list, l_list = 'APPROVED/HOC1');
+    -- the approval itself (who sees, claims and approves the task) is COMMON's CONFIG_CHANGE workflow, tested by COMMON;
+    -- KYC checks only that its change starts it (the task belongs to COMMON's application since COMMON 84)
 
     ------------------------------------------------------------ deadlines
     -- release 89: task deadlines are COMMON's (XXFND_WORKFLOW_PKG.PROCESS_DEADLINES, automation task-deadlines of COMMON

@@ -287,7 +287,7 @@ create table if not exists xxcmp_ubo_determinations (
     constraint xxcmp_ubo_determinations_ck1 check (basis in ('OWNERSHIP','CONTROL','FALLBACK')),
     constraint xxcmp_ubo_determinations_ck2 check (ownership_percentage between 0 and 100)
 );
-comment on table xxcmp_ubo_determinations is 'The officer''s decision on who the beneficial owners are, for this case (a later review never overwrites it).';
+comment on table xxcmp_ubo_determinations is 'Retired in KYC release 92 (kept as history): beneficial owners are marked on XXCMP_PARTY_RELATIONSHIPS (release 73); page 214 is gone.';
 
 -- release 73: the beneficial owner is marked on the owner / officer relationship (Owners and Officers), with its basis
 begin
@@ -300,21 +300,8 @@ begin
     xxfnd_ddl_pkg.drop_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK7');
     xxfnd_ddl_pkg.add_constraint('XXCMP_PARTY_RELATIONSHIPS', 'XXCMP_PARTY_REL_CK8',
         q'~check (beneficial_owner_flag = 'N' or (ubo_basis is not null and ubo_basis in ('OWNERSHIP','CONTROL','FALLBACK')))~');
-    -- the beneficial owners determined so far on cases become marks on the relationships (once: only unmarked rows;
-    -- dynamic: the columns are added in this block)
-    execute immediate q'~
-update xxcmp_party_relationships r
-       set (r.beneficial_owner_flag, r.ubo_basis, r.ubo_notes) =
-           (select 'Y', max(u.basis) keep (dense_rank last order by u.creation_date),
-                   max(u.notes) keep (dense_rank last order by u.creation_date)
-              from xxcmp_ubo_determinations u
-              join xxcmp_cases c on c.case_id = u.case_id
-             where u.owner_party_id = r.subject_party_id and c.party_id = r.object_party_id)
-     where r.beneficial_owner_flag = 'N'
-       and exists (select 1 from xxcmp_ubo_determinations u
-                     join xxcmp_cases c on c.case_id = u.case_id
-                    where u.owner_party_id = r.subject_party_id and c.party_id = r.object_party_id)~';
-    commit;
+    -- release 92: the one-time copy of the beneficial owners from XXCMP_UBO_DETERMINATIONS (release 73) is gone: every
+    -- supported database (release 74 or later) has it, and the table is retired
 end;
 /
 comment on column xxcmp_party_relationships.beneficial_owner_flag is 'Y = the related (subject) party is a beneficial owner of the object party (release 73).';
