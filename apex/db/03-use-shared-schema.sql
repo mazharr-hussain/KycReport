@@ -76,10 +76,18 @@ begin
         execute immediate 'drop synonym ' || s.synonym_name;
     end loop;
 
+    -- release 94: the deployment framework's tables are the schema's own (00 creates them). A synonym of COMMON's
+    -- XXFND_DROPPED_OBJECTS (made by earlier releases) hid KYC's own log table, so DROP_OBJECT wrote to COMMON's table
+    -- and failed on COMMON 88 or later (ORA-41900); it is dropped, and 00 then creates KYC's table.
+    for s in (select synonym_name from user_synonyms
+               where synonym_name = 'XXFND_DROPPED_OBJECTS' and table_owner = c_shared) loop
+        execute immediate 'drop synonym ' || s.synonym_name;
+    end loop;
+
     for o in (select object_name from all_objects
                where owner = c_shared and object_name like 'XXFND\_%' escape '\'
                  and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
-                 and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG')) loop
+                 and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_DROPPED_OBJECTS')) loop
         select count(*) into l_n from user_objects where object_name = o.object_name;
         if l_n = 0 then
             execute immediate 'create synonym ' || o.object_name || ' for ' || c_shared || '.' || o.object_name;

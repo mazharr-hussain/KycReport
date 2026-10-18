@@ -1,6 +1,6 @@
 app KYC (
     name: KYC Compliance Platform
-    version: Release 93
+    version: Release 94
     logo {
         type: text
         text: &APP_TITLE.
