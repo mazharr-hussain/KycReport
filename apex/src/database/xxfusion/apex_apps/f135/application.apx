@@ -1,6 +1,6 @@
 app COMMON (
     name: Common
-    version: Release 98
+    version: Release 99
     logo {
         type: text
         text: &G_APP_TITLE.
@@ -44,7 +44,7 @@ app COMMON (
         timestampTimeZone: DS
     }
     authentication {
-        scheme: @oracle-database-accounts
+        scheme: @apex-fa-iabwbn-dev1-oauth
     }
     authorization {
         scheme: @app-user

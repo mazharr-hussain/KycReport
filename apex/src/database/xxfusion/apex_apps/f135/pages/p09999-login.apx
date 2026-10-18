@@ -132,6 +132,28 @@ page 9999 (
         }
     )
 
+    button sso (
+        buttonName: SSO
+        label: Sign in with company account
+        layout {
+            sequence: 50
+            region: @app-name
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectUrl
+            targetUrl: f?p=&APP_ID.:1:0:APEX_AUTHENTICATION=APEX_FA_IABWBN-DEV1_OAUTH
+            warnOnUnsavedChanges: doNotCheck
+        }
+        comments {
+            comments: Release 99 - the company account (identity domain, the same session as Fusion and the other products: no new sign-in when one is open); the scheme is switched in the session (Switch in Session).
+        }
+    )
+
     process clear-page-s-cache (
         name: Clear Page Cache
         type: clearSessionState

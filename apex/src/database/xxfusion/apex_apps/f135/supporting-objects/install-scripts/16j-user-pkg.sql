@@ -28,6 +28,11 @@ create or replace package xxfnd_user_pkg authid definer as
                                p_full_name in varchar2,
                                p_email     in varchar2,
                                p_password  in varchar2) return number;
+    -- Release 99: the Oracle APEX account of an existing user (e.g. a user that signed in with a database account), so
+    -- the user can sign in with a user name and password as well as with the company account (SSO, linked by user name
+    -- or e-mail). P_PASSWORD: the first password, changed at first sign-in. Returns Y when the account was created, N when
+    -- the user already has one.
+    function ensure_apex_account(p_user_id in number, p_password in varchar2) return varchar2;
 
     -- New password for a LOCAL user (the user changes it at the next sign-in).
     procedure reset_password(p_user_id in number, p_password in varchar2);
@@ -213,12 +218,28 @@ create or replace package body xxfnd_user_pkg as
         return l_id;
     end create_local_user;
 
+    function ensure_apex_account(p_user_id in number, p_password in varchar2) return varchar2 is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        select * into l_user from xxfnd_users where user_id = p_user_id;
+        if apex_util.get_user_id(l_user.user_name) is not null then
+            return 'N';
+        end if;
+        if trim(p_password) is null then
+            raise_application_error(-20063, 'Enter the first password.');
+        end if;
+        apex_account('CREATE', l_user.user_name, l_user.full_name, lower(l_user.email_address), p_password);
+        return 'Y';
+    end ensure_apex_account;
+
     procedure reset_password(p_user_id in number, p_password in varchar2) is
         l_user xxfnd_users%rowtype;
     begin
         check_admin;
         select * into l_user from xxfnd_users where user_id = p_user_id;
-        if l_user.user_type <> 'LOCAL' then
+        -- release 99: an SSO user with an APEX account (ENSURE_APEX_ACCOUNT) has a password too
+        if l_user.user_type <> 'LOCAL' and apex_util.get_user_id(l_user.user_name) is null then
             raise_application_error(-20065, l_user.user_name || ' signs in with the company account (SSO): no password here.');
         end if;
         apex_account('PASSWORD', l_user.user_name, p_password => p_password);
@@ -479,6 +500,9 @@ create or replace package body xxfnd_user_pkg as
     ----------------------------------------------------------------------------
     procedure map_login_user is
         l_login varchar2(255) := upper(trim(v('APP_USER')));
+        -- release 99: the e-mail of the identity domain (SSO sign-in, app item G_EMAIL): a user whose e-mail matches is
+        -- the same person, also when the user names differ (local user signing in with the company account)
+        l_email varchar2(320) := upper(trim(v('G_EMAIL')));
         l_user  xxfnd_employees.user_name%type;
     begin
         -- release 46: the users of the shared access module first, then the employees
@@ -487,7 +511,7 @@ create or replace package body xxfnd_user_pkg as
           from (select 1 src, u.user_name, upper(u.email_address) email from xxfnd_users u where u.enabled_flag = 'Y'
                 union all
                 select 2, upper(e.user_name), upper(e.email_address) from xxfnd_employees e where e.enabled_flag = 'Y')
-         where user_name = l_login or email = l_login;
+         where user_name = l_login or email = l_login or email = l_email;
         if l_user is not null and upper(l_user) <> l_login then
             apex_custom_auth.set_user(upper(l_user));
         end if;
