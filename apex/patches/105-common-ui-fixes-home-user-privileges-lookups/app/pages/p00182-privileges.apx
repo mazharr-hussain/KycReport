@@ -1,0 +1,197 @@
+page 182 (
+    name: Privileges
+    alias: PRIVILEGES
+    title: Privileges
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every privilege of every feature and the roles that hold it. VIEW opens a feature, CREATE adds records, MANAGE changes them. Grant privileges on the Role screen (Roles tab).
+            ```
+    }
+
+    region breadcrumb (
+        name: Privileges
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Privileges
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.application_name || ' (' || a.application_code || ')' as application,
+                       f.feature_group,
+                       f.feature_name,
+                       initcap(p.action_code) as action,
+                       p.privilege_code,
+                       -- release 91 (UI issue 4): each granted role with its application; an application's administrators
+                       -- see only their application's roles, IT (ALL) sees every application's
+                       (select listagg(r.role_name || ' (' || r.application_code || ')', ', ')
+                                 within group (order by r.application_code, r.role_name)
+                          from xxfnd_role_privileges rp
+                          join xxfnd_roles r on r.role_code = rp.role_code
+                         where rp.privilege_code = p.privilege_code
+                           and (:G_ADMIN_APP = 'ALL' or r.application_code = :G_ADMIN_APP)) as granted_to,
+                       f.display_sequence * 10 + decode(p.action_code, 'VIEW', 1, 'CREATE', 2, 3) as sort_key
+                  from xxfnd_privileges p
+                  join xxfnd_features f on f.feature_code = p.feature_code
+                  left join xxfnd_applications a on a.application_id = f.application_id
+                 where f.enabled_flag = 'Y'
+                   -- the application's own features, plus COMMON's shared (non-admin) features it uses
+                   and (:G_ADMIN_APP = 'ALL' or a.application_code = :G_ADMIN_APP
+                        or (a.application_code = 'COMMON' and f.admin_flag = 'N'))
+                 order by sort_key
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FEATURE_GROUP (
+            type: plainText
+            heading {
+                heading: Group
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FEATURE_NAME (
+            type: plainText
+            heading {
+                heading: Feature
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIVILEGE_CODE (
+            type: plainText
+            heading {
+                heading: Privilege
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column GRANTED_TO (
+            type: plainText
+            heading {
+                heading: Granted To Roles
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SORT_KEY (
+            type: hidden
+            heading {
+                heading: Sort Key
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+)
