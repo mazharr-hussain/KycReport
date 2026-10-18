@@ -46,6 +46,8 @@ page 107 (
                   from (
 
                             select s.sod_rule_id,
+                                   -- release 91 (UI issue 4): the application of the rule's roles
+                                   a.application_name || ' (' || a.application_code || ')' as application,
                                    r1.role_name as role_1,
                                    r2.role_name as role_2,
                                    xxfnd_lookup_pkg.lookup_meaning('SOD_SCOPE', s.conflict_scope) as conflict_scope,
@@ -54,6 +56,7 @@ page 107 (
                               from xxfnd_sod_rules s
                               join xxfnd_roles r1 on r1.role_code = s.role_code_1
                               join xxfnd_roles r2 on r2.role_code = s.role_code_2
+                              left join xxfnd_applications a on a.application_code = r1.application_code
                              where (:G_ADMIN_APP = 'ALL' or :G_ADMIN_APP in (r1.application_code, r2.application_code))   -- the application filter
                 ) q
                 ```
@@ -99,6 +102,19 @@ page 107 (
             source {
                 dataType: NUMBER
                 primaryKey: true
+            }
+        )
+
+        column APPLICATION (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 15
+            }
+            source {
+                dataType: STRING
             }
         )
 

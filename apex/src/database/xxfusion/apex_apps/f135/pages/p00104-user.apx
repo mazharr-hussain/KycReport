@@ -131,8 +131,9 @@ page 104 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- employees that have no user yet
                 select e.full_name || ' (' || e.email_address || ')' as display_value, e.employee_id as return_value
+                  -- employees that have no user yet (release 91: the query starts with SELECT, otherwise an item's LOV
+                  -- is run as PL/SQL and fails with PLS-00428)
                   from xxfnd_employees e
                  where e.enabled_flag = 'Y'
                    and not exists (select 1 from xxfnd_users u where u.employee_id = e.employee_id)
