@@ -707,6 +707,23 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry home-from-app (
+        name: Home
+        pageNumber: 90070
+        execution {
+            sequence: 19
+        }
+        link {
+            target: {
+                type: url
+                url: &G_HOME_URL.
+            }
+        }
+        comments {
+            comments: Release 97 - the Home of My Tasks (40): the home page of the application it was opened from (G_HOME_URL), else COMMON Home; page 90070 does not exist (an entry needs a page).
+        }
+    )
+
     entry my-tasks (
         name: My Tasks
         pageNumber: 40
@@ -714,7 +731,7 @@ breadcrumb breadcrumb (
             sequence: 20
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {

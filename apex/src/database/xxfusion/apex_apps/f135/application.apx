@@ -1,9 +1,9 @@
 app COMMON (
     name: Common
-    version: Release 96
+    version: Release 97
     logo {
         type: text
-        text: &APP_TITLE.
+        text: &G_APP_TITLE.
     }
     navigation {
         homeUrl: {
