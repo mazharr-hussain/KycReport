@@ -1,0 +1,513 @@
+page 186 (
+    name: Organizations
+    alias: ORGANIZATIONS
+    title: Organizations
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Release 96 - departments, organizations, business units and similar: the values of the data access dimensions (e.g. Department). A user's role assignment is given values from here (User screen). Local rows are kept here; Fusion HCM rows come from the HCM organizations API later.
+            ```
+    }
+
+    region breadcrumb (
+        name: Organizations
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region edit (
+        name: Organization
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: organization_edit
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.has_privilege('DATA_SECURITY', 'MANAGE')
+                ```
+        }
+    )
+
+    pageItem P186_ORGANIZATION_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @edit
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P186_ORGANIZATION_TYPE (
+        type: selectList
+        label {
+            label: Type
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @edit
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select initcap(replace(t, '_', ' ')) as display_value, t as return_value
+                  from (select 'DEPARTMENT' t from dual union select 'BUSINESS_UNIT' from dual union select 'LEGAL_ENTITY' from dual
+                        union select organization_type from xxfnd_organizations
+                        union select organization_type from xxfnd_data_dimensions where organization_type is not null)
+                 order by 1
+                ```
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    pageItem P186_ORGANIZATION_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @edit
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 150
+        }
+    )
+
+    pageItem P186_ORGANIZATION_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @edit
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 240
+        }
+    )
+
+    pageItem P186_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @edit
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 2
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+    )
+
+    pageItem P186_PARENT_CODE (
+        type: selectList
+        label {
+            label: Parent
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @edit
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select organization_name || ' (' || organization_code || ')' as display_value, organization_code as return_value
+                  from xxfnd_organizations
+                 where organization_type = :P186_ORGANIZATION_TYPE
+                   and organization_id <> nvl(to_number(:P186_ORGANIZATION_ID), -1)
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - No parent -
+        }
+        cascadingLov {
+            parentItems: P186_ORGANIZATION_TYPE
+            parentRequired: false
+        }
+    )
+
+    button new (
+        buttonName: NEW
+        label: New
+        layout {
+            sequence: 10
+            region: @edit
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 186
+                clearCache: 186
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @edit
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    region report (
+        name: Organizations
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select g.organization_id, g.organization_type, g.organization_code, g.organization_name,
+                       p.organization_name as parent_name, g.application_code,
+                       case g.source_type when 'HCM' then 'Fusion HCM' else 'Local' end as source,
+                       g.enabled_flag,
+                       (select count(*) from xxfnd_assignment_values v
+                          join xxfnd_data_dimensions d on d.dimension_code = v.dimension_code
+                         where d.organization_type = g.organization_type and v.value_code = g.organization_code) as used_by,
+                       apex_page.get_url(p_page => 186, p_items => 'P186_ORGANIZATION_ID', p_values => g.organization_id) as edit_url
+                  -- release 96: departments, organizations, business units ... (the values of the data dimensions); local rows now,
+                  -- Fusion HCM rows later
+                  from xxfnd_organizations g
+                  left join xxfnd_organizations p on p.organization_id = g.parent_organization_id
+                 where :G_ADMIN_APP = 'ALL' or g.application_code in (:G_ADMIN_APP, 'COMMON')
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No organization yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+
+        column ORGANIZATION_ID (
+            type: hidden
+            heading {
+                heading: Id
+            }
+            layout {
+                sequence: 5
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column ORGANIZATION_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ORGANIZATION_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ORGANIZATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#ORGANIZATION_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PARENT_NAME (
+            type: plainText
+            heading {
+                heading: Parent
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column USED_BY (
+            type: plainText
+            heading {
+                heading: Assignments Using It
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            heading {
+                heading: Edit
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    process load (
+        name: Load the organization
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                for g in (select g.*, p.organization_code parent_code from xxfnd_organizations g
+                            left join xxfnd_organizations p on p.organization_id = g.parent_organization_id
+                           where g.organization_id = to_number(:P186_ORGANIZATION_ID)) loop
+                    :P186_ORGANIZATION_TYPE := g.organization_type;
+                    :P186_ORGANIZATION_CODE := g.organization_code;
+                    :P186_ORGANIZATION_NAME := g.organization_name;
+                    :P186_PARENT_CODE       := g.parent_code;
+                    :P186_ENABLED_FLAG      := g.enabled_flag;
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P186_ORGANIZATION_ID
+        }
+    )
+
+    process save (
+        name: Save the organization
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 96: through the data security package; a new organization belongs to the application the
+                -- administrator works for (COMMON = shared by every application)
+                declare
+                    l_app varchar2(30);
+                begin
+                    select max(application_code) into l_app from xxfnd_organizations
+                     where organization_id = to_number(:P186_ORGANIZATION_ID);
+                    xxfnd_vpd_pkg.save_organization(
+                        p_application_code  => nvl(l_app, case when nvl(:G_ADMIN_APP, 'ALL') = 'ALL' then 'COMMON'
+                                                               else :G_ADMIN_APP end),
+                        p_organization_type => :P186_ORGANIZATION_TYPE,
+                        p_organization_code => :P186_ORGANIZATION_CODE,
+                        p_organization_name => :P186_ORGANIZATION_NAME,
+                        p_parent_code       => :P186_PARENT_CODE,
+                        p_enabled_flag      => nvl(:P186_ENABLED_FLAG, 'N'));
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Organization saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+)

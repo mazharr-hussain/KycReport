@@ -664,6 +664,11 @@ create or replace package body xxfnd_rfi_pkg as
         if l_due is not null then
             return from_tz(cast(trunc(l_due) + 1 - 1 / 86400 as timestamp), sessiontimezone);
         end if;
+        -- release 94 (UI issue 8): the deadline of the current Approval Setup step, else the process deadline
+        for r in (select approval_type_code from xxfnd_rfis where rfi_id = p_rfi_id and approval_type_code is not null) loop
+            return coalesce(xxfnd_approval_rule_pkg.step_due_date(r.approval_type_code, to_char(p_rfi_id)),
+                            xxfnd_workflow_pkg.due_date(upper(p_task_definition)));
+        end loop;
         return xxfnd_workflow_pkg.due_date(upper(p_task_definition));
     end task_due_date;
 

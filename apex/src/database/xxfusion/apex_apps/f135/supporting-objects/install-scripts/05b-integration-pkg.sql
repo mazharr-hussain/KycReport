@@ -101,6 +101,10 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.oci_namespace is 'OBJECT_STORAGE: the Object Storage namespace of the tenancy.'~');
     end if;
     xxfnd_schema_pkg.create_who_trigger('XXFND_SERVERS');
+    -- release 93 (UI issue 9): a FUSION server reads its Remote Server and Web Credential from the workspace's Fusion
+    -- integration application (APEX "Create Fusion Integration", same identity domain) instead of its own
+    xxfnd_ddl_pkg.add_column('XXFND_SERVERS', 'SOURCE_APPLICATION_ID', 'number');
+    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.source_application_id is 'Release 93: FUSION - the APEX application (the Fusion integration app of the workspace) whose REST Data Sources give the server URL and Web Credential; read when used, never copied.'~');
     -- a purpose may name the server it uses
     xxfnd_ddl_pkg.add_column('XXFND_INTEGRATION_PURPOSES', 'SERVER_CODE', 'varchar2(255)');
     xxfnd_ddl_pkg.add_constraint('XXFND_INTEGRATION_PURPOSES', 'XXFND_INT_PURPOSES_FK2',
@@ -134,7 +138,7 @@ end;
 -- storage of the applications, purposes)
 create or replace view xxfnd_servers_v as
 select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage, q.base_url, q.remote_server_flag,
-       q.credential_static_id, q.oauth_token_url, q.oci_region, q.oci_namespace, q.enabled_flag, q.description,
+       q.source_application_id, q.source_application, q.source_remote_server, q.credential_static_id, q.oauth_token_url, q.oci_region, q.oci_namespace, q.enabled_flag, q.description,
        q.last_call, q.last_error, q.last_test, q.missing,
        case when q.enabled_flag = 'N' then 'DISABLED'
             when q.missing is not null then 'INCOMPLETE'
@@ -150,11 +154,15 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                    initcap(replace(s.server_type, '_', ' ')))              as server_type_name,
                case when s.server_type in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM') then 'STORAGE'
                     else 'INTEGRATION' end                                 as usage,
-               coalesce(r.base_url, s.base_url,
+               coalesce(f.base_url, r.base_url, s.base_url,
                         case when s.server_type = 'OBJECT_STORAGE' and s.oci_region is not null
                              then 'https://objectstorage.' || s.oci_region || '.oraclecloud.com' end) as base_url,
-               nvl2(r.remote_server_static_id, 'Y', 'N')                   as remote_server_flag,
-               coalesce(s.credential_static_id,
+               nvl2(coalesce(f.remote_server_static_id, r.remote_server_static_id), 'Y', 'N') as remote_server_flag,
+               s.source_application_id,
+               (select max(a.application_name || ' (' || a.application_id || ')') from apex_applications a
+                 where a.application_id = s.source_application_id)          as source_application,
+               f.remote_server_static_id                                    as source_remote_server,
+               coalesce(f.credential_static_id, s.credential_static_id,
                         (select max(m.credential_static_id) from apex_appl_web_src_modules m
                           where m.remote_server_static_id = s.server_code and m.credential_static_id is not null
                             and m.application_id = (select a.apex_application_id from xxfnd_applications a
@@ -168,10 +176,10 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                  where c.server_static_id = s.server_code and c.status_code = 'FAILED') as last_error,
                (select max(t.result_code || ' ' || to_char(t.tested_date, 'DD-Mon-YYYY HH24:MI'))
                   from xxfnd_server_tests t where t.server_static_id = s.server_code) as last_test,
-               rtrim(case when coalesce(r.base_url, s.base_url,
+               rtrim(case when coalesce(f.base_url, r.base_url, s.base_url,
                                         case when s.server_type = 'OBJECT_STORAGE' then s.oci_region end) is null
                           then 'its APEX Remote Server, ' end
-                  || case when s.credential_static_id is null
+                  || case when s.credential_static_id is null and f.credential_static_id is null
                            and not exists (select 1 from apex_appl_web_src_modules m
                                             where m.remote_server_static_id = s.server_code
                                               and m.credential_static_id is not null)
@@ -183,7 +191,13 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                   || case when s.server_type in ('SHAREPOINT', 'OUTLOOK') and s.oauth_token_url is null
                           then 'the OAuth token URL, ' end, ', ')           as missing
           from xxfnd_servers s
-          left join apex_workspace_remote_servers r on r.remote_server_static_id = s.server_code) q;
+          left join apex_workspace_remote_servers r on r.remote_server_static_id = s.server_code
+          -- release 93: the Remote Server and Web Credential of the source application's REST Data Sources
+          left join (select m.application_id, max(m.remote_server_static_id) as remote_server_static_id,
+                            max(w.base_url) as base_url, max(m.credential_static_id) as credential_static_id
+                       from apex_appl_web_src_modules m
+                       left join apex_workspace_remote_servers w on w.remote_server_static_id = m.remote_server_static_id
+                      group by m.application_id) f on f.application_id = s.source_application_id) q;
 
 comment on table xxfnd_servers_v is 'Release 86: the servers (XXFND_SERVERS) with their usage (STORAGE / INTEGRATION), effective URL (APEX Remote Server, else the copied URL, else the OCI region URL) and Web Credential, health, and STATUS: DISABLED, INCOMPLETE (MISSING says what), FAILED (last Test Connection) or OK.';
 
@@ -234,7 +248,9 @@ create or replace package xxfnd_integration_pkg authid definer as
                           p_oci_namespace        in varchar2 default null,
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
-                          p_base_url             in varchar2 default null);
+                          p_base_url             in varchar2 default null,
+                          -- release 93: FUSION - the workspace's Fusion integration application
+                          p_source_application_id in number  default null);
     -- Deletes a server nothing uses; ORA-20342 when a storage rule or a purpose uses it (disable it instead).
     procedure delete_server(p_server_code in varchar2);
     -- Release 86: the Purposes screen (123). P_NEW = Y creates (ORA-20343 when the code exists), N changes the purpose
@@ -513,7 +529,9 @@ create or replace package body xxfnd_integration_pkg as
                           p_oci_namespace        in varchar2 default null,
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
-                          p_base_url             in varchar2 default null) is
+                          p_base_url             in varchar2 default null,
+                          -- release 93: FUSION - the workspace's Fusion integration application
+                          p_source_application_id in number  default null) is
         l_type varchar2(30) := upper(p_server_type);
     begin
         if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM', 'FUSION', 'REST', 'OUTLOOK') then
@@ -531,16 +549,18 @@ create or replace package body xxfnd_integration_pkg as
               t.oci_namespace        = case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
               t.enabled_flag         = nvl(p_enabled_flag, 'Y'),
               t.description          = p_description,
-              t.base_url             = nvl(p_base_url, t.base_url)
+              t.base_url             = nvl(p_base_url, t.base_url),
+              t.source_application_id = case when l_type = 'FUSION' then p_source_application_id end
          when not matched then insert
               (server_code, server_name, server_type, credential_static_id, oauth_token_url, oci_region, oci_namespace,
-               enabled_flag, description, base_url)
+               enabled_flag, description, base_url, source_application_id)
               values
               (s.server_code, p_server_name, l_type, p_credential_static_id,
                case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
-               nvl(p_enabled_flag, 'Y'), p_description, p_base_url);
+               nvl(p_enabled_flag, 'Y'), p_description, p_base_url,
+               case when l_type = 'FUSION' then p_source_application_id end);
     end save_server;
 
     procedure delete_server(p_server_code in varchar2) is

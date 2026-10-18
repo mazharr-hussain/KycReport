@@ -141,10 +141,28 @@
   ]
  },
  {
+  "name": "09a Security model",
+  "file": "09a-security-model.sql",
+  "install_sequence": 94,
+  "upgrade_sequence": 54,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "09b Security framework - objects",
   "file": "09b-security-framework-objects.sql",
   "install_sequence": 95,
   "upgrade_sequence": 55,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "10a Flexfield context rule and segment API name",
+  "file": "10a-flexfield-context-rule.sql",
+  "install_sequence": 96,
+  "upgrade_sequence": 56,
   "apps": [
    "COMMON"
   ]
@@ -662,7 +680,16 @@
   "apps": [
    "COMMON"
   ]
+ }, {
+  "name": "35 Security model migration",
+  "file": "35-security-model-migration.sql",
+  "install_sequence": 230,
+  "upgrade_sequence": 190,
+  "apps": [
+   "COMMON"
+  ]
  },
+
  {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",

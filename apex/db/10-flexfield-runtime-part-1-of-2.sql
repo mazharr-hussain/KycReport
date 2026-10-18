@@ -94,6 +94,9 @@ create or replace package xxfnd_dff_pkg authid definer as
     -- Release 86: registration by an application. Added only when missing; what an administrator changed is kept;
     -- a re-run does nothing. The application must be registered (ORA-20180); a row of another application is refused
     -- (ORA-20186). COMMON's rows are the instance's (no application). Names: English, P_..._AR Arabic.
+    -- Release 92 (UI issue 7): the value set that validates a segment against a lookup type (XXFND_LK_<TYPE>,
+    -- INDEPENDENT, registered for the flexfield's application when missing); the segment grid offers lookups directly.
+    function lookup_value_set(p_application_code in varchar2, p_lookup_type in varchar2) return varchar2;
     procedure register_value_set(p_application_code      in varchar2,
                                  p_value_set_code        in varchar2,
                                  p_value_set_name        in varchar2,
@@ -121,7 +124,10 @@ create or replace package xxfnd_dff_pkg authid definer as
                                  p_default_context_code         in varchar2 default null,
                                  p_context_required_flag        in varchar2 default 'N',
                                  p_context_user_selectable_flag in varchar2 default 'N',
-                                 p_description                  in varchar2 default null);
+                                 p_description                  in varchar2 default null,
+                                 -- release 92: GLOBAL, ATTRIBUTE, FUNCTION or USER (default: from the reference column / user flag)
+                                 p_context_rule_type            in varchar2 default null,
+                                 p_context_rule_function        in varchar2 default null);
     -- A context of the application's flexfield (ORA-20187 when the flexfield is not registered).
     procedure register_context(p_application_code in varchar2,
                                p_dff_code         in varchar2,

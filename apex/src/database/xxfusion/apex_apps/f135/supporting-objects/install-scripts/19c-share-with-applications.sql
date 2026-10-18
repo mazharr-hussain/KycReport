@@ -257,9 +257,9 @@ create or replace package body xxfnd_share_pkg as
         pages('APPLICATIONS',      '160=Applications|162=Setup Types|164=Subscriptions|161|163');   -- 73: Setup Types; 78: Subscriptions
         pages('APP_SETTINGS',      '10022|10023');
         pages('OPTIONAL_FEATURES', '10020|10021');
-        pages('USERS_ACCESS',      '103|104');
+        pages('USERS_ACCESS',      '103|104|184');   -- 96: data access values of a role assignment
         pages('ROLES_PRIVILEGES',  '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
-        pages('DATA_SECURITY',     '180|181');
+        pages('DATA_SECURITY',     '180=Data Objects|186=Organizations|181');   -- 96: the security model
         pages('AUDIT_LOG',         '111');
         pages('LOOKUPS',           '101|102');
         pages('FLEXFIELDS',        '152=Descriptive Flexfields|150=Value Sets|151|153');

@@ -52,6 +52,13 @@ create or replace package xxfnd_user_pkg authid definer as
     -- duties, global rules); UNASSIGN_ROLE ends the grant today (the row is kept for the audit).
     procedure assign_role(p_user_id in number, p_role_code in varchar2);
     procedure unassign_role(p_user_role_id in number);
+    -- Release 96: a user's access to an application (one user, several applications). ASSIGN_ROLE grants it for the
+    -- role's application when missing; END_APPLICATION ends the access and the user's roles of that application.
+    procedure grant_application(p_user_id in number, p_application_code in varchar2);
+    procedure end_application(p_user_id in number, p_application_code in varchar2);
+    -- Release 96: Y when the application keeps its users itself (Users & Access managed in the application) and the
+    -- screen is not working for that application: COMMON then shows its roles read-only.
+    function managed_in_application(p_application_code in varchar2) return varchar2;
 
     -- Moves every stored reference to a user name to a new one: request, case, approval, delegation and RFI
     -- user columns, the WHO columns of all XXFND_/XXCMP_ tables, and the potential owners of open workflow tasks.
@@ -255,6 +262,8 @@ create or replace package body xxfnd_user_pkg as
          where u.user_id = p_user_id;
     end save_user;
 
+    procedure check_role_app(p_role_code in varchar2);   -- release 96 (below)
+
     procedure assign_role(p_user_id in number, p_role_code in varchar2) is
         l_user  xxfnd_users.user_name%type;
         l_count pls_integer;
@@ -271,14 +280,79 @@ create or replace package body xxfnd_user_pkg as
             raise_application_error(-20073, l_user || ' holds a role that may not be combined with ' || p_role_code
                                             || ' (Segregation of Duties).');
         end if;
+        check_role_app(p_role_code);
+        -- release 96: the role's application becomes one of the user's applications
+        for r in (select application_code from xxfnd_roles where role_code = p_role_code) loop
+            grant_application(p_user_id, r.application_code);
+        end loop;
         insert into xxfnd_user_roles (user_id, employee_id, role_code)
         select u.user_id, u.employee_id, p_role_code from xxfnd_users u where u.user_id = p_user_id;
         xxfnd_vpd_pkg.clear_cache;
     end assign_role;
 
+    function managed_in_application(p_application_code in varchar2) return varchar2 is
+        l_n   pls_integer;
+        l_del varchar2(30);
+    begin
+        select count(*) into l_n from xxfnd_application_functions
+         where application_code = upper(p_application_code) and feature_code = 'USERS_ACCESS' and managed_in_app_flag = 'Y';
+        if l_n = 0 then
+            return 'N';
+        end if;
+        l_del := xxfnd_application_pkg.delegated_app;
+        return case when l_del = upper(p_application_code) then 'N' else 'Y' end;
+    end managed_in_application;
+
+    -- release 96: the role belongs to an application the caller administers and that does not keep its users itself
+    procedure check_role_app(p_role_code in varchar2) is
+        l_app varchar2(30);
+    begin
+        select max(application_code) into l_app from xxfnd_roles where role_code = upper(p_role_code);
+        if not xxfnd_util_pkg.in_apex_session or xxfnd_vpd_pkg.is_trusted then
+            return;
+        end if;
+        if xxfnd_privilege_pkg.can_change(l_app) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || l_app || ').');
+        elsif managed_in_application(l_app) = 'Y' then
+            raise_application_error(-20074, 'The users of ' || l_app || ' are managed in ' || l_app
+                || ': change their roles there.');
+        end if;
+    end check_role_app;
+
+    procedure grant_application(p_user_id in number, p_application_code in varchar2) is
+    begin
+        merge into xxfnd_user_applications t
+        using (select p_user_id u, upper(p_application_code) a from dual) x
+           on (t.user_id = x.u and t.application_code = x.a)
+         when matched then update set t.enabled_flag = 'Y', t.end_date_active = null
+                           where t.enabled_flag = 'N' or t.end_date_active is not null
+         when not matched then insert (user_id, application_code) values (x.u, x.a);
+    end grant_application;
+
+    procedure end_application(p_user_id in number, p_application_code in varchar2) is
+    begin
+        check_assign;
+        if xxfnd_util_pkg.in_apex_session and xxfnd_privilege_pkg.can_change(upper(p_application_code)) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || upper(p_application_code) || ').');
+        end if;
+        update xxfnd_user_applications
+           set end_date_active = greatest(trunc(sysdate) - 1, start_date_active), enabled_flag = 'N'
+         where user_id = p_user_id and application_code = upper(p_application_code);
+        update xxfnd_user_roles ur
+           set ur.end_date_active = greatest(trunc(sysdate) - 1, ur.start_date_active), ur.enabled_flag = 'N'
+         where ur.user_id = p_user_id and ur.enabled_flag = 'Y'
+           and ur.role_code in (select role_code from xxfnd_roles where application_code = upper(p_application_code));
+        xxfnd_vpd_pkg.clear_cache;
+    end end_application;
+
     procedure unassign_role(p_user_role_id in number) is
     begin
         check_assign;
+        for r in (select role_code from xxfnd_user_roles where user_role_id = p_user_role_id) loop
+            check_role_app(r.role_code);
+        end loop;
         update xxfnd_user_roles
            set end_date_active = greatest(trunc(sysdate) - 1, start_date_active), enabled_flag = 'N'
          where user_role_id = p_user_role_id;

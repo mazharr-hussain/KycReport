@@ -43,7 +43,7 @@ begin
     st('USERS',                  'Users ' || chr(38) || ' Access', 'USERS_ACCESS', null,                          103,   104,   'I', 120, 'Employees, users and their roles.');
     st('ROLES',                  'Roles',                    'ROLES_PRIVILEGES', 'XXFND_ROLES',                  105,   106,   'A', 130, 'Roles and their privileges.');
     st('SEGREGATION_OF_DUTIES',  'Segregation of Duties',    'ROLES_PRIVILEGES', null,                           107,   108,   'A', 140, 'Roles one user may not hold together.');
-    st('DATA_SECURITY',          'Data Security Rules',      'DATA_SECURITY',    null,                           180,   181,   'A', 150, 'Rows a role may see.');
+    st('DATA_SECURITY',          'Data Objects',             'DATA_SECURITY',    null,                           180,   181,   'A', 150, 'Release 96: secured tables and the roles that reach their records.');
     st('DELEGATIONS',            'Delegations',              'WORKFLOW_SETUP',   null,                           114,   115,   'I', 160, 'Tasks handed to another user while away.');
     st('TASK_DEADLINES',         'Deadlines ' || chr(38) || ' Escalation', 'WORKFLOW_SETUP', null,               145,   146,   'A', 170, 'Due dates and escalation of approval tasks.');
     st('WORKFLOW_PROCESSES',     'Workflow Processes',       'WORKFLOW_SETUP',   null,                           147,   null,  'A', 180, 'Approval processes, their workflow and e-mail switches.');
@@ -166,9 +166,9 @@ select 'SEGREGATION_OF_DUTIES', r.application_code, to_char(s.sod_rule_id), s.ro
   from xxfnd_sod_rules s
   join xxfnd_roles r on r.role_code = s.role_code_1
 union all
-select 'DATA_SECURITY', r.application_code, to_char(d.rule_id), d.role_code || ' - ' || d.table_name, 'P181_RULE_ID'
-  from xxfnd_data_security_rules d
-  join xxfnd_roles r on r.role_code = d.role_code;
+-- release 96: the data objects of the security model (page 181 opens one)
+select 'DATA_SECURITY', o.application_code, o.data_object_code, o.object_name || ' - ' || o.table_name, 'P181_DATA_OBJECT_CODE'
+  from xxfnd_data_objects o;
 
 comment on table xxfnd_setup_rows_v is 'Every setup row with its application (empty: all applications - instance) and the COMMON form item that opens it.';
 

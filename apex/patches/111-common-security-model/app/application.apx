@@ -1,0 +1,128 @@
+app COMMON (
+    name: Common
+    version: Release 96
+    logo {
+        type: text
+        text: &APP_TITLE.
+    }
+    navigation {
+        homeUrl: {
+            page: 1
+        }
+        loginUrl: {
+            page: LOGIN
+        }
+    }
+    navigationMenu {
+        listTemplate: @/side-navigation-menu
+        templateOptions: [
+            #DEFAULT#
+            js-defaultCollapsed
+            js-navCollapsed--hidden
+            t-TreeNav--styleA
+        ]
+        list: @navigation-menu
+    }
+    navigationBar {
+        list: @navigation-bar
+        listTemplate: @/navigation-bar
+        templateOptions: #DEFAULT#
+    }
+    errorHandling {
+        defaultDisplayLocation: inlineWithFieldAndInNotification
+        errorHandlingFunctionName: xxfnd_error_pkg.apex_error_handler
+    }
+    userInterface {
+        currentTheme: @universal-theme
+        globalPage: 0
+        usersCanChooseThemeStyle: false
+        addBuiltWithApexToFooter: false
+        autoDismissSuccessMessages: true
+    }
+    appFormatMasks {
+        date: DD-MON-YYYY
+        timestampTimeZone: DS
+    }
+    authentication {
+        scheme: @oracle-database-accounts
+    }
+    authorization {
+        scheme: @app-user
+        runOnPublicPages: false
+        sourceForRoleOrGroupSchemes: customCode
+    }
+    sessionManagement {
+        maxSessionIdleTime: 3600
+        maxSessionLength: 28800
+    }
+    sessionStateProtection {
+        enabled: true
+        checksumSalt: 29C4B123A65CB0DFF9F412D4E8AA0BA2E82573C69B40FAAFCA8B80C41D184012
+    }
+    security {
+        embedInFrames: allowSameOrigin
+        htmlEscapingMode: extended
+    }
+    progressiveWebApp {
+        enable: true
+        installable: false
+        appShortName: Common
+        enablePushNotifications: true
+        pushNotificationsCredentials: @XXFND_PUSH_CREDENTIALS
+    }
+    runtime {
+        allowFeedback: false
+        logging: true
+        compatibilityMode: 26.1
+    }
+    comments {
+        comments:
+            ```
+            Common application (code and alias COMMON): the setup every application shares - users and access,
+            flexfield and attachment setup, workflow approval flows and history. Parsing schema XXFUSION; the shared
+            XXFND_ objects are installed by its Supporting Objects. Application ID is assigned on import.
+            ```
+    }
+)
+
+appSetting LOGIN_TYPE_ENFORCED (
+    value {
+        staticValue: N
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Y: users linked to an employee (SSO users) must sign in with the company account and local users with their user name / password. N (default, until single sign-on is live): any scheme.
+            ```
+    }
+)
+
+
+appSetting MAIL_FROM (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments: Release 84 - the sender address of every e-mail of COMMON (notifications, e-mails per record). Empty = no e-mail is sent (the notification is kept as skipped). Set it on the Application Settings screen.
+    }
+)
+
+appSetting MAIL_FOOTER (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments: Release 84 - the footer of every notification e-mail (layout XXFND_STANDARD), e.g. the company name and a no-reply note. Empty = no footer.
+    }
+)
+
+appSetting ONBOARD_SELF_ALLOWED (
+    value {
+        staticValue: Y
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments: Release 87 - Y: an application's own install may register it in COMMON with the bare minimum (generic script 00c, XXFND_ONBOARD_PKG.ONBOARD_SELF). N: only IT registers applications (Application Journey).
+    }
+)
