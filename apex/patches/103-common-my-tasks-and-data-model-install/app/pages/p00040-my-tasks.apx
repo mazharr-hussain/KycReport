@@ -1,0 +1,233 @@
+page 40 (
+    name: My Tasks
+    alias: MY-TASKS
+    title: My Tasks
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @signed-in-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Your open tasks from every application in one list (approvals, requests for information and other tasks). Open a
+            task to work on it in its own application; you stay signed in. Filter by Application to see one application only.
+            ```
+    }
+
+    region breadcrumb (
+        name: My Tasks
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region tasks (
+        name: My Tasks
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82 (D20): the user's tasks of every application of the workspace (no application filter)
+                select t.task_id,
+                       t.details_app_name   as application_name,
+                       t.subject,
+                       t.task_def_name      as task_type,
+                       t.state,
+                       t.priority_level     as priority,
+                       t.due_on,
+                       t.initiator,
+                       t.created_on,
+                       -- release 90 (C12): the link with its checksum, also for another application's task page
+                       apex_util.prepare_url(t.details_link_target) as open_url
+                  from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => null)) t
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tasks
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: You have no open task.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column TASK_ID (
+            type: hidden
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+                primaryKey: true
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SUBJECT (
+            type: plainText
+            heading {
+                heading: Task
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#SUBJECT#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TASK_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DUE_ON (
+            type: plainText
+            heading {
+                heading: Due
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column INITIATOR (
+            type: plainText
+            heading {
+                heading: Initiated By
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREATED_ON (
+            type: plainText
+            heading {
+                heading: Created
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

@@ -240,7 +240,8 @@ create or replace package body xxfnd_data_model_pkg as
     function app_visible(p_application_code in varchar2) return varchar2 is
         l_app varchar2(30) := upper(v('G_ADMIN_APP'));
     begin
-        if v('APP_USER') is null or xxfnd_vpd_pkg.is_trusted then
+        -- release 90: install mode counts as outside APEX (Supporting Objects run in the App Builder's session)
+        if not xxfnd_util_pkg.in_apex_session or xxfnd_vpd_pkg.is_trusted then
             return 'Y';
         elsif nvl(upper(v('APP_ALIAS')), '#') <> 'COMMON' then
             return 'N';
