@@ -20,6 +20,11 @@ first. ADMIN must have run once: `grant apex_administrator_role to xxfusion;`
   - `db/admin/move-users-to-apex-accounts.sql`: every enabled user without an APEX account (e.g. users that signed in
     with a database account, such as SHUSSAIN@QATARIDIAR.COM) gets one; first password `Welcome#2026`, changed at first
     sign-in (database passwords cannot be copied - tell the users).
+- **One login page for every application (COMMON's), back to the application's home:** another application sends its
+  users to `.../f?p=135:9999:0:APEX_AUTHENTICATION=Oracle%20APEX%20Accounts:::P9999_APP:<ALIAS>` (local) - after the
+  sign-in the user is on that application's home page (COMMON Home forwards once, G_RETURN_APP); only an application of
+  the same workspace is accepted, anything else lands on COMMON Home. The company-account button keeps it. The login page
+  accepts URL arguments for this (page access protection Unrestricted; P9999_APP is checked on the server).
 - **One sign-in for all applications:** sessions are shared in the workspace; the links between applications carry the
   session, so a sign-in in COMMON (SSO or local) is valid in KYC and every other application.
 
@@ -27,7 +32,8 @@ first. ADMIN must have run once: `grant apex_administrator_role to xxfusion;`
 - `db/16j-user-pkg.sql` (ENSURE_APEX_ACCOUNT, MAP_LOGIN_USER e-mail match, RESET_PASSWORD)
 - `db/admin/move-users-to-apex-accounts.sql` (new), `db/admin/qd-users-and-roles.sql` (as patch 113)
 - `app/application.apx` (Release 99, current scheme SSO), `app/shared-components/authentications.apx` (Switch in Session),
-  `app/pages/p09999-login.apx` (Sign in with company account)
+  `app/pages/p09999-login.apx` (Sign in with company account, P9999_APP), `app/pages/p00001-home.apx` (return to the
+  application), `app/shared-components/app-items.apx` (G_RETURN_APP)
 
 ## Deploy
 1. ADMIN (once): `grant apex_administrator_role to xxfusion;`
@@ -45,4 +51,6 @@ COMMON's local sign-in link.
   session works in KYC and back in COMMON (both with SSO as current scheme).
 - Move script: a user without an APEX account got one; a re-run created none; the user signed in with the first password
   and was asked to change it (test user removed afterwards).
+- Shared login page: signed in with P9999_APP=KYC -> KYC home; COMMON Home afterwards stays in COMMON; without P9999_APP
+  or with an unknown application -> COMMON Home.
 - APEXlang validation passed; XXFND_USER_PKG valid.

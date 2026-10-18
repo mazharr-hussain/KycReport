@@ -162,3 +162,17 @@ appItem G_HOME_URL (
             ```
     }
 )
+
+
+appItem G_RETURN_APP (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 99: the application (alias) the shared login page was opened for; COMMON Home sends the user to its home page once after the sign-in.
+            ```
+    }
+)

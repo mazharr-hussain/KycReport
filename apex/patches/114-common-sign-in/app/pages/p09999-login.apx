@@ -11,7 +11,7 @@ page 9999 (
     }
     security {
         authentication: public
-        pageAccessProtection: argumentsMustHaveChecksum
+        pageAccessProtection: unrestricted
         formAutoComplete: false
     }
 
@@ -29,6 +29,24 @@ page 9999 (
         }
         image {
             fileUrl: #APP_FILES#icons/app-icon-512.png
+        }
+    )
+
+    pageItem P9999_APP (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @app-name
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Release 99 - the application (alias) whose sign-in this is (e.g. login?p9999_app=KYC): after the sign-in the user goes to its home page.
         }
     )
 
@@ -146,11 +164,35 @@ page 9999 (
         }
         behavior {
             action: redirectUrl
-            targetUrl: f?p=&APP_ID.:1:0:APEX_AUTHENTICATION=APEX_FA_IABWBN-DEV1_OAUTH
+            targetUrl: f?p=&APP_ID.:1:&SESSION.:APEX_AUTHENTICATION=APEX_FA_IABWBN-DEV1_OAUTH
             warnOnUnsavedChanges: doNotCheck
         }
         comments {
             comments: Release 99 - the company account (identity domain, the same session as Fusion and the other products: no new sign-in when one is open); the scheme is switched in the session (Switch in Session).
+        }
+    )
+
+    process return-app (
+        name: Application to return to
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 99: the login page is shared by every application of the workspace; the application that sent the
+                -- user here (only an application of this workspace) is where COMMON Home sends the user after the sign-in
+                if :P9999_APP is not null then
+                    select max(upper(a.alias)) into :G_RETURN_APP
+                      from apex_applications a
+                     where upper(a.alias) = upper(:P9999_APP)
+                       and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)
+                       and a.application_id <> :APP_ID;
+                end if;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
         }
     )
 

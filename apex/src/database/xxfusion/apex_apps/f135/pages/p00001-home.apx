@@ -200,4 +200,37 @@ page 1 (
             htmlDomId: modules
         }
     )
+
+    process return-to-app (
+        name: Return to the application that asked for the sign-in
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 99: signed in on the shared login page for another application (G_RETURN_APP, set on page 9999):
+                -- its home page, once
+                declare
+                    l_app  varchar2(255) := :G_RETURN_APP;
+                    l_home varchar2(4000);
+                begin
+                    -- saved now: the redirect below ends the page before session state is written
+                    apex_util.set_session_state('G_RETURN_APP', null, p_commit => true);
+                    if l_app is not null then
+                        select max(home_link) into l_home from apex_applications
+                         where upper(alias) = l_app
+                           and workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID);
+                        if l_home is not null then
+                            apex_util.redirect_url(apex_page.get_url(p_application => l_app,
+                                p_page => nvl(regexp_substr(l_home, 'f\?p=[^:]*:([^:&]+)', 1, 1, 'i', 1), '1')));
+                        end if;
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 1
+            point: beforeHeader
+        }
+    )
 )
