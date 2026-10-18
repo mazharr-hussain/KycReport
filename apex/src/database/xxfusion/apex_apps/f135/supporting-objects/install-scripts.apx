@@ -254,6 +254,23 @@ installScript 09b-security-framework-objects (
     }
 )
 
+installScript 10a-flexfield-context-rule-and-segment-api-name (
+    execution {
+        sequence: 96
+    }
+    script {
+        contentFile: 10a-flexfield-context-rule.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 09c-shared-objects-formerly-in-kyc-scripts (
     execution {
         sequence: 97

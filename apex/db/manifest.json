@@ -150,6 +150,15 @@
   ]
  },
  {
+  "name": "10a Flexfield context rule and segment API name",
+  "file": "10a-flexfield-context-rule.sql",
+  "install_sequence": 96,
+  "upgrade_sequence": 56,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "10 Flexfield runtime - part 1 of 2",
   "file": "10-flexfield-runtime-part-1-of-2.sql",
   "install_sequence": 100,
