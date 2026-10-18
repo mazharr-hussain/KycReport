@@ -212,6 +212,84 @@ page 121 (
             helpText: 'Storage: OCI Object Storage, SharePoint, UCM. Integration: Fusion, REST, Outlook. The type decides which details are needed.'
         }
     )
+    pageItem P121_SOURCE_APPLICATION_ID (
+        type: selectList
+        label {
+            label: Fusion Integration Application
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.application_name || ' (' || a.application_id || ')' as display_value, a.application_id as return_value
+                  -- release 93 (UI issue 9): the workspace's applications with REST Data Sources that have a Web Credential
+                  -- (the APEX "Create Fusion Integration" application); its server and credential are read, not copied
+                  from apex_applications a
+                 where a.application_id <> :APP_ID
+                   and exists (select 1 from apex_appl_web_src_modules m
+                                where m.application_id = a.application_id and m.credential_static_id is not null)
+                 order by a.application_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Not used: this server's own Remote Server and Web Credential -
+        }
+        layout {
+            sequence: 45
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: SOURCE_APPLICATION_ID
+            dataType: number
+        }
+        help {
+            helpText: Oracle Fusion Cloud - the Fusion integration application of this workspace (APEX Create Fusion Integration, on the same identity domain as Fusion). Its Remote Server (URL) and Web Credential are used for every Fusion call, read when used - nothing is copied or typed here.
+        }
+    )
+
+    pageItem P121_SOURCE_CREDENTIAL (
+        type: displayOnly
+        label {
+            label: Web Credential (from the application)
+            alignment: left
+        }
+        layout {
+            sequence: 46
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select credential_static_id || nvl2(source_remote_server, ' - Remote Server ' || source_remote_server, '')
+                  from xxfnd_servers_v
+                 where server_code = :P121_SERVER_CODE and source_application_id is not null
+                ```
+        }
+        help {
+            helpText: The Web Credential and Remote Server of the Fusion integration application, as they are now.
+        }
+    )
+
     pageItem P121_CREDENTIAL_STATIC_ID (
         type: selectList
         label {
@@ -525,6 +603,90 @@ page 121 (
         }
     )
 
+    dynamicAction show-fusion-app (
+        name: Fusion integration application for a Fusion server
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P121_SERVER_TYPE,P121_SOURCE_APPLICATION_ID
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P121_SERVER_TYPE.value === 'FUSION'
+        }
+
+        action show-fusion-app-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P121_SOURCE_APPLICATION_ID,P121_SOURCE_CREDENTIAL
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+        action show-fusion-app-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P121_SOURCE_APPLICATION_ID,P121_SOURCE_CREDENTIAL
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    dynamicAction own-credential (
+        name: Own Web Credential unless read from the Fusion application
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P121_SERVER_TYPE,P121_SOURCE_APPLICATION_ID
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: !(apex.items.P121_SERVER_TYPE.value === 'FUSION' && apex.items.P121_SOURCE_APPLICATION_ID.value)
+        }
+
+        action own-credential-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P121_CREDENTIAL_STATIC_ID
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+        action own-credential-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P121_CREDENTIAL_STATIC_ID
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
     process set-saved (
         name: Detect existing server
         type: executeCode
@@ -693,7 +855,8 @@ page 121 (
                     p_oci_region           => :P121_OCI_REGION,
                     p_oci_namespace        => :P121_OCI_NAMESPACE,
                     p_enabled_flag         => nvl(:P121_ENABLED_FLAG, 'N'),
-                    p_description          => :P121_DESCRIPTION);
+                    p_description          => :P121_DESCRIPTION,
+                    p_source_application_id => :P121_SOURCE_APPLICATION_ID);
                 ```
         }
         execution {

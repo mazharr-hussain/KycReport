@@ -5,14 +5,14 @@ Issues reported after the plan are recorded here only; they get their own plan a
 
 | # | App | Screen | Issue | Status |
 |---|---|---|---|---|
-| 1 | COMMON | Home (1) | "Open Tasks" KPI too small | Done (COMMON 91) |
+| 1 | COMMON | Home (1) | "Open Tasks" KPI too small | Done (COMMON 91, patch 105) |
 | 2 | COMMON | Application Journey (165) | Steps only explain; roles, users, notifications, document storage, integrations should be set up in the wizard | Planned (COMMON 95) |
-| 3 | COMMON | User (104) | Page error on P104_EMPLOYEE_ID (PLS-00428) | Done (COMMON 91) |
-| 4 | COMMON | Privileges (182), Segregation of Duties (107) | Rows must show / belong to their application | Done (COMMON 91) |
-| 5 | COMMON | Lookup Type (102) | Customization Level not needed on the screen | Done (COMMON 91) |
-| 6 | COMMON | Descriptive Flexfield (153) | Fixed columns read-only; context from a rule (global / attribute / function), not a column | In progress (COMMON 92) |
-| 7 | COMMON | Descriptive Flexfield (153), Segments | Column from a list, display name, API name, validation (lookup, value set) | In progress (COMMON 92) |
+| 3 | COMMON | User (104) | Page error on P104_EMPLOYEE_ID (PLS-00428) | Done (COMMON 91, patch 105) |
+| 4 | COMMON | Privileges (182), Segregation of Duties (107) | Rows must show / belong to their application | Done (COMMON 91, patch 105) |
+| 5 | COMMON | Lookup Type (102) | Customization Level not needed on the screen | Done (COMMON 91, patch 105) |
+| 6 | COMMON | Descriptive Flexfield (153) | Fixed columns read-only; context from a rule (global / attribute / function), not a column | Done (COMMON 92, patch 107) |
+| 7 | COMMON | Descriptive Flexfield (153), Segments | Column from a list, display name, API name, validation (lookup, value set) | Done (COMMON 92, patch 107) |
 | 8 | COMMON | Workflow Setup, Process Catalogue (147) | Process with rules, approvers (user level now; position / hierarchy / AOR / query as placeholders), delegation and deadline per step | Planned (COMMON 94) |
-| 9 | COMMON | Integrations, Server (121) | Fusion server and credential read from the Fusion Integration app, not hardcoded | Planned (COMMON 93) |
+| 9 | COMMON | Integrations, Server (121) | Fusion server and credential read from the Fusion Integration app, not hardcoded | Done (COMMON 93, patch 108) |
 | 10 | KYC | Navigation menu, Administration | Clicking "Administration" (KYC side menu, e.g. on Case 211) does nothing | Recorded - not planned yet |
 | 11 | COMMON | My Tasks (40) opened from an application | Breadcrumb "Home" goes to COMMON Home; it should go back to the application the user came from (e.g. KYC Home), and the app name at the top should be that application, not "Common" | Recorded - not planned yet |
