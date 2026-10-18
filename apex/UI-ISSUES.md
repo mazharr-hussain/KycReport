@@ -16,3 +16,5 @@ Issues reported after the plan are recorded here only; they get their own plan a
 | 9 | COMMON | Integrations, Server (121) | Fusion server and credential read from the Fusion Integration app, not hardcoded | Done (COMMON 93, patch 108) |
 | 10 | KYC | Navigation menu, Administration | Clicking "Administration" (KYC side menu, e.g. on Case 211) does nothing | Recorded - not planned yet |
 | 11 | COMMON | My Tasks (40) opened from an application | Breadcrumb "Home" goes to COMMON Home; it should go back to the application the user came from (e.g. KYC Home), and the app name at the top should be that application, not "Common" | Recorded - not planned yet |
+| 12 | COMMON | User (104) | Page cluttered: title, direct data rules, roles without their data access | Done (COMMON 96, patch 111) |
+| 13 | COMMON | Users, Roles, Privileges, Data Security | Security model: roles combine roles, privileges and data access; data access through roles only, values per dimension with per-object override; no Finance / Procurement roles; users linked to applications; rows owned by an application | Done (COMMON 96, patch 111) |

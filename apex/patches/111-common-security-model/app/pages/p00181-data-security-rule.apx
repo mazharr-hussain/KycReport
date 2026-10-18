@@ -1,0 +1,603 @@
+page 181 (
+    name: Data Object
+    alias: DATA-SECURITY-RULE
+    title: Data Object
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Release 96 - a secured table: the column that decides access (its dimension, e.g. Department) and the owner column, and the roles that reach its records - all records, the given values of each user's role assignment, or own records. Only the application that owns the data object changes it (COMMON administrators: every application).
+            ```
+    }
+
+    region object (
+        name: &P181_OBJECT_NAME.
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: data_object
+        }
+    )
+
+    pageItem P181_DATA_OBJECT_CODE (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P181_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P181_OBJECT_NAME (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P181_REMOVE_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @object
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+    )
+
+    pageItem P181_TABLE_NAME (
+        type: displayOnly
+        label {
+            label: Table
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @object
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P181_APPLICATION (
+        type: displayOnly
+        label {
+            label: Application
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @object
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+    )
+
+    pageItem P181_DIMENSION_CODE (
+        type: selectList
+        label {
+            label: Dimension
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @object
+            slot: regionBody
+            alignment: left
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.dimension_name as display_value, d.dimension_code as return_value
+                  from xxfnd_data_dimensions d
+                 where d.enabled_flag = 'Y' and d.application_code in (:P181_APPLICATION_CODE, 'COMMON')
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - None (all or own records only) -
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P181_APPLICATION_CODE) = 'N'
+                ```
+        }
+    )
+
+    pageItem P181_DIMENSION_COLUMN (
+        type: selectList
+        label {
+            label: Dimension Column
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @object
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 where c.table_name = :P181_TABLE_NAME
+                 group by c.column_name
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - None -
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P181_APPLICATION_CODE) = 'N'
+                ```
+        }
+    )
+
+    pageItem P181_OWNER_COLUMN (
+        type: selectList
+        label {
+            label: Owner Column
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @object
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_name as display_value, c.column_name as return_value
+                  from xxfnd_setup_columns_v c
+                 where c.table_name = :P181_TABLE_NAME
+                 group by c.column_name
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - None -
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P181_APPLICATION_CODE) = 'N'
+                ```
+        }
+        help {
+            helpText: The column with the user who owns a record (level Own records), e.g. the requester.
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 10
+            region: @object
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P181_APPLICATION_CODE) = 'Y'
+                ```
+        }
+    )
+
+    region roles (
+        name: Roles With Access
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select x.role_data_access_id, r.role_name, r.application_code,
+                       case x.access_level when 'ALL' then 'All records' when 'VALUES' then 'Given values' else 'Own records' end as access_level,
+                       (select count(*) from xxfnd_user_roles_v u where u.role_code = r.role_code and u.active_flag = 'Y') as users,
+                       case when xxfnd_privilege_pkg.can_change(r.application_code) = 'Y' then 'Remove' end as remove
+                  -- release 96: the roles that reach the records of this data object, and how
+                  from xxfnd_role_data_access x
+                  join xxfnd_roles r on r.role_code = x.role_code
+                 where x.data_object_code = :P181_DATA_OBJECT_CODE
+                   and (:G_ADMIN_APP = 'ALL' or r.application_code in (:G_ADMIN_APP, 'COMMON'))
+                 order by r.role_name, x.access_level
+                ```
+            pageItemsToSubmit: [
+                P181_DATA_OBJECT_CODE
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: object_roles
+        }
+        messages {
+            whenNoDataFound: No role reaches this data object: its records are hidden from everyone.
+        }
+
+        column ROLE_DATA_ACCESS_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ACCESS_LEVEL (
+            type: plainText
+            heading {
+                heading: Records
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column USERS (
+            type: plainText
+            heading {
+                heading: Users
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Remove this access from the role?',{request:'REMOVE',set:{'P181_REMOVE_ID':'#ROLE_DATA_ACCESS_ID#'}});
+                }
+                linkText: #REMOVE#
+            }
+        )
+    )
+    region give (
+        name: Give Access to a Role
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: give_access
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(nvl(:G_ADMIN_APP, 'ALL')) = 'Y' or :G_ADMIN_APP = 'ALL'
+                ```
+        }
+    )
+
+    pageItem P181_ROLE_CODE (
+        type: selectList
+        label {
+            label: Role
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @give
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select r.role_name || ' (' || r.application_code || ')' as display_value, r.role_code as return_value
+                  from xxfnd_roles r
+                 where r.enabled_flag = 'Y'
+                   and r.application_code in (:P181_APPLICATION_CODE, case when :P181_APPLICATION_CODE = 'COMMON' then r.application_code end)
+                   and xxfnd_privilege_pkg.can_change(r.application_code) = 'Y'
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Choose a role -
+        }
+    )
+
+    pageItem P181_ACCESS_LEVEL (
+        type: selectList
+        label {
+            label: Records
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @give
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:All records;ALL,Given values (of each user's role assignment);VALUES,Own records;OWN
+            displayNullValue: false
+        }
+    )
+
+    button give-access (
+        buttonName: GIVE
+        label: Give Access
+        layout {
+            sequence: 10
+            region: @give
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: false
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process load (
+        name: Load the data object
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 96: the data object's settings
+                for o in (select o.*, a.application_name from xxfnd_data_objects o
+                            left join xxfnd_applications a on a.application_code = o.application_code
+                           where o.data_object_code = :P181_DATA_OBJECT_CODE) loop
+                    :P181_APPLICATION_CODE := o.application_code;
+                    :P181_OBJECT_NAME      := o.object_name;
+                    :P181_TABLE_NAME       := o.table_name;
+                    :P181_APPLICATION      := nvl(o.application_name, o.application_code);
+                    if :REQUEST is null or :REQUEST not in ('SAVE') then
+                        :P181_DIMENSION_CODE   := o.dimension_code;
+                        :P181_DIMENSION_COLUMN := o.dimension_column;
+                        :P181_OWNER_COLUMN     := o.owner_column;
+                    end if;
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-object (
+        name: Save the data object
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 96: through the data security package (the owning application only)
+                xxfnd_vpd_pkg.register_data_object(:P181_APPLICATION_CODE, :P181_DATA_OBJECT_CODE, :P181_OBJECT_NAME, :P181_TABLE_NAME,
+                                                   :P181_DIMENSION_CODE, :P181_DIMENSION_COLUMN, :P181_OWNER_COLUMN);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+    )
+
+    process give-access (
+        name: Give access to a role
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_app varchar2(30);
+                begin
+                    select application_code into l_app from xxfnd_roles where role_code = :P181_ROLE_CODE;
+                    xxfnd_vpd_pkg.grant_data_access(l_app, :P181_ROLE_CODE, :P181_DATA_OBJECT_CODE, :P181_ACCESS_LEVEL);
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: GIVE
+        }
+    )
+
+    process remove-access (
+        name: Remove a role's access
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                for x in (select x.role_code, x.data_object_code, x.access_level, r.application_code
+                            from xxfnd_role_data_access x join xxfnd_roles r on r.role_code = x.role_code
+                           where x.role_data_access_id = to_number(:P181_REMOVE_ID)
+                             and x.data_object_code = :P181_DATA_OBJECT_CODE) loop
+                    xxfnd_vpd_pkg.revoke_data_access(x.application_code, x.role_code, x.data_object_code, x.access_level);
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE
+        }
+    )
+
+)

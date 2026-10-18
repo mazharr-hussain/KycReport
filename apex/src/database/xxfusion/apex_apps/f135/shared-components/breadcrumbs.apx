@@ -216,6 +216,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry organizations (
+        name: Organizations
+        pageNumber: 186
+        execution {
+            sequence: 126
+        }
+        appearance {
+            parentEntry: @data-security
+        }
+        link {
+            target: {
+                page: 186
+            }
+        }
+    )
+
     entry privileges (
         name: Privileges
         pageNumber: 182
@@ -233,7 +249,7 @@ breadcrumb breadcrumb (
     )
 
     entry employee (
-        name: User
+        name: &P104_TITLE.
         pageNumber: 104
         execution {
             sequence: 140

@@ -186,6 +186,23 @@ upgradeScript 09f-central-error-handling (
     }
 )
 
+upgradeScript 09a-security-model (
+    execution {
+        sequence: 54
+    }
+    script {
+        contentFile: 09a-security-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 09b-security-framework-objects (
     execution {
         sequence: 55
@@ -838,6 +855,23 @@ upgradeScript 33-data-model (
     }
     script {
         contentFile: 33-data-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 35-security-model-migration (
+    execution {
+        sequence: 190
+    }
+    script {
+        contentFile: 35-security-model-migration.sql
     }
     serverSideCondition {
         type: expression

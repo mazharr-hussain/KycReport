@@ -307,6 +307,14 @@ create or replace package xxfnd_privilege_pkg authid definer as
     procedure unregister_role(p_application_code in varchar2, p_role_code in varchar2);
     -- the pages, privileges and features of the application (its roles are deleted with the application)
     procedure unregister_application(p_application_code in varchar2);
+
+    -- Release 96: roles inside roles. P_MEMBER_ROLE_CODE (a role of the same application or a COMMON role) becomes
+    -- part of P_ROLE_CODE (a role of P_APPLICATION_CODE); a loop is refused (ORA-20076). The caller administers the
+    -- application (XXFND_APPLICATION_PKG.CAN_ADMINISTER; ORA-20077 otherwise).
+    procedure add_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2);
+    procedure remove_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2);
+    -- Y when the user may change the security rows of the application (COMMON administrator: every application).
+    function can_change(p_application_code in varchar2) return varchar2;
 end xxfnd_privilege_pkg;
 /
 
@@ -323,7 +331,7 @@ create or replace package body xxfnd_privilege_pkg as
         l_user  varchar2(255) := norm_user(p_user_name);   -- private function: not callable inside SQL
     begin
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -405,7 +413,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         -- release 46: a privilege on a feature of the current application (any application outside APEX)
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -421,7 +429,7 @@ create or replace package body xxfnd_privilege_pkg as
         l_app   number := current_application_id;
     begin
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -462,7 +470,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
          where v.user_name = l_user
            and v.role_code = p_role_code
            and v.active_flag = 'Y';
@@ -480,7 +488,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
          where v.user_name = l_user
            and v.active_flag = 'Y'
            and v.role_code in (select trim(column_value)
@@ -499,7 +507,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
           join xxfnd_roles r on r.role_code = v.role_code
          where v.user_name = l_user
            and v.active_flag = 'Y'
@@ -531,7 +539,7 @@ create or replace package body xxfnd_privilege_pkg as
         select count(*)
           into l_count
           from xxfnd_sod_rules s
-          join xxfnd_user_roles_v v
+          join xxfnd_user_role_tree_v v
             on v.user_name = l_user
            and v.active_flag = 'Y'
            and v.role_code = case when s.role_code_1 = p_role_code then s.role_code_2 else s.role_code_1 end
@@ -810,6 +818,87 @@ create or replace package body xxfnd_privilege_pkg as
         remove_all_registered(p_application_code, 'Features', 'XXFND_FEATURES', '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
     end unregister_application;
 
+    ----------------------------------------------------------------------------
+    -- Release 96: roles inside roles
+    ----------------------------------------------------------------------------
+    -- XXFND_VPD_PKG is created after this package (below): called by name
+    procedure vpd_clear is
+    begin
+        execute immediate 'begin xxfnd_vpd_pkg.clear_cache; end;';
+    end vpd_clear;
+
+    function vpd_trusted return boolean is
+        l_t varchar2(1);
+    begin
+        execute immediate q'[begin :t := case when xxfnd_vpd_pkg.is_trusted then 'Y' else 'N' end; end;]' using out l_t;
+        return l_t = 'Y';
+    end vpd_trusted;
+
+    function can_change(p_application_code in varchar2) return varchar2 is
+        l_y varchar2(1);
+    begin
+        if not xxfnd_util_pkg.in_apex_session or vpd_trusted then
+            return 'Y';     -- install, registration and server code (checked by their own callers)
+        end if;
+        -- the administration scope is XXFND_APPLICATION_PKG's, installed after this package (09d): called by name
+        execute immediate 'begin :y := xxfnd_application_pkg.can_administer(:a); end;'
+            using out l_y, in upper(p_application_code);
+        return nvl(l_y, 'N');
+    end can_change;
+
+    procedure check_change(p_application_code in varchar2) is
+    begin
+        if can_change(p_application_code) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || upper(p_application_code) || ').');
+        end if;
+    end check_change;
+
+    procedure add_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2) is
+        l_role   xxfnd_roles.application_code%type;
+        l_member xxfnd_roles.application_code%type;
+        l_n      pls_integer;
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        select max(application_code) into l_member from xxfnd_roles where role_code = upper(p_member_role_code);
+        if l_role is null or l_member is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role', upper(nvl(l_role, p_member_role_code))));
+        end if;
+        if l_role <> upper(p_application_code) then
+            raise_application_error(-20078, 'Role ' || upper(p_role_code) || ' belongs to ' || l_role || '.');
+        end if;
+        if l_member not in (l_role, 'COMMON') then
+            raise_application_error(-20079, 'A role may contain only roles of its own application or COMMON roles.');
+        end if;
+        check_change(l_role);
+        -- no loop: the role may not already be inside the member (at any depth)
+        select count(*) into l_n from xxfnd_role_members
+         where member_role_code = upper(p_role_code)
+         start with role_code = upper(p_member_role_code)
+         connect by nocycle prior member_role_code = role_code;
+        if l_n > 0 or upper(p_role_code) = upper(p_member_role_code) then
+            raise_application_error(-20076, 'Role ' || upper(p_member_role_code) || ' already contains '
+                || upper(p_role_code) || ': a role cannot contain itself.');
+        end if;
+        merge into xxfnd_role_members t
+        using (select upper(p_role_code) r, upper(p_member_role_code) m from dual) s
+           on (t.role_code = s.r and t.member_role_code = s.m)
+         when not matched then insert (role_code, member_role_code) values (s.r, s.m);
+        xxfnd_vpd_pkg.clear_cache;
+    end add_role_member;
+
+    procedure remove_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2) is
+        l_role xxfnd_roles.application_code%type;
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        if l_role <> upper(p_application_code) then
+            raise_application_error(-20078, 'Role ' || upper(p_role_code) || ' belongs to ' || l_role || '.');
+        end if;
+        check_change(l_role);
+        delete from xxfnd_role_members where role_code = upper(p_role_code) and member_role_code = upper(p_member_role_code);
+        xxfnd_vpd_pkg.clear_cache;
+    end remove_role_member;
+
 end xxfnd_privilege_pkg;
 /
 
@@ -851,6 +940,54 @@ create or replace package xxfnd_vpd_pkg authid definer as
                                  p_column_name      in varchar2 default null,
                                  p_value_list       in varchar2 default null,
                                  p_description      in varchar2 default null);
+
+    ----------------------------------------------------------------------------
+    -- Release 96: the security model (09a). Data access only through roles; it decides which records (privileges
+    -- decide what). Every routine takes the application and changes only its rows (COMMON administrator: any).
+    ----------------------------------------------------------------------------
+    -- A dimension (what access is decided by): VALUE_SOURCE ORGANIZATION (P_ORGANIZATION_TYPE), LOOKUP (P_LOOKUP_TYPE)
+    -- or FREE. Added when missing, otherwise its name and source are updated.
+    procedure register_dimension(p_application_code  in varchar2,
+                                 p_dimension_code    in varchar2,
+                                 p_dimension_name    in varchar2,
+                                 p_value_source      in varchar2 default 'ORGANIZATION',
+                                 p_organization_type in varchar2 default null,
+                                 p_lookup_type       in varchar2 default null,
+                                 p_description       in varchar2 default null);
+    -- A department / organization (type, code): added or updated; P_PARENT_CODE of the same type.
+    procedure save_organization(p_application_code  in varchar2,
+                                p_organization_type in varchar2,
+                                p_organization_code in varchar2,
+                                p_organization_name in varchar2,
+                                p_parent_code       in varchar2 default null,
+                                p_enabled_flag      in varchar2 default 'Y',
+                                p_source_type       in varchar2 default 'LOCAL',
+                                p_fusion_id         in varchar2 default null);
+    -- A secured table of the application: P_DIMENSION_COLUMN holds the dimension's value, P_OWNER_COLUMN the owner.
+    procedure register_data_object(p_application_code in varchar2,
+                                   p_data_object_code in varchar2,
+                                   p_object_name      in varchar2,
+                                   p_table_name       in varchar2,
+                                   p_dimension_code   in varchar2 default null,
+                                   p_dimension_column in varchar2 default null,
+                                   p_owner_column     in varchar2 default null,
+                                   p_description      in varchar2 default null);
+    -- A role reaches the records of a data object at a level: ALL, VALUES (the assignment's values) or OWN.
+    procedure grant_data_access(p_application_code in varchar2, p_role_code in varchar2,
+                                p_data_object_code in varchar2, p_access_level in varchar2);
+    procedure revoke_data_access(p_application_code in varchar2, p_role_code in varchar2,
+                                 p_data_object_code in varchar2, p_access_level in varchar2 default null);
+    -- The values of a user's role assignment for a dimension: P_DATA_OBJECT_CODE null = the default of every object of
+    -- the dimension, set = an override for that object. P_VALUES (comma-separated) replace the current ones; empty
+    -- removes them (an override removed = the object follows the default again).
+    procedure set_assignment_values(p_user_role_id     in number,
+                                    p_dimension_code   in varchar2,
+                                    p_data_object_code in varchar2 default null,
+                                    p_values           in varchar2 default null);
+    function assignment_values(p_user_role_id in number, p_dimension_code in varchar2,
+                               p_data_object_code in varchar2 default null) return varchar2;
+    -- the application's dimensions, organizations and data objects (XXFND_APPLICATION_PKG.DELETE_APPLICATION)
+    procedure unregister_application(p_application_code in varchar2);
 end xxfnd_vpd_pkg;
 /
 
@@ -875,6 +1012,15 @@ create or replace package body xxfnd_vpd_pkg as
            and (a.user_id in (select u.user_id from xxfnd_users u where u.user_name = p_user and u.enabled_flag = 'Y')
                 or a.role_code in (select ur.role_code from xxfnd_user_roles_v ur
                                     where ur.user_name = p_user and ur.active_flag = 'Y'));
+
+    -- release 96: the user's data access to a data object (XXFND_USER_DATA_ACCESS_V): every level of every active
+    -- role; for VALUES the assignment's values (override, else default)
+    cursor c_access(p_user in varchar2, p_table in varchar2) is
+        select access_level, dimension_column, owner_column,
+               listagg(distinct value_code, ',') within group (order by value_code) as value_list
+          from xxfnd_user_data_access_v
+         where user_name = p_user and table_name = p_table
+         group by access_level, dimension_column, owner_column;
 
     procedure clear_cache is begin g_cache.delete; end clear_cache;
 
@@ -931,11 +1077,45 @@ create or replace package body xxfnd_vpd_pkg as
         return l_predicate;
     end policy;
 
+
+    function has_object(p_table in varchar2) return boolean is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from xxfnd_data_objects where table_name = upper(p_table) and enabled_flag = 'Y';
+        return l_n > 0;
+    end has_object;
+
+    function predicate_96(p_user in varchar2, p_table in varchar2) return varchar2 is
+        l_predicate varchar2(32767);
+        l_part      varchar2(4000);
+    begin
+        for r in c_access(p_user, p_table) loop
+            if r.access_level = 'ALL' then
+                return null;
+            end if;
+            l_part := case
+                        when r.access_level = 'OWN' and r.owner_column is not null then
+                            -- the user's own rows, and those of anyone currently delegating to the user
+                            'upper(' || dbms_assert.simple_sql_name(r.owner_column) || ') in ('
+                            || quoted_list(p_user || nvl2(delegators(p_user), ',' || delegators(p_user), null)) || ')'
+                        when r.access_level = 'VALUES' and r.dimension_column is not null and r.value_list is not null then
+                            dbms_assert.simple_sql_name(r.dimension_column) || ' in (' || quoted_list(r.value_list) || ')'
+                      end;
+            if l_part is not null then
+                l_predicate := l_predicate || case when l_predicate is not null then ' or ' end || '(' || l_part || ')';
+            end if;
+        end loop;
+        return nvl(l_predicate, '1 = 0');
+    end predicate_96;
+
     function predicate(p_user in varchar2, p_object in varchar2) return varchar2 is
         l_user      varchar2(255) := p_user;
         l_predicate varchar2(32767);
         l_part      varchar2(4000);
     begin
+        if has_object(p_object) then
+            return predicate_96(l_user, upper(p_object));   -- release 96: the security model
+        end if;
         for r in c_rules(l_user, upper(p_object)) loop
             if r.rule_type = 'ALL_ROWS' then
                 return null;
@@ -961,6 +1141,19 @@ create or replace package body xxfnd_vpd_pkg as
         l_list varchar2(32767);
         l_own  boolean := false;
     begin
+        if has_object(p_table) then
+            -- release 96: the values of the user's VALUES access on that column (any ALL: every value)
+            for r in c_access(l_user, upper(p_table)) loop
+                if r.access_level = 'ALL' then
+                    return null;
+                elsif r.access_level = 'OWN' then
+                    l_own := true;
+                elsif r.access_level = 'VALUES' and upper(r.dimension_column) = upper(p_column) and r.value_list is not null then
+                    l_list := l_list || case when l_list is not null then ',' end || r.value_list;
+                end if;
+            end loop;
+            return case when l_list is not null then l_list when l_own then null else '#NONE' end;
+        end if;
         for r in c_rules(l_user, upper(p_table)) loop
             if r.rule_type = 'ALL_ROWS' then
                 return null;
@@ -1044,7 +1237,220 @@ create or replace package body xxfnd_vpd_pkg as
                     p_description);
             clear_cache;
         end if;
+        -- release 96: the same access in the security model (the table becomes a data object of the role's
+        -- application when it is not one yet; a "column in list" rule's fixed values are not carried: in the model
+        -- values belong to each user's role assignment)
+        declare
+            l_obj   xxfnd_data_objects.data_object_code%type;
+            l_level varchar2(10) := case upper(p_rule_type) when 'ALL_ROWS' then 'ALL' when 'OWN_RECORDS' then 'OWN'
+                                                           else 'VALUES' end;
+        begin
+            select max(data_object_code) into l_obj from xxfnd_data_objects where table_name = upper(p_table_name);
+            if l_obj is null then
+                l_obj := substr(upper(p_table_name), 1, 60);
+                insert into xxfnd_data_objects (data_object_code, object_name, application_code, table_name, owner_column)
+                values (l_obj, initcap(replace(regexp_replace(upper(p_table_name), '^XX[A-Z]+_'), '_', ' ')),
+                        case when upper(p_table_name) like 'XXFND\_%' escape '\' then 'COMMON' else l_code end,
+                        upper(p_table_name), case when l_level = 'OWN' then upper(p_column_name) end);
+            elsif l_level = 'OWN' then
+                update xxfnd_data_objects set owner_column = nvl(owner_column, upper(p_column_name))
+                 where data_object_code = l_obj;
+            end if;
+            merge into xxfnd_role_data_access t
+            using (select upper(p_role_code) r, l_obj o, l_level l from dual) x
+               on (t.role_code = x.r and t.data_object_code = x.o and t.access_level = x.l)
+             when not matched then insert (role_code, data_object_code, access_level) values (x.r, x.o, x.l);
+        end;
     end register_data_rule;
+
+    ----------------------------------------------------------------------------
+    -- Release 96: the security model
+    ----------------------------------------------------------------------------
+    function app_code(p_application_code in varchar2) return varchar2 is
+        l_code varchar2(30);
+    begin
+        -- XXFND_APPLICATION_PKG is installed after this package (09d): called by name
+        execute immediate 'begin :r := xxfnd_application_pkg.registered_code(:c); end;' using out l_code, in p_application_code;
+        if xxfnd_privilege_pkg.can_change(l_code) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || l_code || ').');
+        end if;
+        return l_code;
+    end app_code;
+
+    procedure assert_owner(p_what in varchar2, p_key in varchar2, p_row_app in varchar2, p_app in varchar2) is
+    begin
+        if p_row_app is not null and p_row_app <> p_app then
+            xxfnd_error_pkg.raise_error('XXFND_REG_OTHER_APP', apex_t_varchar2(p_what, p_key, p_row_app));
+        end if;
+    end assert_owner;
+
+    procedure register_dimension(p_application_code  in varchar2,
+                                 p_dimension_code    in varchar2,
+                                 p_dimension_name    in varchar2,
+                                 p_value_source      in varchar2 default 'ORGANIZATION',
+                                 p_organization_type in varchar2 default null,
+                                 p_lookup_type       in varchar2 default null,
+                                 p_description       in varchar2 default null) is
+        l_app varchar2(30) := app_code(p_application_code);
+        l_row varchar2(30);
+    begin
+        select max(application_code) into l_row from xxfnd_data_dimensions where dimension_code = upper(p_dimension_code);
+        assert_owner('Dimension', upper(p_dimension_code), l_row, l_app);
+        merge into xxfnd_data_dimensions t
+        using (select upper(p_dimension_code) c from dual) x on (t.dimension_code = x.c)
+         when matched then update set t.dimension_name = p_dimension_name, t.value_source = upper(p_value_source),
+              t.organization_type = upper(p_organization_type), t.lookup_type = upper(p_lookup_type),
+              t.description = nvl(p_description, t.description)
+         when not matched then insert (dimension_code, dimension_name, application_code, value_source, organization_type,
+                                       lookup_type, description)
+              values (x.c, p_dimension_name, l_app, upper(nvl(p_value_source, 'ORGANIZATION')), upper(p_organization_type),
+                      upper(p_lookup_type), p_description);
+    end register_dimension;
+
+    procedure save_organization(p_application_code  in varchar2,
+                                p_organization_type in varchar2,
+                                p_organization_code in varchar2,
+                                p_organization_name in varchar2,
+                                p_parent_code       in varchar2 default null,
+                                p_enabled_flag      in varchar2 default 'Y',
+                                p_source_type       in varchar2 default 'LOCAL',
+                                p_fusion_id         in varchar2 default null) is
+        l_app    varchar2(30) := app_code(p_application_code);
+        l_row    varchar2(30);
+        l_parent number;
+    begin
+        select max(application_code) into l_row from xxfnd_organizations
+         where organization_type = upper(p_organization_type) and organization_code = upper(p_organization_code);
+        assert_owner('Organization', upper(p_organization_code), l_row, l_app);
+        if p_parent_code is not null then
+            select max(organization_id) into l_parent from xxfnd_organizations
+             where organization_type = upper(p_organization_type) and organization_code = upper(p_parent_code);
+        end if;
+        merge into xxfnd_organizations t
+        using (select upper(p_organization_type) ty, upper(p_organization_code) c from dual) x
+           on (t.organization_type = x.ty and t.organization_code = x.c)
+         when matched then update set t.organization_name = p_organization_name, t.parent_organization_id = l_parent,
+              t.enabled_flag = nvl(p_enabled_flag, 'Y'), t.source_type = nvl(upper(p_source_type), 'LOCAL'),
+              t.fusion_organization_id = nvl(p_fusion_id, t.fusion_organization_id)
+         when not matched then insert (organization_type, organization_code, organization_name, parent_organization_id,
+                                       application_code, source_type, fusion_organization_id, enabled_flag)
+              values (x.ty, x.c, p_organization_name, l_parent, l_app, nvl(upper(p_source_type), 'LOCAL'), p_fusion_id,
+                      nvl(p_enabled_flag, 'Y'));
+    end save_organization;
+
+    procedure register_data_object(p_application_code in varchar2,
+                                   p_data_object_code in varchar2,
+                                   p_object_name      in varchar2,
+                                   p_table_name       in varchar2,
+                                   p_dimension_code   in varchar2 default null,
+                                   p_dimension_column in varchar2 default null,
+                                   p_owner_column     in varchar2 default null,
+                                   p_description      in varchar2 default null) is
+        l_app varchar2(30) := app_code(p_application_code);
+        l_row varchar2(30);
+    begin
+        select max(application_code) into l_row from xxfnd_data_objects
+         where data_object_code = upper(p_data_object_code) or table_name = upper(p_table_name);
+        assert_owner('Data object', upper(p_data_object_code), l_row, l_app);
+        merge into xxfnd_data_objects t
+        using (select upper(p_data_object_code) c from dual) x on (t.data_object_code = x.c)
+         when matched then update set t.object_name = p_object_name, t.dimension_code = upper(p_dimension_code),
+              t.dimension_column = upper(p_dimension_column), t.owner_column = upper(p_owner_column),
+              t.description = nvl(p_description, t.description)
+         when not matched then insert (data_object_code, object_name, application_code, table_name, dimension_code,
+                                       dimension_column, owner_column, description)
+              values (x.c, p_object_name, l_app, upper(p_table_name), upper(p_dimension_code), upper(p_dimension_column),
+                      upper(p_owner_column), p_description);
+        clear_cache;
+    end register_data_object;
+
+    procedure grant_data_access(p_application_code in varchar2, p_role_code in varchar2,
+                                p_data_object_code in varchar2, p_access_level in varchar2) is
+        l_app  varchar2(30) := app_code(p_application_code);
+        l_role varchar2(30);
+        l_obj  varchar2(30);
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        select max(application_code) into l_obj from xxfnd_data_objects where data_object_code = upper(p_data_object_code);
+        if l_role is null or l_obj is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role or data object',
+                                        upper(p_role_code) || ' / ' || upper(p_data_object_code)));
+        end if;
+        assert_owner('Role', upper(p_role_code), l_role, l_app);
+        if l_obj not in (l_app, 'COMMON') then
+            raise_application_error(-20079, 'A role may reach only data objects of its own application or COMMON''s.');
+        end if;
+        if upper(p_access_level) not in ('ALL', 'VALUES', 'OWN') then
+            raise_application_error(-20075, 'The level is ALL, VALUES or OWN.');
+        end if;
+        merge into xxfnd_role_data_access t
+        using (select upper(p_role_code) r, upper(p_data_object_code) o, upper(p_access_level) l from dual) x
+           on (t.role_code = x.r and t.data_object_code = x.o and t.access_level = x.l)
+         when not matched then insert (role_code, data_object_code, access_level) values (x.r, x.o, x.l);
+        clear_cache;
+    end grant_data_access;
+
+    procedure revoke_data_access(p_application_code in varchar2, p_role_code in varchar2,
+                                 p_data_object_code in varchar2, p_access_level in varchar2 default null) is
+        l_app  varchar2(30) := app_code(p_application_code);
+        l_role varchar2(30);
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        assert_owner('Role', upper(p_role_code), l_role, l_app);
+        delete from xxfnd_role_data_access
+         where role_code = upper(p_role_code) and data_object_code = upper(p_data_object_code)
+           and (p_access_level is null or access_level = upper(p_access_level));
+        clear_cache;
+    end revoke_data_access;
+
+    procedure set_assignment_values(p_user_role_id     in number,
+                                    p_dimension_code   in varchar2,
+                                    p_data_object_code in varchar2 default null,
+                                    p_values           in varchar2 default null) is
+        l_app varchar2(30);
+        l_chk varchar2(30);
+    begin
+        select max(r.application_code) into l_app
+          from xxfnd_user_roles ur join xxfnd_roles r on r.role_code = ur.role_code
+         where ur.user_role_id = p_user_role_id;
+        if l_app is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role assignment', to_char(p_user_role_id)));
+        end if;
+        l_chk := app_code(l_app);
+        delete from xxfnd_assignment_values
+         where user_role_id = p_user_role_id and dimension_code = upper(p_dimension_code)
+           and nvl(data_object_code, '#') = nvl(upper(p_data_object_code), '#');
+        insert into xxfnd_assignment_values (user_role_id, dimension_code, data_object_code, value_code)
+        select distinct p_user_role_id, upper(p_dimension_code), upper(p_data_object_code), upper(trim(column_value))
+          from table(apex_string.split(p_values, ','))
+         where trim(column_value) is not null;
+        clear_cache;
+    end set_assignment_values;
+
+    function assignment_values(p_user_role_id in number, p_dimension_code in varchar2,
+                               p_data_object_code in varchar2 default null) return varchar2 is
+        l_list varchar2(4000);
+    begin
+        select listagg(value_code, ',') within group (order by value_code) into l_list
+          from xxfnd_assignment_values
+         where user_role_id = p_user_role_id and dimension_code = upper(p_dimension_code)
+           and nvl(data_object_code, '#') = nvl(upper(p_data_object_code), '#');
+        return l_list;
+    end assignment_values;
+
+    procedure unregister_application(p_application_code in varchar2) is
+        l_app varchar2(30) := upper(p_application_code);
+    begin
+        delete from xxfnd_data_objects where application_code = l_app;        -- with its role access (cascade)
+        delete from xxfnd_assignment_values
+         where dimension_code in (select dimension_code from xxfnd_data_dimensions where application_code = l_app);
+        delete from xxfnd_data_dimensions where application_code = l_app;
+        update xxfnd_organizations set parent_organization_id = null
+         where parent_organization_id in (select organization_id from xxfnd_organizations where application_code = l_app);
+        delete from xxfnd_organizations where application_code = l_app;
+        clear_cache;
+    end unregister_application;
 
 end xxfnd_vpd_pkg;
 /

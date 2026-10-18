@@ -17,9 +17,10 @@ page 104 (
             ```
             A user of every application: a local user (user name and password kept by APEX) or an employee who signs in
             with the company account. The user is on top; the tabs show the roles and privileges and the data access
-            the user has. Assign opens the same picker on the User, Role and Data access rule screens, so an assignment
-            made on one shows at once on the other two. Access adds up: the user sees the rows allowed by any rule
-            assigned to them or to one of their roles.
+            the user has. Release 96: the user's applications; their roles (with the roles inside them); and per role the
+            data access values (e.g. Department = Finance, Procurement, with a different value for one screen when
+            needed). Data access is given only through roles. A role of an application that keeps its users itself is
+            shown read-only (change it in that application).
             ```
     }
 
@@ -70,6 +71,25 @@ page 104 (
             sessionStateProtection: checksumRequiredSessionLevel
         }
     )
+    pageItem P104_TITLE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @user
+            slot: regionBody
+        }
+        default {
+            type: static
+            staticValue: New User
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        comments {
+            comments: Release 96 (UI issue 12) - the user's name in the breadcrumb and title.
+        }
+    )
+
     pageItem P104_REMOVE_ID (
         type: hidden
         layout {
@@ -604,6 +624,143 @@ page 104 (
             htmlDomId: tab_data
         }
     )
+    region applications (
+        name: Applications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select ua.user_application_id, a.application_name || ' (' || ua.application_code || ')' as application,
+                       ua.start_date_active, ua.end_date_active,
+                       case when ua.enabled_flag = 'Y' and (ua.end_date_active is null or ua.end_date_active >= trunc(sysdate))
+                            then 'Active' else 'Ended' end as status,
+                       (select count(*) from xxfnd_user_roles_v ur
+                         where ur.user_id = ua.user_id and ur.application_code = ua.application_code and ur.active_flag = 'Y') as roles,
+                       ua.application_code,
+                       case when ua.enabled_flag = 'Y' and (ua.end_date_active is null or ua.end_date_active >= trunc(sysdate))
+                             and xxfnd_user_pkg.managed_in_application(ua.application_code) = 'N'
+                             and xxfnd_privilege_pkg.can_change(ua.application_code) = 'Y' then 'End' end as end_access
+                  -- release 96: the applications the user may use (a role of an application gives access to it); End ends the
+                  -- access and the user's roles there
+                  from xxfnd_user_applications ua
+                  join xxfnd_applications a on a.application_code = ua.application_code
+                 where ua.user_id = :P104_USER_ID
+                   and (:G_ADMIN_APP = 'ALL' or ua.application_code in (:G_ADMIN_APP, 'COMMON'))
+                 order by a.application_name
+                ```
+            pageItemsToSubmit: [
+                P104_USER_ID
+            ]
+        }
+        layout {
+            sequence: 5
+            parentRegion: @tab-roles
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: user_applications
+        }
+        messages {
+            whenNoDataFound: No application yet: assigning a role of an application gives access to it.
+        }
+
+        column USER_APPLICATION_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column APPLICATION (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column START_DATE_ACTIVE (
+            type: plainText
+            heading {
+                heading: Since
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column END_DATE_ACTIVE (
+            type: plainText
+            heading {
+                heading: Until
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ROLES (
+            type: plainText
+            heading {
+                heading: Roles
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: hidden
+            layout {
+                sequence: 55
+            }
+        )
+
+        column END_ACCESS (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('End the user\'s access to this application and its roles there?',{request:'END_APP',set:{'P104_REMOVE_ID':'#APPLICATION_CODE#'}});
+                }
+                linkText: #END_ACCESS#
+            }
+        )
+    )
+
     region roles (
         name: Roles
         type: classicReport
@@ -612,17 +769,32 @@ page 104 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 79: the user's active roles (XXFND_USER_ROLES_V); Remove ends the grant (XXFND_USER_PKG.UNASSIGN_ROLE)
                 select ur.user_role_id,
                        ur.role_name,
                        ur.application_code,
                        ur.start_date_active,
-                       (select count(*) from xxfnd_role_privileges rp where rp.role_code = ur.role_code) as privileges,
-                       'Remove' as remove
+                       (select count(*) from xxfnd_role_privileges rp
+                         where rp.role_code in (select t.role_code from xxfnd_user_role_tree_v t
+                                                 where t.user_role_id = ur.user_role_id)) as privileges,
+                       (select listagg(distinct x.dimension_code || ' = ' || x.value_code, ', ')
+                                 within group (order by x.dimension_code)
+                          from xxfnd_user_data_access_v x
+                         where x.user_role_id = ur.user_role_id and x.access_level = 'VALUES' and x.value_code is not null)
+                           as data_values,
+                       case when xxfnd_user_pkg.managed_in_application(ur.application_code) = 'Y'
+                            then 'Managed in ' || ur.application_code end as managed,
+                       apex_page.get_url(p_page => 184, p_items => 'P184_USER_ROLE_ID', p_values => ur.user_role_id,
+                                         p_clear_cache => '184') as data_url,
+                       'Values' as data_link,
+                       case when xxfnd_user_pkg.managed_in_application(ur.application_code) = 'N'
+                             and xxfnd_privilege_pkg.can_change(ur.application_code) = 'Y' then 'Remove' end as remove
+                  -- release 96: the user's roles (with the roles inside them: privileges); per role its data access
+                  -- values (Data Access opens them); a role of an application that keeps its users itself is read-only
                   from xxfnd_user_roles_v ur
                  where ur.user_id = :P104_USER_ID
                    and ur.active_flag = 'Y'
-                 order by ur.role_name
+                   and (:G_ADMIN_APP = 'ALL' or ur.application_code in (:G_ADMIN_APP, 'COMMON'))
+                 order by ur.application_code, ur.role_name
                 ```
             pageItemsToSubmit: [
                 P104_USER_ID
@@ -700,6 +872,50 @@ page 104 (
             }
         )
 
+        column DATA_VALUES (
+            type: plainText
+            heading {
+                heading: Data Access Values
+            }
+            layout {
+                sequence: 55
+            }
+        )
+
+        column MANAGED (
+            type: plainText
+            heading {
+                heading: Managed
+            }
+            layout {
+                sequence: 56
+            }
+        )
+
+        column DATA_URL (
+            type: hidden
+            layout {
+                sequence: 57
+            }
+        )
+
+        column DATA_LINK (
+            type: link
+            heading {
+                heading: Data Access
+            }
+            layout {
+                sequence: 58
+            }
+            link {
+                target: {
+                    type: url
+                    url: #DATA_URL#
+                }
+                linkText: Values
+            }
+        )
+
         column REMOVE (
             type: link
             heading {
@@ -713,7 +929,7 @@ page 104 (
                     type: url
                     url: javascript:apex.confirm('Remove this role from the user?',{request:'REMOVE_ROLE',set:{'P104_REMOVE_ID':'#USER_ROLE_ID#'}});
                 }
-                linkText: Remove
+                linkText: #REMOVE#
             }
         )
     )
@@ -794,136 +1010,28 @@ page 104 (
             }
         )
     )
-    region rules (
-        name: Data access rules assigned to the user
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                -- release 79: rules assigned to the user directly; Remove takes the assignment away (XXFND_VPD_PKG.UNASSIGN_RULE)
-                select a.assignment_id,
-                       d.table_name,
-                       decode(d.rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
-                       d.column_name,
-                       d.value_list,
-                       'Remove' as remove
-                  from xxfnd_data_rule_assignments a
-                  join xxfnd_data_security_rules d on d.rule_id = a.rule_id
-                 where a.user_id = :P104_USER_ID
-                 order by d.table_name, d.rule_type
-                ```
-            pageItemsToSubmit: [
-                P104_USER_ID
-            ]
-        }
-        layout {
-            sequence: 10
-            parentRegion: @tab-data
-            slot: subRegions
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-            showNullValuesAs: -
-        }
-        advanced {
-            htmlDomId: user_rules
-        }
-        messages {
-            whenNoDataFound: No rule assigned to the user directly (rules can also come from roles).
-        }
-
-        column ASSIGNMENT_ID (
-            type: hidden
-            layout {
-                sequence: 10
-            }
-        )
-
-        column TABLE_NAME (
-            type: plainText
-            heading {
-                heading: Table
-            }
-            layout {
-                sequence: 20
-            }
-        )
-
-        column RULE_TYPE (
-            type: plainText
-            heading {
-                heading: Rule
-            }
-            layout {
-                sequence: 30
-            }
-        )
-
-        column COLUMN_NAME (
-            type: plainText
-            heading {
-                heading: Column
-            }
-            layout {
-                sequence: 40
-            }
-        )
-
-        column VALUE_LIST (
-            type: plainText
-            heading {
-                heading: Values
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-        column REMOVE (
-            type: link
-            heading {
-                heading: Action
-            }
-            layout {
-                sequence: 60
-            }
-            link {
-                target: {
-                    type: url
-                    url: javascript:apex.confirm('Remove this rule from the user?',{request:'REMOVE_RULE',set:{'P104_REMOVE_ID':'#ASSIGNMENT_ID#'}});
-                }
-                linkText: Remove
-            }
-        )
-    )
     region effective (
-        name: Effective access
+        name: Effective Data Access
         type: classicReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 79: what the user actually sees per table, from direct and role rules together (the widest rule wins)
-                select table_name,
-                       decode(rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
-                       column_name,
-                       value_list,
-                       granted_through
-                  from xxfnd_effective_access_v
-                 where user_id = :P104_USER_ID
-                 order by table_name, rule_type, granted_through
+                select x.object_name, x.application_code,
+                       case x.access_level when 'ALL' then 'All records' when 'VALUES' then 'Given values' else 'Own records' end as access_level,
+                       x.dimension_code,
+                       listagg(distinct x.value_code, ', ') within group (order by x.value_code) as value_list,
+                       max(x.value_scope) as value_scope,
+                       listagg(distinct r.role_name, ', ') within group (order by r.role_name) as granted_through
+                  -- release 96: which records the user sees per data object (XXFND_USER_DATA_ACCESS_V), through which roles;
+                  -- for given values: the object's own values (override) or the default of the dimension
+                  from xxfnd_user_data_access_v x
+                  join xxfnd_roles r on r.role_code = x.assigned_role_code
+                 where x.user_id = :P104_USER_ID
+                   and (:G_ADMIN_APP = 'ALL' or x.application_code in (:G_ADMIN_APP, 'COMMON'))
+                 group by x.object_name, x.application_code, x.access_level, x.dimension_code
+                 order by x.object_name, x.access_level
                 ```
             pageItemsToSubmit: [
                 P104_USER_ID
@@ -951,33 +1059,43 @@ page 104 (
             htmlDomId: user_effective
         }
         messages {
-            whenNoDataFound: No data access: the user sees no rows of protected tables.
+            whenNoDataFound: No data access: the user sees no records of the secured tables.
         }
 
-        column TABLE_NAME (
+        column OBJECT_NAME (
             type: plainText
             heading {
-                heading: Table
+                heading: Data Object
             }
             layout {
                 sequence: 10
             }
         )
 
-        column RULE_TYPE (
+        column APPLICATION_CODE (
             type: plainText
             heading {
-                heading: Rule
+                heading: Application
+            }
+            layout {
+                sequence: 15
+            }
+        )
+
+        column ACCESS_LEVEL (
+            type: plainText
+            heading {
+                heading: Records
             }
             layout {
                 sequence: 20
             }
         )
 
-        column COLUMN_NAME (
+        column DIMENSION_CODE (
             type: plainText
             heading {
-                heading: Column
+                heading: Dimension
             }
             layout {
                 sequence: 30
@@ -994,10 +1112,20 @@ page 104 (
             }
         )
 
+        column VALUE_SCOPE (
+            type: plainText
+            heading {
+                heading: Values From
+            }
+            layout {
+                sequence: 45
+            }
+        )
+
         column GRANTED_THROUGH (
             type: plainText
             heading {
-                heading: Granted Through
+                heading: Through Roles
             }
             layout {
                 sequence: 50
@@ -1028,39 +1156,6 @@ page 104 (
                     P183_TARGET: USER
                     P183_TARGET_ID: &P104_USER_ID.
                     P183_PICK: ROLE
-                }
-                clearCache: 183
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-    button assign-rules (
-        buttonName: ASSIGN_RULES
-        label: Assign Rules
-        layout {
-            sequence: 20
-            region: @rules
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text-with-icon
-            templateOptions: [
-                #DEFAULT#
-                t-Button--iconLeft
-            ]
-            icon: fa-plus
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 183
-                items: {
-                    P183_TARGET: USER
-                    P183_TARGET_ID: &P104_USER_ID.
-                    P183_PICK: RULE
                 }
                 clearCache: 183
             }
@@ -1105,18 +1200,6 @@ page 104 (
             }
         )
 
-        action refresh-after-assign-refresh-3 (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @rules
-            }
-            execution {
-                sequence: 30
-                fireOnInit: false
-            }
-        )
-
         action refresh-after-assign-refresh-4 (
             action: refresh
             affectedElements {
@@ -1149,6 +1232,8 @@ page 104 (
                   from xxfnd_users u
                   left join xxfnd_employees e on e.employee_id = u.employee_id
                  where u.user_id = :P104_USER_ID;
+                -- release 96 (UI issue 12): the title and breadcrumb name the user
+                :P104_TITLE := :P104_FULL_NAME || ' (' || :P104_USER_NAME || ')';
                 ```
         }
         execution {
@@ -1301,14 +1386,15 @@ page 104 (
             authorizationScheme: @page-submit
         }
     )
-    process remove-rule (
-        name: Remove a data access rule
+    process end-application (
+        name: End the access to an application
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_vpd_pkg.unassign_rule(to_number(:P104_REMOVE_ID));
+                -- release 96: ends the access and the user's roles of that application (XXFND_USER_PKG)
+                xxfnd_user_pkg.end_application(to_number(:P104_USER_ID), :P104_REMOVE_ID);
                 ```
         }
         execution {
@@ -1316,11 +1402,11 @@ page 104 (
             point: processing
         }
         successMessage {
-            successMessage: Rule removed.
+            successMessage: Access ended.
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: REMOVE_RULE
+            value: END_APP
         }
         security {
             authorizationScheme: @page-submit

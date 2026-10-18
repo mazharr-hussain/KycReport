@@ -1123,7 +1123,10 @@ create or replace package body xxfnd_application_pkg as
                                                   'XXFND_DOCUMENT_CATEGORIES', 'XXFND_DOCUMENT_ENTITIES',
                                                   'XXFND_INTEGRATION_PURPOSES', 'XXFND_NOTIFICATION_TEMPLATES',
                                                   'XXFND_NOTIFY_RULES', 'XXFND_STORAGE_CONFIG', 'XXFND_CONTACT_SOURCES',
-                                                  'XXFND_DM_APP_SCOPES', 'XXFND_DM_TABLE_GROUPS')
+                                                  'XXFND_DM_APP_SCOPES', 'XXFND_DM_TABLE_GROUPS',
+                                                  -- release 96: security model rows (removed with the application)
+                                                  'XXFND_USER_APPLICATIONS', 'XXFND_DATA_OBJECTS',
+                                                  'XXFND_DATA_DIMENSIONS', 'XXFND_ORGANIZATIONS')
                        order by c.table_name) loop
                 execute immediate 'select count(*) from ' || dbms_assert.simple_sql_name(t.table_name)
                                || ' where application_code = :c' into l_n using l_app.application_code;
@@ -1178,7 +1181,7 @@ create or replace package body xxfnd_application_pkg as
         for c in (select column_value pkg from table(apex_t_varchar2(
                       'XXFND_APPROVAL_RULE_PKG', 'XXFND_NOTIFY_PKG', 'XXFND_WORKFLOW_PKG', 'XXFND_INTEGRATION_PKG',
                       'XXFND_ATTACH_PKG', 'XXFND_DFF_PKG', 'XXFND_LOOKUP_PKG', 'XXFND_PRIVILEGE_PKG',
-                      'XXFND_DATA_MODEL_PKG'))) loop
+                      'XXFND_DATA_MODEL_PKG', 'XXFND_VPD_PKG'))) loop
             execute immediate 'begin ' || dbms_assert.simple_sql_name(c.pkg) || '.unregister_application(:c); end;'
                 using l_code;
         end loop;

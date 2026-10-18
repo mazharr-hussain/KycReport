@@ -1,0 +1,381 @@
+page 184 (
+    name: Data Access Values
+    alias: DATA-ACCESS-VALUES
+    title: Data Access Values
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: true
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Release 96 - the values of one role assignment of a user, per dimension (e.g. Department). The default applies to every data object of the dimension; a value set for one data object (e.g. KYC Cases) replaces the default there only. Remove an object's values and it follows the default again.
+            ```
+    }
+
+    region header (
+        name: &P184_TITLE.
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P184_USER_ROLE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @header
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P184_ROLE_APP (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @header
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P184_TITLE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @header
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P184_DIMENSION_CODE (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @header
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P184_DATA_OBJECT_CODE (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @header
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    region values (
+        name: Data Access Values
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                with reach as (
+                    -- the data objects with a dimension that the assignment's roles (including roles inside them) reach by given values
+                    select distinct o.dimension_code, o.data_object_code, o.object_name
+                      from xxfnd_user_role_tree_v t
+                      join xxfnd_role_data_access x on x.role_code = t.role_code and x.access_level = 'VALUES'
+                      join xxfnd_data_objects o     on o.data_object_code = x.data_object_code and o.dimension_code is not null
+                     where t.user_role_id = :P184_USER_ROLE_ID)
+                select d.dimension_name,
+                       nvl(r.object_name, 'All data objects (default)') as applies_to,
+                       r.data_object_code,
+                       nvl(xxfnd_vpd_pkg.assignment_values(:P184_USER_ROLE_ID, d.dimension_code, r.data_object_code),
+                           case when r.data_object_code is not null then '(the default)' else '(none: no record)' end) as value_list,
+                       apex_page.get_url(p_page => 184, p_items => 'P184_USER_ROLE_ID,P184_DIMENSION_CODE,P184_DATA_OBJECT_CODE',
+                                         p_values => :P184_USER_ROLE_ID || ',' || d.dimension_code || ',' || r.data_object_code) as edit_url,
+                       case when xxfnd_user_pkg.managed_in_application(:P184_ROLE_APP) = 'N'
+                             and xxfnd_privilege_pkg.can_change(:P184_ROLE_APP) = 'Y' then 'Change' end as edit
+                  -- release 96: per dimension the default values of the role assignment, then each data object (override, or the
+                  -- default when it has none)
+                  from (select distinct dimension_code from reach) dd
+                  join xxfnd_data_dimensions d on d.dimension_code = dd.dimension_code
+                  cross join lateral (select cast(null as varchar2(60)) data_object_code, cast(null as varchar2(240)) object_name, 0 s from dual
+                                      union all
+                                      select data_object_code, object_name, 1 from reach where reach.dimension_code = d.dimension_code) r
+                 order by d.dimension_name, r.s, r.object_name
+                ```
+            pageItemsToSubmit: [
+                P184_USER_ROLE_ID
+                P184_ROLE_APP
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: assignment_values
+        }
+        messages {
+            whenNoDataFound: This role reaches no data object by given values: there is nothing to give.
+        }
+
+        column DIMENSION_NAME (
+            type: plainText
+            heading {
+                heading: Dimension
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APPLIES_TO (
+            type: plainText
+            heading {
+                heading: Applies To
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DATA_OBJECT_CODE (
+            type: hidden
+            layout {
+                sequence: 25
+            }
+        )
+
+        column VALUE_LIST (
+            type: plainText
+            heading {
+                heading: Values
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            layout {
+                sequence: 35
+            }
+        )
+
+        column EDIT (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 40
+            }
+            link {
+                target: {
+                    type: url
+                    url: #EDIT_URL#
+                }
+                linkText: #EDIT#
+            }
+        )
+    )
+
+    region change (
+        name: &P184_CHANGE_TITLE.
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: change_values
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P184_DIMENSION_CODE
+        }
+    )
+
+    pageItem P184_CHANGE_TITLE (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @change
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P184_VALUES (
+        type: checkboxGroup
+        label {
+            label: Values
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select g.organization_name as display_value, g.organization_code as return_value
+                  from xxfnd_organizations g
+                  join xxfnd_data_dimensions d on d.organization_type = g.organization_type and d.value_source = 'ORGANIZATION'
+                 where d.dimension_code = :P184_DIMENSION_CODE and g.enabled_flag = 'Y'
+                union all
+                select v.meaning, v.lookup_code
+                  from xxfnd_lookup_values_vl v
+                  join xxfnd_data_dimensions d on d.lookup_type = v.lookup_type and d.value_source = 'LOOKUP'
+                 where d.dimension_code = :P184_DIMENSION_CODE and v.active_flag = 'Y'
+                 order by 1
+                ```
+        }
+        settings {
+            noOfCols: 3
+        }
+        layout {
+            sequence: 10
+            region: @change
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Tick the values the user gets through this role. For one data object, leave all unticked and Save to follow the default again.
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 10
+            region: @change
+            slot: CHANGE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    process load (
+        name: Load the assignment
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 96: the user, the role and, when a row was chosen, its current values
+                for a in (select ur.user_name, ur.full_name, ur.role_name, ur.application_code
+                            from xxfnd_user_roles_v ur where ur.user_role_id = to_number(:P184_USER_ROLE_ID)) loop
+                    :P184_TITLE    := a.full_name || ' (' || a.user_name || ') - ' || a.role_name;
+                    :P184_ROLE_APP := a.application_code;
+                end loop;
+                if :P184_DIMENSION_CODE is not null then
+                    select max(d.dimension_name) || ' - ' ||
+                           nvl(max(o.object_name), 'all data objects (default)')
+                      into :P184_CHANGE_TITLE
+                      from xxfnd_data_dimensions d
+                      left join xxfnd_data_objects o on o.data_object_code = :P184_DATA_OBJECT_CODE
+                     where d.dimension_code = :P184_DIMENSION_CODE;
+                    if :REQUEST is null or :REQUEST <> 'SAVE' then
+                        :P184_VALUES := replace(xxfnd_vpd_pkg.assignment_values(to_number(:P184_USER_ROLE_ID),
+                                                :P184_DIMENSION_CODE, :P184_DATA_OBJECT_CODE), ',', ':');
+                    end if;
+                end if;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save (
+        name: Save the values
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 96: through the data security package (the role's application only; refused when the
+                -- application keeps its users itself)
+                if xxfnd_user_pkg.managed_in_application(:P184_ROLE_APP) = 'Y' then
+                    raise_application_error(-20074, 'The users of ' || :P184_ROLE_APP || ' are managed in ' || :P184_ROLE_APP || '.');
+                end if;
+                xxfnd_vpd_pkg.set_assignment_values(to_number(:P184_USER_ROLE_ID), :P184_DIMENSION_CODE,
+                                                    :P184_DATA_OBJECT_CODE, replace(:P184_VALUES, ':', ','));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Values saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+)

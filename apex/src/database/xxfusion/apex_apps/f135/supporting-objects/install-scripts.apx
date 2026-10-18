@@ -237,6 +237,23 @@ installScript 09f-central-error-handling (
     }
 )
 
+installScript 09a-security-model (
+    execution {
+        sequence: 94
+    }
+    script {
+        contentFile: 09a-security-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 09b-security-framework-objects (
     execution {
         sequence: 95
@@ -889,6 +906,23 @@ installScript 33-data-model (
     }
     script {
         contentFile: 33-data-model.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 35-security-model-migration (
+    execution {
+        sequence: 230
+    }
+    script {
+        contentFile: 35-security-model-migration.sql
     }
     serverSideCondition {
         type: expression
