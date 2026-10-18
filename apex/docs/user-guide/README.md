@@ -36,3 +36,5 @@ Re-record after a release: `python3 apex/tools/record_user_guide.py` (needs a CO
 | Integrations | Integrations | [integrations.mp4](videos/integrations.mp4) | 01:04 | Endpoints, purposes and the transmission log. |
 
 For developers of other applications: read `COMMON-GUIDE.md` next to this file (the same text as the shared COMMON Application Guide).
+
+KYC application: its own videos and guide are in `kyc/` (README.md, KYC-GUIDE.md).

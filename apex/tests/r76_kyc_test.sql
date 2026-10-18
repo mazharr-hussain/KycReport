@@ -56,25 +56,20 @@ declare
         return sqlcode || ' ' || regexp_substr(substr(sqlerrm, 12), '[^' || chr(10) || ']+');
     end;
     -- a rule without steps that is more specific than the configured rules (it wins while it exists)
+    -- release 93: COMMON's routines and the test helper (common_test_fixtures.sql, COMMON C14), no direct writes
     procedure no_approval_rule(p_type varchar2, p_conds apex_t_varchar2) is
-        l_rule number;
     begin
-        insert into xxfnd_approval_rules (approval_type_code, rule_name, priority, enabled_flag)
-        values (p_type, c_name, 1, 'Y') returning rule_id into l_rule;
-        for c in (select column_value v from table(p_conds)) loop
-            insert into xxfnd_approval_rule_conds (rule_id, attribute_code, attribute_value)
-            values (l_rule, substr(c.v, 1, instr(c.v, '=') - 1), substr(c.v, instr(c.v, '=') + 1));
-        end loop;
+        xxfnd_approval_rule_pkg.register_rule('KYC', p_type, c_name, null, p_conds, 1);
     end;
     procedure cleanup is
     begin
         xxfnd_vpd_pkg.begin_trusted;
-        delete from xxfnd_approval_rule_conds
-         where rule_id in (select rule_id from xxfnd_approval_rules where rule_name = c_name);
-        delete from xxfnd_approval_rules where rule_name = c_name;
-        update xxfnd_approval_rules set enabled_flag = 'Y' where approval_type_code = 'KYC_REQUEST' and enabled_flag = 'N';
-        update xxfnd_user_roles set enabled_flag = 'Y'
-         where role_code in ('COMPLIANCE_OFFICER', 'COMPLIANCE_MANAGER') and enabled_flag = 'N';
+        for t in (select approval_type_code from xxfnd_approval_rules where rule_name = c_name) loop
+            xxfnd_approval_rule_pkg.unregister_rule('KYC', t.approval_type_code, c_name);
+        end loop;
+        xxfusion.xxfnd_test_fixture_pkg.set_rules_enabled('KYC_REQUEST', 'Y');
+        xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_OFFICER', 'Y');
+        xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_MANAGER', 'Y');
         commit;
         xxfnd_vpd_pkg.end_trusted;
     end;
@@ -87,21 +82,21 @@ begin
 
     -- 1. no matching rule: the submit stops with the message (nothing is committed)
     new_request;
-    update xxfnd_approval_rules set enabled_flag = 'N' where approval_type_code = 'KYC_REQUEST';
+    xxfusion.xxfnd_test_fixture_pkg.set_rules_enabled('KYC_REQUEST', 'N');
     l_txt := submit_message;
     ok('no matching rule stops the submit: ' || l_txt, l_txt like '-20531 No approval rule applies%');
     select * into l_r from xxcmp_requests where request_id = l_req;
     ok('the request stays a draft: ' || l_r.request_status, l_r.request_status = 'DRAFT');
-    update xxfnd_approval_rules set enabled_flag = 'Y' where approval_type_code = 'KYC_REQUEST';
+    xxfusion.xxfnd_test_fixture_pkg.set_rules_enabled('KYC_REQUEST', 'Y');
 
     -- 2. a step nobody can approve (no active Compliance officer): the submit stops with the message
-    update xxfnd_user_roles set enabled_flag = 'N' where role_code = 'COMPLIANCE_OFFICER';
+    xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_OFFICER', 'N');
     ok('nobody holds the Compliance officer role now', xxfnd_workflow_pkg.users_in_role('COMPLIANCE_OFFICER') is null);
     l_txt := submit_message;
     ok('a step without an approver stops the submit: ' || l_txt, l_txt like '-20535 The approval step "%" has no approver%');
     select count(*) into l_n from xxfnd_approval_txns where approval_type_code = 'KYC_REQUEST' and txn_id = to_char(l_req);
     ok('no approval was started', l_n = 0);
-    update xxfnd_user_roles set enabled_flag = 'Y' where role_code = 'COMPLIANCE_OFFICER';
+    xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_OFFICER', 'Y');
 
     -- 3. the usual rule (with its step): the request goes to its approver through the workflow
     l_txt := submit_message;
@@ -133,10 +128,10 @@ begin
        xxcmp_case_pkg.approval_required(l_case) = 'N' and l_n = 1);
 
     -- 6. case submit: a level nobody can approve is refused on Submit
-    update xxfnd_user_roles set enabled_flag = 'N' where role_code = 'COMPLIANCE_MANAGER';
+    xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_MANAGER', 'N');
     l_txt := xxfnd_approval_rule_pkg.approval_error('KYC_CASE', apex_t_varchar2('RISK_TIER=HIGH', 'ENHANCED_KYC=N'));
     ok('case approval: a level without an approver gives its message: ' || l_txt, l_txt like 'The approval step "%" has no approver%');
-    update xxfnd_user_roles set enabled_flag = 'Y' where role_code = 'COMPLIANCE_MANAGER';
+    xxfusion.xxfnd_test_fixture_pkg.set_role_enabled('COMPLIANCE_MANAGER', 'Y');
     ok('case approval: no message when every level has an approver',
        xxfnd_approval_rule_pkg.approval_error('KYC_CASE', apex_t_varchar2('RISK_TIER=HIGH', 'ENHANCED_KYC=N')) is null);
 

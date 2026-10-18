@@ -58,7 +58,8 @@ page 40 (
                        t.due_on,
                        t.initiator,
                        t.created_on,
-                       t.details_link_target as open_url
+                       -- release 90 (C12): the link with its checksum, also for another application's task page
+                       apex_util.prepare_url(t.details_link_target) as open_url
                   from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => null)) t
                 ```
         }
