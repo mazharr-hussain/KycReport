@@ -156,6 +156,22 @@ begin
     end if;
 
     xxfnd_ddl_pkg.ensure_sequence('XXFND_APPROVAL_RULE_S', 'create sequence xxfnd_approval_rule_s');
+
+    -- release 94 (UI issue 8): approver types as in AME / BPM - USER (in use now), ROLE, REQUESTER, and the HCM-based
+    -- types kept as placeholders until the HCM data is loaded: POSITION, MANAGER, SUP_HIER (supervisor hierarchy),
+    -- POS_HIER (position hierarchy), AOR (area of responsibility), QUERY (a query returning the approvers);
+    -- APPROVER_VALUE holds their setting (position, levels, query); DUE_DAYS = the step's deadline (days)
+    xxfnd_ddl_pkg.add_column('XXFND_APPROVAL_RULE_STEPS', 'APPROVER_VALUE', 'varchar2(4000)');
+    xxfnd_ddl_pkg.add_column('XXFND_APPROVAL_RULE_STEPS', 'DUE_DAYS', 'number');
+    xxfnd_ddl_pkg.add_column('XXFND_APPROVAL_TXN_STEPS', 'DUE_DAYS', 'number');
+    xxfnd_ddl_pkg.drop_constraint('XXFND_APPROVAL_RULE_STEPS', 'XXFND_APPROVAL_RULE_STEPS_CK1');
+    xxfnd_ddl_pkg.drop_constraint('XXFND_APPROVAL_RULE_STEPS', 'XXFND_APPROVAL_RULE_STEPS_CK2');
+    xxfnd_ddl_pkg.add_constraint('XXFND_APPROVAL_RULE_STEPS', 'XXFND_APPROVAL_RULE_STEPS_CK3',
+        q'~check (approver_type in ('ROLE','USER','REQUESTER','POSITION','MANAGER','SUP_HIER','POS_HIER','AOR','QUERY'))~');
+    xxfnd_ddl_pkg.add_constraint('XXFND_APPROVAL_RULE_STEPS', 'XXFND_APPROVAL_RULE_STEPS_CK4',
+        q'~check ((approver_type = 'ROLE' and role_code is not null) or (approver_type = 'USER' and user_name is not null)
+                  or approver_type in ('REQUESTER','POSITION','MANAGER','SUP_HIER','POS_HIER','AOR','QUERY'))~');
+    xxfnd_ddl_pkg.add_constraint('XXFND_APPROVAL_RULE_STEPS', 'XXFND_APPROVAL_RULE_STEPS_CK5', 'check (due_days > 0)');
 end;
 /
 
@@ -238,6 +254,11 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
     -- Release 76 (F-05): the number of approvals in progress started from a rule (the rule screen's impact preview; a
     -- count only, whatever the administrator's data security on the transactions).
     function open_count(p_rule_id in number) return number;
+    -- Release 94: Y for an approver type in use; N for a placeholder type (needs the HCM data, not available yet).
+    function approver_type_available(p_approver_type in varchar2) return varchar2;
+    -- Release 94: the due date of the current step when its rule step has a deadline (DUE_DAYS), else null (the
+    -- process deadline of Workflow Setup > Deadlines and Escalation applies).
+    function step_due_date(p_type in varchar2, p_txn_id in varchar2) return timestamp with time zone;
     -- Display name of an approver (role name, user name or "Requester").
     function approver_label(p_approver_type in varchar2, p_role_code in varchar2, p_user_name in varchar2) return varchar2;
     -- Release 86: an application's default rule for one of its transaction types (REGISTER_TYPE), added only while the
@@ -351,6 +372,12 @@ create or replace package body xxfnd_approval_rule_pkg as
         if l_rule is null then
             return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_RULE', apex_t_varchar2(p_type));
         end if;
+        -- release 94: a placeholder approver type cannot route yet (its HCM data is not loaded)
+        for s in (select step_name, approver_type from xxfnd_approval_rule_steps
+                   where rule_id = l_rule and approver_type_available(approver_type) = 'N' order by step_no) loop
+            return 'Step "' || s.step_name || '" uses the approver type ' || approver_label(s.approver_type, null, null)
+                || ', which is not available yet. Change the step in Approval Setup to a user (or a role).';
+        end loop;
         for s in (select step_name, role_code from xxfnd_approval_rule_steps
                    where rule_id = l_rule and approver_type = 'ROLE' order by step_no) loop
             if xxfnd_workflow_pkg.users_in_role(s.role_code) is null then
@@ -378,9 +405,9 @@ create or replace package body xxfnd_approval_rule_pkg as
         insert into xxfnd_approval_txns (approval_type_code, txn_id, rule_id, rule_name, requester)
         values (upper(p_type), p_txn_id, l_rule, l_name, upper(p_requester));
         insert into xxfnd_approval_txn_steps (approval_type_code, txn_id, step_seq, step_name, approver_type, role_code,
-                                              user_name, source)
+                                              user_name, source, due_days)
         select upper(p_type), p_txn_id, row_number() over (order by step_no) * 10, step_name, approver_type, role_code,
-               user_name, 'RULE'
+               user_name, 'RULE', due_days
           from xxfnd_approval_rule_steps where rule_id = l_rule;
         select min(step_seq) into l_first from xxfnd_approval_txn_steps
          where approval_type_code = upper(p_type) and txn_id = p_txn_id;
@@ -497,6 +524,18 @@ create or replace package body xxfnd_approval_rule_pkg as
             raise;
     end open_count;
 
+    function approver_type_available(p_approver_type in varchar2) return varchar2 is
+    begin
+        -- release 94: the HCM-based types are placeholders; their resolvers come with the HCM tables
+        return case when upper(p_approver_type) in ('USER', 'ROLE', 'REQUESTER') then 'Y' else 'N' end;
+    end approver_type_available;
+
+    function step_due_date(p_type in varchar2, p_txn_id in varchar2) return timestamp with time zone is
+        l xxfnd_approval_txn_steps%rowtype := step(p_type, p_txn_id);
+    begin
+        return case when l.due_days is not null then systimestamp + numtodsinterval(l.due_days, 'DAY') end;
+    end step_due_date;
+
     function approver_label(p_approver_type in varchar2, p_role_code in varchar2, p_user_name in varchar2) return varchar2 is
         l_name xxfnd_roles.role_name%type;
     begin
@@ -505,6 +544,11 @@ create or replace package body xxfnd_approval_rule_pkg as
             return nvl(l_name, p_user_name);
         elsif p_approver_type = 'REQUESTER' then
             return 'Requester';
+        elsif p_approver_type in ('POSITION', 'MANAGER', 'SUP_HIER', 'POS_HIER', 'AOR', 'QUERY') then
+            return case p_approver_type when 'POSITION' then 'Position' when 'MANAGER' then 'Manager'
+                                        when 'SUP_HIER' then 'Supervisor hierarchy' when 'POS_HIER' then 'Position hierarchy'
+                                        when 'AOR' then 'Area of responsibility' else 'Query' end
+                   || ' (not available yet)';
         end if;
         select max(role_name) into l_name from xxfnd_roles where role_code = p_role_code;
         return nvl(l_name, p_role_code);
@@ -702,3 +746,16 @@ using (select 'XXFND_APPROVAL_NO_RULE' code, 'No approval rule applies to this {
    on (d.message_code = s.code and d.language_code = 'en')
  when not matched then insert (message_code, language_code, message_text, error_number) values (s.code, 'en', s.txt, s.num);
 commit;
+
+-- release 94 (UI issue 8): a placeholder approver type (HCM-based: position, manager, hierarchies, AOR, query) is listed
+-- on the rule screen but cannot be saved until its resolver exists
+create or replace trigger xxfnd_approval_rule_steps_type
+    before insert or update of approver_type on xxfnd_approval_rule_steps
+    for each row
+begin
+    if xxfnd_approval_rule_pkg.approver_type_available(:new.approver_type) = 'N' then
+        raise_application_error(-20536, 'The approver type ' || xxfnd_approval_rule_pkg.approver_label(:new.approver_type, null, null)
+            || ' is not available yet: it needs the HCM data (positions, managers, areas of responsibility). Choose a user, a role or the requester.');
+    end if;
+end;
+/

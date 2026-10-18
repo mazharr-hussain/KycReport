@@ -225,7 +225,7 @@ page 149 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select rule_step_id, rule_id, step_no, step_name, approver_type, role_code, user_name
+                select rule_step_id, rule_id, step_no, step_name, approver_type, role_code, user_name, due_days
                   from xxfnd_approval_rule_steps
                  where rule_id = :P149_RULE_ID
                 ```
@@ -305,6 +305,13 @@ page 149 (
                 column: @USER_NAME
                 layout {
                     sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @DUE_DAYS
+                layout {
+                    sequence: 6
                 }
             )
         )
@@ -394,9 +401,17 @@ page 149 (
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    select d, r from (select 'A role' d, 'ROLE' r, 1 s from dual union all
-                                      select 'A user', 'USER', 2 from dual union all
-                                      select 'The requester', 'REQUESTER', 3 from dual)
+                    select d, r from (select 'A user' d, 'USER' r, 1 s from dual union all
+                                      select 'A role', 'ROLE', 2 from dual union all
+                                      select 'The requester', 'REQUESTER', 3 from dual union all
+                                      -- release 94 (UI issue 8): approver types of AME / BPM, kept as placeholders until
+                                      -- the HCM data is loaded (saving one is refused with a message)
+                                      select 'Position (not available yet)', 'POSITION', 4 from dual union all
+                                      select 'Manager (not available yet)', 'MANAGER', 5 from dual union all
+                                      select 'Supervisor hierarchy (not available yet)', 'SUP_HIER', 6 from dual union all
+                                      select 'Position hierarchy (not available yet)', 'POS_HIER', 7 from dual union all
+                                      select 'Area of responsibility (not available yet)', 'AOR', 8 from dual union all
+                                      select 'Query (not available yet)', 'QUERY', 9 from dual)
                      order by s
                     ```
             }
@@ -456,6 +471,24 @@ page 149 (
                 type: databaseColumn
                 databaseColumn: USER_NAME
                 dataType: varchar2
+            }
+        )
+
+        column DUE_DAYS (
+            type: numberField
+            heading {
+                heading: Deadline (days)
+            }
+            layout {
+                sequence: 80
+            }
+            help {
+                helpText: Release 94 - the step's deadline in days from when it starts; empty = the process deadline (Workflow Setup, Deadlines and Escalation).
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DUE_DAYS
+                dataType: number
             }
         )
     )
