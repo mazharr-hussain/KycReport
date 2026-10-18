@@ -120,3 +120,45 @@ appItem NOTIFY_COUNT (
             ```
     }
 )
+
+
+appItem G_APP_TITLE (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the name at the top of the page - COMMON's name, or on My Tasks (40) the application the user came from.
+            ```
+    }
+)
+
+
+appItem G_FROM_APP_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the application My Tasks (40) was opened from (read from the referring page); empty when opened in COMMON.
+            ```
+    }
+)
+
+
+appItem G_HOME_URL (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the Home link of My Tasks (40) - the home page of the application it was opened from, else COMMON Home.
+            ```
+    }
+)

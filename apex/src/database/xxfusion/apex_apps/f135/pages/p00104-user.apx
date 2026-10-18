@@ -45,7 +45,7 @@ page 104 (
     )
 
     region user (
-        name: User
+        name: &P104_TITLE.
         type: staticContent
         layout {
             sequence: 20
@@ -125,10 +125,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: true
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         validation {
             valueRequired: true
@@ -165,10 +170,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         serverSideCondition {
             type: itemIsNull
@@ -189,10 +199,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         readOnly {
             type: itemIsNotNull
@@ -213,10 +228,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         serverSideCondition {
             type: itemIsNotNull
@@ -237,10 +257,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: true
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         readOnly {
             type: expression
@@ -265,10 +290,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         readOnly {
             type: expression
@@ -293,10 +323,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         serverSideCondition {
             type: expression
@@ -335,10 +370,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: true
+            columnSpan: 4
         }
         appearance {
             template: @/required-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         validation {
             valueRequired: true
@@ -358,10 +398,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         help {
             helpText: Leave empty for no end. After this date the user cannot sign in and holds no access.
@@ -378,10 +423,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 4
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         serverSideCondition {
             type: itemIsNotNull
@@ -402,10 +452,15 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
+            startNewRow: true
+            columnSpan: 12
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         help {
             helpText: Why this user exists or anything an administrator should know.
@@ -417,7 +472,7 @@ page 104 (
         layout {
             sequence: 10
             region: @user
-            slot: CLOSE
+            slot: PREVIOUS
         }
         appearance {
             buttonTemplate: @/text
@@ -483,9 +538,9 @@ page 104 (
         buttonName: RESET_PASSWORD
         label: Reset Password
         layout {
-            sequence: 40
+            sequence: 15
             region: @user
-            slot: EDIT
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -514,9 +569,9 @@ page 104 (
         buttonName: DISABLE
         label: Disable
         layout {
-            sequence: 50
+            sequence: 16
             region: @user
-            slot: EDIT
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -545,9 +600,9 @@ page 104 (
         buttonName: ENABLE
         label: Enable
         layout {
-            sequence: 60
+            sequence: 17
             region: @user
-            slot: EDIT
+            slot: NEXT
         }
         appearance {
             buttonTemplate: @/text
@@ -593,7 +648,7 @@ page 104 (
     )
 
     region tab-roles (
-        name: Roles and privileges
+        name: Roles
         type: staticContent
         layout {
             sequence: 10
@@ -606,6 +661,22 @@ page 104 (
         }
         advanced {
             htmlDomId: tab_roles
+        }
+    )
+    region tab-privileges (
+        name: Privileges
+        type: staticContent
+        layout {
+            sequence: 15
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_privileges
         }
     )
     region tab-data (
@@ -674,6 +745,15 @@ page 104 (
         }
         advanced {
             htmlDomId: user_applications
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 98 (UI issue 15): the user's applications are managed in COMMON only, not in an application administrator's scope
+                :G_ADMIN_APP = 'ALL'
+                ```
         }
         messages {
             whenNoDataFound: No application yet: assigning a role of an application gives access to it.
@@ -934,50 +1014,62 @@ page 104 (
         )
     )
     region privileges (
-        name: Privileges these roles give
-        type: classicReport
+        name: Privileges
+        type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- the privileges the user holds through the roles above
-                select distinct f.feature_name, p.action_code, p.privilege_code
-                  from xxfnd_user_roles_v ur
-                  join xxfnd_role_privileges rp on rp.role_code = ur.role_code
-                  join xxfnd_privileges p on p.privilege_code = rp.privilege_code
-                  join xxfnd_features f on f.feature_code = p.feature_code
-                 where ur.user_id = :P104_USER_ID
-                   and ur.active_flag = 'Y'
-                 order by f.feature_name, p.action_code
+                -- release 98 (UI issue 16): every privilege the user holds, with the assigned role that gives it (and the role
+                -- inside it, when it comes from there) and its application; filter on Role or Application
+                select distinct f.feature_name, p.action_code, p.privilege_code,
+                       ar.role_name,
+                       case when t.role_code <> t.assigned_role_code then gr.role_name end as through_role,
+                       ar.application_code
+                  from xxfnd_user_role_tree_v t
+                  join xxfnd_roles ar           on ar.role_code = t.assigned_role_code
+                  join xxfnd_roles gr           on gr.role_code = t.role_code
+                  join xxfnd_role_privileges rp on rp.role_code = t.role_code
+                  join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                  join xxfnd_features f         on f.feature_code = p.feature_code
+                 where t.user_id = :P104_USER_ID
+                   and t.active_flag = 'Y'
+                   and (:G_ADMIN_APP = 'ALL' or ar.application_code in (:G_ADMIN_APP, 'COMMON'))
                 ```
             pageItemsToSubmit: [
                 P104_USER_ID
             ]
         }
         layout {
-            sequence: 20
-            parentRegion: @tab-roles
+            sequence: 10
+            parentRegion: @tab-privileges
             slot: subRegions
         }
         appearance {
-            template: @/standard
+            template: @/interactive-report
             templateOptions: #DEFAULT#
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--horizontalBorders
-            ]
-            showNullValuesAs: -
         }
         advanced {
             htmlDomId: user_privileges
         }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
         messages {
             whenNoDataFound: No privileges.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
         }
 
         column FEATURE_NAME (
@@ -987,6 +1079,9 @@ page 104 (
             }
             layout {
                 sequence: 10
+            }
+            source {
+                dataType: STRING
             }
         )
 
@@ -998,6 +1093,9 @@ page 104 (
             layout {
                 sequence: 20
             }
+            source {
+                dataType: STRING
+            }
         )
 
         column PRIVILEGE_CODE (
@@ -1007,6 +1105,48 @@ page 104 (
             }
             layout {
                 sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column THROUGH_ROLE (
+            type: plainText
+            heading {
+                heading: Through Role Inside
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
             }
         )
     )
