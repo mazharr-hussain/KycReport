@@ -5,7 +5,7 @@
 set serveroutput on size unlimited feedback off
 @@test_users.sql
 begin
-    delete from xxfnd_wf_delegations;
+    xxfusion.xxfnd_test_fixture_pkg.clear_delegations;   -- release 93: test helper (common_test_fixtures.sql, COMMON C13)
     commit;
 end;
 /
@@ -117,8 +117,7 @@ begin
     ok('and the workflow ends: ' || xxfnd_workflow_pkg.state(l_wf), xxfnd_workflow_pkg.state(l_wf) = 'COMPLETED');
 
     ------------------------------------------------------------ delegation
-    insert into xxfnd_wf_delegations (delegator_user_name, delegate_user_name, start_date, end_date, reason)
-    values ('REQ1', 'REQ2', trunc(sysdate), trunc(sysdate) + 7, 'Annual leave');
+    xxfusion.xxfnd_test_fixture_pkg.add_delegation('REQ1', 'REQ2', trunc(sysdate), trunc(sysdate) + 7, 'Annual leave');
     xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Second request while REQ1 is away.', 'Y', trunc(sysdate) + 5,
                              p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi2, p_token => l_token);
@@ -139,7 +138,7 @@ begin
     ok('cancelling the RFI ends its workflow (' || xxfnd_workflow_pkg.state(l_wf) || ') and its task (' || nvl(l_state, 'removed') || ')',
        xxfnd_workflow_pkg.state(l_wf) in ('TERMINATED', 'COMPLETED')
        and (l_state is null or l_state not in ('UNASSIGNED', 'ASSIGNED')));
-    delete from xxfnd_wf_delegations;
+    xxfusion.xxfnd_test_fixture_pkg.clear_delegations;
     commit;
 
     ------------------------------------------------------- maker-checker change

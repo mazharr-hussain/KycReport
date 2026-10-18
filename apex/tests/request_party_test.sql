@@ -220,17 +220,16 @@ begin
     ---------------------------------------------------------------- approval path from setup (release 74: the common Approval Setup)
     -- release 90: a run stopped by an error left its test rule behind (priority 1: every AE organisation request then
     -- had two steps in the other tests); the test's own rule is removed at the end, so a leftover one goes here
-    delete from xxfnd_approval_rules
-     where approval_type_code = 'KYC_REQUEST' and rule_name like 'Test %' and priority = 1
-       and exists (select 1 from xxfnd_approval_rule_steps s where s.rule_id = xxfnd_approval_rules.rule_id
-                    and s.step_name = 'Finance sign-off');
-    insert into xxfnd_approval_rules (approval_type_code, rule_name, priority)
-    values ('KYC_REQUEST', 'Test ' || l_tag, 1) returning rule_id into l_rule;
-    insert into xxfnd_approval_rule_conds (rule_id, attribute_code, attribute_value)
-    select l_rule, 'PARTY_TYPE', 'ORGANIZATION' from dual union all select l_rule, 'JURISDICTION', 'AE' from dual;
-    insert into xxfnd_approval_rule_steps (rule_id, step_no, step_name, approver_type, role_code, user_name)
-    select l_rule, 1, 'Compliance check', 'ROLE', 'COMPLIANCE_OFFICER', null from dual union all
-    select l_rule, 2, 'Finance sign-off', 'USER', null, 'REQ1' from dual;
+    -- release 93: COMMON's routines (no direct writes since COMMON 88)
+    for r in (select rule_name from xxfnd_approval_rules
+               where approval_type_code = 'KYC_REQUEST' and rule_name like 'Test %' and priority = 1
+                 and exists (select 1 from xxfnd_approval_rule_steps s where s.rule_id = xxfnd_approval_rules.rule_id
+                              and s.step_name = 'Finance sign-off')) loop
+        xxfnd_approval_rule_pkg.unregister_rule('KYC', 'KYC_REQUEST', r.rule_name);
+    end loop;
+    xxfnd_approval_rule_pkg.register_rule('KYC', 'KYC_REQUEST', 'Test ' || l_tag,
+        apex_t_varchar2('Compliance check=ROLE=COMPLIANCE_OFFICER', 'Finance sign-off=USER=REQ1'),
+        apex_t_varchar2('PARTY_TYPE=ORGANIZATION', 'JURISDICTION=AE'), 1);
     l_req2 := null;
     save_org(l_req2, 'Path Org ' || l_tag, 'PA-' || l_tag);
     ok('before submit: the expected path lists both steps',
@@ -286,7 +285,7 @@ begin
     ok('the case carries the business relationship of the request', l_cnt = 1);
     ok('history shows the submit and the approvals',
        history_has(l_req2, 'Submitted'));
-    delete from xxfnd_approval_rules where rule_id = l_rule;
+    xxfnd_approval_rule_pkg.unregister_rule('KYC', 'KYC_REQUEST', 'Test ' || l_tag);
     commit;
     apex_session.delete_session;
 end;

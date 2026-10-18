@@ -18,8 +18,11 @@ declare
     end;
     procedure switch(p_flag varchar2) is
     begin
-        execute immediate 'update xxfnd_workflow_processes set workflow_enabled_flag = :f
-                            where application_code = ''KYC'' and process_code = ''KYC_REQUEST''' using p_flag;
+        -- release 93: COMMON's routine (no direct writes since COMMON 88); install mode, as the installer does, because the
+        -- test runs in REQ1's APEX session and the switch is Workflow Setup's
+        xxfnd_util_pkg.set_install_mode(true);
+        xxfnd_workflow_pkg.set_process_enabled('KYC', 'KYC_REQUEST', p_flag);
+        xxfnd_util_pkg.set_install_mode(false);
         commit;
     end;
 begin

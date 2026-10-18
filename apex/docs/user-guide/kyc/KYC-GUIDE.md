@@ -109,13 +109,13 @@ KYC opens these COMMON screens in the same session; they look and work the same 
 | alert-rules.mp4 | 0:42 | HOC1 |
 | dashboard.mp4 | 0:25 | MGR1 |
 
-**Known issues** (found while recording; KYC itself was not changed):
+**Issues found while recording, now fixed:**
 
-| Issue | Effect | Until it is fixed |
+| Issue | Was | Fixed in |
 | --- | --- | --- |
-| COMMON C12 | COMMON's My Tasks opens a KYC task page (206, 211) without a checksum, and KYC refuses it ("Session state protection violation") | Open KYC tasks from KYC Home > My Tasks |
-| KYC 16l | On COMMON 88 and later, the KYC install cannot create its approval types and rules: script 16l writes COMMON's tables directly, which COMMON refuses | Register them with COMMON's routines (REGISTER\_TYPE, REGISTER\_DEFAULT\_RULE, REGISTER\_RULE), as was done for the recording; the KYC adoption release changes 16l to do this |
-| KYC tests | The KYC test scripts (test users, several DB tests) also write COMMON tables directly, so they fail on COMMON 88 and later | Create the test users as XXFUSION; the KYC adoption release moves the tests to COMMON's routines |
+| COMMON C12 | COMMON's My Tasks opened a KYC task page (206, 211) without a checksum ("Session state protection violation") | COMMON 90 (patch 103) |
+| KYC 16l | On COMMON 88 and later the KYC install could not create its approval rules (direct writes to COMMON) | KYC 93 (patch 104): COMMON's REGISTER\_\* routines |
+| KYC tests | Six KYC tests wrote COMMON tables directly | KYC 93 (patch 104): COMMON routines, plus a test-only helper where COMMON has no routine yet (C13, C14) |
 
 | What | Where |
 | --- | --- |
