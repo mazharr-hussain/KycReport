@@ -6,7 +6,7 @@ Issues reported after the plan are recorded here only; they get their own plan a
 | # | App | Screen | Issue | Status |
 |---|---|---|---|---|
 | 1 | COMMON | Home (1) | "Open Tasks" KPI too small | Done (COMMON 91, patch 105) |
-| 2 | COMMON | Application Journey (165) | Steps only explain; roles, users, notifications, document storage, integrations should be set up in the wizard | Planned (COMMON 95) |
+| 2 | COMMON | Application Journey (165) | Steps only explain; roles, users, notifications, document storage, integrations should be set up in the wizard | Done (COMMON 95, patch 110) |
 | 3 | COMMON | User (104) | Page error on P104_EMPLOYEE_ID (PLS-00428) | Done (COMMON 91, patch 105) |
 | 4 | COMMON | Privileges (182), Segregation of Duties (107) | Rows must show / belong to their application | Done (COMMON 91, patch 105) |
 | 5 | COMMON | Lookup Type (102) | Customization Level not needed on the screen | Done (COMMON 91, patch 105) |

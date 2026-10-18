@@ -382,7 +382,7 @@ page 165 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '3'
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '1'   -- release 95: chosen with the application
                 ```
         }
     )
@@ -416,7 +416,7 @@ page 165 (
             templateOptions: #DEFAULT#
         }
         help {
-            helpText: The first administrator of the application: Register gives this user the application's administrator role. Leave empty to assign users after registering (Users step).
+            helpText: The first administrator of the application. Next registers the application and gives this user its administrator role; the following steps then add its roles, users, notifications, document storage and integrations.
         }
     )
 
@@ -1000,17 +1000,13 @@ page 165 (
                     end if;
                     :P0_JRN_APP := case when :P165_REGISTERED = 'Y' then :P165_APPLICATION_CODE end;
                     :P0_JRN_KEY := null;
+                    -- release 95 (UI issue 2): the application is registered when step 1 is left (Next); every following
+                    -- step then sets up its part directly (the Global Page journey regions of a registered application)
                     :P165_STEP_NOTE := case when :P165_REGISTERED = 'Y' then null
-                                            else case :P165_STEP
-                        when '2' then 'Roles are added once the application is registered. Register creates its administrator role.'
-                        when '3' then 'Choose the first administrator; other users are assigned to the roles after registering.'
-                        when '5' then 'Which setup the application may keep of its own is set per setup type after registering.'
-                        when '6' then 'Choose the workflow processes to switch on; the others start switched off.'
-                        when '7' then 'Register switches the standard notifications on; each can be switched off here afterwards.'
-                        when '8' then 'Until a storage is set, the documents are kept in the database. Storage is set after registering.'
-                        when '9' then 'Integration purposes are added after registering.'
-                        when '10' then 'Check the choices, then Register. Nothing is saved before.'
-                    end end;
+                                            when :P165_STEP = '1' then 'Next registers the application with its administrator. '
+                                                || 'The next steps then add its roles, users, shared functions, setup types, processes, '
+                                                || 'notifications, document storage and integrations directly.'
+                                       end;
                 end;
                 ```
         }
@@ -1046,6 +1042,9 @@ page 165 (
                                where column_value is not null) loop
                         xxfnd_workflow_pkg.set_process_enabled(:P165_APPLICATION_CODE, p.process_code, 'Y');
                     end loop;
+                    -- release 95: the journey goes on with the registered application (its setup regions)
+                    :P165_REGISTERED := 'Y';
+                    :P0_JRN_APP      := :P165_APPLICATION_CODE;
                 end;
                 ```
         }
@@ -1061,7 +1060,8 @@ page 165 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :REQUEST = 'CREATE' and nvl(:P165_REGISTERED, 'N') = 'N'
+                nvl(:P165_REGISTERED, 'N') = 'N'
+                and (:REQUEST = 'CREATE' or (:REQUEST = 'NEXT' and :P165_STEP = '1'))   -- release 95: on leaving step 1
                 ```
         }
         security {
