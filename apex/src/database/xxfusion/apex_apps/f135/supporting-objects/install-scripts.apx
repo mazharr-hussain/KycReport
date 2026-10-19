@@ -967,3 +967,20 @@ installScript 99-sharing-with-the-applications-last (
             ```
     }
 )
+
+installScript 99z-hr-tables-old-names-dropped (
+    execution {
+        sequence: 995
+    }
+    script {
+        contentFile: 99z-hr-old-names-drop.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)

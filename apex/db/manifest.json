@@ -724,5 +724,14 @@
   "apps": [
    "COMMON"
   ]
+ },
+ {
+  "name": "99z HR tables - old names dropped",
+  "file": "99z-hr-old-names-drop.sql",
+  "install_sequence": 995,
+  "upgrade_sequence": 995,
+  "apps": [
+   "COMMON"
+  ]
  }
 ]
