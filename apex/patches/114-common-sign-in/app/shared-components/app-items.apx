@@ -1,0 +1,178 @@
+appItem G_GIVEN_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's given_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_MIDDLE_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's middle_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_FAMILY_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's family_name (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_LOCALE (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's locale (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_ZONEINFO (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's zoneinfo (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+
+appItem G_EMAIL (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Identity-domain sign-in: the user's email (Map Additional User Attributes To of APEX_FA_IABWBN-DEV1_OAUTH).
+            ```
+    }
+)
+
+appItem G_ADMIN_APP (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Application (code) the COMMON setup screens work for: ALL (every application), or the application that opened a setup screen for itself (page 99, G_ADMIN_LOCK = Y).
+            ```
+    }
+)
+
+appItem G_ADMIN_LOCK (
+    scope: app
+    security {
+        sessionStateProtection: unrestricted
+    }
+    comments {
+        comments:
+            ```
+            Y when another application opened a COMMON setup screen for its own application (G_ADMIN_APP): delegated mode.
+            ```
+    }
+)
+
+
+appItem NOTIFY_COUNT (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 84: the signed-in person's unread notifications (the badge of the bell in the navigation bar); empty when none.
+            ```
+    }
+)
+
+
+appItem G_APP_TITLE (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the name at the top of the page - COMMON's name, or on My Tasks (40) the application the user came from.
+            ```
+    }
+)
+
+
+appItem G_FROM_APP_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the application My Tasks (40) was opened from (read from the referring page); empty when opened in COMMON.
+            ```
+    }
+)
+
+
+appItem G_HOME_URL (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 97: the Home link of My Tasks (40) - the home page of the application it was opened from, else COMMON Home.
+            ```
+    }
+)
+
+
+appItem G_RETURN_APP (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 99: the application (alias) the shared login page was opened for; COMMON Home sends the user to its home page once after the sign-in.
+            ```
+    }
+)
