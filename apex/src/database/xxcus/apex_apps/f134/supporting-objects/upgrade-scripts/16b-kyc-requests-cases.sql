@@ -366,14 +366,16 @@ create or replace package xxcmp_request_pkg authid definer as
 
     -- release 90: QUESTIONNAIRE_FOR and CREATE_REQUEST are private (used only inside the package).
 
-    -- Requesting department of the signed-in user: the department of the employee profile (matched to the
-    -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
-    function default_department return varchar2;
+    -- Requesting department of the signed-in user: the department of the employee profile (release 96: matched to a
+    -- COMMON department, XXHR_ORGANIZATIONS of type DEPARTMENT, by code or name; its ORGANIZATION_ID), or null.
+    function default_department return number;
+    -- Release 96: the name of a requesting department (XXHR_ORGANIZATIONS.ORGANIZATION_ID), or null.
+    function department_name(p_department_id in number) return varchar2;
     -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
     -- department of the employee profile (when the profile has one).
     function can_choose_department return varchar2;
-    -- Release 76: the requesting departments the user's data security allows (rule "column in list" on
-    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT, e.g. role Requesting Entity - Finance): null = any department,
+    -- Release 76: the requesting departments the user's data security allows (release 96: their IDs, column
+    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT_ID, e.g. role Requesting Entity - Finance): null = any department,
     -- '#NONE' = none; Create Request lists them and SAVE_REQUEST refuses any other (KYC_REQUEST_DEPT_NOT_ALLOWED).
     function allowed_departments return varchar2;
 
@@ -414,7 +416,7 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_phone                 in varchar2,
                            p_website               in varchar2,
                            p_fax                   in varchar2,
-                           p_requesting_department in varchar2,
+                           p_requesting_department_id in number,
                            p_justification         in varchar2,
                            p_draft                 in varchar2 default 'N',
                            p_contact_name          in varchar2 default null,

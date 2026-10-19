@@ -1,0 +1,1095 @@
+page 149 (
+    name: Approval Rule
+    alias: APPROVAL-RULE
+    title: Approval Rule
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+            js-dialog-class-t-Drawer--lg
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: A rule of a process: when its conditions match a transaction (every attribute listed has one of its values), its approvers approve in order. The rule matching most attributes applies; then the lowest priority. A rule without conditions applies to every transaction no other rule matches.
+    }
+
+    region form (
+        name: Rule
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_APPROVAL_RULES
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: form
+        }
+    )
+
+    region conditions (
+        name: When (conditions)
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select condition_id, rule_id, attribute_code, attribute_value
+                  from xxfnd_approval_rule_conds
+                 where rule_id = :P149_RULE_ID
+                ```
+            pageItemsToSubmit: P149_RULE_ID
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: conditions
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No condition: the rule applies to every transaction no other rule matches.
+        }
+        toolbar {
+            controls: [
+                actionsMenu
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @ATTRIBUTE_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @ATTRIBUTE_VALUE
+                layout {
+                    sequence: 2
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column CONDITION_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CONDITION_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column RULE_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RULE_ID
+                dataType: number
+            }
+            default {
+                type: item
+                item: P149_RULE_ID
+            }
+        )
+
+        column ATTRIBUTE_CODE (
+            type: selectList
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 30
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select attribute_name as display_value, attribute_code as return_value
+                      from xxfnd_approval_type_attrs
+                     where approval_type_code = :P149_APPROVAL_TYPE_CODE
+                     order by display_sequence
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ATTRIBUTE_CODE
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column ATTRIBUTE_VALUE (
+            type: selectList
+            heading {
+                heading: Value
+            }
+            layout {
+                sequence: 40
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select v.meaning as display_value, v.lookup_code as return_value
+                      from xxfnd_lookup_values_vl v
+                      join xxfnd_approval_type_attrs a on a.lookup_type = v.lookup_type
+                     where a.approval_type_code = :P149_APPROVAL_TYPE_CODE and a.attribute_code = :ATTRIBUTE_CODE
+                       and v.active_flag = 'Y'
+                     order by v.display_sequence, v.meaning
+                    ```
+            }
+            cascadingLov {
+                parentColumns: ATTRIBUTE_CODE
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ATTRIBUTE_VALUE
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+    )
+
+    region approvers (
+        name: Approvers (in order)
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select rule_step_id, rule_id, step_no, step_name, approver_type, role_code, user_name, due_days
+                  from xxfnd_approval_rule_steps
+                 where rule_id = :P149_RULE_ID
+                ```
+            pageItemsToSubmit: P149_RULE_ID
+        }
+        layout {
+            sequence: 30
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: approvers
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        pagination {
+            type: page
+        }
+        messages {
+            whenNoDataFound: No approver yet: add at least one.
+        }
+        toolbar {
+            controls: [
+                actionsMenu
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @STEP_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @STEP_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @APPROVER_TYPE
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ROLE_CODE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @USER_NAME
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @DUE_DAYS
+                layout {
+                    sequence: 6
+                }
+            )
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column RULE_STEP_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RULE_STEP_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column RULE_ID (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: RULE_ID
+                dataType: number
+            }
+            default {
+                type: item
+                item: P149_RULE_ID
+            }
+        )
+
+        column STEP_NO (
+            type: numberField
+            heading {
+                heading: Order
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: STEP_NO
+                dataType: number
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column STEP_NAME (
+            type: textField
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: STEP_NAME
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+                maxLength: 100
+            }
+        )
+
+        column APPROVER_TYPE (
+            type: selectList
+            heading {
+                heading: Approver
+            }
+            layout {
+                sequence: 50
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select d, r from (select 'A user' d, 'USER' r, 1 s from dual union all
+                                      select 'A role', 'ROLE', 2 from dual union all
+                                      select 'The requester', 'REQUESTER', 3 from dual union all
+                                      -- release 94 (UI issue 8): approver types of AME / BPM, kept as placeholders until
+                                      -- the HCM data is loaded (saving one is refused with a message)
+                                      select 'Position (not available yet)', 'POSITION', 4 from dual union all
+                                      select 'Manager (not available yet)', 'MANAGER', 5 from dual union all
+                                      select 'Supervisor hierarchy (not available yet)', 'SUP_HIER', 6 from dual union all
+                                      select 'Position hierarchy (not available yet)', 'POS_HIER', 7 from dual union all
+                                      select 'Area of responsibility (not available yet)', 'AOR', 8 from dual union all
+                                      select 'Query (not available yet)', 'QUERY', 9 from dual)
+                     order by s
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: APPROVER_TYPE
+                dataType: varchar2
+            }
+            validation {
+                valueRequired: true
+            }
+        )
+
+        column ROLE_CODE (
+            type: selectList
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 60
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select role_name as display_value, role_code as return_value
+                      from xxfnd_roles
+                     order by role_name
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ROLE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
+            type: selectList
+            heading {
+                heading: User
+            }
+            layout {
+                sequence: 70
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                      from xxhr_employees
+                     where user_name is not null
+                     order by 1
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column DUE_DAYS (
+            type: numberField
+            heading {
+                heading: Deadline (days)
+            }
+            layout {
+                sequence: 80
+            }
+            help {
+                helpText: Release 94 - the step's deadline in days from when it starts; empty = the process deadline (Workflow Setup, Deadlines and Escalation).
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DUE_DAYS
+                dataType: number
+            }
+        )
+    )
+
+    region test-rule (
+        name: Test the Rules
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 82: the approvers a record with these attributes would get, in order, before any record uses the rules
+                select s.position,
+                       s.step_name,
+                       xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name) as approver,
+                       (select r.rule_name from xxfnd_approval_rules r
+                         where r.rule_id = xxfnd_approval_rule_pkg.matching_rule(:P149_APPROVAL_TYPE_CODE,
+                                                                                  apex_string.split(:P149_TEST_ATTRIBUTES, chr(10)))) as matched_rule
+                  from table(xxfnd_approval_rule_pkg.steps(:P149_APPROVAL_TYPE_CODE, null,
+                                                           apex_string.split(:P149_TEST_ATTRIBUTES, chr(10)))) s
+                 where :P149_TEST_ATTRIBUTES is not null
+                ```
+            pageItemsToSubmit: [
+                P149_APPROVAL_TYPE_CODE
+                P149_TEST_ATTRIBUTES
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: test-rule
+        }
+        messages {
+            whenNoDataFound: Enter the attributes and press Test: no rule matches, or the rule has no approver step (approved at once).
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P149_APPROVAL_TYPE_CODE is not null
+                ```
+        }
+
+        column POSITION (
+            type: plainText
+            heading {
+                heading: Order
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPROVER (
+            type: plainText
+            heading {
+                heading: Approver
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column MATCHED_RULE (
+            type: plainText
+            heading {
+                heading: Matching Rule
+            }
+            layout {
+                sequence: 40
+            }
+        )
+    )
+
+    pageItem P149_TEST_ATTRIBUTES (
+        type: textarea
+        label {
+            label: Attributes
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @test-rule
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: One attribute per line as CODE=value, for example RISK_TIER=HIGH. The codes are the attributes of the process (shown in the conditions above).
+        }
+    )
+
+    button test-rule (
+        buttonName: TEST_RULE
+        label: Test
+        layout {
+            sequence: 10
+            region: @test-rule
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    dynamicAction test-rule (
+        name: Test the rules
+        execution {
+            sequence: 50
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @test-rule
+        }
+
+        action test-rule-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @test-rule
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P149_RULE_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        source {
+            formRegion: @form
+            column: RULE_ID
+            dataType: number
+            primaryKey: true
+        }
+        sessionState {
+            storage: session
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P149_APPROVAL_TYPE_CODE (
+        type: selectList
+        label {
+            label: Process
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select approval_type_name || ' (' || application_code || ')' as display_value,
+                       approval_type_code as return_value
+                  from xxfnd_approval_types
+                 where enabled_flag = 'Y' and (:G_ADMIN_APP = 'ALL' or application_code = :G_ADMIN_APP)
+                 order by application_code, approval_type_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: APPROVAL_TYPE_CODE
+            dataType: varchar2
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+        help {
+            helpText: The process (transaction type) the rule is for. It cannot be changed once the rule is created.
+        }
+    )
+
+    pageItem P149_RULE_NAME (
+        type: textField
+        label {
+            label: Rule
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 100
+        }
+        source {
+            formRegion: @form
+            column: RULE_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P149_PRIORITY (
+        type: numberField
+        label {
+            label: Priority
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: PRIORITY
+            dataType: number
+        }
+        default {
+            type: static
+            staticValue: 100
+        }
+        help {
+            helpText: When two rules match the same number of attributes, the lower priority wins.
+        }
+    )
+
+    pageItem P149_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+    )
+
+    pageItem P149_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P149_IN_USE (
+        type: displayOnly
+        label {
+            label: In Use
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_approval_rule_pkg.open_count(to_number(:P149_RULE_ID))
+                       || ' approval(s) in progress use this rule. A change applies to new submissions; '
+                       || 'approvals in progress keep their approvers. A rule without approvers approves at once.'
+                  from dual
+                ```
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+        comments {
+            comments: Release 76 (F-05): the impact of a change before saving.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: delete
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Delete this rule? Transactions already being approved keep their approvers.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: insert
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P149_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            databaseAction: update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P149_RULE_ID
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process process-form (
+        name: Process form
+        type: formAutoRowProcessing
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Rule saved.
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-conditions (
+        name: Save the conditions
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @conditions
+        execution {
+            sequence: 20
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-approvers (
+        name: Save the approvers
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @approvers
+        execution {
+            sequence: 30
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,DELETE
+        }
+    )
+
+    branch (
+        name: After create: add the conditions and approvers
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 149
+                items: {
+                    P149_RULE_ID: &P149_RULE_ID.
+                }
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE
+        }
+    )
+
+)

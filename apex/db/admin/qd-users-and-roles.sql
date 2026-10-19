@@ -86,7 +86,7 @@ begin
 
     -- the two entities (departments)
     for d in (select 'FINANCE' c, 'Finance' n from dual union all select 'PROCUREMENT', 'Procurement' from dual) loop
-        select count(*) into l_n from xxfnd_organizations where organization_type = 'DEPARTMENT' and organization_code = d.c;
+        select count(*) into l_n from xxhr_organizations where organization_type = 'DEPARTMENT' and organization_code = d.c;
         if l_n = 0 then
             xxfnd_vpd_pkg.save_organization('COMMON', 'DEPARTMENT', d.c, d.n);
         end if;

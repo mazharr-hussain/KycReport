@@ -69,7 +69,7 @@ page 103 (
                        apex_page.get_url(p_page => 104, p_items => 'P104_USER_ID', p_values => to_char(u.user_id),
                                          p_clear_cache => '104') as open_url
                   from xxfnd_users u
-                  left join xxfnd_employees e on e.employee_id = u.employee_id
+                  left join xxhr_employees e on e.employee_id = u.employee_id
                 ```
         }
         layout {

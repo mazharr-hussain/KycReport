@@ -6,11 +6,11 @@ declare
     l_count pls_integer;
 begin
     select count(*) into l_count from user_tab_columns
-     where table_name = 'XXFND_EMPLOYEES' and column_name = 'FUSION_USER_ID';
+     where table_name = 'XXHR_EMPLOYEES' and column_name = 'FUSION_USER_ID';
     if l_count = 0 then
-        execute immediate 'alter table xxfnd_employees add (fusion_user_id varchar2(64))';
+        execute immediate 'alter table xxhr_employees add (fusion_user_id varchar2(64))';
     end if;
 end;
 /
-comment on column xxfnd_employees.user_name is 'Sign-in name: the Fusion / identity-domain user name (upper case); the work e-mail until the HCM sync finds a user account.';
-comment on column xxfnd_employees.fusion_user_id is 'Fusion user account id (HCM userAccounts UserId), set by the HCM sync.';
+comment on column xxhr_employees.user_name is 'Sign-in name: the Fusion / identity-domain user name (upper case); the work e-mail until the HCM sync finds a user account.';
+comment on column xxhr_employees.fusion_user_id is 'Fusion user account id (HCM userAccounts UserId), set by the HCM sync.';

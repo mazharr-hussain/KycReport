@@ -46,7 +46,7 @@ begin
     for t in (select trigger_name from user_triggers
                where trigger_name like '%\_SC' escape '\'
                  and table_name not in (select column_value from table(xxfnd_application_pkg.scoped_tables))
-                 and table_name like 'XXFND\_%' escape '\') loop
+                 and (table_name like 'XXFND\_%' escape '\' or table_name like 'XXHR\_%' escape '\')) loop
         execute immediate 'drop trigger ' || t.trigger_name;
     end loop;
     for t in (select column_value table_name from table(xxfnd_application_pkg.scoped_tables)) loop

@@ -33,6 +33,23 @@ upgradeScript 00-deployment-framework (
     }
 )
 
+upgradeScript 00d-hr-tables-xxhr-prefix (
+    execution {
+        sequence: 6
+    }
+    script {
+        contentFile: 00d-hr-tables-rename.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 04a-employees-fusion-user (
     execution {
         sequence: 8

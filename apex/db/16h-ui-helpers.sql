@@ -77,7 +77,7 @@ create or replace package body xxfnd_ui_pkg as
 
 
     function person_name(p_user_name in varchar2) return varchar2 is
-        l_name xxfnd_employees.full_name%type;
+        l_name xxhr_employees.full_name%type;
     begin
         if p_user_name is null then
             return null;
@@ -86,7 +86,7 @@ create or replace package body xxfnd_ui_pkg as
         if upper(p_user_name) in ('SYSTEM', 'NOBODY') then
             return 'System';
         end if;
-        select max(full_name) into l_name from xxfnd_employees where upper(user_name) = upper(p_user_name);
+        select max(full_name) into l_name from xxhr_employees where upper(user_name) = upper(p_user_name);
         return nvl(l_name, p_user_name);
     end person_name;
 
@@ -96,7 +96,7 @@ create or replace package body xxfnd_ui_pkg as
         select json_object('name' value full_name, 'employee_number' value fusion_person_number,
                            'department' value department_name, 'user_name' value user_name)
           into l_json
-          from xxfnd_employees where upper(user_name) = upper(p_user_name);
+          from xxhr_employees where upper(user_name) = upper(p_user_name);
         return l_json;
     exception
         when no_data_found then

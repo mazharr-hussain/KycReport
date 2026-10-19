@@ -362,10 +362,12 @@ begin
     rule('REQUESTER', 'XXCMP_REQUESTS', 'OWN_RECORDS', 'REQUESTER_USER_NAME');
     -- release 95 (COMMON 96 security model): requests and cases are data objects on the Department dimension - a role
     -- with access by values (e.g. Requesting Entity1 = Finance) sees only its departments' records
+    -- release 96: on the department ID (XXHR_ORGANIZATIONS.ORGANIZATION_ID; access is still assigned by department)
     xxfnd_vpd_pkg.register_data_object(c_app, 'XXCMP_REQUESTS', 'KYC Requests', 'XXCMP_REQUESTS', 'DEPARTMENT',
-                                       'REQUESTING_DEPARTMENT', 'REQUESTER_USER_NAME');
+                                       'REQUESTING_DEPARTMENT_ID', 'REQUESTER_USER_NAME',
+                                       p_dimension_value_type => 'ID');
     xxfnd_vpd_pkg.register_data_object(c_app, 'XXCMP_CASES', 'KYC Cases', 'XXCMP_CASES', 'DEPARTMENT',
-                                       'REQUESTING_DEPARTMENT');
+                                       'REQUESTING_DEPARTMENT_ID', p_dimension_value_type => 'ID');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXCMP_PARTIES', 'ALL_ROWS');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXCMP_RFIS', 'ALL_ROWS');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXFND_RFIS', 'ALL_ROWS');

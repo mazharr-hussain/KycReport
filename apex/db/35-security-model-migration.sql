@@ -67,7 +67,7 @@ begin
                     from xxfnd_data_security_rules d, table(apex_string.split(d.value_list, ',')) s
                    where d.rule_type = 'COLUMN_IN_LIST' and upper(d.column_name) like '%DEPARTMENT%'
                      and trim(s.column_value) is not null) loop
-            merge into xxfnd_organizations t
+            merge into xxhr_organizations t
             using (select 'DEPARTMENT' ty, v.code c from dual) x on (t.organization_type = x.ty and t.organization_code = x.c)
              when not matched then insert (organization_type, organization_code, organization_name, application_code)
                   values (x.ty, x.c,
@@ -88,7 +88,8 @@ begin
             if obj_code(t.table_name) is null then
                 insert into xxfnd_data_objects (data_object_code, object_name, application_code, table_name)
                 values (substr(t.table_name, 1, 60), initcap(replace(regexp_replace(t.table_name, '^XX[A-Z]+_'), '_', ' ')),
-                        case when t.table_name like 'XXFND\_%' escape '\' then 'COMMON' else nvl(t.app, 'COMMON') end,
+                        case when t.table_name like 'XXFND\_%' escape '\' or t.table_name like 'XXHR\_%' escape '\' then 'COMMON'
+                             else nvl(t.app, 'COMMON') end,
                         t.table_name);
             end if;
             declare

@@ -67,7 +67,7 @@ create or replace package xxfnd_user_pkg authid definer as
 
     -- Moves every stored reference to a user name to a new one: request, case, approval, delegation and RFI
     -- user columns, the WHO columns of all XXFND_/XXCMP_ tables, and the potential owners of open workflow tasks.
-    -- The audit log keeps the old name. Run by trigger XXFND_EMPLOYEES_RENAME when an employee's user name changes.
+    -- The audit log keeps the old name. Run by trigger XXHR_EMPLOYEES_RENAME when an employee's user name changes.
     procedure rename_user(p_old_user_name in varchar2, p_new_user_name in varchar2);
     -- True while RENAME_USER runs: record locks (closed cases) let the user name columns change.
     function renaming return boolean;
@@ -249,12 +249,12 @@ create or replace package body xxfnd_user_pkg as
 
     function employee_user(p_employee_id in number) return number is
         l_id  xxfnd_users.user_id%type;
-        l_emp xxfnd_employees%rowtype;
+        l_emp xxhr_employees%rowtype;
     begin
         select max(user_id) into l_id from xxfnd_users where employee_id = p_employee_id;
         if l_id is null then
             check_admin;
-            select * into l_emp from xxfnd_employees where employee_id = p_employee_id;
+            select * into l_emp from xxhr_employees where employee_id = p_employee_id;
             insert into xxfnd_users (user_name, user_type, employee_id, full_name, email_address)
             values (upper(l_emp.user_name), 'SSO', l_emp.employee_id, l_emp.full_name, l_emp.email_address)
             returning user_id into l_id;
@@ -274,7 +274,7 @@ create or replace package body xxfnd_user_pkg as
         if l_name is null or trim(p_password) is null then
             raise_application_error(-20063, 'Enter the user name and the first password.');
         end if;
-        select count(*) into l_count from xxfnd_employees where upper(user_name) = l_name or upper(email_address) = l_name;
+        select count(*) into l_count from xxhr_employees where upper(user_name) = l_name or upper(email_address) = l_name;
         if l_count > 0 then
             raise_application_error(-20064, l_name || ' is an employee: create an SSO user for the employee instead.');
         end if;
@@ -481,8 +481,9 @@ create or replace package body xxfnd_user_pkg as
                     join all_tables t on t.owner = c.owner and t.table_name = c.table_name
                    where (c.owner = $$PLSQL_UNIT_OWNER
                           or c.owner in (select schema_name from xxfnd_applications where schema_name is not null))
-                     and (c.table_name like 'XXCMP\_%' escape '\' or c.table_name like 'XXFND\_%' escape '\')
-                     and c.table_name not in ('XXFND_EMPLOYEES', 'XXFND_AUDIT_LOG')
+                     and (c.table_name like 'XXCMP\_%' escape '\' or c.table_name like 'XXFND\_%' escape '\'
+                          or c.table_name like 'XXHR\_%' escape '\')
+                     and c.table_name not in ('XXHR_EMPLOYEES', 'XXFND_AUDIT_LOG')
                      and c.data_type like '%CHAR%'
                      and c.column_name in ('CREATED_BY', 'LAST_UPDATED_BY', 'APPROVED_BY', 'ACKNOWLEDGED_BY',
                                            'DECIDED_BY', 'MATCH_RESOLVED_BY', 'ASSIGNED_TO', 'REQUESTER_USER_NAME',
@@ -552,11 +553,11 @@ create or replace package body xxfnd_user_pkg as
             return;
         end if;
         begin
-            select employee_id into l_id from xxfnd_employees where user_name = l_user;
-            update xxfnd_employees set enabled_flag = 'Y', end_date_active = null where employee_id = l_id;
+            select employee_id into l_id from xxhr_employees where user_name = l_user;
+            update xxhr_employees set enabled_flag = 'Y', end_date_active = null where employee_id = l_id;
         exception
             when no_data_found then
-                insert into xxfnd_employees (source_type, user_name, full_name, email_address)
+                insert into xxhr_employees (source_type, user_name, full_name, email_address)
                 values ('LOCAL', l_user, coalesce(trim(p_full_name), l_user), l_email)
                 returning employee_id into l_id;
         end;
@@ -575,14 +576,14 @@ create or replace package body xxfnd_user_pkg as
         -- release 99: the e-mail of the identity domain (SSO sign-in, app item G_EMAIL): a user whose e-mail matches is
         -- the same person, also when the user names differ (local user signing in with the company account)
         l_email varchar2(320) := upper(trim(v('G_EMAIL')));
-        l_user  xxfnd_employees.user_name%type;
+        l_user  xxhr_employees.user_name%type;
     begin
         -- release 46: the users of the shared access module first, then the employees
         select max(user_name) keep (dense_rank first order by src, case when user_name = l_login then 0 else 1 end)
           into l_user
           from (select 1 src, u.user_name, upper(u.email_address) email from xxfnd_users u where u.enabled_flag = 'Y'
                 union all
-                select 2, upper(e.user_name), upper(e.email_address) from xxfnd_employees e where e.enabled_flag = 'Y')
+                select 2, upper(e.user_name), upper(e.email_address) from xxhr_employees e where e.enabled_flag = 'Y')
          where user_name = l_login or email = l_login or email = l_email;
         if l_user is not null and upper(l_user) <> l_login then
             apex_custom_auth.set_user(upper(l_user));
@@ -609,7 +610,7 @@ create or replace package body xxfnd_user_pkg as
     begin
         select count(*) into l_n from dual
          where exists (select 1 from xxfnd_users u where u.user_name = upper(v('APP_USER')) and u.enabled_flag = 'Y')
-            or exists (select 1 from xxfnd_employees e where upper(e.user_name) = upper(v('APP_USER')) and e.enabled_flag = 'Y');
+            or exists (select 1 from xxhr_employees e where upper(e.user_name) = upper(v('APP_USER')) and e.enabled_flag = 'Y');
         return l_n > 0;
     end signed_in;
 
@@ -783,8 +784,8 @@ end xxfnd_user_pkg;
 
 -- An employee's user name changed (Fusion user name from the HCM sync, or a LOCAL edit): every stored reference
 -- moves to the new name (xxfnd_user_pkg.rename_user), so the person keeps their requests, cases and tasks.
-create or replace trigger xxfnd_employees_rename
-    after update of user_name on xxfnd_employees
+create or replace trigger xxhr_employees_rename
+    after update of user_name on xxhr_employees
     for each row
     when (upper(new.user_name) <> upper(old.user_name))
 begin
