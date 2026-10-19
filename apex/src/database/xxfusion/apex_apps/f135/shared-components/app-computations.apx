@@ -25,7 +25,8 @@ appComputation app-title (
         sqlQuery:
             ```sql
             -- release 97: COMMON's name at the top; My Tasks (40) replaces it with the application the user came from
-            select application_name from apex_applications where application_id = :APP_ID
+            -- release 103: for a user who may not open COMMON Home, the name of the user's application (USER_HOME)
+            select coalesce(:G_USER_APP_NAME, application_name) from apex_applications where application_id = :APP_ID
             ```
     }
     error {

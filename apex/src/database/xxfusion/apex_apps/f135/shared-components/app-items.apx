@@ -176,3 +176,31 @@ appItem G_RETURN_APP (
             ```
     }
 )
+
+
+appItem G_USER_HOME_URL (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 103: the user's Home (process USER_HOME, once per session) - COMMON Home for a user who may open it, else the home page of the user's application (XXFND_USER_PKG.HOME_APPLICATION), else My Tasks.
+            ```
+    }
+)
+
+
+appItem G_USER_APP_NAME (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 103: the name of the user's application when the user may not open COMMON Home (the name at the top of COMMON's shared pages); empty for COMMON users.
+            ```
+    }
+)

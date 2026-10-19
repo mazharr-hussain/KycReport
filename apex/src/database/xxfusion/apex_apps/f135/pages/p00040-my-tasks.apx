@@ -262,7 +262,8 @@ page 40 (
                         :G_HOME_URL      := null;
                     end if;
                     :G_APP_TITLE := nvl(:G_FROM_APP_NAME, :G_APP_TITLE);
-                    :G_HOME_URL  := nvl(:G_HOME_URL, apex_page.get_url(p_page => 1));
+                    -- release 103: else the user's Home (COMMON Home, or the user's application - USER_HOME)
+                    :G_HOME_URL  := coalesce(:G_HOME_URL, :G_USER_HOME_URL, apex_page.get_url(p_page => 1));
                 end;
                 ```
         }

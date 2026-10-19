@@ -1,0 +1,35 @@
+appComputation notify-count (
+    itemName: NOTIFY_COUNT
+    execution {
+        sequence: 10
+        point: beforeHeader
+    }
+    computation {
+        type: expression
+        plsqlExpression: case when xxfnd_util_pkg.current_user <> 'NOBODY' then to_char(nullif(xxfnd_notify_pkg.unread_count, 0)) end
+    }
+    error {
+        errorMessage: The notification count could not be read.
+    }
+)
+
+
+appComputation app-title (
+    itemName: G_APP_TITLE
+    execution {
+        sequence: 20
+        point: beforeHeader
+    }
+    computation {
+        type: sqlQuerySingleValue
+        sqlQuery:
+            ```sql
+            -- release 97: COMMON's name at the top; My Tasks (40) replaces it with the application the user came from
+            -- release 103: for a user who may not open COMMON Home, the name of the user's application (USER_HOME)
+            select coalesce(:G_USER_APP_NAME, application_name) from apex_applications where application_id = :APP_ID
+            ```
+    }
+    error {
+        errorMessage: The application name could not be read.
+    }
+)
