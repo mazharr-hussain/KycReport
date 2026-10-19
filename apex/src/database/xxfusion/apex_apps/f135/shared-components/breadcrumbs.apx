@@ -351,6 +351,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry application-menu (
+        name: Application Menu
+        pageNumber: 167
+        execution {
+            sequence: 167
+        }
+        appearance {
+            parentEntry: @applications
+        }
+        link {
+            target: {
+                page: 167
+            }
+        }
+    )
+
     entry setup-types (
         name: Setup Types
         pageNumber: 162
@@ -720,7 +736,7 @@ breadcrumb breadcrumb (
             }
         }
         comments {
-            comments: Release 97 - the Home of My Tasks (40): the home page of the application it was opened from (G_HOME_URL), else COMMON Home; page 90070 does not exist (an entry needs a page).
+            comments: Release 97 - the Home of My Tasks (40); release 104 - of every shared COMMON page (Notifications, Communications, Attachments, Feedback): the home page of the application the page is used from (G_HOME_URL, process WORK_APP), else the user's Home; page 90070 does not exist (an entry needs a page).
         }
     )
 
@@ -763,7 +779,7 @@ breadcrumb breadcrumb (
             sequence: 25
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -843,7 +859,7 @@ breadcrumb breadcrumb (
             sequence: 40
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -875,7 +891,7 @@ breadcrumb breadcrumb (
             sequence: 50
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -1003,7 +1019,7 @@ breadcrumb breadcrumb (
             sequence: 60
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {

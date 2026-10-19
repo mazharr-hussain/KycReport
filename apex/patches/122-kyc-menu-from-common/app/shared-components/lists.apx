@@ -1,0 +1,416 @@
+list navigation-bar (
+    name: Navigation Bar
+
+    entry help (
+        label: Help
+        icon {
+            imageIconCssClasses: fa-question-circle-o
+        }
+        layout {
+            sequence: 3
+        }
+        link {
+            target: {
+                type: otherApp
+                app: COMMON
+                page: 174
+                items: {
+                    P174_APPLICATION_ID: &APP_ID.
+                    P174_PAGE_ID: &APP_PAGE_ID.
+                }
+                clearCache: 174
+            }
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- release 95: COMMON's help of this page (Help & Training, COMMON page 174); shown once COMMON has it
+                select 1 from apex_application_pages p
+                  join apex_applications a on a.application_id = p.application_id
+                 where upper(a.alias) = 'COMMON' and p.page_id = 174
+                   and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)
+                ```
+        }
+        comments {
+            comments: Release 95 - the help of the current page and the training material, in COMMON (one help for every application).
+        }
+    )
+
+    entry feedback (
+        label: Feedback
+        icon {
+            imageIconCssClasses: fa-comment-o
+        }
+        layout {
+            sequence: 5
+        }
+        link {
+            target: {
+                type: otherApp
+                app: COMMON
+                page: 173
+                items: {
+                    P173_APPLICATION_ID: &APP_ID.
+                    P173_PAGE_ID: &APP_PAGE_ID.
+                }
+                clearCache: 173
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Feedback') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry customize (
+        label: Customize
+        layout {
+            sequence: 15
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: #customize-theme
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Theme Style Selection') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry about (
+        label: About
+        layout {
+            sequence: 18
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                page: 10010
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - About Page') = 'INCLUDE'
+                ```
+        }
+    )
+
+    entry --- (
+        label: ---
+        layout {
+            sequence: 20
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+    subscription {
+        master: @/135/navigation-menu
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
+    }
+)
+
+list administration (
+    name: Administration
+    subscription {
+        master: @/135/administration
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. each common function IT lets the application's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
+              from (
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   case when exists (select 1 from xxfnd_feature_pages c
+                                      where c.app_alias = :APP_ALIAS and c.feature_code = m.feature_code
+                                        and c.page_id = :APP_PAGE_ID) then 'YES' else 'NO' end as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01,
+                   1                                       as part,
+                   m.feature_group                         as grp,
+                   m.display_sequence                      as seq
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_application_pkg.local_page(fp.page_id) = 'Y') t
+             where t.page_id is not null
+            union all
+            select null,
+                   m.feature_name || ' (shared setup)',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 99,
+                                     p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
+                                     p_values => a.application_code || ',Y,' || to_char(m.home_page_id)),
+                   'NO',
+                   m.icon_css,
+                   null,
+                   null,
+                   m.description,
+                   2,
+                   m.feature_group,
+                   m.display_sequence
+              from xxfnd_admin_menu_v m
+              join xxfnd_applications a on upper(a.apex_app_alias) = upper(:APP_ALIAS)
+             where xxfnd_application_pkg.is_delegated(a.application_code, m.feature_code) = 'Y'
+            union all
+            select null,
+                   'Shared Setup',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 100),
+                   'NO',
+                   'fa-cogs',
+                   null,
+                   null,
+                   'The common setup of every application, in COMMON.',
+                   3,
+                   null,
+                   null
+              from dual
+             where exists (select 1 from xxfnd_admin_menu_v m
+                            where not exists (select 1 from xxfnd_feature_pages fp
+                                               where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                                 and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'))
+                   )
+             order by part, grp, seq, label
+            ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
+    }
+)
+
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   xxfnd_application_pkg.setup_page_url(fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               -- release 72: only tabs whose page is in this application
+               and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
+)
+
+list request-wizard (
+    name: Request Wizard
+
+    entry step-1 (
+        label: Counterparty
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry step-party (
+        label: Party Details
+        layout {
+            sequence: 15
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Questionnaire
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review and Submit
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)
+
+list party-wizard (
+    name: Party Wizard
+
+    entry step-1 (
+        label: Party Information
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Party Details
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 21
+            }
+        }
+    )
+)
+
+list case-sections (
+    name: Case Sections
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 74 (R5, R11): the case screen's section menu as a dynamic list (was HTML from PL/SQL); the state of
+            -- each section (done / warning / to do) from XXCMP_CASE_PKG.SECTION_STATE, shown as the icon and item class
+            select null as lvl,
+                   s.n || ' ' || xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', s.code) as label,
+                   apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                     p_values => :P211_CASE_ID || ',' || :P211_TASK_ID || ',' || s.code) as target,
+                   case when s.code = :P211_SECTION then 'YES' else 'NO' end as is_current,
+                   case when s.code = :P211_SECTION then 'fa-dot-circle-o'
+                        when s.state = 'DONE' then 'fa-check-circle'
+                        when s.state = 'WARN' then 'fa-exclamation-triangle'
+                        else 'fa-circle-o' end as image,
+                   null as image_attribute,
+                   null as image_alt,
+                   null as a01,
+                   null as a02,
+                   'kyc-case-nav-item is-' || lower(s.state) || case when s.code = :P211_SECTION then ' is-current' end as a03
+              from (select t.column_value as code, rownum as n,
+                           xxcmp_case_pkg.section_state(:P211_CASE_ID, t.column_value) as state
+                      from table(apex_string.split(xxcmp_case_pkg.sections, ':')) t) s
+             order by s.n
+            ```
+    }
+)

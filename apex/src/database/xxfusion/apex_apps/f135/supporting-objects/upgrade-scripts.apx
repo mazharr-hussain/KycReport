@@ -883,6 +883,23 @@ upgradeScript 33-data-model (
     }
 )
 
+upgradeScript 31b-navigation-menu-registry-menu-view (
+    execution {
+        sequence: 187
+    }
+    script {
+        contentFile: 31b-navigation-menu.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 upgradeScript 35-security-model-migration (
     execution {
         sequence: 190

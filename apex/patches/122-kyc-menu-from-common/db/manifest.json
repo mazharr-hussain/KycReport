@@ -1,0 +1,752 @@
+[
+ {
+  "name": "00a Prerequisites check",
+  "file": "00a-prerequisites-check.sql",
+  "install_sequence": 1,
+  "upgrade_sequence": 1,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
+ },
+ {
+  "name": "00b COMMON parsing schema check",
+  "file": "00b-common-schema-check.sql",
+  "install_sequence": 2,
+  "upgrade_sequence": 2,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "00 Deployment framework",
+  "file": "00-deployment-framework.sql",
+  "install_sequence": 5,
+  "upgrade_sequence": 5,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
+ },
+ {
+  "name": "00d HR tables (XXHR_ prefix)",
+  "file": "00d-hr-tables-rename.sql",
+  "install_sequence": 6,
+  "upgrade_sequence": 6,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "01 Common tables - XXFND - part 1 of 3",
+  "file": "01-common-tables-xxfnd-part-1-of-3.sql",
+  "install_sequence": 10,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "02 Common tables - XXFND - part 2 of 3",
+  "file": "02-common-tables-xxfnd-part-2-of-3.sql",
+  "install_sequence": 20,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "03 Common tables - XXFND - part 3 of 3",
+  "file": "03-common-tables-xxfnd-part-3-of-3.sql",
+  "install_sequence": 30,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "04 KYC tables - XXCMP",
+  "file": "04-kyc-tables-xxcmp.sql",
+  "install_sequence": 40
+ },
+ {
+  "name": "04a Employees - Fusion user",
+  "file": "04a-employee-fusion-user.sql",
+  "install_sequence": 45,
+  "upgrade_sequence": 8,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "04b Applications and users",
+  "file": "04b-applications-and-users.sql",
+  "install_sequence": 47,
+  "upgrade_sequence": 9,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "05 Core packages - part 1 of 2",
+  "file": "05-core-packages-part-1-of-2.sql",
+  "install_sequence": 50,
+  "upgrade_file": "05-core-packages-part-1-of-2-upgrade.sql",
+  "upgrade_sequence": 10,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "05b Integrations package",
+  "file": "05b-integration-pkg.sql",
+  "install_sequence": 130,
+  "upgrade_sequence": 90,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "05c Lookups package",
+  "file": "05c-lookup-pkg.sql",
+  "install_sequence": 56,
+  "upgrade_sequence": 16,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "06 Core packages - part 2 of 2",
+  "file": "06-core-packages-part-2-of-2.sql",
+  "install_sequence": 60,
+  "upgrade_sequence": 20,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "07 WHO and audit triggers",
+  "file": "07-who-and-audit-triggers.sql",
+  "install_sequence": 70,
+  "upgrade_sequence": 30,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
+ },
+ {
+  "name": "08 Row rules",
+  "file": "08-row-rules.sql",
+  "install_sequence": 80,
+  "upgrade_sequence": 40,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09 Views",
+  "file": "09-views.sql",
+  "install_sequence": 90,
+  "upgrade_sequence": 50,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09a Security model",
+  "file": "09a-security-model.sql",
+  "install_sequence": 94,
+  "upgrade_sequence": 54,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09b Security framework - objects",
+  "file": "09b-security-framework-objects.sql",
+  "install_sequence": 95,
+  "upgrade_sequence": 55,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "10a Flexfield context rule and segment API name",
+  "file": "10a-flexfield-context-rule.sql",
+  "install_sequence": 96,
+  "upgrade_sequence": 56,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "10 Flexfield runtime - part 1 of 2",
+  "file": "10-flexfield-runtime-part-1-of-2.sql",
+  "install_sequence": 100,
+  "upgrade_sequence": 60,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "11 Flexfield runtime - part 2 of 2",
+  "file": "11-flexfield-runtime-part-2-of-2.sql",
+  "install_sequence": 110,
+  "upgrade_sequence": 70,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "12 Flexfield setup",
+  "file": "12-flexfield-setup.sql",
+  "install_sequence": 120,
+  "upgrade_sequence": 80,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "13a Database document store",
+  "file": "13a-database-document-store.sql",
+  "install_sequence": 125,
+  "upgrade_sequence": 85,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "14 Attachments",
+  "file": "14-attachments.sql",
+  "install_sequence": 140,
+  "upgrade_sequence": 100,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "14b Retention (placeholder)",
+  "file": "14b-retention-pkg.sql",
+  "install_sequence": 145,
+  "upgrade_sequence": 105,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15 Workflow",
+  "file": "15-workflow.sql",
+  "install_sequence": 150,
+  "upgrade_sequence": 110,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15e Communications (e-mail with outside parties)",
+  "file": "15e-communications.sql",
+  "install_sequence": 151,
+  "upgrade_sequence": 111,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15c Request for Information workflow",
+  "file": "15c-rfi-workflow.sql",
+  "install_sequence": 154,
+  "upgrade_sequence": 114,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "15d Approval Setup",
+  "file": "15d-approval-setup.sql",
+  "install_sequence": 153,
+  "upgrade_sequence": 113,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "16 KYC rules",
+  "file": "16-kyc-rules.sql",
+  "install_sequence": 160,
+  "upgrade_sequence": 120
+ },
+ {
+  "name": "16i Administration scope",
+  "file": "16i-admin-scope.sql",
+  "install_sequence": 174,
+  "upgrade_sequence": 134,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "16j Users package (users, sign-in, authorization)",
+  "file": "16j-user-pkg.sql",
+  "install_sequence": 175,
+  "upgrade_sequence": 135,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "17 Seed data and administrator - part 1 of 2",
+  "file": "17-seed-data-and-administrator-part-1-of-2.sql",
+  "install_sequence": 170,
+  "upgrade_sequence": 130,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "19a Grants to the shared schema (before the seed)",
+  "file": "19a-grants-to-shared-schema.sql",
+  "install_sequence": 175,
+  "upgrade_sequence": 135
+ },
+ {
+  "name": "18 Seed data and administrator - part 2 of 2",
+  "file": "18-seed-data-and-administrator-part-2-of-2.sql",
+  "install_sequence": 184,
+  "upgrade_sequence": 144
+ },
+ {
+  "name": "18b Security framework - seed",
+  "file": "18b-security-framework-seed.sql",
+  "install_sequence": 185,
+  "upgrade_sequence": 145
+ },
+ {
+  "name": "18c Admin console",
+  "file": "18c-admin-console.sql",
+  "install_sequence": 187,
+  "upgrade_sequence": 147
+ },
+ {
+  "name": "19 Reporting views and recompile",
+  "file": "19-reporting-views-and-recompile.sql",
+  "install_sequence": 195,
+  "upgrade_sequence": 155,
+  "apps": [
+   "COMMON",
+   "KYC"
+  ]
+ },
+ {
+  "name": "18d Workflow platform",
+  "file": "18d-workflow-platform.sql",
+  "install_sequence": 188,
+  "upgrade_sequence": 148
+ },
+ {
+  "name": "16e0 Party logic - specification",
+  "file": "16e0-party-pkg-spec.sql",
+  "install_sequence": 164,
+  "upgrade_sequence": 124
+ },
+ {
+  "name": "16u0 KYC risk model package specification",
+  "file": "16u0-risk-pkg-spec.sql",
+  "install_sequence": 161,
+  "upgrade_sequence": 121
+ },
+ {
+  "name": "16g0 Approval paths - package specification",
+  "file": "16g0-approval-pkg-spec.sql",
+  "install_sequence": 163,
+  "upgrade_sequence": 123
+ },
+ {
+  "name": "16b KYC requests and cases",
+  "file": "16b-kyc-requests-cases.sql",
+  "install_sequence": 165,
+  "upgrade_sequence": 125
+ },
+ {
+  "name": "16l KYC approvals in the common Approval Setup",
+  "file": "16l-kyc-approval-setup.sql",
+  "install_sequence": 186,
+  "upgrade_sequence": 136
+ },
+ {
+  "name": "16m KYC case status Pending Information",
+  "file": "16m-case-pending-information.sql",
+  "install_sequence": 177,
+  "upgrade_sequence": 137
+ },
+ {
+  "name": "16w KYC case assignment from the request",
+  "file": "16w-case-assignment.sql",
+  "install_sequence": 171,
+  "upgrade_sequence": 131
+ },
+ {
+  "name": "16x KYC case requesting department",
+  "file": "16x-case-department.sql",
+  "install_sequence": 176,
+  "upgrade_sequence": 133
+ },
+ {
+  "name": "16y KYC requesting department by ID",
+  "file": "16y-department-id.sql",
+  "install_sequence": 170,
+  "upgrade_sequence": 130
+ },
+ {
+  "name": "16r KYC request package body",
+  "file": "16r-request-pkg.sql",
+  "install_sequence": 178,
+  "upgrade_sequence": 138
+ },
+ {
+  "name": "16s KYC case package body",
+  "file": "16s-case-pkg.sql",
+  "install_sequence": 179,
+  "upgrade_sequence": 139
+ },
+ {
+  "name": "16u KYC risk model (tables, package body, starting model with the FATF lists)",
+  "file": "16u-risk-model.sql",
+  "install_sequence": 181,
+  "upgrade_sequence": 141
+ },
+ {
+  "name": "16v KYC performance (foreign key and data security indexes)",
+  "file": "16v-performance.sql",
+  "install_sequence": 182,
+  "upgrade_sequence": 142
+ },
+ {
+  "name": "18h KYC registers itself in COMMON",
+  "file": "18h-register-with-common.sql",
+  "install_sequence": 183,
+  "upgrade_sequence": 143
+ },
+ {
+  "name": "18i KYC menu in COMMON",
+  "file": "18i-kyc-menu.sql",
+  "install_sequence": 190,
+  "upgrade_sequence": 150
+ },
+ {
+  "name": "18e KYC requests and cases - seed",
+  "file": "18e-kyc-requests-cases.sql",
+  "install_sequence": 189,
+  "upgrade_sequence": 149
+ },
+ {
+  "name": "16c Monitoring",
+  "file": "16c-monitoring.sql",
+  "install_sequence": 166,
+  "upgrade_sequence": 126
+ },
+ {
+  "name": "16d Parties",
+  "file": "16d-parties.sql",
+  "install_sequence": 158,
+  "upgrade_sequence": 118
+ },
+ {
+  "name": "16e Party logic",
+  "file": "16e-party-pkg.sql",
+  "install_sequence": 167,
+  "upgrade_sequence": 127
+ },
+ {
+  "name": "16f Party and request redesign",
+  "file": "16f-party-request-redesign.sql",
+  "install_sequence": 168,
+  "upgrade_sequence": 128
+ },
+ {
+  "name": "16g Request approval paths",
+  "file": "16g-approval-paths.sql",
+  "install_sequence": 169,
+  "upgrade_sequence": 129
+ },
+ {
+  "name": "16h UI helpers",
+  "file": "16h-ui-helpers.sql",
+  "install_sequence": 171,
+  "upgrade_sequence": 131,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "16i Request UI",
+  "file": "16i-request-ui.sql",
+  "install_sequence": 172,
+  "upgrade_sequence": 132
+ },
+ {
+  "name": "18f Monitoring and dashboard - seed",
+  "file": "18f-monitoring.sql",
+  "install_sequence": 191,
+  "upgrade_sequence": 151
+ },
+ {
+  "name": "19b Enable automations",
+  "file": "19b-enable-automations.sql",
+  "install_sequence": 196,
+  "upgrade_sequence": 156
+ },
+ {
+  "name": "18g Release 15 marker",
+  "file": "18g-release-15.sql",
+  "install_sequence": 192,
+  "upgrade_sequence": 152
+ },
+ {
+  "name": "20 COMMON application seed",
+  "file": "20-common-seed.sql",
+  "install_sequence": 200,
+  "upgrade_sequence": 160,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21 COMMON administration seed",
+  "file": "21-common-admin.sql",
+  "install_sequence": 210,
+  "upgrade_sequence": 170,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21b Application functions",
+  "file": "21b-application-functions.sql",
+  "install_sequence": 211,
+  "upgrade_sequence": 171,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21c Setup types",
+  "file": "21c-setup-types.sql",
+  "install_sequence": 212,
+  "upgrade_sequence": 172,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "03 Use the shared schema",
+  "file": "03-use-shared-schema.sql",
+  "install_sequence": 3,
+  "upgrade_sequence": 3
+ },
+ {
+  "name": "09c Shared objects formerly in KYC scripts",
+  "file": "09c-shared-objects-from-kyc-scripts.sql",
+  "install_sequence": 97,
+  "upgrade_sequence": 57,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09d Applications package (functions, setup types, administration scope)",
+  "file": "09d-application-pkg.sql",
+  "install_sequence": 98,
+  "upgrade_sequence": 58,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09e Workflow and e-mail switches",
+  "file": "09e-workflow-switches.sql",
+  "install_sequence": 99,
+  "upgrade_sequence": 59,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "09f Central error handling",
+  "file": "09f-error-handling.sql",
+  "install_sequence": 92,
+  "upgrade_sequence": 52,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "19a Grants to the shared schema",
+  "file": "19a-grants-to-shared-schema.sql",
+  "install_sequence": 193,
+  "upgrade_sequence": 153
+ },
+ {
+  "name": "19c Sharing with the application schemas",
+  "file": "19c-share-with-applications.sql",
+  "install_sequence": 198,
+  "upgrade_sequence": 158,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "22 COMMON modules",
+  "file": "22-common-modules.sql",
+  "install_sequence": 213,
+  "upgrade_sequence": 173,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "23 COMMON Security module",
+  "file": "23-security-module.sql",
+  "install_sequence": 214,
+  "upgrade_sequence": 174,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "21d Application settings package",
+  "file": "21d-app-setting-pkg.sql",
+  "install_sequence": 216,
+  "upgrade_sequence": 176,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "24 Workflow module",
+  "file": "24-workflow-module.sql",
+  "install_sequence": 217,
+  "upgrade_sequence": 177,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "25 Integrations module",
+  "file": "25-integrations-module.sql",
+  "install_sequence": 218,
+  "upgrade_sequence": 178,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "26 Notifications module",
+  "file": "26-notifications-module.sql",
+  "install_sequence": 219,
+  "upgrade_sequence": 179,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "27 Shared screens",
+  "file": "27-shared-screens.sql",
+  "install_sequence": 220,
+  "upgrade_sequence": 180,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "28 Registration and onboarding",
+  "file": "28-registration.sql",
+  "install_sequence": 221,
+  "upgrade_sequence": 181,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "29 Workspace servers and storage per application",
+  "file": "29-servers.sql",
+  "install_sequence": 222,
+  "upgrade_sequence": 182,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "30 Application journey",
+  "file": "30-application-journey.sql",
+  "install_sequence": 223,
+  "upgrade_sequence": 183,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "31 Basic onboarding and the application menu",
+  "file": "31-onboarding-and-menu.sql",
+  "install_sequence": 224,
+  "upgrade_sequence": 184,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "31b Navigation menu (registry, menu view)",
+  "file": "31b-navigation-menu.sql",
+  "install_sequence": 227,
+  "upgrade_sequence": 187,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "32 Removing registrations, RFI documents and deadlines, contacts",
+  "file": "32-registration-removal-rfi-contacts.sql",
+  "install_sequence": 225,
+  "upgrade_sequence": 185,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "33 Data Model",
+  "file": "33-data-model.sql",
+  "install_sequence": 226,
+  "upgrade_sequence": 186,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "35 Security model migration",
+  "file": "35-security-model-migration.sql",
+  "install_sequence": 230,
+  "upgrade_sequence": 190,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "00c Onboard with COMMON (generic, for applications)",
+  "file": "00c-onboard-with-common.sql",
+  "apps": []
+ },
+ {
+  "name": "99 Sharing with the applications - last",
+  "file": "99-share-with-applications-last.sql",
+  "install_sequence": 990,
+  "upgrade_sequence": 990,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "99z HR tables - old names dropped",
+  "file": "99z-hr-old-names-drop.sql",
+  "install_sequence": 995,
+  "upgrade_sequence": 995,
+  "apps": [
+   "COMMON"
+  ]
+ }
+]

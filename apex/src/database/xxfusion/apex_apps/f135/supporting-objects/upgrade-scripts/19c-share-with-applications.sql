@@ -42,7 +42,9 @@ create or replace package body xxfnd_share_pkg as
         -- release 86: the server and storage views read APEX metadata (not grantable on); COMMON's own screens only
         -- release 89: the Data Model views read the database dictionary (every application's schema); COMMON's own screens only
         return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_SETUP_TABLES_V', 'XXFND_SETUP_COLUMNS_V',
-                                        'XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V')
+                                        'XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V',
+                                        -- release 104: reads APEX metadata; the applications use XXFND_NAV_PKG.NAV_MENU
+                                        'XXFND_NAV_MENU_V')
             or upper(p_object_name) like 'XXFND\_DM\_%\_V' escape '\';
     end is_local;
 

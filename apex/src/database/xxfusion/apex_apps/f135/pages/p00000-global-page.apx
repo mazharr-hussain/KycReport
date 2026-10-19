@@ -640,6 +640,44 @@ page 0 (
         }
     )
 
+    button jrn-menu-edit (
+        buttonName: JRN_EDIT_MENU
+        label: Edit Menu
+        layout {
+            sequence: 10
+            region: @jrn-menu
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-sitemap
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 167
+                items: {
+                    P167_APPLICATION: &P0_JRN_APP.
+                }
+                clearCache: 167
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 104: the whole menu of the application (folders, pages, order) on the Application Menu screen
+                xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'VIEW') = 'Y'
+                ```
+        }
+    )
+
     region jrn-functions (
         name: Shared Functions
         type: classicReport
@@ -1022,9 +1060,12 @@ page 0 (
                        e.label,
                        case e.target_type when 'COMMON_PAGE' then 'COMMON page ' || e.page_id
                                           when 'APP_PAGE' then 'Application page ' || e.page_id
+                                          when 'ADMIN_PAGE' then 'Application page ' || e.page_id || ' (administrators)'
                                           when 'MANAGED' then 'Managed function ' || e.feature_code
+                                          when 'FOLDER' then 'Folder'
                                           else 'Shared setup' end as target,
-                       case e.made_by when 'APP' then 'The application' else 'COMMON' end as made_by,
+                       case e.made_by when 'APP' then 'The application' when 'ADMIN' then 'Administrator'
+                                      else 'COMMON' end as made_by,
                        case e.enabled_flag when 'Y' then 'Shown' else 'Hidden' end as state,
                        case when xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'MANAGE') = 'Y'
                             then case e.enabled_flag when 'Y' then 'JRN_MENU_OFF' else 'JRN_MENU_ON' end

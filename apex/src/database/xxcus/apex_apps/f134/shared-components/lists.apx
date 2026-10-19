@@ -170,197 +170,39 @@ list navigation-bar (
 
 list navigation-menu (
     name: Navigation Menu
-
-    entry home (
-        label: Home
-        icon {
-            imageIconCssClasses: fa-home
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 1
-            }
-        }
-    )
-
-    entry worklist (
-        label: My Tasks
-        icon {
-            imageIconCssClasses: fa-inbox
-        }
-        layout {
-            sequence: 20
-        }
-        link {
-            target: {
-                type: otherApp
-                app: COMMON
-                page: 40
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                -- release 88: COMMON's My Tasks (the tasks of every application); KYC has no copy
-                xxfnd_privilege_pkg.has_privilege('MY_TASKS', 'VIEW')
-                ```
-        }
-    )
-
-    entry kyc-requests (
-        label: KYC Requests
-        icon {
-            imageIconCssClasses: fa-file-text-o
-        }
-        layout {
-            sequence: 25
-        }
-        link {
-            target: {
-                page: 200
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(200, 'VIEW')
-                ```
-        }
-    )
-
-    entry parties (
-        label: Parties
-        icon {
-            imageIconCssClasses: fa-building-o
-        }
-        layout {
-            sequence: 30
-        }
-        link {
-            target: {
-                page: 20
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(20, 'VIEW')
-                ```
-        }
-    )
-
-    entry cases (
-        label: Cases
-        icon {
-            imageIconCssClasses: fa-briefcase
-        }
-        layout {
-            sequence: 35
-        }
-        link {
-            target: {
-                page: 210
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(210, 'VIEW')
-                ```
-        }
-    )
-
-    entry monitoring (
-        label: Monitoring Watchlist
-        icon {
-            imageIconCssClasses: fa-eye
-        }
-        layout {
-            sequence: 40
-        }
-        link {
-            target: {
-                page: 220
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(220, 'VIEW')
-                ```
-        }
-    )
-
-    entry dashboard (
-        label: Executive Dashboard
-        icon {
-            imageIconCssClasses: fa-area-chart
-        }
-        layout {
-            sequence: 50
-        }
-        link {
-            target: {
-                page: 230
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(230, 'VIEW')
-                ```
-        }
-    )
-
-    entry administration (
-        label: Administration
-        icon {
-            imageIconCssClasses: fa-gear
-        }
-        layout {
-            sequence: 90
-        }
-        link {
-            target: {
-                page: 100
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_any_admin_privilege
-                ```
-        }
-    )
-
+    subscription {
+        master: @/135/navigation-menu
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
+    }
 )
 
 list administration (
     name: Administration
+    subscription {
+        master: @/135/administration
+    }
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
             -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
-            --   1. KYC's own setup: each feature the user may open that has a page here (its home page, else its first tab)
-            --   2. each common function IT lets KYC's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. each common function IT lets the application's administrators manage, opened in COMMON for KYC (COMMON page 99)
             --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
             select lvl, label, target, is_current, image, image_attribute, image_alt, a01
               from (
@@ -422,6 +264,9 @@ list administration (
                    )
              order by part, grp, seq, label
             ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
     }
 )
 
