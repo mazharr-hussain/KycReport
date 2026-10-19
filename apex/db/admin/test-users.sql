@@ -15,29 +15,19 @@ declare
     l_admin varchar2(255);
     l_app   number;
 
-    -- the APEX account: the password, not changed at first sign-in; every other attribute kept (APEX_UTIL.EDIT_USER
-    -- clears what it is not given)
-    procedure keep_password(p_user in varchar2) is
+    -- the APEX account of a test user: its name, the password, not changed at first sign-in, unlocked. Set after the
+    -- APEX session (APEX_UTIL.FETCH_USER is refused inside it); a test user has nothing else to keep (no e-mail, no
+    -- developer or administrator rights), so EDIT_USER is given every attribute it needs.
+    procedure keep_password(p_user in varchar2, p_name in varchar2) is
         l_id number := apex_util.get_user_id(p_user);
-        l_ws varchar2(255); l_un varchar2(255); l_fn varchar2(255); l_ln varchar2(255); l_pw varchar2(4000);
-        l_em varchar2(255); l_sd date; l_ed date; l_emp number; l_sch varchar2(4000); l_pt varchar2(30);
-        l_ds varchar2(255); l_gr varchar2(4000); l_dr varchar2(4000); l_de varchar2(4000); l_ex date;
-        l_lo varchar2(1); l_fa number; l_ch varchar2(1); l_fu varchar2(1);
     begin
         if l_id is null then
             raise_application_error(-20001, p_user || ' has no APEX account in workspace XXCUS.');
         end if;
-        apex_util.fetch_user(p_user_id => l_id, p_workspace => l_ws, p_user_name => l_un, p_first_name => l_fn,
-            p_last_name => l_ln, p_web_password => l_pw, p_email_address => l_em, p_start_date => l_sd,
-            p_end_date => l_ed, p_employee_id => l_emp, p_allow_access_to_schemas => l_sch, p_person_type => l_pt,
-            p_default_schema => l_ds, p_groups => l_gr, p_developer_role => l_dr, p_description => l_de,
-            p_account_expiry => l_ex, p_account_locked => l_lo, p_failed_access_attempts => l_fa,
-            p_change_password_on_first_use => l_ch, p_first_password_use_occurred => l_fu);
-        apex_util.edit_user(p_user_id => l_id, p_user_name => l_un, p_first_name => l_fn, p_last_name => l_ln,
-            p_web_password => c_password, p_new_password => c_password, p_email_address => l_em,
-            p_start_date => l_sd, p_end_date => l_ed, p_employee_id => l_emp, p_allow_access_to_schemas => l_sch,
-            p_person_type => l_pt, p_default_schema => l_ds, p_developer_roles => l_dr, p_description => l_de,
-            p_account_expiry => l_ex, p_account_locked => 'N', p_failed_access_attempts => 0,
+        apex_util.edit_user(p_user_id => l_id, p_user_name => p_user,
+            p_first_name => regexp_substr(p_name, '^\S+'), p_last_name => regexp_replace(p_name, '^\S+\s*'),
+            p_web_password => c_password, p_new_password => c_password,
+            p_account_locked => 'N', p_failed_access_attempts => 0,
             p_change_password_on_first_use => 'N', p_first_password_use_occurred => 'Y');
     end keep_password;
 
@@ -62,8 +52,7 @@ declare
              where user_id = l_id and role_code = p_role and enabled_flag = 'Y';
             xxfnd_vpd_pkg.set_assignment_values(l_ur, 'DEPARTMENT', null, p_dept);
         end if;
-        keep_password(p_user);
-        dbms_output.put_line('         ' || p_role || nvl2(p_dept, ' (' || p_dept || ')', '') || ', password ' || c_password);
+        dbms_output.put_line('         ' || p_role || nvl2(p_dept, ' (' || p_dept || ')', ''));
     end usr;
 begin
     apex_util.set_workspace('XXCUS');
@@ -81,6 +70,14 @@ begin
     xxfnd_vpd_pkg.end_trusted;
     commit;
     apex_session.delete_session;
+
+    -- the passwords, outside the APEX session
+    apex_util.set_workspace('XXCUS');
+    keep_password('TESTREQ',     'Test Requester');
+    keep_password('TESTCONTRIB', 'Test Contributor');
+    keep_password('TESTL1',      'Test Level 1');
+    commit;
+    dbms_output.put_line('password ' || c_password || ' (not changed at first sign-in) for TESTREQ, TESTCONTRIB, TESTL1');
 exception
     when others then
         rollback;
