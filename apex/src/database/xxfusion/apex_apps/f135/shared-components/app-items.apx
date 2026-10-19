@@ -204,3 +204,17 @@ appItem G_USER_APP_NAME (
             ```
     }
 )
+
+
+appItem G_WORK_APP (
+    scope: app
+    security {
+        sessionStateProtection: restricted
+    }
+    comments {
+        comments:
+            ```
+            Release 104: the application (alias) a COMMON page is used from - set by process WORK_APP from the referring page, kept while the user stays on COMMON pages, cleared on COMMON Home; a user who may not open COMMON Home always works in the own application. Its menu, name and Home are shown (XXFND_NAV_MENU_V).
+            ```
+    }
+)

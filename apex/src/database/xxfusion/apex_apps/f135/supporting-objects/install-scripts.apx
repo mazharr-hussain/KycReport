@@ -934,6 +934,23 @@ installScript 33-data-model (
     }
 )
 
+installScript 31b-navigation-menu-registry-menu-view (
+    execution {
+        sequence: 227
+    }
+    script {
+        contentFile: 31b-navigation-menu.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 35-security-model-migration (
     execution {
         sequence: 230

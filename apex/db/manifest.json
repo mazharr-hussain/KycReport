@@ -424,6 +424,12 @@
   "upgrade_sequence": 143
  },
  {
+  "name": "18i KYC menu in COMMON",
+  "file": "18i-kyc-menu.sql",
+  "install_sequence": 190,
+  "upgrade_sequence": 150
+ },
+ {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,
@@ -680,6 +686,15 @@
   "file": "31-onboarding-and-menu.sql",
   "install_sequence": 224,
   "upgrade_sequence": 184,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "31b Navigation menu (registry, menu view)",
+  "file": "31b-navigation-menu.sql",
+  "install_sequence": 227,
+  "upgrade_sequence": 187,
   "apps": [
    "COMMON"
   ]

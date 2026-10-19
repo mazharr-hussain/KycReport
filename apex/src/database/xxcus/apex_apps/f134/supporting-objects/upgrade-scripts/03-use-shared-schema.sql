@@ -43,7 +43,10 @@ begin
     -- release 102 (KYC 96): COMMON 102 - the HR tables carry the XXHR_ prefix (XXHR_EMPLOYEES, XXHR_ORGANIZATIONS)
     select count(*) + l_n into l_n from all_objects
      where owner = c_shared and object_name = 'XXHR_ORGANIZATIONS' and object_type = 'TABLE';
-    if l_n < 5 then
+    -- release 104 (KYC 97): COMMON 104 - the navigation menu kept in COMMON (XXFND_NAV_PKG)
+    select count(*) + l_n into l_n from all_objects
+     where owner = c_shared and object_name = 'XXFND_NAV_PKG' and object_type = 'PACKAGE';
+    if l_n < 6 then
         raise_application_error(-20904,
             'ACTION NEEDED - COMMON is older than this KYC release (or its install has not finished). Nothing was installed.'
             || chr(10) || '1. Install / upgrade the COMMON application of the same release and wait until it has finished.'

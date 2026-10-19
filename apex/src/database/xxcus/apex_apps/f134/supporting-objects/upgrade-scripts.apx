@@ -538,6 +538,24 @@ upgradeScript 18e-kyc-requests-and-cases-seed (
     }
 )
 
+upgradeScript 18i-kyc-menu-in-common (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: 18i-kyc-menu.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 upgradeScript 18f-monitoring-and-dashboard-seed (
     execution {
         sequence: 151

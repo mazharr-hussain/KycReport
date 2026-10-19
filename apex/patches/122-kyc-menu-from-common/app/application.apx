@@ -1,0 +1,201 @@
+app KYC (
+    name: KYC Compliance Platform
+    version: Release 97
+    logo {
+        type: text
+        text: &APP_TITLE.
+    }
+    navigation {
+        homeUrl: {
+            page: 1
+        }
+        loginUrl: {
+            page: LOGIN
+        }
+    }
+    navigationMenu {
+        listTemplate: @/side-navigation-menu
+        templateOptions: [
+            #DEFAULT#
+            js-defaultCollapsed
+            js-navCollapsed--hidden
+            t-TreeNav--styleA
+        ]
+        list: @navigation-menu
+    }
+    navigationBar {
+        list: @navigation-bar
+        listTemplate: @/navigation-bar
+        templateOptions: #DEFAULT#
+    }
+    errorHandling {
+        defaultDisplayLocation: inlineWithFieldAndInNotification
+        errorHandlingFunctionName: xxfnd_error_pkg.apex_error_handler
+    }
+    userInterface {
+        currentTheme: @universal-theme
+        globalPage: 0
+        usersCanChooseThemeStyle: false
+        addBuiltWithApexToFooter: false
+        autoDismissSuccessMessages: true
+    }
+    appFormatMasks {
+        date: DD-MON-YYYY
+        timestampTimeZone: DS
+    }
+    javaScript {
+        fileUrls: [
+            #APP_FILES#js/xxfnd-dff.js
+            #APP_FILES#js/kyc-app.js
+        ]
+    }
+    css {
+        fileUrls: [
+            #APP_FILES#css/kyc-app.css
+        ]
+    }
+    authentication {
+        scheme: @oracle-apex-accounts
+    }
+    authorization {
+        scheme: @kyc-user
+        runOnPublicPages: false
+        sourceForRoleOrGroupSchemes: customCode
+    }
+    sessionManagement {
+        maxSessionIdleTime: 3600
+        maxSessionLength: 28800
+    }
+    sessionStateProtection {
+        enabled: true
+        checksumSalt: BE8E26C19CF3511FBFEB1A6F9F79DA741A84B7ED70299369E025F6E56E2FFF65
+    }
+    security {
+        embedInFrames: deny
+        htmlEscapingMode: extended
+    }
+    runtime {
+        allowFeedback: true
+        logging: true
+        compatibilityMode: 24.2
+    }
+    comments {
+        comments:
+            ```
+            KYC Compliance Platform - Module 0 (Setup, Attachments, Workflow, Party Master,
+            Integration Hub, Descriptive Flexfields). Database objects: XXFND_ (shared) and XXCMP_ (KYC).
+            Install db/install.sql before importing. Application ID is assigned on import.
+            ```
+    }
+)
+
+appSetting LOGIN_TYPE_ENFORCED (
+    value {
+        staticValue: N
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Y: users linked to an employee (SSO users) must sign in with the company account and local users with their user name / password. N (default, until single sign-on is live): any scheme.
+            ```
+    }
+)
+
+appSetting MAIL_FROM (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Sender address for workflow and RFI emails.
+            ```
+    }
+)
+
+appSetting ATTACH_MAX_FILE_SIZE_MB (
+    value {
+        staticValue: 10
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Largest attachment accepted, in MB, unless the document category or the attachment page sets its own.
+            ```
+    }
+)
+
+appSetting ATTACH_ALLOWED_FILE_TYPES (
+    value {
+        staticValue: pdf,jpg,jpeg,png,tif,tiff,doc,docx,xls,xlsx,msg,eml
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            File extensions accepted as attachments (comma-separated; * = any) unless the document category or the attachment page sets its own.
+            ```
+    }
+)
+
+appSetting FUSION_BASE_URL (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Oracle Fusion Cloud base URL, e.g. https://xxxx.fa.ocs.oraclecloud.com (used by the nightly HCM sync).
+            ```
+    }
+)
+
+appSetting FUSION_CREDENTIAL_STATIC_ID (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Static ID of the Web Credential used by the Fusion REST calls.
+            ```
+    }
+)
+
+appSetting CASE_SLA_DAYS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Case investigation SLA in days (empty: the value kept in the old KYC_PARAMETER lookup, else 10).
+            ```
+    }
+)
+
+appSetting PEP_REVIEW_MONTHS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            Longest review interval for PEP parties, in months (empty: the old KYC_PARAMETER lookup value, else 12).
+            ```
+    }
+)
+
+appSetting REVIEW_LEAD_DAYS (
+    value {
+        onUpgradeKeepValue: true
+    }
+    comments {
+        comments:
+            ```
+            The watchlist shows a review as due this many days ahead (empty: the old KYC_PARAMETER lookup value, else 30).
+            ```
+    }
+)

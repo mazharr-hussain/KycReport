@@ -128,3 +128,55 @@ appProcess USER_HOME (
         plsqlExpression: :G_USER_HOME_URL is null and apex_authentication.is_authenticated
     }
 )
+
+appProcess WORK_APP (
+    name: WORK_APP
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 104 (was My Tasks only, release 97): the application a COMMON page is used from - its menu
+            -- (XXFND_NAV_MENU_V), name and Home stay on every COMMON page the user opens from there; COMMON Home
+            -- (page 1) is COMMON's own again; a user who may not open COMMON Home always works in the own application
+            declare
+                l_ref   varchar2(4000) := owa_util.get_cgi_env('HTTP_REFERER');
+                l_alias varchar2(255)  := upper(coalesce(regexp_substr(l_ref, '/r/[^/]+/([^/?#]+)', 1, 1, 'i', 1),
+                                                         regexp_substr(l_ref, 'f\?p=([^:&]+)', 1, 1, 'i', 1)));
+                l_work  varchar2(255)  := :G_WORK_APP;
+            begin
+                if :APP_PAGE_ID = 1 then
+                    l_work := null;
+                elsif l_alias is not null and l_alias not in (upper(:APP_ALIAS), to_char(:APP_ID)) then
+                    l_work := l_alias;
+                end if;
+                if l_work is null and :G_USER_APP_NAME is not null then
+                    l_work := xxfnd_user_pkg.home_application;
+                end if;
+                :G_WORK_APP      := null;
+                :G_FROM_APP_NAME := null;
+                :G_HOME_URL      := null;
+                for a in (select a.application_id, a.alias, a.application_name, a.home_link
+                            from apex_applications a
+                           where (upper(a.alias) = upper(l_work) or to_char(a.application_id) = l_work)
+                             and a.application_id <> :APP_ID
+                             and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)) loop
+                    :G_WORK_APP      := upper(a.alias);
+                    :G_FROM_APP_NAME := a.application_name;
+                    :G_HOME_URL      := apex_page.get_url(p_application => a.application_id,
+                                            p_page => nvl(regexp_substr(a.home_link, 'f\?p=[^:]*:([^:&]+)', 1, 1, 'i', 1), '1'));
+                end loop;
+                :G_HOME_URL := coalesce(:G_HOME_URL, :G_USER_HOME_URL, apex_page.get_url(p_page => 1));
+                select coalesce(:G_FROM_APP_NAME, :G_USER_APP_NAME, max(application_name)) into :G_APP_TITLE
+                  from apex_applications where application_id = :APP_ID;
+            end;
+            ```
+    }
+    execution {
+        sequence: 6
+        point: beforeHeader
+    }
+    serverSideCondition {
+        type: userIsAuthenticated
+    }
+)

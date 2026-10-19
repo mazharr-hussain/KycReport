@@ -1,0 +1,393 @@
+page 167 (
+    name: Application Menu
+    alias: APPLICATION-MENU
+    title: Application Menu
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The menu of an application, kept in COMMON (as an EBS / Fusion menu): folders and the pages they open, in order. The application shows it as its navigation menu, and COMMON shows it on its shared pages used from the application, so the menu does not change.
+            Who sees an entry follows the privileges: the entry's privilege (View), else the privilege of the page it opens (View); a folder shows when one of its entries shows. Entries the application or COMMON added are hidden rather than deleted.
+            ```
+    }
+
+    region breadcrumb (
+        name: Application Menu
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region filter (
+        name: Application
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P167_APPLICATION (
+        type: selectList
+        label {
+            label: Application
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_name || ' (' || application_code || ')' as display_value, application_code as return_value
+                  from xxfnd_applications
+                 where application_code <> 'COMMON'
+                   and xxfnd_application_pkg.can_administer(application_code) = 'Y'
+                 order by application_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select an application -
+        }
+        layout {
+            sequence: 10
+            region: @filter
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            pageActionOnSelection: submitPage
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: The application whose menu is shown.
+        }
+    )
+
+    region report (
+        name: Menu Entries
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select e.entry_code,
+                       -- release 104: the entries in menu order (folders before the entries inside them)
+                       level as menu_level,
+                       e.label,
+                       (select p.label from xxfnd_app_menu_entries p
+                         where p.application_code = e.application_code and p.entry_code = e.parent_code) as folder,
+                       case e.target_type when 'FOLDER' then 'Folder'
+                                          when 'APP_PAGE' then 'Application page ' || e.page_id
+                                          when 'ADMIN_PAGE' then 'Application page ' || e.page_id
+                                          when 'COMMON_PAGE' then 'COMMON page ' || e.page_id
+                                          when 'MANAGED' then 'Shared setup, managed in the application'
+                                          else 'Shared setup' end as opens,
+                       case when e.target_type = 'FOLDER' then 'Who sees one of its entries'
+                            when e.target_type = 'SHARED_SETUP' or (e.target_type = 'ADMIN_PAGE' and e.feature_code is null)
+                            then 'Administrators'
+                            else coalesce((select f.feature_name || ' - View' from xxfnd_features f
+                                            where f.feature_code = coalesce(e.feature_code,
+                                                      (select max(fp.feature_code) from xxfnd_feature_pages fp
+                                                         join xxfnd_applications a on upper(a.apex_app_alias) = upper(fp.app_alias)
+                                                        where a.application_code = e.application_code
+                                                          and fp.page_id = e.page_id and e.target_type = 'APP_PAGE'))),
+                                          'Every signed-in user') end as shown_to,
+                       e.display_sequence,
+                       decode(e.made_by, 'APP', 'The application', 'ADMIN', 'Administrator', 'COMMON') as made_by,
+                       decode(e.enabled_flag, 'Y', 'Shown', 'Hidden') as state,
+                       apex_page.get_url(p_page => 168, p_items => 'P168_APPLICATION,P168_ENTRY_CODE',
+                                         p_values => e.application_code || ',' || e.entry_code,
+                                         p_clear_cache => '168') as edit_url
+                  from xxfnd_app_menu_entries e
+                 where e.application_code = :P167_APPLICATION
+                 start with e.parent_code is null
+               connect by prior e.entry_code = e.parent_code and prior e.application_code = e.application_code
+                 order siblings by e.display_sequence, e.label
+                ```
+            pageItemsToSubmit: [
+                P167_APPLICATION
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Select an application. An application gets its menu when it is onboarded and from its own install.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column LABEL (
+            type: plainText
+            heading {
+                heading: Entry
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#EDIT_URL#">#LABEL#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MENU_LEVEL (
+            type: plainText
+            heading {
+                heading: Level
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column FOLDER (
+            type: plainText
+            heading {
+                heading: Folder
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPENS (
+            type: plainText
+            heading {
+                heading: Opens
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SHOWN_TO (
+            type: plainText
+            heading {
+                heading: Shown To
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DISPLAY_SEQUENCE (
+            type: plainText
+            heading {
+                heading: Order
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column MADE_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENTRY_CODE (
+            type: hidden
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column EDIT_URL (
+            type: hidden
+            heading {
+                heading: Edit Url
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button add-entry (
+        buttonName: ADD_ENTRY
+        label: Add Entry
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 168
+                items: {
+                    P168_APPLICATION: &P167_APPLICATION.
+                }
+                clearCache: 168
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P167_APPLICATION
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction refresh-report (
+        name: Refresh report
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @report
+        }
+
+        action refresh-report-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction refresh-after-add (
+        name: Refresh after Add Entry
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: button
+            button: @add-entry
+        }
+
+        action refresh-after-add-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
