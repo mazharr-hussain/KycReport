@@ -390,8 +390,8 @@
  {
   "name": "16y KYC requesting department by ID",
   "file": "16y-department-id.sql",
-  "install_sequence": 174,
-  "upgrade_sequence": 134
+  "install_sequence": 170,
+  "upgrade_sequence": 130
  },
  {
   "name": "16r KYC request package body",
@@ -721,6 +721,15 @@
   "file": "99-share-with-applications-last.sql",
   "install_sequence": 990,
   "upgrade_sequence": 990,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
+  "name": "99z HR tables - old names dropped",
+  "file": "99z-hr-old-names-drop.sql",
+  "install_sequence": 995,
+  "upgrade_sequence": 995,
   "apps": [
    "COMMON"
   ]
