@@ -7,7 +7,7 @@ page 1 (
         templateOptions: #DEFAULT#
     }
     security {
-        authorizationScheme: @page-view
+        authorizationScheme: @signed-in-user
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
@@ -230,6 +230,34 @@ page 1 (
         }
         execution {
             sequence: 1
+            point: beforeHeader
+        }
+    )
+
+    process to-user-home (
+        name: A user who may not open COMMON Home goes to the own Home
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 103: the page is open to every signed-in user (the logo, the Home breadcrumb and the shared
+                -- login page lead here), but only a user with the Common Home privilege (page access, COMMON_HOME) sees
+                -- it; anyone else goes to the own Home - the user's application (USER_HOME), else My Tasks
+                declare
+                    l_home varchar2(4000) := :G_USER_HOME_URL;
+                begin
+                    if not xxfnd_user_pkg.authorized('PAGE_VIEW') then
+                        if l_home is null or l_home = apex_page.get_url(p_page => 1) then
+                            l_home := apex_page.get_url(p_page => 40);
+                        end if;
+                        apex_util.redirect_url(l_home);
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 2
             point: beforeHeader
         }
     )

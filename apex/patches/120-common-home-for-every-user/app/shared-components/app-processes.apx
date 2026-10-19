@@ -1,0 +1,130 @@
+appProcess SET_ADMIN_APP (
+    name: SET_ADMIN_APP
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 73: no application filter - every application (ALL), unless an application opened a setup
+            -- screen for itself (delegated: G_ADMIN_LOCK = Y, page 99)
+            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_application_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
+            ```
+    }
+    execution {
+        sequence: 10
+        point: beforeHeader
+    }
+    serverSideCondition {
+        type: userIsAuthenticated
+    }
+)
+
+appProcess JOURNEY_ACTIONS (
+    name: JOURNEY_ACTIONS
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 86: the row actions of the application journey sections (Global Page regions of pages 165 and 166),
+            -- defined once for both pages. Each action needs the Manage privilege of its own feature and a row of the
+            -- application in P0_JRN_APP, then calls the routine of the component that owns the rule (no DML here).
+            declare
+                l_app varchar2(30)  := :P0_JRN_APP;
+                l_key varchar2(255) := :P0_JRN_KEY;
+                l_n   pls_integer;
+                procedure need(p_feature in varchar2) is
+                begin
+                    if l_app is null or l_key is null
+                       or xxfnd_privilege_pkg.has_privilege_yn(p_feature, 'MANAGE') <> 'Y' then
+                        raise_application_error(-20186, 'You are not allowed to change this for the application.');
+                    end if;
+                end need;
+            begin
+                case
+                    when :REQUEST = 'JRN_REMOVE_USER' then
+                        need('USERS_ACCESS');
+                        select count(*) into l_n from xxfnd_user_roles_v
+                         where user_role_id = to_number(l_key default null on conversion error) and application_code = l_app;
+                        if l_n = 0 then
+                            raise_application_error(-20187, 'The user does not hold a role of this application.');
+                        end if;
+                        xxfnd_user_pkg.unassign_role(to_number(l_key));
+                    when :REQUEST in ('JRN_PROCESS_ON', 'JRN_PROCESS_OFF') then
+                        need('WORKFLOW_SETUP');
+                        xxfnd_workflow_pkg.set_process_enabled(l_app, l_key, case :REQUEST when 'JRN_PROCESS_ON' then 'Y' else 'N' end);
+                    when :REQUEST in ('JRN_RULE_ON', 'JRN_RULE_OFF') then
+                        need('NOTIFICATIONS');
+                        select count(*) into l_n from xxfnd_notify_rules
+                         where rule_id = to_number(l_key default null on conversion error) and application_code = l_app;
+                        if l_n = 0 then
+                            raise_application_error(-20187, 'The notification rule is not a rule of this application.');
+                        end if;
+                        xxfnd_notify_pkg.set_rule_enabled(to_number(l_key), case :REQUEST when 'JRN_RULE_ON' then 'Y' else 'N' end);
+                    -- release 87: show / hide an entry of the application's menu
+                    when :REQUEST in ('JRN_MENU_ON', 'JRN_MENU_OFF') then
+                        need('APPLICATIONS');
+                        xxfnd_application_pkg.save_menu_entry(l_app, l_key, null, null, null,
+                                                              case :REQUEST when 'JRN_MENU_ON' then 'Y' else 'N' end);
+                end case;
+                :P0_JRN_KEY := null;
+            end;
+            ```
+    }
+    execution {
+        sequence: 20
+        point: processing
+    }
+    serverSideCondition {
+        type: expression
+        language: plsql
+        plsqlExpression:
+            ```plsql
+            :APP_PAGE_ID in (165, 166) and :REQUEST in ('JRN_REMOVE_USER', 'JRN_PROCESS_ON', 'JRN_PROCESS_OFF', 'JRN_RULE_ON', 'JRN_RULE_OFF',
+                                                       'JRN_MENU_ON', 'JRN_MENU_OFF')
+            ```
+    }
+    comments {
+        comments: Release 86 - Remove (a user from a role), Switch on / off (a process or notification rule of the application) in the journey sections shared by pages 165 and 166. Release 87 - Show / Hide (an entry of the application's menu).
+    }
+)
+
+appProcess USER_HOME (
+    name: USER_HOME
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 103: the user's Home, once per session - COMMON Home for a user who may open it; a user who may
+            -- not (e.g. a KYC requester on My Tasks) goes home to the own application (logo, Home breadcrumb, page 1)
+            declare
+                l_alias varchar2(255);
+            begin
+                if xxfnd_privilege_pkg.has_privilege('COMMON_HOME', 'VIEW') then
+                    :G_USER_HOME_URL := apex_page.get_url(p_page => 1);
+                else
+                    l_alias := xxfnd_user_pkg.home_application;
+                    for a in (select a.application_id, a.application_name, a.home_link
+                                from apex_applications a
+                               where upper(a.alias) = upper(l_alias)
+                                 and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)) loop
+                        :G_USER_APP_NAME := a.application_name;
+                        :G_USER_HOME_URL := apex_page.get_url(p_application => a.application_id,
+                                                p_page => nvl(regexp_substr(a.home_link, 'f\?p=[^:]*:([^:&]+)', 1, 1, 'i', 1), '1'));
+                    end loop;
+                    :G_USER_HOME_URL := nvl(:G_USER_HOME_URL, apex_page.get_url(p_page => 40));
+                end if;
+            end;
+            ```
+    }
+    execution {
+        sequence: 5
+        point: beforeHeader
+    }
+    serverSideCondition {
+        type: expression
+        language: plsql
+        plsqlExpression: :G_USER_HOME_URL is null and apex_authentication.is_authenticated
+    }
+)

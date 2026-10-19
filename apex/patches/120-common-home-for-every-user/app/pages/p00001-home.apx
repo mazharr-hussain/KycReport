@@ -1,0 +1,264 @@
+page 1 (
+    name: Home
+    alias: HOME
+    title: Home
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @signed-in-user
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Your open and overdue tasks from every application and your unread notifications (each tile opens the list), and the COMMON modules you may open, each with its state. A module card opens the module and its components.
+            Registered applications are under Platform, Applications.
+            ```
+    }
+
+    region breadcrumb (
+        name: Home
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region my-tasks (
+        name: My Work
+        type: themeTemplateComponent/metricCard
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select k.seq, k.card_title, k.cnt, k.card_link, k.card_icon,
+                       case when k.cnt > 0 and k.seq = 20 then 'u-danger-text' end as metric_class
+                  -- release 91 (UI issue 1): KPI tiles (Universal Theme Metric Card) of the user's work of every application;
+                  -- each tile opens the list (release 82 showed one small badge)
+                  from (
+                select 10 as seq, 'Open tasks' as card_title, xxfnd_workflow_pkg.open_task_count as cnt,
+                       apex_page.get_url(p_page => 40) as card_link, 'fa-inbox' as card_icon
+                  from dual
+                union all
+                select 20, 'Overdue tasks', count(*), apex_page.get_url(p_page => 40), 'fa-clock-o'
+                  from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => null))
+                 where state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED')
+                   and due_on < systimestamp
+                union all
+                select 30, 'Unread notifications', xxfnd_notify_pkg.unread_count, apex_page.get_url(p_page => 43), 'fa-bell-o'
+                  from dual
+                       ) k
+                 order by k.seq
+                ```
+        }
+        layout {
+            sequence: 15
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: my_tasks
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            title: &CARD_TITLE.
+            metric: &CNT.
+            metricCssClasses: &METRIC_CLASS.
+            layout: 3Columns
+        }
+        plugin-avatar {
+            displayAvatar: true
+            type: icon
+            icon: &CARD_ICON.
+            size: medium
+            position: inline
+            alignment: center
+            style: subtle
+        }
+        messages {
+            whenNoDataFound: Nothing to show.
+        }
+
+        action open (
+            position: link
+            layout {
+                sequence: 10
+            }
+            behavior {
+                type: redirectUrl
+                targetUrl: &CARD_LINK.
+            }
+        )
+
+        column SEQ (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+            }
+        )
+
+        column CARD_TITLE (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: CARD_TITLE
+                dataType: varchar2
+            }
+        )
+
+        column CNT (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: CNT
+                dataType: number
+            }
+        )
+
+        column CARD_LINK (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: CARD_LINK
+                dataType: varchar2
+            }
+        )
+
+        column CARD_ICON (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: CARD_ICON
+                dataType: varchar2
+            }
+        )
+
+        column METRIC_CLASS (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: METRIC_CLASS
+                dataType: varchar2
+            }
+        )
+    )
+
+    region modules (
+        name: Modules
+        type: list
+        source {
+            list: @module-cards
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: modules
+        }
+    )
+
+    process return-to-app (
+        name: Return to the application that asked for the sign-in
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 99: signed in on the shared login page for another application (G_RETURN_APP, set on page 9999):
+                -- its home page, once
+                declare
+                    l_app  varchar2(255) := :G_RETURN_APP;
+                    l_home varchar2(4000);
+                begin
+                    -- saved now: the redirect below ends the page before session state is written
+                    apex_util.set_session_state('G_RETURN_APP', null, p_commit => true);
+                    if l_app is not null then
+                        select max(home_link) into l_home from apex_applications
+                         where upper(alias) = l_app
+                           and workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID);
+                        if l_home is not null then
+                            apex_util.redirect_url(apex_page.get_url(p_application => l_app,
+                                p_page => nvl(regexp_substr(l_home, 'f\?p=[^:]*:([^:&]+)', 1, 1, 'i', 1), '1')));
+                        end if;
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 1
+            point: beforeHeader
+        }
+    )
+
+    process to-user-home (
+        name: A user who may not open COMMON Home goes to the own Home
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 103: the page is open to every signed-in user (the logo, the Home breadcrumb and the shared
+                -- login page lead here), but only a user with the Common Home privilege (page access, COMMON_HOME) sees
+                -- it; anyone else goes to the own Home - the user's application (USER_HOME), else My Tasks
+                declare
+                    l_home varchar2(4000) := :G_USER_HOME_URL;
+                begin
+                    if not xxfnd_user_pkg.authorized('PAGE_VIEW') then
+                        if l_home is null or l_home = apex_page.get_url(p_page => 1) then
+                            l_home := apex_page.get_url(p_page => 40);
+                        end if;
+                        apex_util.redirect_url(l_home);
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 2
+            point: beforeHeader
+        }
+    )
+)

@@ -88,3 +88,43 @@ appProcess JOURNEY_ACTIONS (
         comments: Release 86 - Remove (a user from a role), Switch on / off (a process or notification rule of the application) in the journey sections shared by pages 165 and 166. Release 87 - Show / Hide (an entry of the application's menu).
     }
 )
+
+appProcess USER_HOME (
+    name: USER_HOME
+    type: executeCode
+    source {
+        language: plsql
+        plsqlCode:
+            ```plsql
+            -- release 103: the user's Home, once per session - COMMON Home for a user who may open it; a user who may
+            -- not (e.g. a KYC requester on My Tasks) goes home to the own application (logo, Home breadcrumb, page 1)
+            declare
+                l_alias varchar2(255);
+            begin
+                if xxfnd_privilege_pkg.has_privilege('COMMON_HOME', 'VIEW') then
+                    :G_USER_HOME_URL := apex_page.get_url(p_page => 1);
+                else
+                    l_alias := xxfnd_user_pkg.home_application;
+                    for a in (select a.application_id, a.application_name, a.home_link
+                                from apex_applications a
+                               where upper(a.alias) = upper(l_alias)
+                                 and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)) loop
+                        :G_USER_APP_NAME := a.application_name;
+                        :G_USER_HOME_URL := apex_page.get_url(p_application => a.application_id,
+                                                p_page => nvl(regexp_substr(a.home_link, 'f\?p=[^:]*:([^:&]+)', 1, 1, 'i', 1), '1'));
+                    end loop;
+                    :G_USER_HOME_URL := nvl(:G_USER_HOME_URL, apex_page.get_url(p_page => 40));
+                end if;
+            end;
+            ```
+    }
+    execution {
+        sequence: 5
+        point: beforeHeader
+    }
+    serverSideCondition {
+        type: expression
+        language: plsql
+        plsqlExpression: :G_USER_HOME_URL is null and apex_authentication.is_authenticated
+    }
+)

@@ -43,6 +43,10 @@ create or replace package xxfnd_user_pkg authid definer as
     -- Y when the user is a LOCAL user (APEX account), N for SSO, null when unknown.
     function is_local(p_user_name in varchar2) return varchar2;
 
+    -- Release 103: the application a user works in, for the Home of COMMON's shared pages when the user may not open
+    -- COMMON Home: the APEX alias of the user's first active application other than COMMON (Users & Access), or null.
+    function home_application(p_user_name in varchar2 default null) return varchar2;
+
     -- Release 79: the details an administrator maintains on the User screen. A LOCAL user's name and e-mail are
     -- kept here; an SSO user's come from the employee.
     procedure save_user(p_user_id       in number,
@@ -451,6 +455,22 @@ create or replace package body xxfnd_user_pkg as
          where user_role_id = p_user_role_id;
         xxfnd_vpd_pkg.clear_cache;
     end unassign_role;
+
+    function home_application(p_user_name in varchar2 default null) return varchar2 is
+        l_alias xxfnd_applications.apex_app_alias%type;
+    begin
+        select min(a.apex_app_alias) keep (dense_rank first order by ua.start_date_active, ua.user_application_id)
+          into l_alias
+          from xxfnd_user_applications ua
+          join xxfnd_users u        on u.user_id = ua.user_id
+          join xxfnd_applications a on a.application_code = ua.application_code
+         where u.user_name = upper(nvl(p_user_name, xxfnd_util_pkg.current_user))
+           and ua.enabled_flag = 'Y'
+           and trunc(sysdate) between ua.start_date_active and nvl(ua.end_date_active, trunc(sysdate))
+           and ua.application_code <> 'COMMON'
+           and a.apex_app_alias is not null;
+        return l_alias;
+    end home_application;
 
     function is_local(p_user_name in varchar2) return varchar2 is
         l_type xxfnd_users.user_type%type;
