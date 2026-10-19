@@ -145,8 +145,8 @@ page 201 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 76: the departments data security allows; release 96: COMMON's departments, by ID
                 select organization_name as display_value, organization_id as return_value
+                  -- release 76: the departments data security allows; release 96: COMMON's departments, by ID
                   from xxhr_organizations
                  where organization_type = 'DEPARTMENT' and enabled_flag = 'Y'
                    and (xxcmp_request_pkg.allowed_departments is null
