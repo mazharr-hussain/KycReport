@@ -143,9 +143,81 @@ create or replace package body xxfnd_user_pkg as
                                           p_web_password                 => p_password,
                                           p_change_password_on_first_use => 'Y');
                 when 'PASSWORD' then
+                    -- release 101 (issue 18): EDIT_USER sets every attribute it is given and clears the others (an
+                    -- administrator lost the workspace admin and developer rights): the account is read first and
+                    -- given back as it is, only the password and "change at first sign-in" change
                     l_id := apex_util.get_user_id(p_user_name);
-                    apex_util.edit_user(p_user_id => l_id, p_user_name => p_user_name, p_web_password => p_password,
-                                        p_new_password => p_password, p_change_password_on_first_use => 'Y');
+                    declare
+                        l_workspace  varchar2(255);
+                        l_user_name  varchar2(255);
+                        l_first      varchar2(255);
+                        l_last       varchar2(255);
+                        l_web_pwd    varchar2(4000);
+                        l_email      varchar2(255);
+                        l_start      date;
+                        l_end        date;
+                        l_employee   number;
+                        l_schemas    varchar2(4000);
+                        l_person     varchar2(30);
+                        l_schema     varchar2(255);
+                        l_groups     varchar2(4000);
+                        l_dev_role   varchar2(4000);
+                        l_descr      varchar2(4000);
+                        l_expiry     date;
+                        l_locked     varchar2(1);
+                        l_failed     number;
+                        l_change     varchar2(1);
+                        l_first_use  varchar2(1);
+                    begin
+                        apex_util.fetch_user(p_user_id                      => l_id,
+                                             p_workspace                    => l_workspace,
+                                             p_user_name                    => l_user_name,
+                                             p_first_name                   => l_first,
+                                             p_last_name                    => l_last,
+                                             p_web_password                 => l_web_pwd,
+                                             p_email_address                => l_email,
+                                             p_start_date                   => l_start,
+                                             p_end_date                     => l_end,
+                                             p_employee_id                  => l_employee,
+                                             p_allow_access_to_schemas      => l_schemas,
+                                             p_person_type                  => l_person,
+                                             p_default_schema               => l_schema,
+                                             p_groups                       => l_groups,
+                                             p_developer_role               => l_dev_role,
+                                             p_description                  => l_descr,
+                                             p_account_expiry               => l_expiry,
+                                             p_account_locked               => l_locked,
+                                             p_failed_access_attempts       => l_failed,
+                                             p_change_password_on_first_use => l_change,
+                                             p_first_password_use_occurred  => l_first_use);
+                        -- the groups as IDs (EDIT_USER takes IDs; a name is turned into its ID)
+                        select listagg(case when regexp_like(trim(column_value), '^[0-9]+$') then trim(column_value)
+                                            else to_char(apex_util.get_group_id(trim(column_value))) end, ':')
+                          into l_groups
+                          from table(apex_string.split(l_groups, ':'))
+                         where trim(column_value) is not null;
+                        apex_util.edit_user(p_user_id                      => l_id,
+                                            p_user_name                    => l_user_name,
+                                            p_first_name                   => l_first,
+                                            p_last_name                    => l_last,
+                                            p_web_password                 => p_password,
+                                            p_new_password                 => p_password,
+                                            p_email_address                => l_email,
+                                            p_start_date                   => l_start,
+                                            p_end_date                     => l_end,
+                                            p_employee_id                  => l_employee,
+                                            p_allow_access_to_schemas      => l_schemas,
+                                            p_person_type                  => l_person,
+                                            p_default_schema               => l_schema,
+                                            p_group_ids                    => l_groups,
+                                            p_developer_roles              => l_dev_role,
+                                            p_description                  => l_descr,
+                                            p_account_expiry               => l_expiry,
+                                            p_account_locked               => l_locked,
+                                            p_failed_access_attempts       => l_failed,
+                                            p_change_password_on_first_use => 'Y',
+                                            p_first_password_use_occurred  => 'N');
+                    end;
                 when 'LOCK' then
                     l_id := apex_util.get_user_id(p_user_name);
                     if p_locked = 'Y' then
