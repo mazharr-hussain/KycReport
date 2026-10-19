@@ -113,10 +113,12 @@ An application can use COMMON only after it is registered (onboarded). Registrat
 
 After registration, the application page (COMMON 166) shows every section with Add / Edit / Remove, Disable / Enable, and Delete. Delete works only when the application is disabled and no business data refers to it; the setup it registered is removed with it.
 
-**The application menu.** Each registered application gets menu entries for the common functions: My Tasks, Notifications, Shared Setup, Give Feedback, and one entry per common function it manages. IT shows or hides them in Applications > the application > Menu in the Application, and the application can add its own with `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY`. The application's navigation list is one query:
+**The navigation, in one place.** Every navigation of every application, COMMON included, is kept in COMMON: Applications > the application > Menu (the Application Menu screen, page 167). Choose the side menu or the top bar; each entry is a folder, a page, the user menu, Sign Out or a separator, and it is shown by privileges (the entry's privilege, else the privilege of the page it opens). The application adds its own entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY` (P_MENU_CODE SIDE or TOP_BAR). Its navigation lists subscribe to COMMON's lists (Navigation Menu, Navigation Bar), which read:
 
 ```sql
-select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS order by display_sequence
+select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+  from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))   -- or nav_menu (the side menu)
+ order by sort_path
 ```
 
 ## Guidelines for developers of other applications
@@ -140,7 +142,7 @@ Each routine below takes your application code first. Register routines add what
 
 | Component | Register from your install | Call at run time | Link to (COMMON page) |
 | --- | --- | --- | --- |
-| Applications | `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY`; self-onboarding via script 00c | `PAGE_ALLOWED`, `IS_DELEGATED`; navigation list from `XXFND_APP_MENU_V` | Shared Setup (100) |
+| Applications | `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY`; self-onboarding via script 00c | `PAGE_ALLOWED`, `IS_DELEGATED`; navigation lists subscribed from COMMON (`XXFND_NAV_PKG.NAV_MENU`) | Shared Setup (100) |
 | Roles & Privileges | `XXFND_PRIVILEGE_PKG.REGISTER_FEATURE`, `REGISTER_PRIVILEGE`, `REGISTER_FEATURE_PAGE`, `REGISTER_ROLE`, `ADD_ROLE_PRIVILEGE`, `REGISTER_SOD_RULE` | `HAS_PRIVILEGE`, `HAS_PAGE_PRIVILEGE`, `HAS_ROLE` | - |
 | Users & Access | - | `XXFND_USER_PKG` as your sign-in (post-authentication) and authorization logic | - |
 | Data Security | `XXFND_VPD_PKG.REGISTER_DATA_RULE` | the policies filter rows by themselves | - |
@@ -165,7 +167,7 @@ Every component folder in the repository (`repos/common/features/<component>/REA
 - [ ] Your application is registered: Application Journey, the onboarding script, or script 00c in your install.
 - [ ] Your schema has its synonyms for the COMMON objects (script 00c creates them).
 - [ ] Your install registers your features, privileges, pages, roles, lookups, flexfields, document entities, templates, approval types and rules with the REGISTER\_\* routines, and nothing writes an XXFND\_ table directly.
-- [ ] Your navigation list reads `XXFND_APP_MENU_V`, and your pages link to COMMON's shared pages instead of copies.
+- [ ] Your navigation lists subscribe to COMMON's Navigation Menu and Navigation Bar, and your pages link to COMMON's shared pages instead of copies.
 - [ ] Every page has View plus Create or Manage privileges, and your tables have data access rules.
 - [ ] Your install and upgrade pass a fresh install, a re-run, an upgrade and the App Builder import without an error.
 - [ ] IT has set your object prefix in Data Model if your schema holds other applications' objects.

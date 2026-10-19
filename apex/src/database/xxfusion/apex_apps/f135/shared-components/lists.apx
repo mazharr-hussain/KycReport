@@ -1,111 +1,19 @@
 list navigation-bar (
     name: Navigation Bar
-
-
-    entry give-feedback (
-        label: Feedback
-        icon {
-            imageIconCssClasses: fa-comment-o
-        }
-        layout {
-            sequence: 6
-        }
-        link {
-            target: {
-                page: 173
-                items: {
-                    P173_APPLICATION_ID: &APP_ID.
-                    P173_PAGE_ID: &APP_PAGE_ID.
-                }
-                clearCache: 173
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry notifications (
-        label: Notifications
-        icon {
-            imageIconCssClasses: fa-bell-o
-        }
-        layout {
-            sequence: 5
-        }
-        link {
-            target: {
-                page: 43
-                clearCache: 43
-            }
-        }
-        userDefinedAttributes {
-            1: &NOTIFY_COUNT.
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-
-    entry app-user (
-        label: &APP_USER.
-        icon {
-            imageIconCssClasses: fa-user
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                type: url
-                url: #
-            }
-        }
-        userDefinedAttributes {
-            2: has-username
-        }
-    )
-
-
-
-    entry --- (
-        label: ---
-        layout {
-            sequence: 20
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: separator
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry sign-out (
-        label: Sign Out
-        icon {
-            imageIconCssClasses: fa-sign-out
-        }
-        layout {
-            sequence: 30
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: &LOGOUT_URL.
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+              -- release 105: the navigation bar of every application, COMMON included, kept in COMMON's menu registry
+              -- (menu TOP_BAR: Notifications with its badge, Give Feedback, the user menu with Sign Out)
+              from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 105 - master list: the navigation bar comes from XXFND_NAV_PKG.NAV_MENU('TOP_BAR') (A01 = badge, A02 = class), managed on the Application Menu screen like the side menu.
+    }
 )
 
 list navigation-menu (

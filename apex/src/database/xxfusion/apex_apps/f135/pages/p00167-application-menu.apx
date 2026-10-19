@@ -65,8 +65,7 @@ page 167 (
                 ```sql
                 select application_name || ' (' || application_code || ')' as display_value, application_code as return_value
                   from xxfnd_applications
-                 where application_code <> 'COMMON'
-                   and xxfnd_application_pkg.can_administer(application_code) = 'Y'
+                 where xxfnd_application_pkg.can_administer(application_code) = 'Y'
                  order by application_name
                 ```
             displayNullValue: true
@@ -89,7 +88,43 @@ page 167 (
             sessionStateProtection: unrestricted
         }
         help {
-            helpText: The application whose menu is shown.
+            helpText: The application whose menu is shown (COMMON too: its own menu is kept here as well).
+        }
+    )
+
+    pageItem P167_MENU (
+        type: selectList
+        label {
+            label: Menu
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Side menu;SIDE,Top bar;TOP_BAR
+        }
+        layout {
+            sequence: 20
+            region: @filter
+            slot: regionBody
+            startNewRow: false
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: SIDE
+        }
+        settings {
+            pageActionOnSelection: submitPage
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: Release 105 - the navigation shown: the side menu (navigation menu) or the top bar (navigation bar: notifications, feedback, the user menu with Sign Out).
         }
     )
 
@@ -108,12 +143,16 @@ page 167 (
                        (select p.label from xxfnd_app_menu_entries p
                          where p.application_code = e.application_code and p.entry_code = e.parent_code) as folder,
                        case e.target_type when 'FOLDER' then 'Folder'
+                                          when 'USER_MENU' then 'User menu (the user''s name)'
+                                          when 'SIGN_OUT' then 'Sign out'
+                                          when 'SEPARATOR' then 'Separator'
                                           when 'APP_PAGE' then 'Application page ' || e.page_id
                                           when 'ADMIN_PAGE' then 'Application page ' || e.page_id
                                           when 'COMMON_PAGE' then 'COMMON page ' || e.page_id
                                           when 'MANAGED' then 'Shared setup, managed in the application'
                                           else 'Shared setup' end as opens,
-                       case when e.target_type = 'FOLDER' then 'Who sees one of its entries'
+                       case when e.target_type in ('FOLDER', 'USER_MENU') then 'Who sees one of its entries'
+                            when e.target_type in ('SIGN_OUT', 'SEPARATOR') then 'Every signed-in user'
                             when e.target_type = 'SHARED_SETUP' or (e.target_type = 'ADMIN_PAGE' and e.feature_code is null)
                             then 'Administrators'
                             else coalesce((select f.feature_name || ' - View' from xxfnd_features f
@@ -131,12 +170,14 @@ page 167 (
                                          p_clear_cache => '168') as edit_url
                   from xxfnd_app_menu_entries e
                  where e.application_code = :P167_APPLICATION
+                   and e.menu_code = nvl(:P167_MENU, 'SIDE')
                  start with e.parent_code is null
                connect by prior e.entry_code = e.parent_code and prior e.application_code = e.application_code
                  order siblings by e.display_sequence, e.label
                 ```
             pageItemsToSubmit: [
                 P167_APPLICATION
+                P167_MENU
             ]
         }
         layout {
@@ -326,6 +367,7 @@ page 167 (
                 page: 168
                 items: {
                     P168_APPLICATION: &P167_APPLICATION.
+                    P168_MENU_CODE: &P167_MENU.
                 }
                 clearCache: 168
             }

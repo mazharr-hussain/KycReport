@@ -1,0 +1,594 @@
+page 168 (
+    name: Menu Entry
+    alias: MENU-ENTRY
+    title: Menu Entry
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: An entry of the application's menu - a folder or the page it opens - with its place in the menu. Leave Shown To empty to use the privilege of the page itself.
+    }
+
+    region entry (
+        name: Menu Entry
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P168_APPLICATION (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @entry
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P168_MENU_CODE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @entry
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P168_MADE_BY (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @entry
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P168_ENTRY_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 60
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P168_MADE_BY
+        }
+        help {
+            helpText: A short code of the entry, unique in the application (e.g. KYC_REQUESTS). It does not change once the entry is saved.
+        }
+    )
+
+    pageItem P168_LABEL (
+        type: textField
+        label {
+            label: Label
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 100
+        }
+    )
+
+    pageItem P168_TARGET_TYPE (
+        type: selectList
+        label {
+            label: Opens
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:A page of the application;APP_PAGE,An administration page of the application (administrators);ADMIN_PAGE,A COMMON page;COMMON_PAGE,A folder (holds other entries);FOLDER,Shared setup managed in the application;MANAGED,Shared setup;SHARED_SETUP,The user menu (the user's name; holds other entries);USER_MENU,Sign out;SIGN_OUT,A separator;SEPARATOR
+        }
+        layout {
+            sequence: 30
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        default {
+            type: static
+            staticValue: APP_PAGE
+        }
+    )
+
+    pageItem P168_PAGE_ID (
+        type: selectList
+        label {
+            label: Page
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select p.page_id || ' - ' || p.page_name as display_value, p.page_id as return_value
+                  from apex_application_pages p
+                  join apex_applications a on a.application_id = p.application_id
+                 where upper(a.alias) = case when :P168_TARGET_TYPE = 'COMMON_PAGE' then 'COMMON'
+                                             else (select upper(x.apex_app_alias) from xxfnd_applications x
+                                                    where x.application_code = :P168_APPLICATION) end
+                   and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)
+                   and p.page_id > 0
+                 order by p.page_id
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select a page -
+        }
+        cascadingLov {
+            parentItems: [
+                P168_TARGET_TYPE
+            ]
+            itemsToSubmit: [
+                P168_APPLICATION
+            ]
+        }
+        layout {
+            sequence: 40
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The page the entry opens (a page of the application or of COMMON).
+        }
+    )
+
+    pageItem P168_PARENT_CODE (
+        type: selectList
+        label {
+            label: Folder
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select label as display_value, entry_code as return_value
+                  from xxfnd_app_menu_entries
+                 where application_code = :P168_APPLICATION
+                   and target_type in ('FOLDER', 'USER_MENU')
+                   and menu_code = nvl(:P168_MENU_CODE, 'SIDE')
+                   and entry_code <> nvl(:P168_ENTRY_CODE, '#')
+                 order by display_sequence, label
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Top level -
+        }
+        layout {
+            sequence: 50
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The folder the entry is in; empty for the top level of the menu.
+        }
+    )
+
+    pageItem P168_FEATURE_CODE (
+        type: selectList
+        label {
+            label: Shown To
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select feature_name || ' - View' as display_value, feature_code as return_value
+                  from xxfnd_features
+                 order by feature_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - The privilege of the page -
+        }
+        layout {
+            sequence: 60
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: The privilege that shows the entry (View). Empty - the privilege of the page it opens (a page of no privilege, e.g. a home page: every signed-in user). A folder is shown when one of its entries is shown.
+        }
+    )
+
+    pageItem P168_ICON_CSS (
+        type: textField
+        label {
+            label: Icon
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+        help {
+            helpText: A Font APEX icon class, e.g. fa-folder or fa-file-text-o.
+        }
+    )
+
+    pageItem P168_DISPLAY_SEQUENCE (
+        type: numberField
+        label {
+            label: Order
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: 100
+        }
+    )
+
+    pageItem P168_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Shown
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: Off - the entry (and what is inside a folder) is hidden from the menu.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression: :P168_MADE_BY = 'ADMIN'
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction show-page (
+        name: Show the page for page entries
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P168_TARGET_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: ['APP_PAGE', 'ADMIN_PAGE', 'COMMON_PAGE'].includes(apex.items.P168_TARGET_TYPE.value)
+        }
+
+        action show-page-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P168_PAGE_ID
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-page-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P168_PAGE_ID
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    process load-entry (
+        name: Load the entry
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 104: the entry of the application's menu (XXFND_APP_MENU_ENTRIES); a new entry starts empty
+                for e in (select * from xxfnd_app_menu_entries
+                           where application_code = :P168_APPLICATION and entry_code = :P168_ENTRY_CODE) loop
+                    :P168_MADE_BY          := e.made_by;
+                    :P168_MENU_CODE        := e.menu_code;
+                    :P168_LABEL            := e.label;
+                    :P168_TARGET_TYPE      := e.target_type;
+                    :P168_PAGE_ID          := e.page_id;
+                    :P168_PARENT_CODE      := e.parent_code;
+                    :P168_FEATURE_CODE     := e.feature_code;
+                    :P168_ICON_CSS         := e.icon_css;
+                    :P168_DISPLAY_SEQUENCE := e.display_sequence;
+                    :P168_ENABLED_FLAG     := e.enabled_flag;
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P168_ENTRY_CODE
+        }
+    )
+
+    process save-entry (
+        name: Save the entry
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 104: through the Applications package (no DML on the page; Applications - Manage)
+                xxfnd_application_pkg.maintain_menu_entry(
+                    p_application_code => :P168_APPLICATION,
+                    p_entry_code       => :P168_ENTRY_CODE,
+                    p_label            => :P168_LABEL,
+                    p_parent_code      => :P168_PARENT_CODE,
+                    p_display_sequence => :P168_DISPLAY_SEQUENCE,
+                    p_icon_css         => :P168_ICON_CSS,
+                    p_target_type      => :P168_TARGET_TYPE,
+                    p_page_id          => :P168_PAGE_ID,
+                    p_feature_code     => :P168_FEATURE_CODE,
+                    p_enabled_flag     => nvl(:P168_ENABLED_FLAG, 'N'),
+                    p_menu_code        => nvl(:P168_MENU_CODE, 'SIDE'));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Menu entry saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process delete-entry (
+        name: Delete the entry
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 104: only an entry an administrator added (the others are hidden)
+                xxfnd_application_pkg.delete_menu_entry(:P168_APPLICATION, :P168_ENTRY_CODE);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Menu entry deleted.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DELETE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,DELETE
+        }
+    )
+
+)
