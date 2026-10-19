@@ -4,7 +4,7 @@
 --   TESTREQ      Requester - role Requesting Entity1, department Finance
 --   TESTCONTRIB  Contributor - role Compliance Officer
 --   TESTL1       Level 1 approver - role Compliance Manager
--- A re-run keeps existing users and only adds missing roles; the password is set again.
+-- A re-run keeps existing users and only adds missing roles and a missing APEX account; the password is set again.
 --------------------------------------------------------------------------------
 alter session set current_schema = XXFUSION;
 set serveroutput on size unlimited
@@ -24,6 +24,9 @@ declare
         l_ds varchar2(255); l_gr varchar2(4000); l_dr varchar2(4000); l_de varchar2(4000); l_ex date;
         l_lo varchar2(1); l_fa number; l_ch varchar2(1); l_fu varchar2(1);
     begin
+        if l_id is null then
+            raise_application_error(-20001, p_user || ' has no APEX account in workspace XXCUS.');
+        end if;
         apex_util.fetch_user(p_user_id => l_id, p_workspace => l_ws, p_user_name => l_un, p_first_name => l_fn,
             p_last_name => l_ln, p_web_password => l_pw, p_email_address => l_em, p_start_date => l_sd,
             p_end_date => l_ed, p_employee_id => l_emp, p_allow_access_to_schemas => l_sch, p_person_type => l_pt,
@@ -48,6 +51,10 @@ declare
             dbms_output.put_line('created  ' || p_user);
         else
             dbms_output.put_line('exists   ' || p_user);
+            -- a user kept from an earlier attempt may have no APEX account yet (COMMON's routine creates it)
+            if xxfnd_user_pkg.ensure_apex_account(l_id, c_password) = 'Y' then
+                dbms_output.put_line('         APEX account created');
+            end if;
         end if;
         xxfnd_user_pkg.assign_role(l_id, p_role);
         if p_dept is not null then
