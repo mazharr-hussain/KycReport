@@ -1,0 +1,67 @@
+page 100 (
+    name: Administration
+    alias: ADMINISTRATION
+    title: Administration
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @admin-area
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: Release 95 (UI issue 10) - the administration of KYC: KYC's own setup, the common functions IT lets KYC's administrators manage (opened in COMMON for KYC) and COMMON's shared setup.
+    }
+
+    region breadcrumb (
+        name: Administration
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region admin-functions (
+        name: Administration
+        type: list
+        source {
+            list: @administration
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: admin_functions
+        }
+    )
+)

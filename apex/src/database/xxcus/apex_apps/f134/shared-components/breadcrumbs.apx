@@ -14,6 +14,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry administration (
+        name: Administration
+        pageNumber: 100
+        execution {
+            sequence: 5
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
     entry parties (
         name: Parties
         pageNumber: 20

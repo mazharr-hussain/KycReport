@@ -1,6 +1,42 @@
 list navigation-bar (
     name: Navigation Bar
 
+    entry help (
+        label: Help
+        icon {
+            imageIconCssClasses: fa-question-circle-o
+        }
+        layout {
+            sequence: 3
+        }
+        link {
+            target: {
+                type: otherApp
+                app: COMMON
+                page: 174
+                items: {
+                    P174_APPLICATION_ID: &APP_ID.
+                    P174_PAGE_ID: &APP_PAGE_ID.
+                }
+                clearCache: 174
+            }
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- release 95: COMMON's help of this page (Help & Training, COMMON page 174); shown once COMMON has it
+                select 1 from apex_application_pages p
+                  join apex_applications a on a.application_id = p.application_id
+                 where upper(a.alias) = 'COMMON' and p.page_id = 174
+                   and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)
+                ```
+        }
+        comments {
+            comments: Release 95 - the help of the current page and the training material, in COMMON (one help for every application).
+        }
+    )
+
     entry feedback (
         label: Feedback
         icon {
@@ -298,7 +334,11 @@ list navigation-menu (
         }
         layout {
             sequence: 90
-            subentriesList: @administration
+        }
+        link {
+            target: {
+                page: 100
+            }
         }
         serverSideCondition {
             type: expression

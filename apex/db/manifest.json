@@ -373,6 +373,12 @@
   "upgrade_sequence": 131
  },
  {
+  "name": "16x KYC case requesting department",
+  "file": "16x-case-department.sql",
+  "install_sequence": 176,
+  "upgrade_sequence": 133
+ },
+ {
   "name": "16r KYC request package body",
   "file": "16r-request-pkg.sql",
   "install_sequence": 178,
@@ -680,7 +686,8 @@
   "apps": [
    "COMMON"
   ]
- }, {
+ },
+ {
   "name": "35 Security model migration",
   "file": "35-security-model-migration.sql",
   "install_sequence": 230,
@@ -689,7 +696,6 @@
    "COMMON"
   ]
  },
-
  {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",

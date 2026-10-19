@@ -190,7 +190,7 @@ page 201 (
                 ```
         }
         help {
-            helpText: The departments you may raise requests for (your Requesting Entity roles), or the department of your employee profile. Level 1 approvers and Compliance can raise requests for any department.
+            helpText: The departments you may raise requests for (the departments of your requesting entity role, e.g. Requesting Entity1 = Finance), or the department of your employee profile. Level 1 approvers and Compliance can raise requests for any department.
         }
     )
 

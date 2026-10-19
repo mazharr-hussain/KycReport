@@ -1,6 +1,6 @@
 app KYC (
     name: KYC Compliance Platform
-    version: Release 94
+    version: Release 95
     logo {
         type: text
         text: &APP_TITLE.
@@ -55,7 +55,7 @@ app KYC (
         ]
     }
     authentication {
-        scheme: @oracle-database-accounts
+        scheme: @oracle-apex-accounts
     }
     authorization {
         scheme: @kyc-user
