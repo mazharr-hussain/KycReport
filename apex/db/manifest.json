@@ -390,8 +390,8 @@
  {
   "name": "16y KYC requesting department by ID",
   "file": "16y-department-id.sql",
-  "install_sequence": 174,
-  "upgrade_sequence": 134
+  "install_sequence": 170,
+  "upgrade_sequence": 130
  },
  {
   "name": "16r KYC request package body",

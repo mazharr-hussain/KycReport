@@ -232,6 +232,24 @@ upgradeScript 16g-request-approval-paths (
     }
 )
 
+upgradeScript 16y-kyc-requesting-department-by-id (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: 16y-department-id.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 upgradeScript 16w-kyc-case-assignment-from-the-request (
     execution {
         sequence: 131
@@ -274,24 +292,6 @@ upgradeScript 16x-kyc-case-requesting-department (
     }
     script {
         contentFile: 16x-case-department.sql
-    }
-    serverSideCondition {
-        type: rowsReturned
-        sqlQuery:
-            ```sql
-            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
-               and not exists (select 1 from user_tables
-                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
-            ```
-    }
-)
-
-upgradeScript 16y-kyc-requesting-department-by-id (
-    execution {
-        sequence: 134
-    }
-    script {
-        contentFile: 16y-department-id.sql
     }
     serverSideCondition {
         type: rowsReturned
