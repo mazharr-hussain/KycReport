@@ -90,8 +90,11 @@ begin
                                        case when s.server_type in ('SHAREPOINT', 'OUTLOOK') then s.oauth_token_url end,
                                        s.enabled_flag, s.description)~';
     end if;
-    srv('FUSION', 'Oracle Fusion Cloud', 'FUSION', 'FUSION_CREDENTIALS',
+    -- release 100: the credential of the workspace's Fusion integration (prerequisite), not a COMMON placeholder
+    srv('FUSION', 'Oracle Fusion Cloud', 'FUSION', 'apex-fa-iabwbn-dev1-dbms-cred',
         'Oracle Fusion Cloud Applications (HCM workers for the user sync).');
+    update xxfnd_servers set credential_static_id = 'apex-fa-iabwbn-dev1-dbms-cred'
+     where server_code = 'FUSION' and credential_static_id = 'FUSION_CREDENTIALS';
     srv('UCM_MAIN', 'Oracle WebCenter Content', 'UCM', 'XXFND_UCM_CRED', 'Document store UCM (attachments).');
     srv('SHAREPOINT_MAIN', 'Microsoft SharePoint (Graph)', 'SHAREPOINT', 'XXFND_GRAPH_CRED',
         'Document store SharePoint through Microsoft Graph (attachments). Needs the OAuth token URL of the tenant.');

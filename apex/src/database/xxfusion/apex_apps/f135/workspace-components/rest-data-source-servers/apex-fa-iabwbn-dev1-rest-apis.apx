@@ -1,0 +1,12 @@
+restDataSourceServer apex-fa-iabwbn-dev1-rest-apis (
+    name: APEX_FA_IABWBN-DEV1_REST_APIS
+    endpointUrl {
+        url: https://iabwbn-dev1.fa.ocs.oraclecloud.com/
+    }
+    advanced {
+        promptOnInstall: false
+    }
+    comments {
+        comments: Release 100 - the Fusion server of the workspace, made by the Fusion integration prerequisite (with credential APEX_FA_IABWBN-DEV1_DBMS_CRED); COMMON uses it as it is and does not keep its own Fusion URL or credential.
+    }
+)
