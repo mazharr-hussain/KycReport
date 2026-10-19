@@ -178,7 +178,7 @@ page 201 (
                        when xxcmp_request_pkg.allowed_departments <> '#NONE'
                                  and instr(xxcmp_request_pkg.allowed_departments, ',') = 0
                             then xxcmp_request_pkg.allowed_departments
-                            else xxcmp_request_pkg.default_department end
+                            else to_char(xxcmp_request_pkg.default_department) end   -- release 96: an ID
                   from dual
                 ```
         }
