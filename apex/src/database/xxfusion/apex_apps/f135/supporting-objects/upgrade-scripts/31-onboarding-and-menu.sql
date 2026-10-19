@@ -5,9 +5,8 @@
 --   registers the APEX application of that schema through XXFND_APPLICATION_PKG.ONBOARD (registration rows, grants to
 --   the schema, the <CODE>_ADMIN role, the menu entries). Nothing else (no APEX setting); the full onboarding is the
 --   Application Journey (page 165). IT switches it off with the COMMON setting ONBOARD_SELF_ALLOWED = N.
---   XXFND_APP_MENU_V: the menu of the running application for the common functions (entries of
---   XXFND_APP_MENU_ENTRIES the signed-in user may see, with their links): the whole navigation list of an application
---   is "select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS order by display_sequence".
+--   Release 105: XXFND_APP_MENU_V (release 87, an application's navigation list) is no longer used - every
+--   navigation comes from XXFND_NAV_PKG.NAV_MENU (31b, 31c) - and 31c drops it.
 -- Idempotent: a re-run changes nothing.
 --------------------------------------------------------------------------------
 begin
@@ -22,24 +21,6 @@ begin
     commit;
 end;
 /
-
-create or replace view xxfnd_app_menu_v as
-select upper(a.apex_app_alias)                                   as app_alias,
-       e.application_code,
-       e.entry_code,
-       e.parent_code,
-       null                                                      as lvl,
-       e.label,
-       xxfnd_application_pkg.menu_url(e.application_code, e.target_type, e.page_id, e.feature_code) as target,
-       'NO'                                                      as is_current,
-       e.icon_css                                                as image,
-       null                                                      as image_attribute,
-       null                                                      as image_alt,
-       e.display_sequence
-  from xxfnd_app_menu_entries e
-  join xxfnd_applications a on a.application_code = e.application_code
- where xxfnd_application_pkg.menu_visible(e.application_code, e.target_type, e.feature_code, e.enabled_flag) = 'Y';
-comment on table xxfnd_app_menu_v is 'Release 87: the menu of an application for the common functions, for the signed-in user (an APEX list: lvl, label, target, is_current, image ...).';
 
 create or replace package xxfnd_onboard_pkg authid definer as
     -- Registers the calling application in COMMON with the bare minimum (registration rows, grants on the common

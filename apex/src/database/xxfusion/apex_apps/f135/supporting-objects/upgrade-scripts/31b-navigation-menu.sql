@@ -50,57 +50,21 @@ end;
 create or replace view xxfnd_nav_menu_v as
 with ctx as (
     -- the running page; the menu shown: the working application (COMMON page used from an application), else the
-    -- running application
+    -- running application (release 105: COMMON's own menu is kept in the registry too)
     select upper(v('APP_ALIAS'))                              as cur_alias,
-           to_number(v('APP_ID'))                             as cur_app_id,
            to_number(v('APP_PAGE_ID'))                        as cur_page,
-           upper(coalesce(v('G_WORK_APP'), v('APP_ALIAS')))   as menu_alias,
-           v('P100_MODULE')                                   as cur_module
-      from dual),
+           upper(coalesce(v('G_WORK_APP'), v('APP_ALIAS')))   as menu_alias
+      from dual
+     where nvl(upper(v('APP_USER')), 'NOBODY') <> 'NOBODY'),
 cur as (
     select max(fp.feature_code) as feature_code
       from xxfnd_feature_pages fp, ctx
      where upper(fp.app_alias) = ctx.cur_alias and fp.page_id = ctx.cur_page),
--- COMMON's own menu (release 78 / 82): Home, My Tasks, the modules (XXFND_MODULES_V) and their components
-feat as (
-    select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
-      from xxfnd_admin_menu_v m
-      cross join ctx
-      cross apply (select min(fp.page_id) keep (dense_rank first order by
-                              case when fp.page_id = m.home_page_id then 0 else 1 end,
-                              fp.tab_sequence nulls last, fp.page_id) as page_id
-                     from xxfnd_feature_pages fp
-                     join apex_application_pages ap
-                       on ap.application_id = ctx.cur_app_id and ap.page_id = fp.page_id
-                    where fp.app_alias = 'COMMON' and fp.feature_code = m.feature_code) t
-     where ctx.menu_alias = 'COMMON' and t.page_id is not null),
-common_nodes as (
-    select 'HOME' as id, cast(null as varchar2(100)) as parent_id, 'Home' as label,
-           apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 0 as seq,
-           case when ctx.cur_page = 1 then 'YES' else 'NO' end as is_current
-      from ctx
-     where ctx.menu_alias = 'COMMON'
-    union all
-    select 'MY_TASKS', null, 'My Tasks', apex_page.get_url(p_page => 40), 'fa-inbox', 1,
-           case when ctx.cur_page = 40 then 'YES' else 'NO' end
-      from ctx
-     where ctx.menu_alias = 'COMMON' and xxfnd_privilege_pkg.has_privilege_yn('MY_TASKS', 'VIEW') = 'Y'
-    union all
-    select 'M_' || md.module_code, null, md.module_name,
-           apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => md.module_code, p_clear_cache => '100'),
-           md.icon_css, md.display_sequence,
-           case when ctx.cur_page = 100 and ctx.cur_module = md.module_code then 'YES' else 'NO' end
-      from xxfnd_modules_v md, ctx
-     where ctx.menu_alias = 'COMMON'
-    union all
-    select 'F_' || f.feature_code, 'M_' || f.feature_group, f.feature_name, apex_page.get_url(p_page => f.page_id),
-           f.icon_css, f.display_sequence,
-           case when f.feature_code = (select feature_code from cur) then 'YES' else 'NO' end
-      from feat f),
--- release 104: an application's menu (XXFND_APP_MENU_ENTRIES)
 app_entries as (
-    select e.application_code, e.entry_code, e.parent_code, e.label, e.target_type, e.page_id, e.icon_css,
-           e.display_sequence,
+    select e.application_code, e.entry_code, e.parent_code, e.target_type, e.page_id, e.icon_css,
+           e.display_sequence, e.menu_code,
+           -- release 105: the user menu is labelled with the user's name
+           case when e.target_type = 'USER_MENU' then v('APP_USER') else e.label end as label,
            xxfnd_application_pkg.entry_visible(e.application_code, e.target_type, e.page_id, e.feature_code,
                                                e.enabled_flag) as visible,
            xxfnd_application_pkg.menu_url(e.application_code, e.target_type, e.page_id, e.feature_code) as target,
@@ -110,8 +74,7 @@ app_entries as (
       from xxfnd_app_menu_entries e
       join xxfnd_applications a on a.application_code = e.application_code
       cross join ctx
-     where upper(a.apex_app_alias) = ctx.menu_alias
-       and ctx.menu_alias <> 'COMMON'),
+     where upper(a.apex_app_alias) = ctx.menu_alias),
 -- the entries the user sees, top down: a hidden entry hides what is inside it
 app_tree as (
     select x.*, level as lvl,
@@ -120,26 +83,27 @@ app_tree as (
       from app_entries x
      start with x.parent_code is null and x.visible = 'Y'
    connect by prior x.entry_code = x.parent_code and x.visible = 'Y')
-select level as lvl, n.label, n.target, n.is_current, n.image,
-       cast(null as varchar2(100)) as image_attribute, cast(null as varchar2(100)) as image_alt,
-       sys_connect_by_path(to_char(nvl(n.seq, 0), 'fm0000000') || n.label, '/') as sort_path
-  from common_nodes n
- start with n.parent_id is null
-connect by prior n.id = n.parent_id
-union all
-select t.lvl, t.label, t.target,
+select t.menu_code, t.lvl, t.label, t.target,
        case when t.target_type in ('APP_PAGE', 'ADMIN_PAGE') and t.cur_alias = t.menu_alias
                  and (t.page_id = t.cur_page
                       or (t.page_feature is not null and t.page_feature = (select feature_code from cur)))
             then 'YES'
             when t.target_type = 'COMMON_PAGE' and t.cur_alias = 'COMMON' and t.page_id = t.cur_page then 'YES'
-            else 'NO' end,
-       t.icon_css, null, null, t.sort_path
+            else 'NO' end as is_current,
+       t.icon_css as image,
+       cast(null as varchar2(100)) as image_attribute,
+       cast(null as varchar2(100)) as image_alt,
+       -- the navigation bar's badge (the user's unread notifications) and the user menu's class
+       case when t.page_id = 43 and (t.target_type = 'COMMON_PAGE' or t.menu_alias = 'COMMON')
+            then v('NOTIFY_COUNT') end as a01,
+       case when t.target_type = 'USER_MENU' then 'has-username' end as a02,
+       t.sort_path
   from app_tree t
- where t.target_type <> 'FOLDER'
-    or exists (select 1 from app_tree c where instr(c.code_path, t.code_path) = 1 and c.target_type <> 'FOLDER');
+ where t.target_type not in ('FOLDER', 'USER_MENU')
+    or exists (select 1 from app_tree c
+                where instr(c.code_path, t.code_path) = 1 and c.target_type not in ('FOLDER', 'USER_MENU'));
 
-comment on table xxfnd_nav_menu_v is 'Release 104: the navigation menu of the running page for the signed-in user (an APEX list ordered by SORT_PATH): the application''s menu (XXFND_APP_MENU_ENTRIES, shown by privileges), in COMMON COMMON''s menu or that of the application the page is used from (G_WORK_APP).';
+comment on table xxfnd_nav_menu_v is 'Release 104 / 105: the navigation of the running page for the signed-in user (an APEX list per MENU_CODE: SIDE, TOP_BAR, ADMIN; ordered by SORT_PATH): the menus of the application kept in COMMON (XXFND_APP_MENU_ENTRIES, shown by privileges); in COMMON those of COMMON or of the application the page is used from (G_WORK_APP).';
 
 -- the menu for the navigation lists of every application: the view reads APEX's metadata (not grantable on), the
 -- applications run this function (EXECUTE)
@@ -152,21 +116,24 @@ create or replace package xxfnd_nav_pkg authid definer as
         image           varchar2(255),
         image_attribute varchar2(255),
         image_alt       varchar2(255),
+        a01             varchar2(4000),
+        a02             varchar2(4000),
         sort_path       varchar2(4000));
     type t_nav_rows is table of t_nav_row;
     -- Release 104: the navigation menu of the running page for the signed-in user (XXFND_NAV_MENU_V), for an APEX
     -- list: select lvl, label, target, is_current, image, image_attribute, image_alt
     --         from table(xxfnd_nav_pkg.nav_menu) order by sort_path
-    function nav_menu return t_nav_rows pipelined;
+    -- Release 105: P_MENU_CODE SIDE (navigation menu), TOP_BAR (navigation bar; A01 = badge, A02 = class) or ADMIN.
+    function nav_menu(p_menu_code in varchar2 default 'SIDE') return t_nav_rows pipelined;
 end xxfnd_nav_pkg;
 /
 
 create or replace package body xxfnd_nav_pkg as
-    function nav_menu return t_nav_rows pipelined is
+    function nav_menu(p_menu_code in varchar2 default 'SIDE') return t_nav_rows pipelined is
         l_row t_nav_row;
     begin
-        for r in (select lvl, label, target, is_current, image, image_attribute, image_alt, sort_path
-                    from xxfnd_nav_menu_v) loop
+        for r in (select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02, sort_path
+                    from xxfnd_nav_menu_v where menu_code = upper(nvl(p_menu_code, 'SIDE'))) loop
             l_row.lvl             := r.lvl;
             l_row.label           := r.label;
             l_row.target          := r.target;
@@ -174,6 +141,8 @@ create or replace package body xxfnd_nav_pkg as
             l_row.image           := r.image;
             l_row.image_attribute := r.image_attribute;
             l_row.image_alt       := r.image_alt;
+            l_row.a01             := r.a01;
+            l_row.a02             := r.a02;
             l_row.sort_path       := r.sort_path;
             pipe row (l_row);
         end loop;

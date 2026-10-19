@@ -78,6 +78,11 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_app_menu_entries.feature_code is 'The feature whose VIEW privilege shows the entry; empty = every signed-in user.'~');
     end if;
     xxfnd_schema_pkg.create_who_trigger('XXFND_APP_MENU_ENTRIES');
+    -- release 105: the menu an entry belongs to - SIDE (navigation menu), TOP_BAR (navigation bar), ADMIN
+    -- (Administration page); every entry so far is a SIDE entry
+    xxfnd_ddl_pkg.add_column('XXFND_APP_MENU_ENTRIES', 'MENU_CODE', q'~varchar2(20) default 'SIDE' not null~');
+    xxfnd_ddl_pkg.add_constraint('XXFND_APP_MENU_ENTRIES', 'XXFND_APP_MENU_ENTRIES_CK10',
+        q'~check (menu_code in ('SIDE', 'TOP_BAR', 'ADMIN'))~');
 end;
 /
 
@@ -303,7 +308,8 @@ create or replace package xxfnd_application_pkg authid definer as
                                   p_feature_code     in varchar2 default null,
                                   p_icon_css         in varchar2 default null,
                                   p_display_sequence in number   default null,
-                                  p_parent_code      in varchar2 default null);
+                                  p_parent_code      in varchar2 default null,
+                                  p_menu_code        in varchar2 default 'SIDE');
     -- IT changes an entry (label, order, icon, on / off) on the Application page (166). Applications - Manage.
     procedure save_menu_entry(p_application_code in varchar2,
                               p_entry_code       in varchar2,
@@ -327,8 +333,15 @@ create or replace package xxfnd_application_pkg authid definer as
                                   p_target_type      in varchar2,
                                   p_page_id          in number,
                                   p_feature_code     in varchar2,
-                                  p_enabled_flag     in varchar2);
+                                  p_enabled_flag     in varchar2,
+                                  p_menu_code        in varchar2 default 'SIDE');
     procedure delete_menu_entry(p_application_code in varchar2, p_entry_code in varchar2);
+    -- Release 105: one place for every application's navigation, COMMON's too - the menu of an entry (MENU_CODE):
+    -- SIDE (the navigation menu), TOP_BAR (the navigation bar: e.g. Notifications, Feedback, the user menu with
+    -- USER_MENU, SEPARATOR, SIGN_OUT) or ADMIN (the Administration page). SYNC_MENU adds the entries an application is
+    -- missing (COMMON: Home, My Tasks, a folder per module, an entry per screen, its top bar); nothing is changed or
+    -- removed. Run by COMMON's install (script 31c) after every upgrade.
+    procedure sync_menu(p_application_code in varchar2);
     -- Release 104: Y when the signed-in user sees the entry - the same privileges as the pages: the entry's feature
     -- (View), else for an application page the feature the page belongs to (View; a page of no feature: every user),
     -- a folder when one of its entries is seen (XXFND_NAV_MENU_V).
@@ -1266,17 +1279,19 @@ create or replace package body xxfnd_application_pkg as
                                   p_feature_code     in varchar2 default null,
                                   p_icon_css         in varchar2 default null,
                                   p_display_sequence in number   default null,
-                                  p_parent_code      in varchar2 default null) is
+                                  p_parent_code      in varchar2 default null,
+                                  p_menu_code        in varchar2 default 'SIDE') is
         l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
     begin
-        if upper(p_target_type) not in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE', 'MANAGED', 'SHARED_SETUP', 'FOLDER')
+        if upper(p_target_type) not in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE', 'MANAGED', 'SHARED_SETUP', 'FOLDER', 'USER_MENU', 'SIGN_OUT', 'SEPARATOR')
+           or upper(nvl(p_menu_code, 'SIDE')) not in ('SIDE', 'TOP_BAR', 'ADMIN')
            or (upper(p_target_type) in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE') and p_page_id is null) then
             xxfnd_error_pkg.raise_error('XXFND_MENU_TARGET', apex_t_varchar2(p_entry_code));
         end if;
         insert into xxfnd_app_menu_entries (application_code, entry_code, label, parent_code, display_sequence, icon_css,
-                                            target_type, page_id, feature_code, made_by)
+                                            target_type, page_id, feature_code, made_by, menu_code)
         select l_code, upper(trim(p_entry_code)), p_label, upper(p_parent_code), nvl(p_display_sequence, 100), p_icon_css,
-               upper(p_target_type), p_page_id, upper(p_feature_code), 'APP'
+               upper(p_target_type), p_page_id, upper(p_feature_code), 'APP', upper(nvl(p_menu_code, 'SIDE'))
           from dual
          where not exists (select 1 from xxfnd_app_menu_entries
                             where application_code = l_code and entry_code = upper(trim(p_entry_code)));
@@ -1307,8 +1322,10 @@ create or replace package body xxfnd_application_pkg as
                                   p_target_type      in varchar2,
                                   p_page_id          in number,
                                   p_feature_code     in varchar2,
-                                  p_enabled_flag     in varchar2) is
+                                  p_enabled_flag     in varchar2,
+                                  p_menu_code        in varchar2 default 'SIDE') is
         l_code   xxfnd_applications.application_code%type := registered_code(p_application_code);
+        l_menu   xxfnd_app_menu_entries.menu_code%type    := upper(nvl(p_menu_code, 'SIDE'));
         l_entry  xxfnd_app_menu_entries.entry_code%type   := upper(trim(p_entry_code));
         l_type   xxfnd_app_menu_entries.target_type%type  := upper(p_target_type);
         l_parent xxfnd_app_menu_entries.parent_code%type  := upper(trim(p_parent_code));
@@ -1317,7 +1334,8 @@ create or replace package body xxfnd_application_pkg as
     begin
         check_manage;
         if l_entry is null or trim(p_label) is null
-           or l_type not in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE', 'MANAGED', 'SHARED_SETUP', 'FOLDER')
+           or l_type not in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE', 'MANAGED', 'SHARED_SETUP', 'FOLDER', 'USER_MENU', 'SIGN_OUT', 'SEPARATOR')
+           or l_menu not in ('SIDE', 'TOP_BAR', 'ADMIN')
            or (l_type in ('COMMON_PAGE', 'APP_PAGE', 'ADMIN_PAGE') and l_page is null)
            or (l_type = 'MANAGED' and p_feature_code is null) then
             xxfnd_error_pkg.raise_error('XXFND_MENU_TARGET', apex_t_varchar2(nvl(l_entry, '-')));
@@ -1325,7 +1343,9 @@ create or replace package body xxfnd_application_pkg as
         -- the parent: a folder of the application, not the entry itself and not an entry inside it
         if l_parent is not null then
             select count(*) into l_n from xxfnd_app_menu_entries
-             where application_code = l_code and entry_code = l_parent and target_type = 'FOLDER'
+             where application_code = l_code and entry_code = l_parent and target_type in ('FOLDER', 'USER_MENU')
+               and menu_code = (select nvl(max(m.menu_code), l_menu) from xxfnd_app_menu_entries m
+                                 where m.application_code = l_code and m.entry_code = l_entry)
                and l_parent not in (select entry_code from xxfnd_app_menu_entries
                                      where application_code = l_code
                                      start with entry_code = l_entry and application_code = l_code
@@ -1342,9 +1362,9 @@ create or replace package body xxfnd_application_pkg as
               t.target_type = l_type, t.page_id = l_page, t.feature_code = upper(p_feature_code),
               t.enabled_flag = case when p_enabled_flag = 'N' then 'N' else 'Y' end
          when not matched then insert (application_code, entry_code, label, parent_code, display_sequence, icon_css,
-                                       target_type, page_id, feature_code, enabled_flag, made_by)
+                                       target_type, page_id, feature_code, enabled_flag, made_by, menu_code)
               values (l_code, l_entry, trim(p_label), l_parent, nvl(p_display_sequence, 100), p_icon_css, l_type, l_page,
-                      upper(p_feature_code), case when p_enabled_flag = 'N' then 'N' else 'Y' end, 'ADMIN');
+                      upper(p_feature_code), case when p_enabled_flag = 'N' then 'N' else 'Y' end, 'ADMIN', l_menu);
     end maintain_menu_entry;
 
     procedure delete_menu_entry(p_application_code in varchar2, p_entry_code in varchar2) is
@@ -1374,6 +1394,53 @@ create or replace package body xxfnd_application_pkg as
            and parent_code not in (select entry_code from xxfnd_app_menu_entries where application_code = l_code);
     end delete_menu_entry;
 
+    procedure sync_menu(p_application_code in varchar2) is
+        l_code xxfnd_applications.application_code%type := upper(p_application_code);
+        procedure entry(p_entry in varchar2, p_label in varchar2, p_type in varchar2, p_page in number, p_icon in varchar2,
+                        p_seq in number, p_parent in varchar2 default null, p_menu in varchar2 default 'SIDE') is
+        begin
+            insert into xxfnd_app_menu_entries (application_code, entry_code, label, parent_code, display_sequence,
+                                                icon_css, target_type, page_id, made_by, menu_code)
+            select l_code, p_entry, p_label, p_parent, p_seq, p_icon, p_type, p_page, 'COMMON', p_menu from dual
+             where not exists (select 1 from xxfnd_app_menu_entries
+                                where application_code = l_code and entry_code = p_entry);
+        end entry;
+    begin
+        if l_code <> 'COMMON' then
+            return;     -- an application registers its own entries (REGISTER_MENU_ENTRY); COMMON adds its defaults (ENSURE_MENU)
+        end if;
+        -- COMMON's navigation menu: Home, My Tasks, a folder per module, an entry per screen (the feature's home page,
+        -- else its first page) - who sees an entry follows the privilege of its page
+        entry('HOME',     'Home',     'APP_PAGE', 1,  'fa-home',  0);
+        entry('MY_TASKS', 'My Tasks', 'APP_PAGE', 40, 'fa-inbox', 1);
+        for m in (select lookup_code, meaning, nvl(tag, 'fa-folder') icon, display_sequence
+                    from xxfnd_lookup_values where lookup_type = 'XXFND_MODULE' and enabled_flag = 'Y') loop
+            entry('M_' || m.lookup_code, m.meaning, 'FOLDER', null, m.icon, m.display_sequence);
+        end loop;
+        for f in (select f.feature_code, f.feature_name, f.feature_group, nvl(f.icon_css, 'fa-cog') icon,
+                         f.display_sequence,
+                         (select min(fp.page_id) keep (dense_rank first order by
+                                     case when fp.page_id = f.home_page_id then 0 else 1 end,
+                                     fp.tab_sequence nulls last, fp.page_id)
+                            from xxfnd_feature_pages fp
+                           where fp.app_alias = 'COMMON' and fp.feature_code = f.feature_code) page_id
+                    from xxfnd_features f
+                   where f.admin_flag = 'Y' and f.enabled_flag = 'Y' and f.home_page_id is not null
+                     and exists (select 1 from xxfnd_lookup_values m
+                                  where m.lookup_type = 'XXFND_MODULE' and m.lookup_code = f.feature_group)) loop
+            if f.page_id is not null then
+                entry('F_' || f.feature_code, f.feature_name, 'APP_PAGE', f.page_id, f.icon, f.display_sequence,
+                      'M_' || f.feature_group);
+            end if;
+        end loop;
+        -- COMMON's navigation bar: Notifications, Feedback and the user menu
+        entry('NOTIFICATIONS', 'Notifications', 'APP_PAGE',  43,   'fa-bell-o',    5,  null, 'TOP_BAR');
+        entry('GIVE_FEEDBACK', 'Feedback',      'APP_PAGE',  173,  'fa-comment-o', 6,  null, 'TOP_BAR');
+        entry('USER_MENU',     'User',          'USER_MENU', null, 'fa-user',      10, null, 'TOP_BAR');
+        entry('USER_MENU_SEP', '---',           'SEPARATOR', null, null,           20, 'USER_MENU', 'TOP_BAR');
+        entry('SIGN_OUT',      'Sign Out',      'SIGN_OUT',  null, 'fa-sign-out',  30, 'USER_MENU', 'TOP_BAR');
+    end sync_menu;
+
     function entry_visible(p_application_code in varchar2, p_target_type in varchar2, p_page_id in number,
                            p_feature_code in varchar2, p_enabled_flag in varchar2) return varchar2 is
         l_alias   xxfnd_applications.apex_app_alias%type;
@@ -1381,8 +1448,10 @@ create or replace package body xxfnd_application_pkg as
     begin
         if p_enabled_flag <> 'Y' then
             return 'N';
-        elsif p_target_type = 'FOLDER' then
+        elsif p_target_type in ('FOLDER', 'USER_MENU') then
             return 'Y';      -- shown when one of its entries is shown (XXFND_NAV_MENU_V)
+        elsif p_target_type in ('SIGN_OUT', 'SEPARATOR') then
+            return 'Y';      -- release 105: the user menu of every signed-in user
         elsif p_target_type = 'ADMIN_PAGE' and p_feature_code is null then
             -- the application's administration (e.g. its Administration page): an administrator of anything
             return case when xxfnd_privilege_pkg.has_any_admin_privilege then 'Y' else 'N' end;
@@ -1420,6 +1489,19 @@ create or replace package body xxfnd_application_pkg as
         l_home  number;
         l_alias xxfnd_applications.apex_app_alias%type;
     begin
+        -- release 105: the entries of the user menu (navigation bar)
+        if p_target_type = 'SIGN_OUT' then
+            return '&LOGOUT_URL.';
+        elsif p_target_type = 'SEPARATOR' then
+            return 'separator';
+        elsif p_target_type = 'USER_MENU' then
+            return '#';
+        elsif p_page_id = 173 and (p_target_type = 'COMMON_PAGE' or upper(p_application_code) = 'COMMON') then
+            -- Give Feedback: on the page the user is on
+            return apex_page.get_url(p_application => 'COMMON', p_page => 173,
+                                     p_items  => 'P173_APPLICATION_ID,P173_PAGE_ID',
+                                     p_values => v('APP_ID') || ',' || v('APP_PAGE_ID'));
+        end if;
         if p_target_type in ('APP_PAGE', 'ADMIN_PAGE') then
             -- release 104: the application's own page, also when its menu is shown in COMMON
             select max(apex_app_alias) into l_alias from xxfnd_applications

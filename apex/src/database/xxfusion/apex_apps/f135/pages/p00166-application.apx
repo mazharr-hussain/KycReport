@@ -299,6 +299,45 @@ page 166 (
         }
     )
 
+    button menu (
+        buttonName: MENU
+        label: Menu
+        layout {
+            sequence: 15
+            region: @actions
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-sitemap
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 167
+                items: {
+                    P167_APPLICATION: &P166_APPLICATION_CODE.
+                }
+                clearCache: 167
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 105: the application's navigation (side menu, top bar) is kept in one place, the Application
+                -- Menu screen (was also shown here with Show / Hide, release 87)
+                xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'VIEW') = 'Y'
+                ```
+        }
+    )
+
     button disable (
         buttonName: DISABLE
         label: Disable

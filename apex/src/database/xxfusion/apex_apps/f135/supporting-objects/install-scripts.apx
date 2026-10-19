@@ -951,6 +951,23 @@ installScript 31b-navigation-menu-registry-menu-view (
     }
 )
 
+installScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
+    execution {
+        sequence: 228
+    }
+    script {
+        contentFile: 31c-navigation-one-place.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
 installScript 35-security-model-migration (
     execution {
         sequence: 230

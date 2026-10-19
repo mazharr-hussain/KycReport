@@ -61,6 +61,18 @@ page 168 (
         }
     )
 
+    pageItem P168_MENU_CODE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @entry
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
     pageItem P168_MADE_BY (
         type: hidden
         layout {
@@ -132,7 +144,7 @@ page 168 (
         }
         lov {
             type: staticValues
-            staticValues: STATIC2:A page of the application;APP_PAGE,An administration page of the application (administrators);ADMIN_PAGE,A COMMON page;COMMON_PAGE,A folder (holds other entries);FOLDER,Shared setup managed in the application;MANAGED,Shared setup;SHARED_SETUP
+            staticValues: STATIC2:A page of the application;APP_PAGE,An administration page of the application (administrators);ADMIN_PAGE,A COMMON page;COMMON_PAGE,A folder (holds other entries);FOLDER,Shared setup managed in the application;MANAGED,Shared setup;SHARED_SETUP,The user menu (the user's name; holds other entries);USER_MENU,Sign out;SIGN_OUT,A separator;SEPARATOR
         }
         layout {
             sequence: 30
@@ -212,7 +224,8 @@ page 168 (
                 select label as display_value, entry_code as return_value
                   from xxfnd_app_menu_entries
                  where application_code = :P168_APPLICATION
-                   and target_type = 'FOLDER'
+                   and target_type in ('FOLDER', 'USER_MENU')
+                   and menu_code = nvl(:P168_MENU_CODE, 'SIDE')
                    and entry_code <> nvl(:P168_ENTRY_CODE, '#')
                  order by display_sequence, label
                 ```
@@ -478,6 +491,7 @@ page 168 (
                 for e in (select * from xxfnd_app_menu_entries
                            where application_code = :P168_APPLICATION and entry_code = :P168_ENTRY_CODE) loop
                     :P168_MADE_BY          := e.made_by;
+                    :P168_MENU_CODE        := e.menu_code;
                     :P168_LABEL            := e.label;
                     :P168_TARGET_TYPE      := e.target_type;
                     :P168_PAGE_ID          := e.page_id;
@@ -517,7 +531,8 @@ page 168 (
                     p_target_type      => :P168_TARGET_TYPE,
                     p_page_id          => :P168_PAGE_ID,
                     p_feature_code     => :P168_FEATURE_CODE,
-                    p_enabled_flag     => nvl(:P168_ENABLED_FLAG, 'N'));
+                    p_enabled_flag     => nvl(:P168_ENABLED_FLAG, 'N'),
+                    p_menu_code        => nvl(:P168_MENU_CODE, 'SIDE'));
                 ```
         }
         execution {
