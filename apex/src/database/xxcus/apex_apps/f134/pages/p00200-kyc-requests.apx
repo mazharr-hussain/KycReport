@@ -78,7 +78,8 @@ page 200 (
                                r.last_action_date,
                                xxfnd_lookup_pkg.lookup_meaning('KYC_INTAKE_OUTCOME', r.intake_outcome) as intake_outcome,
                                r.intake_score,
-                               xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department) as department,
+                               coalesce(xxcmp_request_pkg.department_name(r.requesting_department_id),   -- release 96
+                                        xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department)) as department,
                                r.requester_user_name,
                                r.request_status,
                                r.submitted_date,

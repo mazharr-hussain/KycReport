@@ -65,7 +65,8 @@ create or replace package xxfnd_data_model_pkg authid definer as
     -- The columns of an index: P_DISPLAY Y = as written (function-based columns as their expression), N = the real
     -- columns the index reads (comma separated).
     function index_columns(p_owner in varchar2, p_index_name in varchar2, p_display in varchar2 default 'Y') return varchar2;
-    -- The application's object prefix (null = every object of its schema). In an APEX session: Data Model - Manage.
+    -- The application's object prefix (null = every object of its schema; release 102: several, comma separated, e.g.
+    -- XXFND_,XXHR_). In an APEX session: Data Model - Manage.
     procedure set_object_prefix(p_application_code in varchar2, p_object_prefix in varchar2);
     -- The group of one of the application's tables in the diagram; added when missing, an administrator's change is kept.
     procedure register_table_group(p_application_code in varchar2, p_table_name in varchar2, p_group_name in varchar2);
@@ -115,7 +116,11 @@ begin
           from xxfnd_dm_apps_v p
           join #D#_objects o
             on o.owner = p.schema_name
-           and (p.object_prefix is null or o.object_name like replace(p.object_prefix, '_', '\_') || '%' escape '\')
+           -- release 102: one prefix or several, comma separated (COMMON: XXFND_,XXHR_)
+           and (p.object_prefix is null
+                or exists (select 1 from table(apex_string.split(p.object_prefix, ',')) x
+                            where trim(x.column_value) is not null
+                              and o.object_name like replace(trim(x.column_value), '_', '\_') || '%' escape '\'))
           left join #D#_tab_comments c on c.owner = o.owner and c.table_name = o.object_name and o.object_type in ('TABLE', 'VIEW')
           left join xxfnd_dm_table_groups g on g.application_code = p.application_code and g.table_name = o.object_name
          where o.object_type in ('TABLE', 'VIEW', 'MATERIALIZED VIEW', 'PACKAGE', 'PROCEDURE', 'FUNCTION', 'TYPE',
@@ -520,7 +525,13 @@ begin
     begin
         select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON';
         if l_n = 0 then
-            xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_');
+            xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_,XXHR_');
+        else
+            -- release 102: the HR tables (XXHR_) are COMMON's too; an administrator's other prefix is kept
+            select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON' and object_prefix = 'XXFND_';
+            if l_n > 0 then
+                xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_,XXHR_');
+            end if;
         end if;
         -- COMMON's tables by module (the six modules of COMMON)
         g('XXFND_APPLICATIONS', 'Platform');
@@ -539,7 +550,8 @@ begin
         g('XXFND_ROLE_PRIVILEGES', 'Security');
         g('XXFND_USERS', 'Security');
         g('XXFND_USER_ROLES', 'Security');
-        g('XXFND_EMPLOYEES', 'Security');
+        g('XXHR_EMPLOYEES', 'Security');
+        g('XXHR_ORGANIZATIONS', 'Security');
         g('XXFND_DATA_SECURITY_RULES', 'Security');
         g('XXFND_DATA_RULE_ASSIGNMENTS', 'Security');
         g('XXFND_SOD_RULES', 'Security');

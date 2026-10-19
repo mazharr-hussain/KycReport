@@ -27,10 +27,10 @@ begin
 end;
 /
 
--- release 83: XXFND_EMPLOYEES_SRC (Fusion-owned rows) is created in 05b, after XXFND_INTEGRATION_PKG.
+-- release 83: XXHR_EMPLOYEES_SRC (Fusion-owned rows) is created in 05b, after XXFND_INTEGRATION_PKG.
 
-create or replace trigger xxfnd_employees_ins
-    before insert on xxfnd_employees
+create or replace trigger xxhr_employees_ins
+    before insert on xxhr_employees
     for each row
 begin
     :new.user_name := upper(:new.user_name);
@@ -53,4 +53,4 @@ begin
 end;
 /
 
--- (release 79: the trigger XXFND_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)
+-- (release 79: the trigger XXHR_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)

@@ -32,7 +32,7 @@ begin
        and procedure_name in ('SERVER', 'CALL', 'RETRY', 'CAN_RETRY', 'TEST_CONNECTION', 'LOG_START', 'LOG_END',
                               'SYNC_HCM', 'SYNC_FROM_FUSION', 'SYNC_RUNNING');
     check_(l_n = 10, 'XXFND_INTEGRATION_PKG holds servers, calls, log and the HCM sync (' || l_n || ' of 10)');
-    select count(*) into l_n from user_triggers where trigger_name = 'XXFND_EMPLOYEES_SRC' and status = 'ENABLED';
+    select count(*) into l_n from user_triggers where trigger_name = 'XXHR_EMPLOYEES_SRC' and status = 'ENABLED';
     check_(l_n = 1, 'the Fusion-owned rows trigger is in place (created by 05b)');
 
     -- servers: APEX Remote Servers of the workspace, the retiring endpoint only as a fallback
@@ -77,14 +77,14 @@ begin
                  q'~declare r varchar2(4000); begin r := xxfnd_integration_pkg.test_connection('FUSION'); end;~');
 
     -- the HCM sync does nothing harmful while the server is not answering: no employee is disabled by it
-    select count(*) into l_n from xxfnd_employees where enabled_flag = 'Y';
+    select count(*) into l_n from xxhr_employees where enabled_flag = 'Y';
     begin
         xxfnd_integration_pkg.sync_hcm;
     exception
         when others then
             null;   -- an unreachable host raises; the sync changes nothing then
     end;
-    select count(*) into l_v from xxfnd_employees where enabled_flag = 'Y';
+    select count(*) into l_v from xxhr_employees where enabled_flag = 'Y';
     check_(to_number(l_v) = l_n, 'HCM sync without a reachable server disables nobody');
 
     -- release 86: the registered endpoints are retired (copied into XXFND_SERVERS, table and trigger dropped by 29)

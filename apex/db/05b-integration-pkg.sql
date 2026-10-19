@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- 05b XXFND_INTEGRATION_PKG (release 79; release 83: the Integrations component). COMMON only (XXFUSION).
 --   Release 83: installed after the security objects (09b, privilege checks) and before the attachments (14), which
---   reach their document stores through it; it creates the HCM-owned-row trigger XXFND_EMPLOYEES_SRC (was in 08).
+--   reach their document stores through it; it creates the HCM-owned-row trigger XXHR_EMPLOYEES_SRC (was in 08).
 --   - Servers are APEX Remote Servers and their secrets APEX Web Credentials (workspace, kept by the workspace
 --     administrator); endpoints are REST Data Sources of COMMON. XXFND_INTEGRATION_ENDPOINTS is read-only and
 --     retiring: it is read only when no Remote Server of that static ID exists.
@@ -209,7 +209,7 @@ create or replace package xxfnd_integration_pkg authid definer as
     procedure sync_from_fusion(p_base_url              in varchar2,
                                p_credential_static_id  in varchar2,
                                p_page_size             in pls_integer default 200);
-    -- True while SYNC_FROM_FUSION runs; lets the Fusion-owned-row trigger (XXFND_EMPLOYEES_SRC) tell the sync
+    -- True while SYNC_FROM_FUSION runs; lets the Fusion-owned-row trigger (XXHR_EMPLOYEES_SRC) tell the sync
     -- apart from a user edit.
     function sync_running return boolean;
     -- Sets each Fusion employee's user name and Fusion user id from their Fusion / identity-domain user account
@@ -334,13 +334,13 @@ create or replace package body xxfnd_integration_pkg as
 
         -- A LOCAL record created before the person existed in Fusion is adopted,
         -- not duplicated (the email and user name are unique).
-        update xxfnd_employees
+        update xxhr_employees
            set source_type = 'FUSION', fusion_person_id = l_person_id
          where source_type = 'LOCAL'
            and fusion_person_id is null
            and (email_address = l_email or user_name = upper(l_email));
 
-        merge into xxfnd_employees e
+        merge into xxhr_employees e
         using (select l_person_id person_id from dual) s
            on (e.fusion_person_id = s.person_id)
          when matched then update set
@@ -387,8 +387,8 @@ create or replace package body xxfnd_integration_pkg as
             for i in 0 .. l_items.get_size - 1 loop
                 l_item := treat(l_items.get(i) as json_object_t);
                 if l_item.get_number('PersonId') is not null and trim(l_item.get_string('Username')) is not null then
-                    -- trigger XXFND_EMPLOYEES_RENAME moves the references (rename_user)
-                    update xxfnd_employees
+                    -- trigger XXHR_EMPLOYEES_RENAME moves the references (rename_user)
+                    update xxhr_employees
                        set user_name      = upper(trim(l_item.get_string('Username'))),
                            fusion_user_id = nvl(to_char(l_item.get_number('UserId')), fusion_user_id)
                      where fusion_person_id = l_item.get_number('PersonId')
@@ -441,7 +441,7 @@ create or replace package body xxfnd_integration_pkg as
         sync_user_names(p_base_url, p_credential_static_id, p_page_size);
 
         -- Workers no longer returned by Fusion (terminated) are disabled, not deleted.
-        update xxfnd_employees e
+        update xxhr_employees e
            set e.enabled_flag = 'N'
          where e.source_type = 'FUSION'
            and e.enabled_flag = 'Y'
@@ -828,8 +828,8 @@ end xxfnd_integration_pkg;
 
 -- Fusion-sourced people are owned by the HCM sync; only the sync (no APEX session) may change their identity fields.
 -- (release 83: created here, after XXFND_INTEGRATION_PKG, instead of in 08)
-create or replace trigger xxfnd_employees_src
-    before update or delete on xxfnd_employees
+create or replace trigger xxhr_employees_src
+    before update or delete on xxhr_employees
     for each row
 begin
     if xxfnd_util_pkg.in_apex_session and not xxfnd_integration_pkg.sync_running

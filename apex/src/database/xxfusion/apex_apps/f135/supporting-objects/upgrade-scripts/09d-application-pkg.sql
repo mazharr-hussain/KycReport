@@ -1115,7 +1115,7 @@ create or replace package body xxfnd_application_pkg as
             for t in (select c.table_name from user_tab_columns c
                         join user_tables u on u.table_name = c.table_name
                        where c.column_name = 'APPLICATION_CODE'
-                         and c.table_name like 'XXFND\_%' escape '\'
+                         and (c.table_name like 'XXFND\_%' escape '\' or c.table_name like 'XXHR\_%' escape '\')
                          and c.table_name not in ('XXFND_APPLICATIONS', 'XXFND_APPLICATION_FUNCTIONS',
                                                   'XXFND_WORKFLOW_PROCESSES', 'XXFND_SETUP_TYPE_APPS', 'XXFND_ROLES',
                                                   'XXFND_APP_MENU_ENTRIES', 'XXFND_LOOKUP_TYPES', 'XXFND_APPROVAL_TYPES',
@@ -1126,11 +1126,11 @@ create or replace package body xxfnd_application_pkg as
                                                   'XXFND_DM_APP_SCOPES', 'XXFND_DM_TABLE_GROUPS',
                                                   -- release 96: security model rows (removed with the application)
                                                   'XXFND_USER_APPLICATIONS', 'XXFND_DATA_OBJECTS',
-                                                  'XXFND_DATA_DIMENSIONS', 'XXFND_ORGANIZATIONS')
+                                                  'XXFND_DATA_DIMENSIONS', 'XXHR_ORGANIZATIONS')
                        order by c.table_name) loop
                 execute immediate 'select count(*) from ' || dbms_assert.simple_sql_name(t.table_name)
                                || ' where application_code = :c' into l_n using l_app.application_code;
-                found(initcap(replace(substr(t.table_name, 7), '_', ' ')), l_n);
+                found(initcap(replace(regexp_replace(t.table_name, '^XX[A-Z]+_'), '_', ' ')), l_n);
             end loop;
             -- documents of the application's records (its registered entities)
             select count(*) into l_n from xxfnd_attached_documents ad

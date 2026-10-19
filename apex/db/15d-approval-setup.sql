@@ -540,7 +540,7 @@ create or replace package body xxfnd_approval_rule_pkg as
         l_name xxfnd_roles.role_name%type;
     begin
         if p_approver_type = 'USER' then
-            select max(nvl(full_name, user_name)) into l_name from xxfnd_employees where user_name = upper(p_user_name);
+            select max(nvl(full_name, user_name)) into l_name from xxhr_employees where user_name = upper(p_user_name);
             return nvl(l_name, p_user_name);
         elsif p_approver_type = 'REQUESTER' then
             return 'Requester';

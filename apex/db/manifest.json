@@ -29,6 +29,15 @@
   ]
  },
  {
+  "name": "00d HR tables (XXHR_ prefix)",
+  "file": "00d-hr-tables-rename.sql",
+  "install_sequence": 6,
+  "upgrade_sequence": 6,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "01 Common tables - XXFND - part 1 of 3",
   "file": "01-common-tables-xxfnd-part-1-of-3.sql",
   "install_sequence": 10,
@@ -377,6 +386,12 @@
   "file": "16x-case-department.sql",
   "install_sequence": 176,
   "upgrade_sequence": 133
+ },
+ {
+  "name": "16y KYC requesting department by ID",
+  "file": "16y-department-id.sql",
+  "install_sequence": 174,
+  "upgrade_sequence": 134
  },
  {
   "name": "16r KYC request package body",

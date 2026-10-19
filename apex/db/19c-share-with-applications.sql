@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- 19c Sharing with the application schemas (release 54). COMMON only.
---   The shared XXFND_ objects exist only here (XXFUSION). Every application schema (XXFND_APPLICATIONS.SCHEMA_NAME,
+--   The shared XXFND_ objects (release 102: and the XXHR_ HR tables) exist only here (XXFUSION). Every application schema (XXFND_APPLICATIONS.SCHEMA_NAME,
 --   e.g. KYC = XXCUS) gets grants on them and reaches them through synonyms, created by its own install
 --   (KYC script 03). XXFND_SCHEMA_RELEASES and XXFND_DDL_PKG stay local to each schema (deployment tracking).
 --   XXFND_SHARE_PKG:
@@ -59,7 +59,7 @@ create or replace package body xxfnd_share_pkg as
         l_to varchar2(130) := dbms_assert.enquote_name(dbms_assert.schema_name(upper(p_schema)), false);
     begin
         for o in (select object_name, object_type from user_objects
-                   where object_name like 'XXFND\_%' escape '\'
+                   where (object_name like 'XXFND\_%' escape '\' or object_name like 'XXHR\_%' escape '\')
                      and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
                    order by object_type, object_name) loop
             continue when is_local(o.object_name);

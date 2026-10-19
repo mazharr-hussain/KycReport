@@ -65,7 +65,7 @@ create table if not exists xxfnd_users (
     constraint xxfnd_users_pk primary key (user_id),
     constraint xxfnd_users_uk1 unique (user_name),
     constraint xxfnd_users_uk2 unique (employee_id),
-    constraint xxfnd_users_fk1 foreign key (employee_id) references xxfnd_employees (employee_id),
+    constraint xxfnd_users_fk1 foreign key (employee_id) references xxhr_employees (employee_id),
     constraint xxfnd_users_ck1 check (user_type in ('SSO','LOCAL')),
     constraint xxfnd_users_ck2 check ((user_type = 'SSO' and employee_id is not null) or (user_type = 'LOCAL' and employee_id is null)),
     constraint xxfnd_users_ck3 check (enabled_flag in ('Y','N')),
@@ -140,7 +140,7 @@ insert into xxfnd_users (user_name, user_type, employee_id, full_name, email_add
                          created_by, creation_date, last_updated_by, last_update_date)
 select upper(e.user_name), 'SSO', e.employee_id, e.full_name, e.email_address, e.enabled_flag,
        e.start_date_active, e.end_date_active, 'INSTALL', systimestamp, 'INSTALL', systimestamp
-  from xxfnd_employees e
+  from xxhr_employees e
  where exists (select 1 from xxfnd_user_roles ur where ur.employee_id = e.employee_id)
    and not exists (select 1 from xxfnd_users u where u.employee_id = e.employee_id)
    and not exists (select 1 from xxfnd_users u where u.user_name = upper(e.user_name));
@@ -158,11 +158,11 @@ for each row
 when (new.user_id is null and new.employee_id is not null)
 declare
     l_user_id xxfnd_users.user_id%type;
-    l_emp     xxfnd_employees%rowtype;
+    l_emp     xxhr_employees%rowtype;
 begin
     select max(user_id) into l_user_id from xxfnd_users where employee_id = :new.employee_id;
     if l_user_id is null then
-        select * into l_emp from xxfnd_employees where employee_id = :new.employee_id;
+        select * into l_emp from xxhr_employees where employee_id = :new.employee_id;
         insert into xxfnd_users (user_name, user_type, employee_id, full_name, email_address)
         values (upper(l_emp.user_name), 'SSO', l_emp.employee_id, l_emp.full_name, l_emp.email_address)
         returning user_id into l_user_id;
@@ -222,7 +222,7 @@ using (select 'COMMON' application_code, 'Common' application_name, 'COMMON' ape
 merge into xxfnd_config_tables t
 using (select column_value table_name
          from table(apex_t_varchar2(
-              'XXFND_LOOKUP_TYPES','XXFND_LOOKUP_VALUES','XXFND_EMPLOYEES','XXFND_ROLES','XXFND_USER_ROLES',
+              'XXFND_LOOKUP_TYPES','XXFND_LOOKUP_VALUES','XXHR_EMPLOYEES','XXFND_ROLES','XXFND_USER_ROLES',
               'XXFND_SOD_RULES','XXFND_NOTIFICATION_TEMPLATES','XXFND_RETENTION_POLICIES',
               'XXFND_INTEGRATION_PURPOSES',
               'XXFND_DOCUMENT_ENTITIES','XXFND_DOCUMENT_CATEGORIES','XXFND_ATTACHMENT_FUNCTIONS',

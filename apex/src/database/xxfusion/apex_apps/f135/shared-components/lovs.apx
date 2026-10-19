@@ -28,7 +28,7 @@ lov lov-employees (
             ```sql
             select full_name || ' (' || user_name || ')' as display_value,
                    user_name as return_value
-              from xxfnd_employees
+              from xxhr_employees
              where enabled_flag = 'Y'
              order by full_name
             ```

@@ -1,0 +1,351 @@
+page 180 (
+    name: Data Security
+    alias: DATA-SECURITY
+    title: Data Security
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Release 96 - which records a user sees. Each application registers its secured tables (data objects) with the column that decides access (its dimension, e.g. Department) and the owner column. A role reaches a data object at a level: all records, the given values of each user's role assignment, or own records. Data access is given only through roles; the values belong to the user's role assignment (User screen). Privileges decide what the user may do.
+            ```
+    }
+
+    region breadcrumb (
+        name: Data Security
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Data Objects
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select o.data_object_code, o.object_name, o.application_code, o.table_name,
+                       d.dimension_name, o.dimension_column, o.owner_column,
+                       (select listagg(r.role_name || ': ' || initcap(case x.access_level when 'VALUES' then 'given values'
+                                                                                 when 'OWN' then 'own records' else 'all records' end), '; ')
+                                 within group (order by r.role_name)
+                          from xxfnd_role_data_access x join xxfnd_roles r on r.role_code = x.role_code
+                         where x.data_object_code = o.data_object_code
+                           and (:G_ADMIN_APP = 'ALL' or r.application_code in (:G_ADMIN_APP, 'COMMON'))) as roles,
+                       apex_page.get_url(p_page => 181, p_items => 'P181_DATA_OBJECT_CODE', p_values => o.data_object_code,
+                                         p_clear_cache => '181') as open_url
+                  -- release 96: the secured tables (data objects) of the applications the administrator works for; an application
+                  -- administrator sees its own objects and COMMON's objects its roles reach
+                  from xxfnd_data_objects o
+                  left join xxfnd_data_dimensions d on d.dimension_code = o.dimension_code
+                 where (:G_ADMIN_APP = 'ALL' or o.application_code = :G_ADMIN_APP
+                                        or (o.application_code = 'COMMON'
+                                            and exists (select 1 from xxfnd_role_data_access x join xxfnd_roles r on r.role_code = x.role_code
+                                                         where x.data_object_code = o.data_object_code and r.application_code = :G_ADMIN_APP)))
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data object yet: an application registers its secured tables (XXFND_VPD_PKG.REGISTER_DATA_OBJECT).
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column DATA_OBJECT_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+                primaryKey: true
+            }
+        )
+
+        column OBJECT_NAME (
+            type: plainText
+            heading {
+                heading: Data Object
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#OBJECT_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column TABLE_NAME (
+            type: plainText
+            heading {
+                heading: Table
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DIMENSION_NAME (
+            type: plainText
+            heading {
+                heading: Dimension
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DIMENSION_COLUMN (
+            type: plainText
+            heading {
+                heading: Dimension Column
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OWNER_COLUMN (
+            type: plainText
+            heading {
+                heading: Owner Column
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROLES (
+            type: plainText
+            heading {
+                heading: Roles With Access
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    region dimensions (
+        name: Dimensions
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.dimension_code, d.dimension_name, d.application_code,
+                       case d.value_source when 'ORGANIZATION' then 'Organizations: ' || initcap(d.organization_type)
+                                           when 'LOOKUP' then 'Lookup ' || d.lookup_type else 'Free values' end as value_source,
+                       (select count(*) from xxhr_organizations g
+                         where d.value_source = 'ORGANIZATION' and g.organization_type = d.organization_type and g.enabled_flag = 'Y') as organizations,
+                       (select count(*) from xxfnd_data_objects o where o.dimension_code = d.dimension_code) as data_objects
+                  -- release 96: what data access is decided by; shared dimensions are COMMON's
+                  from xxfnd_data_dimensions d
+                 where :G_ADMIN_APP = 'ALL' or d.application_code in (:G_ADMIN_APP, 'COMMON')
+                 order by d.dimension_name
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: dimensions
+        }
+        messages {
+            whenNoDataFound: No dimension yet.
+        }
+
+        column DIMENSION_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column DIMENSION_NAME (
+            type: plainText
+            heading {
+                heading: Dimension
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column VALUE_SOURCE (
+            type: plainText
+            heading {
+                heading: Values From
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ORGANIZATIONS (
+            type: plainText
+            heading {
+                heading: Organizations
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column DATA_OBJECTS (
+            type: plainText
+            heading {
+                heading: Data Objects
+            }
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    button organizations (
+        buttonName: ORGANIZATIONS
+        label: Organizations
+        layout {
+            sequence: 10
+            region: @dimensions
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+            icon: fa-sitemap
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 186
+                clearCache: 186
+            }
+        }
+    )
+)

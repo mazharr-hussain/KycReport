@@ -964,6 +964,8 @@ create or replace package xxfnd_vpd_pkg authid definer as
                                 p_source_type       in varchar2 default 'LOCAL',
                                 p_fusion_id         in varchar2 default null);
     -- A secured table of the application: P_DIMENSION_COLUMN holds the dimension's value, P_OWNER_COLUMN the owner.
+    -- Release 102: P_DIMENSION_VALUE_TYPE CODE (default) - the column holds the value code; ID - it holds
+    -- XXHR_ORGANIZATIONS.ORGANIZATION_ID (a dimension of value source ORGANIZATION). Null keeps a registered object's type.
     procedure register_data_object(p_application_code in varchar2,
                                    p_data_object_code in varchar2,
                                    p_object_name      in varchar2,
@@ -971,7 +973,8 @@ create or replace package xxfnd_vpd_pkg authid definer as
                                    p_dimension_code   in varchar2 default null,
                                    p_dimension_column in varchar2 default null,
                                    p_owner_column     in varchar2 default null,
-                                   p_description      in varchar2 default null);
+                                   p_description      in varchar2 default null,
+                                   p_dimension_value_type in varchar2 default null);
     -- A role reaches the records of a data object at a level: ALL, VALUES (the assignment's values) or OWN.
     procedure grant_data_access(p_application_code in varchar2, p_role_code in varchar2,
                                 p_data_object_code in varchar2, p_access_level in varchar2);
@@ -1017,7 +1020,8 @@ create or replace package body xxfnd_vpd_pkg as
     -- role; for VALUES the assignment's values (override, else default)
     cursor c_access(p_user in varchar2, p_table in varchar2) is
         select access_level, dimension_column, owner_column,
-               listagg(distinct value_code, ',') within group (order by value_code) as value_list
+               -- release 102: as the column holds it (code, or organization ID)
+               listagg(distinct dimension_value, ',') within group (order by dimension_value) as value_list
           from xxfnd_user_data_access_v
          where user_name = p_user and table_name = p_table
          group by access_level, dimension_column, owner_column;
@@ -1250,7 +1254,8 @@ create or replace package body xxfnd_vpd_pkg as
                 l_obj := substr(upper(p_table_name), 1, 60);
                 insert into xxfnd_data_objects (data_object_code, object_name, application_code, table_name, owner_column)
                 values (l_obj, initcap(replace(regexp_replace(upper(p_table_name), '^XX[A-Z]+_'), '_', ' ')),
-                        case when upper(p_table_name) like 'XXFND\_%' escape '\' then 'COMMON' else l_code end,
+                        case when upper(p_table_name) like 'XXFND\_%' escape '\' or upper(p_table_name) like 'XXHR\_%' escape '\'
+                             then 'COMMON' else l_code end,
                         upper(p_table_name), case when l_level = 'OWN' then upper(p_column_name) end);
             elsif l_level = 'OWN' then
                 update xxfnd_data_objects set owner_column = nvl(owner_column, upper(p_column_name))
@@ -1320,14 +1325,14 @@ create or replace package body xxfnd_vpd_pkg as
         l_row    varchar2(30);
         l_parent number;
     begin
-        select max(application_code) into l_row from xxfnd_organizations
+        select max(application_code) into l_row from xxhr_organizations
          where organization_type = upper(p_organization_type) and organization_code = upper(p_organization_code);
         assert_owner('Organization', upper(p_organization_code), l_row, l_app);
         if p_parent_code is not null then
-            select max(organization_id) into l_parent from xxfnd_organizations
+            select max(organization_id) into l_parent from xxhr_organizations
              where organization_type = upper(p_organization_type) and organization_code = upper(p_parent_code);
         end if;
-        merge into xxfnd_organizations t
+        merge into xxhr_organizations t
         using (select upper(p_organization_type) ty, upper(p_organization_code) c from dual) x
            on (t.organization_type = x.ty and t.organization_code = x.c)
          when matched then update set t.organization_name = p_organization_name, t.parent_organization_id = l_parent,
@@ -1346,22 +1351,39 @@ create or replace package body xxfnd_vpd_pkg as
                                    p_dimension_code   in varchar2 default null,
                                    p_dimension_column in varchar2 default null,
                                    p_owner_column     in varchar2 default null,
-                                   p_description      in varchar2 default null) is
-        l_app varchar2(30) := app_code(p_application_code);
-        l_row varchar2(30);
+                                   p_description      in varchar2 default null,
+                                   p_dimension_value_type in varchar2 default null) is
+        l_app  varchar2(30) := app_code(p_application_code);
+        l_row  varchar2(30);
+        l_type varchar2(10) := upper(p_dimension_value_type);
+        l_src  varchar2(20);
     begin
         select max(application_code) into l_row from xxfnd_data_objects
          where data_object_code = upper(p_data_object_code) or table_name = upper(p_table_name);
         assert_owner('Data object', upper(p_data_object_code), l_row, l_app);
+        -- release 102: an ID column only for a dimension whose values are organizations
+        if l_type is not null and l_type not in ('CODE', 'ID') then
+            raise_application_error(-20083, 'Dimension value type ' || l_type || ' is not CODE or ID.');
+        end if;
+        if l_type = 'ID' then
+            select max(value_source) into l_src from xxfnd_data_dimensions where dimension_code = upper(p_dimension_code);
+            if nvl(l_src, '-') <> 'ORGANIZATION' then
+                raise_application_error(-20083, 'Dimension value type ID needs a dimension of organizations ('
+                                                || upper(p_dimension_code) || ').');
+            end if;
+        end if;
         merge into xxfnd_data_objects t
         using (select upper(p_data_object_code) c from dual) x on (t.data_object_code = x.c)
          when matched then update set t.object_name = p_object_name, t.dimension_code = upper(p_dimension_code),
               t.dimension_column = upper(p_dimension_column), t.owner_column = upper(p_owner_column),
-              t.description = nvl(p_description, t.description)
+              t.description = nvl(p_description, t.description),
+              t.dimension_value_type = case when p_dimension_code is null then 'CODE'
+                                            else nvl(l_type, t.dimension_value_type) end
          when not matched then insert (data_object_code, object_name, application_code, table_name, dimension_code,
-                                       dimension_column, owner_column, description)
+                                       dimension_column, owner_column, description, dimension_value_type)
               values (x.c, p_object_name, l_app, upper(p_table_name), upper(p_dimension_code), upper(p_dimension_column),
-                      upper(p_owner_column), p_description);
+                      upper(p_owner_column), p_description,
+                      case when p_dimension_code is null then 'CODE' else nvl(l_type, 'CODE') end);
         clear_cache;
     end register_data_object;
 
@@ -1446,9 +1468,9 @@ create or replace package body xxfnd_vpd_pkg as
         delete from xxfnd_assignment_values
          where dimension_code in (select dimension_code from xxfnd_data_dimensions where application_code = l_app);
         delete from xxfnd_data_dimensions where application_code = l_app;
-        update xxfnd_organizations set parent_organization_id = null
-         where parent_organization_id in (select organization_id from xxfnd_organizations where application_code = l_app);
-        delete from xxfnd_organizations where application_code = l_app;
+        update xxhr_organizations set parent_organization_id = null
+         where parent_organization_id in (select organization_id from xxhr_organizations where application_code = l_app);
+        delete from xxhr_organizations where application_code = l_app;
         clear_cache;
     end unregister_application;
 

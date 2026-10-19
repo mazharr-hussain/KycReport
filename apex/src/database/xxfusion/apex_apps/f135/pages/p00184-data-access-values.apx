@@ -266,7 +266,7 @@ page 184 (
             sqlQuery:
                 ```sql
                 select g.organization_name as display_value, g.organization_code as return_value
-                  from xxfnd_organizations g
+                  from xxhr_organizations g
                   join xxfnd_data_dimensions d on d.organization_type = g.organization_type and d.value_source = 'ORGANIZATION'
                  where d.dimension_code = :P184_DIMENSION_CODE and g.enabled_flag = 'Y'
                 union all

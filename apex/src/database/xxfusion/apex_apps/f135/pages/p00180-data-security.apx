@@ -233,7 +233,7 @@ page 180 (
                 select d.dimension_code, d.dimension_name, d.application_code,
                        case d.value_source when 'ORGANIZATION' then 'Organizations: ' || initcap(d.organization_type)
                                            when 'LOOKUP' then 'Lookup ' || d.lookup_type else 'Free values' end as value_source,
-                       (select count(*) from xxfnd_organizations g
+                       (select count(*) from xxhr_organizations g
                          where d.value_source = 'ORGANIZATION' and g.organization_type = d.organization_type and g.enabled_flag = 'Y') as organizations,
                        (select count(*) from xxfnd_data_objects o where o.dimension_code = d.dimension_code) as data_objects
                   -- release 96: what data access is decided by; shared dimensions are COMMON's

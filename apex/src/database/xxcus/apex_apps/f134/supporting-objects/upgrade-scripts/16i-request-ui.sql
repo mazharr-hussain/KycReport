@@ -40,7 +40,10 @@ create or replace package body xxcmp_request_ui_pkg as
             end loop;
             fld('Details', 'Request type', xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type));
             fld('Details', 'Business relationship', xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship));
-            fld('Details', 'Requesting department', xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department));
+            -- release 96: COMMON's department (an older request without one keeps its code's meaning)
+            fld('Details', 'Requesting department',
+                coalesce(xxcmp_request_pkg.department_name(r.requesting_department_id),
+                         xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department)));
             fld('Details', 'Requested by', xxfnd_ui_pkg.person_name(r.requester_user_name), null, null, r.requester_user_name);
             fld('Details', 'Submitted', to_char(r.submitted_date, 'DD-MON-YYYY HH24:MI'));
             fld('Details', 'Last action', to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI'));

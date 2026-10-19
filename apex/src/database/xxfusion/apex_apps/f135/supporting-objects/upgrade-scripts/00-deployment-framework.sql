@@ -57,6 +57,10 @@ create or replace package xxfnd_ddl_pkg authid current_user as
     procedure drop_object(p_object_name in varchar2, p_object_type in varchar2, p_retired_table in boolean default false);
     -- Release 79: ALTER TABLE ... MODIFY (<column> NULL) only when the column is NOT NULL (no data changes).
     procedure set_nullable(p_table_name in varchar2, p_column_name in varchar2);
+    -- Release 102: ALTER TABLE ... RENAME only when P_OLD_NAME exists and P_NEW_NAME does not; then the table's own
+    -- constraints, indexes and triggers named P_OLD_NAME_... get the P_NEW_NAME_... name (also on a re-run, so a step
+    -- stopped half way finishes). Rows, grants, policies and foreign keys stay with the table.
+    procedure rename_table(p_old_name in varchar2, p_new_name in varchar2);
     -- EXECUTE IMMEDIATE, for the statements that belong to a table CREATE_TABLE just created.
     procedure run(p_ddl in varchar2);
 end xxfnd_ddl_pkg;
@@ -176,6 +180,35 @@ create or replace package body xxfnd_ddl_pkg as
             execute immediate 'drop index ' || p_index_name;
         end if;
     end drop_index;
+
+    procedure rename_table(p_old_name in varchar2, p_new_name in varchar2) is
+        l_old varchar2(128) := upper(dbms_assert.simple_sql_name(p_old_name));
+        l_new varchar2(128) := upper(dbms_assert.simple_sql_name(p_new_name));
+        function renamed(p_name in varchar2) return varchar2 is
+        begin
+            return dbms_assert.simple_sql_name(l_new || substr(p_name, length(l_old) + 1));
+        end renamed;
+    begin
+        if object_exists(l_old, 'TABLE') and not object_exists(l_new, 'TABLE') then
+            execute immediate 'alter table ' || l_old || ' rename to ' || l_new;
+        end if;
+        if not object_exists(l_new, 'TABLE') then
+            return;
+        end if;
+        for c in (select constraint_name from user_constraints
+                   where table_name = l_new and constraint_name like l_old || '\_%' escape '\') loop
+            execute immediate 'alter table ' || l_new || ' rename constraint ' || c.constraint_name
+                           || ' to ' || renamed(c.constraint_name);
+        end loop;
+        for i in (select index_name from user_indexes
+                   where table_name = l_new and index_name like l_old || '\_%' escape '\') loop
+            execute immediate 'alter index ' || i.index_name || ' rename to ' || renamed(i.index_name);
+        end loop;
+        for t in (select trigger_name from user_triggers
+                   where table_name = l_new and trigger_name like l_old || '\_%' escape '\') loop
+            execute immediate 'alter trigger ' || t.trigger_name || ' rename to ' || renamed(t.trigger_name);
+        end loop;
+    end rename_table;
 
     procedure drop_object(p_object_name in varchar2, p_object_type in varchar2, p_retired_table in boolean default false) is
         l_name  varchar2(128) := upper(dbms_assert.simple_sql_name(p_object_name));

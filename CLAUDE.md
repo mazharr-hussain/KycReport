@@ -54,7 +54,7 @@
   routine for it. Where no routine exists, the gap is listed for the COMMON team in `apex/COMMON-ISSUES.md` - never
   worked around with direct SQL. Every COMMON routine that changes data has a parameter for the application (its code
   or ID) and changes only that application's rows (another application's rows are refused); applications are granted
-  SELECT and EXECUTE on COMMON objects only, never INSERT, UPDATE or DELETE.
+  SELECT, EXECUTE and REFERENCES (for foreign keys to COMMON keys) on COMMON objects only, never INSERT, UPDATE or DELETE.
 - **Golden rule: who sees COMMON data (from the user).** Setup data (lookups, flexfields, document categories,
   attachment pages, approval rules, templates, roles, menu entries, ...) is visible per application: an application and
   its administrators see the setup rows that belong to that application (plus COMMON's shared ones); IT sees all.

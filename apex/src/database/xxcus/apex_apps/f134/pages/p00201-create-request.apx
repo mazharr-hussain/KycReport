@@ -145,13 +145,14 @@ page 201 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select meaning as display_value, lookup_code as return_value   -- release 76: the departments data security allows
-                  from xxfnd_lookup_values
-                 where lookup_type = 'REQUESTING_DEPARTMENT' and enabled_flag = 'Y'
+                -- release 76: the departments data security allows; release 96: COMMON's departments, by ID
+                select organization_name as display_value, organization_id as return_value
+                  from xxhr_organizations
+                 where organization_type = 'DEPARTMENT' and enabled_flag = 'Y'
                    and (xxcmp_request_pkg.allowed_departments is null
-                        or lookup_code in (select column_value
-                                             from apex_string.split(xxcmp_request_pkg.allowed_departments, ',')))
-                 order by display_sequence, meaning
+                        or to_char(organization_id) in (select column_value
+                                                          from apex_string.split(xxcmp_request_pkg.allowed_departments, ',')))
+                 order by organization_name
                 ```
             displayNullValue: true
             nullDisplayValue: - Select -
@@ -631,7 +632,7 @@ page 201 (
                     if :P201_REQUEST_ID is not null then
                         select business_relationship into :P201_BUSINESS_RELATIONSHIP from xxcmp_requests where request_id = :P201_REQUEST_ID;
                         select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
-                               requesting_department, justification, contact_name, contact_email, contact_phone,
+                               requesting_department_id, justification, contact_name, contact_email, contact_phone,
                                case when party_selection = 'NEW' then party_id end
                           into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_REQUEST_STATUS,
                                :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
@@ -720,7 +721,7 @@ page 201 (
                         p_website               => :P0_PARTY_WEBSITE,
                         p_fax                   => :P0_PARTY_FAX,
                         p_address               => :P0_PARTY_ADDRESS,
-                        p_requesting_department => :P201_REQUESTING_DEPARTMENT,
+                        p_requesting_department_id => :P201_REQUESTING_DEPARTMENT,
                         p_justification         => :P201_JUSTIFICATION,
                         p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
                         p_contact_name          => :P201_CONTACT_NAME,
