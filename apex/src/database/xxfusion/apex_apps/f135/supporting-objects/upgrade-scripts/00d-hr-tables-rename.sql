@@ -19,6 +19,9 @@ declare
     type t_pairs is table of t_pair;
     l_pairs t_pairs := t_pairs();
     l_n     pls_integer;
+    l_rids  dbms_sql.varchar2_table;
+    l_moved pls_integer;
+    l_gone  pls_integer;
 
     procedure pair(p_old in varchar2, p_new in varchar2) is
     begin
@@ -47,12 +50,27 @@ begin
                                           'XXFND_DATA_SECURITY_RULES', 'XXFND_RETENTION_POLICIES',
                                           'XXFND_DOCUMENT_ENTITIES', 'XXFND_DF_FLEXFIELDS', 'XXFND_SETUP_TYPES')
                      and exists (select 1 from user_tables u where u.table_name = c.table_name)) loop
-            execute immediate 'select count(*) from ' || t.table_name || ' where table_name = :o'
-               into l_n using l_pairs(i).old_name;
-            if l_n > 0 then
-                execute immediate 'update ' || t.table_name || ' set table_name = :n where table_name = :o'
-                  using l_pairs(i).new_name, l_pairs(i).old_name;
-                dbms_output.put_line(t.table_name || ': ' || sql%rowcount || ' row(s) now name ' || l_pairs(i).new_name);
+            -- release 102 fix: row by row - a row the new release already registered under the new name (e.g. 04b's
+            -- audited tables, after an upgrade that stopped half way) stays, and the old-name row is the duplicate
+            execute immediate 'select rowidtochar(rowid) from ' || t.table_name || ' where table_name = :o'
+               bulk collect into l_rids using l_pairs(i).old_name;
+            l_moved := 0;
+            l_gone  := 0;
+            for r in 1 .. l_rids.count loop
+                begin
+                    execute immediate 'update ' || t.table_name || ' set table_name = :n where rowid = chartorowid(:r)'
+                      using l_pairs(i).new_name, l_rids(r);
+                    l_moved := l_moved + 1;
+                exception
+                    when dup_val_on_index then
+                        execute immediate 'delete from ' || t.table_name || ' where rowid = chartorowid(:r)'
+                          using l_rids(r);
+                        l_gone := l_gone + 1;
+                end;
+            end loop;
+            if l_rids.count > 0 then
+                dbms_output.put_line(t.table_name || ': ' || l_moved || ' row(s) now name ' || l_pairs(i).new_name
+                                     || ', ' || l_gone || ' duplicate old-name row(s) removed');
             end if;
         end loop;
     end loop;
