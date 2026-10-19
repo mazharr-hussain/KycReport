@@ -311,7 +311,7 @@ create or replace package body xxcmp_request_pkg as
             l_allowed varchar2(4000) := allowed_departments;
         begin
             if l_allowed = '#NONE' then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_DEPARTMENT');
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_ENTITY');   -- release 95
             elsif l_allowed is not null and l_dept is not null
                   and l_dept not member of apex_string.split(l_allowed, ',') then
                 xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED',
