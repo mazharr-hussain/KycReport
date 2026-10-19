@@ -21,6 +21,13 @@ Build: `COMMON-Application-APEXlang_102.zip` (application version "Release 102")
   (`XXFND_DATA_OBJECTS.DIMENSION_VALUE_TYPE` CODE / ID; `REGISTER_DATA_OBJECT(..., p_dimension_value_type => 'ID')`).
   Access is still assigned by department code; the row policy and ALLOWED_VALUES use the IDs for ID columns.
 
+## Fix (same release 102)
+The first upgrade stopped in 00d (ORA-28110, policy function XXFND_APPLICATION_PKG) and 04b (ORA-04098, trigger
+XXFND_USER_ROLES_USER): after the rename, the code of the installed release still named the old tables and could
+not recompile before its own script recreated it. 00d now keeps synonyms with the old names
+(XXFND_EMPLOYEES -> XXHR_EMPLOYEES, XXFND_ORGANIZATIONS -> XXHR_ORGANIZATIONS) while the upgrade runs; the new last
+script 99z drops them. A database where the tables were already renamed gets the synonyms on the re-run.
+
 ## Deploy
 App Builder > Import `COMMON-Application-APEXlang_102.zip` over COMMON (135), Install Supporting Objects: Yes
 (upgrade). Then install KYC 96 (patch 119).

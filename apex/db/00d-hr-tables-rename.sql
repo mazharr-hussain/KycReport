@@ -8,6 +8,10 @@
 --   A fresh install has nothing to rename: 01 and 09a then create the XXHR_ tables (only when they are missing).
 --   The setup rows that name a table (audited tables, data model groups, data objects, ...) get the new name.
 --   The applications' synonyms follow in their own install (03 / 00c drop the old ones and create the new ones).
+--   Release 102 fix: until every script of this upgrade has recreated its code with the new names, the code of the
+--   installed release still names the old tables (packages, triggers, the policy functions of the setup tables).
+--   Synonyms with the old names (XXFND_EMPLOYEES -> XXHR_EMPLOYEES, ...) keep that code valid during the upgrade;
+--   the last script (99z) drops them. A fresh install needs none.
 -- Idempotent: a re-run renames and updates nothing.
 --------------------------------------------------------------------------------
 declare
@@ -28,6 +32,14 @@ begin
 
     for i in 1 .. l_pairs.count loop
         xxfnd_ddl_pkg.rename_table(l_pairs(i).old_name, l_pairs(i).new_name);
+        -- the old name, for the old code, until 99z
+        select count(*) into l_n from user_objects where object_name = l_pairs(i).old_name;
+        if l_n = 0 then
+            select count(*) into l_n from user_tables where table_name = l_pairs(i).new_name;
+            if l_n > 0 then
+                execute immediate 'create synonym ' || l_pairs(i).old_name || ' for ' || l_pairs(i).new_name;
+            end if;
+        end if;
         -- setup rows that hold the table name (the audit log keeps the name it had when the change was made)
         for t in (select c.table_name from user_tab_columns c
                    where c.column_name = 'TABLE_NAME'
