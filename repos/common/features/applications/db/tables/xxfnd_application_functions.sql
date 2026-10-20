@@ -39,7 +39,7 @@ begin
                                  q'~check (managed_in_app_flag in ('Y','N'))~');
     xxfnd_ddl_pkg.drop_constraint('XXFND_APPLICATION_FUNCTIONS', 'XXFND_APPLICATION_FUNCTIONS_CK1');
     xxfnd_ddl_pkg.drop_column('XXFND_APPLICATION_FUNCTIONS', 'ENABLED_FLAG');
-    xxfnd_ddl_pkg.run(q'~comment on table xxfnd_application_functions is 'Common functions per application: MANAGED_IN_APP_FLAG Y = the application''s administrators maintain its setup for their application (XXFND_APPLICATION_PKG.IS_MANAGED).'~');
+    xxfnd_ddl_pkg.run(q'~comment on table xxfnd_application_functions is 'Common functions per application. Release 106: MANAGED_IN_APP_FLAG is no longer used (read-only) - who maintains a common function''s setup for an application is the privilege a role of that application gives.'~');
     xxfnd_schema_pkg.create_who_trigger('XXFND_APPLICATION_FUNCTIONS');
 end;
 /

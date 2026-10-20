@@ -746,28 +746,231 @@ page 106 (
             }
         )
     )
-    region rules (
-        name: Data access rules of this role
+    region tab-roles (
+        name: Roles inside
+        type: staticContent
+        layout {
+            sequence: 15
+            parentRegion: @access
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: tab_roles
+        }
+    )
+    region members (
+        name: Roles inside this role
         type: classicReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 79: rules assigned to the role; Remove takes the assignment away (XXFND_VPD_PKG.UNASSIGN_RULE)
-                select a.assignment_id,
-                       d.table_name,
-                       decode(d.rule_type, 'ALL_ROWS', 'All rows', 'OWN_RECORDS', 'Own records', 'Column in list') as rule_type,
-                       d.column_name,
-                       d.value_list,
-                       'Remove' as remove
-                  from xxfnd_data_rule_assignments a
-                  join xxfnd_data_security_rules d on d.rule_id = a.rule_id
-                 where a.role_code = :P106_ROLE_CODE
-                 order by d.table_name, d.rule_type
+                select m.member_role_code, r.role_name, r.application_code,
+                       (select count(*) from xxfnd_role_privileges p where p.role_code = m.member_role_code) as privileges,
+                       (select count(*) from xxfnd_role_data_access x where x.role_code = m.member_role_code) as data_access,
+                       case when xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y' then 'Remove' end as remove
+                  -- release 96: the roles inside this role; a user holding this role has their privileges and data access too
+                  from xxfnd_role_members m
+                  join xxfnd_roles r on r.role_code = m.member_role_code
+                 where m.role_code = :P106_ROLE_CODE
+                 order by r.role_name
                 ```
             pageItemsToSubmit: [
                 P106_ROLE_CODE
+                P106_APPLICATION_CODE
+            ]
+        }
+        layout {
+            sequence: 10
+            parentRegion: @tab-roles
+            slot: subRegions
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        advanced {
+            htmlDomId: role_members
+        }
+        messages {
+            whenNoDataFound: No role inside: the role gives only its own privileges and data access.
+        }
+
+        column MEMBER_ROLE_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PRIVILEGES (
+            type: plainText
+            heading {
+                heading: Privileges
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column DATA_ACCESS (
+            type: plainText
+            heading {
+                heading: Data Access
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column REMOVE (
+            type: link
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 60
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:apex.confirm('Take this role out of the role?',{request:'REMOVE_MEMBER',set:{'P106_REMOVE_ID':'#MEMBER_ROLE_CODE#'}});
+                }
+                linkText: #REMOVE#
+            }
+        )
+    )
+    pageItem P106_ADD_MEMBER (
+        type: selectList
+        label {
+            label: Add a role
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select role_name || ' (' || application_code || ')' as display_value, role_code as return_value
+                  from xxfnd_roles
+                 where enabled_flag = 'Y' and role_code <> :P106_ROLE_CODE
+                   and application_code in (:P106_APPLICATION_CODE, 'COMMON')
+                   and role_code not in (select member_role_code from xxfnd_role_members where role_code = :P106_ROLE_CODE)
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Choose a role -
+        }
+        layout {
+            sequence: 20
+            region: @members
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y'
+                ```
+        }
+    )
+
+    button add-member (
+        buttonName: ADD_MEMBER
+        label: Add Role
+        layout {
+            sequence: 10
+            region: @members
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+
+    region data-access (
+        name: Data access of this role
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select x.role_data_access_id, o.object_name, o.application_code, o.table_name,
+                       case x.access_level when 'ALL' then 'All records' when 'VALUES' then 'Given values' else 'Own records' end as access_level,
+                       d.dimension_name,
+                       case when xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y' then 'Remove' end as remove
+                  -- release 96: which records this role reaches per data object (given values: each user's role assignment holds them)
+                  from xxfnd_role_data_access x
+                  join xxfnd_data_objects o on o.data_object_code = x.data_object_code
+                  left join xxfnd_data_dimensions d on d.dimension_code = o.dimension_code
+                 where x.role_code = :P106_ROLE_CODE
+                 order by o.object_name, x.access_level
+                ```
+            pageItemsToSubmit: [
+                P106_ROLE_CODE
+                P106_APPLICATION_CODE
             ]
         }
         layout {
@@ -789,16 +992,36 @@ page 106 (
             showNullValuesAs: -
         }
         advanced {
-            htmlDomId: role_rules
+            htmlDomId: role_data_access
         }
         messages {
-            whenNoDataFound: No data access rule: the role gives no rows of protected tables.
+            whenNoDataFound: No data access: the role gives no records of the secured tables (privileges only).
         }
 
-        column ASSIGNMENT_ID (
+        column ROLE_DATA_ACCESS_ID (
             type: hidden
             layout {
                 sequence: 10
+            }
+        )
+
+        column OBJECT_NAME (
+            type: plainText
+            heading {
+                heading: Data Object
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 25
             }
         )
 
@@ -808,34 +1031,24 @@ page 106 (
                 heading: Table
             }
             layout {
-                sequence: 20
-            }
-        )
-
-        column RULE_TYPE (
-            type: plainText
-            heading {
-                heading: Rule
-            }
-            layout {
                 sequence: 30
             }
         )
 
-        column COLUMN_NAME (
+        column ACCESS_LEVEL (
             type: plainText
             heading {
-                heading: Column
+                heading: Records
             }
             layout {
                 sequence: 40
             }
         )
 
-        column VALUE_LIST (
+        column DIMENSION_NAME (
             type: plainText
             heading {
-                heading: Values
+                heading: Dimension
             }
             layout {
                 sequence: 50
@@ -853,12 +1066,117 @@ page 106 (
             link {
                 target: {
                     type: url
-                    url: javascript:apex.confirm('Remove this rule from the role?',{request:'REMOVE_RULE',set:{'P106_REMOVE_ID':'#ASSIGNMENT_ID#'}});
+                    url: javascript:apex.confirm('Remove this data access from the role?',{request:'REMOVE_ACCESS',set:{'P106_REMOVE_ID':'#ROLE_DATA_ACCESS_ID#'}});
                 }
-                linkText: Remove
+                linkText: #REMOVE#
             }
         )
     )
+    pageItem P106_DATA_OBJECT (
+        type: selectList
+        label {
+            label: Data object
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select object_name || ' (' || application_code || ')' as display_value, data_object_code as return_value
+                  from xxfnd_data_objects
+                 where enabled_flag = 'Y' and application_code in (:P106_APPLICATION_CODE, 'COMMON')
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Choose a data object -
+        }
+        layout {
+            sequence: 20
+            region: @data-access
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y'
+                ```
+        }
+    )
+
+    pageItem P106_ACCESS_LEVEL (
+        type: selectList
+        label {
+            label: Records
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:All records;ALL,Given values (of each user's role assignment);VALUES,Own records;OWN
+            displayNullValue: false
+        }
+        layout {
+            sequence: 30
+            region: @data-access
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y'
+                ```
+        }
+    )
+
+    button add-access (
+        buttonName: ADD_ACCESS
+        label: Add Data Access
+        layout {
+            sequence: 10
+            region: @data-access
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_privilege_pkg.can_change(:P106_APPLICATION_CODE) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
     button assign-users (
         buttonName: ASSIGN_USERS
         label: Assign Users
@@ -883,39 +1201,6 @@ page 106 (
                     P183_TARGET: ROLE
                     P183_TARGET_ID: &P106_ROLE_CODE.
                     P183_PICK: USER
-                }
-                clearCache: 183
-            }
-            warnOnUnsavedChanges: doNotCheck
-        }
-        security {
-            authorizationScheme: @page-manage
-        }
-    )
-    button assign-rules (
-        buttonName: ASSIGN_RULES
-        label: Assign Rules
-        layout {
-            sequence: 60
-            region: @rules
-            slot: CREATE
-        }
-        appearance {
-            buttonTemplate: @/text-with-icon
-            templateOptions: [
-                #DEFAULT#
-                t-Button--iconLeft
-            ]
-            icon: fa-plus
-        }
-        behavior {
-            action: redirectThisApp
-            target: {
-                page: 183
-                items: {
-                    P183_TARGET: ROLE
-                    P183_TARGET_ID: &P106_ROLE_CODE.
-                    P183_PICK: RULE
                 }
                 clearCache: 183
             }
@@ -952,7 +1237,7 @@ page 106 (
             action: refresh
             affectedElements {
                 selectionType: region
-                region: @rules
+                region: @data-access
             }
             execution {
                 sequence: 20
@@ -986,14 +1271,18 @@ page 106 (
             authorizationScheme: @page-submit
         }
     )
-    process remove-rule (
-        name: Remove a data access rule
+    process remove-access (
+        name: Remove a data access
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                xxfnd_vpd_pkg.unassign_rule(to_number(:P106_REMOVE_ID));
+                -- release 96: through the data security package (the role's application only)
+                for x in (select x.data_object_code, x.access_level from xxfnd_role_data_access x
+                           where x.role_data_access_id = to_number(:P106_REMOVE_ID) and x.role_code = :P106_ROLE_CODE) loop
+                    xxfnd_vpd_pkg.revoke_data_access(:P106_APPLICATION_CODE, :P106_ROLE_CODE, x.data_object_code, x.access_level);
+                end loop;
                 ```
         }
         execution {
@@ -1005,7 +1294,82 @@ page 106 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: REMOVE_RULE
+            value: REMOVE_ACCESS
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process add-access (
+        name: Add a data access
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_vpd_pkg.grant_data_access(:P106_APPLICATION_CODE, :P106_ROLE_CODE, :P106_DATA_OBJECT, :P106_ACCESS_LEVEL);
+                ```
+        }
+        execution {
+            sequence: 80
+            point: processing
+        }
+        successMessage {
+            successMessage: Data access added.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ADD_ACCESS
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process add-member (
+        name: Add a role inside
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_privilege_pkg.add_role_member(:P106_APPLICATION_CODE, :P106_ROLE_CODE, :P106_ADD_MEMBER);
+                ```
+        }
+        execution {
+            sequence: 90
+            point: processing
+        }
+        successMessage {
+            successMessage: Role added.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ADD_MEMBER
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process remove-member (
+        name: Take a role out
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_privilege_pkg.remove_role_member(:P106_APPLICATION_CODE, :P106_ROLE_CODE, :P106_REMOVE_ID);
+                ```
+        }
+        execution {
+            sequence: 100
+            point: processing
+        }
+        successMessage {
+            successMessage: Removed.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: REMOVE_MEMBER
         }
         security {
             authorizationScheme: @page-submit

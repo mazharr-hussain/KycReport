@@ -1033,7 +1033,7 @@ page 211 (
                 ```sql
                 select distinct e.full_name || ' (' || ur.user_name || ')' as display_value, ur.user_name as return_value
                   from xxfnd_user_roles_v ur
-                  join xxfnd_employees e on e.user_name = ur.user_name
+                  join xxhr_employees e on e.user_name = ur.user_name
                  where ur.role_code in ('COMPLIANCE_OFFICER','COMPLIANCE_MANAGER','HEAD_OF_COMPLIANCE') and ur.active_flag = 'Y'
                  order by 1
                 ```

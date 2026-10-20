@@ -1,111 +1,19 @@
 list navigation-bar (
     name: Navigation Bar
-
-
-    entry give-feedback (
-        label: Feedback
-        icon {
-            imageIconCssClasses: fa-comment-o
-        }
-        layout {
-            sequence: 6
-        }
-        link {
-            target: {
-                page: 173
-                items: {
-                    P173_APPLICATION_ID: &APP_ID.
-                    P173_PAGE_ID: &APP_PAGE_ID.
-                }
-                clearCache: 173
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry notifications (
-        label: Notifications
-        icon {
-            imageIconCssClasses: fa-bell-o
-        }
-        layout {
-            sequence: 5
-        }
-        link {
-            target: {
-                page: 43
-                clearCache: 43
-            }
-        }
-        userDefinedAttributes {
-            1: &NOTIFY_COUNT.
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-
-    entry app-user (
-        label: &APP_USER.
-        icon {
-            imageIconCssClasses: fa-user
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                type: url
-                url: #
-            }
-        }
-        userDefinedAttributes {
-            2: has-username
-        }
-    )
-
-
-
-    entry --- (
-        label: ---
-        layout {
-            sequence: 20
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: separator
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry sign-out (
-        label: Sign Out
-        icon {
-            imageIconCssClasses: fa-sign-out
-        }
-        layout {
-            sequence: 30
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: &LOGOUT_URL.
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+              -- release 105: the navigation bar of every application, COMMON included, kept in COMMON's menu registry
+              -- (menu TOP_BAR: Notifications with its badge, Give Feedback, the user menu with Sign Out)
+              from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 105 - master list: the navigation bar comes from XXFND_NAV_PKG.NAV_MENU('TOP_BAR') (A01 = badge, A02 = class), managed on the Application Menu screen like the side menu.
+    }
 )
 
 list navigation-menu (
@@ -114,58 +22,16 @@ list navigation-menu (
         type: sqlQuery
         sqlQuery:
             ```sql
-            -- release 78: Home, (release 82: My Tasks,) then the six modules (XXFND_MODULES_V) and their components (features with a page in
-            -- this application). A module opens its module page (100) and is expanded there (page 100 load).
-            with feat as (
-                select m.feature_group, m.feature_code, m.feature_name, m.icon_css, m.display_sequence, t.page_id
-                  from xxfnd_admin_menu_v m
-                  cross apply (select min(fp.page_id) keep (dense_rank first order by
-                                          case when fp.page_id = m.home_page_id then 0 else 1 end,
-                                          fp.tab_sequence nulls last, fp.page_id) as page_id
-                                 from xxfnd_feature_pages fp
-                                 join apex_application_pages ap
-                                   on ap.application_id = :APP_ID and ap.page_id = fp.page_id
-                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
-                 where t.page_id is not null),
-            cur as (
-                select max(fp.feature_code) as feature_code
-                  from xxfnd_feature_pages fp
-                 where fp.app_alias = :APP_ALIAS and fp.page_id = :APP_PAGE_ID),
-            nodes as (
-                select 'HOME' as id, cast(null as varchar2(40)) as parent_id, 'Home' as label,
-                       apex_page.get_url(p_page => 1) as target, 'fa-home' as image, 0 as seq,
-                       case when :APP_PAGE_ID = 1 then 'YES' else 'NO' end as is_current
-                  from dual
-                union all
-                -- release 82: My Tasks of every application (D20)
-                select 'MY_TASKS', null, 'My Tasks', apex_page.get_url(p_page => 40), 'fa-inbox', 1,
-                       case when :APP_PAGE_ID = 40 then 'YES' else 'NO' end
-                  from dual
-                 where xxfnd_privilege_pkg.has_privilege_yn('MY_TASKS', 'VIEW') = 'Y'
-                union all
-                select 'M_' || md.module_code, null, md.module_name,
-                       apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => md.module_code,
-                                         p_clear_cache => '100'),
-                       md.icon_css, md.display_sequence,
-                       case when :APP_PAGE_ID = 100 and :P100_MODULE = md.module_code then 'YES' else 'NO' end
-                  from xxfnd_modules_v md
-                union all
-                select 'F_' || f.feature_code, 'M_' || f.feature_group, f.feature_name,
-                       apex_page.get_url(p_page => f.page_id), f.icon_css, f.display_sequence,
-                       case when f.feature_code = (select feature_code from cur) then 'YES' else 'NO' end
-                  from feat f)
-            select level  as lvl,
-                   label,
-                   target,
-                   is_current,
-                   image,
-                   null   as image_attribute,
-                   null   as image_alt
-              from nodes
-             start with parent_id is null
-            connect by prior id = parent_id
-             order siblings by seq, label
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
             ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
     }
 )
 
@@ -240,5 +106,85 @@ list feature-tabs (
                                        where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
              order by fp.tab_sequence
             ```
+    }
+)
+
+list administration (
+    name: Administration
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
+            --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
+              from (
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   case when exists (select 1 from xxfnd_feature_pages c
+                                      where c.app_alias = :APP_ALIAS and c.feature_code = m.feature_code
+                                        and c.page_id = :APP_PAGE_ID) then 'YES' else 'NO' end as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01,
+                   1                                       as part,
+                   m.feature_group                         as grp,
+                   m.display_sequence                      as seq
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_application_pkg.local_page(fp.page_id) = 'Y') t
+             where t.page_id is not null
+            union all
+            select null,
+                   m.feature_name || ' (shared setup)',
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
+                   'NO',
+                   m.icon_css,
+                   null,
+                   null,
+                   m.description,
+                   2,
+                   m.feature_group,
+                   m.display_sequence
+              from xxfnd_admin_menu_v m
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
+            union all
+            select null,
+                   'Shared Setup',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 100),
+                   'NO',
+                   'fa-cogs',
+                   null,
+                   null,
+                   'The common setup of every application, in COMMON.',
+                   3,
+                   null,
+                   null
+              from dual
+             where exists (select 1 from xxfnd_admin_menu_v m
+                            where not exists (select 1 from xxfnd_feature_pages fp
+                                               where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                                 and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'))
+                   )
+             order by part, grp, seq, label
+            ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
     }
 )

@@ -1,326 +1,60 @@
 list navigation-bar (
     name: Navigation Bar
-
-    entry feedback (
-        label: Feedback
-        icon {
-            imageIconCssClasses: fa-comment-o
-        }
-        layout {
-            sequence: 5
-        }
-        link {
-            target: {
-                type: otherApp
-                app: COMMON
-                page: 173
-                items: {
-                    P173_APPLICATION_ID: &APP_ID.
-                    P173_PAGE_ID: &APP_PAGE_ID.
-                }
-                clearCache: 173
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Feedback') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry app-user (
-        label: &APP_USER.
-        icon {
-            imageIconCssClasses: fa-user
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                type: url
-                url: #
-            }
-        }
-        userDefinedAttributes {
-            2: has-username
-        }
-    )
-
-    entry customize (
-        label: Customize
-        layout {
-            sequence: 15
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: #customize-theme
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Theme Style Selection') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry about (
-        label: About
-        layout {
-            sequence: 18
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                page: 10010
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - About Page') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry --- (
-        label: ---
-        layout {
-            sequence: 20
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: separator
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry sign-out (
-        label: Sign Out
-        icon {
-            imageIconCssClasses: fa-sign-out
-        }
-        layout {
-            sequence: 30
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: &LOGOUT_URL.
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
+    subscription {
+        master: @/135/navigation-bar
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+              -- release 105: the navigation bar of every application, COMMON included, kept in COMMON's menu registry
+              -- (menu TOP_BAR: Notifications with its badge, Give Feedback, the user menu with Sign Out)
+              from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 105 - master list: the navigation bar comes from XXFND_NAV_PKG.NAV_MENU('TOP_BAR') (A01 = badge, A02 = class), managed on the Application Menu screen like the side menu.
+    }
 )
 
 list navigation-menu (
     name: Navigation Menu
-
-    entry home (
-        label: Home
-        icon {
-            imageIconCssClasses: fa-home
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 1
-            }
-        }
-    )
-
-    entry worklist (
-        label: My Tasks
-        icon {
-            imageIconCssClasses: fa-inbox
-        }
-        layout {
-            sequence: 20
-        }
-        link {
-            target: {
-                type: otherApp
-                app: COMMON
-                page: 40
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                -- release 88: COMMON's My Tasks (the tasks of every application); KYC has no copy
-                xxfnd_privilege_pkg.has_privilege('MY_TASKS', 'VIEW')
-                ```
-        }
-    )
-
-    entry kyc-requests (
-        label: KYC Requests
-        icon {
-            imageIconCssClasses: fa-file-text-o
-        }
-        layout {
-            sequence: 25
-        }
-        link {
-            target: {
-                page: 200
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(200, 'VIEW')
-                ```
-        }
-    )
-
-    entry parties (
-        label: Parties
-        icon {
-            imageIconCssClasses: fa-building-o
-        }
-        layout {
-            sequence: 30
-        }
-        link {
-            target: {
-                page: 20
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(20, 'VIEW')
-                ```
-        }
-    )
-
-    entry cases (
-        label: Cases
-        icon {
-            imageIconCssClasses: fa-briefcase
-        }
-        layout {
-            sequence: 35
-        }
-        link {
-            target: {
-                page: 210
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(210, 'VIEW')
-                ```
-        }
-    )
-
-    entry monitoring (
-        label: Monitoring Watchlist
-        icon {
-            imageIconCssClasses: fa-eye
-        }
-        layout {
-            sequence: 40
-        }
-        link {
-            target: {
-                page: 220
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(220, 'VIEW')
-                ```
-        }
-    )
-
-    entry dashboard (
-        label: Executive Dashboard
-        icon {
-            imageIconCssClasses: fa-area-chart
-        }
-        layout {
-            sequence: 50
-        }
-        link {
-            target: {
-                page: 230
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_page_privilege(230, 'VIEW')
-                ```
-        }
-    )
-
-    entry administration (
-        label: Administration
-        icon {
-            imageIconCssClasses: fa-gear
-        }
-        layout {
-            sequence: 90
-            subentriesList: @administration
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxfnd_privilege_pkg.has_any_admin_privilege
-                ```
-        }
-    )
-
+    subscription {
+        master: @/135/navigation-menu
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
+    }
 )
 
 list administration (
     name: Administration
+    subscription {
+        master: @/135/administration
+    }
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
             -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
-            --   1. KYC's own setup: each feature the user may open that has a page here (its home page, else its first tab)
-            --   2. each common function IT lets KYC's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
             --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
             select lvl, label, target, is_current, image, image_attribute, image_alt, a01
               from (
@@ -348,9 +82,7 @@ list administration (
             union all
             select null,
                    m.feature_name || ' (shared setup)',
-                   apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                     p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                     p_values => a.application_code || ',Y,' || to_char(m.home_page_id)),
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
                    'NO',
                    m.icon_css,
                    null,
@@ -360,8 +92,12 @@ list administration (
                    m.feature_group,
                    m.display_sequence
               from xxfnd_admin_menu_v m
-              join xxfnd_applications a on upper(a.apex_app_alias) = upper(:APP_ALIAS)
-             where xxfnd_application_pkg.is_delegated(a.application_code, m.feature_code) = 'Y'
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
             union all
             select null,
                    'Shared Setup',
@@ -382,6 +118,9 @@ list administration (
                    )
              order by part, grp, seq, label
             ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
     }
 )
 

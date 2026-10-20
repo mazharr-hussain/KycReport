@@ -2,14 +2,14 @@ restDataSource FUSION_HCM_WORKERS (
     name: Fusion HCM Workers
     source {
         type: http
-        remoteServer: @FUSION
-        urlPathPrefix: /hcmRestApi/resources/11.13.18.05/publicWorkers
+        remoteServer: @apex-fa-iabwbn-dev1-rest-apis
+        urlPathPrefix: hcmRestApi/resources/11.13.18.05/publicWorkers
     }
     authentication {
-        credentials: @FUSION_CREDENTIALS
+        credentials: @apex-fa-iabwbn-dev1-dbms-cred
     }
     comments {
-        comments: Release 83 - the HCM workers of Oracle Fusion (purpose HCM_SYNC). XXFND_INTEGRATION_PKG.SYNC_HCM reads it to refresh the Fusion employees; workers no longer returned are disabled, not deleted.
+        comments: Release 83 - the HCM workers of Oracle Fusion (purpose HCM_SYNC). Release 100: through the workspace's Fusion server and credential (Fusion integration prerequisite). XXFND_INTEGRATION_PKG.SYNC_HCM reads it to refresh the Fusion employees; workers no longer returned are disabled, not deleted.
     }
 
     dataProfile {

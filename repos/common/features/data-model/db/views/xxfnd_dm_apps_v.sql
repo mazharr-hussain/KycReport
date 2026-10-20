@@ -32,7 +32,11 @@ begin
           from xxfnd_dm_apps_v p
           join #D#_objects o
             on o.owner = p.schema_name
-           and (p.object_prefix is null or o.object_name like replace(p.object_prefix, '_', '\_') || '%' escape '\')
+           -- release 102: one prefix or several, comma separated (COMMON: XXFND_,XXHR_)
+           and (p.object_prefix is null
+                or exists (select 1 from table(apex_string.split(p.object_prefix, ',')) x
+                            where trim(x.column_value) is not null
+                              and o.object_name like replace(trim(x.column_value), '_', '\_') || '%' escape '\'))
           left join #D#_tab_comments c on c.owner = o.owner and c.table_name = o.object_name and o.object_type in ('TABLE', 'VIEW')
           left join xxfnd_dm_table_groups g on g.application_code = p.application_code and g.table_name = o.object_name
          where o.object_type in ('TABLE', 'VIEW', 'MATERIALIZED VIEW', 'PACKAGE', 'PROCEDURE', 'FUNCTION', 'TYPE',

@@ -114,3 +114,30 @@ COMMON 87 and 88 fixed C1-C6 and C8-C11 (each issue's **Status**); C7 stays open
 - **Effect:** none today (27-30 create no object), but an object a later script creates is not granted to the
   applications until the next COMMON install or upgrade, so an application using it fails until then.
 - **Needed:** call GRANT_TO_APPLICATIONS once, as the last COMMON install and upgrade script.
+
+## C12 - My Tasks opens another application's task page without a checksum
+- **Status:** Fixed in COMMON 90 (patch 103): page 40 opens `apex_util.prepare_url(details_link_target)`.
+- **Where:** COMMON page 40 (My Tasks) opens a task with `APEX_TASKS.DETAILS_LINK_TARGET` (`open_url`). For a task of
+  another application this is the plain task-definition link, e.g. `f?p=134:206:<session>::NO:206:P206_TASK_ID:<task>`,
+  with no checksum.
+- **Effect:** the application's task page refuses it when its page access protection is "Arguments Must Have Checksum"
+  (KYC pages 206 and 211): "Session state protection violation". Users must open the task from the application's own
+  task list instead (KYC Home > My Tasks, whose link carries a checksum).
+- **Needed:** My Tasks opens another application's task page with a valid checksum (for example a URL prepared for that
+  application), so every application's task opens from COMMON.
+
+## C13 - Delegations have no routine
+- **Status:** Open (found in KYC 93 while moving the KYC tests off direct writes to COMMON tables).
+- **Where:** `XXFND_WF_DELEGATIONS` is changed only by COMMON page 115 (Workflow Setup > Delegations).
+- **Effect:** an application (or its tests) cannot add or end a delegation; KYC's workflow test uses a test-only helper
+  (`apex/tests/common_test_fixtures.sql`, created as XXFUSION on the test database only).
+- **Needed:** `XXFND_WORKFLOW_PKG` routines to add and end a delegation (with the application parameter and the usual
+  checks).
+
+## C14 - Approval rules and role grants cannot be switched off and on by a routine
+- **Status:** Open (found in KYC 93, same as C13).
+- **Where:** `XXFND_APPROVAL_RULES.ENABLED_FLAG` and `XXFND_USER_ROLES.ENABLED_FLAG` are set only on COMMON's screens.
+- **Effect:** KYC's test of the approval messages (no matching rule, a step nobody can approve) switches them through
+  the same test-only helper.
+- **Needed:** routines to enable / disable an application's approval rules (`XXFND_APPROVAL_RULE_PKG`) and a role's
+  grants (`XXFND_USER_PKG`).

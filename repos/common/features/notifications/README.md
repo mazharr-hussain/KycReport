@@ -15,7 +15,7 @@ Notifications are templates and rules (data), sent the same way for every applic
 applications, attachments, communications, data-security, information-requests, integrations, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-applications, change-approvals, communications, information-requests, lookups, my-tasks, roles-privileges, workflow-setup
+applications, change-approvals, communications, home, information-requests, lookups, my-tasks, roles-privileges, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). APEX e-mail (SMTP) for e-mail; settings MAIL_FROM and MAIL_FOOTER of COMMON.

@@ -200,9 +200,8 @@ end;
 --   registers the APEX application of that schema through XXFND_APPLICATION_PKG.ONBOARD (registration rows, grants to
 --   the schema, the <CODE>_ADMIN role, the menu entries). Nothing else (no APEX setting); the full onboarding is the
 --   Application Journey (page 165). IT switches it off with the COMMON setting ONBOARD_SELF_ALLOWED = N.
---   XXFND_APP_MENU_V: the menu of the running application for the common functions (entries of
---   XXFND_APP_MENU_ENTRIES the signed-in user may see, with their links): the whole navigation list of an application
---   is "select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS order by display_sequence".
+--   Release 105: XXFND_APP_MENU_V (release 87, an application's navigation list) is no longer used - every
+--   navigation comes from XXFND_NAV_PKG.NAV_MENU (31b, 31c) - and 31c drops it.
 -- Idempotent: a re-run changes nothing.
 --------------------------------------------------------------------------------
 begin

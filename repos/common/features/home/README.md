@@ -12,7 +12,7 @@ Opened after sign-in to COMMON (page 1); a start point to the setup screens a us
 One entry point for IT and delegated administrators.
 
 ## Depends on (objects of these components are named in its files)
-workflow-setup
+notifications, users-access, workflow-setup
 
 ## Used by (COMMON components)
 -

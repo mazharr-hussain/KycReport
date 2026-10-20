@@ -22,6 +22,8 @@ begin
     xxfnd_error_pkg.register_message('KYC_REQUEST_NOT_APPROVER', 'You are not an approver of request {1}.', -20625);
     -- release 76: requesting departments from data security
     xxfnd_error_pkg.register_message('KYC_REQUEST_NO_DEPARTMENT', 'No requesting department is set up for you. Ask the administrator to give you a Requesting Entity role.', -20626);
+    -- release 95 (COMMON 96 security model): the department comes with the requesting entity role (its Data Access Values)
+    xxfnd_error_pkg.register_message('KYC_REQUEST_NO_ENTITY', 'You may not raise requests for any department yet. Ask the administrator to give you a requesting entity role (e.g. Requesting Entity1) with your department in its data access values.', -20626);
     xxfnd_error_pkg.register_message('KYC_REQUEST_DEPT_NOT_ALLOWED', 'You cannot raise requests for {1}. Choose one of your departments.', -20626);
     xxfnd_error_pkg.register_message('KYC_CASE_REASSIGN_NOT_ALLOWED', 'Only a case under investigation can be reassigned, by Compliance management or its assignee.', -20611);
     xxfnd_error_pkg.register_message('KYC_CASE_OFFICER_REQUIRED', 'Select the officer.', -20611);

@@ -33,5 +33,10 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_app_menu_entries.feature_code is 'The feature whose VIEW privilege shows the entry; empty = every signed-in user.'~');
     end if;
     xxfnd_schema_pkg.create_who_trigger('XXFND_APP_MENU_ENTRIES');
+    -- release 105: the menu an entry belongs to - SIDE (navigation menu), TOP_BAR (navigation bar), ADMIN
+    -- (Administration page); every entry so far is a SIDE entry
+    xxfnd_ddl_pkg.add_column('XXFND_APP_MENU_ENTRIES', 'MENU_CODE', q'~varchar2(20) default 'SIDE' not null~');
+    xxfnd_ddl_pkg.add_constraint('XXFND_APP_MENU_ENTRIES', 'XXFND_APP_MENU_ENTRIES_CK10',
+        q'~check (menu_code in ('SIDE', 'TOP_BAR', 'ADMIN'))~');
 end;
 /

@@ -32,13 +32,23 @@
   "source_index": 2
  },
  {
+  "name": "00d HR tables (XXHR_ prefix)",
+  "file": "00d-hr-tables-rename.sql",
+  "install_sequence": 6,
+  "upgrade_sequence": 6,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 3
+ },
+ {
   "name": "01 Common tables - XXFND - part 1 of 3",
   "file": "01-common-tables-xxfnd-part-1-of-3.sql",
   "install_sequence": 10,
   "apps": [
    "COMMON"
   ],
-  "source_index": 3
+  "source_index": 4
  },
  {
   "name": "02 Common tables - XXFND - part 2 of 3",
@@ -47,7 +57,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 4
+  "source_index": 5
  },
  {
   "name": "03 Common tables - XXFND - part 3 of 3",
@@ -56,7 +66,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 5
+  "source_index": 6
  },
  {
   "name": "04a Employees - Fusion user",
@@ -66,7 +76,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 7
+  "source_index": 8
  },
  {
   "name": "04b Applications and users",
@@ -76,7 +86,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 8
+  "source_index": 9
  },
  {
   "name": "05 Core packages - part 1 of 2",
@@ -87,7 +97,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 9
+  "source_index": 10
  },
  {
   "name": "05b Integrations package",
@@ -97,7 +107,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 10
+  "source_index": 11
  },
  {
   "name": "05c Lookups package",
@@ -107,7 +117,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 11
+  "source_index": 12
  },
  {
   "name": "06 Core packages - part 2 of 2",
@@ -117,7 +127,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 12
+  "source_index": 13
  },
  {
   "name": "07 WHO and audit triggers",
@@ -128,7 +138,7 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 13
+  "source_index": 14
  },
  {
   "name": "08 Row rules",
@@ -138,7 +148,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 14
+  "source_index": 15
  },
  {
   "name": "09 Views",
@@ -148,7 +158,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 15
+  "source_index": 16
+ },
+ {
+  "name": "09a Security model",
+  "file": "09a-security-model.sql",
+  "install_sequence": 94,
+  "upgrade_sequence": 54,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 17
  },
  {
   "name": "09b Security framework - objects",
@@ -158,7 +178,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 16
+  "source_index": 18
+ },
+ {
+  "name": "10a Flexfield context rule and segment API name",
+  "file": "10a-flexfield-context-rule.sql",
+  "install_sequence": 96,
+  "upgrade_sequence": 56,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 19
  },
  {
   "name": "10 Flexfield runtime - part 1 of 2",
@@ -168,7 +198,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 17
+  "source_index": 20
  },
  {
   "name": "11 Flexfield runtime - part 2 of 2",
@@ -178,7 +208,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 18
+  "source_index": 21
  },
  {
   "name": "12 Flexfield setup",
@@ -188,7 +218,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 19
+  "source_index": 22
  },
  {
   "name": "13a Database document store",
@@ -198,7 +228,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 20
+  "source_index": 23
  },
  {
   "name": "14 Attachments",
@@ -208,7 +238,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 21
+  "source_index": 24
  },
  {
   "name": "14b Retention (placeholder)",
@@ -218,7 +248,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 22
+  "source_index": 25
  },
  {
   "name": "15 Workflow",
@@ -228,7 +258,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 23
+  "source_index": 26
  },
  {
   "name": "15e Communications (e-mail with outside parties)",
@@ -238,7 +268,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 24
+  "source_index": 27
  },
  {
   "name": "15c Request for Information workflow",
@@ -248,7 +278,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 25
+  "source_index": 28
  },
  {
   "name": "15d Approval Setup",
@@ -258,7 +288,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 26
+  "source_index": 29
  },
  {
   "name": "16i Administration scope",
@@ -268,7 +298,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 28
+  "source_index": 31
  },
  {
   "name": "16j Users package (users, sign-in, authorization)",
@@ -278,7 +308,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 29
+  "source_index": 32
  },
  {
   "name": "17 Seed data and administrator - part 1 of 2",
@@ -288,7 +318,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 30
+  "source_index": 33
  },
  {
   "name": "19 Reporting views and recompile",
@@ -299,7 +329,7 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 35
+  "source_index": 38
  },
  {
   "name": "16h UI helpers",
@@ -309,7 +339,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 55
+  "source_index": 62
  },
  {
   "name": "20 COMMON application seed",
@@ -319,7 +349,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 60
+  "source_index": 67
  },
  {
   "name": "21 COMMON administration seed",
@@ -329,7 +359,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 61
+  "source_index": 68
  },
  {
   "name": "21b Application functions",
@@ -339,7 +369,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 62
+  "source_index": 69
  },
  {
   "name": "21c Setup types",
@@ -349,7 +379,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 63
+  "source_index": 70
  },
  {
   "name": "09c Shared objects formerly in KYC scripts",
@@ -359,7 +389,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 65
+  "source_index": 72
  },
  {
   "name": "09d Applications package (functions, setup types, administration scope)",
@@ -369,7 +399,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 66
+  "source_index": 73
  },
  {
   "name": "09e Workflow and e-mail switches",
@@ -379,7 +409,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 67
+  "source_index": 74
  },
  {
   "name": "09f Central error handling",
@@ -389,7 +419,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 68
+  "source_index": 75
  },
  {
   "name": "19c Sharing with the application schemas",
@@ -399,7 +429,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 70
+  "source_index": 77
  },
  {
   "name": "22 COMMON modules",
@@ -409,7 +439,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 71
+  "source_index": 78
  },
  {
   "name": "23 COMMON Security module",
@@ -419,7 +449,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 72
+  "source_index": 79
  },
  {
   "name": "21d Application settings package",
@@ -429,7 +459,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 73
+  "source_index": 80
  },
  {
   "name": "24 Workflow module",
@@ -439,7 +469,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 74
+  "source_index": 81
  },
  {
   "name": "25 Integrations module",
@@ -449,7 +479,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 75
+  "source_index": 82
  },
  {
   "name": "26 Notifications module",
@@ -459,7 +489,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 76
+  "source_index": 83
  },
  {
   "name": "27 Shared screens",
@@ -469,7 +499,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 77
+  "source_index": 84
  },
  {
   "name": "28 Registration and onboarding",
@@ -479,7 +509,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 78
+  "source_index": 85
  },
  {
   "name": "29 Workspace servers and storage per application",
@@ -489,7 +519,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 79
+  "source_index": 86
  },
  {
   "name": "30 Application journey",
@@ -499,7 +529,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 80
+  "source_index": 87
  },
  {
   "name": "31 Basic onboarding and the application menu",
@@ -509,7 +539,37 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 81
+  "source_index": 88
+ },
+ {
+  "name": "31b Navigation menu (registry, menu view)",
+  "file": "31b-navigation-menu.sql",
+  "install_sequence": 227,
+  "upgrade_sequence": 187,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 89
+ },
+ {
+  "name": "31d Page access by privilege and the Application Menu feature",
+  "file": "31d-page-access-and-menu-feature.sql",
+  "install_sequence": 231,
+  "upgrade_sequence": 191,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 90
+ },
+ {
+  "name": "31c Navigation in one place (menu codes, COMMON's menu)",
+  "file": "31c-navigation-one-place.sql",
+  "install_sequence": 232,
+  "upgrade_sequence": 192,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 91
  },
  {
   "name": "32 Removing registrations, RFI documents and deadlines, contacts",
@@ -519,7 +579,7 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 82
+  "source_index": 92
  },
  {
   "name": "33 Data Model",
@@ -529,13 +589,23 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 83
+  "source_index": 93
+ },
+ {
+  "name": "35 Security model migration",
+  "file": "35-security-model-migration.sql",
+  "install_sequence": 230,
+  "upgrade_sequence": 190,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 94
  },
  {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",
   "apps": [],
-  "source_index": 84
+  "source_index": 95
  },
  {
   "name": "99 Sharing with the applications - last",
@@ -545,6 +615,16 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 85
+  "source_index": 96
+ },
+ {
+  "name": "99z HR tables - old names dropped",
+  "file": "99z-hr-old-names-drop.sql",
+  "install_sequence": 995,
+  "upgrade_sequence": 995,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 97
  }
 ]

@@ -13,6 +13,10 @@ in the repository.
    XXFUSION → Apply Changes**, then **Utilities → Supporting Objects → Install Supporting Objects**.
    - If XXFUSION is not in the list, run `apex/db/admin/create-xxfusion-schema.sql` as ADMIN (it creates XXFUSION if
      needed, grants and adds it to the workspace).
+   - To choose **Parsing Schema = XXFUSION** directly in this step (no switch afterwards, Install Supporting Objects:
+     Yes), ADMIN runs once `grant apex_administrator_read_role to xxcus;` (patch 102: ORDS checks the schema as XXCUS,
+     which without that read-only role sees only its own schema). `apex/db/admin/debug-xxfusion-install.sql` (as
+     ADMIN, read-only) reports every check and its fix.
    - Installed while the parsing schema is still XXCUS, the scripts do nothing except report **ORA-20901 ACTION
      NEEDED** (script 00b); switch the parsing schema as above and install again.
 2. The first script, **00a Prerequisites check**, checks the privileges of XXFUSION. If one is missing the

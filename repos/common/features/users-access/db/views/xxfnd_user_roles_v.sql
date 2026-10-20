@@ -25,5 +25,5 @@ select ur.user_role_id,
             then 'Y' else 'N' end active_flag
   from xxfnd_user_roles ur
   join xxfnd_users u          on u.user_id     = ur.user_id
-  left join xxfnd_employees e on e.employee_id = u.employee_id
+  left join xxhr_employees e on e.employee_id = u.employee_id
   join xxfnd_roles r          on r.role_code   = ur.role_code;

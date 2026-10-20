@@ -302,7 +302,7 @@ create or replace package body xxfnd_notify_pkg as
                             p_process_code in varchar2 default null) is
     begin
         for u in (select e.email_address, max(nvl(us.language_code, 'en')) language_code
-                    from xxfnd_employees e
+                    from xxhr_employees e
                     left join xxfnd_users us on us.user_name = e.user_name
                    where e.user_name in (select upper(trim(column_value)) from table(apex_string.split(p_user_names, ',')))
                      and e.enabled_flag = 'Y'
@@ -337,7 +337,7 @@ create or replace package body xxfnd_notify_pkg as
         l_message clob;
         l_mail_id number;
     begin
-        select max(e.email_address) into l_to from xxfnd_employees e where e.user_name = xxfnd_util_pkg.current_user;
+        select max(e.email_address) into l_to from xxhr_employees e where e.user_name = xxfnd_util_pkg.current_user;
         if l_to is null then
             select max(email_address) into l_to from xxfnd_users where user_name = xxfnd_util_pkg.current_user;
         end if;
@@ -566,7 +566,7 @@ create or replace package body xxfnd_notify_pkg as
                 end if;
                 l_email := l_people(i).email_address;
                 if l_email is null and l_people(i).user_name is not null then
-                    select max(email_address) into l_email from xxfnd_employees
+                    select max(email_address) into l_email from xxhr_employees
                      where user_name = l_people(i).user_name and enabled_flag = 'Y';
                 end if;
                 l_label := action_label(r.template_code, l_lang);

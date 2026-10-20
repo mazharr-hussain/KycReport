@@ -15,7 +15,7 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 applications, audit-log, data-security, integrations, lookups
 
 ## Used by (COMMON components)
-applications, change-approvals, documents, flexfields, integrations, lookups, my-tasks, notifications, roles-privileges
+applications, change-approvals, documents, flexfields, integrations, lookups, my-tasks, notifications, roles-privileges, users-access
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Documents are kept in the database until a server is set up (Integrations > Servers, Storage).

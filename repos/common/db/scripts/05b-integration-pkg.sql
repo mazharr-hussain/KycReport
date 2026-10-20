@@ -1,8 +1,8 @@
 
 -- Fusion-sourced people are owned by the HCM sync; only the sync (no APEX session) may change their identity fields.
 -- (release 83: created here, after XXFND_INTEGRATION_PKG, instead of in 08)
-create or replace trigger xxfnd_employees_src
-    before update or delete on xxfnd_employees
+create or replace trigger xxhr_employees_src
+    before update or delete on xxhr_employees
     for each row
 begin
     if xxfnd_util_pkg.in_apex_session and not xxfnd_integration_pkg.sync_running

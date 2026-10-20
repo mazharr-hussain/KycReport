@@ -15,7 +15,7 @@ Page access is data driven: every page is mapped to a feature and opened with th
 applications, attachments, audit-log, communications, data-security, information-requests, lookups, notifications, users-access
 
 ## Used by (COMMON components)
-app-settings, applications, approval-setup, change-approvals, data-model, data-security, information-requests, integrations, lookups, notifications, users-access, workflow-setup
+app-settings, application-menu, applications, approval-setup, change-approvals, data-model, data-security, information-requests, integrations, lookups, notifications, users-access, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).
@@ -48,7 +48,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 The application registers its features, privileges, pages, roles and SoD rules with `REGISTER_FEATURE`, `REGISTER_PRIVILEGE`, `REGISTER_FEATURE_PAGE`, `REGISTER_ROLE`, `ADD_ROLE_PRIVILEGE`, `REGISTER_SOD_RULE` (KYC: 18h), and checks access with `HAS_PRIVILEGE`, `HAS_PAGE_PRIVILEGE`, `HAS_ROLE`. A registration never overrides what an administrator changed. `UNREGISTER_FEATURE_PAGE`, `UNREGISTER_FEATURE`, `UNREGISTER_PRIVILEGE`, `UNREGISTER_ROLE` remove the application's own rows (release 88).
 
 ### Public routines
-- `XXFND_PRIVILEGE_PKG`: ADD_ROLE_PRIVILEGE, CAN_VIEW_SENSITIVE, CURRENT_APPLICATION_ID, GIVE_EVERY_ROLE_PRIVILEGES, HAS_ANY_ADMIN_PRIVILEGE, HAS_ANY_PRIVILEGE, HAS_ANY_ROLE, HAS_ANY_ROLE_YN, HAS_PAGE_PRIVILEGE, HAS_PAGE_REQUEST_PRIVILEGE, HAS_PRIVILEGE, HAS_PRIVILEGE_YN, HAS_ROLE, HAS_ROLE_YN, REGISTER_FEATURE, REGISTER_FEATURE_PAGE, REGISTER_PRIVILEGE, REGISTER_ROLE, REGISTER_SOD_RULE, ROLE_PRIVILEGE_LIST, SET_ROLE_PRIVILEGES, SOD_CONFLICT, SYNC_CURRENT_APPLICATION, UNREGISTER_APPLICATION, UNREGISTER_FEATURE, UNREGISTER_FEATURE_PAGE, UNREGISTER_PRIVILEGE, UNREGISTER_ROLE (registration: REGISTER_FEATURE, REGISTER_FEATURE_PAGE, REGISTER_PRIVILEGE, REGISTER_ROLE, REGISTER_SOD_RULE)
+- `XXFND_PRIVILEGE_PKG`: ADD_ROLE_MEMBER, ADD_ROLE_PRIVILEGE, CAN_CHANGE, CAN_VIEW_SENSITIVE, CURRENT_APPLICATION_ID, GIVE_EVERY_ROLE_PRIVILEGES, HAS_ANY_ADMIN_PRIVILEGE, HAS_ANY_PRIVILEGE, HAS_ANY_ROLE, HAS_ANY_ROLE_YN, HAS_PAGE_PRIVILEGE, HAS_PAGE_REQUEST_PRIVILEGE, HAS_PRIVILEGE, HAS_PRIVILEGE_YN, HAS_ROLE, HAS_ROLE_YN, REGISTER_FEATURE, REGISTER_FEATURE_PAGE, REGISTER_PRIVILEGE, REGISTER_ROLE, REGISTER_SOD_RULE, REMOVE_ROLE_MEMBER, ROLE_PRIVILEGE_LIST, SET_ROLE_PRIVILEGES, SOD_CONFLICT, SYNC_CURRENT_APPLICATION, UNREGISTER_APPLICATION, UNREGISTER_FEATURE, UNREGISTER_FEATURE_PAGE, UNREGISTER_PRIVILEGE, UNREGISTER_ROLE (registration: REGISTER_FEATURE, REGISTER_FEATURE_PAGE, REGISTER_PRIVILEGE, REGISTER_ROLE, REGISTER_SOD_RULE)
 
 ## Tests
 - in `../../tests/` (whole application)

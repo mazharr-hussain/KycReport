@@ -11,7 +11,7 @@ lov lov-employees (
             ```sql
             select full_name || ' (' || user_name || ')' as display_value,
                    user_name as return_value
-              from xxfnd_employees
+              from xxhr_employees
              where enabled_flag = 'Y'
              order by full_name
             ```
@@ -32,7 +32,7 @@ lov lov-case-officers (
             -- release 75: who may be given a case (one rule: XXCMP_CASE_PKG.IS_CASE_OFFICER); Assign on 211 and 205,
             -- and the Approve popup on 206
             select e.full_name as display_value, upper(e.user_name) as return_value
-              from xxfnd_employees e
+              from xxhr_employees e
              where e.user_name is not null
                and xxcmp_case_pkg.is_case_officer(e.user_name) = 'Y'
              order by 1

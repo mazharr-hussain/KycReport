@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- 19c Sharing with the application schemas (release 54). COMMON only.
---   The shared XXFND_ objects exist only here (XXFUSION). Every application schema (XXFND_APPLICATIONS.SCHEMA_NAME,
+--   The shared XXFND_ objects (release 102: and the XXHR_ HR tables) exist only here (XXFUSION). Every application schema (XXFND_APPLICATIONS.SCHEMA_NAME,
 --   e.g. KYC = XXCUS) gets grants on them and reaches them through synonyms, created by its own install
 --   (KYC script 03). XXFND_SCHEMA_RELEASES and XXFND_DDL_PKG stay local to each schema (deployment tracking).
 --   XXFND_SHARE_PKG:
@@ -42,7 +42,9 @@ create or replace package body xxfnd_share_pkg as
         -- release 86: the server and storage views read APEX metadata (not grantable on); COMMON's own screens only
         -- release 89: the Data Model views read the database dictionary (every application's schema); COMMON's own screens only
         return upper(p_object_name) in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_SETUP_TABLES_V', 'XXFND_SETUP_COLUMNS_V',
-                                        'XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V')
+                                        'XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V',
+                                        -- release 104: reads APEX metadata; the applications use XXFND_NAV_PKG.NAV_MENU
+                                        'XXFND_NAV_MENU_V')
             or upper(p_object_name) like 'XXFND\_DM\_%\_V' escape '\';
     end is_local;
 
@@ -59,7 +61,7 @@ create or replace package body xxfnd_share_pkg as
         l_to varchar2(130) := dbms_assert.enquote_name(dbms_assert.schema_name(upper(p_schema)), false);
     begin
         for o in (select object_name, object_type from user_objects
-                   where object_name like 'XXFND\_%' escape '\'
+                   where (object_name like 'XXFND\_%' escape '\' or object_name like 'XXHR\_%' escape '\')
                      and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
                    order by object_type, object_name) loop
             continue when is_local(o.object_name);
@@ -257,9 +259,9 @@ create or replace package body xxfnd_share_pkg as
         pages('APPLICATIONS',      '160=Applications|162=Setup Types|164=Subscriptions|161|163');   -- 73: Setup Types; 78: Subscriptions
         pages('APP_SETTINGS',      '10022|10023');
         pages('OPTIONAL_FEATURES', '10020|10021');
-        pages('USERS_ACCESS',      '103|104');
+        pages('USERS_ACCESS',      '103|104|184');   -- 96: data access values of a role assignment
         pages('ROLES_PRIVILEGES',  '105=Roles|182=Privileges|107=Segregation of Duties|106|108');
-        pages('DATA_SECURITY',     '180|181');
+        pages('DATA_SECURITY',     '180=Data Objects|186=Organizations|181');   -- 96: the security model
         pages('AUDIT_LOG',         '111');
         pages('LOOKUPS',           '101|102');
         pages('FLEXFIELDS',        '152=Descriptive Flexfields|150=Value Sets|151|153');

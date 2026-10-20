@@ -196,7 +196,13 @@ begin
     begin
         select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON';
         if l_n = 0 then
-            xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_');
+            xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_,XXHR_');
+        else
+            -- release 102: the HR tables (XXHR_) are COMMON's too; an administrator's other prefix is kept
+            select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON' and object_prefix = 'XXFND_';
+            if l_n > 0 then
+                xxfnd_data_model_pkg.set_object_prefix('COMMON', 'XXFND_,XXHR_');
+            end if;
         end if;
         -- COMMON's tables by module (the six modules of COMMON)
         g('XXFND_APPLICATIONS', 'Platform');
@@ -215,7 +221,8 @@ begin
         g('XXFND_ROLE_PRIVILEGES', 'Security');
         g('XXFND_USERS', 'Security');
         g('XXFND_USER_ROLES', 'Security');
-        g('XXFND_EMPLOYEES', 'Security');
+        g('XXHR_EMPLOYEES', 'Security');
+        g('XXHR_ORGANIZATIONS', 'Security');
         g('XXFND_DATA_SECURITY_RULES', 'Security');
         g('XXFND_DATA_RULE_ASSIGNMENTS', 'Security');
         g('XXFND_SOD_RULES', 'Security');

@@ -15,7 +15,7 @@ One retention rule set for every application.
 applications, lookups
 
 ## Used by (COMMON components)
-applications, change-approvals, flexfields
+applications, change-approvals, flexfields, users-access
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).

@@ -216,6 +216,22 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry organizations (
+        name: Organizations
+        pageNumber: 186
+        execution {
+            sequence: 126
+        }
+        appearance {
+            parentEntry: @data-security
+        }
+        link {
+            target: {
+                page: 186
+            }
+        }
+    )
+
     entry privileges (
         name: Privileges
         pageNumber: 182
@@ -233,7 +249,7 @@ breadcrumb breadcrumb (
     )
 
     entry employee (
-        name: User
+        name: &P104_TITLE.
         pageNumber: 104
         execution {
             sequence: 140
@@ -332,6 +348,44 @@ breadcrumb breadcrumb (
         }
         appearance {
             parentEntry: @applications
+        }
+    )
+
+    entry application-menu (
+        name: Menu by Application
+        pageNumber: 167
+        execution {
+            sequence: 167
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 167
+            }
+        }
+        comments {
+            comments: Release 106 - a tab of the Application Menu feature (Reference Data), next to All Pages (169).
+        }
+    )
+
+    entry all-pages (
+        name: Application Menu
+        pageNumber: 169
+        execution {
+            sequence: 169
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 169
+            }
+        }
+        comments {
+            comments: Release 106 - the Application Menu feature (Reference Data): every page of every application and who uses it.
         }
     )
 
@@ -691,6 +745,23 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry home-from-app (
+        name: Home
+        pageNumber: 90070
+        execution {
+            sequence: 19
+        }
+        link {
+            target: {
+                type: url
+                url: &G_HOME_URL.
+            }
+        }
+        comments {
+            comments: Release 97 - the Home of My Tasks (40); release 104 - of every shared COMMON page (Notifications, Communications, Attachments, Feedback): the home page of the application the page is used from (G_HOME_URL, process WORK_APP), else the user's Home; page 90070 does not exist (an entry needs a page).
+        }
+    )
+
     entry my-tasks (
         name: My Tasks
         pageNumber: 40
@@ -698,7 +769,7 @@ breadcrumb breadcrumb (
             sequence: 20
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -730,7 +801,7 @@ breadcrumb breadcrumb (
             sequence: 25
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -810,7 +881,7 @@ breadcrumb breadcrumb (
             sequence: 40
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -842,7 +913,7 @@ breadcrumb breadcrumb (
             sequence: 50
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {
@@ -970,7 +1041,7 @@ breadcrumb breadcrumb (
             sequence: 60
         }
         appearance {
-            parentEntry: @home
+            parentEntry: @home-from-app
         }
         link {
             target: {

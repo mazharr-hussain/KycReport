@@ -28,7 +28,7 @@ lov lov-employees (
             ```sql
             select full_name || ' (' || user_name || ')' as display_value,
                    user_name as return_value
-              from xxfnd_employees
+              from xxhr_employees
              where enabled_flag = 'Y'
              order by full_name
             ```
@@ -60,6 +60,27 @@ lov lov-roles (
     }
 )
 
+lov lov-customization-level (
+    name: CUSTOMIZATION_LEVEL
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'CUSTOMIZATION_LEVEL'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
 lov lov-lookup-types (
     name: LOOKUP TYPES
     source {
@@ -70,6 +91,27 @@ lov lov-lookup-types (
             select meaning || ' (' || lookup_type || ')' as display_value, lookup_type as return_value
               from xxfnd_lookup_types
              order by lookup_type
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
+
+lov lov-dff-columns (
+    name: DFF RESERVED COLUMNS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select column_name as display_value, column_name as return_value
+              from user_tab_columns
+             where table_name = 'XXFND_ATTACHED_DOCUMENTS'
+               and regexp_like(column_name,
+                   '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$')
+             order by column_id
             ```
     }
     columnMapping {

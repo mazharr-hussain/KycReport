@@ -14,4 +14,4 @@ begin
 end;
 /
 
--- (release 79: the trigger XXFND_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)
+-- (release 79: the trigger XXHR_EMPLOYEES_RENAME is created with XXFND_USER_PKG, script 16j)
