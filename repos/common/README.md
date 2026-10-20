@@ -21,4 +21,4 @@ file, statement or component is copied as it is, and `SOURCE-MAP.json` records w
 
 ## Not copied
 - the generated install / upgrade scripts of `supporting-objects/` (the build makes them from the database scripts).
-- History and tooling stay in `apex/`: release zips, patches, tools, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md.
+- History stays in `apex/`: release zips, patches, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md, and the one-off page generators of the early releases. The build and checks are in `common/tools/` (one copy for every application); `tools/` of each repository holds its own user-guide recorder.

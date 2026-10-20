@@ -2060,5 +2060,13 @@
    "to": 9819,
    "whole": true
   }
+ ],
+ "apex/tools/record_kyc_user_guide.py": [
+  {
+   "from": 0,
+   "target": "kyc/tools/record_kyc_user_guide.py",
+   "to": 21778,
+   "whole": true
+  }
  ]
 }

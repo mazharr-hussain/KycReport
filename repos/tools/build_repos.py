@@ -231,6 +231,11 @@ put(f'{OUT}/common/db/scripts/05-core-packages-part-1-of-2-upgrade.sql', rd(f'{R
 for fpath in sorted(glob.glob(f'{ROOT}/apex/src/database/sys/**/*.sql', recursive=True)):
     put(f'{OUT}/kyc/db/grants/{os.path.basename(fpath)}', rd(fpath), os.path.relpath(fpath, ROOT), whole=True)
 put(f'{OUT}/common/docs/COMMON-ISSUES.md', rd(f'{ROOT}/apex/COMMON-ISSUES.md'), 'apex/COMMON-ISSUES.md', whole=True)
+# the developer tools: the build and checks once, in COMMON (every application builds with them); each application's
+# own user-guide recorder with it (copied unchanged; build.py in common/tools is the repository build, kept as it is)
+for n, repo in (('sql_install.py', 'common'), ('check_session_state.py', 'common'), ('record_user_guide.py', 'common'),
+                ('record_kyc_user_guide.py', 'kyc')):
+    put(f'{OUT}/{repo}/tools/{n}', rd(f'{ROOT}/apex/tools/{n}'), f'apex/tools/{n}', whole=True)
 
 # ---------------------------------------------------------------- write, then check
 # rewrite what the split makes; the build (common/tools, the build.sh wrappers) and dist/ stay
@@ -349,7 +354,9 @@ for repo in APPS:
         '- `docs/` - install notes' + (' and the COMMON issue list' if repo == 'common' else '') + '; `tests/` - tests of the whole application.', '',
         '## Build', f'`./build.sh [--release N]` - the one build, `common/tools/build.py` (no build logic in this repository' + ('' if repo == 'common' else ' - it is COMMON\'s') + '); output in `dist/` (not kept in git).', '',
         '## Not copied', '- the generated install / upgrade scripts of `supporting-objects/` (the build makes them from the database scripts).',
-        '- History and tooling stay in `apex/`: release zips, patches, tools, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md.', ''])]
+        '- History stays in `apex/`: release zips, patches, ARCHITECTURE.md, CHANGELOG.md, PROJECT.md, and the one-off page '
+        'generators of the early releases. The build and checks are in `common/tools/` (one copy for every application); '
+        '`tools/` of each repository holds its own user-guide recorder.', ''])]
 targets[f'{OUT}/common/db/framework/README.md'] = ['\n'.join([
     '# Framework (COMMON)', '',
     'The base every COMMON component and every application runs on. No feature, no page: database only.', '',
