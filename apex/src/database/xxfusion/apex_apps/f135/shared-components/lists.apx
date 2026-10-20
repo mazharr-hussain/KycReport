@@ -145,8 +145,11 @@ list application-journey (
                       from dual
                     union all
                     select 4, 'Shared functions', 'jrn-functions',
-                           (select to_char(nullif(count(*), 0)) from xxfnd_application_functions
-                             where application_code = :P0_JRN_APP and managed_in_app_flag = 'Y')
+                           (select to_char(nullif(count(distinct p.feature_code), 0)) from xxfnd_roles r
+                              join xxfnd_role_privileges rp on rp.role_code = r.role_code
+                              join xxfnd_privileges p on p.privilege_code = rp.privilege_code
+                              join xxfnd_features f on f.feature_code = p.feature_code and f.admin_flag = 'Y'
+                             where r.application_code = :P0_JRN_APP)
                       from dual
                     union all
                     select 5, 'Setup types', 'jrn-setup-types',
@@ -193,7 +196,8 @@ list administration (
             -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
             -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
             --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
-            --   2. each common function IT lets the application's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
             --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
             select lvl, label, target, is_current, image, image_attribute, image_alt, a01
               from (
@@ -221,9 +225,7 @@ list administration (
             union all
             select null,
                    m.feature_name || ' (shared setup)',
-                   apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                     p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                     p_values => a.application_code || ',Y,' || to_char(m.home_page_id)),
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
                    'NO',
                    m.icon_css,
                    null,
@@ -233,8 +235,12 @@ list administration (
                    m.feature_group,
                    m.display_sequence
               from xxfnd_admin_menu_v m
-              join xxfnd_applications a on upper(a.apex_app_alias) = upper(:APP_ALIAS)
-             where xxfnd_application_pkg.is_delegated(a.application_code, m.feature_code) = 'Y'
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
             union all
             select null,
                    'Shared Setup',

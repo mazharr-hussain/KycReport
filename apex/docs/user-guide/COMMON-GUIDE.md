@@ -55,6 +55,7 @@ COMMON has 26 components. Each one has a user-guide video (see Reference); the S
 | Audit Log | Security | Who changed what and when | 111 |
 | Lookups | Reference Data | Lists of values with translations and levels | 101, 102 |
 | Flexfields | Reference Data | Descriptive flexfields, contexts, segments and value sets | 150-153 |
+| Application Menu | Reference Data | The menus (side menu, top bar) of every application in one place; every page of every application with its privilege and who uses it (menus, links, opened from) | 169 all pages, 167 menu by application, 168 entry |
 | Attachments | Documents and Records | Document entities and categories, attachment pages, storage per application and category | 130-137 |
 | Documents | Documents and Records | The documents of any application's record: add, view, replace | 47, 48 |
 | Retention | Documents and Records | How long records and documents are kept | 112, 113 |
@@ -76,7 +77,7 @@ Three kinds of people use COMMON, and each sees only what their role allows. Eve
 | Who | How they get in | What they see |
 | --- | --- | --- |
 | IT (Common Administrator) | Signs in to COMMON | Every module and every application; the application selector narrows the setup screens to one application |
-| An application's administrators | From their own application's menu, once IT sets the function to "managed in the application" (Applications > the application) | Only that function's screens, and only their own application's setup rows plus the shared ones |
+| An application's users with a COMMON privilege | From their own application's menu (any COMMON page can be put in it on Application Menu), or any link to the COMMON page | The COMMON screens their roles' privileges open (View / Create / Manage), and only the setup rows of the applications whose roles give that privilege, plus the shared ones |
 | Business users | Any signed-in user, from links in their application | The shared pages (My Tasks, Notifications, Communications, E-mail, Documents, Information Request, Configuration Change, Give Feedback), with only their own tasks and the records they may see |
 
 Two rules decide what data anyone sees:
@@ -113,7 +114,7 @@ An application can use COMMON only after it is registered (onboarded). Registrat
 
 After registration, the application page (COMMON 166) shows every section with Add / Edit / Remove, Disable / Enable, and Delete. Delete works only when the application is disabled and no business data refers to it; the setup it registered is removed with it.
 
-**The navigation, in one place.** Every navigation of every application, COMMON included, is kept in COMMON: Applications > the application > Menu (the Application Menu screen, page 167). Choose the side menu or the top bar; each entry is a folder, a page, the user menu, Sign Out or a separator, and it is shown by privileges (the entry's privilege, else the privilege of the page it opens). The application adds its own entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY` (P_MENU_CODE SIDE or TOP_BAR). Its navigation lists subscribe to COMMON's lists (Navigation Menu, Navigation Bar), which read:
+**The navigation, in one place.** Every navigation of every application, COMMON included, is kept in COMMON: Reference Data > Application Menu (All Pages, page 169: every page of every application with who uses it) and its tab Menu by Application (page 167; also Applications > the application > Menu). Choose the side menu or the top bar; each entry is a folder, a page, the user menu, Sign Out or a separator, and it is shown by privileges (the entry's privilege, else the privilege of the page it opens). The application adds its own entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY` (P_MENU_CODE SIDE or TOP_BAR). Its navigation lists subscribe to COMMON's lists (Navigation Menu, Navigation Bar), which read:
 
 ```sql
 select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
@@ -142,7 +143,7 @@ Each routine below takes your application code first. Register routines add what
 
 | Component | Register from your install | Call at run time | Link to (COMMON page) |
 | --- | --- | --- | --- |
-| Applications | `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY`; self-onboarding via script 00c | `PAGE_ALLOWED`, `IS_DELEGATED`; navigation lists subscribed from COMMON (`XXFND_NAV_PKG.NAV_MENU`) | Shared Setup (100) |
+| Applications | `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY`; self-onboarding via script 00c | `FEATURE_APPS` (the applications whose roles give a privilege); navigation lists subscribed from COMMON (`XXFND_NAV_PKG.NAV_MENU`) | Shared Setup (100) |
 | Roles & Privileges | `XXFND_PRIVILEGE_PKG.REGISTER_FEATURE`, `REGISTER_PRIVILEGE`, `REGISTER_FEATURE_PAGE`, `REGISTER_ROLE`, `ADD_ROLE_PRIVILEGE`, `REGISTER_SOD_RULE` | `HAS_PRIVILEGE`, `HAS_PAGE_PRIVILEGE`, `HAS_ROLE` | - |
 | Users & Access | - | `XXFND_USER_PKG` as your sign-in (post-authentication) and authorization logic | - |
 | Data Security | `XXFND_VPD_PKG.REGISTER_DATA_RULE` | the policies filter rows by themselves | - |

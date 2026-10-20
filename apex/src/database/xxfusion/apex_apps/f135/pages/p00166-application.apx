@@ -332,8 +332,8 @@ page 166 (
             plsqlExpression:
                 ```plsql
                 -- release 105: the application's navigation (side menu, top bar) is kept in one place, the Application
-                -- Menu screen (was also shown here with Show / Hide, release 87)
-                xxfnd_privilege_pkg.has_privilege_yn('APPLICATIONS', 'VIEW') = 'Y'
+                -- Menu screen (was also shown here with Show / Hide, release 87); release 106: its own feature
+                xxfnd_privilege_pkg.has_privilege_yn('APPLICATION_MENU', 'VIEW') = 'Y'
                 ```
         }
     )

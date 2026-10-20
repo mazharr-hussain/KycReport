@@ -700,10 +700,19 @@
   ]
  },
  {
+  "name": "31d Page access by privilege and the Application Menu feature",
+  "file": "31d-page-access-and-menu-feature.sql",
+  "install_sequence": 231,
+  "upgrade_sequence": 191,
+  "apps": [
+   "COMMON"
+  ]
+ },
+ {
   "name": "31c Navigation in one place (menu codes, COMMON's menu)",
   "file": "31c-navigation-one-place.sql",
-  "install_sequence": 228,
-  "upgrade_sequence": 188,
+  "install_sequence": 232,
+  "upgrade_sequence": 192,
   "apps": [
    "COMMON"
   ]

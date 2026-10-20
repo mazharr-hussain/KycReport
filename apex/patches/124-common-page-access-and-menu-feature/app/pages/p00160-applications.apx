@@ -1,0 +1,231 @@
+page 160 (
+    name: Applications
+    alias: APPLICATIONS
+    title: Applications
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: The applications that use the common setup. Open one to review it section by section (roles, users, shared functions, setup types, processes, notifications, document storage, integrations); Register Application starts the guided journey for an APEX application of this workspace that is not registered yet.
+    }
+
+    region breadcrumb (
+        name: Applications
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Applications
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.*,
+                       -- release 86: a row opens the application's review page (166)
+                       apex_page.get_url(p_page => 166, p_items => 'P166_APPLICATION_CODE',
+                                         p_values => q.application_code,
+                                         p_clear_cache => '166') as open_url
+                  from (
+                            select a.application_id, a.application_code, a.application_name, a.apex_app_alias,
+                                   a.apex_application_id, a.schema_name, a.enabled_flag
+                              from xxfnd_applications a
+                             where a.application_code <> 'COMMON'   -- release 73: COMMON is the instance
+                ) q
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#APPLICATION_CODE#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APEX_APP_ALIAS (
+            type: plainText
+            heading {
+                heading: APEX Alias
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APEX_APPLICATION_ID (
+            type: plainText
+            heading {
+                heading: APEX Application
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: plainText
+            heading {
+                heading: Schema
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ENABLED_FLAG (
+            type: plainText
+            heading {
+                heading: Enabled
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_ID (
+            type: hidden
+            heading {
+                heading: Id
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Register Application
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 165
+                items: {
+                    P165_STEP: 1
+                }
+                clearCache: 165
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+)

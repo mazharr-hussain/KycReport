@@ -352,18 +352,40 @@ breadcrumb breadcrumb (
     )
 
     entry application-menu (
-        name: Application Menu
+        name: Menu by Application
         pageNumber: 167
         execution {
             sequence: 167
         }
         appearance {
-            parentEntry: @applications
+            parentEntry: @module-reference-data
         }
         link {
             target: {
                 page: 167
             }
+        }
+        comments {
+            comments: Release 106 - a tab of the Application Menu feature (Reference Data), next to All Pages (169).
+        }
+    )
+
+    entry all-pages (
+        name: Application Menu
+        pageNumber: 169
+        execution {
+            sequence: 169
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 169
+            }
+        }
+        comments {
+            comments: Release 106 - the Application Menu feature (Reference Data): every page of every application and who uses it.
         }
     )
 

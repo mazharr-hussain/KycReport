@@ -16,7 +16,8 @@ page 167 (
         helpText:
             ```
             The menu of an application, kept in COMMON (as an EBS / Fusion menu): folders and the pages they open, in order. The application shows it as its navigation menu, and COMMON shows it on its shared pages used from the application, so the menu does not change.
-            Who sees an entry follows the privileges: the entry's privilege (View), else the privilege of the page it opens (View); a folder shows when one of its entries shows. Entries the application or COMMON added are hidden rather than deleted.
+            Who sees an entry follows the privileges: the entry's privilege (View), else the privilege of the page it opens (View) - a COMMON page too, from any application; a folder shows when one of its entries shows. Entries the application or COMMON added are hidden rather than deleted.
+            Release 106: a tab of Application Menu (Reference Data); All Pages lists every page of every application with who uses it.
             ```
     }
 
@@ -149,7 +150,6 @@ page 167 (
                                           when 'APP_PAGE' then 'Application page ' || e.page_id
                                           when 'ADMIN_PAGE' then 'Application page ' || e.page_id
                                           when 'COMMON_PAGE' then 'COMMON page ' || e.page_id
-                                          when 'MANAGED' then 'Shared setup, managed in the application'
                                           else 'Shared setup' end as opens,
                        case when e.target_type in ('FOLDER', 'USER_MENU') then 'Who sees one of its entries'
                             when e.target_type in ('SIGN_OUT', 'SEPARATOR') then 'Every signed-in user'
@@ -157,10 +157,13 @@ page 167 (
                             then 'Administrators'
                             else coalesce((select f.feature_name || ' - View' from xxfnd_features f
                                             where f.feature_code = coalesce(e.feature_code,
+                                                      -- release 106: a COMMON page by its own privilege too
                                                       (select max(fp.feature_code) from xxfnd_feature_pages fp
                                                          join xxfnd_applications a on upper(a.apex_app_alias) = upper(fp.app_alias)
-                                                        where a.application_code = e.application_code
-                                                          and fp.page_id = e.page_id and e.target_type = 'APP_PAGE'))),
+                                                        where a.application_code = case e.target_type when 'COMMON_PAGE'
+                                                                                        then 'COMMON' else e.application_code end
+                                                          and fp.page_id = e.page_id
+                                                          and e.target_type in ('APP_PAGE', 'COMMON_PAGE')))),
                                           'Every signed-in user') end as shown_to,
                        e.display_sequence,
                        decode(e.made_by, 'APP', 'The application', 'ADMIN', 'Administrator', 'COMMON') as made_by,
