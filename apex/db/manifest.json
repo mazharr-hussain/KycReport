@@ -430,6 +430,12 @@
   "upgrade_sequence": 150
  },
  {
+  "name": "18j KYC navigation bar in COMMON",
+  "file": "18j-kyc-top-bar.sql",
+  "install_sequence": 194,
+  "upgrade_sequence": 154
+ },
+ {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,

@@ -628,6 +628,24 @@ installScript 19a-grants-to-the-shared-schema (
     }
 )
 
+installScript 18j-kyc-navigation-bar-in-common (
+    execution {
+        sequence: 194
+    }
+    script {
+        contentFile: 18j-kyc-top-bar.sql
+    }
+    serverSideCondition {
+        type: rowsReturned
+        sqlQuery:
+            ```sql
+            select 1 from all_objects where owner = 'XXFUSION' and object_name = 'XXFND_SHARE_PKG'
+               and not exists (select 1 from user_tables
+                                where table_name in ('XXFND_LOOKUP_TYPES', 'XXCMP_SHARED_FKS'))
+            ```
+    }
+)
+
 installScript 19-reporting-views-and-recompile (
     execution {
         sequence: 195

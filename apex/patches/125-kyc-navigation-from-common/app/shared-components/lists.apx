@@ -1,0 +1,270 @@
+list navigation-bar (
+    name: Navigation Bar
+    subscription {
+        master: @/135/navigation-bar
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+              -- release 105: the navigation bar of every application, COMMON included, kept in COMMON's menu registry
+              -- (menu TOP_BAR: Notifications with its badge, Give Feedback, the user menu with Sign Out)
+              from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 105 - master list: the navigation bar comes from XXFND_NAV_PKG.NAV_MENU('TOP_BAR') (A01 = badge, A02 = class), managed on the Application Menu screen like the side menu.
+    }
+)
+
+list navigation-menu (
+    name: Navigation Menu
+    subscription {
+        master: @/135/navigation-menu
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
+    }
+)
+
+list administration (
+    name: Administration
+    subscription {
+        master: @/135/administration
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
+            --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
+              from (
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   case when exists (select 1 from xxfnd_feature_pages c
+                                      where c.app_alias = :APP_ALIAS and c.feature_code = m.feature_code
+                                        and c.page_id = :APP_PAGE_ID) then 'YES' else 'NO' end as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01,
+                   1                                       as part,
+                   m.feature_group                         as grp,
+                   m.display_sequence                      as seq
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_application_pkg.local_page(fp.page_id) = 'Y') t
+             where t.page_id is not null
+            union all
+            select null,
+                   m.feature_name || ' (shared setup)',
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
+                   'NO',
+                   m.icon_css,
+                   null,
+                   null,
+                   m.description,
+                   2,
+                   m.feature_group,
+                   m.display_sequence
+              from xxfnd_admin_menu_v m
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
+            union all
+            select null,
+                   'Shared Setup',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 100),
+                   'NO',
+                   'fa-cogs',
+                   null,
+                   null,
+                   'The common setup of every application, in COMMON.',
+                   3,
+                   null,
+                   null
+              from dual
+             where exists (select 1 from xxfnd_admin_menu_v m
+                            where not exists (select 1 from xxfnd_feature_pages fp
+                                               where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                                 and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'))
+                   )
+             order by part, grp, seq, label
+            ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
+    }
+)
+
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   xxfnd_application_pkg.setup_page_url(fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               -- release 72: only tabs whose page is in this application
+               and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
+)
+
+list request-wizard (
+    name: Request Wizard
+
+    entry step-1 (
+        label: Counterparty
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry step-party (
+        label: Party Details
+        layout {
+            sequence: 15
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Questionnaire
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review and Submit
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)
+
+list party-wizard (
+    name: Party Wizard
+
+    entry step-1 (
+        label: Party Information
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
+    entry step-2 (
+        label: Party Details
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 21
+            }
+        }
+    )
+)
+
+list case-sections (
+    name: Case Sections
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 74 (R5, R11): the case screen's section menu as a dynamic list (was HTML from PL/SQL); the state of
+            -- each section (done / warning / to do) from XXCMP_CASE_PKG.SECTION_STATE, shown as the icon and item class
+            select null as lvl,
+                   s.n || ' ' || xxfnd_lookup_pkg.lookup_meaning('CASE_SECTION', s.code) as label,
+                   apex_page.get_url(p_page => 211, p_items => 'P211_CASE_ID,P211_TASK_ID,P211_SECTION',
+                                     p_values => :P211_CASE_ID || ',' || :P211_TASK_ID || ',' || s.code) as target,
+                   case when s.code = :P211_SECTION then 'YES' else 'NO' end as is_current,
+                   case when s.code = :P211_SECTION then 'fa-dot-circle-o'
+                        when s.state = 'DONE' then 'fa-check-circle'
+                        when s.state = 'WARN' then 'fa-exclamation-triangle'
+                        else 'fa-circle-o' end as image,
+                   null as image_attribute,
+                   null as image_alt,
+                   null as a01,
+                   null as a02,
+                   'kyc-case-nav-item is-' || lower(s.state) || case when s.code = :P211_SECTION then ' is-current' end as a03
+              from (select t.column_value as code, rownum as n,
+                           xxcmp_case_pkg.section_state(:P211_CASE_ID, t.column_value) as state
+                      from table(apex_string.split(xxcmp_case_pkg.sections, ':')) t) s
+             order by s.n
+            ```
+    }
+)
