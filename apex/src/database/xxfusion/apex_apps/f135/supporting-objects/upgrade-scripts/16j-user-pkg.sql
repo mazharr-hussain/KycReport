@@ -65,9 +65,6 @@ create or replace package xxfnd_user_pkg authid definer as
     -- role's application when missing; END_APPLICATION ends the access and the user's roles of that application.
     procedure grant_application(p_user_id in number, p_application_code in varchar2);
     procedure end_application(p_user_id in number, p_application_code in varchar2);
-    -- Release 96: Y when the application keeps its users itself (Users & Access managed in the application) and the
-    -- screen is not working for that application: COMMON then shows its roles read-only.
-    function managed_in_application(p_application_code in varchar2) return varchar2;
 
     -- Moves every stored reference to a user name to a new one: request, case, approval, delegation and RFI
     -- user columns, the WHO columns of all XXFND_/XXCMP_ tables, and the potential owners of open workflow tasks.
@@ -387,20 +384,8 @@ create or replace package body xxfnd_user_pkg as
         xxfnd_vpd_pkg.clear_cache;
     end assign_role;
 
-    function managed_in_application(p_application_code in varchar2) return varchar2 is
-        l_n   pls_integer;
-        l_del varchar2(30);
-    begin
-        select count(*) into l_n from xxfnd_application_functions
-         where application_code = upper(p_application_code) and feature_code = 'USERS_ACCESS' and managed_in_app_flag = 'Y';
-        if l_n = 0 then
-            return 'N';
-        end if;
-        l_del := xxfnd_application_pkg.delegated_app;
-        return case when l_del = upper(p_application_code) then 'N' else 'Y' end;
-    end managed_in_application;
-
-    -- release 96: the role belongs to an application the caller administers and that does not keep its users itself
+    -- release 96: the role belongs to an application the caller administers (release 106: no "users managed in the
+    -- application" any more - Users & Access privilege through a role of the application is enough)
     procedure check_role_app(p_role_code in varchar2) is
         l_app varchar2(30);
     begin
@@ -411,9 +396,6 @@ create or replace package body xxfnd_user_pkg as
         if xxfnd_privilege_pkg.can_change(l_app) = 'N' then
             raise_application_error(-20077, 'You may change only the security of the applications you administer ('
                 || l_app || ').');
-        elsif managed_in_application(l_app) = 'Y' then
-            raise_application_error(-20074, 'The users of ' || l_app || ' are managed in ' || l_app
-                || ': change their roles there.');
         end if;
     end check_role_app;
 
@@ -757,28 +739,25 @@ create or replace package body xxfnd_user_pkg as
                    -- release 61: COMMON - a privilege on a COMMON feature or any admin privilege (administrators
                    -- of an application maintain its setup on the COMMON screens)
                    -- release 71: COMMON is for IT only (Common Administrator)
-                   -- release 73: and an application's administrators on the functions IT lets them manage (delegated)
+                   -- release 73: and an application's administrators on the functions IT lets them manage (release 106:
+                   -- retired - every signed-in user, each COMMON page checking its own privilege)
                    -- release 87 (C1): and every signed-in user: the shared pages (tasks, notifications, documents, e-mails,
                    -- feedback) show only the user's own data; every other COMMON page keeps its privilege check
                    when 'APP_USER'             then case when upper(v('APP_ALIAS')) = 'COMMON'
                                                          then xxfnd_application_pkg.is_common_admin = 'Y'
-                                                              or xxfnd_application_pkg.delegated_any = 'Y'
                                                               or signed_in
                                                          else xxfnd_privilege_pkg.has_any_privilege
                                                               or xxfnd_application_pkg.administers_any = 'Y' end
                    -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
                    when 'ADMIN_APP'            then xxfnd_application_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
                    -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
-                   -- release 73: in COMMON a delegated user only on the pages of a function managed in the application
+                   -- release 106: in COMMON too (any application's user with the privilege; what the page shows is
+                   -- limited to the applications whose roles give it: XXFND_APPLICATION_PKG.SCOPE_PREDICATE)
                    when 'PAGE_VIEW'            then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW')
-                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'PAGE_CREATE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE')
-                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'PAGE_MANAGE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'MANAGE')
-                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    -- processes that change data: request CREATE needs CREATE, any other request MANAGE
                    when 'PAGE_SUBMIT'          then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
-                                                    and xxfnd_application_pkg.page_allowed(page_id) = 'Y'
                    when 'WORKFLOW_ADMINISTER'  then xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE')
                    when 'ADMIN_AREA'           then case when upper(v('APP_ALIAS')) = 'COMMON'
                                                          then xxfnd_application_pkg.is_common_admin = 'Y'   -- release 71

@@ -900,12 +900,12 @@ upgradeScript 31b-navigation-menu-registry-menu-view (
     }
 )
 
-upgradeScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
+upgradeScript 35-security-model-migration (
     execution {
-        sequence: 188
+        sequence: 190
     }
     script {
-        contentFile: 31c-navigation-one-place.sql
+        contentFile: 35-security-model-migration.sql
     }
     serverSideCondition {
         type: expression
@@ -917,12 +917,29 @@ upgradeScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
     }
 )
 
-upgradeScript 35-security-model-migration (
+upgradeScript 31d-page-access-by-privilege-and-the-application-menu-feature (
     execution {
-        sequence: 190
+        sequence: 191
     }
     script {
-        contentFile: 35-security-model-migration.sql
+        contentFile: 31d-page-access-and-menu-feature.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+upgradeScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
+    execution {
+        sequence: 192
+    }
+    script {
+        contentFile: 31c-navigation-one-place.sql
     }
     serverSideCondition {
         type: expression

@@ -6,8 +6,19 @@ appProcess SET_ADMIN_APP (
         plsqlCode:
             ```plsql
             -- release 73: no application filter - every application (ALL), unless an application opened a setup
-            -- screen for itself (delegated: G_ADMIN_LOCK = Y, page 99)
-            :G_ADMIN_APP := case when :G_ADMIN_LOCK = 'Y' then xxfnd_application_pkg.default_application(:G_ADMIN_APP) else 'ALL' end;
+            -- screen for itself (G_ADMIN_LOCK = Y). Release 106 (no entry page 99): a COMMON page used from an
+            -- application (G_WORK_APP, process WORK_APP) works for that application's rows; what the user may see of
+            -- them is the privilege of the page (XXFND_APPLICATION_PKG.SCOPE_PREDICATE)
+            declare
+                l_code varchar2(30);
+            begin
+                if :G_WORK_APP is not null then
+                    select max(application_code) into l_code from xxfnd_applications
+                     where upper(apex_app_alias) = upper(:G_WORK_APP);
+                end if;
+                :G_ADMIN_LOCK := case when l_code is not null then 'Y' else 'N' end;
+                :G_ADMIN_APP  := case when l_code is not null then xxfnd_application_pkg.default_application(l_code) else 'ALL' end;
+            end;
             ```
     }
     execution {
@@ -143,6 +154,8 @@ appProcess WORK_APP (
                     l_work := null;
                 elsif l_alias is not null and l_alias not in (upper(:APP_ALIAS), to_char(:APP_ID)) then
                     l_work := l_alias;
+                    -- release 106: counted as Opened From on the Application Menu's page catalogue
+                    xxfnd_nav_pkg.record_open(l_ref);
                 end if;
                 if l_work is null and :G_USER_APP_NAME is not null then
                     l_work := xxfnd_user_pkg.home_application;

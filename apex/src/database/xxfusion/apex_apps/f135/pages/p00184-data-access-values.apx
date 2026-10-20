@@ -121,8 +121,7 @@ page 184 (
                            case when r.data_object_code is not null then '(the default)' else '(none: no record)' end) as value_list,
                        apex_page.get_url(p_page => 184, p_items => 'P184_USER_ROLE_ID,P184_DIMENSION_CODE,P184_DATA_OBJECT_CODE',
                                          p_values => :P184_USER_ROLE_ID || ',' || d.dimension_code || ',' || r.data_object_code) as edit_url,
-                       case when xxfnd_user_pkg.managed_in_application(:P184_ROLE_APP) = 'N'
-                             and xxfnd_privilege_pkg.can_change(:P184_ROLE_APP) = 'Y' then 'Change' end as edit
+                       case when xxfnd_privilege_pkg.can_change(:P184_ROLE_APP) = 'Y' then 'Change' end as edit
                   -- release 96: per dimension the default values of the role assignment, then each data object (override, or the
                   -- default when it has none)
                   from (select distinct dimension_code from reach) dd
@@ -354,11 +353,7 @@ page 184 (
             language: plsql
             plsqlCode:
                 ```plsql
-                -- release 96: through the data security package (the role's application only; refused when the
-                -- application keeps its users itself)
-                if xxfnd_user_pkg.managed_in_application(:P184_ROLE_APP) = 'Y' then
-                    raise_application_error(-20074, 'The users of ' || :P184_ROLE_APP || ' are managed in ' || :P184_ROLE_APP || '.');
-                end if;
+                -- release 96: through the data security package (the role's application only)
                 xxfnd_vpd_pkg.set_assignment_values(to_number(:P184_USER_ROLE_ID), :P184_DIMENSION_CODE,
                                                     :P184_DATA_OBJECT_CODE, replace(:P184_VALUES, ':', ','));
                 ```

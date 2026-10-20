@@ -951,12 +951,12 @@ installScript 31b-navigation-menu-registry-menu-view (
     }
 )
 
-installScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
+installScript 35-security-model-migration (
     execution {
-        sequence: 228
+        sequence: 230
     }
     script {
-        contentFile: 31c-navigation-one-place.sql
+        contentFile: 35-security-model-migration.sql
     }
     serverSideCondition {
         type: expression
@@ -968,12 +968,29 @@ installScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
     }
 )
 
-installScript 35-security-model-migration (
+installScript 31d-page-access-by-privilege-and-the-application-menu-feature (
     execution {
-        sequence: 230
+        sequence: 231
     }
     script {
-        contentFile: 35-security-model-migration.sql
+        contentFile: 31d-page-access-and-menu-feature.sql
+    }
+    serverSideCondition {
+        type: expression
+        language: sql
+        sqlExpression:
+            ```sql
+            sys_context('userenv', 'current_schema') = 'XXFUSION'
+            ```
+    }
+)
+
+installScript 31c-navigation-in-one-place-menu-codes-common-s-menu (
+    execution {
+        sequence: 232
+    }
+    script {
+        contentFile: 31c-navigation-one-place.sql
     }
     serverSideCondition {
         type: expression

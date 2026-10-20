@@ -649,10 +649,17 @@ page 0 (
             sqlQuery:
                 ```sql
                 -- release 86: the common functions and who maintains their setup for the application (journey step 4)
+                -- release 106: the application's roles whose privileges open the function's COMMON screens (for the
+                -- application's rows); without one, the Common Administrators only
                 select f.feature_name,
                        f.description,
-                       case af.managed_in_app_flag when 'Y' then 'The application''s administrators'
-                                                  else 'Common administrators only' end as managed_by
+                       nvl((select listagg(distinct r.role_name, ', ') within group (order by r.role_name)
+                              from xxfnd_roles r
+                              join xxfnd_role_privileges rp on rp.role_code = r.role_code
+                              join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
+                             where r.application_code = af.application_code
+                               and p.feature_code = af.feature_code),
+                           'Common administrators only') as managed_by
                   from xxfnd_application_functions af
                   join xxfnd_features f on f.feature_code = af.feature_code
                  where af.application_code = :P0_JRN_APP
@@ -694,7 +701,7 @@ page 0 (
                 ```
         }
         comments {
-            comments: Release 86 - journey section 4, shared by 166 and the journey's Review step; the journey's step 4 edits the switches (XXFND_APPLICATION_PKG.SAVE_FUNCTIONS).
+            comments: Release 86 - journey section 4, shared by 166 and the journey's Review step. Release 106 - who maintains a function's setup for the application is the privilege of its roles (no switches any more).
         }
 
         column FEATURE_NAME (

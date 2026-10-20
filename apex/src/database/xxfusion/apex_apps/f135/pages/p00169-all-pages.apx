@@ -1,0 +1,266 @@
+page 169 (
+    name: All Pages
+    alias: ALL-PAGES
+    title: Application Menu
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Every page of every registered application, once, under the application it belongs to, with the privilege that opens it and who uses it:
+            - In Own Menu: the page is in its application's menu.
+            - In Menus Of: the other applications whose menu has the page (a COMMON page used by an application).
+            - Linked From: the pages whose buttons, branches, report or list links open it (from the APEX definitions).
+            - Opened From: the pages of other applications users really opened it from (recorded, with how often and when).
+            Open a page to change its application's menu (Menu by Application).
+            ```
+    }
+
+    region breadcrumb (
+        name: Application Menu
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: All Pages
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.application_code,
+                       c.application_name,
+                       c.page_id,
+                       c.page_name,
+                       c.page_mode,
+                       nvl(c.feature_name, 'Every signed-in user') as privilege,
+                       decode(c.in_own_menu, 'Y', 'Yes', 'No') as in_own_menu,
+                       c.in_menus_of,
+                       c.linked_from,
+                       c.opened_from,
+                       decode(c.used_by_other_apps, 'Y', 'Yes', 'No') as used_by_other_apps,
+                       -- release 106: the page's application menu (Menu by Application)
+                       apex_page.get_url(p_page => 167, p_items => 'P167_APPLICATION,P167_MENU',
+                                         p_values => c.application_code || ',SIDE', p_clear_cache => '167') as menu_url
+                  from xxfnd_page_catalogue_v c
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No page found. Register the application first (Applications).
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column APPLICATION_CODE (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column APPLICATION_NAME (
+            type: hidden
+            heading {
+                heading: Application Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_ID (
+            type: plainText
+            heading {
+                heading: Page
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PAGE_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#MENU_URL#">#PAGE_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PAGE_MODE (
+            type: plainText
+            heading {
+                heading: Mode
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column PRIVILEGE (
+            type: plainText
+            heading {
+                heading: Opened By
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column IN_OWN_MENU (
+            type: plainText
+            heading {
+                heading: In Own Menu
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column IN_MENUS_OF (
+            type: plainText
+            heading {
+                heading: In Menus Of
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LINKED_FROM (
+            type: plainText
+            heading {
+                heading: Linked From
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPENED_FROM (
+            type: plainText
+            heading {
+                heading: Opened From
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column USED_BY_OTHER_APPS (
+            type: plainText
+            heading {
+                heading: Used by Other Applications
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MENU_URL (
+            type: hidden
+            heading {
+                heading: Menu Url
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+)

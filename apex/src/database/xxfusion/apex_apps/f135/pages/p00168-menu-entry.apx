@@ -144,7 +144,7 @@ page 168 (
         }
         lov {
             type: staticValues
-            staticValues: STATIC2:A page of the application;APP_PAGE,An administration page of the application (administrators);ADMIN_PAGE,A COMMON page;COMMON_PAGE,A folder (holds other entries);FOLDER,Shared setup managed in the application;MANAGED,Shared setup;SHARED_SETUP,The user menu (the user's name; holds other entries);USER_MENU,Sign out;SIGN_OUT,A separator;SEPARATOR
+            staticValues: STATIC2:A page of the application;APP_PAGE,An administration page of the application (administrators);ADMIN_PAGE,A COMMON page;COMMON_PAGE,A folder (holds other entries);FOLDER,Shared setup (COMMON Administration);SHARED_SETUP,The user menu (the user's name; holds other entries);USER_MENU,Sign out;SIGN_OUT,A separator;SEPARATOR
         }
         layout {
             sequence: 30
@@ -175,7 +175,13 @@ page 168 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select p.page_id || ' - ' || p.page_name as display_value, p.page_id as return_value
+                select p.page_id || ' - ' || p.page_name
+                       -- release 106: who may open the page (its privilege)
+                       || nvl((select ' (' || f.feature_name || ')' from xxfnd_feature_pages fp
+                                 join xxfnd_features f on f.feature_code = fp.feature_code
+                                where upper(fp.app_alias) = upper(a.alias) and fp.page_id = p.page_id),
+                              ' (every signed-in user)') as display_value,
+                       p.page_id as return_value
                   from apex_application_pages p
                   join apex_applications a on a.application_id = p.application_id
                  where upper(a.alias) = case when :P168_TARGET_TYPE = 'COMMON_PAGE' then 'COMMON'
