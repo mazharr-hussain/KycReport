@@ -1,171 +1,22 @@
 list navigation-bar (
     name: Navigation Bar
-
-    entry help (
-        label: Help
-        icon {
-            imageIconCssClasses: fa-question-circle-o
-        }
-        layout {
-            sequence: 3
-        }
-        link {
-            target: {
-                type: otherApp
-                app: COMMON
-                page: 174
-                items: {
-                    P174_APPLICATION_ID: &APP_ID.
-                    P174_PAGE_ID: &APP_PAGE_ID.
-                }
-                clearCache: 174
-            }
-        }
-        serverSideCondition {
-            type: rowsReturned
-            sqlQuery:
-                ```sql
-                -- release 95: COMMON's help of this page (Help & Training, COMMON page 174); shown once COMMON has it
-                select 1 from apex_application_pages p
-                  join apex_applications a on a.application_id = p.application_id
-                 where upper(a.alias) = 'COMMON' and p.page_id = 174
-                   and a.workspace = (select c.workspace from apex_applications c where c.application_id = :APP_ID)
-                ```
-        }
-        comments {
-            comments: Release 95 - the help of the current page and the training material, in COMMON (one help for every application).
-        }
-    )
-
-    entry feedback (
-        label: Feedback
-        icon {
-            imageIconCssClasses: fa-comment-o
-        }
-        layout {
-            sequence: 5
-        }
-        link {
-            target: {
-                type: otherApp
-                app: COMMON
-                page: 173
-                items: {
-                    P173_APPLICATION_ID: &APP_ID.
-                    P173_PAGE_ID: &APP_PAGE_ID.
-                }
-                clearCache: 173
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Feedback') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry app-user (
-        label: &APP_USER.
-        icon {
-            imageIconCssClasses: fa-user
-        }
-        layout {
-            sequence: 10
-        }
-        link {
-            target: {
-                type: url
-                url: #
-            }
-        }
-        userDefinedAttributes {
-            2: has-username
-        }
-    )
-
-    entry customize (
-        label: Customize
-        layout {
-            sequence: 15
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: #customize-theme
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - Theme Style Selection') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry about (
-        label: About
-        layout {
-            sequence: 18
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                page: 10010
-            }
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                apex_util.get_build_option_status(p_application_id => :APP_ID, p_build_option_name => 'Feature - About Page') = 'INCLUDE'
-                ```
-        }
-    )
-
-    entry --- (
-        label: ---
-        layout {
-            sequence: 20
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: separator
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
-    entry sign-out (
-        label: Sign Out
-        icon {
-            imageIconCssClasses: fa-sign-out
-        }
-        layout {
-            sequence: 30
-            parentEntry: @app-user
-        }
-        link {
-            target: {
-                type: url
-                url: &LOGOUT_URL.
-            }
-        }
-        serverSideCondition {
-            type: userIsAuthenticated
-        }
-    )
-
+    subscription {
+        master: @/135/navigation-bar
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01, a02
+              -- release 105: the navigation bar of every application, COMMON included, kept in COMMON's menu registry
+              -- (menu TOP_BAR: Notifications with its badge, Give Feedback, the user menu with Sign Out)
+              from table(xxfnd_nav_pkg.nav_menu('TOP_BAR'))
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 105 - master list: the navigation bar comes from XXFND_NAV_PKG.NAV_MENU('TOP_BAR') (A01 = badge, A02 = class), managed on the Application Menu screen like the side menu.
+    }
 )
 
 list navigation-menu (
@@ -202,7 +53,8 @@ list administration (
             -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
             -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
             --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
-            --   2. each common function IT lets the application's administrators manage, opened in COMMON for KYC (COMMON page 99)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
             --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
             select lvl, label, target, is_current, image, image_attribute, image_alt, a01
               from (
@@ -230,9 +82,7 @@ list administration (
             union all
             select null,
                    m.feature_name || ' (shared setup)',
-                   apex_page.get_url(p_application => 'COMMON', p_page => 99,
-                                     p_items  => 'G_ADMIN_APP,G_ADMIN_LOCK,P99_PAGE',
-                                     p_values => a.application_code || ',Y,' || to_char(m.home_page_id)),
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
                    'NO',
                    m.icon_css,
                    null,
@@ -242,8 +92,12 @@ list administration (
                    m.feature_group,
                    m.display_sequence
               from xxfnd_admin_menu_v m
-              join xxfnd_applications a on upper(a.apex_app_alias) = upper(:APP_ALIAS)
-             where xxfnd_application_pkg.is_delegated(a.application_code, m.feature_code) = 'Y'
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
             union all
             select null,
                    'Shared Setup',
