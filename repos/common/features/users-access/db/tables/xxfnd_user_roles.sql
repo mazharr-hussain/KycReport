@@ -15,7 +15,7 @@ begin
     last_update_login        varchar2(255),
     object_version_number    number         default 1 not null,
     constraint xxfnd_user_roles_pk primary key (user_role_id),
-    constraint xxfnd_user_roles_fk1 foreign key (employee_id) references xxfnd_employees (employee_id),
+    constraint xxfnd_user_roles_fk1 foreign key (employee_id) references xxhr_employees (employee_id),
     constraint xxfnd_user_roles_fk2 foreign key (role_code) references xxfnd_roles (role_code),
     constraint xxfnd_user_roles_ck1 check (enabled_flag in ('Y','N')),
     constraint xxfnd_user_roles_ck2 check (end_date_active is null or end_date_active >= start_date_active)

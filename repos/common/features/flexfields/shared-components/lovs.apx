@@ -20,27 +20,6 @@ lov lov-df-default-type (
     }
 )
 
-lov lov-dff-columns (
-    name: DFF RESERVED COLUMNS
-    source {
-        location: localDatabase
-        type: sqlQuery
-        sqlQuery:
-            ```sql
-            select column_name as display_value, column_name as return_value
-              from user_tab_columns
-             where table_name = 'XXFND_ATTACHED_DOCUMENTS'
-               and regexp_like(column_name,
-                   '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$')
-             order by column_id
-            ```
-    }
-    columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
-    }
-)
-
 lov lov-value-sets (
     name: VALUE SETS
     source {

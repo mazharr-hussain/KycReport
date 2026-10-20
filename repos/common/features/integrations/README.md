@@ -12,7 +12,7 @@ Pages 120 / 121 (servers), 122 / 123 (integration purposes), 124 / 125 (transmis
 Every outbound call is logged and can be retried; servers and credentials are set up once.
 
 ## Depends on (objects of these components are named in its files)
-applications, attachments, audit-log, change-approvals, lookups, roles-privileges, users-access
+applications, attachments, audit-log, change-approvals, lookups, roles-privileges
 
 ## Used by (COMMON components)
 applications, attachments, change-approvals, flexfields, lookups, notifications, users-access

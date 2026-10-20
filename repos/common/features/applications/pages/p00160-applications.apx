@@ -51,9 +51,7 @@ page 160 (
                                          p_clear_cache => '166') as open_url
                   from (
                             select a.application_id, a.application_code, a.application_name, a.apex_app_alias,
-                                   a.apex_application_id, a.schema_name, a.enabled_flag,
-                                   (select count(*) from xxfnd_application_functions f
-                                     where f.application_code = a.application_code and f.managed_in_app_flag = 'Y') as functions_on
+                                   a.apex_application_id, a.schema_name, a.enabled_flag
                               from xxfnd_applications a
                              where a.application_code <> 'COMMON'   -- release 73: COMMON is the instance
                 ) q
@@ -170,19 +168,6 @@ page 160 (
             }
             source {
                 dataType: STRING
-            }
-        )
-
-        column FUNCTIONS_ON (
-            type: plainText
-            heading {
-                heading: Managed in the Application
-            }
-            layout {
-                sequence: 70
-            }
-            source {
-                dataType: NUMBER
             }
         )
 

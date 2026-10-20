@@ -3,14 +3,16 @@ create or replace package xxcmp_request_pkg authid definer as
 
     -- release 90: QUESTIONNAIRE_FOR and CREATE_REQUEST are private (used only inside the package).
 
-    -- Requesting department of the signed-in user: the department of the employee profile (matched to the
-    -- REQUESTING_DEPARTMENT lookup by code or meaning), or null.
-    function default_department return varchar2;
+    -- Requesting department of the signed-in user: the department of the employee profile (release 96: matched to a
+    -- COMMON department, XXHR_ORGANIZATIONS of type DEPARTMENT, by code or name; its ORGANIZATION_ID), or null.
+    function default_department return number;
+    -- Release 96: the name of a requesting department (XXHR_ORGANIZATIONS.ORGANIZATION_ID), or null.
+    function department_name(p_department_id in number) return varchar2;
     -- Y: the user may raise requests for any department (Compliance staff: privilege CASES.VIEW); N: only for the
     -- department of the employee profile (when the profile has one).
     function can_choose_department return varchar2;
-    -- Release 76: the requesting departments the user's data security allows (rule "column in list" on
-    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT, e.g. role Requesting Entity - Finance): null = any department,
+    -- Release 76: the requesting departments the user's data security allows (release 96: their IDs, column
+    -- XXCMP_REQUESTS.REQUESTING_DEPARTMENT_ID, e.g. role Requesting Entity - Finance): null = any department,
     -- '#NONE' = none; Create Request lists them and SAVE_REQUEST refuses any other (KYC_REQUEST_DEPT_NOT_ALLOWED).
     function allowed_departments return varchar2;
 
@@ -51,7 +53,7 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_phone                 in varchar2,
                            p_website               in varchar2,
                            p_fax                   in varchar2,
-                           p_requesting_department in varchar2,
+                           p_requesting_department_id in number,
                            p_justification         in varchar2,
                            p_draft                 in varchar2 default 'N',
                            p_contact_name          in varchar2 default null,
@@ -221,9 +223,20 @@ create or replace package body xxcmp_request_pkg as
     -- release 90 (from XXCMP_APPROVAL_PKG): the request approval. The approvers come from the common Approval Setup
     -- (transaction type KYC_REQUEST, C_TYPE); the request's own columns (APPROVAL_PATH_NAME = the rule, CURRENT_STEP = the
     -- position) are kept up to date for the screens.
+    -- private (release 96): the code of a requesting department (XXHR_ORGANIZATIONS.ORGANIZATION_ID), or null
+    function department_code(p_department_id in number) return varchar2 is
+        l_code xxhr_organizations.organization_code%type;
+    begin
+        select max(organization_code) into l_code from xxhr_organizations
+         where organization_id = p_department_id and organization_type = 'DEPARTMENT';
+        return l_code;
+    end department_code;
+
     function attributes(p_req in xxcmp_requests%rowtype) return apex_t_varchar2 is
     begin
-        return apex_t_varchar2('REQUESTING_DEPARTMENT=' || p_req.requesting_department, 'PARTY_TYPE=' || p_req.party_type,
+        -- release 96: the approval rules keep naming the department by its code
+        return apex_t_varchar2('REQUESTING_DEPARTMENT=' || department_code(p_req.requesting_department_id),
+                               'PARTY_TYPE=' || p_req.party_type,
                                'JURISDICTION=' || p_req.jurisdiction, 'REQUEST_TYPE=' || p_req.request_type,
                                'BUSINESS_RELATIONSHIP=' || p_req.business_relationship);
     end attributes;
@@ -319,7 +332,7 @@ create or replace package body xxcmp_request_pkg as
                             p_jurisdiction          in varchar2 default null,
                             p_entity_type           in varchar2 default null,
                             p_incorporation_date    in date     default null,
-                            p_requesting_department in varchar2 default null,
+                            p_requesting_department_id in number default null,
                             p_justification         in varchar2 default null,
                             p_request_type          in varchar2 default 'NEW_ONBOARDING',
                             p_trigger_source        in varchar2 default 'MANUAL',
@@ -333,12 +346,12 @@ create or replace package body xxcmp_request_pkg as
     begin
         insert into xxcmp_requests (request_number, request_type, trigger_source, parent_request_id, parent_case_id,
                                     party_id, party_type, party_name, registration_number, jurisdiction, entity_type,
-                                    incorporation_date, requesting_department, requester_user_name,
+                                    incorporation_date, requesting_department_id, requester_user_name,
                                     questionnaire_code, justification, last_action_date,
                                     registration_type, business_relationship)
         values ('REQ-' || lpad(xxcmp_request_number_s.nextval, 6, '0'), p_request_type, p_trigger_source,
                 p_parent_request_id, p_parent_case_id, p_party_id, p_party_type, p_party_name, p_registration_number,
-                p_jurisdiction, p_entity_type, p_incorporation_date, p_requesting_department,
+                p_jurisdiction, p_entity_type, p_incorporation_date, p_requesting_department_id,
                 xxfnd_util_pkg.current_user, l_qnr, p_justification, sysdate,
                 p_registration_type, p_business_relationship)
         returning request_id into l_id;
@@ -348,21 +361,33 @@ create or replace package body xxcmp_request_pkg as
         return l_id;
     end create_request;
 
-    function default_department return varchar2 is
-        l_code xxfnd_lookup_values.lookup_code%type;
+    -- release 96: the department is COMMON's organization of type DEPARTMENT (XXHR_ORGANIZATIONS.ORGANIZATION_ID)
+    function default_department return number is
+        l_id number;
     begin
-        select max(v.lookup_code) keep (dense_rank first order by v.display_sequence) into l_code
-          from xxfnd_employees e
-          join xxfnd_lookup_values v
-            on v.lookup_type = 'REQUESTING_DEPARTMENT' and v.enabled_flag = 'Y'
-           and (upper(v.lookup_code) = upper(trim(e.department_name)) or upper(v.meaning) = upper(trim(e.department_name)))
+        select min(g.organization_id) keep (dense_rank first order by
+                   case when g.organization_code = upper(trim(e.department_name)) then 1 else 2 end)
+          into l_id
+          from xxhr_employees e
+          join xxhr_organizations g
+            on g.organization_type = 'DEPARTMENT' and g.enabled_flag = 'Y'
+           and (g.organization_code = upper(trim(e.department_name))
+                or upper(g.organization_name) = upper(trim(e.department_name)))
          where e.user_name = upper(xxfnd_util_pkg.current_user) and e.enabled_flag = 'Y';
-        return l_code;
+        return l_id;
     end default_department;
+
+    function department_name(p_department_id in number) return varchar2 is
+        l_name xxhr_organizations.organization_name%type;
+    begin
+        select max(organization_name) into l_name from xxhr_organizations
+         where organization_id = p_department_id and organization_type = 'DEPARTMENT';
+        return l_name;
+    end department_name;
 
     function allowed_departments return varchar2 is
     begin
-        return xxfnd_vpd_pkg.allowed_values('XXCMP_REQUESTS', 'REQUESTING_DEPARTMENT');
+        return xxfnd_vpd_pkg.allowed_values('XXCMP_REQUESTS', 'REQUESTING_DEPARTMENT_ID');
     end allowed_departments;
 
     function can_choose_department return varchar2 is
@@ -428,7 +453,7 @@ create or replace package body xxcmp_request_pkg as
                            p_phone                 in varchar2,
                            p_website               in varchar2,
                            p_fax                   in varchar2,
-                           p_requesting_department in varchar2,
+                           p_requesting_department_id in number,
                            p_justification         in varchar2,
                            p_draft                 in varchar2 default 'N',
                            p_contact_name          in varchar2 default null,
@@ -443,7 +468,7 @@ create or replace package body xxcmp_request_pkg as
         l_party    xxcmp_parties%rowtype;
         l_party_id number;
         l_new      boolean := false;
-        l_dept     xxcmp_requests.requesting_department%type := p_requesting_department;
+        l_dept     xxcmp_requests.requesting_department_id%type := p_requesting_department_id;
         l_qnr      varchar2(30);
     begin
         if p_request_id is not null then
@@ -482,11 +507,10 @@ create or replace package body xxcmp_request_pkg as
             l_allowed varchar2(4000) := allowed_departments;
         begin
             if l_allowed = '#NONE' then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_DEPARTMENT');
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_ENTITY');   -- release 95
             elsif l_allowed is not null and l_dept is not null
-                  and l_dept not member of apex_string.split(l_allowed, ',') then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED',
-                    apex_t_varchar2(xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', l_dept)));
+                  and to_char(l_dept) not member of apex_string.split(l_allowed, ',') then
+                xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED', apex_t_varchar2(department_name(l_dept)));
             end if;
         end;
 
@@ -526,7 +550,7 @@ create or replace package body xxcmp_request_pkg as
 
         if p_request_id is null then
             p_request_id := create_request(p_party_type => l_party.party_type, p_party_name => l_party.party_name,
-                                           p_requesting_department => l_dept, p_justification => p_justification,
+                                           p_requesting_department_id => l_dept, p_justification => p_justification,
                                            p_party_id => l_party_id);
             l_old := get_request(p_request_id);
         end if;
@@ -546,7 +570,8 @@ create or replace package body xxcmp_request_pkg as
                contact_name          = trim(p_contact_name),
                contact_email         = trim(p_contact_email),
                contact_phone         = trim(p_contact_phone),
-               requesting_department = case when l_old.request_status = 'DRAFT' then l_dept else requesting_department end,
+               requesting_department_id = case when l_old.request_status = 'DRAFT' then l_dept
+                                               else requesting_department_id end,
                justification         = p_justification,
                questionnaire_code    = case when l_old.request_status = 'DRAFT' then l_qnr else questionnaire_code end,
                last_action_date      = sysdate

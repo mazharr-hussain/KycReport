@@ -15,7 +15,7 @@ Extra fields on a record without a database change.
 applications, attachments, integrations, lookups, retention
 
 ## Used by (COMMON components)
-applications, change-approvals
+applications, change-approvals, users-access
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).
@@ -46,7 +46,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 The application registers its value sets, flexfields and contexts (`XXFND_DFF_PKG.REGISTER_VALUE_SET`, `REGISTER_FLEXFIELD`, `REGISTER_CONTEXT`), shows them with `RENDER`, checks with `VALIDATE` and saves with `SAVE`.
 
 ### Public routines
-- `XXFND_DFF_PKG`: ADMIN_SQL_ERROR, CHECK_FLEXFIELD, CHECK_SEGMENT, DERIVE_CONTEXT, FLEXFIELD_FOR_TABLE, GENERATE_ALL_DFV_VIEWS, GENERATE_DFV_VIEW, REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET, RENDER, SAVE, SAVE_FLEXFIELD_NAME, UNREGISTER_APPLICATION, UNREGISTER_CONTEXT, UNREGISTER_FLEXFIELD, UNREGISTER_VALUE_SET, VALIDATE, VALUE_LIST (registration: REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET)
+- `XXFND_DFF_PKG`: ADMIN_SQL_ERROR, CHECK_FLEXFIELD, CHECK_SEGMENT, DERIVE_CONTEXT, FLEXFIELD_FOR_TABLE, GENERATE_ALL_DFV_VIEWS, GENERATE_DFV_VIEW, LOOKUP_VALUE_SET, REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET, RENDER, SAVE, SAVE_FLEXFIELD_NAME, UNREGISTER_APPLICATION, UNREGISTER_CONTEXT, UNREGISTER_FLEXFIELD, UNREGISTER_VALUE_SET, VALIDATE, VALUE_LIST (registration: REGISTER_CONTEXT, REGISTER_FLEXFIELD, REGISTER_VALUE_SET)
 
 ## Tests
 - in `../../tests/` (whole application)

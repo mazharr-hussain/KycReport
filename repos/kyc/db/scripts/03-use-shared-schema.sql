@@ -40,7 +40,13 @@ begin
                                              ('XXFND_VPD_PKG', 'ALLOWED_VALUES'),
                                              ('XXFND_PRIVILEGE_PKG', 'REGISTER_FEATURE'),
                                              ('XXFND_ATTACH_PKG', 'MOVE_DOCUMENTS'));
-    if l_n < 4 then
+    -- release 102 (KYC 96): COMMON 102 - the HR tables carry the XXHR_ prefix (XXHR_EMPLOYEES, XXHR_ORGANIZATIONS)
+    select count(*) + l_n into l_n from all_objects
+     where owner = c_shared and object_name = 'XXHR_ORGANIZATIONS' and object_type = 'TABLE';
+    -- release 104 (KYC 97): COMMON 104 - the navigation menu kept in COMMON (XXFND_NAV_PKG)
+    select count(*) + l_n into l_n from all_objects
+     where owner = c_shared and object_name = 'XXFND_NAV_PKG' and object_type = 'PACKAGE';
+    if l_n < 6 then
         raise_application_error(-20904,
             'ACTION NEEDED - COMMON is older than this KYC release (or its install has not finished). Nothing was installed.'
             || chr(10) || '1. Install / upgrade the COMMON application of the same release and wait until it has finished.'
@@ -70,16 +76,26 @@ begin
 
     -- release 87: synonyms of shared objects COMMON has removed (their replacement keeps another name)
     for s in (select synonym_name from user_synonyms u
-               where u.table_owner = c_shared and u.synonym_name like 'XXFND\_%' escape '\'
+               where u.table_owner = c_shared
+                 and (u.synonym_name like 'XXFND\_%' escape '\' or u.synonym_name like 'XXHR\_%' escape '\')
                  and not exists (select 1 from all_objects o
                                   where o.owner = c_shared and o.object_name = u.table_name)) loop
         execute immediate 'drop synonym ' || s.synonym_name;
     end loop;
 
+    -- release 94: the deployment framework's tables are the schema's own (00 creates them). A synonym of COMMON's
+    -- XXFND_DROPPED_OBJECTS (made by earlier releases) hid KYC's own log table, so DROP_OBJECT wrote to COMMON's table
+    -- and failed on COMMON 88 or later (ORA-41900); it is dropped, and 00 then creates KYC's table.
+    for s in (select synonym_name from user_synonyms
+               where synonym_name = 'XXFND_DROPPED_OBJECTS' and table_owner = c_shared) loop
+        execute immediate 'drop synonym ' || s.synonym_name;
+    end loop;
+
     for o in (select object_name from all_objects
-               where owner = c_shared and object_name like 'XXFND\_%' escape '\'
+               where owner = c_shared
+                 and (object_name like 'XXFND\_%' escape '\' or object_name like 'XXHR\_%' escape '\')
                  and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
-                 and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG')) loop
+                 and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_DROPPED_OBJECTS')) loop
         select count(*) into l_n from user_objects where object_name = o.object_name;
         if l_n = 0 then
             execute immediate 'create synonym ' || o.object_name || ' for ' || c_shared || '.' || o.object_name;

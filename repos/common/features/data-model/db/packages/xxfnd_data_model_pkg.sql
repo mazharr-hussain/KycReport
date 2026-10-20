@@ -10,7 +10,8 @@ create or replace package xxfnd_data_model_pkg authid definer as
     -- The columns of an index: P_DISPLAY Y = as written (function-based columns as their expression), N = the real
     -- columns the index reads (comma separated).
     function index_columns(p_owner in varchar2, p_index_name in varchar2, p_display in varchar2 default 'Y') return varchar2;
-    -- The application's object prefix (null = every object of its schema). In an APEX session: Data Model - Manage.
+    -- The application's object prefix (null = every object of its schema; release 102: several, comma separated, e.g.
+    -- XXFND_,XXHR_). In an APEX session: Data Model - Manage.
     procedure set_object_prefix(p_application_code in varchar2, p_object_prefix in varchar2);
     -- The group of one of the application's tables in the diagram; added when missing, an administrator's change is kept.
     procedure register_table_group(p_application_code in varchar2, p_table_name in varchar2, p_group_name in varchar2);
@@ -49,16 +50,20 @@ create or replace package body xxfnd_data_model_pkg as
     end full_dictionary;
 
     function app_visible(p_application_code in varchar2) return varchar2 is
-        l_app varchar2(30) := upper(v('G_ADMIN_APP'));
+        l_app  varchar2(30) := upper(v('G_ADMIN_APP'));
+        l_apps apex_t_varchar2;
     begin
-        if v('APP_USER') is null or xxfnd_vpd_pkg.is_trusted then
+        -- release 90: install mode counts as outside APEX (Supporting Objects run in the App Builder's session)
+        if not xxfnd_util_pkg.in_apex_session or xxfnd_vpd_pkg.is_trusted then
             return 'Y';
         elsif nvl(upper(v('APP_ALIAS')), '#') <> 'COMMON' then
             return 'N';
         elsif xxfnd_application_pkg.is_common_admin = 'Y' then
             return case when l_app is null or l_app = 'ALL' or l_app = upper(p_application_code) then 'Y' else 'N' end;
         end if;
-        return case when xxfnd_application_pkg.delegated_app = upper(p_application_code) then 'Y' else 'N' end;
+        -- release 106: anyone else - the applications whose roles give the privilege of the running page
+        l_apps := xxfnd_application_pkg.feature_apps;
+        return case when upper(p_application_code) member of l_apps then 'Y' else 'N' end;
     end app_visible;
 
     function index_columns(p_owner in varchar2, p_index_name in varchar2, p_display in varchar2 default 'Y') return varchar2 is

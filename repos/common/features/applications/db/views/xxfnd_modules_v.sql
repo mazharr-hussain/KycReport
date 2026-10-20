@@ -13,7 +13,7 @@ select m.lookup_code                       as module_code,
                   from xxfnd_applications where enabled_flag = 'N' having count(*) > 0)
            when 'SECURITY' then
                (select count(*) || ' user(s) without a role'
-                  from xxfnd_employees e
+                  from xxhr_employees e
                  where e.enabled_flag = 'Y'
                    and not exists (select 1 from xxfnd_user_roles r
                                     where r.employee_id = e.employee_id and r.enabled_flag = 'Y'

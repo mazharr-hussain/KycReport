@@ -95,7 +95,7 @@ begin
     st('USERS',                  'Users ' || chr(38) || ' Access', 'USERS_ACCESS', null,                          103,   104,   'I', 120, 'Employees, users and their roles.');
     st('ROLES',                  'Roles',                    'ROLES_PRIVILEGES', 'XXFND_ROLES',                  105,   106,   'A', 130, 'Roles and their privileges.');
     st('SEGREGATION_OF_DUTIES',  'Segregation of Duties',    'ROLES_PRIVILEGES', null,                           107,   108,   'A', 140, 'Roles one user may not hold together.');
-    st('DATA_SECURITY',          'Data Security Rules',      'DATA_SECURITY',    null,                           180,   181,   'A', 150, 'Rows a role may see.');
+    st('DATA_SECURITY',          'Data Objects',             'DATA_SECURITY',    null,                           180,   181,   'A', 150, 'Release 96: secured tables and the roles that reach their records.');
     st('DELEGATIONS',            'Delegations',              'WORKFLOW_SETUP',   null,                           114,   115,   'I', 160, 'Tasks handed to another user while away.');
     st('TASK_DEADLINES',         'Deadlines ' || chr(38) || ' Escalation', 'WORKFLOW_SETUP', null,               145,   146,   'A', 170, 'Due dates and escalation of approval tasks.');
     st('WORKFLOW_PROCESSES',     'Workflow Processes',       'WORKFLOW_SETUP',   null,                           147,   null,  'A', 180, 'Approval processes, their workflow and e-mail switches.');

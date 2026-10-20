@@ -160,12 +160,14 @@ create or replace package body xxcmp_case_pkg as
         xxfnd_vpd_pkg.begin_trusted;
         select * into l_req from xxcmp_requests where request_id = p_request_id;
         insert into xxcmp_cases (case_number, request_id, party_id, parent_case_id, assigned_to, sla_due_date,
-                                 business_relationship)
+                                 business_relationship, requesting_department_id)
         values ('CASE-' || lpad(xxcmp_case_number_s.nextval, 6, '0'), p_request_id, l_req.party_id, l_req.parent_case_id,
                 -- release 29: by default the case goes to the approver of the request's first approval step
                 upper(coalesce(p_assigned_to, first_approver(p_request_id))), trunc(sysdate) + l_sla,
                 coalesce(l_req.business_relationship,
-                         (select c.business_relationship from xxcmp_cases c where c.case_id = l_req.parent_case_id)))
+                         (select c.business_relationship from xxcmp_cases c where c.case_id = l_req.parent_case_id)),
+                -- release 95: the request's department (Department data access on cases); release 96: its ID
+                l_req.requesting_department_id)
         returning case_id into l_id;
         -- the officer's investigation questionnaire
         insert into xxcmp_request_answers (request_id, case_id, respondent_type, question_id)
@@ -255,9 +257,9 @@ create or replace package body xxcmp_case_pkg as
         l_case xxcmp_cases%rowtype;
         l_note varchar2(4000);
         function emp(p_user in varchar2) return varchar2 is
-            l_name xxfnd_employees.full_name%type;
+            l_name xxhr_employees.full_name%type;
         begin
-            select max(full_name) into l_name from xxfnd_employees where upper(user_name) = upper(p_user);
+            select max(full_name) into l_name from xxhr_employees where upper(user_name) = upper(p_user);
             return nvl(l_name, p_user);
         end emp;
         function owner(p_task_id in number, p_user in varchar2) return boolean is

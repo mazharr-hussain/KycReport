@@ -17,7 +17,8 @@ C = {
     feature='APPLICATIONS', name='Applications', module='Platform', actions='VIEW, CREATE, MANAGE',
     purpose='Registered applications, the common functions switched on for each, their setup.',
     usage='IT registers (onboards) every application here (pages 160, 166), defines setup types and levels (162, 163), '
-          'chooses which common functions an application manages itself (164) and follows the application journey (165).',
+          'sees which applications subscribe to COMMON masters (164) and follows the application journey (165). Release 106: '
+          'access to COMMON screens comes from the privileges of the application\'s roles (no "managed in the application").',
     benefit='One register of every application: COMMON knows each application, its APEX ID and schema, and grants and '
             'scopes everything (security, setup, workflow) by it.',
     req='Script `db/admin/onboard-application.sql` (as XXFUSION) registers a new application; its schema then gets the grants.',
@@ -125,6 +126,14 @@ C = {
     other='The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REGISTER_LOOKUP_TYPE` / '
           '`REGISTER_LOOKUP_VALUE` (KYC: 18h) and reads them with `LOOKUP_MEANING`, `IS_VALID_LOOKUP` or the lookup views. '
           'It sees and maintains only its own lookups and the shared ones (release 87).'),
+ 'application-menu': dict(
+    feature='APPLICATION_MENU', name='Application Menu', module='Reference Data', actions='VIEW, CREATE, MANAGE',
+    purpose='The navigation (side menu, top bar) of every application in one place, and every page with who uses it.',
+    usage='Page 169: all pages of every application (privilege, In Menus Of, Linked From, Opened From); 167 / 168: the menu of one application.',
+    benefit='One place to manage every navigation; entries are shown by the privileges of the pages they open.',
+    roles=ADMIN,
+    other='The application registers its entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_ENTRY` (P_MENU_CODE SIDE or TOP_BAR) and '
+          'subscribes to COMMON\'s Navigation Menu and Navigation Bar lists (`XXFND_NAV_PKG.NAV_MENU`).'),
  'flexfields': dict(
     feature='FLEXFIELDS', name='Flexfields', module='Reference Data', actions='VIEW, CREATE, MANAGE',
     purpose='Descriptive flexfields and their value sets.', usage='Pages 150-153: value sets, flexfields, contexts, segments.',

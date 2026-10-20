@@ -3,7 +3,7 @@
 Feature of KYC Compliance Platform. Copied as it is from the current application (no change).
 
 ## Uses (objects of these features are named in its files)
-cases, common:approval-setup, common:attachments, common:data-security, common:information-requests, common:lookups, common:roles-privileges, common:users-access, common:workflow-setup, kyc-rules, parties
+cases, common:approval-setup, common:attachments, common:data-security, common:information-requests, common:lookups, common:roles-privileges, common:workflow-setup, kyc-rules, parties
 
 ## Used by
 cases, dashboard, home, kyc-rules, monitoring, parties

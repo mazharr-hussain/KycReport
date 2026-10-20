@@ -247,40 +247,54 @@ page 102 (
     )
 
     pageItem P102_CUSTOMIZATION_LEVEL (
-        type: selectList
-        label {
-            label: Customization Level
-            alignment: left
-        }
-        lov {
-            type: sharedComponent
-            lov: @lov-customization-level
-        }
+        type: hidden
         layout {
             sequence: 50
             region: @form
             slot: regionBody
-            alignment: left
-            columnSpan: 6
-        }
-        appearance {
-            template: @/required-above
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
         }
         source {
             formRegion: @form
             column: CUSTOMIZATION_LEVEL
             dataType: varchar2
         }
-        default {
-            type: static
-            staticValue: U
+        comments {
+            comments: Release 91 (UI issue 5): not chosen on the screen. The registration routine (XXFND_LOOKUP_PKG.REGISTER_LOOKUP_TYPE) sets it; a new type made here keeps the table default (U, user). System (S) types keep their protection.
         }
-        help {
-            helpText: Choose the customization Level.
+    )
+
+    pageItem P102_PROTECTED_NOTE (
+        type: displayOnly
+        label {
+            label: Protected
+            alignment: left
+        }
+        layout {
+            sequence: 55
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                'System lookup - its values are kept by the application and cannot be changed here.'
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P102_CUSTOMIZATION_LEVEL = 'S'
+                ```
         }
     )
 

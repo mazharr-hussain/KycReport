@@ -32,6 +32,10 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.oci_namespace is 'OBJECT_STORAGE: the Object Storage namespace of the tenancy.'~');
     end if;
     xxfnd_schema_pkg.create_who_trigger('XXFND_SERVERS');
+    -- release 93 (UI issue 9): a FUSION server reads its Remote Server and Web Credential from the workspace's Fusion
+    -- integration application (APEX "Create Fusion Integration", same identity domain) instead of its own
+    xxfnd_ddl_pkg.add_column('XXFND_SERVERS', 'SOURCE_APPLICATION_ID', 'number');
+    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_servers.source_application_id is 'Release 93: FUSION - the APEX application (the Fusion integration app of the workspace) whose REST Data Sources give the server URL and Web Credential; read when used, never copied.'~');
     -- a purpose may name the server it uses
     xxfnd_ddl_pkg.add_column('XXFND_INTEGRATION_PURPOSES', 'SERVER_CODE', 'varchar2(255)');
     xxfnd_ddl_pkg.add_constraint('XXFND_INTEGRATION_PURPOSES', 'XXFND_INT_PURPOSES_FK2',
@@ -77,8 +81,11 @@ begin
                                        case when s.server_type in ('SHAREPOINT', 'OUTLOOK') then s.oauth_token_url end,
                                        s.enabled_flag, s.description)~';
     end if;
-    srv('FUSION', 'Oracle Fusion Cloud', 'FUSION', 'FUSION_CREDENTIALS',
+    -- release 100: the credential of the workspace's Fusion integration (prerequisite), not a COMMON placeholder
+    srv('FUSION', 'Oracle Fusion Cloud', 'FUSION', 'apex-fa-iabwbn-dev1-dbms-cred',
         'Oracle Fusion Cloud Applications (HCM workers for the user sync).');
+    update xxfnd_servers set credential_static_id = 'apex-fa-iabwbn-dev1-dbms-cred'
+     where server_code = 'FUSION' and credential_static_id = 'FUSION_CREDENTIALS';
     srv('UCM_MAIN', 'Oracle WebCenter Content', 'UCM', 'XXFND_UCM_CRED', 'Document store UCM (attachments).');
     srv('SHAREPOINT_MAIN', 'Microsoft SharePoint (Graph)', 'SHAREPOINT', 'XXFND_GRAPH_CRED',
         'Document store SharePoint through Microsoft Graph (attachments). Needs the OAuth token URL of the tenant.');

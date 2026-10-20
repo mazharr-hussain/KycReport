@@ -12,3 +12,25 @@ appComputation notify-count (
         errorMessage: The notification count could not be read.
     }
 )
+
+
+appComputation app-title (
+    itemName: G_APP_TITLE
+    execution {
+        sequence: 20
+        point: beforeHeader
+    }
+    computation {
+        type: sqlQuerySingleValue
+        sqlQuery:
+            ```sql
+            -- release 97: COMMON's name at the top; My Tasks (40) replaces it with the application the user came from
+            -- release 103: for a user who may not open COMMON Home, the name of the user's application (USER_HOME)
+            -- release 104: the application the page is used from (WORK_APP)
+            select coalesce(:G_FROM_APP_NAME, :G_USER_APP_NAME, application_name) from apex_applications where application_id = :APP_ID
+            ```
+    }
+    error {
+        errorMessage: The application name could not be read.
+    }
+)

@@ -1,9 +1,9 @@
 app COMMON (
     name: Common
-    version: Release 89
+    version: Release 106
     logo {
         type: text
-        text: &APP_TITLE.
+        text: &G_APP_TITLE.
     }
     navigation {
         homeUrl: {
@@ -44,7 +44,7 @@ app COMMON (
         timestampTimeZone: DS
     }
     authentication {
-        scheme: @oracle-database-accounts
+        scheme: @oracle-apex-accounts
     }
     authorization {
         scheme: @app-user

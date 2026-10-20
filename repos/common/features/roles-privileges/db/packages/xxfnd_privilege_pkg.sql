@@ -99,6 +99,14 @@ create or replace package xxfnd_privilege_pkg authid definer as
     procedure unregister_role(p_application_code in varchar2, p_role_code in varchar2);
     -- the pages, privileges and features of the application (its roles are deleted with the application)
     procedure unregister_application(p_application_code in varchar2);
+
+    -- Release 96: roles inside roles. P_MEMBER_ROLE_CODE (a role of the same application or a COMMON role) becomes
+    -- part of P_ROLE_CODE (a role of P_APPLICATION_CODE); a loop is refused (ORA-20076). The caller administers the
+    -- application (XXFND_APPLICATION_PKG.CAN_ADMINISTER; ORA-20077 otherwise).
+    procedure add_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2);
+    procedure remove_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2);
+    -- Y when the user may change the security rows of the application (COMMON administrator: every application).
+    function can_change(p_application_code in varchar2) return varchar2;
 end xxfnd_privilege_pkg;
 /
 
@@ -115,7 +123,7 @@ create or replace package body xxfnd_privilege_pkg as
         l_user  varchar2(255) := norm_user(p_user_name);   -- private function: not callable inside SQL
     begin
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -197,7 +205,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         -- release 46: a privilege on a feature of the current application (any application outside APEX)
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -213,7 +221,7 @@ create or replace package body xxfnd_privilege_pkg as
         l_app   number := current_application_id;
     begin
         select count(*) into l_count
-          from xxfnd_user_roles_v ur
+          from xxfnd_user_role_tree_v ur
           join xxfnd_role_privileges rp on rp.role_code = ur.role_code
           join xxfnd_privileges p       on p.privilege_code = rp.privilege_code
           join xxfnd_features f         on f.feature_code = p.feature_code
@@ -254,7 +262,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
          where v.user_name = l_user
            and v.role_code = p_role_code
            and v.active_flag = 'Y';
@@ -272,7 +280,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
          where v.user_name = l_user
            and v.active_flag = 'Y'
            and v.role_code in (select trim(column_value)
@@ -291,7 +299,7 @@ create or replace package body xxfnd_privilege_pkg as
     begin
         select count(*)
           into l_count
-          from xxfnd_user_roles_v v
+          from xxfnd_user_role_tree_v v
           join xxfnd_roles r on r.role_code = v.role_code
          where v.user_name = l_user
            and v.active_flag = 'Y'
@@ -323,7 +331,7 @@ create or replace package body xxfnd_privilege_pkg as
         select count(*)
           into l_count
           from xxfnd_sod_rules s
-          join xxfnd_user_roles_v v
+          join xxfnd_user_role_tree_v v
             on v.user_name = l_user
            and v.active_flag = 'Y'
            and v.role_code = case when s.role_code_1 = p_role_code then s.role_code_2 else s.role_code_1 end
@@ -601,6 +609,87 @@ create or replace package body xxfnd_privilege_pkg as
         remove_all_registered(p_application_code, 'Privileges', 'XXFND_PRIVILEGES', '(select a.application_code from xxfnd_features f join xxfnd_applications a on a.application_id = f.application_id where f.feature_code = t.feature_code)');
         remove_all_registered(p_application_code, 'Features', 'XXFND_FEATURES', '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)');
     end unregister_application;
+
+    ----------------------------------------------------------------------------
+    -- Release 96: roles inside roles
+    ----------------------------------------------------------------------------
+    -- XXFND_VPD_PKG is created after this package (below): called by name
+    procedure vpd_clear is
+    begin
+        execute immediate 'begin xxfnd_vpd_pkg.clear_cache; end;';
+    end vpd_clear;
+
+    function vpd_trusted return boolean is
+        l_t varchar2(1);
+    begin
+        execute immediate q'[begin :t := case when xxfnd_vpd_pkg.is_trusted then 'Y' else 'N' end; end;]' using out l_t;
+        return l_t = 'Y';
+    end vpd_trusted;
+
+    function can_change(p_application_code in varchar2) return varchar2 is
+        l_y varchar2(1);
+    begin
+        if not xxfnd_util_pkg.in_apex_session or vpd_trusted then
+            return 'Y';     -- install, registration and server code (checked by their own callers)
+        end if;
+        -- the administration scope is XXFND_APPLICATION_PKG's, installed after this package (09d): called by name
+        execute immediate 'begin :y := xxfnd_application_pkg.can_administer(:a); end;'
+            using out l_y, in upper(p_application_code);
+        return nvl(l_y, 'N');
+    end can_change;
+
+    procedure check_change(p_application_code in varchar2) is
+    begin
+        if can_change(p_application_code) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || upper(p_application_code) || ').');
+        end if;
+    end check_change;
+
+    procedure add_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2) is
+        l_role   xxfnd_roles.application_code%type;
+        l_member xxfnd_roles.application_code%type;
+        l_n      pls_integer;
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        select max(application_code) into l_member from xxfnd_roles where role_code = upper(p_member_role_code);
+        if l_role is null or l_member is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role', upper(nvl(l_role, p_member_role_code))));
+        end if;
+        if l_role <> upper(p_application_code) then
+            raise_application_error(-20078, 'Role ' || upper(p_role_code) || ' belongs to ' || l_role || '.');
+        end if;
+        if l_member not in (l_role, 'COMMON') then
+            raise_application_error(-20079, 'A role may contain only roles of its own application or COMMON roles.');
+        end if;
+        check_change(l_role);
+        -- no loop: the role may not already be inside the member (at any depth)
+        select count(*) into l_n from xxfnd_role_members
+         where member_role_code = upper(p_role_code)
+         start with role_code = upper(p_member_role_code)
+         connect by nocycle prior member_role_code = role_code;
+        if l_n > 0 or upper(p_role_code) = upper(p_member_role_code) then
+            raise_application_error(-20076, 'Role ' || upper(p_member_role_code) || ' already contains '
+                || upper(p_role_code) || ': a role cannot contain itself.');
+        end if;
+        merge into xxfnd_role_members t
+        using (select upper(p_role_code) r, upper(p_member_role_code) m from dual) s
+           on (t.role_code = s.r and t.member_role_code = s.m)
+         when not matched then insert (role_code, member_role_code) values (s.r, s.m);
+        xxfnd_vpd_pkg.clear_cache;
+    end add_role_member;
+
+    procedure remove_role_member(p_application_code in varchar2, p_role_code in varchar2, p_member_role_code in varchar2) is
+        l_role xxfnd_roles.application_code%type;
+    begin
+        select max(application_code) into l_role from xxfnd_roles where role_code = upper(p_role_code);
+        if l_role <> upper(p_application_code) then
+            raise_application_error(-20078, 'Role ' || upper(p_role_code) || ' belongs to ' || l_role || '.');
+        end if;
+        check_change(l_role);
+        delete from xxfnd_role_members where role_code = upper(p_role_code) and member_role_code = upper(p_member_role_code);
+        xxfnd_vpd_pkg.clear_cache;
+    end remove_role_member;
 
 end xxfnd_privilege_pkg;
 /

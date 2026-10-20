@@ -20,7 +20,7 @@ create table if not exists xxfnd_users (
     constraint xxfnd_users_pk primary key (user_id),
     constraint xxfnd_users_uk1 unique (user_name),
     constraint xxfnd_users_uk2 unique (employee_id),
-    constraint xxfnd_users_fk1 foreign key (employee_id) references xxfnd_employees (employee_id),
+    constraint xxfnd_users_fk1 foreign key (employee_id) references xxhr_employees (employee_id),
     constraint xxfnd_users_ck1 check (user_type in ('SSO','LOCAL')),
     constraint xxfnd_users_ck2 check ((user_type = 'SSO' and employee_id is not null) or (user_type = 'LOCAL' and employee_id is null)),
     constraint xxfnd_users_ck3 check (enabled_flag in ('Y','N')),

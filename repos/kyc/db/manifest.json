@@ -3,216 +3,244 @@
   "name": "04 KYC tables - XXCMP",
   "file": "04-kyc-tables-xxcmp.sql",
   "install_sequence": 40,
-  "source_index": 6
+  "source_index": 7
  },
  {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
   "upgrade_sequence": 120,
-  "source_index": 27
+  "source_index": 30
  },
  {
   "name": "19a Grants to the shared schema (before the seed)",
   "file": "19a-grants-to-shared-schema.sql",
   "install_sequence": 175,
   "upgrade_sequence": 135,
-  "source_index": 31
+  "source_index": 34
  },
  {
   "name": "18 Seed data and administrator - part 2 of 2",
   "file": "18-seed-data-and-administrator-part-2-of-2.sql",
   "install_sequence": 184,
   "upgrade_sequence": 144,
-  "source_index": 32
+  "source_index": 35
  },
  {
   "name": "18b Security framework - seed",
   "file": "18b-security-framework-seed.sql",
   "install_sequence": 185,
   "upgrade_sequence": 145,
-  "source_index": 33
+  "source_index": 36
  },
  {
   "name": "18c Admin console",
   "file": "18c-admin-console.sql",
   "install_sequence": 187,
   "upgrade_sequence": 147,
-  "source_index": 34
+  "source_index": 37
  },
  {
   "name": "18d Workflow platform",
   "file": "18d-workflow-platform.sql",
   "install_sequence": 188,
   "upgrade_sequence": 148,
-  "source_index": 36
+  "source_index": 39
  },
  {
   "name": "16e0 Party logic - specification",
   "file": "16e0-party-pkg-spec.sql",
   "install_sequence": 164,
   "upgrade_sequence": 124,
-  "source_index": 37
+  "source_index": 40
  },
  {
   "name": "16u0 KYC risk model package specification",
   "file": "16u0-risk-pkg-spec.sql",
   "install_sequence": 161,
   "upgrade_sequence": 121,
-  "source_index": 38
+  "source_index": 41
  },
  {
   "name": "16g0 Approval paths - package specification",
   "file": "16g0-approval-pkg-spec.sql",
   "install_sequence": 163,
   "upgrade_sequence": 123,
-  "source_index": 39
+  "source_index": 42
  },
  {
   "name": "16b KYC requests and cases",
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,
   "upgrade_sequence": 125,
-  "source_index": 40
+  "source_index": 43
  },
  {
   "name": "16l KYC approvals in the common Approval Setup",
   "file": "16l-kyc-approval-setup.sql",
   "install_sequence": 186,
   "upgrade_sequence": 136,
-  "source_index": 41
+  "source_index": 44
  },
  {
   "name": "16m KYC case status Pending Information",
   "file": "16m-case-pending-information.sql",
   "install_sequence": 177,
   "upgrade_sequence": 137,
-  "source_index": 42
+  "source_index": 45
  },
  {
   "name": "16w KYC case assignment from the request",
   "file": "16w-case-assignment.sql",
   "install_sequence": 171,
   "upgrade_sequence": 131,
-  "source_index": 43
+  "source_index": 46
+ },
+ {
+  "name": "16x KYC case requesting department",
+  "file": "16x-case-department.sql",
+  "install_sequence": 176,
+  "upgrade_sequence": 133,
+  "source_index": 47
+ },
+ {
+  "name": "16y KYC requesting department by ID",
+  "file": "16y-department-id.sql",
+  "install_sequence": 170,
+  "upgrade_sequence": 130,
+  "source_index": 48
  },
  {
   "name": "16r KYC request package body",
   "file": "16r-request-pkg.sql",
   "install_sequence": 178,
   "upgrade_sequence": 138,
-  "source_index": 44
+  "source_index": 49
  },
  {
   "name": "16s KYC case package body",
   "file": "16s-case-pkg.sql",
   "install_sequence": 179,
   "upgrade_sequence": 139,
-  "source_index": 45
+  "source_index": 50
  },
  {
   "name": "16u KYC risk model (tables, package body, starting model with the FATF lists)",
   "file": "16u-risk-model.sql",
   "install_sequence": 181,
   "upgrade_sequence": 141,
-  "source_index": 46
+  "source_index": 51
  },
  {
   "name": "16v KYC performance (foreign key and data security indexes)",
   "file": "16v-performance.sql",
   "install_sequence": 182,
   "upgrade_sequence": 142,
-  "source_index": 47
+  "source_index": 52
  },
  {
   "name": "18h KYC registers itself in COMMON",
   "file": "18h-register-with-common.sql",
   "install_sequence": 183,
   "upgrade_sequence": 143,
-  "source_index": 48
+  "source_index": 53
+ },
+ {
+  "name": "18i KYC menu in COMMON",
+  "file": "18i-kyc-menu.sql",
+  "install_sequence": 190,
+  "upgrade_sequence": 150,
+  "source_index": 54
+ },
+ {
+  "name": "18j KYC navigation bar in COMMON",
+  "file": "18j-kyc-top-bar.sql",
+  "install_sequence": 194,
+  "upgrade_sequence": 154,
+  "source_index": 55
  },
  {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,
   "upgrade_sequence": 149,
-  "source_index": 49
+  "source_index": 56
  },
  {
   "name": "16c Monitoring",
   "file": "16c-monitoring.sql",
   "install_sequence": 166,
   "upgrade_sequence": 126,
-  "source_index": 50
+  "source_index": 57
  },
  {
   "name": "16d Parties",
   "file": "16d-parties.sql",
   "install_sequence": 158,
   "upgrade_sequence": 118,
-  "source_index": 51
+  "source_index": 58
  },
  {
   "name": "16e Party logic",
   "file": "16e-party-pkg.sql",
   "install_sequence": 167,
   "upgrade_sequence": 127,
-  "source_index": 52
+  "source_index": 59
  },
  {
   "name": "16f Party and request redesign",
   "file": "16f-party-request-redesign.sql",
   "install_sequence": 168,
   "upgrade_sequence": 128,
-  "source_index": 53
+  "source_index": 60
  },
  {
   "name": "16g Request approval paths",
   "file": "16g-approval-paths.sql",
   "install_sequence": 169,
   "upgrade_sequence": 129,
-  "source_index": 54
+  "source_index": 61
  },
  {
   "name": "16i Request UI",
   "file": "16i-request-ui.sql",
   "install_sequence": 172,
   "upgrade_sequence": 132,
-  "source_index": 56
+  "source_index": 63
  },
  {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,
   "upgrade_sequence": 151,
-  "source_index": 57
+  "source_index": 64
  },
  {
   "name": "19b Enable automations",
   "file": "19b-enable-automations.sql",
   "install_sequence": 196,
   "upgrade_sequence": 156,
-  "source_index": 58
+  "source_index": 65
  },
  {
   "name": "18g Release 15 marker",
   "file": "18g-release-15.sql",
   "install_sequence": 192,
   "upgrade_sequence": 152,
-  "source_index": 59
+  "source_index": 66
  },
  {
   "name": "03 Use the shared schema",
   "file": "03-use-shared-schema.sql",
   "install_sequence": 3,
   "upgrade_sequence": 3,
-  "source_index": 64
+  "source_index": 71
  },
  {
   "name": "19a Grants to the shared schema",
   "file": "19a-grants-to-shared-schema.sql",
   "install_sequence": 193,
   "upgrade_sequence": 153,
-  "source_index": 69
+  "source_index": 76
  }
 ]

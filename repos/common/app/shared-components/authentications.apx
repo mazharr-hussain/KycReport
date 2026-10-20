@@ -3,6 +3,7 @@ authentication oracle-apex-accounts (
     type: oracleApexAccounts
     loginProcessing {
         postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_local
+        switchInSession: true
     }
     sessionSharing {
         type: workspaceSharing
@@ -38,6 +39,7 @@ authentication apex-fa-iabwbn-dev1-oauth (
     }
     loginProcessing {
         postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_sso
+        switchInSession: true
     }
     comments {
         comments:

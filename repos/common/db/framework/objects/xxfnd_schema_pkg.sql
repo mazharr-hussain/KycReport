@@ -67,7 +67,8 @@ create or replace package body xxfnd_schema_pkg as
         for t in (select c.table_name
                     from user_tab_columns c
                     join user_tables tb on tb.table_name = c.table_name
-                   where (c.table_name like 'XXFND\_%' escape '\' or c.table_name like 'XXCMP\_%' escape '\')
+                   where (c.table_name like 'XXFND\_%' escape '\' or c.table_name like 'XXHR\_%' escape '\'
+                          or c.table_name like 'XXCMP\_%' escape '\')
                      and c.column_name = 'OBJECT_VERSION_NUMBER'
                    order by c.table_name)
         loop

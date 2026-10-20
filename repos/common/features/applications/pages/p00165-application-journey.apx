@@ -382,7 +382,7 @@ page 165 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '3'
+                nvl(:P165_REGISTERED, 'N') = 'N' and :P165_STEP = '1'   -- release 95: chosen with the application
                 ```
         }
     )
@@ -416,7 +416,7 @@ page 165 (
             templateOptions: #DEFAULT#
         }
         help {
-            helpText: The first administrator of the application: Register gives this user the application's administrator role. Leave empty to assign users after registering (Users step).
+            helpText: The first administrator of the application. Next registers the application and gives this user its administrator role; the following steps then add its roles, users, notifications, document storage and integrations.
         }
     )
 
@@ -431,6 +431,12 @@ page 165 (
             template: @/standard
             templateOptions: #DEFAULT#
         }
+        source {
+            htmlCode:
+                ```html
+                <p>The COMMON screens of a function (lookups, flexfields, notifications, ...) are opened from the application by the privileges its roles give: a role with the function's View, Create or Manage privilege maintains the application's rows there. Without such a role only the Common Administrators maintain them. Give the privileges on the application's roles (Roles step).</p>
+                ```
+        }
         advanced {
             htmlDomId: jrn-step-functions
         }
@@ -438,40 +444,6 @@ page 165 (
             type: item=value
             item: P165_STEP
             value: 4
-        }
-    )
-
-    pageItem P165_FUNCTIONS (
-        type: checkboxGroup
-        label {
-            label: Maintained by the Application's Administrators
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select f.feature_name as display_value, f.feature_code as return_value   -- the common functions (admin features with a COMMON setup page)
-                  from xxfnd_features f
-                 where f.feature_code in (select column_value from table(xxfnd_application_pkg.common_functions))
-                 order by f.display_sequence
-                ```
-        }
-        settings {
-            noOfCols: 3
-        }
-        layout {
-            sequence: 10
-            region: @step-functions
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        help {
-            helpText: The common functions whose setup the application's own administrators may maintain for their application (from the application's menu). Unticked functions are maintained by the Common Administrators only.
         }
     )
 
@@ -552,10 +524,6 @@ page 165 (
                        :P165_DESCRIPTION as description,
                        (select coalesce(u.full_name, u.user_name) from xxfnd_users u
                          where u.user_name = :P165_ADMIN_USER) as administrator,
-                       (select listagg(f.feature_name, ', ') within group (order by f.display_sequence)
-                          from xxfnd_features f
-                         where f.feature_code in (select column_value from table(apex_string.split(:P165_FUNCTIONS, ':'))))
-                       as functions,
                        (select listagg(nvl(w.title, w.name), ', ') within group (order by nvl(w.title, w.name))
                           from apex_appl_workflows w
                          where w.application_id = a.application_id
@@ -670,16 +638,6 @@ page 165 (
             }
             layout {
                 sequence: 80
-            }
-        )
-
-        column FUNCTIONS (
-            type: plainText
-            heading {
-                heading: Shared functions
-            }
-            layout {
-                sequence: 90
             }
         )
 
@@ -981,10 +939,6 @@ page 165 (
                             :P165_ENABLED_FLAG        := a.enabled_flag;
                             :P165_EMAIL_ENABLED_FLAG  := a.email_enabled_flag;
                             :P165_TITLE               := 'Edit ' || a.application_name;
-                            select listagg(f.feature_code, ':') within group (order by f.feature_code)
-                              into :P165_FUNCTIONS
-                              from xxfnd_application_functions f
-                             where f.application_code = a.application_code and f.managed_in_app_flag = 'Y';
                         end loop;
                         if :P165_REGISTERED is null then
                             :P165_APPLICATION_CODE := null;
@@ -1000,17 +954,13 @@ page 165 (
                     end if;
                     :P0_JRN_APP := case when :P165_REGISTERED = 'Y' then :P165_APPLICATION_CODE end;
                     :P0_JRN_KEY := null;
+                    -- release 95 (UI issue 2): the application is registered when step 1 is left (Next); every following
+                    -- step then sets up its part directly (the Global Page journey regions of a registered application)
                     :P165_STEP_NOTE := case when :P165_REGISTERED = 'Y' then null
-                                            else case :P165_STEP
-                        when '2' then 'Roles are added once the application is registered. Register creates its administrator role.'
-                        when '3' then 'Choose the first administrator; other users are assigned to the roles after registering.'
-                        when '5' then 'Which setup the application may keep of its own is set per setup type after registering.'
-                        when '6' then 'Choose the workflow processes to switch on; the others start switched off.'
-                        when '7' then 'Register switches the standard notifications on; each can be switched off here afterwards.'
-                        when '8' then 'Until a storage is set, the documents are kept in the database. Storage is set after registering.'
-                        when '9' then 'Integration purposes are added after registering.'
-                        when '10' then 'Check the choices, then Register. Nothing is saved before.'
-                    end end;
+                                            when :P165_STEP = '1' then 'Next registers the application with its administrator. '
+                                                || 'The next steps then add its roles, users, shared functions, setup types, processes, '
+                                                || 'notifications, document storage and integrations directly.'
+                                       end;
                 end;
                 ```
         }
@@ -1041,11 +991,13 @@ page 165 (
                     if nvl(:P165_ENABLED_FLAG, 'N') = 'N' then
                         xxfnd_application_pkg.set_enabled(:P165_APPLICATION_CODE, 'N');
                     end if;
-                    xxfnd_application_pkg.save_functions(:P165_APPLICATION_CODE, :P165_FUNCTIONS);
                     for p in (select column_value as process_code from table(apex_string.split(:P165_PROCESSES, ':'))
                                where column_value is not null) loop
                         xxfnd_workflow_pkg.set_process_enabled(:P165_APPLICATION_CODE, p.process_code, 'Y');
                     end loop;
+                    -- release 95: the journey goes on with the registered application (its setup regions)
+                    :P165_REGISTERED := 'Y';
+                    :P0_JRN_APP      := :P165_APPLICATION_CODE;
                 end;
                 ```
         }
@@ -1061,7 +1013,8 @@ page 165 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :REQUEST = 'CREATE' and nvl(:P165_REGISTERED, 'N') = 'N'
+                nvl(:P165_REGISTERED, 'N') = 'N'
+                and (:REQUEST = 'CREATE' or (:REQUEST = 'NEXT' and :P165_STEP = '1'))   -- release 95: on leaving step 1
                 ```
         }
         security {
@@ -1097,36 +1050,6 @@ page 165 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'SAVE' and :P165_REGISTERED = 'Y' and :P165_STEP in ('1', '10')
-                ```
-        }
-        security {
-            authorizationScheme: @page-submit
-        }
-    )
-
-    process save-functions (
-        name: Save the shared functions
-        type: executeCode
-        source {
-            language: plsql
-            plsqlCode:
-                ```plsql
-                xxfnd_application_pkg.save_functions(:P165_APPLICATION_CODE, :P165_FUNCTIONS);
-                ```
-        }
-        execution {
-            sequence: 30
-            point: processing
-        }
-        successMessage {
-            successMessage: Changes saved.
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :REQUEST = 'SAVE' and :P165_REGISTERED = 'Y' and :P165_STEP in ('4', '10')
                 ```
         }
         security {

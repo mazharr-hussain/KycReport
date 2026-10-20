@@ -94,6 +94,9 @@ create or replace package xxfnd_dff_pkg authid definer as
     -- Release 86: registration by an application. Added only when missing; what an administrator changed is kept;
     -- a re-run does nothing. The application must be registered (ORA-20180); a row of another application is refused
     -- (ORA-20186). COMMON's rows are the instance's (no application). Names: English, P_..._AR Arabic.
+    -- Release 92 (UI issue 7): the value set that validates a segment against a lookup type (XXFND_LK_<TYPE>,
+    -- INDEPENDENT, registered for the flexfield's application when missing); the segment grid offers lookups directly.
+    function lookup_value_set(p_application_code in varchar2, p_lookup_type in varchar2) return varchar2;
     procedure register_value_set(p_application_code      in varchar2,
                                  p_value_set_code        in varchar2,
                                  p_value_set_name        in varchar2,
@@ -121,7 +124,10 @@ create or replace package xxfnd_dff_pkg authid definer as
                                  p_default_context_code         in varchar2 default null,
                                  p_context_required_flag        in varchar2 default 'N',
                                  p_context_user_selectable_flag in varchar2 default 'N',
-                                 p_description                  in varchar2 default null);
+                                 p_description                  in varchar2 default null,
+                                 -- release 92: GLOBAL, ATTRIBUTE, FUNCTION or USER (default: from the reference column / user flag)
+                                 p_context_rule_type            in varchar2 default null,
+                                 p_context_rule_function        in varchar2 default null);
     -- A context of the application's flexfield (ORA-20187 when the flexfield is not registered).
     procedure register_context(p_application_code in varchar2,
                                p_dff_code         in varchar2,
@@ -296,15 +302,30 @@ create or replace package body xxfnd_dff_pkg as
     function resolve_context(p_ff              in xxfnd_df_flexfields%rowtype,
                              p_stored          in json_object_t,
                              p_context_code    in varchar2,
-                             p_reference_value in varchar2) return varchar2 is
+                             p_reference_value in varchar2,
+                             p_pk_value        in varchar2 default null) return varchar2 is
         l_candidate varchar2(150);
     begin
-        if p_ff.context_reference_column is not null then
-            -- EBS reference field: the context always follows the column.
+        -- release 92 (UI issue 6): the flexfield's context rule sets the context, as in EBS / Fusion
+        if p_ff.context_rule_type = 'ATTRIBUTE' and p_ff.context_reference_column is not null then
+            -- EBS reference field: the context always follows the column (e.g. PARTY_TYPE, COUNTRY).
             l_candidate := coalesce(p_reference_value, p_stored.get_string('#REFERENCE#'));
-        else
+        elsif p_ff.context_rule_type = 'FUNCTION' and p_ff.context_rule_function is not null then
+            -- the administrator's logic: <function>(p_table_name, p_pk_value) returns the context code
+            begin
+                execute immediate 'begin :r := ' || dbms_assert.qualified_sql_name(p_ff.context_rule_function)
+                                  || '(:t, :k); end;'
+                    using out l_candidate, p_ff.table_name, p_pk_value;
+            exception
+                when others then
+                    xxfnd_error_pkg.log_error('XXFND_DFF_PKG.RESOLVE_CONTEXT', p_ff.context_rule_function || ': ' || sqlerrm);
+                    l_candidate := null;
+            end;
+        elsif p_ff.context_rule_type = 'USER' then
             l_candidate := coalesce(p_context_code, p_stored.get_string('ATTRIBUTE_CATEGORY'),
                                     p_ff.default_context_code);
+        else
+            l_candidate := p_ff.default_context_code;   -- GLOBAL: global segments, plus the default context if any
         end if;
         if context_is_valid(p_ff.descriptive_flexfield_code, l_candidate) then
             return l_candidate;
@@ -322,7 +343,7 @@ create or replace package body xxfnd_dff_pkg as
         if l_ff.descriptive_flexfield_code is null then
             return null;
         end if;
-        return resolve_context(l_ff, row_values(l_ff, p_pk_value), p_context_code, p_reference_value);
+        return resolve_context(l_ff, row_values(l_ff, p_pk_value), p_context_code, p_reference_value, p_pk_value);
     end derive_context;
 
     function admin_sql_error(p_sql in clob, p_kind in varchar2, p_parse in varchar2 default 'Y') return varchar2 is
@@ -543,7 +564,7 @@ create or replace package body xxfnd_dff_pkg as
         end if;
 
         l_stored  := row_values(l_ff, p_pk_value);
-        l_context := resolve_context(l_ff, l_stored, p_context_code, p_reference_value);
+        l_context := resolve_context(l_ff, l_stored, p_context_code, p_reference_value, p_pk_value);
         l_segs    := load_segments(l_ff.descriptive_flexfield_code, l_context);
         l_prefix  := 'dff_' || lower(l_ff.descriptive_flexfield_code) || '_';
 
@@ -551,7 +572,7 @@ create or replace package body xxfnd_dff_pkg as
                || '" data-dff-context="' || apex_escape.html_attribute(l_context) || '">';
 
         -- Context chooser (EBS "Context Value" field) when the user picks it.
-        if l_ff.context_reference_column is null and l_ff.context_user_selectable_flag = 'Y' then
+        if l_ff.context_rule_type = 'USER' then
             l_html := l_html || '<div class="t-Form-fieldContainer t-Form-fieldContainer--stacked">'
                    || '<div class="t-Form-labelContainer"><label class="t-Form-label" for="' || l_prefix || 'context">'
                    || apex_escape.html(apex_lang.message('XXFND_DFF_CONTEXT_LABEL')) || '</label></div>'
@@ -599,7 +620,7 @@ create or replace package body xxfnd_dff_pkg as
         end loop;
 
         l_html := l_html || '</div>';
-        if l_shown = 0 and not (l_ff.context_reference_column is null and l_ff.context_user_selectable_flag = 'Y') then
+        if l_shown = 0 and not (l_ff.context_rule_type = 'USER') then
             return '';
         end if;
         return l_html;
@@ -733,7 +754,7 @@ create or replace package body xxfnd_dff_pkg as
         end if;
         l_values  := case when p_values_json is null then json_object_t()
                           else json_object_t.parse(p_values_json) end;
-        l_context := resolve_context(l_ff, row_values(l_ff, p_pk_value), p_context_code, p_reference_value);
+        l_context := resolve_context(l_ff, row_values(l_ff, p_pk_value), p_context_code, p_reference_value, p_pk_value);
         if l_context is null and l_ff.context_required_flag = 'Y' then
             return apex_lang.message('XXFND_DFF_CONTEXT_REQUIRED');
         end if;
@@ -784,7 +805,7 @@ create or replace package body xxfnd_dff_pkg as
         l_values  := case when p_values_json is null then json_object_t()
                           else json_object_t.parse(p_values_json) end;
         l_stored  := row_values(l_ff, p_pk_value);
-        l_context := resolve_context(l_ff, l_stored, p_context_code, p_reference_value);
+        l_context := resolve_context(l_ff, l_stored, p_context_code, p_reference_value, p_pk_value);
         l_segs    := load_segments(l_ff.descriptive_flexfield_code, l_context);
 
         -- Keep only this context's (and GLOBAL) columns, in canonical form.
@@ -978,6 +999,22 @@ create or replace package body xxfnd_dff_pkg as
                                values (s.code, 'GLOBAL', 'Global Data Elements', 'Y', 'Y');
     end save_flexfield_name;
 
+    function lookup_value_set(p_application_code in varchar2, p_lookup_type in varchar2) return varchar2 is
+        l_code    xxfnd_value_sets.value_set_code%type := substr('XXFND_LK_' || upper(p_lookup_type), 1, 60);
+        l_meaning xxfnd_lookup_types.meaning%type;
+        l_n       pls_integer;
+    begin
+        select count(*) into l_n from xxfnd_value_sets where value_set_code = l_code;
+        if l_n = 0 then
+            select max(meaning) into l_meaning from xxfnd_lookup_types where lookup_type = upper(p_lookup_type);
+            register_value_set(p_application_code => p_application_code, p_value_set_code => l_code,
+                               p_value_set_name => nvl(l_meaning, upper(p_lookup_type)), p_validation_type => 'INDEPENDENT',
+                               p_format_type => 'CHAR', p_maximum_size => 150, p_lookup_type => p_lookup_type,
+                               p_description => 'Release 92: values of lookup type ' || upper(p_lookup_type) || '.');
+        end if;
+        return l_code;
+    end lookup_value_set;
+
     ----------------------------------------------------------------------------
     -- Release 86: registration
     ----------------------------------------------------------------------------
@@ -1023,7 +1060,10 @@ create or replace package body xxfnd_dff_pkg as
                                  p_default_context_code         in varchar2 default null,
                                  p_context_required_flag        in varchar2 default 'N',
                                  p_context_user_selectable_flag in varchar2 default 'N',
-                                 p_description                  in varchar2 default null) is
+                                 p_description                  in varchar2 default null,
+                                 -- release 92: GLOBAL, ATTRIBUTE, FUNCTION or USER (default: from the reference column / user flag)
+                                 p_context_rule_type            in varchar2 default null,
+                                 p_context_rule_function        in varchar2 default null) is
         l_code  xxfnd_df_flexfields.application_code%type := xxfnd_application_pkg.setup_code(p_application_code);
         l_dff   varchar2(60) := upper(p_dff_code);
         l_n     pls_integer;
@@ -1040,10 +1080,15 @@ create or replace package body xxfnd_dff_pkg as
             end if;
             insert into xxfnd_df_flexfields (descriptive_flexfield_code, application_code, table_name, pk_column_name,
                                              context_column_name, context_reference_column, default_context_code,
-                                             context_required_flag, context_user_selectable_flag)
+                                             context_required_flag, context_user_selectable_flag,
+                                             context_rule_type, context_rule_function)
             values (l_dff, l_code, upper(p_table_name), upper(p_pk_column_name),
                     upper(nvl(p_context_column_name, 'ATTRIBUTE_CATEGORY')), upper(p_context_reference_column),
-                    p_default_context_code, nvl(p_context_required_flag, 'N'), nvl(p_context_user_selectable_flag, 'N'));
+                    p_default_context_code, nvl(p_context_required_flag, 'N'), nvl(p_context_user_selectable_flag, 'N'),
+                    upper(coalesce(p_context_rule_type,
+                                   case when p_context_reference_column is not null then 'ATTRIBUTE'
+                                        when p_context_user_selectable_flag = 'Y' then 'USER' else 'GLOBAL' end)),
+                    p_context_rule_function);
         end if;
         -- its name (English, Arabic when given) and its protected GLOBAL context, each when missing
         merge into xxfnd_df_flexfields_tl t

@@ -317,13 +317,21 @@ page 153 (
         validation {
             valueRequired: true
         }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P153_SAVED = 'Y'   -- release 92 (UI issue 6): fixed by the table once registered
+                ```
+        }
         source {
             formRegion: @form
             column: PK_COLUMN_NAME
             dataType: varchar2
         }
         help {
-            helpText: Choose the primary Key Column.
+            helpText: The primary key of the table, fixed once the flexfield is registered.
         }
     )
 
@@ -367,6 +375,14 @@ page 153 (
         validation {
             valueRequired: true
         }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                1 = 1   -- release 92 (UI issue 6): always ATTRIBUTE_CATEGORY, filled by the context rule
+                ```
+        }
         source {
             formRegion: @form
             column: CONTEXT_COLUMN_NAME
@@ -377,14 +393,53 @@ page 153 (
             staticValue: ATTRIBUTE_CATEGORY
         }
         help {
-            helpText: Choose the context Column.
+            helpText: The column that stores the context (ATTRIBUTE_CATEGORY). It is filled automatically from the context rule when the record is saved.
+        }
+    )
+
+    pageItem P153_CONTEXT_RULE_TYPE (
+        type: selectList
+        label {
+            label: Context Rule
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Global (default context only);GLOBAL,By attribute of the record;ATTRIBUTE,By function (custom logic);FUNCTION,Chosen by the user;USER
+            displayNullValue: false
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 4
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: CONTEXT_RULE_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: GLOBAL
+        }
+        help {
+            helpText: Release 92 - how the context (ATTRIBUTE_CATEGORY) is set when a record is saved, as in Fusion and EBS. Global - global segments (and the default context); By attribute - the value of an attribute of the record, e.g. party type or country; By function - a PL/SQL function you name returns it; Chosen by the user - picked from a list.
         }
     )
 
     pageItem P153_CONTEXT_REFERENCE_COLUMN (
         type: selectList
         label {
-            label: Derive Context From Column
+            label: Context Attribute
             alignment: left
         }
         lov {
@@ -407,7 +462,7 @@ page 153 (
             parentRequired: false
         }
         layout {
-            sequence: 70
+            sequence: 72
             region: @form
             slot: regionBody
             alignment: left
@@ -424,7 +479,38 @@ page 153 (
             dataType: varchar2
         }
         help {
-            helpText: EBS reference field, e.g. PARTY_TYPE: the row's value in this column selects the context.
+            helpText: Context rule "By attribute": the attribute of the record whose value is the context, e.g. PARTY_TYPE or COUNTRY (EBS reference field).
+        }
+    )
+
+    pageItem P153_CONTEXT_RULE_FUNCTION (
+        type: textField
+        label {
+            label: Context Function
+            alignment: left
+        }
+        layout {
+            sequence: 74
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 261
+        }
+        source {
+            formRegion: @form
+            column: CONTEXT_RULE_FUNCTION
+            dataType: varchar2
+        }
+        help {
+            helpText: Context rule "By function" - a function [schema.]package.function(p_table_name in varchar2, p_pk_value in varchar2) return varchar2 that returns the context code of the record, e.g. by country or any other logic.
         }
     )
 
@@ -490,34 +576,19 @@ page 153 (
     )
 
     pageItem P153_CONTEXT_USER_SELECTABLE_FLAG (
-        type: switch
-        label {
-            label: User Chooses Context
-            alignment: left
-        }
+        type: hidden
         layout {
             sequence: 100
             region: @form
             slot: regionBody
-            alignment: left
-            startNewRow: false
-            columnSpan: 4
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
         }
         source {
             formRegion: @form
             column: CONTEXT_USER_SELECTABLE_FLAG
             dataType: varchar2
         }
-        default {
-            type: static
-            staticValue: N
-        }
-        help {
-            helpText: Choose the user Chooses Context.
+        comments {
+            comments: Release 92 - set from the context rule (Chosen by the user) by trigger XXFND_DF_FLEXFIELDS_CHK.
         }
     )
 
@@ -936,7 +1007,7 @@ page 153 (
             sqlQuery:
                 ```sql
                 select s.descriptive_flexfield_code, s.context_code, s.segment_code, s.column_name, s.sequence_number,
-                       s.prompt, s.help_text, s.value_set_code, s.required_flag, s.default_type, s.default_value,
+                       s.prompt, s.api_name, s.help_text, s.value_set_code, s.required_flag, s.default_type, s.default_value,
                        s.read_only_flag, s.display_flag, s.enabled_flag
                   from xxfnd_df_segments s
                  where s.descriptive_flexfield_code = :P153_DESCRIPTIVE_FLEXFIELD_CODE
@@ -1029,58 +1100,65 @@ page 153 (
             )
 
             displayColumn (
-                column: @HELP_TEXT
+                column: @API_NAME
                 layout {
                     sequence: 6
                 }
             )
 
             displayColumn (
-                column: @VALUE_SET_CODE
+                column: @HELP_TEXT
                 layout {
                     sequence: 7
                 }
             )
 
             displayColumn (
-                column: @REQUIRED_FLAG
+                column: @VALUE_SET_CODE
                 layout {
                     sequence: 8
                 }
             )
 
             displayColumn (
-                column: @DEFAULT_TYPE
+                column: @REQUIRED_FLAG
                 layout {
                     sequence: 9
                 }
             )
 
             displayColumn (
-                column: @DEFAULT_VALUE
+                column: @DEFAULT_TYPE
                 layout {
                     sequence: 10
                 }
             )
 
             displayColumn (
-                column: @READ_ONLY_FLAG
+                column: @DEFAULT_VALUE
                 layout {
                     sequence: 11
                 }
             )
 
             displayColumn (
-                column: @DISPLAY_FLAG
+                column: @READ_ONLY_FLAG
                 layout {
                     sequence: 12
                 }
             )
 
             displayColumn (
-                column: @ENABLED_FLAG
+                column: @DISPLAY_FLAG
                 layout {
                     sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @ENABLED_FLAG
+                layout {
+                    sequence: 14
                 }
             )
         )
@@ -1161,8 +1239,24 @@ page 153 (
                 sequence: 50
             }
             lov {
-                type: sharedComponent
-                lov: @lov-dff-columns
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select c.column_name
+                           || nvl((select ' - used by ' || listagg(u.segment_code, ', ') within group (order by u.segment_code)
+                                     from xxfnd_df_segments u
+                                    where u.descriptive_flexfield_code = :P153_DESCRIPTIVE_FLEXFIELD_CODE
+                                      and u.column_name = c.column_name), '') as display_value,
+                           c.column_name as return_value
+                      -- release 92 (UI issue 7): the reserved attribute columns of this flexfield's table, with the
+                      -- segments already using each (the shared list read XXFND_ATTACHED_DOCUMENTS' columns)
+                      from xxfnd_setup_columns_v c
+                     where c.table_name = :P153_TABLE_NAME
+                       and regexp_like(c.column_name,
+                           '^ATTRIBUTE([1-9]|[12][0-9]|30)$|^ATTRIBUTE_NUMBER([1-9]|10)$|^ATTRIBUTE_DATE([1-9]|10)$|^ATTRIBUTE_TIMESTAMP[1-5]$')
+                     group by c.column_name
+                     order by min(c.column_id)
+                    ```
             }
             validation {
                 valueRequired: true
@@ -1179,11 +1273,11 @@ page 153 (
             heading {
                 heading: Sequence
             }
+            help {
+                helpText: Release 92 - left empty, the next number (by 10) of the context is used.
+            }
             layout {
                 sequence: 60
-            }
-            validation {
-                valueRequired: true
             }
             source {
                 type: databaseColumn
@@ -1195,7 +1289,7 @@ page 153 (
         column PROMPT (
             type: textField
             heading {
-                heading: Prompt
+                heading: Display Name
             }
             layout {
                 sequence: 70
@@ -1207,6 +1301,27 @@ page 153 (
             source {
                 type: databaseColumn
                 databaseColumn: PROMPT
+                dataType: varchar2
+            }
+        )
+
+        column API_NAME (
+            type: textField
+            heading {
+                heading: API Name
+            }
+            layout {
+                sequence: 75
+            }
+            validation {
+                maxLength: 30
+            }
+            help {
+                helpText: Release 92 - the segment's name in views, APIs and integrations (EBS end-user column name). Left empty, the segment code in lower case.
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: API_NAME
                 dataType: varchar2
             }
         )
@@ -1232,14 +1347,29 @@ page 153 (
         column VALUE_SET_CODE (
             type: selectList
             heading {
-                heading: Value Set
+                heading: Validation
             }
             layout {
                 sequence: 90
             }
             lov {
-                type: sharedComponent
-                lov: @lov-value-sets
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select case v.validation_type when 'NONE' then 'None - ' when 'INDEPENDENT' then 'Lookup - '
+                                when 'DEPENDENT' then 'Dependent lookup - ' else 'Value set - ' end
+                           || v.value_set_name as display_value,
+                           v.value_set_code as return_value
+                      -- release 92 (UI issue 7): validation as in EBS - none (free text of a format), a lookup type or a
+                      -- value set; a lookup type without a value set yet is offered directly (LOOKUP:<type>, the
+                      -- segment trigger makes its value set)
+                      from xxfnd_value_sets v
+                    union all
+                    select 'Lookup - ' || t.meaning, 'LOOKUP:' || t.lookup_type
+                      from xxfnd_lookup_types t
+                     where not exists (select 1 from xxfnd_value_sets v where v.lookup_type = t.lookup_type)
+                     order by 1
+                    ```
             }
             validation {
                 valueRequired: true
@@ -1437,6 +1567,90 @@ page 153 (
             type: itemIsNotNull
             item: P153_SAVED
         }
+    )
+
+    dynamicAction show-context-attribute (
+        name: Context attribute for the rule By attribute
+        execution {
+            sequence: 40
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P153_CONTEXT_RULE_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P153_CONTEXT_RULE_TYPE.value === 'ATTRIBUTE'
+        }
+
+        action show-context-attribute-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P153_CONTEXT_REFERENCE_COLUMN
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+        action show-context-attribute-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P153_CONTEXT_REFERENCE_COLUMN
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    dynamicAction show-context-function (
+        name: Context function for the rule By function
+        execution {
+            sequence: 50
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P153_CONTEXT_RULE_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P153_CONTEXT_RULE_TYPE.value === 'FUNCTION'
+        }
+
+        action show-context-function-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P153_CONTEXT_RULE_FUNCTION
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+        action show-context-function-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P153_CONTEXT_RULE_FUNCTION
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
     )
 
     dynamicAction refresh-preview (

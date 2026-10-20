@@ -15,7 +15,7 @@ Lists of values are data, maintained from the console, with translations and lev
 applications, attachments, audit-log, communications, information-requests, integrations, notifications, roles-privileges, users-access
 
 ## Used by (COMMON components)
-applications, approval-setup, attachments, change-approvals, flexfields, information-requests, integrations, retention, roles-privileges, users-access, workflow-setup
+applications, approval-setup, attachments, change-approvals, data-security, flexfields, information-requests, integrations, retention, roles-privileges, users-access, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).
@@ -26,7 +26,7 @@ COMMON (application 135) is installed in schema XXFUSION in the install order of
 - 102 Lookup Type (`pages/p00102-lookup-type.apx`)
 
 ### Shared components
-- `shared-components/lovs.apx`
+-
 
 ## Database objects (schema XXFUSION)
 - tables: `XXFND_LOOKUP_TYPES`, `XXFND_LOOKUP_VALUES`
@@ -57,4 +57,3 @@ The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REG
 - `db/views/xxfnd_lookup_values_vl.sql`
 - `pages/p00101-lookups.apx`
 - `pages/p00102-lookup-type.apx`
-- `shared-components/lovs.apx`

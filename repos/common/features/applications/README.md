@@ -6,7 +6,7 @@ COMMON component, module Platform (feature `APPLICATIONS`).
 Registered applications, the common functions switched on for each, their setup.
 
 ## Usage
-IT registers (onboards) every application here (pages 160, 166), defines setup types and levels (162, 163), chooses which common functions an application manages itself (164) and follows the application journey (165).
+IT registers (onboards) every application here (pages 160, 166), defines setup types and levels (162, 163), sees which applications subscribe to COMMON masters (164) and follows the application journey (165). Release 106: access to COMMON screens comes from the privileges of the application's roles (no "managed in the application").
 
 ## Benefit
 One register of every application: COMMON knows each application, its APEX ID and schema, and grants and scopes everything (security, setup, workflow) by it.
@@ -15,7 +15,7 @@ One register of every application: COMMON knows each application, its APEX ID an
 approval-setup, attachments, data-model, data-security, flexfields, integrations, lookups, notifications, retention, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-app-settings, approval-setup, attachments, change-approvals, data-model, data-security, flexfields, give-feedback, information-requests, integrations, lookups, notifications, optional-features, platform-activity, retention, roles-privileges, usage-feedback, users-access, workflow-monitor, workflow-setup
+app-settings, application-menu, approval-setup, attachments, change-approvals, data-model, data-security, flexfields, give-feedback, information-requests, integrations, lookups, notifications, optional-features, platform-activity, retention, roles-privileges, usage-feedback, users-access, workflow-monitor, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Script `db/admin/onboard-application.sql` (as XXFUSION) registers a new application; its schema then gets the grants.
@@ -50,7 +50,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 Before anything else an application is onboarded: `XXFND_APPLICATION_PKG.ONBOARD` (or `apex/db/admin/onboard-application.sql`) with its APEX application ID and code. That grants the application schema the COMMON objects (`XXFND_SHARE_PKG.GRANT_TO`); the application then creates synonyms for them (KYC: script 03). Its own pages call PAGE_ALLOWED / IS_DELEGATED to respect what IT lets it manage. Release 87: the application's own install can register it with the generic script `00c-onboard-with-common.sql` (XXFND_ONBOARD_PKG.ONBOARD_SELF; IT switch: COMMON setting ONBOARD_SELF_ALLOWED), and its navigation list for the common functions is `select * from xxfnd_app_menu_v where app_alias = :APP_ALIAS` (entries maintained here; the application adds its own with REGISTER_MENU_ENTRY). Release 88: every REGISTER_* routine has an UNREGISTER_* routine, and deleting a disabled application removes the setup it registered.
 
 ### Public routines
-- `XXFND_APPLICATION_PKG`: ADMINISTERS_ANY, APEX_APP_ID, APP_ALLOWED, ASSERT_SAME_APPLICATION, CAN_ADMINISTER, CHECK_LEVEL, COMMON_FUNCTIONS, CREATE_TRIGGERS, DEFAULT_APPLICATION, DELEGATED_ANY, DELEGATED_APP, DELEGATED_URL, DELETE_APPLICATION, DELETE_BLOCKER, ENSURE_MENU, ENSURE_ROWS, FEEDBACK_FOLLOW_UP, IS_COMMON_ADMIN, IS_DELEGATED, IS_MANAGED, LOCAL_PAGE, MENU_URL, MENU_VISIBLE, ONBOARD, PAGE_ALLOWED, PAGE_TYPE, POLICY_CHANGE, POLICY_READ, REGISTERED_CODE, REGISTER_APPLICATION, REGISTER_MENU_ENTRY, REMOVE_ALL_REGISTERED, REMOVE_REGISTERED, SAVE_APPLICATION, SAVE_FUNCTIONS, SAVE_MENU_ENTRY, SAVE_SETUP_TYPE_APPS, SCOPED_TABLES, SETUP_CODE, SETUP_PAGE_URL, SET_APEX_ID, SET_ENABLED, SUBMIT_FEEDBACK, UNREGISTER_MENU_ENTRY (registration: REGISTER_APPLICATION, REGISTER_MENU_ENTRY)
+- `XXFND_APPLICATION_PKG`: ADMINISTERS_ANY, APEX_APP_ID, APP_ALLOWED, ASSERT_SAME_APPLICATION, CAN_ADMINISTER, CHECK_LEVEL, COMMON_FUNCTIONS, CREATE_TRIGGERS, DEFAULT_APPLICATION, DELETE_APPLICATION, DELETE_BLOCKER, DELETE_MENU_ENTRY, ENSURE_MENU, ENSURE_ROWS, ENTRY_VISIBLE, FEATURE_APPS, FEEDBACK_FOLLOW_UP, IS_COMMON_ADMIN, IS_DELEGATED, LOCAL_PAGE, MAINTAIN_MENU_ENTRY, MENU_URL, MENU_VISIBLE, ONBOARD, PAGE_TYPE, POLICY_CHANGE, POLICY_READ, REGISTERED_CODE, REGISTER_APPLICATION, REGISTER_MENU_ENTRY, REMOVE_ALL_REGISTERED, REMOVE_REGISTERED, SAVE_APPLICATION, SAVE_MENU_ENTRY, SAVE_SETUP_TYPE_APPS, SCOPED_TABLES, SETUP_CODE, SETUP_PAGE_URL, SET_APEX_ID, SET_ENABLED, SUBMIT_FEEDBACK, SYNC_MENU, UNREGISTER_MENU_ENTRY (registration: REGISTER_APPLICATION, REGISTER_MENU_ENTRY)
 
 ## Tests
 - in `../../tests/` (whole application)

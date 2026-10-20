@@ -35,8 +35,11 @@ list application-journey (
                       from dual
                     union all
                     select 4, 'Shared functions', 'jrn-functions',
-                           (select to_char(nullif(count(*), 0)) from xxfnd_application_functions
-                             where application_code = :P0_JRN_APP and managed_in_app_flag = 'Y')
+                           (select to_char(nullif(count(distinct p.feature_code), 0)) from xxfnd_roles r
+                              join xxfnd_role_privileges rp on rp.role_code = r.role_code
+                              join xxfnd_privileges p on p.privilege_code = rp.privilege_code
+                              join xxfnd_features f on f.feature_code = p.feature_code and f.admin_flag = 'Y'
+                             where r.application_code = :P0_JRN_APP)
                       from dual
                     union all
                     select 5, 'Setup types', 'jrn-setup-types',

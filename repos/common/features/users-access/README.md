@@ -12,10 +12,10 @@ Pages 103 / 104 maintain users (local or SSO, mapped to employees); page 183 ass
 One user record and one role assignment for all applications; sign-in and authorization rules in one place.
 
 ## Depends on (objects of these components are named in its files)
-applications, audit-log, data-security, integrations, lookups, roles-privileges
+applications, attachments, audit-log, change-approvals, data-security, flexfields, integrations, lookups, retention, roles-privileges
 
 ## Used by (COMMON components)
-applications, approval-setup, change-approvals, data-security, integrations, lookups, notifications, roles-privileges, workflow-setup
+applications, change-approvals, data-security, home, lookups, notifications, roles-privileges, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema). Single sign-on: the Fusion web credential and FUSION_BASE_URL (Fusion HCM worker sync).
@@ -25,15 +25,16 @@ COMMON (application 135) is installed in schema XXFUSION in the install order of
 - 103 Users and Access (`pages/p00103-users.apx`)
 - 104 User (`pages/p00104-user.apx`)
 - 183 Assign (`pages/p00183-assign.apx`)
+- 184 Data Access Values (`pages/p00184-data-access-values.apx`)
 
 ### Shared components
 - `shared-components/automations/fusion-hcm-sync.apx`
 
 ## Database objects (schema XXFUSION)
-- tables: `XXFND_EMPLOYEES`, `XXFND_USERS`, `XXFND_USER_ROLES`
-- views: `XXFND_USER_ROLES_V`
+- tables: `XXFND_EMPLOYEES`, `XXFND_USERS`, `XXFND_USER_APPLICATIONS`, `XXFND_USER_ROLES`
+- views: `XXFND_USER_DATA_ACCESS_V`, `XXFND_USER_ROLES_V`, `XXFND_USER_ROLE_TREE_V`
 - packages: `XXFND_AUTH_PKG`, `XXFND_USER_PKG`
-- triggers: `XXFND_EMPLOYEES_INS`, `XXFND_EMPLOYEES_RENAME`, `XXFND_EMPLOYEES_SRC`, `XXFND_USER_ROLES_USER`
+- triggers: `XXFND_USER_ROLES_USER`
 - seed: `XXFND_USERS`, `XXFND_USER_ROLES`
 
 ## Roles and privileges
@@ -46,7 +47,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` / `POST_AUTH_SSO`, and its authorization schemes call `XXFND_USER_PKG.AUTHORIZED(<scheme>)` (KYC subscribes to them). The first administrator: `XXFND_USER_PKG.BOOTSTRAP_ADMIN`.
 
 ### Public routines
-- `XXFND_USER_PKG`: ASSIGN_ROLE, AUTHORIZED, BOOTSTRAP_ADMIN, CREATE_LOCAL_USER, EMPLOYEE_USER, IN_GROUP, IS_LOCAL, LOAD_USER_ROLES, MAP_LOGIN_USER, POST_AUTH_LOCAL, POST_AUTH_SSO, RENAME_USER, RENAMING, RESET_PASSWORD, SAVE_USER, SET_ENABLED, UNASSIGN_ROLE
+- `XXFND_USER_PKG`: ASSIGN_ROLE, AUTHORIZED, BOOTSTRAP_ADMIN, CREATE_LOCAL_USER, EMPLOYEE_USER, END_APPLICATION, ENSURE_APEX_ACCOUNT, GRANT_APPLICATION, HOME_APPLICATION, IN_GROUP, IS_LOCAL, LOAD_USER_ROLES, MAP_LOGIN_USER, POST_AUTH_LOCAL, POST_AUTH_SSO, RENAME_USER, RENAMING, RESET_PASSWORD, SAVE_USER, SET_ENABLED, UNASSIGN_ROLE
 
 ## Tests
 - in `../../tests/` (whole application)
@@ -57,14 +58,15 @@ The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` /
 - `db/seed/xxfnd_user_roles.sql`
 - `db/seed/xxfnd_users.sql`
 - `db/tables/xxfnd_employees.sql`
+- `db/tables/xxfnd_user_applications.sql`
 - `db/tables/xxfnd_user_roles.sql`
 - `db/tables/xxfnd_users.sql`
-- `db/triggers/xxfnd_employees_ins.sql`
-- `db/triggers/xxfnd_employees_rename.sql`
-- `db/triggers/xxfnd_employees_src.sql`
 - `db/triggers/xxfnd_user_roles_user.sql`
+- `db/views/xxfnd_user_data_access_v.sql`
+- `db/views/xxfnd_user_role_tree_v.sql`
 - `db/views/xxfnd_user_roles_v.sql`
 - `pages/p00103-users.apx`
 - `pages/p00104-user.apx`
 - `pages/p00183-assign.apx`
+- `pages/p00184-data-access-values.apx`
 - `shared-components/automations/fusion-hcm-sync.apx`

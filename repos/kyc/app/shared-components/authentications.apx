@@ -1,8 +1,12 @@
 authentication oracle-apex-accounts (
     name: Oracle APEX Accounts
+    subscription {
+        master: @/135/oracle-apex-accounts
+    }
     type: oracleApexAccounts
     loginProcessing {
         postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_local
+        switchInSession: true
     }
     sessionSharing {
         type: workspaceSharing
@@ -24,6 +28,9 @@ authentication oracle-database-accounts (
 
 authentication apex-fa-iabwbn-dev1-oauth (
     name: APEX_FA_IABWBN-DEV1_OAUTH
+    subscription {
+        master: @/135/apex-fa-iabwbn-dev1-oauth
+    }
     type: socialSignIn
     settings {
         credentialStore: @apex-fa-iabwbn-dev1-dbms-cred
@@ -38,6 +45,7 @@ authentication apex-fa-iabwbn-dev1-oauth (
     }
     loginProcessing {
         postAuthenticationProcedureName: xxfnd_user_pkg.post_auth_sso
+        switchInSession: true
     }
     comments {
         comments:

@@ -12,7 +12,7 @@ Pages 180 / 181: data access rules (table, column, allowed values), assigned to 
 Row-level security (VPD) for every application from one set of rules.
 
 ## Depends on (objects of these components are named in its files)
-applications, roles-privileges, users-access, workflow-setup
+applications, lookups, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
 applications, approval-setup, attachments, change-approvals, data-model, information-requests, notifications, roles-privileges, users-access, workflow-setup
@@ -23,13 +23,14 @@ COMMON (application 135) is installed in schema XXFUSION in the install order of
 ## Application objects
 ### Pages
 - 180 Data Security (`pages/p00180-data-security.apx`)
-- 181 Data Access Rule (`pages/p00181-data-security-rule.apx`)
+- 181 Data Object (`pages/p00181-data-security-rule.apx`)
+- 186 Organizations (`pages/p00186-organizations.apx`)
 
 ### Shared components
 -
 
 ## Database objects (schema XXFUSION)
-- tables: `XXFND_DATA_RULE_ASSIGNMENTS`, `XXFND_DATA_SECURITY_RULES`
+- tables: `XXFND_DATA_DIMENSIONS`, `XXFND_DATA_RULE_ASSIGNMENTS`, `XXFND_DATA_SECURITY_RULES`
 - packages: `XXFND_VPD_PKG`
 - triggers: `XXFND_DATA_RULES_ASSIGN`
 - seed: `XXFND_DATA_RULE_ASSIGNMENTS`
@@ -44,7 +45,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 The application registers its rules with `XXFND_VPD_PKG.REGISTER_DATA_RULE`, applies the policies (`APPLY_POLICIES`, KYC script 03), reads `ALLOWED_VALUES` for its lists, and uses `BEGIN_TRUSTED` / `END_TRUSTED` around internal reads.
 
 ### Public routines
-- `XXFND_VPD_PKG`: ALLOWED_VALUES, APPLY_POLICIES, ASSIGN_RULE, BEGIN_TRUSTED, CLEAR_CACHE, END_TRUSTED, IS_TRUSTED, POLICY, REGISTER_DATA_RULE, UNASSIGN_RULE (registration: REGISTER_DATA_RULE)
+- `XXFND_VPD_PKG`: ALLOWED_VALUES, APPLY_POLICIES, ASSIGNMENT_VALUES, ASSIGN_RULE, BEGIN_TRUSTED, CLEAR_CACHE, END_TRUSTED, GRANT_DATA_ACCESS, IS_TRUSTED, POLICY, REGISTER_DATA_OBJECT, REGISTER_DATA_RULE, REGISTER_DIMENSION, REVOKE_DATA_ACCESS, SAVE_ORGANIZATION, SET_ASSIGNMENT_VALUES, UNASSIGN_RULE, UNREGISTER_APPLICATION (registration: REGISTER_DATA_OBJECT, REGISTER_DATA_RULE, REGISTER_DIMENSION)
 
 ## Tests
 - in `../../tests/` (whole application)
@@ -52,8 +53,10 @@ The application registers its rules with `XXFND_VPD_PKG.REGISTER_DATA_RULE`, app
 ## Files
 - `db/packages/xxfnd_vpd_pkg.sql`
 - `db/seed/xxfnd_data_rule_assignments.sql`
+- `db/tables/xxfnd_data_dimensions.sql`
 - `db/tables/xxfnd_data_rule_assignments.sql`
 - `db/tables/xxfnd_data_security_rules.sql`
 - `db/triggers/xxfnd_data_rules_assign.sql`
 - `pages/p00180-data-security.apx`
 - `pages/p00181-data-security-rule.apx`
+- `pages/p00186-organizations.apx`

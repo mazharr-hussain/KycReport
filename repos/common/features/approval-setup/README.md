@@ -12,7 +12,7 @@ Pages 148 / 149: approval types and rules (conditions, steps, approvers).
 Approval chains are data (AME style), not code.
 
 ## Depends on (objects of these components are named in its files)
-applications, data-security, lookups, roles-privileges, users-access, workflow-setup
+applications, data-security, lookups, roles-privileges, workflow-setup
 
 ## Used by (COMMON components)
 applications, information-requests, my-tasks, workflow-setup
@@ -32,7 +32,7 @@ COMMON (application 135) is installed in schema XXFUSION in the install order of
 - tables: `XXFND_APPROVAL_TYPES`
 - packages: `XXFND_APPROVAL_RULE_PKG`
 - types: `XXFND_APPROVAL_STEP_ROW`, `XXFND_APPROVAL_STEP_TAB`
-- triggers: `XXFND_APPROVAL_RULES_BI`
+- triggers: `XXFND_APPROVAL_RULES_BI`, `XXFND_APPROVAL_RULE_STEPS_TYPE`
 
 ## Roles and privileges
 Privileges `APPROVAL_SETUP.<action>` for VIEW, CREATE, MANAGE (VIEW opens its pages, CREATE adds, MANAGE changes and deletes); a page opens with the privilege on the feature it is mapped to.
@@ -44,7 +44,7 @@ Roles at install: Common Administrator (COMMON_ADMIN) holds every privilege of a
 The application registers its approval types and default rule (`XXFND_APPROVAL_RULE_PKG.REGISTER_TYPE`, `REGISTER_DEFAULT_RULE`), starts an approval with `START_APPROVAL`, reads `CURRENT_APPROVERS` / `NEXT_STEP` and decides with `DECIDE_TASK`. Several rules per type: `REGISTER_RULE` (release 88); `UNREGISTER_RULE` / `UNREGISTER_TYPE` remove them.
 
 ### Public routines
-- `XXFND_APPROVAL_RULE_PKG`: ADD_APPROVER, APPROVAL_ERROR, APPROVER_LABEL, CANCEL, CURRENT_APPROVERS, CURRENT_POSITION, CURRENT_ROLE, CURRENT_STEP_NAME, DECIDE_TASK, IS_STARTED, MATCHING_RULE, NEXT_STEP, OPEN_COUNT, REGISTER_DEFAULT_RULE, REGISTER_RULE, REGISTER_TYPE, START_APPROVAL, STEPS, STEP_COUNT, UNREGISTER_APPLICATION, UNREGISTER_RULE, UNREGISTER_TYPE (registration: REGISTER_DEFAULT_RULE, REGISTER_RULE, REGISTER_TYPE)
+- `XXFND_APPROVAL_RULE_PKG`: ADD_APPROVER, APPROVAL_ERROR, APPROVER_LABEL, APPROVER_TYPE_AVAILABLE, CANCEL, CURRENT_APPROVERS, CURRENT_POSITION, CURRENT_ROLE, CURRENT_STEP_NAME, DECIDE_TASK, IS_STARTED, MATCHING_RULE, NEXT_STEP, OPEN_COUNT, REGISTER_DEFAULT_RULE, REGISTER_RULE, REGISTER_TYPE, START_APPROVAL, STEPS, STEP_COUNT, STEP_DUE_DATE, UNREGISTER_APPLICATION, UNREGISTER_RULE, UNREGISTER_TYPE (registration: REGISTER_DEFAULT_RULE, REGISTER_RULE, REGISTER_TYPE)
 
 ## Tests
 - in `../../tests/` (whole application)
@@ -52,6 +52,7 @@ The application registers its approval types and default rule (`XXFND_APPROVAL_R
 ## Files
 - `db/packages/xxfnd_approval_rule_pkg.sql`
 - `db/tables/xxfnd_approval_types.sql`
+- `db/triggers/xxfnd_approval_rule_steps_type.sql`
 - `db/triggers/xxfnd_approval_rules_bi.sql`
 - `db/types/xxfnd_approval_step_row.sql`
 - `db/types/xxfnd_approval_step_tab.sql`

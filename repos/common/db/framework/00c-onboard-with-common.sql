@@ -49,12 +49,14 @@ declare
     l_n      pls_integer;
 begin
     for s in (select synonym_name from user_synonyms u
-               where u.table_owner = c_common and u.synonym_name like 'XXFND\_%' escape '\'
+               where u.table_owner = c_common
+                 and (u.synonym_name like 'XXFND\_%' escape '\' or u.synonym_name like 'XXHR\_%' escape '\')
                  and not exists (select 1 from all_objects o where o.owner = c_common and o.object_name = u.table_name)) loop
         execute immediate 'drop synonym ' || s.synonym_name;
     end loop;
     for o in (select distinct object_name from all_objects
-               where owner = c_common and object_name like 'XXFND\_%' escape '\'
+               where owner = c_common
+                 and (object_name like 'XXFND\_%' escape '\' or object_name like 'XXHR\_%' escape '\')
                  and object_type in ('TABLE', 'VIEW', 'SEQUENCE', 'PACKAGE', 'TYPE', 'PROCEDURE', 'FUNCTION')
                  and object_name not in ('XXFND_SCHEMA_RELEASES', 'XXFND_DDL_PKG', 'XXFND_DROPPED_OBJECTS')) loop
         select count(*) into l_n from user_objects where object_name = o.object_name;

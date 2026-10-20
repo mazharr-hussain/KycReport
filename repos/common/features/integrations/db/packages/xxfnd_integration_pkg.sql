@@ -7,7 +7,7 @@ create or replace package xxfnd_integration_pkg authid definer as
     procedure sync_from_fusion(p_base_url              in varchar2,
                                p_credential_static_id  in varchar2,
                                p_page_size             in pls_integer default 200);
-    -- True while SYNC_FROM_FUSION runs; lets the Fusion-owned-row trigger (XXFND_EMPLOYEES_SRC) tell the sync
+    -- True while SYNC_FROM_FUSION runs; lets the Fusion-owned-row trigger (XXHR_EMPLOYEES_SRC) tell the sync
     -- apart from a user edit.
     function sync_running return boolean;
     -- Sets each Fusion employee's user name and Fusion user id from their Fusion / identity-domain user account
@@ -46,7 +46,9 @@ create or replace package xxfnd_integration_pkg authid definer as
                           p_oci_namespace        in varchar2 default null,
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
-                          p_base_url             in varchar2 default null);
+                          p_base_url             in varchar2 default null,
+                          -- release 93: FUSION - the workspace's Fusion integration application
+                          p_source_application_id in number  default null);
     -- Deletes a server nothing uses; ORA-20342 when a storage rule or a purpose uses it (disable it instead).
     procedure delete_server(p_server_code in varchar2);
     -- Release 86: the Purposes screen (123). P_NEW = Y creates (ORA-20343 when the code exists), N changes the purpose
@@ -130,13 +132,13 @@ create or replace package body xxfnd_integration_pkg as
 
         -- A LOCAL record created before the person existed in Fusion is adopted,
         -- not duplicated (the email and user name are unique).
-        update xxfnd_employees
+        update xxhr_employees
            set source_type = 'FUSION', fusion_person_id = l_person_id
          where source_type = 'LOCAL'
            and fusion_person_id is null
            and (email_address = l_email or user_name = upper(l_email));
 
-        merge into xxfnd_employees e
+        merge into xxhr_employees e
         using (select l_person_id person_id from dual) s
            on (e.fusion_person_id = s.person_id)
          when matched then update set
@@ -183,8 +185,8 @@ create or replace package body xxfnd_integration_pkg as
             for i in 0 .. l_items.get_size - 1 loop
                 l_item := treat(l_items.get(i) as json_object_t);
                 if l_item.get_number('PersonId') is not null and trim(l_item.get_string('Username')) is not null then
-                    -- trigger XXFND_EMPLOYEES_RENAME moves the references (rename_user)
-                    update xxfnd_employees
+                    -- trigger XXHR_EMPLOYEES_RENAME moves the references (rename_user)
+                    update xxhr_employees
                        set user_name      = upper(trim(l_item.get_string('Username'))),
                            fusion_user_id = nvl(to_char(l_item.get_number('UserId')), fusion_user_id)
                      where fusion_person_id = l_item.get_number('PersonId')
@@ -237,7 +239,7 @@ create or replace package body xxfnd_integration_pkg as
         sync_user_names(p_base_url, p_credential_static_id, p_page_size);
 
         -- Workers no longer returned by Fusion (terminated) are disabled, not deleted.
-        update xxfnd_employees e
+        update xxhr_employees e
            set e.enabled_flag = 'N'
          where e.source_type = 'FUSION'
            and e.enabled_flag = 'Y'
@@ -325,7 +327,9 @@ create or replace package body xxfnd_integration_pkg as
                           p_oci_namespace        in varchar2 default null,
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
-                          p_base_url             in varchar2 default null) is
+                          p_base_url             in varchar2 default null,
+                          -- release 93: FUSION - the workspace's Fusion integration application
+                          p_source_application_id in number  default null) is
         l_type varchar2(30) := upper(p_server_type);
     begin
         if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM', 'FUSION', 'REST', 'OUTLOOK') then
@@ -343,16 +347,18 @@ create or replace package body xxfnd_integration_pkg as
               t.oci_namespace        = case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
               t.enabled_flag         = nvl(p_enabled_flag, 'Y'),
               t.description          = p_description,
-              t.base_url             = nvl(p_base_url, t.base_url)
+              t.base_url             = nvl(p_base_url, t.base_url),
+              t.source_application_id = case when l_type = 'FUSION' then p_source_application_id end
          when not matched then insert
               (server_code, server_name, server_type, credential_static_id, oauth_token_url, oci_region, oci_namespace,
-               enabled_flag, description, base_url)
+               enabled_flag, description, base_url, source_application_id)
               values
               (s.server_code, p_server_name, l_type, p_credential_static_id,
                case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
-               nvl(p_enabled_flag, 'Y'), p_description, p_base_url);
+               nvl(p_enabled_flag, 'Y'), p_description, p_base_url,
+               case when l_type = 'FUSION' then p_source_application_id end);
     end save_server;
 
     procedure delete_server(p_server_code in varchar2) is

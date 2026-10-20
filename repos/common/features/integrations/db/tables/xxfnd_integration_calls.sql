@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- 05b XXFND_INTEGRATION_PKG (release 79; release 83: the Integrations component). COMMON only (XXFUSION).
 --   Release 83: installed after the security objects (09b, privilege checks) and before the attachments (14), which
---   reach their document stores through it; it creates the HCM-owned-row trigger XXFND_EMPLOYEES_SRC (was in 08).
+--   reach their document stores through it; it creates the HCM-owned-row trigger XXHR_EMPLOYEES_SRC (was in 08).
 --   - Servers are APEX Remote Servers and their secrets APEX Web Credentials (workspace, kept by the workspace
 --     administrator); endpoints are REST Data Sources of COMMON. XXFND_INTEGRATION_ENDPOINTS is read-only and
 --     retiring: it is read only when no Remote Server of that static ID exists.

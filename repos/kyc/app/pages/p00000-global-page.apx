@@ -2167,7 +2167,9 @@ page 0 (
                        (select max(c.case_number) from xxcmp_cases c where c.request_id = r.request_id) as case_number,
                        rtrim(xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
                              || nvl2(r.business_relationship, ' · ' || xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), null)
-                             || nvl2(r.requesting_department, ' · ' || xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department), null),
+                             || nvl2(coalesce(to_char(r.requesting_department_id), r.requesting_department),   -- release 96
+                                     ' · ' || coalesce(xxcmp_request_pkg.department_name(r.requesting_department_id),
+                                                       xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department)), null),
                              ' ·') as type_line,
                        r.requester_user_name as requester,
                        xxfnd_ui_pkg.person_name(r.requester_user_name) as requester_name,

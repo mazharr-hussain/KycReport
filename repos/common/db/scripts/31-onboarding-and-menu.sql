@@ -1,22 +1,4 @@
 
-create or replace view xxfnd_app_menu_v as
-select upper(a.apex_app_alias)                                   as app_alias,
-       e.application_code,
-       e.entry_code,
-       e.parent_code,
-       null                                                      as lvl,
-       e.label,
-       xxfnd_application_pkg.menu_url(e.application_code, e.target_type, e.page_id, e.feature_code) as target,
-       'NO'                                                      as is_current,
-       e.icon_css                                                as image,
-       null                                                      as image_attribute,
-       null                                                      as image_alt,
-       e.display_sequence
-  from xxfnd_app_menu_entries e
-  join xxfnd_applications a on a.application_code = e.application_code
- where xxfnd_application_pkg.menu_visible(e.application_code, e.target_type, e.feature_code, e.enabled_flag) = 'Y';
-comment on table xxfnd_app_menu_v is 'Release 87: the menu of an application for the common functions, for the signed-in user (an APEX list: lvl, label, target, is_current, image ...).';
-
 create or replace package xxfnd_onboard_pkg authid definer as
     -- Registers the calling application in COMMON with the bare minimum (registration rows, grants on the common
     -- objects to its schema, the role <CODE>_ADMIN given to P_ADMIN_USER when named, its menu entries), through

@@ -15,7 +15,7 @@ Maker-checker on setup data for every application without code in the applicatio
 applications, attachments, audit-log, data-security, flexfields, integrations, lookups, notifications, retention, roles-privileges, users-access, workflow-setup
 
 ## Used by (COMMON components)
-integrations, my-tasks, workflow-setup
+integrations, my-tasks, users-access, workflow-setup
 
 ## Installation requirements
 COMMON (application 135) is installed in schema XXFUSION in the install order of `db/manifest.json` (prerequisites check 00a first; 00b stops an install in the wrong schema).
