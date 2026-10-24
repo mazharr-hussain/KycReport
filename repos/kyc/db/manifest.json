@@ -242,5 +242,12 @@
   "install_sequence": 193,
   "upgrade_sequence": 153,
   "source_index": 76
+ },
+ {
+  "name": "18k Requester risk screening",
+  "file": "18k-requester-screening.sql",
+  "install_sequence": 197,
+  "upgrade_sequence": 157,
+  "source_index": 111
  }
 ]

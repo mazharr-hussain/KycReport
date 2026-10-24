@@ -82,6 +82,8 @@ page 200 (
                                         xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department)) as department,
                                r.requester_user_name,
                                r.request_status,
+                               -- release 99: the Home tiles open the list on Open / Closed
+                               case when r.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then 'Open' else 'Closed' end as open_closed,
                                r.submitted_date,
                                (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number,
                                (select c.case_id from xxcmp_cases c where c.request_id = r.request_id) as case_id,
@@ -291,6 +293,19 @@ page 200 (
             }
             layout {
                 sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_CLOSED (
+            type: plainText
+            heading {
+                heading: Open / Closed
+            }
+            layout {
+                sequence: 95
             }
             source {
                 dataType: STRING

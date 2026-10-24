@@ -49,11 +49,12 @@ declare
             p_change_password_on_first_use => 'N', p_first_password_use_occurred => 'Y');
     end keep_password;
 
-    -- department values of a role assignment: the IDs of the department organizations with these codes (all when null)
+    -- department values of a role assignment: the department organization codes (the data access view turns them into
+    -- the IDs the requests hold); all departments when null
     function departments(p_codes in varchar2) return varchar2 is
         l_list varchar2(32767);
     begin
-        select listagg(to_char(organization_id), ',') within group (order by organization_id) into l_list
+        select listagg(organization_code, ',') within group (order by organization_code) into l_list
           from xxhr_organizations
          where organization_type = 'DEPARTMENT'
            and (p_codes is null

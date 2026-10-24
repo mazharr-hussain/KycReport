@@ -1,0 +1,285 @@
+page 204 (
+    name: Create Request - Party Details
+    alias: CREATE-REQUEST-PARTY-DETAILS
+    title: Create Request - Party Details
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Step 2 of 3: the details of the counterparty: additional information, contact persons, owners / officers and documents. They can be changed only when the request created the party (a new counterparty); an existing party is shown read only.
+            ```
+    }
+
+    region breadcrumb (
+        name: Create Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Create Request
+        type: list
+        source {
+            list: @request-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P204_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+    )
+
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+
+
+    validation party-dff (
+        name: Validate additional information
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.dff_error(:P0_SUMMARY_PARTY_ID, :P0_PARTY_DFF_JSON, :P0_PARTY_DFF_CONTEXT);
+                ```
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'PREVIOUS')
+                and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    process set-context (
+        name: The request's party in the common regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := :P204_REQUEST_ID;
+                select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_requests where request_id = :P204_REQUEST_ID;
+                :P0_PARTY_DFF_CONTEXT := null;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-dff (
+        name: Save additional information
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_party_pkg.save_dff(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_JSON, :P0_PARTY_DFF_CONTEXT);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'PREVIOUS')
+                and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    branch (
+        name: Draft saved
+        execution {
+            sequence: 5
+        }
+        behavior {
+            target: {
+                page: 200
+                clearCache: 200
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @save-draft
+        }
+    )
+
+    branch (
+        name: Back to counterparty
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P204_REQUEST_ID.
+                }
+                clearCache: 201
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @previous
+        }
+    )
+
+    branch (
+        name: To review and submit
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 203
+                items: {
+                    P203_REQUEST_ID: &P204_REQUEST_ID.
+                }
+                clearCache: 203
+            }
+        }
+        comments {
+            comments: Release 99 (D3) - the questionnaire is answered on step 1 (risk screening): Next goes to Review and Submit.
+        }
+        serverSideCondition {
+            whenButtonPressed: @next
+        }
+    )
+
+)

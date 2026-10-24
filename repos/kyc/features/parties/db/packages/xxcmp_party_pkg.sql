@@ -28,6 +28,9 @@ create or replace package xxcmp_party_pkg authid definer as
     -- ID number is given; email or phone required (email must be valid); the date not in the future;
     -- no other party with the same number and country; when similar parties exist the user must confirm
     -- (P_MATCH_ACK = Y) that none of them is this party. P_DRAFT = Y checks only the type and the name.
+    -- Release 99: P_REQUEST_FORM = Y is the requester's KYC request form (the short counterparty data Risk Management
+    -- completes later): no registration type for an organisation and no email or phone are asked there, and a party
+    -- with the same number does not stop it (the requester cannot choose an existing party; Compliance merges it).
     function party_error(p_party_id            in number,
                          p_party_type          in varchar2,
                          p_party_name          in varchar2,
@@ -39,7 +42,8 @@ create or replace package xxcmp_party_pkg authid definer as
                          p_phone               in varchar2,
                          p_draft               in varchar2 default 'N',
                          p_match_ack           in varchar2 default 'Y',
-                         p_registration_type   in varchar2 default null) return varchar2;
+                         p_registration_type   in varchar2 default null,
+                         p_request_form        in varchar2 default 'N') return varchar2;
 
     -- Inserts (P_PARTY_ID null) or updates the party's form fields, without a privilege check (the request
     -- package creates the Pending party of a request through it). A new party is APPROVED unless
@@ -135,7 +139,10 @@ create or replace package xxcmp_party_pkg authid definer as
     -- JSON array of fields [{"group_name","seq","label","value","meta","tone","url"}] in the groups Party (name,
     -- number, status), Identity, Contact and KYC. P_REQUEST_ID: the party of that request - shown to anyone who can
     -- see the request, without the party status and KYC dates; a user who cannot see the party gets one note field.
-    function card_json(p_party_id in number, p_request_id in number default null, p_show_status in varchar2 default 'Y') return clob;
+    -- Release 99: P_REQUEST_FORM = Y shows the party as the requester's KYC request form has it (Create Request): no
+    -- email, phone or website, no registration type or incorporation date for an organisation, the form's labels.
+    function card_json(p_party_id in number, p_request_id in number default null, p_show_status in varchar2 default 'Y',
+                       p_request_form in varchar2 default 'N') return clob;
 
     -- release 74 (from the request and KYC rules packages): party directory and matching.
     -- 0-100 similarity of two names after normalisation (case, punctuation, common legal suffixes).
@@ -314,6 +321,19 @@ create or replace package body xxcmp_party_pkg as
                end;
     end field_label;
 
+    -- private (release 99): the labels of the requester's KYC request form (Create Request) where they differ
+    function request_form_label(p_party_type in varchar2, p_field in varchar2) return varchar2 is
+        l_person boolean := p_party_type = 'PERSON';
+    begin
+        return case p_field
+                   when 'PARTY_TYPE'         then case when l_person then 'Natural Person (Individual)' else 'Legal Person' end
+                   when 'NAME'               then case when l_person then 'Full name as per Official Document (in English)'
+                                                       else 'Name (as per CR / Official Documents)' end
+                   when 'INCORPORATION_DATE' then case when l_person then 'Date of Birth as per Official Document'
+                                                       else field_label(p_party_type, p_field) end
+               end;
+    end request_form_label;
+
     function entity_lookup(p_party_type in varchar2) return varchar2 is
     begin
         return 'ENTITY_TYPE';      -- release 26: the organisation's category only (an individual's ID type is REGISTRATION_TYPE)
@@ -368,7 +388,8 @@ create or replace package body xxcmp_party_pkg as
                          p_phone               in varchar2,
                          p_draft               in varchar2 default 'N',
                          p_match_ack           in varchar2 default 'Y',
-                         p_registration_type   in varchar2 default null) return varchar2 is
+                         p_registration_type   in varchar2 default null,
+                         p_request_form        in varchar2 default 'N') return varchar2 is
         l_exact varchar2(30);
     begin
         if p_party_type is null or p_party_type not in ('ORGANIZATION', 'PERSON') then
@@ -383,11 +404,11 @@ create or replace package body xxcmp_party_pkg as
             return 'Enter the registration number.';
         elsif p_party_type = 'ORGANIZATION' and p_entity_type is null then
             return 'Choose the entity type.';
-        elsif p_party_type = 'ORGANIZATION' and p_registration_type is null then
+        elsif p_party_type = 'ORGANIZATION' and p_registration_type is null and p_request_form = 'N' then
             return 'Choose the registration type of the registration number.';
         elsif p_party_type = 'PERSON' and trim(p_registration_number) is not null and p_registration_type is null then
             return 'Choose the ID type of the ID number.';
-        elsif trim(p_email) is null and trim(p_phone) is null then
+        elsif trim(p_email) is null and trim(p_phone) is null and p_request_form = 'N' then
             return 'Enter an email or a phone number.';
         elsif trim(p_email) is not null and not regexp_like(trim(p_email), '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') then
             return 'Enter a valid email.';
@@ -396,7 +417,8 @@ create or replace package body xxcmp_party_pkg as
         end if;
         l_exact := exact_party_number(p_party_type, p_registration_number, p_jurisdiction, p_party_id,
                                       p_registration_type);
-        if l_exact is not null then
+        -- release 99: the requester cannot choose an existing party - Compliance merges a duplicate counterparty
+        if l_exact is not null and p_request_form = 'N' then
             return 'Party ' || l_exact || ' already has this '
                    || lower(case when p_party_type = 'PERSON' then 'ID type' else 'registration type' end) || ', '
                    || lower(field_label(p_party_type, 'REGISTRATION_NUMBER'))
@@ -902,7 +924,8 @@ create or replace package body xxcmp_party_pkg as
             raise;
     end is_enabled;
 
-    function card_json(p_party_id in number, p_request_id in number default null, p_show_status in varchar2 default 'Y') return clob is
+    function card_json(p_party_id in number, p_request_id in number default null, p_show_status in varchar2 default 'Y',
+                       p_request_form in varchar2 default 'N') return clob is
         l_p      xxcmp_parties%rowtype;
         l_status varchar2(1) := case when p_request_id is null then nvl(p_show_status, 'Y') else 'N' end;
         l_rows   json_array_t := json_array_t();
@@ -938,7 +961,8 @@ create or replace package body xxcmp_party_pkg as
             l_found := true;
         end loop;
         if l_found then
-            fld('Party', 'Name', l_p.party_name);
+            fld('Party', case when p_request_form = 'Y' then request_form_label(l_p.party_type, 'NAME') else 'Name' end,
+                l_p.party_name);
             fld('Party', 'Party Number', l_p.party_number, null, null,
                 case when p_request_id is null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW')
                      then apex_page.get_url(p_page => 21, p_items => 'P21_PARTY_ID', p_values => to_char(l_p.party_id),
@@ -955,17 +979,23 @@ create or replace package body xxcmp_party_pkg as
                         xxfnd_ui_pkg.status_tone('PARTY', l_p.party_status));
                 end if;
             end if;
-            fld('Identity', 'Type', xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type));
+            fld('Identity', 'Type', case when p_request_form = 'Y' then request_form_label(l_p.party_type, 'PARTY_TYPE')
+                                         else xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', l_p.party_type) end);
             if l_p.party_type = 'ORGANIZATION' then
                 fld('Identity', 'Entity Type', xxfnd_lookup_pkg.lookup_meaning('ENTITY_TYPE', l_p.entity_type));
             end if;
             fld('Identity', field_label(l_p.party_type, 'JURISDICTION'), xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
             fld('Identity', field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number,
-                xxfnd_lookup_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
-            fld('Identity', field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
-            fld('Contact', 'Email', l_p.email, null, null, case when l_p.email is not null then 'mailto:' || l_p.email end);
-            fld('Contact', 'Phone', l_p.phone);
-            fld('Contact', 'Website', l_p.website);
+                case when p_request_form = 'N' or l_p.party_type = 'PERSON'
+                     then xxfnd_lookup_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type) end);
+            if p_request_form = 'N' then
+                fld('Identity', field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
+                fld('Contact', 'Email', l_p.email, null, null, case when l_p.email is not null then 'mailto:' || l_p.email end);
+                fld('Contact', 'Phone', l_p.phone);
+                fld('Contact', 'Website', l_p.website);
+            elsif l_p.party_type = 'PERSON' then
+                fld('Identity', request_form_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
+            end if;
             fld('Contact', field_label(l_p.party_type, 'ADDRESS'), l_p.address);
             for c in (select contact_name as name, job_title, email, phone
                         from xxcmp_party_contacts

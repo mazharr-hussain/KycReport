@@ -141,3 +141,24 @@ COMMON 87 and 88 fixed C1-C6 and C8-C11 (each issue's **Status**); C7 stays open
   the same test-only helper.
 - **Needed:** routines to enable / disable an application's approval rules (`XXFND_APPROVAL_RULE_PKG`) and a role's
   grants (`XXFND_USER_PKG`).
+
+## C15 - An application cannot rename its own lookup values
+- **Status:** Open (found in KYC 99, requester area: party types to read "Legal Person" / "Natural Person (Individual)").
+- **Where:** `XXFND_LOOKUP_PKG.REGISTER_LOOKUP_VALUE` adds a value only when it is missing; what is there is kept, and no
+  routine changes a value's meaning (only COMMON's Lookups screen does).
+- **Effect:** KYC cannot change the meaning of its lookup PARTY_TYPE (Organization / Person) from its upgrade. KYC 99
+  relabels the types on Create Request only (the party type list of page 201 and the party card on 201 / 204); every
+  other screen keeps the lookup's meanings. An administrator can rename them for every screen in COMMON Lookups.
+- **Needed:** a routine to update the meaning (and translation) of a lookup value of the application's own lookup type
+  (application parameter; another application's values refused).
+
+## C16 - The test users script stores department IDs as assignment values (fixed: the script now stores the department codes)
+- **Status:** Open (found in KYC 99: Requesting Department listed Finance and Procurement for a Finance-only requester).
+- **Where:** `repos/common/db/admin/test-users.sql`, function DEPARTMENTS: it turns the department codes into
+  XXHR_ORGANIZATIONS.ORGANIZATION_ID values and passes those to `XXFND_VPD_PKG.SET_ASSIGNMENT_VALUES`.
+- **Effect:** assignment values are organization codes - XXFND_USER_DATA_ACCESS_V translates the code into the ID for a
+  data object of type ID (`g.organization_code = v.value_code`). An ID stored as the value matches no code, so the role
+  gives no department; with the REQUESTER role's own-records access `XXFND_VPD_PKG.ALLOWED_VALUES` then returns null
+  (every value) and KYC's Create Request lists every department. KYC's own QD script passes codes and is right.
+- **Needed:** pass the department codes (e.g. FINANCE) to SET_ASSIGNMENT_VALUES in test-users.sql and run it again
+  (optionally: SET_ASSIGNMENT_VALUES refuses a value that is not a code of the dimension).
