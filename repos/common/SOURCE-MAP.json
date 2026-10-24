@@ -3904,5 +3904,29 @@
    "to": 1323,
    "whole": true
   }
+ ],
+ "apex/tools/check_session_state.py": [
+  {
+   "from": 0,
+   "target": "common/tools/check_session_state.py",
+   "to": 2893,
+   "whole": true
+  }
+ ],
+ "apex/tools/record_user_guide.py": [
+  {
+   "from": 0,
+   "target": "common/tools/record_user_guide.py",
+   "to": 10045,
+   "whole": true
+  }
+ ],
+ "apex/tools/sql_install.py": [
+  {
+   "from": 0,
+   "target": "common/tools/sql_install.py",
+   "to": 2628,
+   "whole": true
+  }
  ]
 }
