@@ -1,0 +1,1250 @@
+page 192 (
+    name: Object Detail
+    alias: OBJECT-DETAIL
+    title: Fusion Object
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One onboarded Fusion object: its mode, schedule and status, the business view the applications read, its attributes, metadata versions, drift and runs.
+            Run Now runs a replica at once; Check Metadata compares the live Fusion metadata with the registry; Pause / Resume / Retire change its status.
+            ```
+    }
+
+    region breadcrumb (
+        name: Fusion Object
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region header (
+        name: Object
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select o.business_name, o.object_code, o.source_type, o.source_name, o.offering_code,
+                       decode(o.mode_code, 'REPLICA', 'Replica', 'REALTIME', 'Real-time', 'PUSH', 'Push') as mode_name,
+                       initcap(o.status_code) as status, o.schedule_minutes, o.business_view, o.replica_table, o.current_version,
+                       o.bicc_job_id, o.storage_server_code, o.storage_bucket, o.storage_prefix,
+                       o.last_sync_date, initcap(o.last_status) as last_status, o.last_message, o.next_run_date
+                  from xxfnd_fi_objects o
+                 where o.object_id = :P192_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P192_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: header
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: The object does not exist.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column BUSINESS_NAME (
+            type: plainText
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OBJECT_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_TYPE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_NAME (
+            type: plainText
+            heading {
+                heading: Fusion Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OFFERING_CODE (
+            type: plainText
+            heading {
+                heading: Offering / API
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column MODE_NAME (
+            type: plainText
+            heading {
+                heading: Mode
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SCHEDULE_MINUTES (
+            type: plainText
+            heading {
+                heading: Every (Minutes)
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column BUSINESS_VIEW (
+            type: plainText
+            heading {
+                heading: Business View
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REPLICA_TABLE (
+            type: plainText
+            heading {
+                heading: Replica Table
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CURRENT_VERSION (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column BICC_JOB_ID (
+            type: plainText
+            heading {
+                heading: BICC Job
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STORAGE_SERVER_CODE (
+            type: plainText
+            heading {
+                heading: Storage Server
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STORAGE_BUCKET (
+            type: plainText
+            heading {
+                heading: Bucket
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STORAGE_PREFIX (
+            type: plainText
+            heading {
+                heading: Prefix
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_SYNC_DATE (
+            type: plainText
+            heading {
+                heading: Last Sync
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column LAST_STATUS (
+            type: plainText
+            heading {
+                heading: Last Run
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_MESSAGE (
+            type: plainText
+            heading {
+                heading: Last Message
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEXT_RUN_DATE (
+            type: plainText
+            heading {
+                heading: Next Run
+            }
+            layout {
+                sequence: 190
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+    )
+
+    region attributes (
+        name: Attributes
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select attribute_name, business_name, column_name, data_type, data_length, pk_flag, selected_flag, custom_flag,
+                       last_update_flag, initcap(status_code) as status
+                  from xxfnd_fi_attributes
+                 where object_id = :P192_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P192_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: attributes
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No attribute.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column ATTRIBUTE_NAME (
+            type: plainText
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BUSINESS_NAME (
+            type: plainText
+            heading {
+                heading: Business Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column COLUMN_NAME (
+            type: plainText
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DATA_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DATA_LENGTH (
+            type: plainText
+            heading {
+                heading: Length
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column PK_FLAG (
+            type: plainText
+            heading {
+                heading: Key
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SELECTED_FLAG (
+            type: plainText
+            heading {
+                heading: Selected
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CUSTOM_FLAG (
+            type: plainText
+            heading {
+                heading: Custom
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_UPDATE_FLAG (
+            type: plainText
+            heading {
+                heading: Last Update
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    region versions (
+        name: Versions
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select version_no, view_name, harvested_date, applied_date, metadata_hash
+                  from xxfnd_fi_versions
+                 where object_id = :P192_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P192_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: versions
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No version yet: Activate makes the first one.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column VERSION_NO (
+            type: plainText
+            heading {
+                heading: Version
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column VIEW_NAME (
+            type: plainText
+            heading {
+                heading: View
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HARVESTED_DATE (
+            type: plainText
+            heading {
+                heading: Harvested
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column APPLIED_DATE (
+            type: plainText
+            heading {
+                heading: Applied
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column METADATA_HASH (
+            type: plainText
+            heading {
+                heading: Hash
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    region drift (
+        name: Drift
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select drift_id, initcap(change_type) as change_type, attribute_name, old_value, new_value,
+                       decode(breaking_flag, 'Y', 'Breaking', 'Non-breaking') as kind, initcap(replace(status_code, '_', ' ')) as status,
+                       detected_date, decided_by, decided_date
+                  from xxfnd_fi_drift
+                 where object_id = :P192_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P192_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: drift
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No drift found.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column CHANGE_TYPE (
+            type: plainText
+            heading {
+                heading: Change
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ATTRIBUTE_NAME (
+            type: plainText
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OLD_VALUE (
+            type: plainText
+            heading {
+                heading: Was
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEW_VALUE (
+            type: plainText
+            heading {
+                heading: Now
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column KIND (
+            type: plainText
+            heading {
+                heading: Kind
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DETECTED_DATE (
+            type: plainText
+            heading {
+                heading: Detected
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column DECIDED_BY (
+            type: plainText
+            heading {
+                heading: Decided By
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DECIDED_DATE (
+            type: plainText
+            heading {
+                heading: Decided
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column DRIFT_ID (
+            type: hidden
+            heading {
+                heading: Drift ID
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+    region runs (
+        name: Runs
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select run_id, initcap(run_type) as run_type, initcap(status_code) as status, started_date, ended_date,
+                       bicc_request_id, rows_loaded, rows_merged, rows_deleted, message
+                  from xxfnd_fi_runs
+                 where object_id = :P192_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P192_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: runs
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No run yet.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column RUN_TYPE (
+            type: plainText
+            heading {
+                heading: Run
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STARTED_DATE (
+            type: plainText
+            heading {
+                heading: Started
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column ENDED_DATE (
+            type: plainText
+            heading {
+                heading: Ended
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column BICC_REQUEST_ID (
+            type: plainText
+            heading {
+                heading: BICC Request
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROWS_LOADED (
+            type: plainText
+            heading {
+                heading: Loaded
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ROWS_MERGED (
+            type: plainText
+            heading {
+                heading: Merged
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column ROWS_DELETED (
+            type: plainText
+            heading {
+                heading: Deleted
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column MESSAGE (
+            type: plainText
+            heading {
+                heading: Message
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column RUN_ID (
+            type: hidden
+            heading {
+                heading: Run ID
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P192_OBJECT_ID (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    button run-now (
+        buttonName: RUN_NOW
+        label: Run Now
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code = 'ACTIVE' and mode_code = 'REPLICA')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button check (
+        buttonName: CHECK
+        label: Check Metadata
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code <> 'RETIRED')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button pause (
+        buttonName: PAUSE
+        label: Pause
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code = 'ACTIVE')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button resume (
+        buttonName: RESUME
+        label: Resume
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code = 'PAUSED')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button continue (
+        buttonName: CONTINUE
+        label: Continue Onboarding
+        layout {
+            sequence: 50
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 191
+                items: {
+                    P191_OBJECT_ID: &P192_OBJECT_ID.
+                    P191_STEP: 2
+                }
+                clearCache: 191
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code = 'DRAFT')
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button retire (
+        buttonName: RETIRE
+        label: Retire
+        layout {
+            sequence: 60
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Retire this object? It stops running; its tables and business view are kept.
+            style: warning
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                exists (select 1 from xxfnd_fi_objects where object_id = :P192_OBJECT_ID and status_code <> 'RETIRED')
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process actions (
+        name: Object actions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: through the registry, runtime and drift packages (no DML in the page)
+                declare
+                    l_n number;
+                begin
+                    case :REQUEST
+                        when 'RUN_NOW' then xxfnd_fi_run_pkg.run_object(to_number(:P192_OBJECT_ID));
+                        when 'CHECK'   then l_n := xxfnd_fi_drift_pkg.check_object(to_number(:P192_OBJECT_ID));
+                        when 'PAUSE'   then xxfnd_fi_registry_pkg.pause(to_number(:P192_OBJECT_ID));
+                        when 'RESUME'  then xxfnd_fi_registry_pkg.resume(to_number(:P192_OBJECT_ID));
+                        when 'RETIRE'  then xxfnd_fi_registry_pkg.retire(to_number(:P192_OBJECT_ID));
+                    end case;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Done.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: RUN_NOW,CHECK,PAUSE,RESUME,RETIRE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    branch (
+        name: Stay on the object
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 192
+            }
+        }
+    )
+
+)

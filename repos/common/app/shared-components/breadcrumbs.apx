@@ -1049,4 +1049,99 @@ breadcrumb breadcrumb (
             }
         }
     )
+
+    entry fusion-objects (
+        name: Fusion Objects
+        pageNumber: 190
+        execution {
+            sequence: 231
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 190
+            }
+        }
+        comments {
+            comments: Release 107 - Fusion Objects (Integrations).
+        }
+    )
+
+    entry onboard-object (
+        name: Onboard Object
+        pageNumber: 191
+        execution {
+            sequence: 232
+        }
+        appearance {
+            parentEntry: @fusion-objects
+        }
+        link {
+            target: {
+                page: 191
+            }
+        }
+        comments {
+            comments: Release 107 - Fusion Objects (Integrations).
+        }
+    )
+
+    entry fusion-object (
+        name: Fusion Object
+        pageNumber: 192
+        execution {
+            sequence: 233
+        }
+        appearance {
+            parentEntry: @fusion-objects
+        }
+        link {
+            target: {
+                page: 192
+            }
+        }
+        comments {
+            comments: Release 107 - Fusion Objects (Integrations).
+        }
+    )
+
+    entry drift-queue (
+        name: Drift Queue
+        pageNumber: 193
+        execution {
+            sequence: 234
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 193
+            }
+        }
+        comments {
+            comments: Release 107 - Fusion Objects (Integrations).
+        }
+    )
+
+    entry fusion-run-log (
+        name: Run Log
+        pageNumber: 194
+        execution {
+            sequence: 235
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 194
+            }
+        }
+        comments {
+            comments: Release 107 - Fusion Objects (Integrations).
+        }
+    )
 )

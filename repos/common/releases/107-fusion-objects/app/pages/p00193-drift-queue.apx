@@ -1,0 +1,322 @@
+page 193 (
+    name: Drift Queue
+    alias: DRIFT-QUEUE
+    title: Drift Queue
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Breaking metadata changes of the onboarded Fusion objects waiting for a decision: a selected attribute removed, its type changed or shortened.
+            Approve applies the change (new version of the business view); Reject keeps the registry as it is. Non-breaking changes are applied automatically and listed on the object.
+            ```
+    }
+
+    region breadcrumb (
+        name: Drift Queue
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Drift Waiting for a Decision
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select d.drift_id, o.business_name, o.object_code, initcap(d.change_type) as change_type, d.attribute_name,
+                       d.old_value, d.new_value, d.detected_date,
+                       apex_page.get_url(p_page => 192, p_items => 'P192_OBJECT_ID', p_values => o.object_id, p_clear_cache => '192') as open_url,
+                       -- release 107: the decision buttons of the row set P193_DRIFT_ID and submit
+                       'Approve' as approve_label, 'Reject' as reject_label
+                  from xxfnd_fi_drift d
+                  join xxfnd_fi_objects o on o.object_id = d.object_id
+                 where d.status_code = 'PENDING'
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No drift waits for a decision.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+
+        column BUSINESS_NAME (
+            type: plainText
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#BUSINESS_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OBJECT_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CHANGE_TYPE (
+            type: plainText
+            heading {
+                heading: Change
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ATTRIBUTE_NAME (
+            type: plainText
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OLD_VALUE (
+            type: plainText
+            heading {
+                heading: Was
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column NEW_VALUE (
+            type: plainText
+            heading {
+                heading: Now
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DETECTED_DATE (
+            type: plainText
+            heading {
+                heading: Detected
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column APPROVE_LABEL (
+            type: plainText
+            heading {
+                heading: Approve
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="javascript:apex.page.submit({request:'APPROVE',set:{'P193_DRIFT_ID':'#DRIFT_ID#'}});">#APPROVE_LABEL#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REJECT_LABEL (
+            type: plainText
+            heading {
+                heading: Reject
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="javascript:apex.page.submit({request:'REJECT',set:{'P193_DRIFT_ID':'#DRIFT_ID#'}});">#REJECT_LABEL#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DRIFT_ID (
+            type: hidden
+            heading {
+                heading: Drift ID
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P193_DRIFT_ID (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+    )
+
+    process decide (
+        name: Approve or reject
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: through the drift package (FUSION_OBJECTS - Manage)
+                if :REQUEST = 'APPROVE' then
+                    xxfnd_fi_drift_pkg.approve(to_number(:P193_DRIFT_ID));
+                else
+                    xxfnd_fi_drift_pkg.reject(to_number(:P193_DRIFT_ID));
+                end if;
+                :P193_DRIFT_ID := null;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Decision saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: APPROVE,REJECT
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    branch (
+        name: Stay on the queue
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 193
+            }
+        }
+    )
+
+)
