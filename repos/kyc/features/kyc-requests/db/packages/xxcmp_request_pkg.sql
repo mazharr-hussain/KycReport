@@ -16,9 +16,26 @@ create or replace package xxcmp_request_pkg authid definer as
     -- '#NONE' = none; Create Request lists them and SAVE_REQUEST refuses any other (KYC_REQUEST_DEPT_NOT_ALLOWED).
     function allowed_departments return varchar2;
 
+    -- Release 99 (risk screening on Create Request step 1): the questionnaire a new onboarding request of the party
+    -- type answers (PERSON: INDIVIDUAL, otherwise CORPORATE).
+    function questionnaire_code(p_party_type in varchar2) return varchar2;
+    -- Release 99: the intake outcome the request's saved answers lead to - the same rule EVALUATE applies at submit
+    -- (critical answer: ASSIGNED; a gate question answered with a waiver option: NOT_REQUIRED; score within the
+    -- questionnaire's low-risk maximum: AUTO_APPROVED; otherwise ASSIGNED) - without changing the request. Null while
+    -- a required question is not answered. A request without a questionnaire (a review) is ASSIGNED.
+    function screening_outcome(p_request_id in number) return varchar2;
+    -- Release 99: Yes (KYC report required: Compliance reviews) / No (not required or approved automatically) for an
+    -- intake outcome; null for null.
+    function outcome_kyc_required(p_outcome in varchar2) return varchar2;
+    -- Release 99: SAVE_ANSWERS for the risk screening of step 1: answers to questions the request does not have (the
+    -- party type changed before the check) are left out.
+    procedure save_screening(p_request_id in number, p_answers in clob);
+
     -- The rules of Create Request step 1 (null = acceptable): EXISTING needs an approved party; NEW follows the
     -- common party form (XXCMP_PARTY_PKG.PARTY_ERROR); the business justification is required.
     -- P_DRAFT = Y checks only what a draft needs (type and name, or the party).
+    -- Release 99: the counterparty follows the short request form (XXCMP_PARTY_PKG.PARTY_ERROR, P_REQUEST_FORM = Y); the
+    -- business relationship and justification are not asked when the risk screening finds KYC not required.
     function request_error(p_request_id          in number,
                            p_party_selection     in varchar2,
                            p_party_id            in number,
@@ -191,6 +208,33 @@ create or replace package body xxcmp_request_pkg as
     begin
         return case p_party_type when 'PERSON' then 'INDIVIDUAL' else 'CORPORATE' end;
     end questionnaire_for;
+
+    function questionnaire_code(p_party_type in varchar2) return varchar2 is
+    begin
+        return questionnaire_for(p_party_type);
+    end questionnaire_code;
+
+    -- private (release 99): the intake rule on the request's REQUESTER answers (risk points of the chosen options),
+    -- shared by SCREENING_OUTCOME and EVALUATE
+    function intake_rule(p_request_id in number, p_questionnaire in varchar2,
+                         o_score out number, o_critical out pls_integer) return varchar2 is
+        l_waiver pls_integer;
+        l_low    number;
+    begin
+        select nvl(sum(o.risk_points), 0),
+               count(case when o.critical_flag = 'Y' then 1 end),
+               count(case when q.gate_question_flag = 'Y' and o.waiver_qualifying_flag = 'Y' then 1 end)
+          into o_score, o_critical, l_waiver
+          from xxcmp_request_answers a
+          join xxcmp_questions q on q.question_id = a.question_id
+          left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+         where a.request_id = p_request_id and a.respondent_type = 'REQUESTER';
+        select max(low_risk_max_score) into l_low from xxcmp_questionnaires where questionnaire_code = p_questionnaire;
+        return case when o_critical > 0 then 'ASSIGNED'
+                    when l_waiver > 0 then 'NOT_REQUIRED'
+                    when l_low is not null and o_score <= l_low then 'AUTO_APPROVED'
+                    else 'ASSIGNED' end;
+    end intake_rule;
 
     procedure add_answer_rows(p_request_id in number, p_case_id in number, p_questionnaire in varchar2,
                               p_respondent in varchar2) is
@@ -413,6 +457,7 @@ create or replace package body xxcmp_request_pkg as
                            p_business_relationship in varchar2 default null) return varchar2 is
         l_own   number;
         l_error varchar2(4000);
+        l_asked boolean := true;
     begin
         if p_party_selection = 'EXISTING' then
             if p_party_id is null then
@@ -427,12 +472,19 @@ create or replace package body xxcmp_request_pkg as
             end if;
             l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
                                                    p_registration_number, p_entity_type, p_incorporation_date,
-                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type);
+                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type,
+                                                   p_request_form => 'Y');
             if l_error is not null then
                 return l_error;
             end if;
         end if;
-        if p_draft = 'N' and trim(p_justification) is null then
+        -- release 99: no relationship and justification when the risk screening finds KYC not required
+        if p_request_id is not null then
+            l_asked := nvl(outcome_kyc_required(screening_outcome(p_request_id)), 'Yes') = 'Yes';
+        end if;
+        if not l_asked then
+            return null;
+        elsif p_draft = 'N' and trim(p_justification) is null then
             return 'Enter the business justification.';
         elsif p_draft = 'N' and p_business_relationship is null then
             return 'Choose the business relationship (what the counterparty is to the company).';
@@ -629,6 +681,36 @@ create or replace package body xxcmp_request_pkg as
     -- release 90: QUESTIONNAIRE_HTML removed - page 202 shows the questionnaire with the KYC Question template component
     -- fed by SQL (no HTML built here).
 
+    function screening_outcome(p_request_id in number) return varchar2 is
+        l_req      xxcmp_requests%rowtype;
+        l_missing  pls_integer;
+        l_score    number;
+        l_critical pls_integer;
+    begin
+        l_req := get_request(p_request_id);
+        if l_req.request_type <> 'NEW_ONBOARDING' or l_req.questionnaire_code is null then
+            return 'ASSIGNED';
+        end if;
+        select count(*) into l_missing
+          from xxcmp_request_answers a
+          join xxcmp_questions q on q.question_id = a.question_id
+         where a.request_id = p_request_id and a.respondent_type = 'REQUESTER'
+           and q.required_flag = 'Y' and a.answer_option_id is null and a.answer_text is null;
+        if l_missing > 0 then
+            return null;
+        end if;
+        return intake_rule(p_request_id, l_req.questionnaire_code, l_score, l_critical);
+    exception
+        when no_data_found then
+            return null;
+    end screening_outcome;
+
+    function outcome_kyc_required(p_outcome in varchar2) return varchar2 is
+    begin
+        return case when p_outcome = 'ASSIGNED' then 'Yes'
+                    when p_outcome in ('NOT_REQUIRED', 'AUTO_APPROVED') then 'No' end;
+    end outcome_kyc_required;
+
     function answers_error(p_request_id in number, p_answers in clob) return varchar2 is
         l_missing varchar2(4000);
     begin
@@ -688,6 +770,18 @@ create or replace package body xxcmp_request_pkg as
              where request_id = p_request_id and respondent_type = 'REQUESTER' and question_id = j.q;
         end loop;
     end save_answers;
+
+    procedure save_screening(p_request_id in number, p_answers in clob) is
+        l_known clob;
+    begin
+        select json_arrayagg(json_object('q' value j.q, 'o' value j.o, 't' value j.t) returning clob)
+          into l_known
+          from json_table(nvl(p_answers, '[]'), '$[*]'
+                          columns (q number path '$.q', o number path '$.o', t varchar2(4000) path '$.t')) j
+         where exists (select 1 from xxcmp_request_answers a
+                        where a.request_id = p_request_id and a.respondent_type = 'REQUESTER' and a.question_id = j.q);
+        save_answers(p_request_id, nvl(l_known, '[]'));
+    end save_screening;
 
     function submit_error(p_request_id in number) return varchar2 is
         l_req     xxcmp_requests%rowtype := get_request(p_request_id);
@@ -950,8 +1044,6 @@ create or replace package body xxcmp_request_pkg as
         l_req      xxcmp_requests%rowtype;
         l_score    number;
         l_critical pls_integer;
-        l_waiver   pls_integer;
-        l_low      number;
         l_outcome  varchar2(30);
     begin
         xxfnd_vpd_pkg.begin_trusted;
@@ -963,19 +1055,8 @@ create or replace package body xxcmp_request_pkg as
             update xxcmp_request_answers a
                set risk_points = (select o.risk_points from xxcmp_answer_options o where o.answer_option_id = a.answer_option_id)
              where a.request_id = p_request_id and a.respondent_type = 'REQUESTER';
-            select nvl(sum(a.risk_points), 0),
-                   count(case when o.critical_flag = 'Y' then 1 end),
-                   count(case when q.gate_question_flag = 'Y' and o.waiver_qualifying_flag = 'Y' then 1 end)
-              into l_score, l_critical, l_waiver
-              from xxcmp_request_answers a
-              join xxcmp_questions q on q.question_id = a.question_id
-              left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
-             where a.request_id = p_request_id and a.respondent_type = 'REQUESTER';
-            select low_risk_max_score into l_low from xxcmp_questionnaires where questionnaire_code = l_req.questionnaire_code;
-            l_outcome := case when l_critical > 0 then 'ASSIGNED'
-                              when l_waiver > 0 then 'NOT_REQUIRED'
-                              when l_low is not null and l_score <= l_low then 'AUTO_APPROVED'
-                              else 'ASSIGNED' end;
+            -- release 99: the rule is shared with the risk screening of step 1 (SCREENING_OUTCOME)
+            l_outcome := intake_rule(p_request_id, l_req.questionnaire_code, l_score, l_critical);
             update xxcmp_requests set intake_score = l_score, intake_critical_flag = case when l_critical > 0 then 'Y' else 'N' end
              where request_id = p_request_id;
         end if;
@@ -1133,8 +1214,7 @@ create or replace package body xxcmp_request_pkg as
         l_outcome xxcmp_requests.intake_outcome%type;
     begin
         l_outcome := get_request(p_request_id).intake_outcome;
-        return case when l_outcome = 'ASSIGNED' then 'Yes'
-                    when l_outcome in ('NOT_REQUIRED', 'AUTO_APPROVED') then 'No' end;
+        return outcome_kyc_required(l_outcome);
     exception
         when no_data_found then
             return null;

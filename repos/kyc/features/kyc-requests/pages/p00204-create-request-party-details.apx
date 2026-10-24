@@ -15,7 +15,7 @@ page 204 (
     help {
         helpText:
             ```
-            Step 2 of 4: the details of the counterparty: additional information, contact persons, owners / officers and documents. They can be changed only when the request created the party (a new counterparty); an existing party is shown read only.
+            Step 2 of 3: the details of the counterparty: additional information, contact persons, owners / officers and documents. They can be changed only when the request created the party (a new counterparty); an existing party is shown read only.
             ```
     }
 
@@ -261,18 +261,21 @@ page 204 (
     )
 
     branch (
-        name: To the questionnaire
+        name: To review and submit
         execution {
             sequence: 20
         }
         behavior {
             target: {
-                page: 202
+                page: 203
                 items: {
-                    P202_REQUEST_ID: &P204_REQUEST_ID.
+                    P203_REQUEST_ID: &P204_REQUEST_ID.
                 }
-                clearCache: 202
+                clearCache: 203
             }
+        }
+        comments {
+            comments: Release 99 (D3) - the questionnaire is answered on step 1 (risk screening): Next goes to Review and Submit.
         }
         serverSideCondition {
             whenButtonPressed: @next

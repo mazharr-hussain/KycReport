@@ -26,18 +26,6 @@ list request-wizard (
         }
     )
 
-    entry step-2 (
-        label: Questionnaire
-        layout {
-            sequence: 20
-        }
-        link {
-            target: {
-                page: 202
-            }
-        }
-    )
-
     entry step-3 (
         label: Review and Submit
         layout {

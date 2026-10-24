@@ -393,7 +393,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/db/packages/xxcmp_request_pkg.sql",
-   "to": 12908,
+   "to": 14397,
    "whole": false
   },
   {
@@ -553,9 +553,9 @@
    "whole": false
   },
   {
-   "from": 14333,
+   "from": 15053,
    "target": "kyc/features/parties/db/packages/xxcmp_party_pkg.sql",
-   "to": 63807,
+   "to": 66364,
    "whole": false
   }
  ],
@@ -563,7 +563,7 @@
   {
    "from": 0,
    "target": "kyc/features/parties/db/packages/xxcmp_party_pkg.sql",
-   "to": 14333,
+   "to": 15053,
    "whole": false
   }
  ],
@@ -701,9 +701,9 @@
  ],
  "apex/db/16r-request-pkg.sql": [
   {
-   "from": 12908,
+   "from": 14397,
    "target": "kyc/features/kyc-requests/db/packages/xxcmp_request_pkg.sql",
-   "to": 75408,
+   "to": 79765,
    "whole": false
   }
  ],
@@ -883,19 +883,19 @@
   {
    "from": 0,
    "target": "kyc/db/scripts/18h-register-with-common.sql",
-   "to": 34946,
+   "to": 35248,
    "whole": false
   },
   {
-   "from": 34946,
+   "from": 35248,
    "target": "kyc/db/scripts/18h-register-with-common.sql",
-   "to": 35082,
+   "to": 35384,
    "whole": false
   },
   {
-   "from": 35082,
+   "from": 35384,
    "target": "kyc/db/scripts/18h-register-with-common.sql",
-   "to": 36489,
+   "to": 36791,
    "whole": false
   }
  ],
@@ -999,7 +999,7 @@
   {
    "from": 0,
    "target": "kyc/app/pages/p00000-global-page.apx",
-   "to": 111564,
+   "to": 120575,
    "whole": true
   }
  ],
@@ -1007,7 +1007,7 @@
   {
    "from": 0,
    "target": "kyc/features/home/pages/p00001-home.apx",
-   "to": 14965,
+   "to": 17291,
    "whole": true
   }
  ],
@@ -1159,7 +1159,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/pages/p00200-kyc-requests.apx",
-   "to": 19165,
+   "to": 19679,
    "whole": true
   }
  ],
@@ -1167,7 +1167,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/pages/p00201-create-request.apx",
-   "to": 25410,
+   "to": 38062,
    "whole": true
   }
  ],
@@ -1183,7 +1183,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/pages/p00203-create-request-submit.apx",
-   "to": 14581,
+   "to": 14612,
    "whole": true
   }
  ],
@@ -1191,7 +1191,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/pages/p00204-create-request-party-details.apx",
-   "to": 6933,
+   "to": 7092,
    "whole": true
   }
  ],
@@ -1485,7 +1485,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/shared-components/lists.apx",
-   "to": 833,
+   "to": 639,
    "whole": false
   },
   {
@@ -2066,6 +2066,22 @@
    "from": 0,
    "target": "kyc/tools/record_kyc_user_guide.py",
    "to": 21778,
+   "whole": true
+  }
+ ],
+ "apex/db/18k-requester-screening.sql": [
+  {
+   "from": 0,
+   "target": "kyc/db/scripts/18k-requester-screening.sql",
+   "to": 2918,
+   "whole": true
+  }
+ ],
+ "apex/tests/r99_requester_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-requests/tests/r99_requester_test.sql",
+   "to": 7156,
    "whole": true
   }
  ]

@@ -145,7 +145,12 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select meaning as display_value, lookup_code as return_value
+                -- release 99: the requester's form names the types as the KYC policy does (COMMON has no routine for
+                -- an application to rename its lookup meanings: COMMON-ISSUES C15)
+                select case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
+                            when :APP_PAGE_ID = 201 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
+                            else meaning end as display_value,
+                       lookup_code as return_value
                   from xxfnd_lookup_values
                  where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
                  order by display_sequence, meaning
@@ -330,6 +335,14 @@ page 0 (
             slot: regionBody
             alignment: left
         }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
@@ -350,6 +363,14 @@ page 0 (
             region: @party-form
             slot: regionBody
             alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
         }
         appearance {
             template: @/optional-above
@@ -372,6 +393,14 @@ page 0 (
             slot: regionBody
             alignment: left
         }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
         appearance {
             template: @/optional-above
             templateOptions: #DEFAULT#
@@ -392,6 +421,14 @@ page 0 (
             region: @party-form
             slot: regionBody
             alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
         }
         appearance {
             template: @/optional-above
@@ -702,7 +739,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 201) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
+                :APP_PAGE_ID in (23, 24) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
                 ```
         }
         componentAppearance {
@@ -849,7 +886,8 @@ page 0 (
                 ```sql
                 select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name,
                        min(j.seq) over (partition by j.group_name) as group_seq
-                  from json_table(xxcmp_party_pkg.card_json(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID)), '$[*]'
+                  from json_table(xxcmp_party_pkg.card_json(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID),
+                                     p_request_form => case when :APP_PAGE_ID in (201, 204) then 'Y' else 'N' end), '$[*]'
                            columns (group_name varchar2(30)   path '$.group_name',
                                     seq        number         path '$.seq',
                                     label      varchar2(100)  path '$.label',
@@ -1144,6 +1182,8 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- release 99: no contact persons or owners for an individual on Create Request - Party Details
+                and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
                 ```
         }
         componentAppearance {
@@ -1358,6 +1398,8 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- release 99: no contact persons or owners for an individual on Create Request - Party Details
+                and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
                 ```
         }
         componentAppearance {
@@ -2603,6 +2645,9 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                -- release 99: the questionnaire and the approval path are for Compliance and the approvers; a requester
+                -- (no Cases - View) answered the risk screening on step 1 and sees the next steps instead
+                and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))
                 ```
         }
         comments {
@@ -3043,6 +3088,9 @@ page 0 (
             plsqlExpression:
                 ```plsql
                 :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                -- release 99: the questionnaire and the approval path are for Compliance and the approvers; a requester
+                -- (no Cases - View) answered the risk screening on step 1 and sees the next steps instead
+                and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))
                 ```
         }
         componentAppearance {
@@ -3148,6 +3196,213 @@ page 0 (
 
     )
 
+    region request-next-steps (
+        name: Next Steps
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 99 (requester, Review and Submit): what happens once the request is submitted
+                select 1 as step_no, 'Sent for Risk Management Review' as step_name from dual
+                ```
+        }
+        layout {
+            sequence: 63
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_next_steps
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID = 203 and :P0_REQUEST_ID is not null and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        comments {
+            comments: Release 99 - the requester's view of the approval path on Review and Submit (Compliance and the approvers see Approval History).
+        }
+
+        column STEP_NO (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Step Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+    )
+
+    region request-history-requester (
+        name: History
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 99 (requester, View Request): the request's history without the approvers; the requester's own
+                -- actions read "Request Submitted", "Request Withdrawn"...
+                select rownum as seq, h.step_no,
+                       case when h.step_name = 'Request' then 'Request ' || h.action else h.step_name end as step_name,
+                       h.action, xxfnd_ui_pkg.person_name(h.action_by) as action_by,
+                       to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
+                  from table(xxcmp_request_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                 order by seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 64
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_history_requester
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID = 205 and :P0_REQUEST_ID is not null and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: Nothing has happened to the request yet.
+        }
+        comments {
+            comments: Release 99 - the requester's view of Approval History on View Request: no approver column.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column STEP_NO (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ACTION_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ACTION_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comments
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
     dynamicAction refresh-matches (
         name: Look for similar parties
         execution {
@@ -3158,7 +3413,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 201) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
+                :APP_PAGE_ID in (23, 24) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
                 ```
         }
         when {
@@ -3223,11 +3478,16 @@ page 0 (
                     ```javascript
                     // one column per organisation / individual pair: the label follows the party type
                     var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
+                        requestForm = $v("pFlowStepId") === "201",   // release 99: the requester's KYC request form
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
                                    P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
                                    P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"],
                                    P0_PARTY_ADDRESS: ["Headquarters Address", "Address"] };
+                    if (requestForm) {
+                        labels.P0_PARTY_NAME = ["Name (as per CR / Official Documents)", "Full name as per Official Document (in English)"];
+                        labels.P0_PARTY_INCORPORATION_DATE = ["Incorporation Date", "Date of Birth as per Official Document"];
+                    }
                     Object.keys(labels).forEach(function (item) {
                         $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
                     });
@@ -3237,6 +3497,13 @@ page 0 (
                     row("P0_PARTY_ENTITY_TYPE").insertBefore(row("P0_PARTY_NAME"))[person ? "hide" : "show"]();
                     if (person) { apex.item("P0_PARTY_ENTITY_TYPE").setValue(""); }
                     row("P0_PARTY_REGISTRATION_TYPE").insertBefore(row("P0_PARTY_REGISTRATION_NUMBER"));
+                    // release 99: the request form asks an organisation for no registration type or incorporation date
+                    if (requestForm) {
+                        ["P0_PARTY_REGISTRATION_TYPE", "P0_PARTY_INCORPORATION_DATE"].forEach(function (item) {
+                            row(item)[person ? "show" : "hide"]();
+                            if (!person) { apex.item(item).setValue(""); }
+                        });
+                    }
                     ```
             }
             execution {

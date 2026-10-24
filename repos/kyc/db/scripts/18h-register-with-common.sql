@@ -369,6 +369,9 @@ begin
     xxfnd_vpd_pkg.register_data_object(c_app, 'XXCMP_CASES', 'KYC Cases', 'XXCMP_CASES', 'DEPARTMENT',
                                        'REQUESTING_DEPARTMENT_ID', p_dimension_value_type => 'ID');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXCMP_PARTIES', 'ALL_ROWS');
+    -- release 99: a requester sees the parties he created (the new counterparty of his request), so COMMON's document
+    -- dialog (XXFND_ATTACH_PKG.RECORD_VISIBLE, read under data security) lets him attach its documents on step 2
+    rule('REQUESTER', 'XXCMP_PARTIES', 'OWN_RECORDS', 'CREATED_BY');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXCMP_RFIS', 'ALL_ROWS');
     rule(c_staff || ',SYSTEM_ADMIN', 'XXFND_RFIS', 'ALL_ROWS');
     rule('REQUESTER', 'XXCMP_RFIS', 'OWN_RECORDS', 'RECIPIENT_USER_NAME');
