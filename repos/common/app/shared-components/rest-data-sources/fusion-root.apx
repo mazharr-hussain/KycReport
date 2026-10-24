@@ -1,0 +1,34 @@
+restDataSource FUSION_ROOT (
+    name: Fusion Root
+    source {
+        type: http
+        remoteServer: @apex-fa-iabwbn-dev1-rest-apis
+        urlPathPrefix: /
+    }
+    authentication {
+        credentials: @apex-fa-iabwbn-dev1-dbms-cred
+    }
+    comments {
+        comments: Release 107 - the root of the Fusion server for the Fusion Objects engine (purpose FUSION_OBJECTS): BICC metadata and jobs (biacm/rest/meta) and any Fusion REST resource, by path, through XXFND_INTEGRATION_PKG.CALL with the one Fusion credential.
+    }
+
+    dataProfile {
+        name: FUSION_ROOT
+        rowSelector: items
+    }
+
+    dataProfileColumn links (
+        columnName: LINKS
+        source {
+            sequence: 1
+            dataType: varchar2
+        }
+        parsing {
+            pathExpression: links
+        }
+        advanced {
+            sourceDataType: varchar2
+        }
+    )
+
+)

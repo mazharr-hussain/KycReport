@@ -1,0 +1,26 @@
+automation fusion-objects-run (
+    name: Fusion Objects run
+    execution {
+        scheduleExpression: FREQ=MINUTELY;INTERVAL=15
+        scheduleStatus: disabled
+        actionsInitiatedOn: always
+    }
+    comments {
+        comments: Release 107 - runs the onboarded Fusion objects that are due (BICC extract and load, REST replica pull) and the daily metadata (drift) check, through XXFND_FI_RUN_PKG.RUN_DUE. Installed disabled; switch it on once the Fusion server, its credential and (for BICC) the Object Storage server are set up. Does nothing while no object is active.
+    }
+
+    action run-due (
+        name: Run the due objects
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                xxfnd_fi_run_pkg.run_due;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+    )
+
+)

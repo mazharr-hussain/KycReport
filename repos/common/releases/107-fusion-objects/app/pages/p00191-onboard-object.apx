@@ -1,0 +1,1489 @@
+page 191 (
+    name: Onboard Object
+    alias: ONBOARD-OBJECT
+    title: Onboard Object
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-create
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            Onboarding a Fusion object in four steps, all from live metadata of the Fusion pod:
+            1. Find it in the catalog (Harvest BICC / Harvest REST refresh the catalog; Add REST Resource reads one resource by its path) and select it.
+            2. Choose its attributes (primary keys and the last-update date are pre-selected) and, for a REST resource, its children.
+            3. Choose the mode (replica, real-time, push), the schedule and, for a BICC replica, the Object Storage server and bucket of its extract.
+            4. Activate: the tables, the business view, the BICC configuration and job are generated and the object runs on schedule.
+            ```
+    }
+
+    region breadcrumb (
+        name: Onboard Object
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region step-1 (
+        name: Find the Object
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '1' or :P191_STEP is null
+                ```
+        }
+    )
+
+    pageItem P191_REST_PATH (
+        type: textField
+        label {
+            label: REST Resource Path
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @step-1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: A Fusion REST resource by its path under the Fusion server, e.g. hcmRestApi/resources/11.13.18.05/workers. Add REST Resource reads its describe and adds it to the catalog.
+        }
+    )
+
+    region catalog (
+        name: Fusion Catalog
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.catalog_id, c.source_type, c.business_name, c.source_name, c.offering_name, c.description, c.harvested_date,
+                       (select max(o.business_name) from xxfnd_fi_objects o
+                         where o.source_type = c.source_type and o.source_name = c.source_name and o.parent_object_id is null) as onboarded_as,
+                       -- release 107: Select makes the DRAFT object and goes to step 2
+                       apex_page.get_url(p_page => 191, p_request => 'SELECT', p_items => 'P191_CATALOG_ID', p_values => c.catalog_id) as select_url
+                  from xxfnd_fi_catalog c
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: catalog
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: The catalog is empty: Harvest BICC or Harvest REST reads the Fusion metadata.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '1' or :P191_STEP is null
+                ```
+        }
+
+        column BUSINESS_NAME (
+            type: plainText
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#SELECT_URL#">#BUSINESS_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_TYPE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_NAME (
+            type: plainText
+            heading {
+                heading: Fusion Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OFFERING_NAME (
+            type: plainText
+            heading {
+                heading: Offering / API
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ONBOARDED_AS (
+            type: plainText
+            heading {
+                heading: Onboarded As
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column HARVESTED_DATE (
+            type: plainText
+            heading {
+                heading: Harvested
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: TIMESTAMP
+            }
+        )
+
+        column CATALOG_ID (
+            type: hidden
+            heading {
+                heading: Catalog ID
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column SELECT_URL (
+            type: hidden
+            heading {
+                heading: Select Url
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    region attributes (
+        name: Attributes
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 107: the live attributes of the object; select the ones to keep, name them for the business
+                select object_id, attribute_name, column_name, business_name, data_type, data_length, pk_flag, custom_flag,
+                       last_update_flag, selected_flag
+                  from xxfnd_fi_attributes
+                 where object_id = :P191_OBJECT_ID and status_code = 'ACTIVE'
+                ```
+            pageItemsToSubmit: [
+                P191_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: attributes
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No attribute: the metadata of this object could not be read.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '2'
+                ```
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @ATTRIBUTE_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @SELECTED_FLAG
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @BUSINESS_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @COLUMN_NAME
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @DATA_TYPE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @DATA_LENGTH
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PK_FLAG
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CUSTOM_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @LAST_UPDATE_FLAG
+                layout {
+                    sequence: 9
+                }
+            )
+
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column OBJECT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: OBJECT_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column ATTRIBUTE_NAME (
+            type: displayOnly
+            heading {
+                heading: Attribute
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ATTRIBUTE_NAME
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column SELECTED_FLAG (
+            type: switch
+            heading {
+                heading: Selected
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SELECTED_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column BUSINESS_NAME (
+            type: textField
+            heading {
+                heading: Business Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: BUSINESS_NAME
+                dataType: varchar2
+            }
+        )
+
+        column COLUMN_NAME (
+            type: displayOnly
+            heading {
+                heading: Column
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: COLUMN_NAME
+                dataType: varchar2
+            }
+        )
+
+        column DATA_TYPE (
+            type: displayOnly
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DATA_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column DATA_LENGTH (
+            type: displayOnly
+            heading {
+                heading: Length
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: DATA_LENGTH
+                dataType: number
+            }
+        )
+
+        column PK_FLAG (
+            type: displayOnly
+            heading {
+                heading: Key
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: PK_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column CUSTOM_FLAG (
+            type: displayOnly
+            heading {
+                heading: Custom
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CUSTOM_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column LAST_UPDATE_FLAG (
+            type: displayOnly
+            heading {
+                heading: Last Update
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: LAST_UPDATE_FLAG
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    region children (
+        name: Child Resources
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 107: REST children (describe); a selected child becomes an object of its own on Activate
+                select object_id, child_name, child_path, selected_flag
+                  from xxfnd_fi_children
+                 where object_id = :P191_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P191_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 45
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: children
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                update
+            ]
+        }
+        pagination {
+            type: page
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No child resource.
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '2' and exists (select 1 from xxfnd_fi_children where object_id = :P191_OBJECT_ID)
+                ```
+        }
+
+        savedReport PRIMARY (
+            visibility: primary
+            view {
+                default: grid
+            }
+
+            displayColumn (
+                column: @CHILD_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @SELECTED_FLAG
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CHILD_PATH
+                layout {
+                    sequence: 3
+                }
+            )
+
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 5
+            }
+        )
+
+        column OBJECT_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: OBJECT_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column CHILD_NAME (
+            type: displayOnly
+            heading {
+                heading: Child
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CHILD_NAME
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column SELECTED_FLAG (
+            type: switch
+            heading {
+                heading: Selected
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: SELECTED_FLAG
+                dataType: varchar2
+            }
+        )
+
+        column CHILD_PATH (
+            type: displayOnly
+            heading {
+                heading: Path
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: CHILD_PATH
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    region step-3 (
+        name: Mode and Schedule
+        type: staticContent
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '3'
+                ```
+        }
+    )
+
+    pageItem P191_BUSINESS_NAME (
+        type: textField
+        label {
+            label: Business Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @step-3
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    pageItem P191_MODE (
+        type: selectList
+        label {
+            label: Mode
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Replica (copied into the database on a schedule);REPLICA,Real-time (read from Fusion when needed);REALTIME,Push (sent to Fusion);PUSH
+        }
+        layout {
+            sequence: 20
+            region: @step-3
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        help {
+            helpText: Replica: kept in a table and read through the business view. Real-time and push: the applications call XXFND_FI_RUN_PKG.FETCH_ROWS / PUSH.
+        }
+    )
+
+    pageItem P191_SCHEDULE (
+        type: numberField
+        label {
+            label: Every (Minutes)
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @step-3
+            slot: regionBody
+            startNewRow: false
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Replica only: minutes between runs (1440 = daily).
+        }
+    )
+
+    pageItem P191_STORAGE_SERVER (
+        type: selectList
+        label {
+            label: Object Storage Server
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select server_name as display_value, server_code as return_value
+                  from xxfnd_servers
+                 where server_type = 'OBJECT_STORAGE' and enabled_flag = 'Y'
+                 order by server_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Not BICC -
+        }
+        layout {
+            sequence: 40
+            region: @step-3
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: BICC replica only: the Object Storage server (Servers screen) whose credential is the DBMS_CLOUD credential; BICC writes the extract there.
+        }
+    )
+
+    pageItem P191_BUCKET (
+        type: textField
+        label {
+            label: Bucket
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @step-3
+            slot: regionBody
+            startNewRow: false
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P191_PREFIX (
+        type: textField
+        label {
+            label: Prefix
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @step-3
+            slot: regionBody
+            startNewRow: false
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region review (
+        name: What Activate Generates
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select o.business_name, o.source_type, o.source_name, o.object_code,
+                       'XXFI_' || o.object_code || '_V' as business_view,
+                       (select count(*) from xxfnd_fi_attributes a where a.object_id = o.object_id and a.selected_flag = 'Y' and a.status_code = 'ACTIVE') as attributes,
+                       (select count(*) from xxfnd_fi_children c where c.object_id = o.object_id and c.selected_flag = 'Y') as children
+                  from xxfnd_fi_objects o
+                 where o.object_id = :P191_OBJECT_ID
+                ```
+            pageItemsToSubmit: [
+                P191_OBJECT_ID
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: review
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Select an object first.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '3'
+                ```
+        }
+
+        column BUSINESS_NAME (
+            type: plainText
+            heading {
+                heading: Object
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_TYPE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SOURCE_NAME (
+            type: plainText
+            heading {
+                heading: Fusion Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OBJECT_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BUSINESS_VIEW (
+            type: plainText
+            heading {
+                heading: Business View (replica)
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ATTRIBUTES (
+            type: plainText
+            heading {
+                heading: Attributes
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column CHILDREN (
+            type: plainText
+            heading {
+                heading: Children
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P191_STEP (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+    )
+
+    pageItem P191_OBJECT_ID (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P191_CATALOG_ID (
+        type: hidden
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    button harvest-bicc (
+        buttonName: HARVEST_BICC
+        label: Harvest BICC
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '1' or :P191_STEP is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button harvest-rest (
+        buttonName: HARVEST_REST
+        label: Harvest REST
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '1' or :P191_STEP is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button add-rest (
+        buttonName: ADD_REST
+        label: Add REST Resource
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '1' or :P191_STEP is null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button back (
+        buttonName: BACK
+        label: Back
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP in ('2', '3')
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 50
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '2'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button activate (
+        buttonName: ACTIVATE
+        label: Activate
+        layout {
+            sequence: 60
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Activate this object? Its tables, business view and (BICC) job are generated and it runs on schedule.
+            style: warning
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '3'
+                ```
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process select-object (
+        name: Create the draft object
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: the selected catalog row becomes a DRAFT object (live attributes); step 2
+                :P191_OBJECT_ID := xxfnd_fi_registry_pkg.create_object(to_number(:P191_CATALOG_ID));
+                :P191_STEP := '2';
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'SELECT' and :P191_CATALOG_ID is not null
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process load-mode (
+        name: Load the mode
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: step 3 shows the object's mode and storage
+                for o in (select * from xxfnd_fi_objects where object_id = :P191_OBJECT_ID) loop
+                    :P191_BUSINESS_NAME := o.business_name;
+                    :P191_MODE          := o.mode_code;
+                    :P191_SCHEDULE      := nvl(o.schedule_minutes, 1440);
+                    :P191_STORAGE_SERVER := o.storage_server_code;
+                    :P191_BUCKET        := o.storage_bucket;
+                    :P191_PREFIX        := o.storage_prefix;
+                end loop;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P191_STEP = '3' and :P191_OBJECT_ID is not null
+                ```
+        }
+        security {
+            authorizationScheme: @page-view
+        }
+    )
+
+    process save-attributes (
+        name: Save the attributes
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @attributes
+        execution {
+            sequence: 10
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process save-children (
+        name: Save the children
+        type: interactiveGridAutoRowProcessing
+        editableRegion: @children
+        execution {
+            sequence: 15
+            point: processing
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process harvest (
+        name: Harvest the catalog
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: live metadata from the Fusion pod (one credential)
+                declare
+                    l_n number;
+                begin
+                    l_n := case :REQUEST when 'HARVEST_BICC' then xxfnd_fi_meta_pkg.harvest_bicc
+                                         else xxfnd_fi_meta_pkg.harvest_rest end;
+                    apex_application.g_print_success_message := l_n || ' object(s) read from Fusion.';
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: HARVEST_BICC,HARVEST_REST
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process add-rest (
+        name: Add a REST resource
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: one REST resource by its path (describe), selected at once
+                :P191_CATALOG_ID := xxfnd_fi_meta_pkg.add_rest_resource(:P191_REST_PATH);
+                :P191_OBJECT_ID  := xxfnd_fi_registry_pkg.create_object(to_number(:P191_CATALOG_ID));
+                :P191_STEP := '2';
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ADD_REST
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process step (
+        name: Next / Back
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: the step shown
+                :P191_STEP := case :REQUEST when 'NEXT' then to_char(to_number(:P191_STEP) + 1)
+                                            when 'BACK' then to_char(greatest(to_number(:P191_STEP) - 1, 1)) end;
+                ```
+        }
+        execution {
+            sequence: 40
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,BACK
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process activate (
+        name: Activate the object
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 107: through the registry (generators, BICC configuration, schedule)
+                xxfnd_fi_registry_pkg.set_mode(to_number(:P191_OBJECT_ID), :P191_MODE, to_number(:P191_SCHEDULE), :P191_BUSINESS_NAME,
+                                               :P191_STORAGE_SERVER, :P191_BUCKET, :P191_PREFIX);
+                xxfnd_fi_registry_pkg.activate(to_number(:P191_OBJECT_ID));
+                ```
+        }
+        execution {
+            sequence: 50
+            point: processing
+        }
+        successMessage {
+            successMessage: Object activated.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: ACTIVATE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    branch (
+        name: After Activate: the object
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 192
+                items: {
+                    P192_OBJECT_ID: &P191_OBJECT_ID.
+                }
+                clearCache: 191,192
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'ACTIVATE'
+                ```
+        }
+    )
+
+    branch (
+        name: Stay on the onboarding
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 191
+            }
+        }
+    )
+
+)

@@ -2123,6 +2123,110 @@
    "whole": false
   }
  ],
+ "apex/db/40a-xxfnd-fi-catalog.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql",
+   "to": 2074,
+   "whole": true
+  }
+ ],
+ "apex/db/40b-xxfnd-fi-objects.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql",
+   "to": 3870,
+   "whole": true
+  }
+ ],
+ "apex/db/40c-xxfnd-fi-attributes.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql",
+   "to": 2673,
+   "whole": true
+  }
+ ],
+ "apex/db/40d-xxfnd-fi-children.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_children.sql",
+   "to": 1822,
+   "whole": true
+  }
+ ],
+ "apex/db/40e-xxfnd-fi-versions.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql",
+   "to": 1893,
+   "whole": true
+  }
+ ],
+ "apex/db/40f-xxfnd-fi-drift.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql",
+   "to": 2516,
+   "whole": true
+  }
+ ],
+ "apex/db/40g-xxfnd-fi-runs.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql",
+   "to": 2279,
+   "whole": true
+  }
+ ],
+ "apex/db/40h-xxfnd-fi-meta-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/packages/xxfnd_fi_meta_pkg.sql",
+   "to": 13812,
+   "whole": true
+  }
+ ],
+ "apex/db/40i-xxfnd-fi-gen-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/packages/xxfnd_fi_gen_pkg.sql",
+   "to": 13953,
+   "whole": true
+  }
+ ],
+ "apex/db/40j-xxfnd-fi-registry-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/packages/xxfnd_fi_registry_pkg.sql",
+   "to": 13739,
+   "whole": true
+  }
+ ],
+ "apex/db/40k-xxfnd-fi-drift-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/packages/xxfnd_fi_drift_pkg.sql",
+   "to": 11937,
+   "whole": true
+  }
+ ],
+ "apex/db/40l-xxfnd-fi-run-pkg.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/packages/xxfnd_fi_run_pkg.sql",
+   "to": 24597,
+   "whole": true
+  }
+ ],
+ "apex/db/40z-fusion-objects-setup.sql": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/db/scripts/40z-fusion-objects-setup.sql",
+   "to": 4357,
+   "whole": true
+  }
+ ],
  "apex/db/99-share-with-applications-last.sql": [
   {
    "from": 27790,
@@ -2817,6 +2921,46 @@
    "whole": true
   }
  ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00190-fusion-objects.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/pages/p00190-fusion-objects.apx",
+   "to": 7744,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00191-onboard-object.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/pages/p00191-onboard-object.apx",
+   "to": 37862,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00192-object-detail.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/pages/p00192-object-detail.apx",
+   "to": 29374,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00193-drift-queue.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/pages/p00193-drift-queue.apx",
+   "to": 8076,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/pages/p00194-run-log.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/pages/p00194-run-log.apx",
+   "to": 6129,
+   "whole": true
+  }
+ ],
  "apex/src/database/xxfusion/apex_apps/f135/pages/p09999-login.apx": [
   {
    "from": 0,
@@ -2947,6 +3091,14 @@
    "whole": true
   }
  ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/automations/fusion-objects-run.apx": [
+  {
+   "from": 0,
+   "target": "common/features/fusion-objects/shared-components/automations/fusion-objects-run.apx",
+   "to": 868,
+   "whole": true
+  }
+ ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/automations/task-deadlines.apx": [
   {
    "from": 0,
@@ -2959,7 +3111,7 @@
   {
    "from": 0,
    "target": "common/app/shared-components/breadcrumbs.apx",
-   "to": 21335,
+   "to": 23325,
    "whole": true
   }
  ],
@@ -3174,6 +3326,14 @@
    "from": 0,
    "target": "common/app/shared-components/rest-data-sources/fusion-hcm-workers.apx",
    "to": 2080,
+   "whole": true
+  }
+ ],
+ "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/fusion-root.apx": [
+  {
+   "from": 0,
+   "target": "common/app/shared-components/rest-data-sources/fusion-root.apx",
+   "to": 886,
    "whole": true
   }
  ],
