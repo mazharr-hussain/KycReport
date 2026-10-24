@@ -16,6 +16,14 @@
 - Database: one APEX workspace (XXCUS). XXCUS is the workspace's default (primary) schema and the parsing schema
   of the business apps (KYC = app 134); **XXFUSION** is the schema for Fusion web-service data and the COMMON
   application (shared security, setup, workflow), source `apex/src/database/xxfusion/apex_apps/f135`.
+- **Golden rule: work only in `repos/` (from the user, release 106 onwards).** Every change from now on is made in
+  the relevant folder of `repos/` only - `repos/common/` (COMMON, app 135) or `repos/kyc/` (KYC, app 134) - never in
+  `apex/`, which is frozen as history. Do not run `repos/tools/build_repos.py` again (it would overwrite `repos/` from
+  `apex/`). The uploadable version of each release (the importable APEXlang zip and its patch) is kept in git in that
+  application's own folder (`repos/<app>/releases/`). No database is started or run: changes are validated offline
+  with the Oracle skills (Db and Apex skills, APEXlang validation). Live validation is done by the user's server
+  through the web (browser) tool when the user gives access, signed in as a set of test users (one per role and
+  privilege level, per application), kept as a script in `repos/<app>/db/admin/` - prepare that set before live tests.
 - **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
   deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it. The repository is connected
   to Netlify, so every push to a branch with an open PR and every merge to main starts a Netlify build: **no push and
