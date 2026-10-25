@@ -284,7 +284,6 @@ create or replace package body xxcmp_request_pkg as
         l_dup   number;
         l_party xxcmp_parties%rowtype;
         l_error varchar2(4000);
-        l_asked boolean := true;
     begin
         if p_party_selection = 'EXISTING' then
             if p_party_id is null then
@@ -322,15 +321,9 @@ create or replace package body xxcmp_request_pkg as
                 end if;
             end if;
         end if;
-        -- release 99: no relationship and justification when the risk screening finds KYC not required
-        if p_request_id is not null then
-            l_asked := nvl(outcome_kyc_required(screening_outcome(p_request_id)), 'Yes') = 'Yes';
-        end if;
-        if not l_asked then
-            return null;
-        elsif p_draft = 'N' and trim(p_justification) is null then
-            return 'Enter the business justification.';
-        elsif p_draft = 'N' and p_business_relationship is null then
+        -- release 104: the business relationship is required whatever the risk screening finds; the business
+        -- justification is optional
+        if p_draft = 'N' and p_business_relationship is null then
             return 'Choose the business relationship (what the counterparty is to the company).';
         end if;
         return null;
@@ -378,64 +371,6 @@ create or replace package body xxcmp_request_pkg as
             xxfnd_error_pkg.raise_error('KYC_REQUEST_LOCKED', apex_t_varchar2(p_old.request_number));
         end if;
     end check_changeable;
-
-    function intake_error(p_request_id            in number,
-                          p_party_type            in varchar2,
-                          p_business_relationship in varchar2,
-                          p_draft                 in varchar2 default 'N') return varchar2 is
-    begin
-        if p_party_type is null then
-            return 'Choose the party type.';
-        elsif p_draft = 'N' and p_business_relationship is null and p_request_id is not null
-              and nvl(outcome_kyc_required(screening_outcome(p_request_id)), 'Yes') = 'Yes' then
-            return 'Choose the business relationship (what the counterparty is to the company).';
-        end if;
-        return null;
-    end intake_error;
-
-    procedure save_intake(p_request_id               in out number,
-                          p_party_type               in varchar2,
-                          p_requesting_department_id in number,
-                          p_business_relationship    in varchar2) is
-        l_old   xxcmp_requests%rowtype;
-        l_dept  number;
-        l_type  xxcmp_requests.party_type%type;
-        l_qnr   varchar2(30);
-        l_error varchar2(4000) := intake_error(p_request_id, p_party_type, p_business_relationship, 'Y');
-    begin
-        if l_error is not null then
-            raise_application_error(-20611, l_error);
-        end if;
-        if p_request_id is not null then
-            l_old := get_request(p_request_id);
-            check_changeable(l_old);
-            reopen_rejected(l_old);
-        end if;
-        l_dept := request_department(p_requesting_department_id);
-        if p_request_id is null then
-            -- the counterparty's name comes with step 2 (SAVE_REQUEST); the column is required
-            p_request_id := create_request(p_party_type => p_party_type, p_party_name => 'New counterparty',
-                                           p_requesting_department_id => l_dept,
-                                           p_business_relationship => p_business_relationship);
-            return;
-        end if;
-        -- the party type changes only while the request has no party (and with it the questionnaire)
-        l_type := case when l_old.party_id is null and l_old.request_status = 'DRAFT' then p_party_type
-                       else l_old.party_type end;
-        l_qnr  := questionnaire_for(l_type);    -- a private function is not called inside SQL
-        update xxcmp_requests
-           set party_type               = l_type,
-               business_relationship    = p_business_relationship,
-               requesting_department_id = case when l_old.request_status = 'DRAFT' then l_dept
-                                               else requesting_department_id end,
-               questionnaire_code       = case when l_old.request_status = 'DRAFT' then l_qnr else questionnaire_code end,
-               last_action_date         = sysdate
-         where request_id = p_request_id;
-        if l_old.request_status = 'DRAFT' and nvl(l_old.questionnaire_code, '#') <> l_qnr then
-            delete from xxcmp_request_answers where request_id = p_request_id and respondent_type = 'REQUESTER';
-            add_answer_rows(p_request_id, null, l_qnr, 'REQUESTER');
-        end if;
-    end save_intake;
 
     procedure save_request(p_request_id            in out number,
                            p_party_selection       in varchar2,
@@ -566,49 +501,6 @@ create or replace package body xxcmp_request_pkg as
             add_answer_rows(p_request_id, null, l_qnr, 'REQUESTER');
         end if;
     end save_request;
-
-    procedure save_counterparty(p_request_id          in out number,
-                                p_party_selection     in varchar2,
-                                p_party_id            in number,
-                                p_party_type          in varchar2,
-                                p_party_name          in varchar2,
-                                p_jurisdiction        in varchar2,
-                                p_registration_number in varchar2,
-                                p_entity_type         in varchar2,
-                                p_registration_type   in varchar2,
-                                p_incorporation_date  in date,
-                                p_email               in varchar2,
-                                p_phone               in varchar2,
-                                p_website             in varchar2,
-                                p_fax                 in varchar2,
-                                p_address             in varchar2,
-                                p_justification       in varchar2,
-                                p_draft               in varchar2 default 'N',
-                                p_use_existing        in varchar2 default null) is
-        l_req xxcmp_requests%rowtype := get_request(p_request_id);
-    begin
-        save_request(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
-                     p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone, p_website, p_fax,
-                     p_requesting_department_id => l_req.requesting_department_id,
-                     p_justification         => p_justification,
-                     p_draft                 => p_draft,
-                     p_contact_name          => l_req.contact_name,
-                     p_contact_email         => l_req.contact_email,
-                     p_contact_phone         => l_req.contact_phone,
-                     p_match_ack             => 'Y',
-                     p_registration_type     => p_registration_type,
-                     p_address               => p_address,
-                     p_business_relationship => l_req.business_relationship,
-                     p_use_existing          => p_use_existing);
-    end save_counterparty;
-
-    function business_relationship(p_request_id in number) return varchar2 is
-    begin
-        return case when p_request_id is not null then get_request(p_request_id).business_relationship end;
-    exception
-        when no_data_found then
-            return null;
-    end business_relationship;
 
     function is_editable(p_request_id in number) return varchar2 is
         l_req xxcmp_requests%rowtype;

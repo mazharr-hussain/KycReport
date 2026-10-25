@@ -12,17 +12,10 @@ page 201 (
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
-    javaScript {
-        executeWhenPageLoads:
-            ```javascript-browser
-            // release 99: the risk screening answers go to P201_ANSWERS before every submit
-            kycQuestionnaire.bind('screening_questions', 'P201_ANSWERS');
-            ```
-    }
     help {
         helpText:
             ```
-            Step 1 of 3 (release 103): the request - the requesting department, the party type, the risk screening questions (press Check: the answers show whether a KYC report is required) and, when it is required, the business relationship type. Next goes to step 2, the business justification and the counterparty. Not required: continue to Review and Submit, attach the evidence there and submit anyway. Save as Draft keeps the request to finish later; Cancel Request withdraws it.
+            Step 1 of 3 (release 104): the request and the counterparty - the requesting department, the business relationship type (required), the business justification (optional) and the counterparty's basic information. A counterparty with the registration type, number and country of another party is not created again: choose Use the Existing Party Yes (the request uses that party) or No (change the details). Next saves and goes to the questions (step 2). Save as Draft keeps the request to finish later; Cancel Request withdraws it.
             ```
     }
 
@@ -86,342 +79,6 @@ page 201 (
     )
 
 
-    region screening (
-        name: Risk Screening
-        type: staticContent
-        layout {
-            sequence: 30
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: screening
-        }
-        comments {
-            comments: Release 99 (B1) - answer the questions and Check: the outcome (XXCMP_REQUEST_PKG.SCREENING_OUTCOME, the rule of the submit) shows whether a KYC report is required.
-        }
-    )
-
-    region screening-questions (
-        name: Screening Questions
-        type: appTemplateComponent/question
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                -- the questionnaire form from data (as page 202): one group per question, one row per approved option of a
-                -- choice question or one row for a text / number / date answer
-                -- release 99: the requester questionnaire as risk screening on step 1 - the request's answer rows once it
-                -- is saved, before that the questions of the questionnaire of the chosen party type
-                with q as (
-                    select qu.question_id, a.answer_option_id, a.answer_text, qu.answer_type, qu.required_flag,
-                           qu.display_sequence,
-                           nvl(tl.question_text, qu.question_text) as question_text,
-                           nvl(nvl(tl.section_name, qu.section_name), 'General') as section_name
-                      from xxcmp_questions qu
-                      left join xxcmp_request_answers a on a.question_id = qu.question_id
-                                                       and a.request_id = :P201_REQUEST_ID
-                                                       and a.respondent_type = 'REQUESTER'
-                      left join xxcmp_questions_tl tl on tl.question_id = qu.question_id
-                                                     and tl.language_code = xxfnd_util_pkg.current_lang
-                     where (:P201_REQUEST_ID is not null and a.request_id is not null)
-                        or (:P201_REQUEST_ID is null and qu.enabled_flag = 'Y'
-                            and qu.questionnaire_code = xxcmp_request_pkg.questionnaire_code(nvl(:P201_PARTY_TYPE, 'ORGANIZATION'))))
-                select q.question_id || '-' || o.answer_option_id as row_key,
-                       q.question_id as group_question_id,
-                       q.answer_type as group_answer_type,
-                       q.question_text,
-                       case when q.required_flag = 'Y' then 'Y' end as required,
-                       case when q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then 'Y' end as choice,
-                       -- the section title on its first question; a section's questions stay together, in the order
-                       -- of its first question
-                       case when dense_rank() over (partition by q.section_name
-                                                    order by q.display_sequence, q.question_id) = 1
-                            then q.section_name end as section_title,
-                       case when q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT')
-                            then nvl2(o.answer_option_id, 'OPTION', null)
-                            when q.answer_type in ('TEXT', 'DATE') then q.answer_type
-                            else 'NUMBER' end as row_kind,
-                       o.answer_option_id as option_id,
-                       o.answer_label as option_label,
-                       case when o.answer_option_id = q.answer_option_id then 'Y' end as checked,
-                       case when q.answer_type not in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then q.answer_text end as answer_text,
-                       min(q.display_sequence) over (partition by q.section_name) as section_seq,
-                       q.display_sequence as question_seq,
-                       o.display_sequence as option_seq
-                  from q
-                  left join xxcmp_answer_options o
-                    on o.question_id = q.question_id
-                   and q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT')
-                   and o.approval_status = 'APPROVED'
-                   and o.enabled_flag = 'Y'
-                 order by section_seq, q.section_name, question_seq, q.question_id, option_seq, o.answer_option_id
-                ```
-            pageItemsToSubmit: [
-                P201_REQUEST_ID
-                P201_PARTY_TYPE
-            ]
-        }
-        layout {
-            sequence: 10
-            parentRegion: @screening
-            slot: subRegions
-        }
-        appearance {
-            template: @/blank-with-attributes
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: screening_questions
-        }
-        componentAppearance {
-            display: report
-        }
-        settings {
-            rowKind: &ROW_KIND.
-            questionId: &GROUP_QUESTION_ID.
-            optionId: &OPTION_ID.
-            optionLabel: &OPTION_LABEL.
-            checked: &CHECKED.
-            answerText: &ANSWER_TEXT.
-            inputLabel: &QUESTION_TEXT.
-        }
-        plugin-question {
-            groupQuestionId: &GROUP_QUESTION_ID.
-            groupAnswerType: &GROUP_ANSWER_TYPE.
-            questionText: &QUESTION_TEXT.
-            required: &REQUIRED.
-            choice: &CHOICE.
-            sectionTitle: &SECTION_TITLE.
-        }
-        messages {
-            whenNoDataFound: No questions are configured for this counterparty type.
-        }
-        comments {
-            comments: Release 99 (B1) - the requester questionnaire (the questions of page 202, plus the ownership structure question) answered on step 1; kycQuestionnaire (kyc-app.js) collects the answers into P201_ANSWERS and XXCMP_REQUEST_PKG.SAVE_SCREENING checks and saves them.
-        }
-
-        column ROW_KEY (
-            layout {
-                sequence: 10
-            }
-            source {
-                databaseColumn: ROW_KEY
-                dataType: varchar2
-                primaryKey: true
-            }
-        )
-
-        column GROUP_QUESTION_ID (
-            layout {
-                sequence: 20
-            }
-            source {
-                databaseColumn: GROUP_QUESTION_ID
-                dataType: number
-            }
-            appearance {
-                group: true
-            }
-        )
-
-        column GROUP_ANSWER_TYPE (
-            layout {
-                sequence: 30
-            }
-            source {
-                databaseColumn: GROUP_ANSWER_TYPE
-                dataType: varchar2
-            }
-        )
-
-        column QUESTION_TEXT (
-            layout {
-                sequence: 40
-            }
-            source {
-                databaseColumn: QUESTION_TEXT
-                dataType: varchar2
-            }
-        )
-
-        column REQUIRED (
-            layout {
-                sequence: 50
-            }
-            source {
-                databaseColumn: REQUIRED
-                dataType: varchar2
-            }
-        )
-
-        column CHOICE (
-            layout {
-                sequence: 60
-            }
-            source {
-                databaseColumn: CHOICE
-                dataType: varchar2
-            }
-        )
-
-        column SECTION_TITLE (
-            layout {
-                sequence: 70
-            }
-            source {
-                databaseColumn: SECTION_TITLE
-                dataType: varchar2
-            }
-        )
-
-        column ROW_KIND (
-            layout {
-                sequence: 80
-            }
-            source {
-                databaseColumn: ROW_KIND
-                dataType: varchar2
-            }
-        )
-
-        column OPTION_ID (
-            layout {
-                sequence: 90
-            }
-            source {
-                databaseColumn: OPTION_ID
-                dataType: number
-            }
-        )
-
-        column OPTION_LABEL (
-            layout {
-                sequence: 100
-            }
-            source {
-                databaseColumn: OPTION_LABEL
-                dataType: varchar2
-            }
-        )
-
-        column CHECKED (
-            layout {
-                sequence: 110
-            }
-            source {
-                databaseColumn: CHECKED
-                dataType: varchar2
-            }
-        )
-
-        column ANSWER_TEXT (
-            layout {
-                sequence: 120
-            }
-            source {
-                databaseColumn: ANSWER_TEXT
-                dataType: varchar2
-            }
-        )
-
-        column SECTION_SEQ (
-            layout {
-                sequence: 130
-            }
-            source {
-                databaseColumn: SECTION_SEQ
-                dataType: number
-            }
-        )
-
-        column QUESTION_SEQ (
-            layout {
-                sequence: 140
-            }
-            source {
-                databaseColumn: QUESTION_SEQ
-                dataType: number
-            }
-        )
-
-        column OPTION_SEQ (
-            layout {
-                sequence: 150
-            }
-            source {
-                databaseColumn: OPTION_SEQ
-                dataType: number
-            }
-        )
-
-    )
-
-    pageItem P201_KYC_REQUIRED (
-        type: displayOnly
-        label {
-            label: KYC Report Required
-            alignment: left
-        }
-        layout {
-            sequence: 20
-            region: @screening
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-        }
-        settings {
-            sendOnPageSubmit: false
-        }
-        help {
-            helpText: The outcome of the risk screening answers, from the KYC rules. Press Check again after changing an answer.
-        }
-    )
-
-    region not-required (
-        name: KYC Report Not Required
-        type: staticContent
-        source {
-            htmlCode:
-                ```html
-                <p>The risk screening shows that a KYC report is not required for this counterparty.</p>
-                <p>Attach the evidence (for example the stock exchange listing, or the government ownership document) at Review and Submit, under Request Documents, then submit the request anyway: it is recorded as not requiring KYC.</p>
-                ```
-        }
-        layout {
-            sequence: 35
-            slot: BODY
-        }
-        appearance {
-            template: @/alert
-            templateOptions: [
-                #DEFAULT#
-                t-Alert--colorBG
-                t-Alert--horizontal
-                t-Alert--defaultIcons
-                t-Alert--info
-            ]
-        }
-        advanced {
-            htmlDomId: not_required
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxcmp_request_pkg.outcome_kyc_required(:P201_SCREENING) = 'No'
-                ```
-        }
-    )
-
     region relationship (
         name: Business Relationship
         type: staticContent
@@ -436,16 +93,8 @@ page 201 (
         advanced {
             htmlDomId: relationship
         }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxcmp_request_pkg.outcome_kyc_required(:P201_SCREENING) = 'Yes'
-                ```
-        }
         comments {
-            comments: Release 99 (B3) - asked only when the risk screening finds a KYC report required.
+            comments: Release 104 - the business relationship type (required) and the business justification (optional), whatever the risk screening finds.
         }
     )
 
@@ -521,45 +170,6 @@ page 201 (
         }
     )
 
-    pageItem P201_SCREENING (
-        type: hidden
-        layout {
-            sequence: 5
-            region: @request
-            slot: regionBody
-        }
-        settings {
-            valueProtected: true
-        }
-        comments {
-            comments: Release 99 - the intake outcome of the saved screening answers (XXCMP_REQUEST_PKG.SCREENING_OUTCOME), set when the page loads.
-        }
-    )
-
-    pageItem P201_ANSWERS (
-        type: hidden
-        layout {
-            sequence: 6
-            region: @request
-            slot: regionBody
-        }
-        sessionState {
-            dataType: clob
-        }
-        settings {
-            valueProtected: false
-        }
-        security {
-            sessionStateProtection: unrestricted
-        }
-        comments {
-            comments:
-                ```
-                Unrestricted on purpose: filled in the browser just before submit by kycQuestionnaire (kyc-app.js). XXCMP_REQUEST_PKG.SAVE_SCREENING / SAVE_ANSWERS re-check every question and option on the server.
-                ```
-        }
-    )
-
     pageItem P201_REQUESTING_DEPARTMENT (
         type: selectList
         label {
@@ -620,58 +230,6 @@ page 201 (
         }
     )
 
-    pageItem P201_PARTY_TYPE (
-        type: radioGroup
-        label {
-            label: Party Type
-            alignment: left
-        }
-        lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select /* release 103: chosen on step 1 - it decides the risk screening questionnaire; the requester's
-                          form names the types as the KYC policy does (as P0_PARTY_TYPE on step 2) */
-                       case lookup_code when 'ORGANIZATION' then 'Legal Person'
-                                        when 'PERSON' then 'Natural Person (Individual)'
-                                        else meaning end as display_value,
-                       lookup_code as return_value
-                  from xxfnd_lookup_values
-                 where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
-                 order by display_sequence, meaning
-                ```
-            displayNullValue: false
-        }
-        layout {
-            sequence: 12
-            region: @request
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/required-above
-            templateOptions: #DEFAULT#
-        }
-        validation {
-            valueRequired: true
-        }
-        default {
-            type: static
-            staticValue: ORGANIZATION
-        }
-        readOnly {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :P201_PARTY_ID is not null
-                ```
-        }
-        help {
-            helpText: Legal Person (a company or other organisation) or Natural Person (an individual). It decides the risk screening questions; it cannot be changed once the counterparty is entered on step 2.
-        }
-    )
-
     pageItem P201_BUSINESS_RELATIONSHIP (
         type: selectList
         label {
@@ -704,6 +262,182 @@ page 201 (
             helpText: What the counterparty is to the company for this request (customer, vendor...). One relationship per request; a party that is both a customer and a vendor gets one request for each. It goes on to the case and can choose the approval path.
         }
     )
+
+    pageItem P201_JUSTIFICATION (
+        type: textarea
+        label {
+            label: Business Justification
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @relationship
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+        help {
+            helpText: Why the organisation wants to deal with this counterparty (optional).
+        }
+    )
+
+    pageItem P201_USE_EXISTING (
+        type: radioGroup
+        label {
+            label: Use the Existing Party
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Yes;Y,No - I will change the details;N
+            displayNullValue: false
+        }
+        layout {
+            sequence: 90
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P201_PARTY_SELECTION, 'NEW') <> 'EXISTING'
+                and xxcmp_request_pkg.duplicate_party_id(to_number(:P201_REQUEST_ID), :P0_PARTY_TYPE,
+                        :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_TYPE) is not null
+                ```
+        }
+        help {
+            helpText: Another party already has this registration type, registration number and country. Yes - the request uses that party (no new party is created). No - change the registration type, number or country.
+        }
+        comments {
+            comments: Release 100 - shown only when the counterparty duplicates a party (XXCMP_REQUEST_PKG.DUPLICATE_PARTY_ID); XXCMP_REQUEST_PKG.REQUEST_ERROR / SAVE_REQUEST read it.
+        }
+    )
+
+    pageItem P201_CONTACT_NAME (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
+        }
+        layout {
+            sequence: 92
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 240
+        }
+        help {
+            helpText: Who the organisation deals with at the counterparty (or the individual).
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_EMAIL (
+        type: textField
+        label {
+            label: Contact Email
+            alignment: left
+        }
+        layout {
+            sequence: 94
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+    pageItem P201_CONTACT_PHONE (
+        type: textField
+        label {
+            label: Contact Phone
+            alignment: left
+        }
+        layout {
+            sequence: 96
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+        config {
+            buildOption: @request-contact
+        }
+    )
+
+
+
+
+    dynamicAction existing-or-new (
+        name: Existing party or new counterparty
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P201_PARTY_SELECTION
+        }
+
+        action existing-or-new-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // a new counterparty is entered in the common party form (Global Page region)
+                    var isNew = apex.item("P201_PARTY_SELECTION").getValue() !== "EXISTING";
+                    $("#party-form, #possible_matches")[isNew ? "show" : "hide"]();
+                    $("#party_card")[isNew ? "hide" : "show"]();
+                    apex.item("P201_PARTY_ID")[isNew ? "hide" : "show"]();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+    )
+
+
+
 
     button cancel (
         buttonName: CANCEL
@@ -784,28 +518,6 @@ page 201 (
         }
     )
 
-    button check (
-        buttonName: CHECK
-        label: Check
-        layout {
-            sequence: 30
-            region: @screening
-            slot: NEXT
-        }
-        appearance {
-            buttonTemplate: @/text
-            templateOptions: #DEFAULT#
-            icon: fa-check-circle-o
-        }
-        behavior {
-            action: submitPage
-            warnOnUnsavedChanges: doNotCheck
-        }
-        security {
-            authorizationScheme: @page-create
-        }
-    )
-
     button next (
         buttonName: NEXT
         label: Next
@@ -818,126 +530,52 @@ page 201 (
             buttonTemplate: @/text
             hot: true
             templateOptions: #DEFAULT#
-            cssClasses: kyc-screening-next
         }
         behavior {
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                xxcmp_request_pkg.outcome_kyc_required(:P201_SCREENING) is not null
-                ```
         }
         security {
             authorizationScheme: @page-create
         }
     )
 
-    dynamicAction party-type-changed (
-        name: Party type changed - other questions
-        execution {
-            sequence: 50
-        }
-        when {
-            event: change
-            selectionType: items
-            items: P201_PARTY_TYPE
-        }
-
-        action party-type-refresh (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @screening-questions
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-        action party-type-check-again (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    // release 103: another party type answers another questionnaire - check again
-                    $(".kyc-screening-next, #relationship, #not_required").hide();
-                    $("#P201_KYC_REQUIRED_DISPLAY").text("Answers changed: press Check.");
-                    ```
-            }
-            execution {
-                sequence: 20
-                fireOnInit: false
-            }
-        )
-    )
-
-    dynamicAction screening-changed (
-        name: Screening answer changed - check again
-        execution {
-            sequence: 60
-            eventScope: dynamic
-            staticContainer: screening
-        }
-        when {
-            event: change
-            selectionType: jQuerySelector
-            jquerySelector: #screening input, #screening textarea, #screening select
-        }
-
-        action screening-changed-js (
-            action: executeJsCode
-            settings {
-                jsCode:
-                    ```javascript
-                    // release 99: the outcome shown belongs to the saved answers - a changed answer is checked again first
-                    $(".kyc-screening-next, #relationship, #not_required").hide();
-                    apex.item("P201_KYC_REQUIRED").setValue("Answers changed: press Check.");
-                    $("#P201_KYC_REQUIRED_DISPLAY").text("Answers changed: press Check.");
-                    ```
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
-
-    )
-
     process load-request (
-        name: Load the request
+        name: Load the request and its counterparty
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
+                declare
+                    l_party number;
                 begin
                     -- release 99: after a failed Next / Check / Save the page shows the posted values (no reload)
-                    if :REQUEST in ('NEXT', 'CHECK', 'SAVE_DRAFT', 'CANCEL_REQUEST') then
+                    if :REQUEST in ('NEXT', 'SAVE_DRAFT', 'CANCEL_REQUEST') then
                         return;
                     end if;
-                    -- release 103: step 1 is the request only; the counterparty is entered on step 2 (page 204)
+                    -- release 100: a fresh answer to Use the existing party for each counterparty
+                    :P201_USE_EXISTING := null;
                     if :P201_REQUEST_ID is not null then
-                        select party_selection, party_id, request_status, requesting_department_id, party_type,
-                               business_relationship
-                          into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_REQUEST_STATUS, :P201_REQUESTING_DEPARTMENT,
-                               :P201_PARTY_TYPE, :P201_BUSINESS_RELATIONSHIP
+                        select business_relationship into :P201_BUSINESS_RELATIONSHIP from xxcmp_requests where request_id = :P201_REQUEST_ID;
+                        select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
+                               requesting_department_id, justification, contact_name, contact_email, contact_phone,
+                               case when party_selection = 'NEW' then party_id end
+                          into :P201_PARTY_SELECTION, :P201_PARTY_ID, :P201_REQUEST_STATUS,
+                               :P201_REQUESTING_DEPARTMENT, :P201_JUSTIFICATION, :P201_CONTACT_NAME, :P201_CONTACT_EMAIL,
+                               :P201_CONTACT_PHONE, l_party
                           from xxcmp_requests
                          where request_id = :P201_REQUEST_ID;
                     end if;
+                    -- the new counterparty in the common party form: editable while it is the request's Pending party
+                    xxcmp_party_pkg.load_items(l_party,
+                        case when xxcmp_request_pkg.party_editable(:P201_REQUEST_ID) = 'Y' then 'N' else 'Y' end);
+                    -- the common Party summary (existing party) and the duplicate confirmation
                     :P0_REQUEST_ID := :P201_REQUEST_ID;
-                    -- release 99: the outcome of the saved risk screening answers
-                    :P201_SCREENING := case when :P201_REQUEST_ID is not null
-                                            then xxcmp_request_pkg.screening_outcome(:P201_REQUEST_ID) end;
-                    :P201_KYC_REQUIRED := case xxcmp_request_pkg.outcome_kyc_required(:P201_SCREENING)
-                                              when 'Yes' then 'Yes - choose the business relationship type, then Next.'
-                                              when 'No'  then 'No - press Next, attach the evidence at Review and Submit and submit anyway.'
-                                              else 'Answer the questions, then press Check.' end;
+                    :P0_SUMMARY_PARTY_ID := :P201_PARTY_ID;
+                    if :P201_REQUEST_ID is not null then
+                        select match_ack_flag into :P0_PARTY_MATCH_ACK from xxcmp_requests where request_id = :P201_REQUEST_ID;
+                    end if;
                 end;
                 ```
         }
@@ -948,7 +586,7 @@ page 201 (
     )
 
     validation request-rules (
-        name: Request rules
+        name: Request and counterparty rules
         execution {
             sequence: 10
         }
@@ -957,22 +595,36 @@ page 201 (
             language: plsql
             plsqlFunctionBody:
                 ```plsql
-                -- release 103: one rule set for the page and the database (step 1 is the request only)
-                return xxcmp_request_pkg.intake_error(
-                           p_request_id            => to_number(:P201_REQUEST_ID),
-                           p_party_type            => :P201_PARTY_TYPE,
+                -- one rule set for the page and the database; Save as Draft only needs the type and a name or party
+                return xxcmp_request_pkg.request_error(
+                           p_request_id          => to_number(:P201_REQUEST_ID),
+                           p_party_selection     => nvl(:P201_PARTY_SELECTION, 'NEW'),
+                           p_party_id            => to_number(:P201_PARTY_ID),
+                           p_party_type          => :P0_PARTY_TYPE,
+                           p_party_name          => :P0_PARTY_NAME,
+                           p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                           p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                           p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                           p_registration_type   => :P0_PARTY_REGISTRATION_TYPE,
                            p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
-                           p_draft                 => case when :REQUEST in ('SAVE_DRAFT', 'CHECK') then 'Y' else 'N' end);
+                           p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                           p_email               => :P0_PARTY_EMAIL,
+                           p_phone               => :P0_PARTY_PHONE,
+                           p_justification       => :P201_JUSTIFICATION,
+                           p_draft               => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+                           -- release 99: no Possible Matches on the request form (Compliance merges a duplicate)
+                           p_match_ack           => 'Y',
+                           p_use_existing        => :P201_USE_EXISTING);
                 ```
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: NEXT,SAVE_DRAFT,CHECK
+            value: NEXT,SAVE_DRAFT
         }
     )
 
     process save-request (
-        name: Save the request
+        name: Save the request and its counterparty
         type: executeCode
         source {
             language: plsql
@@ -981,15 +633,32 @@ page 201 (
                 declare
                     l_request_id number := to_number(:P201_REQUEST_ID);
                 begin
-                    -- release 103: the request of step 1; the counterparty is saved on step 2
-                    xxcmp_request_pkg.save_intake(
-                        p_request_id               => l_request_id,
-                        p_party_type               => :P201_PARTY_TYPE,
+                    xxcmp_request_pkg.save_request(
+                        p_request_id            => l_request_id,
+                        p_party_selection       => nvl(:P201_PARTY_SELECTION, 'NEW'),
+                        p_party_id              => to_number(:P201_PARTY_ID),
+                        p_party_type            => :P0_PARTY_TYPE,
+                        p_party_name            => :P0_PARTY_NAME,
+                        p_jurisdiction          => :P0_PARTY_JURISDICTION,
+                        p_registration_number   => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type           => :P0_PARTY_ENTITY_TYPE,
+                        p_registration_type     => :P0_PARTY_REGISTRATION_TYPE,
+                        p_business_relationship => :P201_BUSINESS_RELATIONSHIP,
+                        p_incorporation_date    => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email                 => :P0_PARTY_EMAIL,
+                        p_phone                 => :P0_PARTY_PHONE,
+                        p_website               => :P0_PARTY_WEBSITE,
+                        p_fax                   => :P0_PARTY_FAX,
+                        p_address               => :P0_PARTY_ADDRESS,
                         p_requesting_department_id => :P201_REQUESTING_DEPARTMENT,
-                        p_business_relationship    => :P201_BUSINESS_RELATIONSHIP);
+                        p_justification         => :P201_JUSTIFICATION,
+                        p_draft                 => case when :REQUEST = 'SAVE_DRAFT' then 'Y' else 'N' end,
+                        p_contact_name          => :P201_CONTACT_NAME,
+                        p_contact_email         => :P201_CONTACT_EMAIL,
+                        p_contact_phone         => :P201_CONTACT_PHONE,
+                        p_match_ack             => 'Y',
+                        p_use_existing          => :P201_USE_EXISTING);
                     :P201_REQUEST_ID := l_request_id;
-                    -- release 99: the risk screening answers of step 1
-                    xxcmp_request_pkg.save_screening(l_request_id, :P201_ANSWERS);
                 end;
                 ```
         }
@@ -1002,7 +671,7 @@ page 201 (
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: NEXT,SAVE_DRAFT,CHECK
+            value: NEXT,SAVE_DRAFT
         }
         security {
             authorizationScheme: @page-create
@@ -1052,25 +721,7 @@ page 201 (
     )
 
     branch (
-        name: Checked - show the outcome
-        execution {
-            sequence: 15
-        }
-        behavior {
-            target: {
-                page: 201
-                items: {
-                    P201_REQUEST_ID: &P201_REQUEST_ID.
-                }
-            }
-        }
-        serverSideCondition {
-            whenButtonPressed: @check
-        }
-    )
-
-    branch (
-        name: To the counterparty (step 2)
+        name: To the questions (step 2)
         execution {
             sequence: 20
         }

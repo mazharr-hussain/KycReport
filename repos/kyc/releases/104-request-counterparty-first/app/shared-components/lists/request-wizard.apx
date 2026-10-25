@@ -1,0 +1,40 @@
+
+list request-wizard (
+    name: Request Wizard
+
+    entry step-1 (
+        label: Counterparty
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry step-party (
+        label: Questions
+        layout {
+            sequence: 15
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry step-3 (
+        label: Review and Submit
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)

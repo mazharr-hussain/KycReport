@@ -306,6 +306,10 @@ begin
     attachment_page('KYC_PARTY', 'Party', 21, 'ATTACHMENTS', 'party_attachments', 'Attachments', 'XXCMP_PARTIES', 'P21_PARTY_ID', 'N');
     attachment_page('KYC_REQUEST_SUBMIT', 'Create Request - Submit', 203, 'ATTACHMENTS', 'request_attachments', 'Documents',
                     'XXCMP_REQUESTS', 'P203_REQUEST_ID', 'Y');
+    -- release 104: the counterparty's documents are attached on Review and Submit (step 3)
+    xxfnd_attach_pkg.register_attachment_page(c_app, 'KYC_REQUEST_SUBMIT', 'Create Request - Submit', 203, 'PARTY_DOCUMENTS',
+                                              'party_attachments', 'XXCMP_PARTIES', 'P0_SUMMARY_PARTY_ID', 'Party Documents',
+                                              p_delete_allowed_flag => 'Y', p_display_sequence => 20);
     attachment_page('KYC_REQUEST', 'KYC Request', 205, 'ATTACHMENTS', 'request_attachments', 'Documents', 'XXCMP_REQUESTS',
                     'P205_REQUEST_ID', 'N');
     attachment_page('KYC_CASE', 'Case', 211, 'PARTY_DOCUMENTS', 'party_documents', 'Party Documents', 'XXCMP_PARTIES',
