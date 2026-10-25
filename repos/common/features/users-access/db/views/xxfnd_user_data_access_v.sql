@@ -34,5 +34,3 @@ select t.user_id, t.user_name, t.user_role_id, t.assigned_role_code, t.role_code
                              where x.user_role_id = t.user_role_id and x.dimension_code = o.dimension_code
                                and x.data_object_code = o.data_object_code)))
  where t.active_flag = 'Y';
-
-comment on table xxfnd_user_data_access_v is 'Release 96: the data access of each user (active roles, including roles inside roles): object, level and, for VALUES, the values that apply (OVERRIDE for the object, else the DEFAULT of the dimension).';

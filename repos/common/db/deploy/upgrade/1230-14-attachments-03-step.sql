@@ -1,0 +1,2 @@
+
+comment on table xxfnd_app_storage_v is 'Release 86: storage of each registered application (CATEGORY_CODE empty = the application default) and of each of its categories: the row''s own values, the EFFECTIVE_* value of each field (category, else application, else the default folder), EFFECTIVE_STORAGE_TYPE (what an upload uses) and STATE (OK, or INCOMPLETE - using database with INCOMPLETE_REASON).';

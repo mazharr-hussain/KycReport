@@ -42,38 +42,3 @@ begin
     end if;
 end;
 /
--- Release 86: REGISTER_VALUE_SET reads the value set's application; on older databases 16i adds that column, a fresh
--- install needs it before this body compiles (checked step: nothing when it exists).
-begin
-    xxfnd_ddl_pkg.add_column('XXFND_VALUE_SETS', 'APPLICATION_CODE', 'varchar2(30)');
-end;
-/
---------------------------------------------------------------------------------
--- 16i Administration scope (release 61). Installed by the COMMON application only (XXFUSION).
---   Each COMMON setup screen works for one application at a time (G_ADMIN_APP): it shows and changes only that
---   application's rows (and, for a Common Administrator, the shared rows: application empty).
---   - An application column on value sets, retention policies and storage rules (release 86: integration endpoints retired)
---     (the other setup tables already have one; empty = shared by all applications).
---   Release 73: no application filter for IT; delegated administration - an application's administrators open
---   the COMMON screens of the functions IT lets them manage, from their own application, for its rows only.
---   - Scope functions (release 80: XXFND_APPLICATION_PKG, 09d): the applications the signed-in user administers -
---     every application for a Common Administrator (role COMMON_ADMIN), otherwise the applications of the user's
---     active roles that hold an admin privilege.
--- Idempotent.
---------------------------------------------------------------------------------
--- application scope columns (empty = shared)
-declare
-    l_n pls_integer;
-begin
-    for t in (select column_value table_name
-                from table(apex_t_varchar2('XXFND_VALUE_SETS', 'XXFND_RETENTION_POLICIES', 'XXFND_STORAGE_CONFIG'))) loop
-        -- release 86: XXFND_INTEGRATION_ENDPOINTS retired (29); the servers (XXFND_SERVERS) are workspace-wide
-        select count(*) into l_n from user_tab_columns where table_name = t.table_name and column_name = 'APPLICATION_CODE';
-        if l_n = 0 then
-            execute immediate 'alter table ' || t.table_name || ' add (application_code varchar2(30))';
-        end if;
-    end loop;
-end;
-/
-
-comment on column xxfnd_value_sets.application_code            is 'Application the value set belongs to; empty = shared by all applications.';

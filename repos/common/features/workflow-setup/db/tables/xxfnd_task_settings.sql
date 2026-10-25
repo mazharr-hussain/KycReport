@@ -23,10 +23,3 @@ create table if not exists xxfnd_task_settings (
     constraint xxfnd_task_settings_ck3 check (notify_on_create_flag in ('Y','N'))
 );
 comment on table xxfnd_task_settings is 'Per APEX task definition (static ID): due date in days from creation, reminder before it, role that receives overdue tasks, e-mail on creation.';
-
-begin
-    xxfnd_util_pkg.create_who_trigger('XXFND_TASK_SETTINGS');
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_TASK_SETTINGS');
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_WF_DELEGATIONS');
-end;
-/

@@ -25,7 +25,5 @@ begin
         xxfnd_ddl_pkg.run(q'~create index xxfnd_data_rule_assign_n2 on xxfnd_data_rule_assignments (role_code)~');
         xxfnd_ddl_pkg.run(q'~comment on table xxfnd_data_rule_assignments is 'Who a data access rule applies to: a user or a role per row. A user sees the rows of every enabled rule assigned to them or to one of their active roles (access adds up).'~');
     end if;
-    xxfnd_ddl_pkg.set_nullable('XXFND_DATA_SECURITY_RULES', 'ROLE_CODE');
-    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_data_security_rules.role_code is 'Until release 78 the only role of the rule; since release 79 the rule is assigned in XXFND_DATA_RULE_ASSIGNMENTS (this role became its first assignment).'~');
 end;
 /

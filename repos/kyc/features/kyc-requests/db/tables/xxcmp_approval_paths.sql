@@ -41,11 +41,3 @@ create table if not exists xxcmp_approval_paths (
     constraint xxcmp_approval_paths_ck3 check (enabled_flag in ('Y', 'N'))
 );
 comment on table xxcmp_approval_paths is 'Retired in KYC release 91 (kept as history): the request approvers come from COMMON Approval Setup (type KYC_REQUEST).';
-begin
-    xxfnd_schema_pkg.create_who_trigger('XXCMP_APPROVAL_PATHS');
-    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'APPROVAL_PATH_NAME', 'varchar2(100)');
-    xxfnd_ddl_pkg.add_column('XXCMP_REQUESTS', 'CURRENT_STEP',       'number');
-    -- release 26: paths by business relationship (customer, vendor...)
-    xxfnd_ddl_pkg.add_column('XXCMP_APPROVAL_PATHS', 'BUSINESS_RELATIONSHIP', 'varchar2(30)');
-end;
-/

@@ -29,22 +29,3 @@ begin
     end if;
 end;
 /
-
--- the registered endpoints are read-only (retiring): the servers are APEX Remote Servers now
--- (release 86: only while the table exists - 29 copies it into XXFND_SERVERS and drops it)
-declare
-    l_n pls_integer;
-begin
-    select count(*) into l_n from user_tables where table_name = 'XXFND_INTEGRATION_ENDPOINTS';
-    if l_n > 0 then
-        execute immediate q'~create or replace trigger xxfnd_int_endpoints_ro
-    before insert or update or delete on xxfnd_integration_endpoints
-begin
-    if xxfnd_util_pkg.in_apex_session then
-        raise_application_error(-20316, 'Registered endpoints are read-only: servers are APEX Remote Servers, kept by '
-            || 'the workspace administrator in Workspace Utilities.');
-    end if;
-end;~';
-    end if;
-end;
-/

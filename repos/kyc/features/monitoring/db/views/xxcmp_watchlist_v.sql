@@ -41,4 +41,3 @@ select p.party_id,
   left join open_review o on o.party_id = l.party_id
  cross join lead_days d
  where l.rn = 1;
-comment on table xxcmp_watchlist_v is 'Monitoring watchlist: approved parties, their latest approved case, next review date and status (CURRENT, DUE, IN_REVIEW, OVERDUE), open review request and open alerts.';

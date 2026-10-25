@@ -16,7 +16,7 @@ successful"). No database was run: the PL/SQL is checked by review, and the DB t
 
 ## Files
 - `app/pages/` p00000 (Global Page), p00201
-- `db/` 16b + 16r (XXCMP_REQUEST_PKG), 16e0 + 16e (XXCMP_PARTY_PKG) - packages only, no table change, no new script
+- `db/` + `run-release.sql`: the database files of this release (see below)
 
 ## Deploy
 1. App Builder > Import `KYC-Compliance-Platform-APEXlang_100.zip` over KYC (134), Install Supporting Objects = Yes
@@ -25,3 +25,7 @@ successful"). No database was run: the PL/SQL is checked by review, and the DB t
 ## Live checks
 As TKYC_REQ1: Create Request with the registration type, number and country of an existing party -> the message and
 Use the Existing Party; No -> change the details; Yes -> Next links the party (card shown, no new party).
+
+## Database steps (one object per file)
+`db/` holds this release's database files, numbered in upgrade order (the same files as `db/deploy/upgrade/` of the
+application). Run `run-release.sql` (SQLcl / SQL Developer / Database Actions F5), or import the APEXlang zip.

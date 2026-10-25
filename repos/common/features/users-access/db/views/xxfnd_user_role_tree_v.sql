@@ -17,5 +17,3 @@ cycle role_code set is_cycle to 'Y' default 'N'
 select user_role_id, user_id, user_name, assigned_role_code, role_code, active_flag, lvl
   from tree
  where is_cycle = 'N';
-
-comment on table xxfnd_user_role_tree_v is 'Release 96: every role a user has - assigned (LVL 0) and inside the assigned roles (LVL > 0); ACTIVE_FLAG Y when the assignment and the roles are active.';

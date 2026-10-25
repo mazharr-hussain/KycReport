@@ -22,5 +22,3 @@ begin
     end if;
 end;
 /
-comment on column xxfnd_attachment_functions.max_file_size_mb is 'Largest file accepted on this page (MB) unless the category says otherwise; overrides the application default.';
-comment on column xxfnd_attachment_functions.allowed_file_types is 'File extensions accepted on this page unless the category says otherwise; overrides the application default.';

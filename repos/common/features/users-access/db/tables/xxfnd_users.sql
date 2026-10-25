@@ -29,11 +29,3 @@ create table if not exists xxfnd_users (
 );
 comment on table xxfnd_users is 'Users of all applications. SSO = linked to an employee, signs in with the identity domain (no password); LOCAL = no employee, Oracle APEX account (APEX keeps the password).';
 comment on column xxfnd_users.user_name is 'Sign-in name, upper case. SSO: the employee''s user name (identity-domain user name); LOCAL: the APEX account name.';
-
--- release 79: every user has a language preference (lookup LANGUAGE, default English); notifications use the wording
--- in that language and fall back to English
-begin
-    xxfnd_ddl_pkg.add_column('XXFND_USERS', 'LANGUAGE_CODE', q'~varchar2(10) default 'en' not null~');
-end;
-/
-comment on column xxfnd_users.language_code is 'Language of the user''s notifications (lookup LANGUAGE: en, ar); default English.';

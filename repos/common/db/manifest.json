@@ -8,7 +8,10 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 0
+  "source_index": 0,
+  "units": [
+   "common/db/scripts/00a-prerequisites-check/01-step.sql"
+  ]
  },
  {
   "name": "00b COMMON parsing schema check",
@@ -18,7 +21,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 1
+  "source_index": 1,
+  "units": [
+   "common/db/scripts/00b-common-schema-check/01-step.sql"
+  ]
  },
  {
   "name": "00 Deployment framework",
@@ -29,7 +35,14 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 2
+  "source_index": 2,
+  "units": [
+   "common/db/framework/tables/xxfnd_schema_releases.sql",
+   "common/db/framework/tables/xxfnd_dropped_objects.sql",
+   "common/db/framework/package_specs/xxfnd_ddl_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_ddl_pkg.pkb",
+   "common/db/scripts/00-deployment-framework/05-mark_release-r09.sql"
+  ]
  },
  {
   "name": "00d HR tables (XXHR_ prefix)",
@@ -39,7 +52,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 3
+  "source_index": 3,
+  "units": [
+   "common/db/scripts/00d-hr-tables-rename/01-dbms_sql-varchar2_table.sql"
+  ]
  },
  {
   "name": "01 Common tables - XXFND - part 1 of 3",
@@ -48,7 +64,31 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 4
+  "source_index": 4,
+  "units": [
+   "common/features/lookups/db/tables/xxfnd_lookup_types.sql",
+   "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "common/db/scripts/01-common-tables-xxfnd-part-1-of-3/03-ensure_table-xxfnd_lookup_values_tl.sql",
+   "common/db/tables/xxhr_employees.sql",
+   "common/features/roles-privileges/db/tables/xxfnd_roles.sql",
+   "common/features/users-access/db/tables/xxfnd_user_roles.sql",
+   "common/features/roles-privileges/db/tables/xxfnd_sod_rules.sql",
+   "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "common/db/scripts/01-common-tables-xxfnd-part-1-of-3/09-ensure_table-xxfnd_notification_templates_tl.sql",
+   "common/features/audit-log/db/tables/xxfnd_audit_log.sql",
+   "common/features/retention/db/tables/xxfnd_retention_policies.sql",
+   "common/features/integrations/db/tables/xxfnd_integration_endpoints.sql",
+   "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "common/features/integrations/db/tables/xxfnd_transmissions.sql",
+   "common/features/attachments/db/tables/xxfnd_document_entities.sql",
+   "common/db/scripts/01-common-tables-xxfnd-part-1-of-3/16-ensure_table-xxfnd_document_entities_tl.sql",
+   "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "common/db/scripts/01-common-tables-xxfnd-part-1-of-3/18-ensure_table-xxfnd_document_categories_tl.sql",
+   "common/features/attachments/db/tables/xxfnd_attachment_functions.sql",
+   "common/features/attachments/db/tables/xxfnd_attachment_blocks.sql",
+   "common/features/attachments/db/tables/xxfnd_attachment_blk_entities.sql",
+   "common/features/attachments/db/tables/xxfnd_doc_category_usages.sql"
+  ]
  },
  {
   "name": "02 Common tables - XXFND - part 2 of 3",
@@ -57,7 +97,19 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 5
+  "source_index": 5,
+  "units": [
+   "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "common/db/scripts/02-common-tables-xxfnd-part-2-of-3/03-ensure_table-xxfnd_documents_tl.sql",
+   "common/features/attachments/db/tables/xxfnd_attached_documents.sql",
+   "common/features/attachments/db/tables/xxfnd_entity_containers.sql",
+   "common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql",
+   "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "common/features/flexfields/db/tables/xxfnd_df_flexfields.sql",
+   "common/db/scripts/02-common-tables-xxfnd-part-2-of-3/09-ensure_table-xxfnd_df_flexfields_tl.sql",
+   "common/features/flexfields/db/tables/xxfnd_df_contexts.sql"
+  ]
  },
  {
   "name": "03 Common tables - XXFND - part 3 of 3",
@@ -66,7 +118,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 6
+  "source_index": 6,
+  "units": [
+   "common/db/scripts/03-common-tables-xxfnd-part-3-of-3/01-ensure_table-xxfnd_df_contexts_tl.sql",
+   "common/features/flexfields/db/tables/xxfnd_df_segments.sql",
+   "common/db/scripts/03-common-tables-xxfnd-part-3-of-3/03-ensure_table-xxfnd_df_segments_tl.sql"
+  ]
  },
  {
   "name": "04a Employees - Fusion user",
@@ -76,7 +133,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 8
+  "source_index": 8,
+  "units": [
+   "common/db/scripts/04a-employee-fusion-user/01-step.sql"
+  ]
  },
  {
   "name": "04b Applications and users",
@@ -86,7 +146,20 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 9
+  "source_index": 9,
+  "units": [
+   "common/features/applications/db/sequences/xxfnd_applications_s.sql",
+   "common/features/applications/db/tables/xxfnd_applications.sql",
+   "common/features/applications/db/triggers/xxfnd_applications_id.sql",
+   "common/features/users-access/db/tables/xxfnd_users.sql",
+   "common/db/scripts/04b-applications-and-users/05-add_column-xxfnd_users.sql",
+   "common/features/users-access/db/triggers/xxfnd_user_roles_user.sql",
+   "common/features/change-approvals/db/tables/xxfnd_config_tables.sql",
+   "common/db/scripts/04b-applications-and-users/08-merge-xxfnd_applications.sql",
+   "common/features/change-approvals/db/types/xxfnd_config_change_row.sql",
+   "common/features/change-approvals/db/types/xxfnd_config_change_tab.sql",
+   "common/db/scripts/04b-applications-and-users/11-add_column-xxfnd_applications.sql"
+  ]
  },
  {
   "name": "05 Core packages - part 1 of 2",
@@ -97,7 +170,28 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 10
+  "source_index": 10,
+  "units": [
+   "common/db/framework/package_specs/xxfnd_schema_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_schema_pkg.pkb",
+   "common/db/framework/package_specs/xxfnd_util_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_util_pkg.pkb",
+   "common/features/audit-log/db/package_specs/xxfnd_audit_pkg.pks",
+   "common/features/audit-log/db/package_bodies/xxfnd_audit_pkg.pkb",
+   "common/features/users-access/db/views/xxfnd_user_roles_v.sql",
+   "common/features/change-approvals/db/package_specs/xxfnd_approval_pkg.pks"
+  ],
+  "upgrade_units": [
+   "common/db/scripts/05-core-packages-part-1-of-2-upgrade/01-step.sql",
+   "common/db/package_specs/xxfnd_schema_pkg.pks",
+   "common/db/package_bodies/xxfnd_schema_pkg.pkb",
+   "common/db/package_specs/xxfnd_util_pkg.pks",
+   "common/db/package_bodies/xxfnd_util_pkg.pkb",
+   "common/db/package_specs/xxfnd_audit_pkg.pks",
+   "common/db/package_bodies/xxfnd_audit_pkg.pkb",
+   "common/db/views/xxfnd_user_roles_v.sql",
+   "common/db/package_specs/xxfnd_approval_pkg.pks"
+  ]
  },
  {
   "name": "05b Integrations package",
@@ -107,7 +201,20 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 11
+  "source_index": 11,
+  "units": [
+   "common/features/integrations/db/tables/xxfnd_integration_calls.sql",
+   "common/features/integrations/db/tables/xxfnd_server_tests.sql",
+   "common/db/scripts/05b-integration-pkg/03-add_column-xxfnd_integration_purposes.sql",
+   "common/features/integrations/db/tables/xxfnd_servers.sql",
+   "common/db/scripts/05b-integration-pkg/05-add_column-xxfnd_servers.sql",
+   "common/db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql",
+   "common/features/integrations/db/views/xxfnd_servers_v.sql",
+   "common/db/scripts/05b-integration-pkg/08-step.sql",
+   "common/features/integrations/db/package_specs/xxfnd_integration_pkg.pks",
+   "common/features/integrations/db/package_bodies/xxfnd_integration_pkg.pkb",
+   "common/db/triggers/xxhr_employees_src.sql"
+  ]
  },
  {
   "name": "05c Lookups package",
@@ -117,7 +224,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 12
+  "source_index": 12,
+  "units": [
+   "common/features/lookups/db/package_specs/xxfnd_lookup_pkg.pks",
+   "common/features/lookups/db/package_bodies/xxfnd_lookup_pkg.pkb"
+  ]
  },
  {
   "name": "06 Core packages - part 2 of 2",
@@ -127,7 +238,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 13
+  "source_index": 13,
+  "units": [
+   "common/db/scripts/06-core-packages-part-2-of-2/01-step.sql"
+  ]
  },
  {
   "name": "07 WHO and audit triggers",
@@ -138,7 +252,10 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 14
+  "source_index": 14,
+  "units": [
+   "common/db/scripts/07-who-and-audit-triggers/01-xxfnd_schema_pkg-create_all_who_triggers.sql"
+  ]
  },
  {
   "name": "08 Row rules",
@@ -148,7 +265,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 15
+  "source_index": 15,
+  "units": [
+   "common/features/lookups/db/triggers/xxfnd_lookup_values_lvl.sql",
+   "common/db/triggers/xxhr_employees_ins.sql",
+   "common/features/roles-privileges/db/triggers/xxfnd_sod_rules_order.sql"
+  ]
  },
  {
   "name": "09 Views",
@@ -158,7 +280,22 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 16
+  "source_index": 16,
+  "units": [
+   "common/features/lookups/db/views/xxfnd_lookup_values_vl.sql",
+   "common/features/attachments/db/views/xxfnd_document_categories_vl.sql",
+   "common/features/attachments/db/views/xxfnd_document_entities_vl.sql",
+   "common/features/attachments/db/views/xxfnd_attached_documents_v.sql",
+   "common/db/scripts/09-views/05-xxfnd_attach_pkg-add_version.sql",
+   "common/features/attachments/db/views/xxfnd_document_versions_v.sql",
+   "common/db/scripts/09-views/07-step.sql",
+   "common/features/flexfields/db/views/xxfnd_df_contexts_vl.sql",
+   "common/db/scripts/09-views/09-drop_object-xxfnd_df_segments_vl.sql",
+   "common/features/integrations/db/views/xxfnd_integration_changes_v.sql",
+   "common/db/scripts/09-views/11-step.sql",
+   "common/features/change-approvals/db/views/xxfnd_config_changes_v.sql",
+   "common/db/scripts/09-views/13-drop_object-xxfnd_pending_approvals_v.sql"
+  ]
  },
  {
   "name": "09a Security model",
@@ -168,7 +305,22 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 17
+  "source_index": 17,
+  "units": [
+   "common/features/users-access/db/tables/xxfnd_user_applications.sql",
+   "common/features/users-access/db/tables/xxfnd_role_members.sql",
+   "common/features/users-access/db/tables/xxhr_organizations.sql",
+   "common/features/users-access/db/tables/xxfnd_data_dimensions.sql",
+   "common/features/users-access/db/tables/xxfnd_data_objects.sql",
+   "common/db/scripts/09a-security-model/06-add_column-xxfnd_data_objects.sql",
+   "common/features/users-access/db/tables/xxfnd_role_data_access.sql",
+   "common/features/users-access/db/tables/xxfnd_assignment_values.sql",
+   "common/db/scripts/09a-security-model/09-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/users-access/db/views/xxfnd_user_role_tree_v.sql",
+   "common/db/scripts/09a-security-model/11-step.sql",
+   "common/features/users-access/db/views/xxfnd_user_data_access_v.sql",
+   "common/db/scripts/09a-security-model/13-step.sql"
+  ]
  },
  {
   "name": "09b Security framework - objects",
@@ -178,7 +330,26 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 18
+  "source_index": 18,
+  "units": [
+   "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "common/db/scripts/09b-security-framework-objects/02-add_column-xxfnd_features.sql",
+   "common/features/roles-privileges/db/tables/xxfnd_privileges.sql",
+   "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "common/features/roles-privileges/db/tables/xxfnd_role_privileges.sql",
+   "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "common/features/data-security/db/tables/xxfnd_data_rule_assignments.sql",
+   "common/db/scripts/09b-security-framework-objects/08-set_nullable-xxfnd_data_security_rules.sql",
+   "common/db/scripts/09b-security-framework-objects/09-merge-xxfnd_data_rule_assignments.sql",
+   "common/features/roles-privileges/db/views/xxfnd_effective_access_v.sql",
+   "common/db/scripts/09b-security-framework-objects/11-step.sql",
+   "common/features/data-security/db/triggers/xxfnd_data_rules_assign.sql",
+   "common/db/scripts/09b-security-framework-objects/13-xxfnd_util_pkg-create_who_trigger.sql",
+   "common/features/roles-privileges/db/package_specs/xxfnd_privilege_pkg.pks",
+   "common/features/roles-privileges/db/package_bodies/xxfnd_privilege_pkg.pkb",
+   "common/features/data-security/db/package_specs/xxfnd_vpd_pkg.pks",
+   "common/features/data-security/db/package_bodies/xxfnd_vpd_pkg.pkb"
+  ]
  },
  {
   "name": "10a Flexfield context rule and segment API name",
@@ -188,7 +359,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 19
+  "source_index": 19,
+  "units": [
+   "common/db/scripts/10a-flexfield-context-rule/01-add_column-xxfnd_df_flexfields.sql"
+  ]
  },
  {
   "name": "10 Flexfield runtime - part 1 of 2",
@@ -198,7 +372,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 20
+  "source_index": 20,
+  "units": [
+   "common/features/flexfields/db/package_specs/xxfnd_dff_pkg.pks"
+  ]
  },
  {
   "name": "11 Flexfield runtime - part 2 of 2",
@@ -208,7 +385,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 21
+  "source_index": 21,
+  "units": [
+   "common/db/scripts/11-flexfield-runtime-part-2-of-2/01-add_column-xxfnd_value_sets.sql",
+   "common/features/flexfields/db/package_bodies/xxfnd_dff_pkg.pkb"
+  ]
  },
  {
   "name": "12 Flexfield setup",
@@ -218,7 +399,13 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 22
+  "source_index": 22,
+  "units": [
+   "common/features/flexfields/db/triggers/xxfnd_df_flexfields_chk.sql",
+   "common/features/flexfields/db/triggers/xxfnd_df_segments_chk.sql",
+   "common/features/flexfields/db/triggers/xxfnd_df_contexts_protect.sql",
+   "common/db/scripts/12-flexfield-setup/04-drop_object-xxfnd_dff_setup_pkg.sql"
+  ]
  },
  {
   "name": "13a Database document store",
@@ -228,7 +415,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 23
+  "source_index": 23,
+  "units": [
+   "common/features/attachments/db/tables/xxfnd_document_files.sql",
+   "common/db/scripts/13a-database-document-store/02-step.sql"
+  ]
  },
  {
   "name": "14 Attachments",
@@ -238,7 +429,15 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 24
+  "source_index": 24,
+  "units": [
+   "common/db/scripts/14-attachments/01-add_column-xxfnd_storage_config.sql",
+   "common/features/attachments/db/views/xxfnd_app_storage_v.sql",
+   "common/db/scripts/14-attachments/03-step.sql",
+   "common/features/attachments/db/package_specs/xxfnd_attach_pkg.pks",
+   "common/features/attachments/db/package_bodies/xxfnd_attach_pkg.pkb",
+   "common/db/scripts/14-attachments/06-drop_object-xxfnd_attach_store_pkg.sql"
+  ]
  },
  {
   "name": "14b Retention (placeholder)",
@@ -248,7 +447,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 25
+  "source_index": 25,
+  "units": [
+   "common/features/retention/db/package_specs/xxfnd_retention_pkg.pks",
+   "common/features/retention/db/package_bodies/xxfnd_retention_pkg.pkb"
+  ]
  },
  {
   "name": "15 Workflow",
@@ -258,7 +461,35 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 26
+  "source_index": 26,
+  "units": [
+   "common/db/scripts/15-workflow/01-dbms_scheduler-drop_job.sql",
+   "common/features/workflow-setup/db/tables/xxfnd_task_settings.sql",
+   "common/features/workflow-setup/db/tables/xxfnd_task_alerts.sql",
+   "common/db/scripts/15-workflow/04-xxfnd_util_pkg-create_who_trigger.sql",
+   "common/features/communications/db/tables/xxfnd_communications.sql",
+   "common/db/scripts/15-workflow/06-ensure_index-xxfnd_communications_n3.sql",
+   "common/db/scripts/15-workflow/07-add_column-xxfnd_notification_templates.sql",
+   "common/db/scripts/15-workflow/08-add_column-xxfnd_notification_templates.sql",
+   "common/features/notifications/db/tables/xxfnd_notify_channels.sql",
+   "common/features/notifications/db/tables/xxfnd_notify_events.sql",
+   "common/features/notifications/db/tables/xxfnd_notify_recipient_types.sql",
+   "common/features/notifications/db/tables/xxfnd_notify_rules.sql",
+   "common/features/notifications/db/tables/xxfnd_notifications.sql",
+   "common/db/scripts/15-workflow/14-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/db/tables/xxfnd_contact_sources.sql",
+   "common/db/types/xxfnd_contact_row.sql",
+   "common/db/types/xxfnd_contact_tab.sql",
+   "common/features/information-requests/db/types/xxfnd_qa_row.sql",
+   "common/features/information-requests/db/types/xxfnd_qa_tab.sql",
+   "common/features/workflow-setup/db/package_specs/xxfnd_workflow_pkg.pks",
+   "common/features/notifications/db/package_specs/xxfnd_notify_pkg.pks",
+   "common/features/notifications/db/package_bodies/xxfnd_notify_pkg.pkb",
+   "common/features/workflow-setup/db/package_bodies/xxfnd_workflow_pkg.pkb",
+   "common/db/scripts/15-workflow/24-step.sql",
+   "common/features/change-approvals/db/package_bodies/xxfnd_approval_pkg.pkb",
+   "common/db/scripts/15-workflow/26-drop_object-xxfnd_task_pkg.sql"
+  ]
  },
  {
   "name": "15e Communications (e-mail with outside parties)",
@@ -268,7 +499,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 27
+  "source_index": 27,
+  "units": [
+   "common/db/scripts/15e-communications/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "15c Request for Information workflow",
@@ -278,7 +512,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 28
+  "source_index": 28,
+  "units": [
+   "common/features/information-requests/db/tables/xxfnd_rfis.sql",
+   "common/db/scripts/15c-rfi-workflow/02-add_column-xxfnd_rfis.sql",
+   "common/features/information-requests/db/tables/xxfnd_rfi_rounds.sql",
+   "common/db/scripts/15c-rfi-workflow/04-ensure_sequence-xxfnd_rfi_s.sql",
+   "common/features/information-requests/db/triggers/xxfnd_rfis_bi.sql",
+   "common/features/information-requests/db/package_specs/xxfnd_rfi_pkg.pks",
+   "common/features/information-requests/db/package_bodies/xxfnd_rfi_pkg.pkb",
+   "common/db/scripts/15c-rfi-workflow/08-merge-xxfnd_messages.sql"
+  ]
  },
  {
   "name": "15d Approval Setup",
@@ -288,7 +532,29 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 29
+  "source_index": 29,
+  "units": [
+   "common/features/approval-setup/db/tables/xxfnd_approval_types.sql",
+   "common/db/scripts/15d-approval-setup/02-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_type_attrs.sql",
+   "common/db/scripts/15d-approval-setup/04-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_rules.sql",
+   "common/db/scripts/15d-approval-setup/06-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_rule_conds.sql",
+   "common/db/scripts/15d-approval-setup/08-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_rule_steps.sql",
+   "common/db/scripts/15d-approval-setup/10-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_txns.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_txn_steps.sql",
+   "common/db/scripts/15d-approval-setup/13-ensure_sequence-xxfnd_approval_rule_s.sql",
+   "common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql",
+   "common/features/approval-setup/db/types/xxfnd_approval_step_row.sql",
+   "common/features/approval-setup/db/types/xxfnd_approval_step_tab.sql",
+   "common/features/approval-setup/db/package_specs/xxfnd_approval_rule_pkg.pks",
+   "common/features/approval-setup/db/package_bodies/xxfnd_approval_rule_pkg.pkb",
+   "common/db/scripts/15d-approval-setup/19-merge-xxfnd_messages.sql",
+   "common/features/approval-setup/db/triggers/xxfnd_approval_rule_steps_type.sql"
+  ]
  },
  {
   "name": "16i Administration scope",
@@ -298,7 +564,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 31
+  "source_index": 31,
+  "units": [
+   "common/db/scripts/16i-admin-scope/01-drop_object-xxfnd_admin_applications_v.sql"
+  ]
  },
  {
   "name": "16j Users package (users, sign-in, authorization)",
@@ -308,7 +577,13 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 32
+  "source_index": 32,
+  "units": [
+   "common/features/users-access/db/package_specs/xxfnd_user_pkg.pks",
+   "common/features/users-access/db/package_bodies/xxfnd_user_pkg.pkb",
+   "common/db/triggers/xxhr_employees_rename.sql",
+   "common/db/scripts/16j-user-pkg/04-drop_object-xxfnd_auth_pkg.sql"
+  ]
  },
  {
   "name": "17 Seed data and administrator - part 1 of 2",
@@ -318,7 +593,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 33
+  "source_index": 33,
+  "units": [
+   "common/db/scripts/17-seed-data-and-administrator-part-1-of-2/01-apex_string-split.sql"
+  ]
  },
  {
   "name": "19 Reporting views and recompile",
@@ -329,7 +607,10 @@
    "COMMON",
    "KYC"
   ],
-  "source_index": 38
+  "source_index": 38,
+  "units": [
+   "common/db/scripts/19-reporting-views-and-recompile/01-xxfnd_dff_pkg-generate_all_dfv_views.sql"
+  ]
  },
  {
   "name": "16h UI helpers",
@@ -339,7 +620,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 62
+  "source_index": 62,
+  "units": [
+   "common/db/framework/package_specs/xxfnd_ui_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_ui_pkg.pkb"
+  ]
  },
  {
   "name": "20 COMMON application seed",
@@ -349,7 +634,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 67
+  "source_index": 67,
+  "units": [
+   "common/db/scripts/20-common-seed/01-xxfnd_share_pkg-seed_common.sql"
+  ]
  },
  {
   "name": "21 COMMON administration seed",
@@ -359,7 +647,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 68
+  "source_index": 68,
+  "units": [
+   "common/db/scripts/21-common-admin/01-xxfnd_share_pkg-seed_admin.sql"
+  ]
  },
  {
   "name": "21b Application functions",
@@ -369,7 +660,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 69
+  "source_index": 69,
+  "units": [
+   "common/db/scripts/21b-application-functions/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "21c Setup types",
@@ -379,7 +673,16 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 70
+  "source_index": 70,
+  "units": [
+   "common/db/scripts/21c-setup-types/01-xxfnd_util_pkg-set_install_mode.sql",
+   "common/features/applications/db/views/xxfnd_setup_tables_v.sql",
+   "common/db/scripts/21c-setup-types/03-step.sql",
+   "common/features/applications/db/views/xxfnd_setup_columns_v.sql",
+   "common/db/scripts/21c-setup-types/05-step.sql",
+   "common/features/applications/db/views/xxfnd_setup_rows_v.sql",
+   "common/db/scripts/21c-setup-types/07-drop_object-xxfnd_setup_type_pkg.sql"
+  ]
  },
  {
   "name": "09c Shared objects formerly in KYC scripts",
@@ -389,7 +692,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 72
+  "source_index": 72,
+  "units": [
+   "common/db/scripts/09c-shared-objects-from-kyc-scripts/01-add_column-xxfnd_features.sql",
+   "common/features/applications/db/views/xxfnd_admin_menu_v.sql",
+   "common/features/integrations/db/triggers/xxfnd_int_purposes_mc.sql"
+  ]
  },
  {
   "name": "09d Applications package (functions, setup types, administration scope)",
@@ -399,7 +707,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 73
+  "source_index": 73,
+  "units": [
+   "common/features/applications/db/tables/xxfnd_application_functions.sql",
+   "common/db/tables/xxfnd_app_menu_entries.sql",
+   "common/features/applications/db/tables/xxfnd_setup_types.sql",
+   "common/db/scripts/09d-application-pkg/04-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/applications/db/tables/xxfnd_setup_type_apps.sql",
+   "common/db/scripts/09d-application-pkg/06-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/applications/db/package_specs/xxfnd_application_pkg.pks",
+   "common/features/applications/db/package_bodies/xxfnd_application_pkg.pkb"
+  ]
  },
  {
   "name": "09e Workflow and e-mail switches",
@@ -409,7 +727,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 74
+  "source_index": 74,
+  "units": [
+   "common/db/scripts/09e-workflow-switches/01-add_column-xxfnd_applications.sql",
+   "common/features/applications/db/tables/xxfnd_workflow_processes.sql",
+   "common/db/scripts/09e-workflow-switches/03-add_column-xxfnd_workflow_processes.sql"
+  ]
  },
  {
   "name": "09f Central error handling",
@@ -419,7 +742,15 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 75
+  "source_index": 75,
+  "units": [
+   "common/db/framework/tables/xxfnd_messages.sql",
+   "common/db/scripts/09f-error-handling/02-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/db/framework/tables/xxfnd_error_log.sql",
+   "common/db/framework/package_specs/xxfnd_error_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_error_pkg.pkb",
+   "common/db/scripts/09f-error-handling/06-merge-xxfnd_messages.sql"
+  ]
  },
  {
   "name": "19c Sharing with the application schemas",
@@ -429,7 +760,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 77
+  "source_index": 77,
+  "units": [
+   "common/db/framework/package_specs/xxfnd_share_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_share_pkg.pkb",
+   "common/db/scripts/19c-share-with-applications/03-xxfnd_share_pkg-grant_to_applications.sql"
+  ]
  },
  {
   "name": "22 COMMON modules",
@@ -439,7 +775,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 78
+  "source_index": 78,
+  "units": [
+   "common/db/scripts/22-common-modules/01-apex_string-split.sql",
+   "common/features/applications/db/views/xxfnd_modules_v.sql",
+   "common/db/scripts/22-common-modules/03-step.sql"
+  ]
  },
  {
   "name": "23 COMMON Security module",
@@ -449,7 +790,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 79
+  "source_index": 79,
+  "units": [
+   "common/db/scripts/23-security-module/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "21d Application settings package",
@@ -459,7 +803,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 80
+  "source_index": 80,
+  "units": [
+   "common/features/app-settings/db/package_specs/xxfnd_app_setting_pkg.pks",
+   "common/features/app-settings/db/package_bodies/xxfnd_app_setting_pkg.pkb"
+  ]
  },
  {
   "name": "24 Workflow module",
@@ -469,7 +817,12 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 81
+  "source_index": 81,
+  "units": [
+   "common/db/scripts/24-workflow-module/01-xxfnd_util_pkg-set_install_mode.sql",
+   "common/features/information-requests/db/views/xxfnd_qa_history_v.sql",
+   "common/db/scripts/24-workflow-module/03-dbms_utility-compile_schema.sql"
+  ]
  },
  {
   "name": "25 Integrations module",
@@ -479,7 +832,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 82
+  "source_index": 82,
+  "units": [
+   "common/db/scripts/25-integrations-module/01-drop_constraint-xxfnd_integration_purposes.sql"
+  ]
  },
  {
   "name": "26 Notifications module",
@@ -489,7 +845,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 83
+  "source_index": 83,
+  "units": [
+   "common/db/scripts/26-notifications-module/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "27 Shared screens",
@@ -499,7 +858,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 84
+  "source_index": 84,
+  "units": [
+   "common/db/scripts/27-shared-screens/01-apex_string-split.sql"
+  ]
  },
  {
   "name": "28 Registration and onboarding",
@@ -509,7 +871,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 85
+  "source_index": 85,
+  "units": [
+   "common/db/scripts/28-registration/01-xxfnd_error_pkg-register_message.sql",
+   "common/features/roles-privileges/db/triggers/xxfnd_roles_every_role.sql"
+  ]
  },
  {
   "name": "29 Workspace servers and storage per application",
@@ -519,7 +885,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 86
+  "source_index": 86,
+  "units": [
+   "common/db/scripts/29-servers/01-drop_constraint-xxfnd_integration_purposes.sql"
+  ]
  },
  {
   "name": "30 Application journey",
@@ -529,7 +898,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 87
+  "source_index": 87,
+  "units": [
+   "common/db/scripts/30-application-journey/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "31 Basic onboarding and the application menu",
@@ -539,7 +911,13 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 88
+  "source_index": 88,
+  "units": [
+   "common/db/scripts/31-onboarding-and-menu/01-xxfnd_error_pkg-register_message.sql",
+   "common/db/package_specs/xxfnd_onboard_pkg.pks",
+   "common/db/package_bodies/xxfnd_onboard_pkg.pkb",
+   "common/db/scripts/31-onboarding-and-menu/04-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "31b Navigation menu (registry, menu view)",
@@ -549,7 +927,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 89
+  "source_index": 89,
+  "units": [
+   "common/db/scripts/31b-navigation-menu/01-drop_constraint-xxfnd_app_menu_entries.sql",
+   "common/db/tables/xxfnd_page_opens.sql",
+   "common/db/views/xxfnd_nav_menu_v.sql",
+   "common/db/scripts/31b-navigation-menu/04-step.sql",
+   "common/db/views/xxfnd_page_catalogue_v.sql",
+   "common/db/scripts/31b-navigation-menu/06-step.sql",
+   "common/db/package_specs/xxfnd_nav_pkg.pks",
+   "common/db/package_bodies/xxfnd_nav_pkg.pkb"
+  ]
  },
  {
   "name": "31d Page access by privilege and the Application Menu feature",
@@ -559,7 +947,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 90
+  "source_index": 90,
+  "units": [
+   "common/db/scripts/31d-page-access-and-menu-feature/01-add_constraint-xxfnd_app_menu_entries.sql"
+  ]
  },
  {
   "name": "31c Navigation in one place (menu codes, COMMON's menu)",
@@ -569,7 +960,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 91
+  "source_index": 91,
+  "units": [
+   "common/db/scripts/31c-navigation-one-place/01-xxfnd_app_menu_entries-menu_code.sql"
+  ]
  },
  {
   "name": "32 Removing registrations, RFI documents and deadlines, contacts",
@@ -579,7 +973,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 92
+  "source_index": 92,
+  "units": [
+   "common/db/scripts/32-registration-removal-rfi-contacts/01-xxfnd_error_pkg-register_message.sql"
+  ]
  },
  {
   "name": "33 Data Model",
@@ -589,7 +986,17 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 93
+  "source_index": 93,
+  "units": [
+   "common/features/data-model/db/tables/xxfnd_dm_app_scopes.sql",
+   "common/db/scripts/33-data-model/02-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/data-model/db/tables/xxfnd_dm_table_groups.sql",
+   "common/db/scripts/33-data-model/04-xxfnd_schema_pkg-create_who_trigger.sql",
+   "common/features/data-model/db/package_specs/xxfnd_data_model_pkg.pks",
+   "common/db/scripts/33-data-model/06-dbms_output-put_line.sql",
+   "common/features/data-model/db/package_bodies/xxfnd_data_model_pkg.pkb",
+   "common/db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "35 Security model migration",
@@ -599,13 +1006,19 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 94
+  "source_index": 94,
+  "units": [
+   "common/db/scripts/35-security-model-migration/01-xxfnd_data_objects-data_object_code.sql"
+  ]
  },
  {
   "name": "00c Onboard with COMMON (generic, for applications)",
   "file": "00c-onboard-with-common.sql",
   "apps": [],
-  "source_index": 95
+  "source_index": 95,
+  "units": [
+   "common/db/scripts/00c-onboard-with-common/01-xxfnd_onboard_pkg-onboard_self.sql"
+  ]
  },
  {
   "name": "99 Sharing with the applications - last",
@@ -615,7 +1028,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 96
+  "source_index": 96,
+  "units": [
+   "common/db/scripts/99-share-with-applications-last/01-xxfnd_share_pkg-grant_to_applications.sql"
+  ]
  },
  {
   "name": "99z HR tables - old names dropped",
@@ -625,7 +1041,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 97
+  "source_index": 97,
+  "units": [
+   "common/db/scripts/99z-hr-old-names-drop/01-drop_object-xxfnd_employees.sql"
+  ]
  },
  {
   "name": "40a Fusion Objects - catalog table",
@@ -635,7 +1054,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 98
+  "source_index": 98,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql"
+  ]
  },
  {
   "name": "40b Fusion Objects - objects table",
@@ -645,7 +1067,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 99
+  "source_index": 99,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql"
+  ]
  },
  {
   "name": "40c Fusion Objects - attributes table",
@@ -655,7 +1080,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 100
+  "source_index": 100,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql"
+  ]
  },
  {
   "name": "40d Fusion Objects - children table",
@@ -665,7 +1093,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 101
+  "source_index": 101,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_children.sql"
+  ]
  },
  {
   "name": "40e Fusion Objects - versions table",
@@ -675,7 +1106,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 102
+  "source_index": 102,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql"
+  ]
  },
  {
   "name": "40f Fusion Objects - drift table",
@@ -685,7 +1119,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 103
+  "source_index": 103,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql"
+  ]
  },
  {
   "name": "40g Fusion Objects - runs table",
@@ -695,7 +1132,10 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 104
+  "source_index": 104,
+  "units": [
+   "common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql"
+  ]
  },
  {
   "name": "40h Fusion Objects - metadata harvester",
@@ -705,7 +1145,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 105
+  "source_index": 105,
+  "units": [
+   "common/features/fusion-objects/db/package_specs/xxfnd_fi_meta_pkg.pks",
+   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_meta_pkg.pkb"
+  ]
  },
  {
   "name": "40i Fusion Objects - generators",
@@ -715,7 +1159,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 106
+  "source_index": 106,
+  "units": [
+   "common/features/fusion-objects/db/package_specs/xxfnd_fi_gen_pkg.pks",
+   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_gen_pkg.pkb"
+  ]
  },
  {
   "name": "40j Fusion Objects - registry",
@@ -725,7 +1173,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 107
+  "source_index": 107,
+  "units": [
+   "common/features/fusion-objects/db/package_specs/xxfnd_fi_registry_pkg.pks",
+   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_registry_pkg.pkb"
+  ]
  },
  {
   "name": "40k Fusion Objects - drift governance",
@@ -735,7 +1187,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 108
+  "source_index": 108,
+  "units": [
+   "common/features/fusion-objects/db/package_specs/xxfnd_fi_drift_pkg.pks",
+   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_drift_pkg.pkb"
+  ]
  },
  {
   "name": "40l Fusion Objects - runtime",
@@ -745,7 +1201,11 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 109
+  "source_index": 109,
+  "units": [
+   "common/features/fusion-objects/db/package_specs/xxfnd_fi_run_pkg.pks",
+   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_run_pkg.pkb"
+  ]
  },
  {
   "name": "40z Fusion Objects - setup",
@@ -755,6 +1215,9 @@
   "apps": [
    "COMMON"
   ],
-  "source_index": 110
+  "source_index": 110,
+  "units": [
+   "common/db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  }
 ]

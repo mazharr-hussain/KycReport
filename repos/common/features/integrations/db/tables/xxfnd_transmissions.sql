@@ -28,4 +28,3 @@ begin
     end if;
 end;
 /
-comment on column xxfnd_transmissions.endpoint_code is 'Before release 86: the retired integration endpoint (this log is no longer written: XXFND_INTEGRATION_CALLS).';

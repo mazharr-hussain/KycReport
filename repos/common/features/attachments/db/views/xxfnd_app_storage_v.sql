@@ -70,5 +70,3 @@ select c.application_code, c.application_name, c.category_code, c.category_name,
        case when c.incomplete_reason is null then 'OK' else 'INCOMPLETE - using database' end as state,
        c.incomplete_reason
   from chk c;
-
-comment on table xxfnd_app_storage_v is 'Release 86: storage of each registered application (CATEGORY_CODE empty = the application default) and of each of its categories: the row''s own values, the EFFECTIVE_* value of each field (category, else application, else the default folder), EFFECTIVE_STORAGE_TYPE (what an upload uses) and STATE (OK, or INCOMPLETE - using database with INCOMPLETE_REASON).';

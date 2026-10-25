@@ -19,4 +19,3 @@ select r.application_code, r.entity_name, 'RFI_ANSWER', r.pk1_value, r.rfi_id,
   from xxfnd_rfis r
   join xxfnd_rfi_rounds q on q.rfi_id = r.rfi_id
  where q.response_text is not null;
-comment on table xxfnd_qa_history_v is 'Release 82: questions and answers of a record in one list - APEX task comments (Request Information, Submit Information, decisions) and the questions and answers of its requests for information.';

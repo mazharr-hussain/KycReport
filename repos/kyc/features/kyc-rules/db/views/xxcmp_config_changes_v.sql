@@ -52,4 +52,3 @@ select 'XXCMP_RISK_TIER_SET:KYC', 'Risk model tiers', 'Risk tiers',
   from xxcmp_risk_tiers t
  where t.approval_status = 'PENDING_APPROVAL'
 having count(*) > 0;
-comment on table xxcmp_config_changes_v is 'KYC configuration changes waiting for approval (registered changes view in XXFND_CONFIG_TABLES).';

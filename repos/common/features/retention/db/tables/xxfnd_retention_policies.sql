@@ -23,4 +23,3 @@ begin
     end if;
 end;
 /
-comment on column xxfnd_retention_policies.application_code    is 'Application the policy belongs to; empty = shared by all applications.';

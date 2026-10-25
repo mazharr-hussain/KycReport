@@ -14,4 +14,3 @@ select d.document_id,
        d.creation_date
   from xxfnd_documents d
  where d.datatype_code = 'FILE';
-comment on table xxfnd_document_versions_v is 'Every stored version of a file; filter by BASE_DOCUMENT_ID for one document''s history.';
