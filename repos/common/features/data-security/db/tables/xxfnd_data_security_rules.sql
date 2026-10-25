@@ -26,12 +26,3 @@ create table if not exists xxfnd_data_security_rules (
 );
 comment on table xxfnd_data_security_rules is 'Row access per role and table. A user sees the union of the rows allowed by the enabled rules of their active roles; no rule = no rows (enforced by XXFND_VPD_PKG).';
 comment on column xxfnd_data_security_rules.value_list is 'COLUMN_IN_LIST: comma-separated values, e.g. AE,SA.';
--- one rule per role, table, rule type, column and values (release 79: rules without a role are assigned to users and
--- roles, so two department rules on the same column differ by their values; U1 without the values is replaced)
-begin
-    xxfnd_ddl_pkg.drop_index('XXFND_DATA_SECURITY_RULES_U1');
-    xxfnd_ddl_pkg.ensure_index('XXFND_DATA_SECURITY_RULES_U2', q'~create unique index xxfnd_data_security_rules_u2
-        on xxfnd_data_security_rules (nvl(role_code, '#'), table_name, rule_type, nvl(column_name, '#'),
-                                      standard_hash(nvl(value_list, '#')))~');
-end;
-/

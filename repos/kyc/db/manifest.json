@@ -3,251 +3,431 @@
   "name": "04 KYC tables - XXCMP",
   "file": "04-kyc-tables-xxcmp.sql",
   "install_sequence": 40,
-  "source_index": 7
+  "source_index": 7,
+  "units": [
+   "kyc/features/parties/db/sequences/xxcmp_party_number_s.sql",
+   "kyc/features/parties/db/tables/xxcmp_parties.sql",
+   "kyc/features/parties/db/tables/xxcmp_party_contacts.sql",
+   "kyc/features/parties/db/tables/xxcmp_party_relationships.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_questionnaires.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_questions.sql",
+   "kyc/db/scripts/04-kyc-tables-xxcmp/07-ensure_table-xxcmp_questions_tl.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_answer_options.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_conclusion_templates.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_approval_matrix.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_attachment_rules.sql",
+   "kyc/features/cases/db/tables/xxcmp_rfis.sql",
+   "kyc/features/cases/db/sequences/xxcmp_rfi_number_s.sql"
+  ]
  },
  {
   "name": "16 KYC rules",
   "file": "16-kyc-rules.sql",
   "install_sequence": 160,
   "upgrade_sequence": 120,
-  "source_index": 30
+  "source_index": 30,
+  "units": [
+   "kyc/features/kyc-rules/db/triggers/xxcmp_answer_options_mc.sql",
+   "kyc/features/kyc-rules/db/triggers/xxcmp_attachment_rules_mc.sql",
+   "kyc/features/kyc-rules/db/triggers/xxcmp_answer_options_ver.sql",
+   "kyc/features/parties/db/triggers/xxcmp_parties_num.sql",
+   "kyc/db/scripts/16-kyc-rules/05-step.sql",
+   "kyc/features/cases/db/triggers/xxcmp_rfis_num.sql",
+   "kyc/features/parties/db/triggers/xxcmp_party_rel_cycle.sql",
+   "kyc/features/kyc-rules/db/package_specs/xxcmp_doc_rule_pkg.pks",
+   "kyc/features/kyc-rules/db/package_bodies/xxcmp_doc_rule_pkg.pkb",
+   "kyc/db/scripts/16-kyc-rules/10-step.sql"
+  ]
  },
  {
   "name": "19a Grants to the shared schema (before the seed)",
   "file": "19a-grants-to-shared-schema.sql",
   "install_sequence": 175,
   "upgrade_sequence": 135,
-  "source_index": 34
+  "source_index": 34,
+  "units": [
+   "kyc/db/scripts/19a-grants-to-shared-schema/01-dbms_output-put_line.sql"
+  ]
  },
  {
   "name": "18 Seed data and administrator - part 2 of 2",
   "file": "18-seed-data-and-administrator-part-2-of-2.sql",
   "install_sequence": 184,
   "upgrade_sequence": 144,
-  "source_index": 35
+  "source_index": 35,
+  "units": [
+   "kyc/db/scripts/18-seed-data-and-administrator-part-2-of-2/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "18b Security framework - seed",
   "file": "18b-security-framework-seed.sql",
   "install_sequence": 185,
   "upgrade_sequence": 145,
-  "source_index": 36
+  "source_index": 36,
+  "units": [
+   "kyc/db/scripts/18b-security-framework-seed/01-mark_release-r10.sql"
+  ]
  },
  {
   "name": "18c Admin console",
   "file": "18c-admin-console.sql",
   "install_sequence": 187,
   "upgrade_sequence": 147,
-  "source_index": 37
+  "source_index": 37,
+  "units": [
+   "kyc/db/scripts/18c-admin-console/01-mark_release-r11.sql"
+  ]
  },
  {
   "name": "18d Workflow platform",
   "file": "18d-workflow-platform.sql",
   "install_sequence": 188,
   "upgrade_sequence": 148,
-  "source_index": 39
+  "source_index": 39,
+  "units": [
+   "kyc/db/scripts/18d-workflow-platform/01-mark_release-r12.sql"
+  ]
  },
  {
   "name": "16e0 Party logic - specification",
   "file": "16e0-party-pkg-spec.sql",
   "install_sequence": 164,
   "upgrade_sequence": 124,
-  "source_index": 40
+  "source_index": 40,
+  "units": [
+   "kyc/features/parties/db/package_specs/xxcmp_party_pkg.pks"
+  ]
  },
  {
   "name": "16u0 KYC risk model package specification",
   "file": "16u0-risk-pkg-spec.sql",
   "install_sequence": 161,
   "upgrade_sequence": 121,
-  "source_index": 41
+  "source_index": 41,
+  "units": [
+   "kyc/features/kyc-rules/db/package_specs/xxcmp_risk_pkg.pks"
+  ]
  },
  {
   "name": "16g0 Approval paths - package specification",
   "file": "16g0-approval-pkg-spec.sql",
   "install_sequence": 163,
   "upgrade_sequence": 123,
-  "source_index": 42
+  "source_index": 42,
+  "units": [
+   "kyc/features/kyc-requests/db/types/xxcmp_history_row.sql",
+   "kyc/features/kyc-requests/db/types/xxcmp_history_tab.sql"
+  ]
  },
  {
   "name": "16b KYC requests and cases",
   "file": "16b-kyc-requests-cases.sql",
   "install_sequence": 165,
   "upgrade_sequence": 125,
-  "source_index": 43
+  "source_index": 43,
+  "units": [
+   "kyc/db/scripts/16b-kyc-requests-cases/01-add_column-xxcmp_rfis.sql",
+   "kyc/features/kyc-requests/db/sequences/xxcmp_request_number_s.sql",
+   "kyc/features/cases/db/sequences/xxcmp_case_number_s.sql",
+   "kyc/features/kyc-requests/db/tables/xxcmp_requests.sql",
+   "kyc/db/scripts/16b-kyc-requests-cases/05-add_column-xxcmp_requests.sql",
+   "kyc/features/cases/db/tables/xxcmp_cases.sql",
+   "kyc/features/kyc-requests/db/tables/xxcmp_request_answers.sql",
+   "kyc/features/cases/db/tables/xxcmp_case_decisions.sql",
+   "kyc/db/scripts/16b-kyc-requests-cases/09-step.sql",
+   "kyc/features/cases/db/tables/xxcmp_screenings.sql",
+   "kyc/features/cases/db/tables/xxcmp_doc_verifications.sql",
+   "kyc/features/cases/db/tables/xxcmp_ubo_determinations.sql",
+   "kyc/db/scripts/16b-kyc-requests-cases/13-add_column-xxcmp_party_relationships.sql",
+   "kyc/features/cases/db/tables/xxcmp_case_notes.sql",
+   "kyc/db/scripts/16b-kyc-requests-cases/15-add_column-xxcmp_cases.sql",
+   "kyc/features/kyc-requests/db/package_specs/xxcmp_request_pkg.pks",
+   "kyc/features/cases/db/package_specs/xxcmp_case_pkg.pks",
+   "kyc/features/cases/db/triggers/xxcmp_cases_dd.sql",
+   "kyc/features/cases/db/triggers/xxcmp_cases_lock.sql",
+   "kyc/db/scripts/16b-kyc-requests-cases/20-update-xxcmp_cases.sql"
+  ]
  },
  {
   "name": "16l KYC approvals in the common Approval Setup",
   "file": "16l-kyc-approval-setup.sql",
   "install_sequence": 186,
   "upgrade_sequence": 136,
-  "source_index": 44
+  "source_index": 44,
+  "units": [
+   "kyc/db/scripts/16l-kyc-approval-setup/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  },
  {
   "name": "16m KYC case status Pending Information",
   "file": "16m-case-pending-information.sql",
   "install_sequence": 177,
   "upgrade_sequence": 137,
-  "source_index": 45
+  "source_index": 45,
+  "units": [
+   "kyc/db/scripts/16m-case-pending-information/01-drop_constraint-xxcmp_cases.sql"
+  ]
  },
  {
   "name": "16w KYC case assignment from the request",
   "file": "16w-case-assignment.sql",
   "install_sequence": 171,
   "upgrade_sequence": 131,
-  "source_index": 46
+  "source_index": 46,
+  "units": [
+   "kyc/db/scripts/16w-case-assignment/01-add_column-xxcmp_requests.sql"
+  ]
  },
  {
   "name": "16x KYC case requesting department",
   "file": "16x-case-department.sql",
   "install_sequence": 176,
   "upgrade_sequence": 133,
-  "source_index": 47
+  "source_index": 47,
+  "units": [
+   "kyc/db/scripts/16x-case-department/01-add_column-xxcmp_cases.sql"
+  ]
  },
  {
   "name": "16y KYC requesting department by ID",
   "file": "16y-department-id.sql",
   "install_sequence": 170,
   "upgrade_sequence": 130,
-  "source_index": 48
+  "source_index": 48,
+  "units": [
+   "kyc/db/scripts/16y-department-id/01-add_column-xxcmp_requests.sql"
+  ]
  },
  {
   "name": "16r KYC request package body",
   "file": "16r-request-pkg.sql",
   "install_sequence": 178,
   "upgrade_sequence": 138,
-  "source_index": 49
+  "source_index": 49,
+  "units": [
+   "kyc/features/kyc-requests/db/package_bodies/xxcmp_request_pkg.pkb"
+  ]
  },
  {
   "name": "16s KYC case package body",
   "file": "16s-case-pkg.sql",
   "install_sequence": 179,
   "upgrade_sequence": 139,
-  "source_index": 50
+  "source_index": 50,
+  "units": [
+   "kyc/db/scripts/16s-case-pkg/01-add_column-xxcmp_screenings.sql",
+   "kyc/features/cases/db/tables/xxcmp_fiu_reports.sql",
+   "kyc/db/scripts/16s-case-pkg/03-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/cases/db/tables/xxcmp_case_funds.sql",
+   "kyc/db/scripts/16s-case-pkg/05-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/cases/db/package_bodies/xxcmp_case_pkg.pkb"
+  ]
  },
  {
   "name": "16u KYC risk model (tables, package body, starting model with the FATF lists)",
   "file": "16u-risk-model.sql",
   "install_sequence": 181,
   "upgrade_sequence": 141,
-  "source_index": 51
+  "source_index": 51,
+  "units": [
+   "kyc/features/kyc-rules/db/tables/xxcmp_risk_factors.sql",
+   "kyc/db/scripts/16u-risk-model/02-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_risk_countries.sql",
+   "kyc/db/scripts/16u-risk-model/04-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_risk_tiers.sql",
+   "kyc/db/scripts/16u-risk-model/06-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/kyc-rules/db/tables/xxcmp_case_risk_scores.sql",
+   "kyc/db/scripts/16u-risk-model/08-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/kyc-rules/db/triggers/xxcmp_risk_factors_mc.sql",
+   "kyc/features/kyc-rules/db/triggers/xxcmp_risk_countries_mc.sql",
+   "kyc/features/kyc-rules/db/triggers/xxcmp_risk_tiers_mc.sql",
+   "kyc/features/kyc-rules/db/package_bodies/xxcmp_risk_pkg.pkb",
+   "kyc/db/scripts/16u-risk-model/13-apex_string-split.sql"
+  ]
  },
  {
   "name": "16v KYC performance (foreign key and data security indexes)",
   "file": "16v-performance.sql",
   "install_sequence": 182,
   "upgrade_sequence": 142,
-  "source_index": 52
+  "source_index": 52,
+  "units": [
+   "kyc/db/scripts/16v-performance/01-xxfnd_ddl_pkg-ensure_index.sql"
+  ]
  },
  {
   "name": "18h KYC registers itself in COMMON",
   "file": "18h-register-with-common.sql",
   "install_sequence": 183,
   "upgrade_sequence": 143,
-  "source_index": 53
+  "source_index": 53,
+  "units": [
+   "kyc/db/scripts/18h-register-with-common/01-release_applied-r10.sql"
+  ]
  },
  {
   "name": "18i KYC menu in COMMON",
   "file": "18i-kyc-menu.sql",
   "install_sequence": 190,
   "upgrade_sequence": 150,
-  "source_index": 54
+  "source_index": 54,
+  "units": [
+   "kyc/db/scripts/18i-kyc-menu/01-release_applied-kyc_menu_97.sql"
+  ]
  },
  {
   "name": "18j KYC navigation bar in COMMON",
   "file": "18j-kyc-top-bar.sql",
   "install_sequence": 194,
   "upgrade_sequence": 154,
-  "source_index": 55
+  "source_index": 55,
+  "units": [
+   "kyc/db/scripts/18j-kyc-top-bar/01-xxfnd_application_pkg-register_menu_entry.sql"
+  ]
  },
  {
   "name": "18e KYC requests and cases - seed",
   "file": "18e-kyc-requests-cases.sql",
   "install_sequence": 189,
   "upgrade_sequence": 149,
-  "source_index": 56
+  "source_index": 56,
+  "units": [
+   "kyc/db/scripts/18e-kyc-requests-cases/01-mark_release-r13.sql",
+   "kyc/features/kyc-rules/db/views/xxcmp_config_changes_v.sql",
+   "kyc/db/scripts/18e-kyc-requests-cases/03-xxfnd_error_pkg-register_message.sql"
+  ]
  },
  {
   "name": "16c Monitoring",
   "file": "16c-monitoring.sql",
   "install_sequence": 166,
   "upgrade_sequence": 126,
-  "source_index": 57
+  "source_index": 57,
+  "units": [
+   "kyc/features/alert-rules/db/tables/xxcmp_alert_rules.sql",
+   "kyc/features/monitoring/db/tables/xxcmp_alerts.sql",
+   "kyc/db/scripts/16c-monitoring/03-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/monitoring/db/views/xxcmp_watchlist_v.sql",
+   "kyc/db/scripts/16c-monitoring/05-step.sql",
+   "kyc/features/monitoring/db/package_specs/xxcmp_monitor_pkg.pks",
+   "kyc/features/monitoring/db/package_bodies/xxcmp_monitor_pkg.pkb"
+  ]
  },
  {
   "name": "16d Parties",
   "file": "16d-parties.sql",
   "install_sequence": 158,
   "upgrade_sequence": 118,
-  "source_index": 58
+  "source_index": 58,
+  "units": [
+   "kyc/db/scripts/16d-parties/01-add_column-xxcmp_parties.sql"
+  ]
  },
  {
   "name": "16e Party logic",
   "file": "16e-party-pkg.sql",
   "install_sequence": 167,
   "upgrade_sequence": 127,
-  "source_index": 59
+  "source_index": 59,
+  "units": [
+   "kyc/features/parties/db/tables/xxcmp_party_id_verifications.sql",
+   "kyc/db/scripts/16e-party-pkg/02-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/parties/db/tables/xxcmp_party_registry_checks.sql",
+   "kyc/db/scripts/16e-party-pkg/04-xxfnd_schema_pkg-create_who_trigger.sql",
+   "kyc/features/parties/db/package_bodies/xxcmp_party_pkg.pkb"
+  ]
  },
  {
   "name": "16f Party and request redesign",
   "file": "16f-party-request-redesign.sql",
   "install_sequence": 168,
   "upgrade_sequence": 128,
-  "source_index": 60
+  "source_index": 60,
+  "units": [
+   "kyc/db/scripts/16f-party-request-redesign/01-xxcmp_parties-jurisdiction.sql"
+  ]
  },
  {
   "name": "16g Request approval paths",
   "file": "16g-approval-paths.sql",
   "install_sequence": 169,
   "upgrade_sequence": 129,
-  "source_index": 61
+  "source_index": 61,
+  "units": [
+   "kyc/features/kyc-requests/db/tables/xxcmp_approval_paths.sql",
+   "kyc/db/scripts/16g-approval-paths/02-add_column-xxcmp_requests.sql"
+  ]
  },
  {
   "name": "16i Request UI",
   "file": "16i-request-ui.sql",
   "install_sequence": 172,
   "upgrade_sequence": 132,
-  "source_index": 63
+  "source_index": 63,
+  "units": [
+   "kyc/features/kyc-requests/db/package_specs/xxcmp_request_ui_pkg.pks",
+   "kyc/features/kyc-requests/db/package_bodies/xxcmp_request_ui_pkg.pkb"
+  ]
  },
  {
   "name": "18f Monitoring and dashboard - seed",
   "file": "18f-monitoring.sql",
   "install_sequence": 191,
   "upgrade_sequence": 151,
-  "source_index": 64
+  "source_index": 64,
+  "units": [
+   "kyc/db/scripts/18f-monitoring/01-mark_release-r14.sql"
+  ]
  },
  {
   "name": "19b Enable automations",
   "file": "19b-enable-automations.sql",
   "install_sequence": 196,
   "upgrade_sequence": 156,
-  "source_index": 65
+  "source_index": 65,
+  "units": [
+   "kyc/db/scripts/19b-enable-automations/01-apex_automation-enable.sql"
+  ]
  },
  {
   "name": "18g Release 15 marker",
   "file": "18g-release-15.sql",
   "install_sequence": 192,
   "upgrade_sequence": 152,
-  "source_index": 66
+  "source_index": 66,
+  "units": [
+   "kyc/db/scripts/18g-release-15/01-mark_release-r15.sql"
+  ]
  },
  {
   "name": "03 Use the shared schema",
   "file": "03-use-shared-schema.sql",
   "install_sequence": 3,
   "upgrade_sequence": 3,
-  "source_index": 71
+  "source_index": 71,
+  "units": [
+   "kyc/db/scripts/03-use-shared-schema/01-xxfnd_schema_pkg-apply_policies.sql"
+  ]
  },
  {
   "name": "19a Grants to the shared schema",
   "file": "19a-grants-to-shared-schema.sql",
   "install_sequence": 193,
   "upgrade_sequence": 153,
-  "source_index": 76
+  "source_index": 76,
+  "units": [
+   "kyc/db/scripts/19a-grants-to-shared-schema/01-dbms_output-put_line.sql"
+  ]
  },
  {
   "name": "18k Requester risk screening",
   "file": "18k-requester-screening.sql",
   "install_sequence": 197,
   "upgrade_sequence": 157,
-  "source_index": 111
+  "source_index": 111,
+  "units": [
+   "kyc/db/scripts/18k-requester-screening/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
  }
 ]

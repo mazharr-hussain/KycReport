@@ -54,37 +54,3 @@ begin
     end if;
 end;
 /
-
--- a stored file may now be in the database
-declare
-    l_cond varchar2(4000);
-begin
-    select search_condition_vc into l_cond from user_constraints
-     where table_name = 'XXFND_DOCUMENTS' and constraint_name = 'XXFND_DOCUMENTS_CK4';
-    if instr(l_cond, 'DATABASE') = 0 then
-        execute immediate 'alter table xxfnd_documents drop constraint xxfnd_documents_ck4';
-        execute immediate q'[alter table xxfnd_documents add constraint xxfnd_documents_ck4 check (
-            (datatype_code = 'FILE'     and storage_type in ('UCM','SHAREPOINT','DATABASE') and file_name is not null) or
-            (datatype_code = 'WEB_PAGE' and url is not null and storage_type is null) or
-            (datatype_code in ('SHORT_TEXT','LONG_TEXT') and storage_type is null))]';
-    end if;
-end;
-/
-comment on column xxfnd_documents.server_code is 'Release 86: the server (XXFND_SERVERS) the file was stored on; empty for the database.';
-comment on column xxfnd_documents.storage_container is 'Release 86: the SharePoint document library (drive ID) or the Object Storage bucket the file was stored in.';
-
--- a stored file may also be in OCI Object Storage (the same check as 13a, plus OBJECT_STORAGE)
-declare
-    l_cond varchar2(4000);
-begin
-    select max(search_condition_vc) into l_cond from user_constraints
-     where table_name = 'XXFND_DOCUMENTS' and constraint_name = 'XXFND_DOCUMENTS_CK4';
-    if l_cond is not null and instr(l_cond, 'OBJECT_STORAGE') = 0 then
-        xxfnd_ddl_pkg.drop_constraint('XXFND_DOCUMENTS', 'XXFND_DOCUMENTS_CK4');
-        xxfnd_ddl_pkg.add_constraint('XXFND_DOCUMENTS', 'XXFND_DOCUMENTS_CK4', q'[check (
-            (datatype_code = 'FILE'     and storage_type in ('UCM','SHAREPOINT','DATABASE','OBJECT_STORAGE') and file_name is not null) or
-            (datatype_code = 'WEB_PAGE' and url is not null and storage_type is null) or
-            (datatype_code in ('SHORT_TEXT','LONG_TEXT') and storage_type is null))]');
-    end if;
-end;
-/

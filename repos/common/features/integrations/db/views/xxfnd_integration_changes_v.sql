@@ -12,4 +12,3 @@ select 'XXFND_INTEGRATION_PURPOSES:' || p.purpose_code                          
        p.last_update_date                                                       submitted_date
   from xxfnd_integration_purposes p
  where p.approval_status = 'PENDING_APPROVAL';
-comment on table xxfnd_integration_changes_v is 'Pending integration purpose changes (registered changes view of XXFND_INTEGRATION_PURPOSES).';

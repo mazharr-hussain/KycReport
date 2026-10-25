@@ -50,20 +50,5 @@ begin
         xxfnd_ddl_pkg.run('create index xxfnd_integration_calls_n3 on xxfnd_integration_calls (retry_of_call_id)');
         xxfnd_ddl_pkg.run(q'~comment on table xxfnd_integration_calls is 'Release 83: every call made through XXFND_INTEGRATION_PKG (purpose, server, record) with what is needed to retry it; the HTTP details are in APEX_WEBSERVICE_LOG (WEBSERVICE_LOG_ID). File transfers are logged but not retried (RETRYABLE_FLAG N).'~');
     end if;
-    if xxfnd_ddl_pkg.create_table('XXFND_SERVER_TESTS', q'~create table xxfnd_server_tests (
-    server_static_id       varchar2(255)  not null,
-    tested_date            timestamp      not null,
-    tested_by              varchar2(255)  not null,
-    http_status            number(3),
-    result_code            varchar2(20)   not null,
-    result_message         varchar2(4000),
-    constraint xxfnd_server_tests_pk primary key (server_static_id),
-    constraint xxfnd_server_tests_ck1 check (result_code in ('REACHABLE','FAILED'))
-)~') then
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_server_tests is 'Release 83: the last Test Connection of each APEX Remote Server (Servers screen health).'~');
-    end if;
-    -- a purpose is served by a REST Data Source of COMMON (its Remote Server and Web Credential)
-    xxfnd_ddl_pkg.add_column('XXFND_INTEGRATION_PURPOSES', 'REST_SOURCE_STATIC_ID', 'varchar2(255)');
-    xxfnd_ddl_pkg.run(q'~comment on column xxfnd_integration_purposes.rest_source_static_id is 'Release 83: the REST Data Source of the COMMON application that serves the purpose (static ID); its Remote Server and Web Credential are kept by the workspace administrator.'~');
 end;
 /

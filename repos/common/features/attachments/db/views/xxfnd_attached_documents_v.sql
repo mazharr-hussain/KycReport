@@ -34,4 +34,3 @@ select ad.attached_document_id,
     on dt.document_id = d.document_id
    and dt.language_code = xxfnd_util_pkg.current_lang
  where ad.expiration_date is null;
-comment on table xxfnd_attached_documents_v is 'Attachments not removed, with category and title resolved. XXFND_ATTACH_PKG.ADD_VERSION repoints the attachment to the newest version, so DOCUMENT_ID is always the current one.';

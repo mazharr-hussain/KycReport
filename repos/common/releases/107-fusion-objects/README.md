@@ -44,3 +44,7 @@ Install / upgrade scripts 40a-40l, 40z (sequences 240-252).
 - The Object Storage bucket registered as BICC external storage, and the DBMS_CLOUD credential working
   (`DBMS_CLOUD.LIST_OBJECTS`).
 - BICC extract files: zip / csv names containing the datastore name; primary-key extract files containing `pecsv`.
+
+## Database steps (one object per file)
+`db/` holds this release's database files, numbered in upgrade order (the same files as `db/deploy/upgrade/` of the
+application). Run `run-release.sql` (SQLcl / SQL Developer / Database Actions F5), or import the APEXlang zip.

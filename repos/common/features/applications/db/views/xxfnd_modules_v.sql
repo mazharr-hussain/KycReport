@@ -38,5 +38,3 @@ select m.lookup_code                       as module_code,
    and exists (select 1 from xxfnd_admin_menu_v a
                 join xxfnd_feature_pages fp on fp.feature_code = a.feature_code and fp.app_alias = 'COMMON'
                where a.feature_group = m.lookup_code);
-
-comment on table xxfnd_modules_v is 'COMMON modules (lookup XXFND_MODULE) the current user may open, with their state.';

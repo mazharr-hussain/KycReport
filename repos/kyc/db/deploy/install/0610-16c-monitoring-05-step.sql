@@ -1,0 +1,1 @@
+comment on table xxcmp_watchlist_v is 'Monitoring watchlist: approved parties, their latest approved case, next review date and status (CURRENT, DUE, IN_REVIEW, OVERDUE), open review request and open alerts.';

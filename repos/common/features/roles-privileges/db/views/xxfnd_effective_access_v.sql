@@ -18,5 +18,3 @@ select u.user_id,
     or a.role_code in (select ur.role_code from xxfnd_user_roles_v ur where ur.user_id = u.user_id and ur.active_flag = 'Y')
   join xxfnd_data_security_rules d on d.rule_id = a.rule_id and d.enabled_flag = 'Y'
   left join xxfnd_roles r on r.role_code = a.role_code;
-
-comment on table xxfnd_effective_access_v is 'The data access rules that apply to each user, directly or through an active role.';

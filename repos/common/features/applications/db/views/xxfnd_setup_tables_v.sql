@@ -10,5 +10,3 @@ union all
 select null, user, t.table_name
   from user_tables t
  where t.table_name not like 'DR$%' and t.table_name not like 'MLOG$%' and t.table_name not like 'SYS\_%' escape '\';
-
-comment on table xxfnd_setup_tables_v is 'Tables the COMMON setup forms list: each registered application''s schema (APPLICATION_CODE) and this schema (empty: every application).';

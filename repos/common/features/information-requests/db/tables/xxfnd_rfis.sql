@@ -67,37 +67,5 @@ begin
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_rfis.response_token_hash is 'SHA-256 hash of the one-time token e-mailed to an external person. The token itself is never stored.'~');
         xxfnd_ddl_pkg.run(q'~comment on column xxfnd_rfis.recipient_reference is 'The application''s own key of the recipient (KYC: party contact ID).'~');
     end if;
-    xxfnd_schema_pkg.create_who_trigger('XXFND_RFIS');
-    -- who provides the information can come from the Approval Setup (e.g. CASE_RFI: the requester by default)
-    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'APPROVAL_TYPE_CODE', 'varchar2(30)');
-    -- release 82: the language of the e-mail to an outside recipient (no user record), default English
-    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'LANGUAGE_CODE', q'~varchar2(10) default 'en'~');
-    -- release 84: the RFI workflow (COMMON process RFI) of the request
-    xxfnd_ddl_pkg.add_column('XXFND_RFIS', 'WORKFLOW_ID', 'number');
-
-    if xxfnd_ddl_pkg.create_table('XXFND_RFI_ROUNDS', q'~create table xxfnd_rfi_rounds (
-    rfi_id                 number         not null,
-    round_no               number         not null,
-    question               varchar2(4000) not null,
-    asked_by               varchar2(255),
-    asked_date             timestamp      default systimestamp not null,
-    response_text          clob,
-    responded_by           varchar2(255),
-    responded_date         timestamp,
-    review_outcome         varchar2(30),
-    review_notes           varchar2(4000),
-    reviewed_by            varchar2(255),
-    reviewed_date          timestamp,
-    constraint xxfnd_rfi_rounds_pk primary key (rfi_id, round_no),
-    constraint xxfnd_rfi_rounds_fk1 foreign key (rfi_id) references xxfnd_rfis (rfi_id) on delete cascade,
-    constraint xxfnd_rfi_rounds_ck1 check (review_outcome in ('RESOLVED', 'ASKED_AGAIN', 'REJECTED_RETURNED', 'CANCELLED'))
-)~') then
-        xxfnd_ddl_pkg.run(q'~comment on table xxfnd_rfi_rounds is 'Each question of an RFI and its answer and review: the RFI loops (asked again) until resolved.'~');
-    end if;
-
-    xxfnd_ddl_pkg.ensure_sequence('XXFND_RFI_S', 'create sequence xxfnd_rfi_s');
-    xxfnd_ddl_pkg.ensure_sequence('XXFND_RFI_NUMBER_S', 'create sequence xxfnd_rfi_number_s');
-
-    -- data security: the Common administrators' rule is seeded by XXFND_SHARE_PKG.SEED_COMMON (19c, run by 20, after the role); applications add theirs (KYC: 18e)
 end;
 /

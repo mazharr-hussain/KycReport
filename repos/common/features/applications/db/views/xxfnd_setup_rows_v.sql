@@ -46,5 +46,3 @@ union all
 -- release 96: the data objects of the security model (page 181 opens one)
 select 'DATA_SECURITY', o.application_code, o.data_object_code, o.object_name || ' - ' || o.table_name, 'P181_DATA_OBJECT_CODE'
   from xxfnd_data_objects o;
-
-comment on table xxfnd_setup_rows_v is 'Every setup row with its application (empty: all applications - instance) and the COMMON form item that opens it.';

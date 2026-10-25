@@ -1,0 +1,4005 @@
+{
+ "objects": {
+  "xxfnd_schema_releases": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/framework/tables/xxfnd_schema_releases.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_dropped_objects": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/framework/tables/xxfnd_dropped_objects.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_ddl_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_ddl_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_lookup_types": {
+   "type": "table",
+   "feature": "lookups",
+   "file": "common/features/lookups/db/tables/xxfnd_lookup_types.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_lookup_values": {
+   "type": "table",
+   "feature": "lookups",
+   "file": "common/features/lookups/db/tables/xxfnd_lookup_values.sql",
+   "application": "COMMON"
+  },
+  "xxhr_employees": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/tables/xxhr_employees.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_roles": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_roles.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_roles": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_user_roles.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_sod_rules": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_sod_rules.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notification_templates": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notification_templates.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_audit_log": {
+   "type": "table",
+   "feature": "audit-log",
+   "file": "common/features/audit-log/db/tables/xxfnd_audit_log.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_retention_policies": {
+   "type": "table",
+   "feature": "retention",
+   "file": "common/features/retention/db/tables/xxfnd_retention_policies.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_integration_endpoints": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_integration_endpoints.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_integration_purposes": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_transmissions": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_transmissions.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_entities": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_document_entities.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_categories": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_document_categories.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attachment_functions": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_attachment_functions.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attachment_blocks": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_attachment_blocks.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attachment_blk_entities": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_attachment_blk_entities.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_doc_category_usages": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_doc_category_usages.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_storage_config": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_storage_config.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_documents": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_documents.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attached_documents": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_attached_documents.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_entity_containers": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_entity_containers.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_wf_delegations": {
+   "type": "table",
+   "feature": "workflow-setup",
+   "file": "common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_value_sets": {
+   "type": "table",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/tables/xxfnd_value_sets.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_flexfields": {
+   "type": "table",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/tables/xxfnd_df_flexfields.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_contexts": {
+   "type": "table",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/tables/xxfnd_df_contexts.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_segments": {
+   "type": "table",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/tables/xxfnd_df_segments.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_applications_s": {
+   "type": "sequence",
+   "feature": "applications",
+   "file": "common/features/applications/db/sequences/xxfnd_applications_s.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_applications": {
+   "type": "table",
+   "feature": "applications",
+   "file": "common/features/applications/db/tables/xxfnd_applications.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_applications_id": {
+   "type": "trigger",
+   "feature": "applications",
+   "file": "common/features/applications/db/triggers/xxfnd_applications_id.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_users": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_users.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_roles_user": {
+   "type": "trigger",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/triggers/xxfnd_user_roles_user.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_config_tables": {
+   "type": "table",
+   "feature": "change-approvals",
+   "file": "common/features/change-approvals/db/tables/xxfnd_config_tables.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_config_change_row": {
+   "type": "type",
+   "feature": "change-approvals",
+   "file": "common/features/change-approvals/db/types/xxfnd_config_change_row.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_config_change_tab": {
+   "type": "type",
+   "feature": "change-approvals",
+   "file": "common/features/change-approvals/db/types/xxfnd_config_change_tab.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_schema_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_schema_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_util_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_util_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_audit_pkg": {
+   "type": "package spec",
+   "feature": "audit-log",
+   "file": "common/features/audit-log/db/package_specs/xxfnd_audit_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_user_roles_v": {
+   "type": "view",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/views/xxfnd_user_roles_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_pkg": {
+   "type": "package spec",
+   "feature": "change-approvals",
+   "file": "common/features/change-approvals/db/package_specs/xxfnd_approval_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_integration_calls": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_integration_calls.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_server_tests": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_server_tests.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_servers": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_servers.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_servers_v": {
+   "type": "view",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/views/xxfnd_servers_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_integration_pkg": {
+   "type": "package spec",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/package_specs/xxfnd_integration_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxhr_employees_src": {
+   "type": "trigger",
+   "feature": "framework",
+   "file": "common/db/triggers/xxhr_employees_src.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_lookup_pkg": {
+   "type": "package spec",
+   "feature": "lookups",
+   "file": "common/features/lookups/db/package_specs/xxfnd_lookup_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_lookup_values_lvl": {
+   "type": "trigger",
+   "feature": "lookups",
+   "file": "common/features/lookups/db/triggers/xxfnd_lookup_values_lvl.sql",
+   "application": "COMMON"
+  },
+  "xxhr_employees_ins": {
+   "type": "trigger",
+   "feature": "framework",
+   "file": "common/db/triggers/xxhr_employees_ins.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_sod_rules_order": {
+   "type": "trigger",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/triggers/xxfnd_sod_rules_order.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_lookup_values_vl": {
+   "type": "view",
+   "feature": "lookups",
+   "file": "common/features/lookups/db/views/xxfnd_lookup_values_vl.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_categories_vl": {
+   "type": "view",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/views/xxfnd_document_categories_vl.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_entities_vl": {
+   "type": "view",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/views/xxfnd_document_entities_vl.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attached_documents_v": {
+   "type": "view",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/views/xxfnd_attached_documents_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_versions_v": {
+   "type": "view",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/views/xxfnd_document_versions_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_contexts_vl": {
+   "type": "view",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/views/xxfnd_df_contexts_vl.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_integration_changes_v": {
+   "type": "view",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/views/xxfnd_integration_changes_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_config_changes_v": {
+   "type": "view",
+   "feature": "change-approvals",
+   "file": "common/features/change-approvals/db/views/xxfnd_config_changes_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_applications": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_user_applications.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_role_members": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_role_members.sql",
+   "application": "COMMON"
+  },
+  "xxhr_organizations": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxhr_organizations.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_dimensions": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_data_dimensions.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_objects": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_data_objects.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_role_data_access": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_role_data_access.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_assignment_values": {
+   "type": "table",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/tables/xxfnd_assignment_values.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_role_tree_v": {
+   "type": "view",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/views/xxfnd_user_role_tree_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_data_access_v": {
+   "type": "view",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/views/xxfnd_user_data_access_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_features": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_features.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_privileges": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_privileges.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_feature_pages": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_role_privileges": {
+   "type": "table",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/tables/xxfnd_role_privileges.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_security_rules": {
+   "type": "table",
+   "feature": "data-security",
+   "file": "common/features/data-security/db/tables/xxfnd_data_security_rules.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_rule_assignments": {
+   "type": "table",
+   "feature": "data-security",
+   "file": "common/features/data-security/db/tables/xxfnd_data_rule_assignments.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_effective_access_v": {
+   "type": "view",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/views/xxfnd_effective_access_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_rules_assign": {
+   "type": "trigger",
+   "feature": "data-security",
+   "file": "common/features/data-security/db/triggers/xxfnd_data_rules_assign.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_privilege_pkg": {
+   "type": "package spec",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/package_specs/xxfnd_privilege_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_vpd_pkg": {
+   "type": "package spec",
+   "feature": "data-security",
+   "file": "common/features/data-security/db/package_specs/xxfnd_vpd_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_dff_pkg": {
+   "type": "package spec",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/package_specs/xxfnd_dff_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_df_flexfields_chk": {
+   "type": "trigger",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/triggers/xxfnd_df_flexfields_chk.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_segments_chk": {
+   "type": "trigger",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/triggers/xxfnd_df_segments_chk.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_df_contexts_protect": {
+   "type": "trigger",
+   "feature": "flexfields",
+   "file": "common/features/flexfields/db/triggers/xxfnd_df_contexts_protect.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_document_files": {
+   "type": "table",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/tables/xxfnd_document_files.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_app_storage_v": {
+   "type": "view",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/views/xxfnd_app_storage_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_attach_pkg": {
+   "type": "package spec",
+   "feature": "attachments",
+   "file": "common/features/attachments/db/package_specs/xxfnd_attach_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_retention_pkg": {
+   "type": "package spec",
+   "feature": "retention",
+   "file": "common/features/retention/db/package_specs/xxfnd_retention_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_task_settings": {
+   "type": "table",
+   "feature": "workflow-setup",
+   "file": "common/features/workflow-setup/db/tables/xxfnd_task_settings.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_task_alerts": {
+   "type": "table",
+   "feature": "workflow-setup",
+   "file": "common/features/workflow-setup/db/tables/xxfnd_task_alerts.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_communications": {
+   "type": "table",
+   "feature": "communications",
+   "file": "common/features/communications/db/tables/xxfnd_communications.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notify_channels": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notify_channels.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notify_events": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notify_events.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notify_recipient_types": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notify_recipient_types.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notify_rules": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notify_rules.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_notifications": {
+   "type": "table",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/tables/xxfnd_notifications.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_contact_sources": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/tables/xxfnd_contact_sources.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_contact_row": {
+   "type": "type",
+   "feature": "framework",
+   "file": "common/db/types/xxfnd_contact_row.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_contact_tab": {
+   "type": "type",
+   "feature": "framework",
+   "file": "common/db/types/xxfnd_contact_tab.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_qa_row": {
+   "type": "type",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/types/xxfnd_qa_row.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_qa_tab": {
+   "type": "type",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/types/xxfnd_qa_tab.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_workflow_pkg": {
+   "type": "package spec",
+   "feature": "workflow-setup",
+   "file": "common/features/workflow-setup/db/package_specs/xxfnd_workflow_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_notify_pkg": {
+   "type": "package spec",
+   "feature": "notifications",
+   "file": "common/features/notifications/db/package_specs/xxfnd_notify_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_rfis": {
+   "type": "table",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/tables/xxfnd_rfis.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_rfi_rounds": {
+   "type": "table",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/tables/xxfnd_rfi_rounds.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_rfis_bi": {
+   "type": "trigger",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/triggers/xxfnd_rfis_bi.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_rfi_pkg": {
+   "type": "package spec",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/package_specs/xxfnd_rfi_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_types": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_types.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_type_attrs": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_type_attrs.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rules": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_rules.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rule_conds": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_rule_conds.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rule_steps": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_rule_steps.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_txns": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_txns.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_txn_steps": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_txn_steps.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rules_bi": {
+   "type": "trigger",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_step_row": {
+   "type": "type",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/types/xxfnd_approval_step_row.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_step_tab": {
+   "type": "type",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/types/xxfnd_approval_step_tab.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rule_pkg": {
+   "type": "package spec",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/package_specs/xxfnd_approval_rule_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_rule_steps_type": {
+   "type": "trigger",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/triggers/xxfnd_approval_rule_steps_type.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_user_pkg": {
+   "type": "package spec",
+   "feature": "users-access",
+   "file": "common/features/users-access/db/package_specs/xxfnd_user_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxhr_employees_rename": {
+   "type": "trigger",
+   "feature": "framework",
+   "file": "common/db/triggers/xxhr_employees_rename.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_ui_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_ui_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_setup_tables_v": {
+   "type": "view",
+   "feature": "applications",
+   "file": "common/features/applications/db/views/xxfnd_setup_tables_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_setup_columns_v": {
+   "type": "view",
+   "feature": "applications",
+   "file": "common/features/applications/db/views/xxfnd_setup_columns_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_setup_rows_v": {
+   "type": "view",
+   "feature": "applications",
+   "file": "common/features/applications/db/views/xxfnd_setup_rows_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_admin_menu_v": {
+   "type": "view",
+   "feature": "applications",
+   "file": "common/features/applications/db/views/xxfnd_admin_menu_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_int_purposes_mc": {
+   "type": "trigger",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/triggers/xxfnd_int_purposes_mc.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_application_functions": {
+   "type": "table",
+   "feature": "applications",
+   "file": "common/features/applications/db/tables/xxfnd_application_functions.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_app_menu_entries": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/tables/xxfnd_app_menu_entries.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_setup_types": {
+   "type": "table",
+   "feature": "applications",
+   "file": "common/features/applications/db/tables/xxfnd_setup_types.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_setup_type_apps": {
+   "type": "table",
+   "feature": "applications",
+   "file": "common/features/applications/db/tables/xxfnd_setup_type_apps.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_application_pkg": {
+   "type": "package spec",
+   "feature": "applications",
+   "file": "common/features/applications/db/package_specs/xxfnd_application_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_workflow_processes": {
+   "type": "table",
+   "feature": "applications",
+   "file": "common/features/applications/db/tables/xxfnd_workflow_processes.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_messages": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/framework/tables/xxfnd_messages.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_error_log": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/framework/tables/xxfnd_error_log.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_error_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_error_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_share_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/framework/package_specs/xxfnd_share_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_modules_v": {
+   "type": "view",
+   "feature": "applications",
+   "file": "common/features/applications/db/views/xxfnd_modules_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_app_setting_pkg": {
+   "type": "package spec",
+   "feature": "app-settings",
+   "file": "common/features/app-settings/db/package_specs/xxfnd_app_setting_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_qa_history_v": {
+   "type": "view",
+   "feature": "information-requests",
+   "file": "common/features/information-requests/db/views/xxfnd_qa_history_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_roles_every_role": {
+   "type": "trigger",
+   "feature": "roles-privileges",
+   "file": "common/features/roles-privileges/db/triggers/xxfnd_roles_every_role.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_onboard_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/package_specs/xxfnd_onboard_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_page_opens": {
+   "type": "table",
+   "feature": "framework",
+   "file": "common/db/tables/xxfnd_page_opens.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_nav_menu_v": {
+   "type": "view",
+   "feature": "framework",
+   "file": "common/db/views/xxfnd_nav_menu_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_page_catalogue_v": {
+   "type": "view",
+   "feature": "framework",
+   "file": "common/db/views/xxfnd_page_catalogue_v.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_nav_pkg": {
+   "type": "package spec",
+   "feature": "framework",
+   "file": "common/db/package_specs/xxfnd_nav_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_dm_app_scopes": {
+   "type": "table",
+   "feature": "data-model",
+   "file": "common/features/data-model/db/tables/xxfnd_dm_app_scopes.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_dm_table_groups": {
+   "type": "table",
+   "feature": "data-model",
+   "file": "common/features/data-model/db/tables/xxfnd_dm_table_groups.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_data_model_pkg": {
+   "type": "package spec",
+   "feature": "data-model",
+   "file": "common/features/data-model/db/package_specs/xxfnd_data_model_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_catalog": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_objects": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_attributes": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_children": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_children.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_versions": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_drift": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_runs": {
+   "type": "table",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_meta_pkg": {
+   "type": "package spec",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_meta_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_gen_pkg": {
+   "type": "package spec",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_gen_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_registry_pkg": {
+   "type": "package spec",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_registry_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_drift_pkg": {
+   "type": "package spec",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_drift_pkg.pks",
+   "application": "COMMON"
+  },
+  "xxfnd_fi_run_pkg": {
+   "type": "package spec",
+   "feature": "fusion-objects",
+   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_run_pkg.pks",
+   "application": "COMMON"
+  }
+ },
+ "uses": {
+  "xxfnd_schema_releases": [],
+  "xxfnd_dropped_objects": [],
+  "xxfnd_ddl_pkg": [],
+  "xxfnd_ddl_pkg (body)": [
+   "xxfnd_dropped_objects",
+   "xxfnd_schema_releases"
+  ],
+  "xxfnd_lookup_types": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_lookup_values": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_lookup_types"
+  ],
+  "xxhr_employees": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_roles": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_user_pkg"
+  ],
+  "xxfnd_user_roles": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_roles",
+   "xxhr_employees"
+  ],
+  "xxfnd_sod_rules": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_roles"
+  ],
+  "xxfnd_notification_templates": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_audit_log": [
+   "xxfnd_audit_pkg",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_retention_policies": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_integration_endpoints": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_integration_purposes": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_integration_endpoints"
+  ],
+  "xxfnd_transmissions": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_integration_endpoints",
+   "xxfnd_integration_purposes"
+  ],
+  "xxfnd_document_entities": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_document_categories": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_attachment_functions": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_attachment_blocks": [
+   "xxfnd_attachment_functions",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_attachment_blk_entities": [
+   "xxfnd_attachment_blocks",
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_entities"
+  ],
+  "xxfnd_doc_category_usages": [
+   "xxfnd_attachment_functions",
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_categories"
+  ],
+  "xxfnd_storage_config": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_integration_endpoints"
+  ],
+  "xxfnd_documents": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_categories",
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_attached_documents": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_documents"
+  ],
+  "xxfnd_entity_containers": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_document_entities",
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_wf_delegations": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_value_sets": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values"
+  ],
+  "xxfnd_df_flexfields": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_df_contexts": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_df_flexfields"
+  ],
+  "xxfnd_df_segments": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_df_contexts",
+   "xxfnd_dff_pkg",
+   "xxfnd_value_sets"
+  ],
+  "xxfnd_applications_s": [],
+  "xxfnd_applications": [
+   "xxfnd_applications_s"
+  ],
+  "xxfnd_applications_id": [
+   "xxfnd_applications"
+  ],
+  "xxfnd_users": [
+   "xxhr_employees"
+  ],
+  "xxfnd_user_roles_user": [
+   "xxfnd_user_roles",
+   "xxfnd_users",
+   "xxhr_employees"
+  ],
+  "xxfnd_config_tables": [
+   "xxfnd_applications"
+  ],
+  "xxfnd_config_change_row": [],
+  "xxfnd_config_change_tab": [
+   "xxfnd_config_change_row"
+  ],
+  "xxfnd_schema_pkg": [],
+  "xxfnd_schema_pkg (body)": [
+   "xxfnd_audit_pkg",
+   "xxfnd_config_tables",
+   "xxfnd_data_security_rules",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_util_pkg": [],
+  "xxfnd_util_pkg (body)": [
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_audit_pkg": [],
+  "xxfnd_audit_pkg (body)": [
+   "xxfnd_audit_log",
+   "xxfnd_schema_pkg",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_user_roles_v": [
+   "xxfnd_roles",
+   "xxfnd_user_roles",
+   "xxfnd_users",
+   "xxhr_employees"
+  ],
+  "xxfnd_approval_pkg": [
+   "xxfnd_config_change_tab"
+  ],
+  "xxfnd_integration_calls": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_integration_pkg"
+  ],
+  "xxfnd_server_tests": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_servers": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_integration_endpoints"
+  ],
+  "xxfnd_servers_v": [
+   "xxfnd_applications",
+   "xxfnd_integration_calls",
+   "xxfnd_lookup_values",
+   "xxfnd_server_tests",
+   "xxfnd_servers"
+  ],
+  "xxfnd_integration_pkg": [],
+  "xxfnd_integration_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_integration_calls",
+   "xxfnd_integration_purposes",
+   "xxfnd_privilege_pkg",
+   "xxfnd_server_tests",
+   "xxfnd_servers",
+   "xxfnd_servers_v",
+   "xxfnd_util_pkg",
+   "xxhr_employees"
+  ],
+  "xxhr_employees_src": [
+   "xxfnd_integration_pkg",
+   "xxfnd_util_pkg",
+   "xxhr_employees"
+  ],
+  "xxfnd_lookup_pkg": [],
+  "xxfnd_lookup_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_error_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_lookup_values_lvl": [
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values",
+   "xxfnd_util_pkg"
+  ],
+  "xxhr_employees_ins": [
+   "xxhr_employees"
+  ],
+  "xxfnd_sod_rules_order": [
+   "xxfnd_sod_rules"
+  ],
+  "xxfnd_lookup_values_vl": [
+   "xxfnd_lookup_values",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_document_categories_vl": [
+   "xxfnd_document_categories",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_document_entities_vl": [
+   "xxfnd_document_entities",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_attached_documents_v": [
+   "xxfnd_attached_documents",
+   "xxfnd_document_categories_vl",
+   "xxfnd_documents",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_document_versions_v": [
+   "xxfnd_documents"
+  ],
+  "xxfnd_df_contexts_vl": [
+   "xxfnd_df_contexts",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_integration_changes_v": [
+   "xxfnd_integration_purposes"
+  ],
+  "xxfnd_config_changes_v": [
+   "xxfnd_approval_pkg"
+  ],
+  "xxfnd_user_applications": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxfnd_users"
+  ],
+  "xxfnd_role_members": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_roles"
+  ],
+  "xxhr_organizations": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_data_dimensions": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxhr_organizations"
+  ],
+  "xxfnd_data_objects": [
+   "xxfnd_applications",
+   "xxfnd_data_dimensions",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_role_data_access": [
+   "xxfnd_data_objects",
+   "xxfnd_ddl_pkg",
+   "xxfnd_roles"
+  ],
+  "xxfnd_assignment_values": [
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_ddl_pkg",
+   "xxfnd_user_roles"
+  ],
+  "xxfnd_user_role_tree_v": [
+   "xxfnd_role_members",
+   "xxfnd_roles",
+   "xxfnd_user_roles_v"
+  ],
+  "xxfnd_user_data_access_v": [
+   "xxfnd_assignment_values",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_role_data_access",
+   "xxfnd_user_role_tree_v",
+   "xxhr_organizations"
+  ],
+  "xxfnd_features": [],
+  "xxfnd_privileges": [
+   "xxfnd_features"
+  ],
+  "xxfnd_feature_pages": [
+   "xxfnd_features"
+  ],
+  "xxfnd_role_privileges": [
+   "xxfnd_privileges",
+   "xxfnd_roles"
+  ],
+  "xxfnd_data_security_rules": [
+   "xxfnd_roles",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_data_rule_assignments": [
+   "xxfnd_data_security_rules",
+   "xxfnd_ddl_pkg",
+   "xxfnd_roles",
+   "xxfnd_users"
+  ],
+  "xxfnd_effective_access_v": [
+   "xxfnd_data_rule_assignments",
+   "xxfnd_data_security_rules",
+   "xxfnd_roles",
+   "xxfnd_user_roles_v",
+   "xxfnd_users"
+  ],
+  "xxfnd_data_rules_assign": [
+   "xxfnd_data_rule_assignments",
+   "xxfnd_data_security_rules"
+  ],
+  "xxfnd_privilege_pkg": [],
+  "xxfnd_privilege_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_error_pkg",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_privileges",
+   "xxfnd_role_members",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_sod_rules",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_user_roles",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_vpd_pkg": [],
+  "xxfnd_vpd_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_assignment_values",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_data_rule_assignments",
+   "xxfnd_data_security_rules",
+   "xxfnd_error_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_data_access",
+   "xxfnd_roles",
+   "xxfnd_schema_pkg",
+   "xxfnd_user_data_access_v",
+   "xxfnd_user_roles",
+   "xxfnd_user_roles_v",
+   "xxfnd_users",
+   "xxfnd_util_pkg",
+   "xxfnd_wf_delegations",
+   "xxhr_organizations"
+  ],
+  "xxfnd_dff_pkg": [],
+  "xxfnd_dff_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_df_contexts",
+   "xxfnd_df_contexts_vl",
+   "xxfnd_df_flexfields",
+   "xxfnd_df_segments",
+   "xxfnd_error_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_util_pkg",
+   "xxfnd_value_sets"
+  ],
+  "xxfnd_df_flexfields_chk": [
+   "xxfnd_df_flexfields",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_df_segments_chk": [
+   "xxfnd_df_flexfields",
+   "xxfnd_df_segments",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_df_contexts_protect": [
+   "xxfnd_df_contexts",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_document_files": [
+   "xxfnd_documents"
+  ],
+  "xxfnd_app_storage_v": [
+   "xxfnd_applications",
+   "xxfnd_document_categories",
+   "xxfnd_servers",
+   "xxfnd_servers_v",
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_attach_pkg": [
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_attach_pkg (body)": [
+   "xxfnd_app_storage_v",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_attached_documents",
+   "xxfnd_attachment_blk_entities",
+   "xxfnd_attachment_blocks",
+   "xxfnd_attachment_functions",
+   "xxfnd_doc_category_usages",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_document_files",
+   "xxfnd_documents",
+   "xxfnd_entity_containers",
+   "xxfnd_error_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_servers",
+   "xxfnd_storage_config",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_retention_pkg": [],
+  "xxfnd_retention_pkg (body)": [],
+  "xxfnd_task_settings": [
+   "xxfnd_roles"
+  ],
+  "xxfnd_task_alerts": [],
+  "xxfnd_communications": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_notify_channels": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_notify_events": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_notification_templates"
+  ],
+  "xxfnd_notify_recipient_types": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_notify_rules": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_notification_templates",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events",
+   "xxfnd_notify_recipient_types"
+  ],
+  "xxfnd_notifications": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events"
+  ],
+  "xxfnd_contact_sources": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_contact_row": [],
+  "xxfnd_contact_tab": [
+   "xxfnd_contact_row"
+  ],
+  "xxfnd_qa_row": [],
+  "xxfnd_qa_tab": [
+   "xxfnd_qa_row"
+  ],
+  "xxfnd_workflow_pkg": [
+   "xxfnd_qa_tab"
+  ],
+  "xxfnd_notify_pkg": [
+   "xxfnd_contact_tab"
+  ],
+  "xxfnd_notify_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_attach_pkg",
+   "xxfnd_communications",
+   "xxfnd_contact_row",
+   "xxfnd_contact_sources",
+   "xxfnd_contact_tab",
+   "xxfnd_document_entities",
+   "xxfnd_error_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_notification_templates",
+   "xxfnd_notifications",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events",
+   "xxfnd_notify_recipient_types",
+   "xxfnd_notify_rules",
+   "xxfnd_privilege_pkg",
+   "xxfnd_users",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg",
+   "xxhr_employees"
+  ],
+  "xxfnd_workflow_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_config_tables",
+   "xxfnd_error_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_qa_row",
+   "xxfnd_qa_tab",
+   "xxfnd_role_privileges",
+   "xxfnd_task_alerts",
+   "xxfnd_task_settings",
+   "xxfnd_user_roles_v",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_wf_delegations",
+   "xxfnd_workflow_processes"
+  ],
+  "xxfnd_approval_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_audit_pkg",
+   "xxfnd_config_change_row",
+   "xxfnd_config_change_tab",
+   "xxfnd_config_changes_v",
+   "xxfnd_config_tables",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_rfis": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_rfi_rounds"
+  ],
+  "xxfnd_rfi_rounds": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_rfis"
+  ],
+  "xxfnd_rfis_bi": [
+   "xxfnd_rfis"
+  ],
+  "xxfnd_rfi_pkg": [
+   "xxfnd_qa_tab"
+  ],
+  "xxfnd_rfi_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_txn_steps",
+   "xxfnd_approval_txns",
+   "xxfnd_approval_types",
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_values",
+   "xxfnd_notifications",
+   "xxfnd_notify_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_qa_row",
+   "xxfnd_qa_tab",
+   "xxfnd_rfi_rounds",
+   "xxfnd_rfis",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_approval_types": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_type_attrs": [
+   "xxfnd_approval_types",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_rules": [
+   "xxfnd_approval_types",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_rule_conds": [
+   "xxfnd_approval_rules",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_rule_steps": [
+   "xxfnd_approval_rules",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_txns": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_txn_steps": [
+   "xxfnd_approval_txns",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_rules_bi": [
+   "xxfnd_approval_rules"
+  ],
+  "xxfnd_approval_step_row": [],
+  "xxfnd_approval_step_tab": [
+   "xxfnd_approval_step_row"
+  ],
+  "xxfnd_approval_rule_pkg": [
+   "xxfnd_approval_step_tab"
+  ],
+  "xxfnd_approval_rule_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_step_row",
+   "xxfnd_approval_step_tab",
+   "xxfnd_approval_txn_steps",
+   "xxfnd_approval_txns",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_approval_types",
+   "xxfnd_error_pkg",
+   "xxfnd_roles",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg",
+   "xxhr_employees"
+  ],
+  "xxfnd_approval_rule_steps_type": [
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps"
+  ],
+  "xxfnd_user_pkg": [],
+  "xxfnd_user_pkg (body)": [
+   "xxcmp_party_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_audit_log",
+   "xxfnd_privilege_pkg",
+   "xxfnd_roles",
+   "xxfnd_user_applications",
+   "xxfnd_user_roles",
+   "xxfnd_users",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg",
+   "xxhr_employees"
+  ],
+  "xxhr_employees_rename": [
+   "xxfnd_user_pkg",
+   "xxhr_employees"
+  ],
+  "xxfnd_ui_pkg": [],
+  "xxfnd_ui_pkg (body)": [
+   "xxfnd_lookup_pkg",
+   "xxhr_employees"
+  ],
+  "xxfnd_setup_tables_v": [
+   "xxfnd_applications"
+  ],
+  "xxfnd_setup_columns_v": [
+   "xxfnd_setup_tables_v"
+  ],
+  "xxfnd_setup_rows_v": [
+   "xxfnd_attachment_functions",
+   "xxfnd_data_objects",
+   "xxfnd_df_flexfields",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_integration_purposes",
+   "xxfnd_lookup_types",
+   "xxfnd_notification_templates",
+   "xxfnd_retention_policies",
+   "xxfnd_roles",
+   "xxfnd_servers",
+   "xxfnd_sod_rules",
+   "xxfnd_storage_config",
+   "xxfnd_value_sets"
+  ],
+  "xxfnd_admin_menu_v": [
+   "xxfnd_features",
+   "xxfnd_privilege_pkg"
+  ],
+  "xxfnd_int_purposes_mc": [
+   "xxfnd_approval_pkg",
+   "xxfnd_integration_purposes"
+  ],
+  "xxfnd_application_functions": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxfnd_features",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_app_menu_entries": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_setup_types": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_setup_type_apps"
+  ],
+  "xxfnd_setup_type_apps": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg",
+   "xxfnd_setup_types"
+  ],
+  "xxfnd_application_pkg": [],
+  "xxfnd_application_pkg (body)": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_functions",
+   "xxfnd_applications",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_types",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents",
+   "xxfnd_attachment_functions",
+   "xxfnd_contact_sources",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_model_pkg",
+   "xxfnd_data_objects",
+   "xxfnd_df_flexfields",
+   "xxfnd_dff_pkg",
+   "xxfnd_dm_app_scopes",
+   "xxfnd_dm_table_groups",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_error_pkg",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_integration_pkg",
+   "xxfnd_integration_purposes",
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values",
+   "xxfnd_notification_templates",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules",
+   "xxfnd_privilege_pkg",
+   "xxfnd_privileges",
+   "xxfnd_retention_policies",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_setup_type_apps",
+   "xxfnd_setup_types",
+   "xxfnd_share_pkg",
+   "xxfnd_sod_rules",
+   "xxfnd_storage_config",
+   "xxfnd_task_settings",
+   "xxfnd_user_applications",
+   "xxfnd_user_pkg",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_user_roles_v",
+   "xxfnd_util_pkg",
+   "xxfnd_value_sets",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg",
+   "xxfnd_workflow_processes",
+   "xxhr_organizations"
+  ],
+  "xxfnd_workflow_processes": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_messages": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_error_log": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_error_pkg": [],
+  "xxfnd_error_pkg (body)": [
+   "xxfnd_error_log",
+   "xxfnd_messages"
+  ],
+  "xxfnd_share_pkg": [],
+  "xxfnd_share_pkg (body)": [
+   "xxfnd_app_storage_v",
+   "xxfnd_applications",
+   "xxfnd_applications_s",
+   "xxfnd_communications",
+   "xxfnd_data_security_rules",
+   "xxfnd_ddl_pkg",
+   "xxfnd_error_log",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_nav_menu_v",
+   "xxfnd_onboard_pkg",
+   "xxfnd_privileges",
+   "xxfnd_rfis",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_schema_pkg",
+   "xxfnd_schema_releases",
+   "xxfnd_servers_v",
+   "xxfnd_setup_columns_v",
+   "xxfnd_setup_tables_v",
+   "xxfnd_user_pkg",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_modules_v": [
+   "xxfnd_admin_menu_v",
+   "xxfnd_applications",
+   "xxfnd_feature_pages",
+   "xxfnd_lookup_values",
+   "xxfnd_servers_v",
+   "xxfnd_user_roles",
+   "xxfnd_workflow_processes",
+   "xxhr_employees"
+  ],
+  "xxfnd_app_setting_pkg": [],
+  "xxfnd_app_setting_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_privilege_pkg"
+  ],
+  "xxfnd_qa_history_v": [
+   "xxfnd_rfi_rounds",
+   "xxfnd_rfis",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_roles_every_role": [
+   "xxfnd_privilege_pkg",
+   "xxfnd_roles"
+  ],
+  "xxfnd_onboard_pkg": [],
+  "xxfnd_onboard_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_error_pkg",
+   "xxfnd_util_pkg"
+  ],
+  "xxfnd_page_opens": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_nav_pkg",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_nav_menu_v": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_feature_pages"
+  ],
+  "xxfnd_page_catalogue_v": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_applications",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_page_opens"
+  ],
+  "xxfnd_nav_pkg": [],
+  "xxfnd_nav_pkg (body)": [
+   "xxfnd_nav_menu_v",
+   "xxfnd_page_opens"
+  ],
+  "xxfnd_dm_app_scopes": [
+   "xxfnd_applications",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_dm_table_groups": [
+   "xxfnd_applications",
+   "xxfnd_data_model_pkg",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_data_model_pkg": [],
+  "xxfnd_data_model_pkg (body)": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_dm_app_scopes",
+   "xxfnd_dm_table_groups",
+   "xxfnd_error_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_fi_catalog": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_objects": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_catalog",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_schema_pkg",
+   "xxfnd_servers"
+  ],
+  "xxfnd_fi_attributes": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_children": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_versions": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_drift": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_runs": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_integration_calls",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_fi_meta_pkg": [],
+  "xxfnd_fi_meta_pkg (body)": [
+   "xxfnd_error_pkg",
+   "xxfnd_fi_catalog",
+   "xxfnd_integration_pkg"
+  ],
+  "xxfnd_fi_gen_pkg": [],
+  "xxfnd_fi_gen_pkg (body)": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_error_pkg",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_versions"
+  ],
+  "xxfnd_fi_registry_pkg": [],
+  "xxfnd_fi_registry_pkg (body)": [
+   "xxfnd_error_pkg",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_catalog",
+   "xxfnd_fi_children",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_privilege_pkg",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_fi_drift_pkg": [],
+  "xxfnd_fi_drift_pkg (body)": [
+   "xxfnd_error_pkg",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_drift",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_runs",
+   "xxfnd_notify_pkg",
+   "xxfnd_util_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_fi_run_pkg": [],
+  "xxfnd_fi_run_pkg (body)": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_error_pkg",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_runs",
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:page-groups.apx": [],
+  "apex:COMMON:application.apx": [
+   "xxfnd_error_pkg",
+   "xxfnd_onboard_pkg"
+  ],
+  "apex:COMMON:shared-components/lovs.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_attached_documents",
+   "xxfnd_document_categories_vl",
+   "xxfnd_document_entities_vl",
+   "xxfnd_features",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_privileges",
+   "xxfnd_roles",
+   "xxfnd_setup_types",
+   "xxfnd_value_sets",
+   "xxhr_employees"
+  ],
+  "apex:COMMON:shared-components/email-templates.apx": [
+   "xxfnd_notification_templates",
+   "xxfnd_notify_pkg"
+  ],
+  "apex:COMMON:shared-components/component-settings.apx": [],
+  "apex:COMMON:shared-components/lists.apx": [
+   "xxfnd_admin_menu_v",
+   "xxfnd_app_storage_v",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_integration_purposes",
+   "xxfnd_modules_v",
+   "xxfnd_nav_menu_v",
+   "xxfnd_nav_pkg",
+   "xxfnd_notify_rules",
+   "xxfnd_privileges",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_setup_types",
+   "xxfnd_user_roles_v",
+   "xxfnd_workflow_processes"
+  ],
+  "apex:COMMON:shared-components/app-computations.apx": [
+   "xxfnd_notify_pkg",
+   "xxfnd_util_pkg"
+  ],
+  "apex:COMMON:shared-components/app-processes.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_nav_menu_v",
+   "xxfnd_nav_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules",
+   "xxfnd_privilege_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_user_roles_v",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/app-items.apx": [
+   "xxfnd_nav_menu_v",
+   "xxfnd_user_pkg"
+  ],
+  "apex:COMMON:shared-components/authentications.apx": [
+   "xxfnd_user_pkg"
+  ],
+  "apex:COMMON:shared-components/breadcrumbs.apx": [],
+  "apex:COMMON:shared-components/authorizations.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_user_pkg"
+  ],
+  "apex:COMMON:shared-components/static-files.apx": [],
+  "apex:COMMON:shared-components/themes/universal-theme/theme.apx": [],
+  "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx": [
+   "xxfnd_applications",
+   "xxfnd_approval_pkg",
+   "xxfnd_config_tables",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/workflows/RFI.apx": [
+   "xxfnd_applications",
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfis",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx": [
+   "xxfnd_approval_pkg",
+   "xxfnd_config_changes_v",
+   "xxfnd_config_tables",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx": [
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfis",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx": [
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfis",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:shared-components/rest-data-sources/ucm-content.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:shared-components/rest-data-sources/fusion-root.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:shared-components/automations/task-deadlines.apx": [
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:shared-components/automations/fusion-objects-run.apx": [
+   "xxfnd_fi_run_pkg"
+  ],
+  "apex:COMMON:shared-components/automations/fusion-hcm-sync.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:workspace-components/credentials/XXFND-PUSH-CREDENTIALS.apx": [],
+  "apex:COMMON:workspace-components/credentials/xxfnd-ucm-cred.apx": [],
+  "apex:COMMON:workspace-components/credentials/xxfnd-graph-cred.apx": [],
+  "apex:COMMON:workspace-components/credentials/apex-fa-iabwbn-dev1-dbms-cred.apx": [],
+  "apex:COMMON:workspace-components/rest-data-source-servers/sharepoint-main.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:workspace-components/rest-data-source-servers/apex-fa-iabwbn-dev1-rest-apis.apx": [],
+  "apex:COMMON:workspace-components/rest-data-source-servers/ucm-main.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:workspace-components/rest-data-source-servers/outlook-graph.apx": [
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:pages/p00124-transmission-log.apx": [
+   "xxfnd_integration_calls",
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:pages/p00167-application-menu.apx": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_feature_pages",
+   "xxfnd_features"
+  ],
+  "apex:COMMON:pages/p00176-database-object.apx": [],
+  "apex:COMMON:pages/p00143-information-request.apx": [
+   "xxfnd_attached_documents",
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfis",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:pages/p00120-servers.apx": [
+   "xxfnd_servers_v"
+  ],
+  "apex:COMMON:pages/p00001-home.apx": [
+   "xxfnd_notify_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:pages/p00114-delegations.apx": [
+   "xxfnd_wf_delegations"
+  ],
+  "apex:COMMON:pages/p00181-data-security-rule.apx": [
+   "xxfnd_applications",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_data_access",
+   "xxfnd_roles",
+   "xxfnd_setup_columns_v",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "apex:COMMON:pages/p00108-segregation-of-duties-rule.apx": [
+   "xxfnd_sod_rules"
+  ],
+  "apex:COMMON:pages/p00102-lookup-type.apx": [
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values"
+  ],
+  "apex:COMMON:pages/p00171-feedback.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00144-configuration-change.apx": [
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:pages/p00125-call.apx": [
+   "xxfnd_integration_calls",
+   "xxfnd_integration_pkg"
+  ],
+  "apex:COMMON:pages/p00184-data-access-values.apx": [
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_data_access",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg",
+   "xxhr_organizations"
+  ],
+  "apex:COMMON:pages/p00141-workflow-monitor.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00149-approval-rule.apx": [
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_approval_types",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_roles",
+   "xxhr_employees"
+  ],
+  "apex:COMMON:pages/p00103-users.apx": [
+   "xxfnd_effective_access_v",
+   "xxfnd_lookup_values",
+   "xxfnd_user_roles_v",
+   "xxfnd_users",
+   "xxhr_employees"
+  ],
+  "apex:COMMON:pages/p00186-organizations.apx": [
+   "xxfnd_assignment_values",
+   "xxfnd_data_dimensions",
+   "xxfnd_privilege_pkg",
+   "xxfnd_vpd_pkg",
+   "xxhr_organizations"
+  ],
+  "apex:COMMON:pages/p00133-document-category.apx": [
+   "xxfnd_document_categories"
+  ],
+  "apex:COMMON:pages/p10020-optional-features.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00111-audit-log.apx": [
+   "xxfnd_audit_log"
+  ],
+  "apex:COMMON:pages/p00134-attachment-pages.apx": [
+   "xxfnd_attachment_blocks",
+   "xxfnd_attachment_functions"
+  ],
+  "apex:COMMON:pages/p00047-attachments.apx": [
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents_v"
+  ],
+  "apex:COMMON:pages/p00109-notification-templates.apx": [
+   "xxfnd_notification_templates"
+  ],
+  "apex:COMMON:pages/p00163-setup-type.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_setup_type_apps",
+   "xxfnd_setup_types"
+  ],
+  "apex:COMMON:pages/p00000-global-page.apx": [
+   "xxfnd_app_storage_v",
+   "xxfnd_application_functions",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_document_categories",
+   "xxfnd_feature_pages",
+   "xxfnd_features",
+   "xxfnd_integration_purposes",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_recipient_types",
+   "xxfnd_notify_rules",
+   "xxfnd_privilege_pkg",
+   "xxfnd_privileges",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_servers_v",
+   "xxfnd_setup_rows_v",
+   "xxfnd_setup_types",
+   "xxfnd_user_roles_v",
+   "xxfnd_workflow_pkg",
+   "xxfnd_workflow_processes"
+  ],
+  "apex:COMMON:pages/p00136-document-storage.apx": [
+   "xxfnd_app_storage_v",
+   "xxfnd_lookup_values_vl"
+  ],
+  "apex:COMMON:pages/p00148-approval-setup.apx": [
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_approval_types"
+  ],
+  "apex:COMMON:pages/p00043-notifications.apx": [
+   "xxfnd_notifications",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_pkg"
+  ],
+  "apex:COMMON:pages/p00121-server.apx": [
+   "xxfnd_integration_calls",
+   "xxfnd_integration_pkg",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_server_tests",
+   "xxfnd_servers",
+   "xxfnd_servers_v"
+  ],
+  "apex:COMMON:pages/p00145-deadlines-and-escalation.apx": [
+   "xxfnd_roles",
+   "xxfnd_task_settings"
+  ],
+  "apex:COMMON:pages/p00045-communications.apx": [
+   "xxfnd_communications",
+   "xxfnd_notify_pkg"
+  ],
+  "apex:COMMON:pages/p00105-roles.apx": [
+   "xxfnd_roles",
+   "xxfnd_user_roles_v"
+  ],
+  "apex:COMMON:pages/p00151-value-set.apx": [
+   "xxfnd_dff_pkg",
+   "xxfnd_value_sets"
+  ],
+  "apex:COMMON:pages/p00147-process-catalogue.apx": [
+   "xxfnd_applications",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_types",
+   "xxfnd_wf_delegations",
+   "xxfnd_workflow_pkg",
+   "xxfnd_workflow_processes"
+  ],
+  "apex:COMMON:pages/p00162-setup-types.apx": [
+   "xxfnd_features",
+   "xxfnd_setup_type_apps",
+   "xxfnd_setup_types"
+  ],
+  "apex:COMMON:pages/p00142-workflow.apx": [
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:pages/p00110-notification-template.apx": [
+   "xxfnd_notification_templates",
+   "xxfnd_notify_pkg"
+  ],
+  "apex:COMMON:pages/p00173-give-feedback.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00150-value-sets.apx": [
+   "xxfnd_lookup_pkg",
+   "xxfnd_value_sets"
+  ],
+  "apex:COMMON:pages/p00123-integration-purpose.apx": [
+   "xxfnd_approval_pkg",
+   "xxfnd_audit_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_integration_purposes",
+   "xxfnd_servers_v"
+  ],
+  "apex:COMMON:pages/p00050-provide-information.apx": [
+   "xxfnd_rfi_pkg"
+  ],
+  "apex:COMMON:pages/p00172-feedback-follow-up.apx": [
+   "xxfnd_application_pkg"
+  ],
+  "apex:COMMON:pages/p10021-optional-feature.apx": [
+   "xxfnd_app_setting_pkg",
+   "xxfnd_application_pkg"
+  ],
+  "apex:COMMON:pages/p00166-application.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_privilege_pkg"
+  ],
+  "apex:COMMON:pages/p00048-document.apx": [
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents_v",
+   "xxfnd_document_categories_vl"
+  ],
+  "apex:COMMON:pages/p00040-my-tasks.apx": [],
+  "apex:COMMON:pages/p00152-descriptive-flexfields.apx": [
+   "xxfnd_df_contexts",
+   "xxfnd_df_flexfields",
+   "xxfnd_df_segments"
+  ],
+  "apex:COMMON:pages/p00106-role.apx": [
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_data_access",
+   "xxfnd_role_members",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_user_pkg",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "apex:COMMON:pages/p10022-application-settings.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00107-segregation-of-duties.apx": [
+   "xxfnd_applications",
+   "xxfnd_lookup_pkg",
+   "xxfnd_roles",
+   "xxfnd_sod_rules"
+  ],
+  "apex:COMMON:pages/p00190-fusion-objects.apx": [
+   "xxfnd_fi_drift",
+   "xxfnd_fi_objects"
+  ],
+  "apex:COMMON:pages/p00137-storage-rule.apx": [
+   "xxfnd_app_storage_v",
+   "xxfnd_attach_pkg",
+   "xxfnd_servers",
+   "xxfnd_servers_v"
+  ],
+  "apex:COMMON:pages/p00175-data-model.apx": [
+   "xxfnd_data_model_pkg"
+  ],
+  "apex:COMMON:pages/p00113-retention-policy.apx": [
+   "xxfnd_retention_policies",
+   "xxfnd_setup_tables_v"
+  ],
+  "apex:COMMON:pages/p00193-drift-queue.apx": [
+   "xxfnd_fi_drift",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_objects"
+  ],
+  "apex:COMMON:pages/p00192-object-detail.apx": [
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_drift",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_fi_runs",
+   "xxfnd_fi_versions"
+  ],
+  "apex:COMMON:pages/p00168-menu-entry.apx": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_feature_pages",
+   "xxfnd_features"
+  ],
+  "apex:COMMON:pages/p00146-task-deadline.apx": [
+   "xxfnd_task_settings"
+  ],
+  "apex:COMMON:pages/p00131-document-entity.apx": [
+   "xxfnd_attach_pkg",
+   "xxfnd_document_entities",
+   "xxfnd_setup_columns_v",
+   "xxfnd_setup_tables_v"
+  ],
+  "apex:COMMON:pages/p00046-e-mail.apx": [
+   "xxfnd_communications",
+   "xxfnd_notify_pkg"
+  ],
+  "apex:COMMON:pages/p00104-user.apx": [
+   "xxfnd_applications",
+   "xxfnd_features",
+   "xxfnd_lookup_values",
+   "xxfnd_privilege_pkg",
+   "xxfnd_privileges",
+   "xxfnd_role_privileges",
+   "xxfnd_roles",
+   "xxfnd_user_applications",
+   "xxfnd_user_data_access_v",
+   "xxfnd_user_pkg",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_user_roles_v",
+   "xxfnd_users",
+   "xxhr_employees"
+  ],
+  "apex:COMMON:pages/p00135-attachment-page.apx": [
+   "xxfnd_attachment_blk_entities",
+   "xxfnd_attachment_blocks",
+   "xxfnd_attachment_functions",
+   "xxfnd_doc_category_usages"
+  ],
+  "apex:COMMON:pages/p00116-notification-delivery.apx": [
+   "xxfnd_applications",
+   "xxfnd_notification_templates",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events",
+   "xxfnd_notify_recipient_types",
+   "xxfnd_notify_rules"
+  ],
+  "apex:COMMON:pages/p00130-document-entities.apx": [
+   "xxfnd_document_entities_vl"
+  ],
+  "apex:COMMON:pages/p00191-onboard-object.apx": [
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_catalog",
+   "xxfnd_fi_children",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_servers"
+  ],
+  "apex:COMMON:pages/p00117-notification-log.apx": [
+   "xxfnd_notifications",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events"
+  ],
+  "apex:COMMON:pages/p09999-login.apx": [],
+  "apex:COMMON:pages/p00164-subscriptions.apx": [],
+  "apex:COMMON:pages/p00122-integration-purposes.apx": [
+   "xxfnd_integration_purposes",
+   "xxfnd_lookup_pkg"
+  ],
+  "apex:COMMON:pages/p00100-administration.apx": [
+   "xxfnd_modules_v"
+  ],
+  "apex:COMMON:pages/p00169-all-pages.apx": [
+   "xxfnd_page_catalogue_v"
+  ],
+  "apex:COMMON:pages/p00132-document-categories.apx": [
+   "xxfnd_document_categories_vl",
+   "xxfnd_lookup_pkg"
+  ],
+  "apex:COMMON:pages/p00177-data-model-diagram.apx": [
+   "xxfnd_data_model_pkg"
+  ],
+  "apex:COMMON:pages/p00112-retention-policies.apx": [],
+  "apex:COMMON:pages/p00160-applications.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00153-descriptive-flexfield.apx": [
+   "xxfnd_attached_documents",
+   "xxfnd_df_contexts",
+   "xxfnd_df_flexfields",
+   "xxfnd_df_flexfields_chk",
+   "xxfnd_df_segments",
+   "xxfnd_dff_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_setup_columns_v",
+   "xxfnd_setup_tables_v",
+   "xxfnd_value_sets"
+  ],
+  "apex:COMMON:pages/p00170-platform-activity.apx": [
+   "xxfnd_applications"
+  ],
+  "apex:COMMON:pages/p00180-data-security.apx": [
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_role_data_access",
+   "xxfnd_roles",
+   "xxfnd_vpd_pkg",
+   "xxhr_organizations"
+  ],
+  "apex:COMMON:pages/p00183-assign.apx": [
+   "xxfnd_data_security_rules",
+   "xxfnd_roles",
+   "xxfnd_user_pkg",
+   "xxfnd_users",
+   "xxfnd_vpd_pkg"
+  ],
+  "apex:COMMON:pages/p00165-application-journey.apx": [
+   "xxfnd_application_pkg",
+   "xxfnd_applications",
+   "xxfnd_users",
+   "xxfnd_workflow_pkg"
+  ],
+  "apex:COMMON:pages/p00101-lookups.apx": [
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values"
+  ],
+  "apex:COMMON:pages/p10023-application-setting.apx": [
+   "xxfnd_app_setting_pkg",
+   "xxfnd_application_pkg"
+  ],
+  "apex:COMMON:pages/p00182-privileges.apx": [
+   "xxfnd_applications",
+   "xxfnd_features",
+   "xxfnd_privileges",
+   "xxfnd_role_privileges",
+   "xxfnd_roles"
+  ],
+  "apex:COMMON:pages/p00194-run-log.apx": [
+   "xxfnd_fi_objects",
+   "xxfnd_fi_runs"
+  ],
+  "apex:COMMON:pages/p00115-delegation.apx": [
+   "xxfnd_wf_delegations"
+  ]
+ },
+ "used_by": {
+  "xxfnd_ddl_pkg": [
+   "xxcmp_answer_options",
+   "xxcmp_approval_matrix",
+   "xxcmp_attachment_rules",
+   "xxcmp_case_funds",
+   "xxcmp_case_risk_scores",
+   "xxcmp_conclusion_templates",
+   "xxcmp_fiu_reports",
+   "xxcmp_parties",
+   "xxcmp_party_contacts",
+   "xxcmp_party_id_verifications",
+   "xxcmp_party_number_s",
+   "xxcmp_party_registry_checks",
+   "xxcmp_party_relationships",
+   "xxcmp_questionnaires",
+   "xxcmp_questions",
+   "xxcmp_rfi_number_s",
+   "xxcmp_rfis",
+   "xxcmp_risk_countries",
+   "xxcmp_risk_factors",
+   "xxcmp_risk_tiers",
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_functions",
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_txn_steps",
+   "xxfnd_approval_txns",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_approval_types",
+   "xxfnd_assignment_values",
+   "xxfnd_attached_documents",
+   "xxfnd_attachment_blk_entities",
+   "xxfnd_attachment_blocks",
+   "xxfnd_attachment_functions",
+   "xxfnd_audit_log",
+   "xxfnd_communications",
+   "xxfnd_contact_sources",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_objects",
+   "xxfnd_data_rule_assignments",
+   "xxfnd_df_contexts",
+   "xxfnd_df_flexfields",
+   "xxfnd_df_segments",
+   "xxfnd_dm_app_scopes",
+   "xxfnd_dm_table_groups",
+   "xxfnd_doc_category_usages",
+   "xxfnd_document_categories",
+   "xxfnd_document_entities",
+   "xxfnd_documents",
+   "xxfnd_entity_containers",
+   "xxfnd_error_log",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_catalog",
+   "xxfnd_fi_children",
+   "xxfnd_fi_drift",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_fi_runs",
+   "xxfnd_fi_versions",
+   "xxfnd_integration_calls",
+   "xxfnd_integration_endpoints",
+   "xxfnd_integration_purposes",
+   "xxfnd_lookup_types",
+   "xxfnd_lookup_values",
+   "xxfnd_messages",
+   "xxfnd_notification_templates",
+   "xxfnd_notifications",
+   "xxfnd_notify_channels",
+   "xxfnd_notify_events",
+   "xxfnd_notify_recipient_types",
+   "xxfnd_notify_rules",
+   "xxfnd_page_opens",
+   "xxfnd_retention_policies",
+   "xxfnd_rfi_rounds",
+   "xxfnd_rfis",
+   "xxfnd_role_data_access",
+   "xxfnd_role_members",
+   "xxfnd_roles",
+   "xxfnd_server_tests",
+   "xxfnd_servers",
+   "xxfnd_setup_type_apps",
+   "xxfnd_setup_types",
+   "xxfnd_share_pkg",
+   "xxfnd_sod_rules",
+   "xxfnd_storage_config",
+   "xxfnd_transmissions",
+   "xxfnd_user_applications",
+   "xxfnd_user_roles",
+   "xxfnd_value_sets",
+   "xxfnd_wf_delegations",
+   "xxfnd_workflow_processes",
+   "xxhr_employees",
+   "xxhr_organizations"
+  ],
+  "xxfnd_lookup_types": [
+   "apex:COMMON:pages/p00101-lookups.apx",
+   "apex:COMMON:pages/p00102-lookup-type.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:shared-components/lovs.apx",
+   "xxcmp_questions",
+   "xxfnd_application_pkg",
+   "xxfnd_dff_pkg",
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_values",
+   "xxfnd_lookup_values_lvl",
+   "xxfnd_setup_rows_v",
+   "xxfnd_value_sets"
+  ],
+  "xxfnd_lookup_values": [
+   "apex:COMMON:pages/p00101-lookups.apx",
+   "apex:COMMON:pages/p00102-lookup-type.apx",
+   "apex:COMMON:pages/p00103-users.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00023-party-relationship.apx",
+   "apex:KYC:pages/p00026-id-verification.apx",
+   "apex:KYC:pages/p00027-registry-check.apx",
+   "apex:KYC:pages/p00167-risk-model.apx",
+   "apex:KYC:pages/p00201-create-request.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:pages/p00213-screening.apx",
+   "apex:KYC:pages/p00215-document-verification.apx",
+   "apex:KYC:pages/p00218-source-of-funds.apx",
+   "apex:KYC:pages/p00219-fiu-report.apx",
+   "apex:KYC:pages/p00226-alert-rule.apx",
+   "xxcmp_answer_options",
+   "xxcmp_case_pkg",
+   "xxcmp_risk_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_values_lvl",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_modules_v",
+   "xxfnd_rfi_pkg",
+   "xxfnd_servers_v",
+   "xxfnd_value_sets"
+  ],
+  "xxfnd_roles": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00105-roles.apx",
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00107-segregation-of-duties.apx",
+   "apex:COMMON:pages/p00145-deadlines-and-escalation.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00182-privileges.apx",
+   "apex:COMMON:pages/p00183-assign.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:pages/p00217-compliance-report.apx",
+   "apex:KYC:pages/p00225-alert-rules.apx",
+   "apex:KYC:pages/p00226-alert-rule.apx",
+   "xxcmp_approval_matrix",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_data_rule_assignments",
+   "xxfnd_data_security_rules",
+   "xxfnd_effective_access_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_data_access",
+   "xxfnd_role_members",
+   "xxfnd_role_privileges",
+   "xxfnd_roles_every_role",
+   "xxfnd_setup_rows_v",
+   "xxfnd_share_pkg",
+   "xxfnd_sod_rules",
+   "xxfnd_task_settings",
+   "xxfnd_user_pkg",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_user_roles",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_document_categories": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00133-document-category.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "xxcmp_attachment_rules",
+   "xxcmp_request_pkg",
+   "xxfnd_app_storage_v",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents",
+   "xxfnd_doc_category_usages",
+   "xxfnd_document_categories_vl",
+   "xxfnd_documents",
+   "xxfnd_setup_rows_v",
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_document_entities": [
+   "apex:COMMON:pages/p00131-document-entity.apx",
+   "xxcmp_attachment_rules",
+   "xxcmp_rfis",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents",
+   "xxfnd_attachment_blk_entities",
+   "xxfnd_document_entities_vl",
+   "xxfnd_entity_containers",
+   "xxfnd_notify_pkg",
+   "xxfnd_setup_rows_v",
+   "xxfnd_storage_config"
+  ],
+  "xxfnd_approval_pkg": [
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "apex:COMMON:pages/p00144-configuration-change.apx",
+   "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx",
+   "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
+   "apex:KYC:pages/p00139-mandatory-document-rule.apx",
+   "apex:KYC:pages/p00162-question.apx",
+   "xxcmp_answer_options_mc",
+   "xxcmp_attachment_rules_mc",
+   "xxcmp_risk_countries_mc",
+   "xxcmp_risk_factors_mc",
+   "xxcmp_risk_pkg",
+   "xxcmp_risk_tiers_mc",
+   "xxfnd_config_changes_v",
+   "xxfnd_int_purposes_mc"
+  ],
+  "xxfnd_attached_documents_v": [
+   "apex:COMMON:pages/p00047-attachments.apx",
+   "apex:COMMON:pages/p00048-document.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "xxcmp_doc_rule_pkg",
+   "xxcmp_monitor_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg"
+  ],
+  "xxfnd_attached_documents": [
+   "apex:COMMON:pages/p00143-information-request.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_doc_verifications",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents_v"
+  ],
+  "xxfnd_user_pkg": [
+   "apex:COMMON:pages/p00001-home.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00183-assign.apx",
+   "apex:COMMON:shared-components/app-items.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/authentications.apx",
+   "apex:COMMON:shared-components/authorizations.apx",
+   "apex:KYC:shared-components/authentications.apx",
+   "apex:KYC:shared-components/authorizations.apx",
+   "xxcmp_cases_lock",
+   "xxfnd_application_pkg",
+   "xxfnd_roles",
+   "xxfnd_share_pkg",
+   "xxhr_employees_rename"
+  ],
+  "xxfnd_approval_rule_pkg": [
+   "apex:COMMON:pages/p00144-configuration-change.apx",
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:KYC:pages/p00206-kyc-request-approval.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_request_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_steps_type",
+   "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_approval_rules": [
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "xxcmp_request_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules_bi"
+  ],
+  "xxfnd_error_pkg": [
+   "apex:COMMON:application.apx",
+   "apex:KYC:application.apx",
+   "apex:KYC:pages/p00206-kyc-request-approval.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_data_model_pkg",
+   "xxfnd_dff_pkg",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_lookup_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_onboard_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_lookup_pkg": [
+   "apex:COMMON:pages/p00101-lookups.apx",
+   "apex:COMMON:pages/p00102-lookup-type.apx",
+   "apex:COMMON:pages/p00107-segregation-of-duties.apx",
+   "apex:COMMON:pages/p00122-integration-purposes.apx",
+   "apex:COMMON:pages/p00132-document-categories.apx",
+   "apex:COMMON:pages/p00150-value-sets.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00001-home.apx",
+   "apex:KYC:pages/p00020-parties.apx",
+   "apex:KYC:pages/p00021-party.apx",
+   "apex:KYC:pages/p00138-mandatory-document-rules.apx",
+   "apex:KYC:pages/p00160-questionnaires.apx",
+   "apex:KYC:pages/p00161-questionnaire.apx",
+   "apex:KYC:pages/p00163-conclusion-templates.apx",
+   "apex:KYC:pages/p00200-kyc-requests.apx",
+   "apex:KYC:pages/p00203-create-request-submit.apx",
+   "apex:KYC:pages/p00210-cases.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:pages/p00217-compliance-report.apx",
+   "apex:KYC:pages/p00220-monitoring-watchlist.apx",
+   "apex:KYC:pages/p00221-alerts.apx",
+   "apex:KYC:pages/p00222-reassessment.apx",
+   "apex:KYC:pages/p00225-alert-rules.apx",
+   "apex:KYC:pages/p00230-executive-dashboard.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_monitor_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
+   "xxcmp_request_ui_pkg",
+   "xxcmp_risk_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_ui_pkg"
+  ],
+  "xxfnd_privilege_pkg": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00166-application.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:pages/p00186-organizations.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00001-home.apx",
+   "apex:KYC:pages/p00020-parties.apx",
+   "apex:KYC:pages/p00021-party.apx",
+   "apex:KYC:pages/p00205-kyc-request.apx",
+   "apex:KYC:pages/p00206-kyc-request-approval.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:pages/p00220-monitoring-watchlist.apx",
+   "apex:KYC:pages/p00221-alerts.apx",
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
+   "xxcmp_request_ui_pkg",
+   "xxfnd_admin_menu_v",
+   "xxfnd_app_setting_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_data_model_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_roles_every_role",
+   "xxfnd_user_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_rfi_pkg": [
+   "apex:COMMON:pages/p00050-provide-information.apx",
+   "apex:COMMON:pages/p00143-information-request.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
+   "apex:COMMON:shared-components/workflows/RFI.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_request_pkg"
+  ],
+  "xxfnd_rfis": [
+   "apex:COMMON:pages/p00143-information-request.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
+   "apex:COMMON:shared-components/workflows/RFI.apx",
+   "apex:KYC:pages/p00001-home.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_request_pkg",
+   "xxfnd_qa_history_v",
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfi_rounds",
+   "xxfnd_rfis_bi",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_util_pkg": [
+   "apex:COMMON:shared-components/app-computations.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00201-create-request.apx",
+   "apex:KYC:pages/p00202-create-request-questionnaire.apx",
+   "apex:KYC:pages/p00217-compliance-report.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_monitor_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
+   "xxcmp_risk_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents_v",
+   "xxfnd_audit_pkg",
+   "xxfnd_data_model_pkg",
+   "xxfnd_df_contexts_protect",
+   "xxfnd_df_contexts_vl",
+   "xxfnd_dff_pkg",
+   "xxfnd_document_categories_vl",
+   "xxfnd_document_entities_vl",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_lookup_pkg",
+   "xxfnd_lookup_values_lvl",
+   "xxfnd_lookup_values_vl",
+   "xxfnd_notify_pkg",
+   "xxfnd_onboard_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_schema_pkg",
+   "xxfnd_share_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg",
+   "xxhr_employees_src"
+  ],
+  "xxfnd_vpd_pkg": [
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00183-assign.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:pages/p00186-organizations.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_monitor_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
+   "xxcmp_risk_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_data_model_pkg",
+   "xxfnd_data_security_rules",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_schema_pkg",
+   "xxfnd_share_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_workflow_pkg": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00001-home.apx",
+   "apex:COMMON:pages/p00142-workflow.apx",
+   "apex:COMMON:pages/p00143-information-request.apx",
+   "apex:COMMON:pages/p00144-configuration-change.apx",
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00165-application-journey.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/automations/task-deadlines.apx",
+   "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx",
+   "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
+   "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
+   "apex:COMMON:shared-components/workflows/RFI.apx",
+   "apex:KYC:pages/p00001-home.apx",
+   "apex:KYC:pages/p00206-kyc-request-approval.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:shared-components/task-definitions/CASE-APPROVAL.apx",
+   "apex:KYC:shared-components/task-definitions/CASE-INVESTIGATION.apx",
+   "apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx",
+   "apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx",
+   "apex:KYC:shared-components/workflows/KYC-CASE.apx",
+   "apex:KYC:shared-components/workflows/KYC-REQUEST.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_monitor_pkg",
+   "xxcmp_request_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_notify_pkg",
+   "xxfnd_qa_history_v",
+   "xxfnd_rfi_pkg",
+   "xxfnd_wf_delegations"
+  ],
+  "xxhr_employees": [
+   "apex:COMMON:pages/p00103-users.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:shared-components/lovs.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_request_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_notify_pkg",
+   "xxfnd_ui_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_user_roles",
+   "xxfnd_user_roles_user",
+   "xxfnd_user_roles_v",
+   "xxfnd_users",
+   "xxhr_employees_ins",
+   "xxhr_employees_rename",
+   "xxhr_employees_src"
+  ],
+  "xxhr_organizations": [
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:pages/p00186-organizations.apx",
+   "apex:KYC:pages/p00201-create-request.apx",
+   "xxcmp_request_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_data_dimensions",
+   "xxfnd_user_data_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_application_pkg": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00163-setup-type.apx",
+   "apex:COMMON:pages/p00165-application-journey.apx",
+   "apex:COMMON:pages/p00166-application.apx",
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "apex:COMMON:pages/p00172-feedback-follow-up.apx",
+   "apex:COMMON:pages/p00173-give-feedback.apx",
+   "apex:COMMON:pages/p10021-optional-feature.apx",
+   "apex:COMMON:pages/p10023-application-setting.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/authorizations.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxcmp_case_pkg",
+   "xxfnd_app_menu_entries",
+   "xxfnd_app_setting_pkg",
+   "xxfnd_application_functions",
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_data_model_pkg",
+   "xxfnd_dff_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_lookup_pkg",
+   "xxfnd_nav_menu_v",
+   "xxfnd_notify_pkg",
+   "xxfnd_onboard_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_approval_step_row": [
+   "xxcmp_case_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_step_tab"
+  ],
+  "xxfnd_ui_pkg": [
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00020-parties.apx",
+   "apex:KYC:pages/p00200-kyc-requests.apx",
+   "apex:KYC:pages/p00210-cases.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxcmp_case_pkg",
+   "xxcmp_party_pkg",
+   "xxcmp_request_ui_pkg"
+  ],
+  "xxfnd_user_roles_v": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00103-users.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00105-roles.apx",
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "xxcmp_case_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_effective_access_v",
+   "xxfnd_user_role_tree_v",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_notify_pkg": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00001-home.apx",
+   "apex:COMMON:pages/p00043-notifications.apx",
+   "apex:COMMON:pages/p00045-communications.apx",
+   "apex:COMMON:pages/p00046-e-mail.apx",
+   "apex:COMMON:pages/p00110-notification-template.apx",
+   "apex:COMMON:shared-components/app-computations.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/email-templates.apx",
+   "xxcmp_monitor_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_integration_endpoints": [
+   "xxcmp_party_registry_checks",
+   "xxfnd_integration_purposes",
+   "xxfnd_servers",
+   "xxfnd_storage_config",
+   "xxfnd_transmissions"
+  ],
+  "xxfnd_attach_pkg": [
+   "apex:COMMON:pages/p00047-attachments.apx",
+   "apex:COMMON:pages/p00048-document.apx",
+   "apex:COMMON:pages/p00131-document-entity.apx",
+   "apex:COMMON:pages/p00137-storage-rule.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:pages/p00026-id-verification.apx",
+   "apex:KYC:pages/p00027-registry-check.apx",
+   "apex:KYC:pages/p00206-kyc-request-approval.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "apex:KYC:pages/p00218-source-of-funds.apx",
+   "apex:KYC:pages/p00219-fiu-report.apx",
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxcmp_party_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_notify_pkg"
+  ],
+  "xxfnd_dff_pkg": [
+   "apex:COMMON:pages/p00151-value-set.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "apex:KYC:pages/p00022-party-contact.apx",
+   "apex:KYC:pages/p00023-party-relationship.apx",
+   "xxcmp_party_pkg",
+   "xxfnd_application_pkg",
+   "xxfnd_df_flexfields_chk",
+   "xxfnd_df_segments",
+   "xxfnd_df_segments_chk"
+  ],
+  "xxfnd_document_categories_vl": [
+   "apex:COMMON:pages/p00048-document.apx",
+   "apex:COMMON:pages/p00132-document-categories.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:pages/p00021-party.apx",
+   "apex:KYC:pages/p00138-mandatory-document-rules.apx",
+   "apex:KYC:shared-components/lovs.apx",
+   "xxfnd_attached_documents_v"
+  ],
+  "xxfnd_document_entities_vl": [
+   "apex:COMMON:pages/p00130-document-entities.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:shared-components/lovs.apx"
+  ],
+  "xxfnd_lookup_values_vl": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00136-document-storage.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:KYC:pages/p00162-question.apx",
+   "apex:KYC:shared-components/lovs.apx",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_admin_menu_v": [
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxfnd_modules_v"
+  ],
+  "xxfnd_feature_pages": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:KYC:pages/p00000-global-page.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_nav_menu_v",
+   "xxfnd_page_catalogue_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_nav_menu_v": [
+   "apex:COMMON:shared-components/app-items.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxfnd_nav_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_nav_pkg": [
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:KYC:shared-components/lists.apx",
+   "xxfnd_page_opens"
+  ],
+  "xxfnd_documents": [
+   "apex:KYC:shared-components/app-processes.apx",
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents",
+   "xxfnd_attached_documents_v",
+   "xxfnd_document_files",
+   "xxfnd_document_versions_v"
+  ],
+  "xxfnd_audit_pkg": [
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "apex:KYC:pages/p00139-mandatory-document-rule.apx",
+   "apex:KYC:pages/p00162-question.apx",
+   "xxfnd_approval_pkg",
+   "xxfnd_audit_log",
+   "xxfnd_schema_pkg"
+  ],
+  "xxfnd_communications": [
+   "apex:COMMON:pages/p00045-communications.apx",
+   "apex:COMMON:pages/p00046-e-mail.apx",
+   "apex:KYC:pages/p00211-case.apx",
+   "xxfnd_notify_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_dropped_objects": [
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_schema_releases": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_integration_purposes": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00122-integration-purposes.apx",
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_int_purposes_mc",
+   "xxfnd_integration_changes_v",
+   "xxfnd_integration_pkg",
+   "xxfnd_setup_rows_v",
+   "xxfnd_transmissions"
+  ],
+  "xxfnd_attachment_functions": [
+   "apex:COMMON:pages/p00134-attachment-pages.apx",
+   "apex:COMMON:pages/p00135-attachment-page.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_attachment_blocks",
+   "xxfnd_doc_category_usages",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_attachment_blocks": [
+   "apex:COMMON:pages/p00134-attachment-pages.apx",
+   "apex:COMMON:pages/p00135-attachment-page.apx",
+   "xxfnd_attach_pkg",
+   "xxfnd_attachment_blk_entities"
+  ],
+  "xxfnd_storage_config": [
+   "xxfnd_app_storage_v",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_documents",
+   "xxfnd_entity_containers",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_df_flexfields": [
+   "apex:COMMON:pages/p00152-descriptive-flexfields.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_df_contexts",
+   "xxfnd_df_flexfields_chk",
+   "xxfnd_df_segments_chk",
+   "xxfnd_dff_pkg",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_df_contexts": [
+   "apex:COMMON:pages/p00152-descriptive-flexfields.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "xxfnd_df_contexts_protect",
+   "xxfnd_df_contexts_vl",
+   "xxfnd_df_segments",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_value_sets": [
+   "apex:COMMON:pages/p00150-value-sets.apx",
+   "apex:COMMON:pages/p00151-value-set.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_df_segments",
+   "xxfnd_dff_pkg",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_applications_s": [
+   "xxfnd_applications",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_applications": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00107-segregation-of-duties.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "apex:COMMON:pages/p00141-workflow-monitor.apx",
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00160-applications.apx",
+   "apex:COMMON:pages/p00163-setup-type.apx",
+   "apex:COMMON:pages/p00165-application-journey.apx",
+   "apex:COMMON:pages/p00166-application.apx",
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "apex:COMMON:pages/p00170-platform-activity.apx",
+   "apex:COMMON:pages/p00171-feedback.apx",
+   "apex:COMMON:pages/p00173-give-feedback.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00182-privileges.apx",
+   "apex:COMMON:pages/p10020-optional-features.apx",
+   "apex:COMMON:pages/p10022-application-settings.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
+   "apex:COMMON:shared-components/workflows/RFI.apx",
+   "xxfnd_app_menu_entries",
+   "xxfnd_app_storage_v",
+   "xxfnd_application_functions",
+   "xxfnd_application_pkg",
+   "xxfnd_applications_id",
+   "xxfnd_approval_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_config_tables",
+   "xxfnd_contact_sources",
+   "xxfnd_data_dimensions",
+   "xxfnd_data_model_pkg",
+   "xxfnd_data_objects",
+   "xxfnd_dff_pkg",
+   "xxfnd_dm_app_scopes",
+   "xxfnd_dm_table_groups",
+   "xxfnd_integration_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_nav_menu_v",
+   "xxfnd_notify_pkg",
+   "xxfnd_onboard_pkg",
+   "xxfnd_page_catalogue_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_rfi_pkg",
+   "xxfnd_servers_v",
+   "xxfnd_setup_tables_v",
+   "xxfnd_setup_type_apps",
+   "xxfnd_share_pkg",
+   "xxfnd_user_applications",
+   "xxfnd_user_pkg",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg",
+   "xxfnd_workflow_processes",
+   "xxhr_organizations"
+  ],
+  "xxfnd_user_roles": [
+   "xxfnd_assignment_values",
+   "xxfnd_modules_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_user_pkg",
+   "xxfnd_user_roles_user",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_users": [
+   "apex:COMMON:pages/p00103-users.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00165-application-journey.apx",
+   "apex:COMMON:pages/p00183-assign.apx",
+   "xxfnd_data_rule_assignments",
+   "xxfnd_effective_access_v",
+   "xxfnd_notify_pkg",
+   "xxfnd_user_applications",
+   "xxfnd_user_pkg",
+   "xxfnd_user_roles_user",
+   "xxfnd_user_roles_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_config_change_row": [
+   "xxfnd_approval_pkg",
+   "xxfnd_config_change_tab"
+  ],
+  "xxfnd_config_tables": [
+   "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx",
+   "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
+   "xxfnd_approval_pkg",
+   "xxfnd_schema_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_data_security_rules": [
+   "apex:COMMON:pages/p00183-assign.apx",
+   "xxfnd_data_rule_assignments",
+   "xxfnd_data_rules_assign",
+   "xxfnd_effective_access_v",
+   "xxfnd_schema_pkg",
+   "xxfnd_share_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_schema_pkg": [
+   "xxfnd_app_menu_entries",
+   "xxfnd_application_functions",
+   "xxfnd_audit_pkg",
+   "xxfnd_contact_sources",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_catalog",
+   "xxfnd_fi_children",
+   "xxfnd_fi_drift",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_runs",
+   "xxfnd_fi_versions",
+   "xxfnd_page_opens",
+   "xxfnd_share_pkg",
+   "xxfnd_util_pkg",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_audit_log": [
+   "apex:COMMON:pages/p00111-audit-log.apx",
+   "xxfnd_audit_pkg",
+   "xxfnd_user_pkg"
+  ],
+  "xxfnd_config_change_tab": [
+   "xxfnd_approval_pkg"
+  ],
+  "xxfnd_integration_pkg": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "apex:COMMON:pages/p00124-transmission-log.apx",
+   "apex:COMMON:pages/p00125-call.apx",
+   "apex:COMMON:shared-components/automations/fusion-hcm-sync.apx",
+   "apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx",
+   "apex:COMMON:shared-components/rest-data-sources/fusion-root.apx",
+   "apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx",
+   "apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx",
+   "apex:COMMON:shared-components/rest-data-sources/ucm-content.apx",
+   "apex:COMMON:workspace-components/rest-data-source-servers/outlook-graph.apx",
+   "apex:COMMON:workspace-components/rest-data-source-servers/sharepoint-main.apx",
+   "apex:COMMON:workspace-components/rest-data-source-servers/ucm-main.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_attach_pkg",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_integration_calls",
+   "xxfnd_notify_pkg",
+   "xxhr_employees_src"
+  ],
+  "xxfnd_integration_calls": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00124-transmission-log.apx",
+   "apex:COMMON:pages/p00125-call.apx",
+   "xxfnd_fi_runs",
+   "xxfnd_integration_pkg",
+   "xxfnd_servers_v"
+  ],
+  "xxfnd_server_tests": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "xxfnd_integration_pkg",
+   "xxfnd_servers_v"
+  ],
+  "xxfnd_servers": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00137-storage-rule.apx",
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "xxfnd_app_storage_v",
+   "xxfnd_attach_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_integration_pkg",
+   "xxfnd_servers_v",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_servers_v": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00120-servers.apx",
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "apex:COMMON:pages/p00137-storage-rule.apx",
+   "xxfnd_app_storage_v",
+   "xxfnd_integration_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_sod_rules": [
+   "apex:COMMON:pages/p00107-segregation-of-duties.apx",
+   "apex:COMMON:pages/p00108-segregation-of-duties-rule.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_setup_rows_v",
+   "xxfnd_sod_rules_order"
+  ],
+  "xxfnd_data_dimensions": [
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:pages/p00186-organizations.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_assignment_values",
+   "xxfnd_data_objects",
+   "xxfnd_user_data_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_data_objects": [
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_assignment_values",
+   "xxfnd_role_data_access",
+   "xxfnd_setup_rows_v",
+   "xxfnd_user_data_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_role_members": [
+   "apex:COMMON:pages/p00106-role.apx",
+   "xxfnd_privilege_pkg",
+   "xxfnd_user_role_tree_v"
+  ],
+  "xxfnd_assignment_values": [
+   "apex:COMMON:pages/p00186-organizations.apx",
+   "xxfnd_user_data_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_role_data_access": [
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00180-data-security.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "xxfnd_user_data_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_user_role_tree_v": [
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_user_data_access_v"
+  ],
+  "xxfnd_features": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00162-setup-types.apx",
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "apex:COMMON:pages/p00182-privileges.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "xxfnd_admin_menu_v",
+   "xxfnd_application_functions",
+   "xxfnd_application_pkg",
+   "xxfnd_feature_pages",
+   "xxfnd_page_catalogue_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_privileges",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_privileges": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00182-privileges.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_role_privileges",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_data_rule_assignments": [
+   "xxfnd_data_rules_assign",
+   "xxfnd_effective_access_v",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_role_privileges": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00104-user.apx",
+   "apex:COMMON:pages/p00106-role.apx",
+   "apex:COMMON:pages/p00182-privileges.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_privilege_pkg",
+   "xxfnd_share_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_user_data_access_v": [
+   "apex:COMMON:pages/p00104-user.apx",
+   "xxfnd_vpd_pkg"
+  ],
+  "xxfnd_wf_delegations": [
+   "apex:COMMON:pages/p00114-delegations.apx",
+   "apex:COMMON:pages/p00115-delegation.apx",
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "xxfnd_vpd_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_df_contexts_vl": [
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_df_segments": [
+   "apex:COMMON:pages/p00152-descriptive-flexfields.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "xxfnd_df_segments_chk",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_app_storage_v": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00136-document-storage.apx",
+   "apex:COMMON:pages/p00137-storage-rule.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_attach_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_attachment_blk_entities": [
+   "apex:COMMON:pages/p00135-attachment-page.apx",
+   "xxfnd_attach_pkg"
+  ],
+  "xxfnd_doc_category_usages": [
+   "apex:COMMON:pages/p00135-attachment-page.apx",
+   "xxfnd_attach_pkg"
+  ],
+  "xxfnd_document_files": [
+   "xxfnd_attach_pkg"
+  ],
+  "xxfnd_entity_containers": [
+   "xxfnd_attach_pkg"
+  ],
+  "xxfnd_notification_templates": [
+   "apex:COMMON:pages/p00109-notification-templates.apx",
+   "apex:COMMON:pages/p00110-notification-template.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "apex:COMMON:shared-components/email-templates.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_notify_events",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_notify_channels": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00043-notifications.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "apex:COMMON:pages/p00117-notification-log.apx",
+   "xxfnd_notifications",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules"
+  ],
+  "xxfnd_notify_events": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "apex:COMMON:pages/p00117-notification-log.apx",
+   "xxfnd_notifications",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules"
+  ],
+  "xxfnd_notify_recipient_types": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "xxfnd_notify_pkg",
+   "xxfnd_notify_rules"
+  ],
+  "xxfnd_contact_row": [
+   "xxfnd_contact_tab",
+   "xxfnd_notify_pkg"
+  ],
+  "xxfnd_qa_row": [
+   "xxfnd_qa_tab",
+   "xxfnd_rfi_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_qa_tab": [
+   "xxfnd_rfi_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_contact_tab": [
+   "xxfnd_notify_pkg"
+  ],
+  "xxfnd_contact_sources": [
+   "xxfnd_application_pkg",
+   "xxfnd_notify_pkg"
+  ],
+  "xxfnd_notifications": [
+   "apex:COMMON:pages/p00043-notifications.apx",
+   "apex:COMMON:pages/p00117-notification-log.apx",
+   "xxfnd_notify_pkg",
+   "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_notify_rules": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00116-notification-delivery.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_notify_pkg"
+  ],
+  "xxfnd_task_alerts": [
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_task_settings": [
+   "apex:COMMON:pages/p00145-deadlines-and-escalation.apx",
+   "apex:COMMON:pages/p00146-task-deadline.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_workflow_processes": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_workflow_pkg"
+  ],
+  "xxfnd_config_changes_v": [
+   "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx",
+   "xxfnd_approval_pkg"
+  ],
+  "xxfnd_rfi_rounds": [
+   "xxfnd_qa_history_v",
+   "xxfnd_rfi_pkg",
+   "xxfnd_rfis"
+  ],
+  "xxfnd_approval_txn_steps": [
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_approval_txns": [
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_txn_steps",
+   "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_approval_types": [
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_approval_step_tab": [
+   "xxfnd_approval_rule_pkg"
+  ],
+  "xxfnd_approval_rule_conds": [
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "xxfnd_approval_rule_pkg"
+  ],
+  "xxfnd_approval_rule_steps": [
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps_type"
+  ],
+  "xxfnd_approval_type_attrs": [
+   "apex:COMMON:pages/p00148-approval-setup.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "xxfnd_approval_rule_pkg"
+  ],
+  "xxfnd_user_applications": [
+   "apex:COMMON:pages/p00104-user.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_user_pkg"
+  ],
+  "xxfnd_setup_tables_v": [
+   "apex:COMMON:pages/p00113-retention-policy.apx",
+   "apex:COMMON:pages/p00131-document-entity.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "xxfnd_setup_columns_v",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_retention_policies": [
+   "apex:COMMON:pages/p00113-retention-policy.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_setup_type_apps": [
+   "apex:COMMON:pages/p00162-setup-types.apx",
+   "apex:COMMON:pages/p00163-setup-type.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_setup_types"
+  ],
+  "xxfnd_setup_types": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00162-setup-types.apx",
+   "apex:COMMON:pages/p00163-setup-type.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_setup_type_apps"
+  ],
+  "xxfnd_app_menu_entries": [
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_nav_menu_v",
+   "xxfnd_page_catalogue_v"
+  ],
+  "xxfnd_application_functions": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "xxfnd_application_pkg"
+  ],
+  "xxfnd_data_model_pkg": [
+   "apex:COMMON:pages/p00175-data-model.apx",
+   "apex:COMMON:pages/p00177-data-model-diagram.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_dm_table_groups"
+  ],
+  "xxfnd_dm_app_scopes": [
+   "xxfnd_application_pkg",
+   "xxfnd_data_model_pkg"
+  ],
+  "xxfnd_dm_table_groups": [
+   "xxfnd_application_pkg",
+   "xxfnd_data_model_pkg"
+  ],
+  "xxfnd_share_pkg": [
+   "xxfnd_application_pkg"
+  ],
+  "xxfnd_error_log": [
+   "xxfnd_error_pkg",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_messages": [
+   "xxfnd_error_pkg"
+  ],
+  "xxfnd_onboard_pkg": [
+   "apex:COMMON:application.apx",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_setup_columns_v": [
+   "apex:COMMON:pages/p00131-document-entity.apx",
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
+   "apex:COMMON:pages/p00181-data-security-rule.apx",
+   "xxfnd_share_pkg"
+  ],
+  "xxfnd_page_opens": [
+   "xxfnd_nav_pkg",
+   "xxfnd_page_catalogue_v"
+  ],
+  "xxfnd_fi_catalog": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "xxfnd_fi_meta_pkg",
+   "xxfnd_fi_objects",
+   "xxfnd_fi_registry_pkg"
+  ],
+  "xxfnd_fi_run_pkg": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "apex:COMMON:shared-components/automations/fusion-objects-run.apx",
+   "xxfnd_fi_objects"
+  ],
+  "xxfnd_fi_objects": [
+   "apex:COMMON:pages/p00190-fusion-objects.apx",
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "apex:COMMON:pages/p00193-drift-queue.apx",
+   "apex:COMMON:pages/p00194-run-log.apx",
+   "xxfnd_fi_attributes",
+   "xxfnd_fi_children",
+   "xxfnd_fi_drift",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg",
+   "xxfnd_fi_runs",
+   "xxfnd_fi_versions"
+  ],
+  "xxfnd_fi_attributes": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_fi_meta_pkg": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_gen_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_fi_versions": [
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "xxfnd_fi_gen_pkg"
+  ],
+  "xxfnd_fi_children": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "xxfnd_fi_registry_pkg"
+  ],
+  "xxfnd_fi_gen_pkg": [
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_registry_pkg",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_fi_drift": [
+   "apex:COMMON:pages/p00190-fusion-objects.apx",
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "apex:COMMON:pages/p00193-drift-queue.apx",
+   "xxfnd_fi_drift_pkg"
+  ],
+  "xxfnd_fi_registry_pkg": [
+   "apex:COMMON:pages/p00191-onboard-object.apx",
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_fi_runs": [
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "apex:COMMON:pages/p00194-run-log.apx",
+   "xxfnd_fi_drift_pkg",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_fi_drift_pkg": [
+   "apex:COMMON:pages/p00192-object-detail.apx",
+   "apex:COMMON:pages/p00193-drift-queue.apx",
+   "xxfnd_fi_run_pkg"
+  ],
+  "xxfnd_modules_v": [
+   "apex:COMMON:pages/p00100-administration.apx",
+   "apex:COMMON:shared-components/lists.apx"
+  ],
+  "xxfnd_effective_access_v": [
+   "apex:COMMON:pages/p00103-users.apx"
+  ],
+  "xxfnd_setup_rows_v": [
+   "apex:COMMON:pages/p00000-global-page.apx"
+  ],
+  "xxfnd_app_setting_pkg": [
+   "apex:COMMON:pages/p10021-optional-feature.apx",
+   "apex:COMMON:pages/p10023-application-setting.apx"
+  ],
+  "xxfnd_page_catalogue_v": [
+   "apex:COMMON:pages/p00169-all-pages.apx"
+  ],
+  "xxfnd_df_flexfields_chk": [
+   "apex:COMMON:pages/p00153-descriptive-flexfield.apx"
+  ]
+ }
+}

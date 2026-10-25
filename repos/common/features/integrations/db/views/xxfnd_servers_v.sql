@@ -63,5 +63,3 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                        from apex_appl_web_src_modules m
                        left join apex_workspace_remote_servers w on w.remote_server_static_id = m.remote_server_static_id
                       group by m.application_id) f on f.application_id = s.source_application_id) q;
-
-comment on table xxfnd_servers_v is 'Release 86: the servers (XXFND_SERVERS) with their usage (STORAGE / INTEGRATION), effective URL (APEX Remote Server, else the copied URL, else the OCI region URL) and Web Credential, health, and STATUS: DISABLED, INCOMPLETE (MISSING says what), FAILED (last Test Connection) or OK.';

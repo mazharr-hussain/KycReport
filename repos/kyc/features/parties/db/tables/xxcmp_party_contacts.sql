@@ -85,4 +85,3 @@ begin
     end if;
 end;
 /
-comment on table xxcmp_party_contacts is 'Contact persons of a party (name, job title, email, phone); one primary per party.';
