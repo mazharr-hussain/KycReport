@@ -834,6 +834,7 @@
   ],
   "apex:KYC:pages/p00204-create-request-party-details.apx": [
    "xxcmp_party_pkg",
+   "xxcmp_request_pkg",
    "xxcmp_requests"
   ],
   "apex:KYC:pages/p00160-questionnaires.apx": [
@@ -901,7 +902,6 @@
   ],
   "apex:KYC:pages/p00201-create-request.apx": [
    "xxcmp_answer_options",
-   "xxcmp_party_pkg",
    "xxcmp_questions",
    "xxcmp_request_answers",
    "xxcmp_request_pkg",
@@ -1275,7 +1275,6 @@
    "apex:KYC:pages/p00025-party-details-step.apx",
    "apex:KYC:pages/p00026-id-verification.apx",
    "apex:KYC:pages/p00027-registry-check.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:pages/p00222-reassessment.apx",
@@ -1332,6 +1331,7 @@
    "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00202-create-request-questionnaire.apx",
    "apex:KYC:pages/p00203-create-request-submit.apx",
+   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00205-kyc-request.apx",
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx",

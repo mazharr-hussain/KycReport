@@ -59,7 +59,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 201)
+                :APP_PAGE_ID in (23, 24, 204)
                 ```
         }
         readOnly {
@@ -71,7 +71,7 @@ page 0 (
                 ```
         }
         comments {
-            comments: The one party form (common region). Pages 23 (new owner / officer), 24 (Party wizard step 1) and 201 (Create Request, new counterparty) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
+            comments: The one party form (common region). Pages 23 (new owner / officer), 24 (Party wizard step 1) and 204 (Create Request step 2, the counterparty - release 103; 201 before) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
         }
     )
 
@@ -148,8 +148,8 @@ page 0 (
                 select /* release 99: the requester's form names the types as the KYC policy does (COMMON has no routine
                           for an application to rename its lookup meanings: COMMON-ISSUES C15). Release 102: the query
                           must start with SELECT - an item LOV starting with a comment runs as a PL/SQL function body */
-                       case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
-                            when :APP_PAGE_ID = 201 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
+                       case when :APP_PAGE_ID = 204 and lookup_code = 'ORGANIZATION' then 'Legal Person'
+                            when :APP_PAGE_ID = 204 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
                             else meaning end as display_value,
                        lookup_code as return_value
                   from xxfnd_lookup_values
@@ -163,7 +163,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P0_PARTY_ID is not null and :APP_PAGE_ID <> 201
+                :P0_PARTY_ID is not null or :APP_PAGE_ID = 204
                 ```
         }
     )
@@ -341,7 +341,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 201
+                :APP_PAGE_ID <> 204
                 ```
         }
         appearance {
@@ -370,7 +370,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 201
+                :APP_PAGE_ID <> 204
                 ```
         }
         appearance {
@@ -399,7 +399,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 201
+                :APP_PAGE_ID <> 204
                 ```
         }
         appearance {
@@ -428,7 +428,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 201
+                :APP_PAGE_ID <> 204
                 ```
         }
         appearance {
@@ -919,7 +919,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
+                (:APP_PAGE_ID in (21, 25, 203, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
                 ```
         }
         componentAppearance {
@@ -1182,7 +1182,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 -- release 99: no contact persons or owners for an individual on Create Request - Party Details
                 and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
                 ```
@@ -1398,7 +1398,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 -- release 99: no contact persons or owners for an individual on Create Request - Party Details
                 and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
                 ```
@@ -3468,7 +3468,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 201)
+                :APP_PAGE_ID in (23, 24, 204)
                 ```
         }
 
@@ -3479,7 +3479,7 @@ page 0 (
                     ```javascript
                     // one column per organisation / individual pair: the label follows the party type
                     var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
-                        requestForm = $v("pFlowStepId") === "201",   // release 99: the requester's KYC request form
+                        requestForm = $v("pFlowStepId") === "204",   // release 103: the requester's KYC request form (step 2)
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
                                    P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],

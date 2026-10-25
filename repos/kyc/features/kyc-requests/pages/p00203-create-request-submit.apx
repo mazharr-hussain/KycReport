@@ -18,7 +18,7 @@ page 203 (
     help {
         helpText:
             ```
-            Step 3 of 3: review everything (the party and its details, the documents and the next steps; Compliance also sees the answers and the approval path), attach the documents you have and submit. When the request is Information Needed, answer the question here (Respond).
+            Step 3 of 3: review the request (the counterparty, its documents and the next steps; Compliance also sees the answers and the approval path), attach the request documents (for example the evidence when no KYC report is required) and submit. When the request is Information Needed, answer the question here (Respond).
             ```
     }
 

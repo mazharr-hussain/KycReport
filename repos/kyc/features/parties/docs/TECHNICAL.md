@@ -63,11 +63,12 @@ One record per counterparty, shared by requests, cases and monitoring.
 
 - Uses: XXCMP_ALERTS, XXCMP_CASES, XXCMP_CASE_NOTES, XXCMP_CASE_PKG, XXCMP_DOC_RULE_PKG, XXCMP_REQUESTS, XXCMP_REQUEST_PKG, XXCMP_SCREENINGS, XXFND_ATTACHED_DOCUMENTS_V, XXFND_ATTACH_PKG, XXFND_DDL_PKG, XXFND_DFF_PKG, XXFND_DOCUMENT_CATEGORIES_VL, XXFND_ERROR_PKG, XXFND_INTEGRATION_ENDPOINTS, XXFND_LOOKUP_PKG, XXFND_LOOKUP_VALUES, XXFND_PRIVILEGE_PKG, XXFND_UI_PKG, XXFND_USER_PKG, XXFND_UTIL_PKG, XXFND_VPD_PKG
 - Used by objects: XXCMP_ALERTS, XXCMP_CASES, XXCMP_CASE_FUNDS, XXCMP_CASE_NOTES, XXCMP_CASE_PKG, XXCMP_FIU_REPORTS, XXCMP_MONITOR_PKG, XXCMP_REQUESTS, XXCMP_REQUEST_PKG, XXCMP_RFIS, XXCMP_RISK_PKG, XXCMP_SCREENINGS, XXCMP_UBO_DETERMINATIONS, XXCMP_WATCHLIST_V
-- Used by KYC pages / components: 0, 20, 21, 22, 23, 24, 25, 26, 27, 201, 204, 206, 210, 211, 213, 216, 217, 221, 222, CASE-APPROVAL, CASE-INVESTIGATION, app-processes, authorizations
+- Used by KYC pages / components: 0, 20, 21, 22, 23, 24, 25, 26, 27, 204, 206, 210, 211, 213, 216, 217, 221, 222, CASE-APPROVAL, CASE-INVESTIGATION, app-processes, authorizations
 
 ## Test scripts
 
 - `features/kyc-requests/tests/r100_duplicate_party_test.sql`
+- `features/kyc-requests/tests/r103_request_steps_test.sql`
 - `features/kyc-requests/tests/r74_kyc_test.sql`
 - `features/kyc-requests/tests/r99_requester_test.sql`
 - `features/kyc-requests/tests/request_party_test.sql`
