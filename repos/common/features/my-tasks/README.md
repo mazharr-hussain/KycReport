@@ -49,8 +49,4 @@ Link to COMMON page 40 (`app: COMMON`, or the entry My Tasks of `XXFND_APP_MENU_
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/views/xxfnd_pending_approvals_v.sql`
-- `pages/p00040-my-tasks.apx`
-- `pages/p00043-notifications.apx`
-- `pages/p00143-information-request.apx`
-- `pages/p00144-configuration-change.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

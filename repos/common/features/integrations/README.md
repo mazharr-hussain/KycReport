@@ -54,20 +54,4 @@ The application registers its purposes with `XXFND_INTEGRATION_PKG.REGISTER_PURP
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_integration_pkg.sql`
-- `db/tables/xxfnd_int_endpoints.sql`
-- `db/tables/xxfnd_integration_calls.sql`
-- `db/tables/xxfnd_integration_endpoints.sql`
-- `db/tables/xxfnd_integration_purposes.sql`
-- `db/tables/xxfnd_servers.sql`
-- `db/tables/xxfnd_transmissions.sql`
-- `db/triggers/xxfnd_int_purposes_mc.sql`
-- `db/views/xxfnd_integration_changes_v.sql`
-- `db/views/xxfnd_servers_v.sql`
-- `pages/p00120-servers.apx`
-- `pages/p00121-server.apx`
-- `pages/p00122-integration-purposes.apx`
-- `pages/p00123-integration-purpose.apx`
-- `pages/p00124-transmission-log.apx`
-- `pages/p00125-call.apx`
-- `shared-components/lovs.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -51,12 +51,4 @@ The application registers its controlled setup tables with `XXFND_APPROVAL_PKG.R
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_approval_pkg.sql`
-- `db/packages/xxfnd_config_approval_pkg.sql`
-- `db/seed/xxfnd_config_tables.sql`
-- `db/tables/xxfnd_config_tables.sql`
-- `db/types/xxfnd_config_change_row.sql`
-- `db/types/xxfnd_config_change_tab.sql`
-- `db/views/xxfnd_config_changes_v.sql`
-- `shared-components/task-definitions/CONFIG-CHANGE.apx`
-- `shared-components/workflows/CONFIG-CHANGE.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -48,6 +48,4 @@ The application registers its entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p00167-application-menu.apx`
-- `pages/p00168-menu-entry.apx`
-- `pages/p00169-all-pages.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -46,4 +46,4 @@ Not used by other applications.
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p00001-home.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

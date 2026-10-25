@@ -47,5 +47,4 @@ An application defines build options named "Feature - <name>"; `XXFND_APP_SETTIN
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p10020-optional-features.apx`
-- `pages/p10021-optional-feature.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -51,12 +51,4 @@ The application registers its rules with `XXFND_VPD_PKG.REGISTER_DATA_RULE`, app
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_vpd_pkg.sql`
-- `db/seed/xxfnd_data_rule_assignments.sql`
-- `db/tables/xxfnd_data_dimensions.sql`
-- `db/tables/xxfnd_data_rule_assignments.sql`
-- `db/tables/xxfnd_data_security_rules.sql`
-- `db/triggers/xxfnd_data_rules_assign.sql`
-- `pages/p00180-data-security.apx`
-- `pages/p00181-data-security-rule.apx`
-- `pages/p00186-organizations.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -50,10 +50,4 @@ Nothing to install in the application. IT may set its object prefix (page 175) a
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_data_model_pkg.sql`
-- `db/tables/xxfnd_dm_app_scopes.sql`
-- `db/views/xxfnd_dm_apps_v.sql`
-- `db/views/xxfnd_dm_objects_v.sql`
-- `pages/p00175-data-model.apx`
-- `pages/p00176-database-object.apx`
-- `pages/p00177-data-model-diagram.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -32,3 +32,11 @@ file, statement or component is copied as it is, and `SOURCE-MAP.json` records w
   `INDEX.md` (step -> object -> source file), `DEPENDENCIES.md` / `dependencies.json` (uses / used by, APEX files and
   the other application), `diagrams/` (one per feature).
 - `releases/<NNN>/` - `db/` (the numbered files of the release), `run-release.sql`, README and the APEXlang zip.
+
+## Reference documents
+- **Requirements summary (functional reference, both applications):** [COMMON App – Requirements Summary](https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G).
+  Every change starts from it and updates it (purpose, what it does, how it works, how it's built, DB objects,
+  shared components of the feature).
+- **Technical document of each feature:** `features/<feature>/docs/TECHNICAL.md`, generated on every build: how it is
+  built (pages, standard APEX features and shared components used, custom database objects), configuration (setup
+  pages, seed and change scripts, settings), dependencies and test scripts. Hand-written notes: `docs/NOTES.md`.

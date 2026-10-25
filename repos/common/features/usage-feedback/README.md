@@ -47,5 +47,4 @@ The application links its Feedback entry to COMMON page 173 (Give Feedback).
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p00171-feedback.apx`
-- `pages/p00172-feedback-follow-up.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
