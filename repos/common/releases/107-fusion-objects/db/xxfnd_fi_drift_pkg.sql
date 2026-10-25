@@ -65,6 +65,7 @@ create or replace package body xxfnd_fi_drift_pkg as
         l_ver      number;
         l_n        pls_integer;
         l_col      varchar2(128);
+        l_err      varchar2(4000);
     begin
         select * into l_o from xxfnd_fi_objects where object_id = p_object_id;
         insert into xxfnd_fi_runs (object_id, run_type) values (p_object_id, 'CHECK') returning run_id into l_run;
@@ -143,10 +144,11 @@ create or replace package body xxfnd_fi_drift_pkg as
         return l_changes + l_breaking;
     exception
         when others then
+            l_err := substr(sqlerrm, 1, 4000);     -- SQLERRM is not allowed inside SQL (ORA-00904)
             rollback;
             if l_run is not null then
                 update xxfnd_fi_runs set status_code = 'FAILED', ended_date = systimestamp,
-                       message = substr(sqlerrm, 1, 4000)
+                       message = l_err
                  where run_id = l_run;
                 commit;
             end if;

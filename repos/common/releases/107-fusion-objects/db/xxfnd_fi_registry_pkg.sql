@@ -91,6 +91,7 @@ create or replace package body xxfnd_fi_registry_pkg as
         l_try   varchar2(128);
         l_n     pls_integer;
         j       pls_integer;
+        l_code  xxfnd_fi_objects.object_code%type;
     begin
         check_manage;
         select * into l_cat from xxfnd_fi_catalog where catalog_id = p_catalog_id;
@@ -100,11 +101,12 @@ create or replace package body xxfnd_fi_registry_pkg as
         if l_id is not null then
             return l_id;
         end if;
+        -- a private function is not called inside SQL (PLS-00231)
+        l_code := case when p_object_code is not null then db_name(p_object_code, 20)
+                       else unique_code(regexp_substr(l_cat.source_name, '[^/]+$')) end;
         insert into xxfnd_fi_objects (object_code, catalog_id, parent_object_id, source_type, source_name, offering_code,
                                       business_name, mode_code, status_code)
-        values (case when p_object_code is not null then db_name(p_object_code, 20)
-                     else unique_code(regexp_substr(l_cat.source_name, '[^/]+$')) end,
-                p_catalog_id, p_parent_object_id, l_cat.source_type, l_cat.source_name, l_cat.offering_code,
+        values (l_code, p_catalog_id, p_parent_object_id, l_cat.source_type, l_cat.source_name, l_cat.offering_code,
                 nvl(l_cat.business_name, l_cat.source_name), 'REPLICA', 'DRAFT')
         returning object_id into l_id;
         -- the live attributes; primary keys and the last-update date selected

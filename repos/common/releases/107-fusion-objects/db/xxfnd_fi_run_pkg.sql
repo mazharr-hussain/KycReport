@@ -296,6 +296,7 @@ create or replace package body xxfnd_fi_run_pkg as
         l_body   json_object_t := json_object_t();
         l_resp   json_object_t;
         l_status varchar2(100);
+        l_req    xxfnd_fi_runs.bicc_request_id%type;
     begin
         if l_o.bicc_job_id is null then
             xxfnd_fi_gen_pkg.bicc_configure(p_object_id);
@@ -311,8 +312,9 @@ create or replace package body xxfnd_fi_run_pkg as
             l_body.put('frequencyType', 'IMMEDIATE');
             l_resp := json_object_t.parse(xxfnd_fi_meta_pkg.fusion_send('POST', bicc_path(c_bicc_run, l_o.bicc_job_id),
                                                                         l_body.to_clob));
-            update xxfnd_fi_runs set bicc_request_id = json_text(l_resp, 'id,scheduleId,requestId,jobRequestId')
-             where run_id = l_run;
+            -- a private function is not called inside SQL (PLS-00231)
+            l_req := json_text(l_resp, 'id,scheduleId,requestId,jobRequestId');
+            update xxfnd_fi_runs set bicc_request_id = l_req where run_id = l_run;
             end_run(l_run, 'WAITING', 'BICC extract started');
             return;
         end if;
@@ -367,7 +369,7 @@ create or replace package body xxfnd_fi_run_pkg as
           into l_cols, l_paths, l_lud
           from xxfnd_fi_attributes
          where object_id = p_object_id and selected_flag = 'Y' and status_code = 'ACTIVE';
-        l_since := case when l_lud > 0 then cast(l_o.last_sync_date as timestamp) end;
+        l_since := case when l_lud > 0 then l_o.last_sync_date end;     -- already a timestamp (no CAST in PL/SQL)
         loop
             l_resp := xxfnd_fi_meta_pkg.fusion_get(l_o.source_name,
                                                    xxfnd_fi_gen_pkg.rest_query(p_object_id, l_offset, c_page_size, l_since));
@@ -413,6 +415,7 @@ create or replace package body xxfnd_fi_run_pkg as
     end run_object;
 
     procedure run_due is
+        l_err varchar2(4000);
     begin
         for o in (select object_id from xxfnd_fi_objects
                    where status_code = 'ACTIVE' and mode_code = 'REPLICA'
@@ -422,13 +425,14 @@ create or replace package body xxfnd_fi_run_pkg as
                 run_object(o.object_id);
             exception
                 when others then
+                    l_err := substr(sqlerrm, 1, 4000);     -- SQLERRM is not allowed inside SQL (ORA-00904)
                     rollback;
                     update xxfnd_fi_objects
-                       set last_status = 'FAILED', last_message = substr(sqlerrm, 1, 4000),
+                       set last_status = 'FAILED', last_message = l_err,
                            next_run_date = systimestamp + numtodsinterval(nvl(schedule_minutes, 1440), 'MINUTE')
                      where object_id = o.object_id;
                     commit;
-                    xxfnd_fi_drift_pkg.alert(o.object_id, 'Run failed: ' || sqlerrm);
+                    xxfnd_fi_drift_pkg.alert(o.object_id, 'Run failed: ' || l_err);
             end;
         end loop;
         xxfnd_fi_drift_pkg.check_all(24);
