@@ -1,0 +1,23 @@
+
+list module-cards (
+    name: Module Cards
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 78: one card per module the user may open, with its state (Home and page 100)
+            select null                                                    as lvl,
+                   module_name                                             as label,
+                   apex_page.get_url(p_page => 100, p_items => 'P100_MODULE', p_values => module_code,
+                                     p_clear_cache => '100')               as target,
+                   'NO'                                                    as is_current,
+                   icon_css                                                as image,
+                   null                                                    as image_attribute,
+                   null                                                    as image_alt,
+                   description                                             as a01,
+                   module_state                                            as a02
+              from xxfnd_modules_v
+             order by display_sequence
+            ```
+    }
+)

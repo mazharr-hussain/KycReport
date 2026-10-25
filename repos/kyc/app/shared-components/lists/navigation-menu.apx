@@ -1,0 +1,22 @@
+
+list navigation-menu (
+    name: Navigation Menu
+    subscription {
+        master: @/135/navigation-menu
+    }
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select lvl, label, target, is_current, image, image_attribute, image_alt
+              -- release 104: one menu for every application (master of the subscribed copies): the application's menu
+              -- kept in COMMON (Application Menu, shown by privileges); in COMMON, COMMON's menu (Home, My Tasks,
+              -- modules) or the menu of the application a COMMON page is used from (XXFND_NAV_PKG.NAV_MENU)
+              from table(xxfnd_nav_pkg.nav_menu)
+             order by sort_path
+            ```
+    }
+    comments {
+        comments: Release 104 - master list: every application subscribes to it as its navigation menu; the entries come from XXFND_NAV_PKG.NAV_MENU (view XXFND_NAV_MENU_V).
+    }
+)

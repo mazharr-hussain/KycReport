@@ -40,7 +40,7 @@ begin
     if exists_(q'[select count(*) from user_tab_columns where table_name = 'XXFND_WF_DELEGATIONS' and column_name = 'ITEM_TYPE']') then
         run('alter table xxfnd_wf_delegations rename column item_type to task_definition');
         run('alter table xxfnd_wf_delegations modify (task_definition varchar2(255))');
-        xxfnd_audit_pkg.create_audit_trigger('XXFND_WF_DELEGATIONS');   -- its column list changed
+        xxfnd_schema_pkg.create_audit_trigger('XXFND_WF_DELEGATIONS');   -- its column list changed
     end if;
     -- Item types of the former engine mean nothing to APEX task definitions.
     run(q'[update xxfnd_wf_delegations set task_definition = null where task_definition in ('RFI','KYC_CASE')]');

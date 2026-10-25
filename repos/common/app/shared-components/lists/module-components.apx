@@ -1,0 +1,30 @@
+
+list module-components (
+    name: Module Components
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 78: the components (features) of the module on page 100 that the user may open
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   'NO'                                    as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                             join apex_application_pages ap
+                               on ap.application_id = :APP_ID and ap.page_id = fp.page_id
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code) t
+             where m.feature_group = :P100_MODULE
+               and t.page_id is not null
+             order by m.display_sequence
+            ```
+    }
+)

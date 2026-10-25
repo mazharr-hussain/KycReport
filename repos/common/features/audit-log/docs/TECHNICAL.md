@@ -37,18 +37,11 @@ One audit trail for every application.
 
 - Configured on its pages above (setup pages need the feature's privileges: View / Create / Manage).
 - Seed and change scripts:
-    - `db/scripts/05b-integration-pkg/05-add_column-xxfnd_servers.sql`
-    - `db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql`
-    - `db/scripts/09b-security-framework-objects/13-xxfnd_util_pkg-create_who_trigger.sql`
-    - `db/scripts/09c-shared-objects-from-kyc-scripts/01-add_column-xxfnd_features.sql`
-    - `db/scripts/14-attachments/01-add_column-xxfnd_storage_config.sql`
-    - `db/scripts/15-workflow/01-dbms_scheduler-drop_job.sql`
-    - `db/scripts/15-workflow/04-xxfnd_util_pkg-create_who_trigger.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
 
 ## Dependencies
 
-- Uses: XXFND_DDL_PKG, XXFND_SCHEMA_PKG, XXFND_UTIL_PKG
+- Uses: XXFND_DDL_PKG, XXFND_UTIL_PKG
 - Used by objects: XXFND_APPROVAL_PKG, XXFND_SCHEMA_PKG, XXFND_USER_PKG
 - Used by COMMON pages / components: 111, 123
 - Used by KYC pages / components: 139, 162

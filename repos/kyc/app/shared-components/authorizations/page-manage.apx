@@ -1,0 +1,21 @@
+
+authorization page-manage (
+    name: Page - Manage
+    subscription {
+        master: @/135/page-manage
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

@@ -1,0 +1,17 @@
+authorization kyc-user (
+    name: KYC User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('KYC_USER');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to the KYC Compliance Platform. Ask an administrator to grant you a role.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

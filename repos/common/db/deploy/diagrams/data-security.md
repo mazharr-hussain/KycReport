@@ -21,7 +21,6 @@ graph LR
     xxfnd_vpd_pkg --> xxfnd_privilege_pkg
     xxfnd_vpd_pkg --> xxfnd_role_data_access
     xxfnd_vpd_pkg --> xxfnd_roles
-    xxfnd_vpd_pkg --> xxfnd_schema_pkg
     xxfnd_vpd_pkg --> xxfnd_user_data_access_v
     xxfnd_vpd_pkg --> xxfnd_user_roles
     xxfnd_vpd_pkg --> xxfnd_user_roles_v

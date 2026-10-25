@@ -418,63 +418,63 @@
  "apex/src/database/xxcus/apex_apps/f134/shared-components/authorizations.apx": [
   {
    "from": 0,
-   "target": "kyc/app/shared-components/authorizations.apx",
+   "target": "kyc/app/shared-components/authorizations/kyc-user.apx",
    "to": 481,
-   "whole": false
-  },
-  {
-   "from": 481,
-   "target": "kyc/app/shared-components/authorizations.apx",
-   "to": 965,
-   "whole": false
-  },
-  {
-   "from": 965,
-   "target": "kyc/app/shared-components/authorizations.apx",
-   "to": 1464,
-   "whole": false
-  },
-  {
-   "from": 1464,
-   "target": "kyc/app/shared-components/authorizations.apx",
-   "to": 1963,
-   "whole": false
-  },
-  {
-   "from": 1963,
-   "target": "kyc/app/shared-components/authorizations.apx",
-   "to": 2462,
-   "whole": false
-  },
-  {
-   "from": 2462,
-   "target": "kyc/app/shared-components/authorizations.apx",
-   "to": 2962,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/parties/shared-components/authorizations.apx",
+   "target": "kyc/app/shared-components/authorizations/page-view.apx",
+   "to": 484,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/authorizations/page-create.apx",
+   "to": 499,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/authorizations/page-manage.apx",
+   "to": 499,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/authorizations/page-submit.apx",
+   "to": 499,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/authorizations/admin-area.apx",
+   "to": 500,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/parties/shared-components/authorizations/party-details-view.apx",
    "to": 454,
-   "whole": false
+   "whole": true
   },
   {
-   "from": 454,
-   "target": "kyc/features/parties/shared-components/authorizations.apx",
-   "to": 921,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/parties/shared-components/authorizations/party-details-create.apx",
+   "to": 467,
+   "whole": true
   },
   {
-   "from": 921,
-   "target": "kyc/features/parties/shared-components/authorizations.apx",
-   "to": 1388,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/parties/shared-components/authorizations/party-details-manage.apx",
+   "to": 467,
+   "whole": true
   },
   {
-   "from": 1388,
-   "target": "kyc/features/parties/shared-components/authorizations.apx",
-   "to": 1855,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/parties/shared-components/authorizations/party-details-submit.apx",
+   "to": 467,
+   "whole": true
   }
  ],
  "apex/src/database/xxcus/apex_apps/f134/shared-components/automations/kyc-monitoring.apx": [
@@ -512,125 +512,125 @@
  "apex/src/database/xxcus/apex_apps/f134/shared-components/lists.apx": [
   {
    "from": 0,
-   "target": "kyc/app/shared-components/lists.apx",
+   "target": "kyc/app/shared-components/lists/navigation-bar.apx",
    "to": 835,
-   "whole": false
-  },
-  {
-   "from": 835,
-   "target": "kyc/app/shared-components/lists.apx",
-   "to": 1749,
-   "whole": false
-  },
-  {
-   "from": 1749,
-   "target": "kyc/app/shared-components/lists.apx",
-   "to": 6307,
-   "whole": false
-  },
-  {
-   "from": 6307,
-   "target": "kyc/app/shared-components/lists.apx",
-   "to": 7355,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/kyc-requests/shared-components/lists.apx",
+   "target": "kyc/app/shared-components/lists/navigation-menu.apx",
+   "to": 914,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/lists/administration.apx",
+   "to": 4558,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/app/shared-components/lists/feature-tabs.apx",
+   "to": 1048,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-requests/shared-components/lists/request-wizard.apx",
    "to": 639,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/parties/shared-components/lists.apx",
+   "target": "kyc/features/parties/shared-components/lists/party-wizard.apx",
    "to": 622,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/cases/shared-components/lists.apx",
+   "target": "kyc/features/cases/shared-components/lists/case-sections.apx",
    "to": 1655,
-   "whole": false
+   "whole": true
   }
  ],
  "apex/src/database/xxcus/apex_apps/f134/shared-components/lovs.apx": [
   {
    "from": 0,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-jurisdiction.apx",
    "to": 592,
-   "whole": false
-  },
-  {
-   "from": 592,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 1118,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/parties/shared-components/lovs.apx",
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-entity-type.apx",
+   "to": 526,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/parties/shared-components/lovs/lov-relationship-type.apx",
    "to": 544,
-   "whole": false
-  },
-  {
-   "from": 1118,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 1638,
-   "whole": false
-  },
-  {
-   "from": 1638,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 2173,
-   "whole": false
-  },
-  {
-   "from": 2173,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 2732,
-   "whole": false
-  },
-  {
-   "from": 2732,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 3337,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/features/cases/shared-components/lovs.apx",
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-risk-tier.apx",
+   "to": 520,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-qa-answer-type.apx",
+   "to": 535,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-questionnaire-audience.apx",
+   "to": 559,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-approval-status.apx",
+   "to": 605,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "kyc/features/cases/shared-components/lovs/lov-rfi-category.apx",
    "to": 529,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "kyc/app/shared-components/lovs.apx",
+   "target": "kyc/app/shared-components/lovs/lov-employees.apx",
    "to": 554,
-   "whole": false
+   "whole": true
   },
   {
-   "from": 3337,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 3869,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-categories.apx",
+   "to": 532,
+   "whole": true
   },
   {
-   "from": 3869,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 4389,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-entities.apx",
+   "to": 520,
+   "whole": true
   },
   {
-   "from": 4389,
-   "target": "kyc/features/kyc-rules/shared-components/lovs.apx",
-   "to": 4890,
-   "whole": false
+   "from": 0,
+   "target": "kyc/features/kyc-rules/shared-components/lovs/lov-lookup-types.apx",
+   "to": 501,
+   "whole": true
   },
   {
-   "from": 554,
-   "target": "kyc/app/shared-components/lovs.apx",
-   "to": 1236,
-   "whole": false
+   "from": 0,
+   "target": "kyc/app/shared-components/lovs/lov-case-officers.apx",
+   "to": 682,
+   "whole": true
   }
  ],
  "apex/src/database/xxcus/apex_apps/f134/shared-components/messages.apx": [
@@ -833,6 +833,46 @@
    "whole": true
   }
  ],
+ "apex/tests/admin_scope_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/admin_scope_test.sql",
+   "to": 3173,
+   "whole": true
+  }
+ ],
+ "apex/tests/admin_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/admin_ui.py",
+   "to": 5097,
+   "whole": true
+  }
+ ],
+ "apex/tests/common_test_fixtures.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/common_test_fixtures.sql",
+   "to": 2365,
+   "whole": true
+  }
+ ],
+ "apex/tests/forced_save.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/forced_save.py",
+   "to": 1131,
+   "whole": true
+  }
+ ],
+ "apex/tests/ig_save.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/ig_save.py",
+   "to": 1381,
+   "whole": true
+  }
+ ],
  "apex/tests/kyc87_adapt_test.sql": [
   {
    "from": 0,
@@ -905,6 +945,22 @@
    "whole": true
   }
  ],
+ "apex/tests/kyc_functions_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/kyc_functions_test.sql",
+   "to": 2288,
+   "whole": true
+  }
+ ],
+ "apex/tests/kyc_functions_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/kyc_functions_ui.py",
+   "to": 1483,
+   "whole": true
+  }
+ ],
  "apex/tests/kyc_ui.py": [
   {
    "from": 0,
@@ -942,6 +998,14 @@
    "from": 0,
    "target": "kyc/features/parties/tests/party_ui.py",
    "to": 12411,
+   "whole": true
+  }
+ ],
+ "apex/tests/r73_common_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r73_common_test.sql",
+   "to": 5310,
    "whole": true
   }
  ],
@@ -1057,11 +1121,75 @@
    "whole": true
   }
  ],
+ "apex/tests/r76_departments_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r76_departments_test.sql",
+   "to": 3007,
+   "whole": true
+  }
+ ],
  "apex/tests/r76_kyc_test.sql": [
   {
    "from": 0,
    "target": "kyc/tests/r76_kyc_test.sql",
    "to": 8622,
+   "whole": true
+  }
+ ],
+ "apex/tests/r90_my_tasks_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r90_my_tasks_ui.py",
+   "to": 2686,
+   "whole": true
+  }
+ ],
+ "apex/tests/r92_flexfield_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r92_flexfield_test.sql",
+   "to": 3197,
+   "whole": true
+  }
+ ],
+ "apex/tests/r96_security_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r96_security_test.sql",
+   "to": 6764,
+   "whole": true
+  }
+ ],
+ "apex/tests/r96_security_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r96_security_ui.py",
+   "to": 5494,
+   "whole": true
+  }
+ ],
+ "apex/tests/r96_security_ui_cleanup.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r96_security_ui_cleanup.sql",
+   "to": 711,
+   "whole": true
+  }
+ ],
+ "apex/tests/r96_security_ui_setup.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/r96_security_ui_setup.sql",
+   "to": 1079,
+   "whole": true
+  }
+ ],
+ "apex/tests/r99_requester_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/features/kyc-requests/tests/r99_requester_test.sql",
+   "to": 7156,
    "whole": true
   }
  ],
@@ -1097,11 +1225,67 @@
    "whole": true
   }
  ],
+ "apex/tests/smoke.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/smoke.py",
+   "to": 3267,
+   "whole": true
+  }
+ ],
+ "apex/tests/tasks_prep.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/tasks_prep.sql",
+   "to": 2116,
+   "whole": true
+  }
+ ],
+ "apex/tests/tasks_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/tasks_ui.py",
+   "to": 3402,
+   "whole": true
+  }
+ ],
  "apex/tests/token_test.sql": [
   {
    "from": 0,
    "target": "kyc/tests/token_test.sql",
    "to": 1838,
+   "whole": true
+  }
+ ],
+ "apex/tests/upload_limits_test.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/upload_limits_test.sql",
+   "to": 2727,
+   "whole": true
+  }
+ ],
+ "apex/tests/upload_limits_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/upload_limits_ui.py",
+   "to": 4227,
+   "whole": true
+  }
+ ],
+ "apex/tests/viewonly_role.sql": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/viewonly_role.sql",
+   "to": 1236,
+   "whole": true
+  }
+ ],
+ "apex/tests/viewonly_ui.py": [
+  {
+   "from": 0,
+   "target": "kyc/tests/common-usage/viewonly_ui.py",
+   "to": 1323,
    "whole": true
   }
  ],
@@ -1118,14 +1302,6 @@
    "from": 0,
    "target": "kyc/tools/record_kyc_user_guide.py",
    "to": 21778,
-   "whole": true
-  }
- ],
- "apex/tests/r99_requester_test.sql": [
-  {
-   "from": 0,
-   "target": "kyc/features/kyc-requests/tests/r99_requester_test.sql",
-   "to": 7156,
    "whole": true
   }
  ]

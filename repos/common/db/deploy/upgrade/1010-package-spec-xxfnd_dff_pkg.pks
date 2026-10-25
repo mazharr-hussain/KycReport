@@ -4,14 +4,14 @@
 --
 --   How a screen uses it (one shared pattern, no per-screen setup):
 --     1. Dynamic Content region, PL/SQL body:
---          return xxfnd_dff_pkg.render('XXCMP_PARTIES', :P21_PARTY_ID,
---                                      p_context_code => :P21_DFF_CONTEXT);
+--          return xxfnd_dff_pkg.render('XXAPP_CUSTOMERS', :P10_CUSTOMER_ID,
+--                                      p_context_code => :P10_DFF_CONTEXT);
 --     2. Hidden page item Pnn_DFF_JSON; the application's dff.js copies the
 --        field values into it when the page is submitted.
 --     3. Validation (function body returning error text):
---          return xxfnd_dff_pkg.validate('XXCMP_PARTIES', :P21_DFF_JSON, :P21_DFF_CONTEXT);
+--          return xxfnd_dff_pkg.validate('XXAPP_CUSTOMERS', :P10_DFF_JSON, :P10_DFF_CONTEXT);
 --     4. Process after the form's DML process:
---          xxfnd_dff_pkg.save('XXCMP_PARTIES', :P21_PARTY_ID, :P21_DFF_JSON, :P21_DFF_CONTEXT);
+--          xxfnd_dff_pkg.save('XXAPP_CUSTOMERS', :P10_CUSTOMER_ID, :P10_DFF_JSON, :P10_DFF_CONTEXT);
 --
 --   Registering a table in XXFND_DF_FLEXFIELDS and enabling contexts and
 --   segments is all an administrator does; every screen carrying the region

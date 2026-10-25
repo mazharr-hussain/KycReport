@@ -61,8 +61,8 @@ One user record and one role assignment for all applications; sign-in and author
 
 ## Dependencies
 
-- Uses: XXCMP_PARTY_PKG, XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_AUDIT_LOG, XXFND_DATA_SECURITY_RULES, XXFND_DDL_PKG, XXFND_EFFECTIVE_ACCESS_V, XXFND_FEATURES, XXFND_LOOKUP_VALUES, XXFND_LOOKUP_VALUES_VL, XXFND_PRIVILEGES, XXFND_PRIVILEGE_PKG, XXFND_ROLES, XXFND_ROLE_PRIVILEGES, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXHR_EMPLOYEES
-- Used by objects: XXCMP_CASES_LOCK, XXCMP_CASE_PKG, XXCMP_REQUEST_PKG, XXFND_APPLICATION_PKG, XXFND_DATA_RULE_ASSIGNMENTS, XXFND_EFFECTIVE_ACCESS_V, XXFND_MODULES_V, XXFND_NOTIFY_PKG, XXFND_PRIVILEGE_PKG, XXFND_ROLES, XXFND_SETUP_ROWS_V, XXFND_SHARE_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES_RENAME
+- Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_AUDIT_LOG, XXFND_DATA_SECURITY_RULES, XXFND_DDL_PKG, XXFND_EFFECTIVE_ACCESS_V, XXFND_FEATURES, XXFND_LOOKUP_VALUES, XXFND_LOOKUP_VALUES_VL, XXFND_PRIVILEGES, XXFND_PRIVILEGE_PKG, XXFND_ROLES, XXFND_ROLE_PRIVILEGES, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXHR_EMPLOYEES
+- Used by objects: XXCMP_CASES_LOCK, XXCMP_CASE_PKG, XXCMP_PARTY_PKG, XXCMP_REQUEST_PKG, XXFND_APPLICATION_PKG, XXFND_DATA_RULE_ASSIGNMENTS, XXFND_EFFECTIVE_ACCESS_V, XXFND_MODULES_V, XXFND_NOTIFY_PKG, XXFND_PRIVILEGE_PKG, XXFND_ROLES, XXFND_SETUP_ROWS_V, XXFND_SHARE_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES_RENAME
 - Used by COMMON pages / components: 0, 1, 103, 104, 105, 106, 165, 180, 181, 183, 184, 186, lists, app-items, app-processes, authentications, authorizations
 - Used by KYC pages / components: 201, 211, authentications, authorizations
 
@@ -70,15 +70,10 @@ One user record and one role assignment for all applications; sign-in and author
 
 - `tests/common_apps_ui.py`
 - `tests/common_test_fixture.sql`
-- `tests/common_test_fixtures.sql`
-- `tests/r73_common_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r79_security_ui.py`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
 - `tests/r91_common_ui.py`
 - `tests/r94_approval_test.sql`
-- `tests/r96_security_test.sql`
-- `tests/r96_security_ui_cleanup.sql`
 - `tests/test_users.sql`
-- `tests/viewonly_role.sql`

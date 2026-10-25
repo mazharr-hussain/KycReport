@@ -9,7 +9,7 @@ begin
                                    'Y', 'INSTALL', systimestamp, 'INSTALL', systimestamp);
     xxfnd_util_pkg.set_install_mode(false);
     commit;
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_SERVERS');
+    xxfnd_schema_pkg.create_audit_trigger('XXFND_SERVERS');
 exception
     when others then
         xxfnd_util_pkg.set_install_mode(false);

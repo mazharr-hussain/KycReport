@@ -9,7 +9,7 @@
 --   RFI_RESPONSE task) or an external person (answers through a one-time e-mailed link). The answer is reviewed
 --   (RFI_REVIEW task); the reviewer resolves it or asks again - the same RFI loops, one round per question
 --   (XXFND_RFI_ROUNDS) - until it is resolved or cancelled. The application keeps its own screens and checks and
---   gives the recipient (e.g. KYC: a contact person of the party).
+--   gives the recipient (e.g. a contact person of a customer).
 --   KYC's earlier RFIs (XXCMP_RFIS) are copied here once with their numbers (KYC script 16k); XXCMP_RFIS itself is
 --   kept unchanged as history.
 -- Idempotent (CREATE_TABLE only when missing; changes as checked steps).

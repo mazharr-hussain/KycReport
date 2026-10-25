@@ -1,0 +1,20 @@
+
+lov lov-employees (
+    name: EMPLOYEES BY USER NAME
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select full_name || ' (' || user_name || ')' as display_value,
+                   user_name as return_value
+              from xxhr_employees
+             where enabled_flag = 'Y'
+             order by full_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

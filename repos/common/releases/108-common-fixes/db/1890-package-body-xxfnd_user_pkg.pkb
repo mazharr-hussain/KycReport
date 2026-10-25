@@ -1,0 +1,659 @@
+
+create or replace package body xxfnd_user_pkg as
+
+    g_renaming boolean := false;
+
+
+    -- only access administrators maintain users
+    procedure check_admin is
+    begin
+        if not xxfnd_privilege_pkg.has_privilege('USERS_ACCESS', 'MANAGE') then
+            raise_application_error(-20061, 'You are not allowed to maintain users.');
+        end if;
+    end check_admin;
+
+    -- runs P_ACTION on APEX accounts as the workspace: outside the signed-in user's APEX session
+    procedure apex_account(p_action    in varchar2,
+                           p_user_name in varchar2,
+                           p_full_name in varchar2 default null,
+                           p_email     in varchar2 default null,
+                           p_password  in varchar2 default null,
+                           p_locked    in varchar2 default null) is
+        l_sgid    number := apex_custom_auth.get_security_group_id;
+        l_session number := to_number(v('APP_SESSION'));
+        l_app     number := to_number(v('APP_ID'));
+        l_page    number := to_number(v('APP_PAGE_ID'));
+        l_err     varchar2(4000);
+        procedure do_it is
+            l_id number;
+        begin
+            case p_action
+                when 'CREATE' then
+                    apex_util.create_user(p_user_name                    => p_user_name,
+                                          p_first_name                   => p_full_name,
+                                          p_email_address                => p_email,
+                                          p_web_password                 => p_password,
+                                          p_change_password_on_first_use => 'Y');
+                when 'PASSWORD' then
+                    -- release 101 (issue 18): EDIT_USER sets every attribute it is given and clears the others (an
+                    -- administrator lost the workspace admin and developer rights): the account is read first and
+                    -- given back as it is, only the password and "change at first sign-in" change
+                    l_id := apex_util.get_user_id(p_user_name);
+                    declare
+                        l_workspace  varchar2(255);
+                        l_user_name  varchar2(255);
+                        l_first      varchar2(255);
+                        l_last       varchar2(255);
+                        l_web_pwd    varchar2(4000);
+                        l_email      varchar2(255);
+                        l_start      date;
+                        l_end        date;
+                        l_employee   number;
+                        l_schemas    varchar2(4000);
+                        l_person     varchar2(30);
+                        l_schema     varchar2(255);
+                        l_groups     varchar2(4000);
+                        l_dev_role   varchar2(4000);
+                        l_descr      varchar2(4000);
+                        l_expiry     date;
+                        l_locked     varchar2(1);
+                        l_failed     number;
+                        l_change     varchar2(1);
+                        l_first_use  varchar2(1);
+                    begin
+                        apex_util.fetch_user(p_user_id                      => l_id,
+                                             p_workspace                    => l_workspace,
+                                             p_user_name                    => l_user_name,
+                                             p_first_name                   => l_first,
+                                             p_last_name                    => l_last,
+                                             p_web_password                 => l_web_pwd,
+                                             p_email_address                => l_email,
+                                             p_start_date                   => l_start,
+                                             p_end_date                     => l_end,
+                                             p_employee_id                  => l_employee,
+                                             p_allow_access_to_schemas      => l_schemas,
+                                             p_person_type                  => l_person,
+                                             p_default_schema               => l_schema,
+                                             p_groups                       => l_groups,
+                                             p_developer_role               => l_dev_role,
+                                             p_description                  => l_descr,
+                                             p_account_expiry               => l_expiry,
+                                             p_account_locked               => l_locked,
+                                             p_failed_access_attempts       => l_failed,
+                                             p_change_password_on_first_use => l_change,
+                                             p_first_password_use_occurred  => l_first_use);
+                        -- the groups as IDs (EDIT_USER takes IDs; a name is turned into its ID)
+                        select listagg(case when regexp_like(trim(column_value), '^[0-9]+$') then trim(column_value)
+                                            else to_char(apex_util.get_group_id(trim(column_value))) end, ':')
+                          into l_groups
+                          from table(apex_string.split(l_groups, ':'))
+                         where trim(column_value) is not null;
+                        apex_util.edit_user(p_user_id                      => l_id,
+                                            p_user_name                    => l_user_name,
+                                            p_first_name                   => l_first,
+                                            p_last_name                    => l_last,
+                                            p_web_password                 => p_password,
+                                            p_new_password                 => p_password,
+                                            p_email_address                => l_email,
+                                            p_start_date                   => l_start,
+                                            p_end_date                     => l_end,
+                                            p_employee_id                  => l_employee,
+                                            p_allow_access_to_schemas      => l_schemas,
+                                            p_person_type                  => l_person,
+                                            p_default_schema               => l_schema,
+                                            p_group_ids                    => l_groups,
+                                            p_developer_roles              => l_dev_role,
+                                            p_description                  => l_descr,
+                                            p_account_expiry               => l_expiry,
+                                            p_account_locked               => l_locked,
+                                            p_failed_access_attempts       => l_failed,
+                                            p_change_password_on_first_use => 'Y',
+                                            p_first_password_use_occurred  => 'N');
+                    end;
+                when 'LOCK' then
+                    l_id := apex_util.get_user_id(p_user_name);
+                    if p_locked = 'Y' then
+                        apex_util.lock_account(p_user_name => p_user_name);
+                    else
+                        apex_util.unlock_account(p_user_name => p_user_name);
+                    end if;
+            end case;
+        end do_it;
+    begin
+        if l_session is null then
+            -- outside APEX (scripts, jobs): the workspace is set by the caller
+            do_it;
+            return;
+        end if;
+        apex_session.detach;
+        begin
+            apex_util.set_security_group_id(l_sgid);
+            do_it;
+        exception
+            when others then
+                l_err := sqlerrm;
+        end;
+        apex_session.attach(p_app_id => l_app, p_page_id => l_page, p_session_id => l_session);
+        if l_err is not null then
+            raise_application_error(-20062, 'APEX account ' || p_user_name || ': ' || l_err);
+        end if;
+    end apex_account;
+
+    function employee_user(p_employee_id in number) return number is
+        l_id  xxfnd_users.user_id%type;
+        l_emp xxhr_employees%rowtype;
+    begin
+        select max(user_id) into l_id from xxfnd_users where employee_id = p_employee_id;
+        if l_id is null then
+            check_admin;
+            select * into l_emp from xxhr_employees where employee_id = p_employee_id;
+            insert into xxfnd_users (user_name, user_type, employee_id, full_name, email_address)
+            values (upper(l_emp.user_name), 'SSO', l_emp.employee_id, l_emp.full_name, l_emp.email_address)
+            returning user_id into l_id;
+        end if;
+        return l_id;
+    end employee_user;
+
+    function create_local_user(p_user_name in varchar2,
+                               p_full_name in varchar2,
+                               p_email     in varchar2,
+                               p_password  in varchar2) return number is
+        l_name  varchar2(255) := upper(trim(p_user_name));
+        l_id    number;
+        l_count pls_integer;
+    begin
+        check_admin;
+        if l_name is null or trim(p_password) is null then
+            raise_application_error(-20063, 'Enter the user name and the first password.');
+        end if;
+        select count(*) into l_count from xxhr_employees where upper(user_name) = l_name or upper(email_address) = l_name;
+        if l_count > 0 then
+            raise_application_error(-20064, l_name || ' is an employee: create an SSO user for the employee instead.');
+        end if;
+        select count(*) into l_count from xxfnd_users where user_name = l_name;
+        if l_count > 0 then
+            raise_application_error(-20068, 'User ' || l_name || ' already exists.');
+        end if;
+        -- the APEX account first: it is the step that can fail (name taken, password rules)
+        apex_account('CREATE', l_name, trim(p_full_name), lower(trim(p_email)), p_password);
+        insert into xxfnd_users (user_name, user_type, full_name, email_address)
+        values (l_name, 'LOCAL', trim(p_full_name), lower(trim(p_email)))
+        returning user_id into l_id;
+        return l_id;
+    end create_local_user;
+
+    function ensure_apex_account(p_user_id in number, p_password in varchar2) return varchar2 is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        select * into l_user from xxfnd_users where user_id = p_user_id;
+        if apex_util.get_user_id(l_user.user_name) is not null then
+            return 'N';
+        end if;
+        if trim(p_password) is null then
+            raise_application_error(-20063, 'Enter the first password.');
+        end if;
+        apex_account('CREATE', l_user.user_name, l_user.full_name, lower(l_user.email_address), p_password);
+        return 'Y';
+    end ensure_apex_account;
+
+    procedure reset_password(p_user_id in number, p_password in varchar2) is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        select * into l_user from xxfnd_users where user_id = p_user_id;
+        -- release 99: an SSO user with an APEX account (ENSURE_APEX_ACCOUNT) has a password too
+        if l_user.user_type <> 'LOCAL' and apex_util.get_user_id(l_user.user_name) is null then
+            raise_application_error(-20065, l_user.user_name || ' signs in with the company account (SSO): no password here.');
+        end if;
+        apex_account('PASSWORD', l_user.user_name, p_password => p_password);
+    end reset_password;
+
+    procedure set_enabled(p_user_id in number, p_enabled in varchar2) is
+        l_user xxfnd_users%rowtype;
+    begin
+        check_admin;
+        update xxfnd_users set enabled_flag = case when p_enabled = 'Y' then 'Y' else 'N' end
+         where user_id = p_user_id
+        returning user_id, user_name, user_type into l_user.user_id, l_user.user_name, l_user.user_type;
+        if l_user.user_type = 'LOCAL' then
+            apex_account('LOCK', l_user.user_name, p_locked => case when p_enabled = 'Y' then 'N' else 'Y' end);
+        end if;
+    end set_enabled;
+
+    -- user-role assignments: from the User screen (Users & Access) or the Role screen (Roles & Privileges)
+    procedure check_assign is
+    begin
+        if not (xxfnd_privilege_pkg.has_privilege('USERS_ACCESS', 'MANAGE')
+                or xxfnd_privilege_pkg.has_privilege('ROLES_PRIVILEGES', 'MANAGE')) then
+            raise_application_error(-20072, 'You are not allowed to assign roles.');
+        end if;
+    end check_assign;
+
+    procedure save_user(p_user_id       in number,
+                        p_full_name     in varchar2,
+                        p_email         in varchar2,
+                        p_language_code in varchar2,
+                        p_end_date      in date,
+                        p_description   in varchar2) is
+    begin
+        check_admin;
+        update xxfnd_users u
+           set u.full_name       = case when u.user_type = 'LOCAL' then nvl(trim(p_full_name), u.full_name) else u.full_name end,
+               u.email_address   = case when u.user_type = 'LOCAL' then lower(trim(p_email)) else u.email_address end,
+               u.language_code   = nvl(p_language_code, 'en'),
+               u.end_date_active = p_end_date,
+               u.description     = p_description
+         where u.user_id = p_user_id;
+    end save_user;
+
+    procedure check_role_app(p_role_code in varchar2);   -- release 96 (below)
+
+    procedure assign_role(p_user_id in number, p_role_code in varchar2) is
+        l_user  xxfnd_users.user_name%type;
+        l_count pls_integer;
+    begin
+        check_assign;
+        select user_name into l_user from xxfnd_users where user_id = p_user_id;
+        select count(*) into l_count from xxfnd_user_roles
+         where user_id = p_user_id and role_code = p_role_code and enabled_flag = 'Y'
+           and (end_date_active is null or end_date_active >= trunc(sysdate));
+        if l_count > 0 then
+            return;
+        end if;
+        if xxfnd_privilege_pkg.sod_conflict(p_role_code, null, l_user) then
+            raise_application_error(-20073, l_user || ' holds a role that may not be combined with ' || p_role_code
+                                            || ' (Segregation of Duties).');
+        end if;
+        check_role_app(p_role_code);
+        -- release 96: the role's application becomes one of the user's applications
+        for r in (select application_code from xxfnd_roles where role_code = p_role_code) loop
+            grant_application(p_user_id, r.application_code);
+        end loop;
+        insert into xxfnd_user_roles (user_id, employee_id, role_code)
+        select u.user_id, u.employee_id, p_role_code from xxfnd_users u where u.user_id = p_user_id;
+        xxfnd_vpd_pkg.clear_cache;
+    end assign_role;
+
+    -- release 96: the role belongs to an application the caller administers (release 106: no "users managed in the
+    -- application" any more - Users & Access privilege through a role of the application is enough)
+    procedure check_role_app(p_role_code in varchar2) is
+        l_app varchar2(30);
+    begin
+        select max(application_code) into l_app from xxfnd_roles where role_code = upper(p_role_code);
+        if not xxfnd_util_pkg.in_apex_session or xxfnd_vpd_pkg.is_trusted then
+            return;
+        end if;
+        if xxfnd_privilege_pkg.can_change(l_app) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || l_app || ').');
+        end if;
+    end check_role_app;
+
+    procedure grant_application(p_user_id in number, p_application_code in varchar2) is
+    begin
+        merge into xxfnd_user_applications t
+        using (select p_user_id u, upper(p_application_code) a from dual) x
+           on (t.user_id = x.u and t.application_code = x.a)
+         when matched then update set t.enabled_flag = 'Y', t.end_date_active = null
+                           where t.enabled_flag = 'N' or t.end_date_active is not null
+         when not matched then insert (user_id, application_code) values (x.u, x.a);
+    end grant_application;
+
+    procedure end_application(p_user_id in number, p_application_code in varchar2) is
+    begin
+        check_assign;
+        if xxfnd_util_pkg.in_apex_session and xxfnd_privilege_pkg.can_change(upper(p_application_code)) = 'N' then
+            raise_application_error(-20077, 'You may change only the security of the applications you administer ('
+                || upper(p_application_code) || ').');
+        end if;
+        update xxfnd_user_applications
+           set end_date_active = greatest(trunc(sysdate) - 1, start_date_active), enabled_flag = 'N'
+         where user_id = p_user_id and application_code = upper(p_application_code);
+        update xxfnd_user_roles ur
+           set ur.end_date_active = greatest(trunc(sysdate) - 1, ur.start_date_active), ur.enabled_flag = 'N'
+         where ur.user_id = p_user_id and ur.enabled_flag = 'Y'
+           and ur.role_code in (select role_code from xxfnd_roles where application_code = upper(p_application_code));
+        xxfnd_vpd_pkg.clear_cache;
+    end end_application;
+
+    procedure unassign_role(p_user_role_id in number) is
+    begin
+        check_assign;
+        for r in (select role_code from xxfnd_user_roles where user_role_id = p_user_role_id) loop
+            check_role_app(r.role_code);
+        end loop;
+        update xxfnd_user_roles
+           set end_date_active = greatest(trunc(sysdate) - 1, start_date_active), enabled_flag = 'N'
+         where user_role_id = p_user_role_id;
+        xxfnd_vpd_pkg.clear_cache;
+    end unassign_role;
+
+    function home_application(p_user_name in varchar2 default null) return varchar2 is
+        l_alias xxfnd_applications.apex_app_alias%type;
+    begin
+        select min(a.apex_app_alias) keep (dense_rank first order by ua.start_date_active, ua.user_application_id)
+          into l_alias
+          from xxfnd_user_applications ua
+          join xxfnd_users u        on u.user_id = ua.user_id
+          join xxfnd_applications a on a.application_code = ua.application_code
+         where u.user_name = upper(nvl(p_user_name, xxfnd_util_pkg.current_user))
+           and ua.enabled_flag = 'Y'
+           and trunc(sysdate) between ua.start_date_active and nvl(ua.end_date_active, trunc(sysdate))
+           and ua.application_code <> 'COMMON'
+           and a.apex_app_alias is not null;
+        return l_alias;
+    end home_application;
+
+    function is_local(p_user_name in varchar2) return varchar2 is
+        l_type xxfnd_users.user_type%type;
+    begin
+        select max(user_type) into l_type from xxfnd_users where user_name = upper(trim(p_user_name));
+        return case l_type when 'LOCAL' then 'Y' when 'SSO' then 'N' end;
+    end is_local;
+
+    function renaming return boolean is
+    begin
+        return g_renaming;
+    end renaming;
+
+    procedure rename_user(p_old_user_name in varchar2, p_new_user_name in varchar2) is
+        l_old varchar2(255) := upper(trim(p_old_user_name));
+        l_new varchar2(255) := upper(trim(p_new_user_name));
+    begin
+        if l_old is null or l_new is null or l_old = l_new then
+            return;
+        end if;
+        g_renaming := true;
+        xxfnd_util_pkg.set_install_mode(true);
+        xxfnd_util_pkg.set_preserve_who(true);    -- the rows keep their dates; only the user names change
+        execute immediate 'call xxfnd_vpd_pkg.begin_trusted()';   -- 09b creates XXFND_VPD_PKG later              -- every row, whatever the caller may see
+        -- release 54: the tables of this schema and of every application schema that granted them
+        for c in (select c.owner, c.table_name, c.column_name
+                    from all_tab_columns c
+                    join all_tables t on t.owner = c.owner and t.table_name = c.table_name
+                   where (c.owner = $$PLSQL_UNIT_OWNER
+                          or c.owner in (select schema_name from xxfnd_applications where schema_name is not null))
+                     and (c.table_name like 'XXCMP\_%' escape '\' or c.table_name like 'XXFND\_%' escape '\'
+                          or c.table_name like 'XXHR\_%' escape '\')
+                     and c.table_name not in ('XXHR_EMPLOYEES', 'XXFND_AUDIT_LOG')
+                     and c.data_type like '%CHAR%'
+                     and c.column_name in ('CREATED_BY', 'LAST_UPDATED_BY', 'APPROVED_BY', 'ACKNOWLEDGED_BY',
+                                           'DECIDED_BY', 'MATCH_RESOLVED_BY', 'ASSIGNED_TO', 'REQUESTER_USER_NAME',
+                                           'RECIPIENT_USER_NAME', 'DELEGATE_USER_NAME', 'DELEGATOR_USER_NAME',
+                                           'USER_NAME')) loop
+            execute immediate 'update ' || dbms_assert.enquote_name(c.owner, false) || '.' || c.table_name || ' set ' || c.column_name || ' = :n where upper('
+                              || c.column_name || ') = :o' using l_new, l_old;
+        end loop;
+        -- open workflow tasks: the new name becomes a potential owner instead of the old one
+        for t in (select distinct p.task_id, upper(k.actual_owner) as actual_owner
+                    from apex_task_participants p
+                    join apex_tasks k on k.task_id = p.task_id
+                   where upper(p.participant) = l_old
+                     and p.participant_type = 'POTENTIAL_OWNER'
+                     and k.state_code in ('UNASSIGNED', 'ASSIGNED', 'INFO_REQUESTED')) loop
+            begin
+                begin
+                    apex_human_task.add_task_potential_owner(p_task_id => t.task_id, p_potential_owner => l_new);
+                exception
+                    when others then
+                        null;    -- already a potential owner
+                end;
+                if t.actual_owner = l_old then
+                    apex_human_task.delegate_task(p_task_id => t.task_id, p_to_user => l_new);
+                end if;
+                apex_human_task.remove_potential_owner(p_task_id => t.task_id, p_potential_owner => l_old);
+            exception
+                when others then
+                    apex_debug.warn('rename_user: task %0 not moved from %1 to %2: %3', t.task_id, l_old, l_new, sqlerrm);
+            end;
+        end loop;
+        execute immediate 'call xxfnd_vpd_pkg.end_trusted()';
+        xxfnd_util_pkg.set_install_mode(false);
+        xxfnd_util_pkg.set_preserve_who(false);
+        g_renaming := false;
+    exception
+        when others then
+            execute immediate 'call xxfnd_vpd_pkg.end_trusted()';
+            xxfnd_util_pkg.set_install_mode(false);
+            xxfnd_util_pkg.set_preserve_who(false);
+            g_renaming := false;
+            raise;
+    end rename_user;
+
+    procedure bootstrap_admin(p_user_name in varchar2,
+                              p_full_name in varchar2 default null,
+                              p_email     in varchar2 default null,
+                              p_role_code in varchar2 default 'SYSTEM_ADMIN') is
+        l_user  varchar2(255) := upper(trim(p_user_name));
+        l_email varchar2(320) := lower(trim(coalesce(p_email,
+                                     case when instr(p_user_name, '@') > 0 then p_user_name end,
+                                     p_user_name || '@unknown.invalid')));
+        l_id    number;
+    begin
+        if l_user is null then
+            return;
+        end if;
+        -- release 86 (onboarding an application's administrator): an existing user without an employee (LOCAL) gets
+        -- the role on the user itself (an employee made for it would clash with the user's name)
+        select max(user_id) into l_id from xxfnd_users where user_name = l_user and employee_id is null;
+        if l_id is not null then
+            merge into xxfnd_user_roles t
+            using (select l_id user_id, p_role_code role_code from dual) s
+               on (t.user_id = s.user_id and t.role_code = s.role_code and t.end_date_active is null)
+             when matched then update set t.enabled_flag = 'Y'
+             when not matched then insert (user_id, role_code) values (s.user_id, s.role_code);
+            return;
+        end if;
+        begin
+            select employee_id into l_id from xxhr_employees where user_name = l_user;
+            update xxhr_employees set enabled_flag = 'Y', end_date_active = null where employee_id = l_id;
+        exception
+            when no_data_found then
+                insert into xxhr_employees (source_type, user_name, full_name, email_address)
+                values ('LOCAL', l_user, coalesce(trim(p_full_name), l_user), l_email)
+                returning employee_id into l_id;
+        end;
+        merge into xxfnd_user_roles t
+        using (select l_id employee_id, p_role_code role_code from dual) s
+           on (t.employee_id = s.employee_id and t.role_code = s.role_code and t.end_date_active is null)
+         when matched then update set t.enabled_flag = 'Y'
+         when not matched then insert (employee_id, role_code) values (s.employee_id, s.role_code);
+    end bootstrap_admin;
+
+    ----------------------------------------------------------------------------
+    -- Authentication
+    ----------------------------------------------------------------------------
+    procedure map_login_user is
+        l_login varchar2(255) := upper(trim(v('APP_USER')));
+        -- release 99: the e-mail of the identity domain (SSO sign-in, app item G_EMAIL): a user whose e-mail matches is
+        -- the same person, also when the user names differ (local user signing in with the company account)
+        l_email varchar2(320) := upper(trim(v('G_EMAIL')));
+        l_user  xxhr_employees.user_name%type;
+    begin
+        -- release 46: the users of the shared access module first, then the employees
+        select max(user_name) keep (dense_rank first order by src, case when user_name = l_login then 0 else 1 end)
+          into l_user
+          from (select 1 src, u.user_name, upper(u.email_address) email from xxfnd_users u where u.enabled_flag = 'Y'
+                union all
+                select 2, upper(e.user_name), upper(e.email_address) from xxhr_employees e where e.enabled_flag = 'Y')
+         where user_name = l_login or email = l_login or email = l_email;
+        if l_user is not null and upper(l_user) <> l_login then
+            apex_custom_auth.set_user(upper(l_user));
+        end if;
+    end map_login_user;
+
+    -- release 46: each user signs in the way their type says (app setting LOGIN_TYPE_ENFORCED = Y):
+    -- SSO users (linked to an employee) with the company account only, LOCAL users with their APEX account only
+    function login_type_enforced return boolean is
+        l_value varchar2(30);
+    begin
+        begin
+            l_value := apex_app_setting.get_value('LOGIN_TYPE_ENFORCED');
+        exception
+            when others then
+                l_value := null;
+        end;
+        return upper(l_value) = 'Y';
+    end login_type_enforced;
+
+    -- release 87: an enabled user of the access module or an enabled employee (who may sign in)
+    function signed_in return boolean is
+        l_n pls_integer;
+    begin
+        select count(*) into l_n from dual
+         where exists (select 1 from xxfnd_users u where u.user_name = upper(v('APP_USER')) and u.enabled_flag = 'Y')
+            or exists (select 1 from xxhr_employees e where upper(e.user_name) = upper(v('APP_USER')) and e.enabled_flag = 'Y');
+        return l_n > 0;
+    end signed_in;
+
+    function user_type return varchar2 is
+        l_type xxfnd_users.user_type%type;
+    begin
+        select max(user_type) into l_type from xxfnd_users where user_name = upper(v('APP_USER'));
+        return l_type;
+    end user_type;
+
+    procedure post_auth_local is
+    begin
+        xxfnd_privilege_pkg.sync_current_application;
+        map_login_user;
+        if login_type_enforced and user_type = 'SSO' then
+            raise_application_error(-20066, 'Sign in with your company account (Sign in with SSO).');
+        end if;
+    end post_auth_local;
+
+    procedure load_user_roles(p_user_name in varchar2 default null) is
+        l_params   apex_exec.t_parameters;
+        l_context  apex_exec.t_context;
+        l_id_idx   pls_integer;
+        l_val_idx  pls_integer;
+        l_desc_idx pls_integer;
+        l_disp_idx pls_integer;
+        l_groups   apex_t_varchar2 := apex_t_varchar2();
+
+        procedure add_dyn_group(p_group in varchar2,
+                                p_code  in varchar2 default null,
+                                p_desc  in varchar2 default null,
+                                p_id    in varchar2 default null) is
+            l_count number;
+        begin
+            if p_group is null then
+                return;
+            end if;
+            select count(*) into l_count
+              from apex_collections
+             where collection_name = c_roles_collection and c001 = p_group;
+            if l_count = 0 then
+                -- the details of the Fusion role
+                apex_collection.add_member(p_collection_name => c_roles_collection,
+                                           p_c001 => p_group, p_c002 => p_code, p_c003 => p_desc, p_c004 => p_id);
+                -- the role becomes a dynamic group
+                apex_string.push(p_table => l_groups, p_value => p_group);
+            end if;
+        end add_dyn_group;
+    begin
+        apex_collection.create_or_truncate_collection(c_roles_collection);
+
+        -- the groups from Fusion (REST Data Source of the application); skipped when it cannot be called
+        begin
+            apex_exec.add_parameter(l_params, 'USER_NAME', nvl(p_user_name, v('APP_USER')));
+            l_context := apex_exec.open_rest_source_query(p_static_id  => c_roles_source,
+                                                          p_max_rows   => 1000,
+                                                          p_parameters => l_params);
+            l_id_idx   := apex_exec.get_column_position(l_context, 'ID');
+            l_val_idx  := apex_exec.get_column_position(l_context, 'VALUE');
+            l_desc_idx := apex_exec.get_column_position(l_context, 'DESCRIPTION');
+            l_disp_idx := apex_exec.get_column_position(l_context, 'DISPLAY_NAME');
+            while apex_exec.next_row(l_context) loop
+                add_dyn_group(p_group => apex_exec.get_varchar2(l_context, l_disp_idx),
+                              p_code  => apex_exec.get_varchar2(l_context, l_val_idx),
+                              p_desc  => apex_exec.get_varchar2(l_context, l_desc_idx),
+                              p_id    => apex_exec.get_varchar2(l_context, l_id_idx));
+            end loop;
+            apex_exec.close(l_context);
+        exception
+            when others then
+                apex_exec.close(l_context);
+                apex_debug.warn('Cannot get the user''s groups from Fusion Apps: %0', sqlerrm);
+        end;
+
+        -- the groups from the identity domain (user info of the sign-in): the name only, but possibly more groups
+        -- than Fusion, or the only ones when Fusion cannot be called
+        for g in 1 .. nvl(apex_json.get_count(p_path => 'groups'), 0) loop
+            add_dyn_group(apex_json.get_varchar2(p_path => 'groups[%0].name', p0 => g));
+        end loop;
+
+        apex_authorization.enable_dynamic_groups(p_group_names => l_groups);
+    exception
+        when others then
+            apex_debug.error('Error in xxfnd_user_pkg.load_user_roles: %0', sqlerrm);
+            apex_debug.log_long_message(p_message => sys.dbms_utility.format_error_stack);
+            raise;
+    end load_user_roles;
+
+    procedure post_auth_sso is
+        -- the identity-domain user name, before it is mapped to the employee's user name
+        l_login varchar2(255) := v('APP_USER');
+    begin
+        xxfnd_privilege_pkg.sync_current_application;
+        map_login_user;
+        if login_type_enforced and user_type = 'LOCAL' then
+            raise_application_error(-20067, 'This user signs in with a user name and password, not the company account.');
+        end if;
+        load_user_roles(l_login);
+    end post_auth_sso;
+
+    ----------------------------------------------------------------------------
+    -- Authorization
+    ----------------------------------------------------------------------------
+    function page_id return number is
+    begin
+        return to_number(v('APP_PAGE_ID'));
+    end page_id;
+
+    function authorized(p_scheme in varchar2) return boolean is
+    begin
+        return case upper(p_scheme)
+                   -- application level: at least one privilege through an active role
+                   when 'KYC_USER'             then xxfnd_privilege_pkg.has_any_privilege
+                   -- release 61: COMMON - a privilege on a COMMON feature or any admin privilege (administrators
+                   -- of an application maintain its setup on the COMMON screens)
+                   -- release 71: COMMON is for IT only (Common Administrator)
+                   -- release 73: and an application's administrators on the functions IT lets them manage (release 106:
+                   -- retired - every signed-in user, each COMMON page checking its own privilege)
+                   -- release 87 (C1): and every signed-in user: the shared pages (tasks, notifications, documents, e-mails,
+                   -- feedback) show only the user's own data; every other COMMON page keeps its privilege check
+                   when 'APP_USER'             then case when upper(v('APP_ALIAS')) = 'COMMON'
+                                                         then xxfnd_application_pkg.is_common_admin = 'Y'
+                                                              or signed_in
+                                                         else xxfnd_privilege_pkg.has_any_privilege
+                                                              or xxfnd_application_pkg.administers_any = 'Y' end
+                   -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
+                   when 'ADMIN_APP'            then xxfnd_application_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
+                   -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
+                   -- release 106: in COMMON too (any application's user with the privilege; what the page shows is
+                   -- limited to the applications whose roles give it: XXFND_APPLICATION_PKG.SCOPE_PREDICATE)
+                   when 'PAGE_VIEW'            then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW')
+                   when 'PAGE_CREATE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE')
+                   when 'PAGE_MANAGE'          then xxfnd_privilege_pkg.has_page_privilege(page_id, 'MANAGE')
+                   -- processes that change data: request CREATE needs CREATE, any other request MANAGE
+                   when 'PAGE_SUBMIT'          then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
+                   when 'WORKFLOW_ADMINISTER'  then xxfnd_privilege_pkg.has_privilege('WORKFLOW_MONITOR', 'MANAGE')
+                   when 'ADMIN_AREA'           then case when upper(v('APP_ALIAS')) = 'COMMON'
+                                                         then xxfnd_application_pkg.is_common_admin = 'Y'   -- release 71
+                                                         else xxfnd_privilege_pkg.has_any_admin_privilege end
+                   when 'SIGNED_IN'            then signed_in
+                   -- release 108: an application's own access rules live in its own package, which combines them with
+                   -- these checks; COMMON names no application here
+                   else false
+               end;
+    end authorized;
+
+    function in_group(p_group in varchar2) return boolean is
+    begin
+        return apex_util.current_user_in_group(p_group);
+    end in_group;
+
+end xxfnd_user_pkg;
+/

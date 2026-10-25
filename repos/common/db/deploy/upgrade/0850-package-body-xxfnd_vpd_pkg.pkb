@@ -206,12 +206,6 @@ create or replace package body xxfnd_vpd_pkg as
         clear_cache;
     end unassign_rule;
 
-    procedure apply_policies is
-    begin
-        -- release 54: the generator is invoker rights (xxfnd_schema_pkg); called here, it covers this schema
-        xxfnd_schema_pkg.apply_policies;
-    end apply_policies;
-
     -- Release 86: registration
     procedure register_data_rule(p_application_code in varchar2,
                                  p_role_code        in varchar2,

@@ -1,0 +1,80 @@
+
+list administration (
+    name: Administration
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 88: one list for the Administration menu (was four lists on KYC page 100, one per group).
+            -- release 104: the master in COMMON; each application subscribes to it (its Administration page).
+            --   1. the application's own setup: each feature the user may open that has a page here (its home page, else its first tab)
+            --   2. release 106: each COMMON setup screen the user's privileges open (no "managed in the application" any
+            --      more), opened in COMMON - it works for the application it is opened from (SET_ADMIN_APP)
+            --   3. COMMON's shared setup (COMMON page 100) when the user may open a setup feature that has no page here
+            select lvl, label, target, is_current, image, image_attribute, image_alt, a01
+              from (
+            select null                                    as lvl,
+                   m.feature_name                          as label,
+                   apex_page.get_url(p_page => t.page_id)  as target,
+                   case when exists (select 1 from xxfnd_feature_pages c
+                                      where c.app_alias = :APP_ALIAS and c.feature_code = m.feature_code
+                                        and c.page_id = :APP_PAGE_ID) then 'YES' else 'NO' end as is_current,
+                   m.icon_css                              as image,
+                   null                                    as image_attribute,
+                   null                                    as image_alt,
+                   m.description                           as a01,
+                   1                                       as part,
+                   m.feature_group                         as grp,
+                   m.display_sequence                      as seq
+              from xxfnd_admin_menu_v m
+              cross apply (select min(fp.page_id) keep (dense_rank first order by
+                                      case when fp.page_id = m.home_page_id then 0 else 1 end,
+                                      fp.tab_sequence nulls last, fp.page_id) as page_id
+                             from xxfnd_feature_pages fp
+                            where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                              and xxfnd_application_pkg.local_page(fp.page_id) = 'Y') t
+             where t.page_id is not null
+            union all
+            select null,
+                   m.feature_name || ' (shared setup)',
+                   apex_page.get_url(p_application => 'COMMON', p_page => m.home_page_id),
+                   'NO',
+                   m.icon_css,
+                   null,
+                   null,
+                   m.description,
+                   2,
+                   m.feature_group,
+                   m.display_sequence
+              from xxfnd_admin_menu_v m
+             where upper(:APP_ALIAS) <> 'COMMON'
+               and exists (select 1 from xxfnd_feature_pages fp
+                            where fp.app_alias = 'COMMON' and fp.page_id = m.home_page_id)
+               and not exists (select 1 from xxfnd_feature_pages fp
+                                where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                  and xxfnd_application_pkg.local_page(fp.page_id) = 'Y')
+            union all
+            select null,
+                   'Shared Setup',
+                   apex_page.get_url(p_application => 'COMMON', p_page => 100),
+                   'NO',
+                   'fa-cogs',
+                   null,
+                   null,
+                   'The common setup of every application, in COMMON.',
+                   3,
+                   null,
+                   null
+              from dual
+             where exists (select 1 from xxfnd_admin_menu_v m
+                            where not exists (select 1 from xxfnd_feature_pages fp
+                                               where fp.app_alias = :APP_ALIAS and fp.feature_code = m.feature_code
+                                                 and xxfnd_application_pkg.local_page(fp.page_id) = 'Y'))
+                   )
+             order by part, grp, seq, label
+            ```
+    }
+    comments {
+        comments: Release 104 - master list (not used by COMMON's own pages): each application's Administration page subscribes to it.
+    }
+)

@@ -77,7 +77,6 @@ Page access is data driven: every page is mapped to a feature and opened with th
 ## Test scripts
 
 - `tests/common_apps_ui.py`
-- `tests/r73_common_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r82_workflow_test.sql`
@@ -90,5 +89,3 @@ Page access is data driven: every page is mapped to a feature and opened with th
 - `tests/r88_journey_test.sql`
 - `tests/r89_data_model_test.sql`
 - `tests/r89_data_model_ui.py`
-- `tests/r96_security_test.sql`
-- `tests/viewonly_role.sql`

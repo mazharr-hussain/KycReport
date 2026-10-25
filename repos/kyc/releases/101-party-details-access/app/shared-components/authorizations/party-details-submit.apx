@@ -1,0 +1,18 @@
+
+authorization party-details-submit (
+    name: Party Details - Submit
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- release 101: the rule is in the party package (COMMON's page privilege or the requester)
+            return xxcmp_party_pkg.details_authorized('SUBMIT');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

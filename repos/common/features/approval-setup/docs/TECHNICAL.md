@@ -61,7 +61,6 @@ Approval chains are data (AME style), not code.
 
 ## Test scripts
 
-- `tests/common_test_fixtures.sql`
 - `tests/r78_common_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`

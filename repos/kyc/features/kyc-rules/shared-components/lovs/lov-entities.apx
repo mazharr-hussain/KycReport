@@ -1,0 +1,21 @@
+
+lov lov-entities (
+    name: DOCUMENT ENTITIES
+    subscription {
+        master: @/135/lov-entities
+    }
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select user_entity_name || ' (' || entity_name || ')' as display_value, entity_name as return_value
+              from xxfnd_document_entities_vl
+             order by user_entity_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

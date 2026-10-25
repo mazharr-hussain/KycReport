@@ -1,0 +1,17 @@
+
+lov lov-applications-enabled (
+    name: ENABLED_APPLICATIONS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 108: every enabled application (notification delivery rules; one shared LOV instead of copies in the page)
+            select application_name as display_value, application_code as return_value from xxfnd_applications where enabled_flag = 'Y' order by 1
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

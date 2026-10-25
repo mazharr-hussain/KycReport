@@ -62,16 +62,6 @@ create or replace package body xxfnd_util_pkg as
         return l_result;
     end replace_tokens;
 
-    procedure create_who_trigger(p_table_name in varchar2) is
-    begin
-        xxfnd_schema_pkg.create_who_trigger(p_table_name);
-    end create_who_trigger;
-
-    procedure create_all_who_triggers is
-    begin
-        xxfnd_schema_pkg.create_all_who_triggers;
-    end create_all_who_triggers;
-
     function object_owner(p_name in varchar2) return varchar2 is
         l_owner varchar2(128);
     begin

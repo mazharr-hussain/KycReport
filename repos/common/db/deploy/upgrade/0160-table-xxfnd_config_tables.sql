@@ -5,7 +5,7 @@
 -- tables, so the shared code names no application table.
 --   PK_COLUMN       - key of a maker-checker row
 --   UNIT_TABLE / UNIT_KEY_COLUMN - rows approved together under one task (e.g. answer options of one question:
---                     XXCMP_QUESTIONS / QUESTION_ID); null = each row on its own (unit = the table itself)
+--                     XXAPP_QUESTIONS / QUESTION_ID); null = each row on its own (unit = the table itself)
 --   CHANGES_VIEW    - the application's view of its pending changes, one row per approval unit, columns
 --                     DETAIL_PK ('<unit table>:<key>'), CHANGE_TYPE, CHANGE_TITLE, CHANGE_SUMMARY, SUBMITTED_BY,
 --                     SUBMITTED_DATE

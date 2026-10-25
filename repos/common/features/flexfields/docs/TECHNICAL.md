@@ -68,9 +68,7 @@ Extra fields on a record without a database change.
 
 ## Test scripts
 
-- `tests/kyc_functions_test.sql`
 - `tests/r80_platform_test.sql`
 - `tests/r80_platform_ui.py`
 - `tests/r86_registration_test.sql`
-- `tests/r92_flexfield_test.sql`
 - `tests/r92_flexfield_ui.py`

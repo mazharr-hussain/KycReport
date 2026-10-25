@@ -1,0 +1,17 @@
+
+lov lov-notification-templates (
+    name: NOTIFICATION_TEMPLATES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 108: the notification templates (one shared LOV instead of copies in the page)
+            select template_code as display_value, template_code as return_value from xxfnd_notification_templates order by 1
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

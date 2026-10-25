@@ -64,7 +64,6 @@ graph LR
     xxfnd_share_pkg --> xxfnd_vpd_pkg
     xxfnd_ui_pkg --> xxfnd_lookup_pkg
     xxfnd_ui_pkg --> xxhr_employees
-    xxfnd_util_pkg --> xxfnd_schema_pkg
     xxhr_employees --> xxfnd_ddl_pkg
     xxhr_employees_ins --> xxhr_employees
     xxhr_employees_rename --> xxfnd_user_pkg

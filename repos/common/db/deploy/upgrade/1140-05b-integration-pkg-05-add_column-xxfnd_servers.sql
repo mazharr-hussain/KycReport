@@ -10,7 +10,7 @@ begin
         'foreign key (server_code) references xxfnd_servers (server_code)');
     xxfnd_ddl_pkg.ensure_index('XXFND_INT_PURPOSES_N2',
         'create index xxfnd_int_purposes_n2 on xxfnd_integration_purposes (server_code)');
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_INTEGRATION_PURPOSES');   -- audit the new column too
+    xxfnd_schema_pkg.create_audit_trigger('XXFND_INTEGRATION_PURPOSES');   -- audit the new column too
     xxfnd_ddl_pkg.run(q'~comment on column xxfnd_integration_purposes.server_code is 'Release 86: the server (XXFND_SERVERS) the purpose uses; a REST Data Source, when set, keeps its own Remote Server.'~');
 
 end;

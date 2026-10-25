@@ -263,5 +263,6 @@ set define off
 @@2610-package-spec-xxfnd_fi_run_pkg.pks
 @@2620-package-body-xxfnd_fi_run_pkg.pkb
 @@2630-40z-fusion-objects-setup-01-xxfnd_util_pkg-set_install_mode.sql
-@@2640-99-share-with-applications-last-01-xxfnd_share_pkg-grant_to_applications.sql
-@@2650-99z-hr-old-names-drop-01-drop_object-xxfnd_employees.sql
+@@2640-41a-common-108-cleanup-01-drop_object-xxfnd_transmissions.sql
+@@2650-99-share-with-applications-last-01-xxfnd_share_pkg-grant_to_applications.sql
+@@2660-99z-hr-old-names-drop-01-drop_object-xxfnd_employees.sql

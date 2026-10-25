@@ -30,6 +30,7 @@ graph LR
     xxcmp_party_pkg --> xxfnd_lookup_pkg
     xxcmp_party_pkg --> xxfnd_privilege_pkg
     xxcmp_party_pkg --> xxfnd_ui_pkg
+    xxcmp_party_pkg --> xxfnd_user_pkg
     xxcmp_party_pkg --> xxfnd_util_pkg
     xxcmp_party_pkg --> xxfnd_vpd_pkg
     xxcmp_party_registry_checks --> xxcmp_cases

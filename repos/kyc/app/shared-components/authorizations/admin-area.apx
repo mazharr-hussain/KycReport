@@ -1,0 +1,21 @@
+
+authorization admin-area (
+    name: Administration Area
+    subscription {
+        master: @/135/admin-area
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('ADMIN_AREA');
+            ```
+    }
+    error {
+        errorMessage: You do not have access to Administration.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

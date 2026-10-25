@@ -28,7 +28,4 @@ graph LR
     xxfnd_servers_v --> xxfnd_lookup_values
     xxfnd_servers_v --> xxfnd_server_tests
     xxfnd_servers_v --> xxfnd_servers
-    xxfnd_transmissions --> xxfnd_ddl_pkg
-    xxfnd_transmissions --> xxfnd_integration_endpoints
-    xxfnd_transmissions --> xxfnd_integration_purposes
 ```

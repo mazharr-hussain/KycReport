@@ -181,8 +181,8 @@ sequence - feature `parties` - `kyc/features/parties/db/sequences/xxcmp_party_nu
 package spec - feature `parties` - `kyc/features/parties/db/package_specs/xxcmp_party_pkg.pks`
 
 - **Uses**: xxcmp_parties
-- **Uses (body)**: xxcmp_alerts, xxcmp_case_notes, xxcmp_case_pkg, xxcmp_cases, xxcmp_parties, xxcmp_party_contacts, xxcmp_party_id_verifications, xxcmp_party_registry_checks, xxcmp_party_relationships, xxcmp_request_pkg, xxcmp_requests, xxcmp_screenings, xxfnd_attach_pkg [COMMON], xxfnd_attached_documents_v [COMMON], xxfnd_dff_pkg [COMMON], xxfnd_error_pkg [COMMON], xxfnd_lookup_pkg [COMMON], xxfnd_privilege_pkg [COMMON], xxfnd_ui_pkg [COMMON], xxfnd_util_pkg [COMMON], xxfnd_vpd_pkg [COMMON]
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00023-party-relationship.apx, apex:KYC:pages/p00024-party-details.apx, apex:KYC:pages/p00025-party-details-step.apx, apex:KYC:pages/p00026-id-verification.apx, apex:KYC:pages/p00027-registry-check.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00222-reassessment.apx, apex:KYC:shared-components/app-processes.apx, xxcmp_case_pkg, xxcmp_request_pkg, xxfnd_user_pkg [COMMON]
+- **Uses (body)**: xxcmp_alerts, xxcmp_case_notes, xxcmp_case_pkg, xxcmp_cases, xxcmp_parties, xxcmp_party_contacts, xxcmp_party_id_verifications, xxcmp_party_registry_checks, xxcmp_party_relationships, xxcmp_request_pkg, xxcmp_requests, xxcmp_screenings, xxfnd_attach_pkg [COMMON], xxfnd_attached_documents_v [COMMON], xxfnd_dff_pkg [COMMON], xxfnd_error_pkg [COMMON], xxfnd_lookup_pkg [COMMON], xxfnd_privilege_pkg [COMMON], xxfnd_ui_pkg [COMMON], xxfnd_user_pkg [COMMON], xxfnd_util_pkg [COMMON], xxfnd_vpd_pkg [COMMON]
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00023-party-relationship.apx, apex:KYC:pages/p00024-party-details.apx, apex:KYC:pages/p00025-party-details-step.apx, apex:KYC:pages/p00026-id-verification.apx, apex:KYC:pages/p00027-registry-check.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00222-reassessment.apx, apex:KYC:shared-components/app-processes.apx, apex:KYC:shared-components/authorizations.apx, xxcmp_case_pkg, xxcmp_request_pkg
 
 ## xxcmp_party_registry_checks
 table - feature `parties` - `kyc/features/parties/db/tables/xxcmp_party_registry_checks.sql`
@@ -361,7 +361,7 @@ view - feature `monitoring` - `kyc/features/monitoring/db/views/xxcmp_watchlist_
 - `apex:KYC:pages/p00230-executive-dashboard.apx`: xxcmp_alert_rules, xxcmp_alerts, xxcmp_cases, xxcmp_requests, xxcmp_watchlist_v, xxfnd_lookup_pkg [COMMON]
 - `apex:KYC:shared-components/app-processes.apx`: xxcmp_parties, xxcmp_party_pkg, xxcmp_requests, xxcmp_rfis, xxfnd_attach_pkg [COMMON], xxfnd_attached_documents [COMMON], xxfnd_documents [COMMON], xxfnd_privilege_pkg [COMMON], xxfnd_rfis [COMMON], xxfnd_ui_pkg [COMMON]
 - `apex:KYC:shared-components/authentications.apx`: xxfnd_user_pkg [COMMON]
-- `apex:KYC:shared-components/authorizations.apx`: xxfnd_user_pkg [COMMON]
+- `apex:KYC:shared-components/authorizations.apx`: xxcmp_party_pkg, xxfnd_user_pkg [COMMON]
 - `apex:KYC:shared-components/automations/kyc-monitoring.apx`: xxcmp_monitor_pkg
 - `apex:KYC:shared-components/build-options.apx`: xxcmp_requests
 - `apex:KYC:shared-components/lists.apx`: xxcmp_case_pkg, xxfnd_admin_menu_v [COMMON], xxfnd_application_pkg [COMMON], xxfnd_feature_pages [COMMON], xxfnd_lookup_pkg [COMMON], xxfnd_nav_menu_v [COMMON], xxfnd_nav_pkg [COMMON]

@@ -10,7 +10,7 @@ begin
     xxfnd_ddl_pkg.add_column('XXFND_FEATURE_PAGES', 'TAB_LABEL',    'varchar2(60)');
     xxfnd_ddl_pkg.add_column('XXFND_FEATURE_PAGES', 'TAB_SEQUENCE', 'number');
     -- the audit trigger lists the columns: regenerate it for the new ones
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_FEATURE_PAGES');
+    xxfnd_schema_pkg.create_audit_trigger('XXFND_FEATURE_PAGES');
 end;
 /
 -- one rule per role, table, rule type, column and values (release 79: rules without a role are assigned to users and

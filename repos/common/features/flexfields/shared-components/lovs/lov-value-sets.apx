@@ -1,0 +1,18 @@
+
+lov lov-value-sets (
+    name: VALUE SETS
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select value_set_name || ' (' || value_set_code || ')' as display_value, value_set_code as return_value
+              from xxfnd_value_sets
+             order by value_set_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

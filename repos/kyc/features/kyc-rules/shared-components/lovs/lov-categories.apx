@@ -1,0 +1,22 @@
+
+lov lov-categories (
+    name: DOCUMENT CATEGORIES
+    subscription {
+        master: @/135/lov-categories
+    }
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select category_name as display_value, category_code as return_value
+              from xxfnd_document_categories_vl
+             where enabled_flag = 'Y'
+             order by category_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)
