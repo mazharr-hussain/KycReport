@@ -612,16 +612,6 @@ create or replace package body xxfnd_user_pkg as
         return to_number(v('APP_PAGE_ID'));
     end page_id;
 
-    -- the requester working on the party their request created (Global Page context). Called dynamically:
-    -- the package is shared by every application and XXCMP_PARTY_PKG exists only where KYC is installed.
-    function party_details_editable return boolean is
-        l_yn varchar2(1);
-    begin
-        execute immediate 'begin :r := ' || xxfnd_util_pkg.qualified('XXCMP_PARTY_PKG') || '.can_edit_details(:p, :q); end;'
-            using out l_yn, to_number(v('P0_SUMMARY_PARTY_ID')), to_number(v('P0_REQUEST_ID'));
-        return l_yn = 'Y';
-    end party_details_editable;
-
     function authorized(p_scheme in varchar2) return boolean is
     begin
         return case upper(p_scheme)
@@ -653,13 +643,9 @@ create or replace package body xxfnd_user_pkg as
                    when 'ADMIN_AREA'           then case when upper(v('APP_ALIAS')) = 'COMMON'
                                                          then xxfnd_application_pkg.is_common_admin = 'Y'   -- release 71
                                                          else xxfnd_privilege_pkg.has_any_admin_privilege end
-                   -- party detail dialogs (contact person, owner / officer): the page privilege or the requester
-                   when 'PARTY_DETAILS_VIEW'   then xxfnd_privilege_pkg.has_page_privilege(page_id, 'VIEW') or party_details_editable
-                   when 'PARTY_DETAILS_CREATE' then xxfnd_privilege_pkg.has_page_privilege(page_id, 'CREATE') or party_details_editable
-                   when 'PARTY_DETAILS_MANAGE' then xxfnd_privilege_pkg.has_page_privilege(page_id, 'MANAGE') or party_details_editable
                    when 'SIGNED_IN'            then signed_in
-                   when 'PARTY_DETAILS_SUBMIT' then xxfnd_privilege_pkg.has_page_request_privilege(page_id, v('REQUEST'))
-                                                    or party_details_editable
+                   -- release 108: an application's own access rules live in its own package, which combines them with
+                   -- these checks; COMMON names no application here
                    else false
                end;
     end authorized;

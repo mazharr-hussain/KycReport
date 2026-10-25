@@ -931,7 +931,7 @@ create or replace package body xxfnd_attach_pkg as
         select max(case when f.max_file_size_mb > 0 then f.max_file_size_mb end), max(f.allowed_file_types)
           into p_size, p_types
           from xxfnd_attachment_functions f
-         where f.apex_app_alias = nvl(v('APP_ALIAS'), 'KYC')
+         where f.apex_app_alias = v('APP_ALIAS')
            and f.apex_page_id   = p_page_id
            and f.enabled_flag   = 'Y';
     end page_limits;

@@ -58,4 +58,3 @@ Maker-checker on setup data for every application without code in the applicatio
 
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/tasks_prep.sql`

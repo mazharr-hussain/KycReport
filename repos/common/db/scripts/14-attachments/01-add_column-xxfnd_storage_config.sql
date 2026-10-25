@@ -13,7 +13,7 @@ begin
     for t in (select column_value table_name from table(apex_t_varchar2('XXFND_DOCUMENT_CATEGORIES', 'XXFND_ATTACHMENT_FUNCTIONS'))) loop
         xxfnd_ddl_pkg.add_column(t.table_name, 'MAX_FILE_SIZE_MB',   'number');
         xxfnd_ddl_pkg.add_column(t.table_name, 'ALLOWED_FILE_TYPES', 'varchar2(500)');
-        xxfnd_audit_pkg.create_audit_trigger(t.table_name);   -- audit the new columns too
+        xxfnd_schema_pkg.create_audit_trigger(t.table_name);   -- audit the new columns too
     end loop;
 end;
 /
@@ -51,7 +51,7 @@ begin
         'foreign key (server_code) references xxfnd_servers (server_code)');
     xxfnd_ddl_pkg.ensure_index('XXFND_STORAGE_CONFIG_N1',
         'create index xxfnd_storage_config_n1 on xxfnd_storage_config (server_code)');
-    xxfnd_audit_pkg.create_audit_trigger('XXFND_STORAGE_CONFIG');   -- audit the new columns too
+    xxfnd_schema_pkg.create_audit_trigger('XXFND_STORAGE_CONFIG');   -- audit the new columns too
     -- a document keeps the place it was stored, whatever the setup becomes later
     xxfnd_ddl_pkg.add_column('XXFND_DOCUMENTS', 'SERVER_CODE', 'varchar2(255)');
     xxfnd_ddl_pkg.add_column('XXFND_DOCUMENTS', 'STORAGE_CONTAINER', 'varchar2(500)');

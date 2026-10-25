@@ -32,15 +32,5 @@ create or replace package body xxfnd_audit_pkg as
              g_reason, xxfnd_util_pkg.current_user);
     end log_change;
 
-    procedure create_audit_trigger(p_table_name in varchar2) is
-    begin
-        xxfnd_schema_pkg.create_audit_trigger(p_table_name);
-    end create_audit_trigger;
-
-    procedure create_config_audit_triggers is
-    begin
-        xxfnd_schema_pkg.create_config_audit_triggers;
-    end create_config_audit_triggers;
-
 end xxfnd_audit_pkg;
 /

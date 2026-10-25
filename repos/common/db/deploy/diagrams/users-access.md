@@ -26,7 +26,6 @@ graph LR
     xxfnd_user_data_access_v --> xxfnd_role_data_access
     xxfnd_user_data_access_v --> xxfnd_user_role_tree_v
     xxfnd_user_data_access_v --> xxhr_organizations
-    xxfnd_user_pkg --> xxcmp_party_pkg
     xxfnd_user_pkg --> xxfnd_application_pkg
     xxfnd_user_pkg --> xxfnd_applications
     xxfnd_user_pkg --> xxfnd_audit_log

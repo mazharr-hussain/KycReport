@@ -14,7 +14,7 @@ export SQLCL
 db() { printf "@apex/tests/%s.sql\nexit\n" "$1" | $SQLCL -S -name kyc_local 2>&1 | grep -v JAVA_TOOL; }
 if [ "$1" != "ui" ]; then
     echo "== test fixtures (XXFUSION)"
-    printf "@apex/tests/common_test_fixtures.sql\nexit\n" | $SQLCL -S -name xxfusion_local 2>&1 | grep -v JAVA_TOOL | grep -i "error\|ORA-"
+    printf "@repos/kyc/tests/common-usage/common_test_fixtures.sql\nexit\n" | $SQLCL -S -name xxfusion_local 2>&1 | grep -v JAVA_TOOL | grep -i "error\|ORA-"
     echo "== test users"; db test_users | grep -i "error\|ORA-"
     for t in security_test workflow_test kyc_flow_test party_test request_party_test token_test \
              r73_kyc_test r74_kyc_test r74_party_test r74_case_test r74_email_test r74_risk_test r74_perf_test \

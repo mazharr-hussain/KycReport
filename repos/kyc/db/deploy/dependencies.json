@@ -656,6 +656,7 @@
    "xxfnd_lookup_pkg",
    "xxfnd_privilege_pkg",
    "xxfnd_ui_pkg",
+   "xxfnd_user_pkg",
    "xxfnd_util_pkg",
    "xxfnd_vpd_pkg"
   ],
@@ -712,6 +713,7 @@
   ],
   "apex:KYC:shared-components/breadcrumbs.apx": [],
   "apex:KYC:shared-components/authorizations.apx": [
+   "xxcmp_party_pkg",
    "xxfnd_user_pkg"
   ],
   "apex:KYC:shared-components/static-files.apx": [],
@@ -1278,9 +1280,9 @@
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:pages/p00222-reassessment.apx",
    "apex:KYC:shared-components/app-processes.apx",
+   "apex:KYC:shared-components/authorizations.apx",
    "xxcmp_case_pkg",
-   "xxcmp_request_pkg",
-   "xxfnd_user_pkg"
+   "xxcmp_request_pkg"
   ],
   "xxcmp_request_answers": [
    "apex:KYC:pages/p00000-global-page.apx",

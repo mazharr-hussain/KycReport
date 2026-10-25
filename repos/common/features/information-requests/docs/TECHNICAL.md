@@ -41,7 +41,6 @@ One RFI process, with e-mail and an answer page, for every application.
 - Configured on its pages above (setup pages need the feature's privileges: View / Create / Manage).
 - Seed and change scripts:
     - `db/scripts/15c-rfi-workflow/02-add_column-xxfnd_rfis.sql`
-    - `db/scripts/17-seed-data-and-administrator-part-1-of-2/01-apex_string-split.sql`
     - `db/scripts/24-workflow-module/03-dbms_utility-compile_schema.sql`
     - `db/scripts/26-notifications-module/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/32-registration-removal-rfi-contacts/01-xxfnd_error_pkg-register_message.sql`
@@ -62,4 +61,3 @@ One RFI process, with e-mail and an answer page, for every application.
 - `tests/r84_notifications_ui.py`
 - `tests/r87_common_test.sql`
 - `tests/r89_data_model_test.sql`
-- `tests/tasks_prep.sql`

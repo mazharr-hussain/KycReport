@@ -1,0 +1,21 @@
+
+authorization page-submit (
+    name: Page - Submit
+    subscription {
+        master: @/135/page-submit
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_SUBMIT');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to perform this action.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

@@ -63,10 +63,7 @@ Lists of values are data, maintained from the console, with translations and lev
 
 ## Test scripts
 
-- `tests/admin_scope_test.sql`
 - `tests/common_test_fixture.sql`
-- `tests/ig_save.py`
-- `tests/r73_common_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r80_platform_test.sql`
 - `tests/r82_workflow_test.sql`
@@ -75,5 +72,3 @@ Lists of values are data, maintained from the console, with translations and lev
 - `tests/r87_app_test.sql`
 - `tests/r87_common_test.sql`
 - `tests/r87_delete_test.sql`
-- `tests/r92_flexfield_test.sql`
-- `tests/tasks_prep.sql`

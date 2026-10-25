@@ -1,0 +1,21 @@
+
+authorization page-create (
+    name: Page - Create
+    subscription {
+        master: @/135/page-create
+    }
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
+            return xxfnd_user_pkg.authorized('PAGE_CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

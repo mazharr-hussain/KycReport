@@ -1,0 +1,18 @@
+
+authorization party-details-manage (
+    name: Party Details - Manage
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- release 101: the rule is in the party package (COMMON's page privilege or the requester)
+            return xxcmp_party_pkg.details_authorized('MANAGE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to change records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

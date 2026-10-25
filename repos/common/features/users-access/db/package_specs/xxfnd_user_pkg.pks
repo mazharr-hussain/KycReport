@@ -98,8 +98,8 @@ create or replace package xxfnd_user_pkg authid definer as
     -- Authorization
     ----------------------------------------------------------------------------
     -- One entry for the authorization schemes: KYC_USER / APP_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
-    -- WORKFLOW_ADMINISTER, ADMIN_AREA, ADMIN_APP, PARTY_DETAILS_VIEW, PARTY_DETAILS_CREATE, PARTY_DETAILS_MANAGE,
-    -- PARTY_DETAILS_SUBMIT, SIGNED_IN (release 87: any enabled user - the shared pages of COMMON, which show only the
+    -- WORKFLOW_ADMINISTER, ADMIN_AREA, ADMIN_APP,
+    -- SIGNED_IN (release 87: any enabled user - the shared pages of COMMON, which show only the
     -- user's own data). Reads APP_PAGE_ID, REQUEST and the Global Page party context from session state.
     function authorized(p_scheme in varchar2) return boolean;
     -- True when the signed-in user has the Fusion role / identity-domain group (dynamic group) P_GROUP.

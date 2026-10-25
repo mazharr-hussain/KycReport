@@ -97,6 +97,10 @@ create or replace package xxcmp_party_pkg authid definer as
     -- Y when the user may change the party's details (additional information, contact persons, owners / officers,
     -- documents): PARTIES.MANAGE, or the requester while the request's party was created by it and is editable.
     function can_edit_details(p_party_id in number, p_request_id in number default null) return varchar2;
+    -- Release 101: the authorizations of the party detail dialogs (contact person, owner / officer; P_LEVEL VIEW, CREATE,
+    -- MANAGE or SUBMIT): COMMON's page privilege (XXFND_USER_PKG.AUTHORIZED) or the requester changing the party their
+    -- request created (CAN_EDIT_DETAILS on the Global Page context P0_SUMMARY_PARTY_ID / P0_REQUEST_ID).
+    function details_authorized(p_level in varchar2) return boolean;
     -- Owners / officers of the party (both directions) when CAN_VIEW: JSON array [{"party_relationship_id",
     -- "direction","related_party","relationship_type","ownership_percentage","start_date","end_date"}].
     function owners_json(p_party_id in number, p_request_id in number default null) return clob;

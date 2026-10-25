@@ -76,7 +76,6 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 
 ## Test scripts
 
-- `tests/kyc_functions_test.sql`
 - `tests/r81_documents_test.sql`
 - `tests/r81_documents_ui.py`
 - `tests/r83_integrations_test.sql`
@@ -86,6 +85,3 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 - `tests/r87_servers_test.sql`
 - `tests/r87_servers_ui.py`
 - `tests/r88_journey_test.sql`
-- `tests/tasks_prep.sql`
-- `tests/upload_limits_test.sql`
-- `tests/upload_limits_ui.py`

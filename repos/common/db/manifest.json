@@ -79,7 +79,6 @@
    "common/features/retention/db/tables/xxfnd_retention_policies.sql",
    "common/features/integrations/db/tables/xxfnd_integration_endpoints.sql",
    "common/features/integrations/db/tables/xxfnd_integration_purposes.sql",
-   "common/features/integrations/db/tables/xxfnd_transmissions.sql",
    "common/features/attachments/db/tables/xxfnd_document_entities.sql",
    "common/db/scripts/01-common-tables-xxfnd-part-1-of-3/16-ensure_table-xxfnd_document_entities_tl.sql",
    "common/features/attachments/db/tables/xxfnd_document_categories.sql",
@@ -1218,6 +1217,19 @@
   "source_index": 110,
   "units": [
    "common/db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql"
+  ]
+ },
+ {
+  "name": "41a COMMON 108 cleanup",
+  "file": "41a-common-108-cleanup.sql",
+  "install_sequence": 253,
+  "upgrade_sequence": 253,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 111,
+  "units": [
+   "common/db/scripts/41a-common-108-cleanup/01-drop_object-xxfnd_transmissions.sql"
   ]
  }
 ]

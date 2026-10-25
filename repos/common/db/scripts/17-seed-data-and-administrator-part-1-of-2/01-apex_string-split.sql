@@ -16,16 +16,9 @@ declare
     ----------------------------------------------------------------------------
     procedure lt(p_type in varchar2, p_meaning in varchar2, p_level in varchar2 default 'S',
                  p_app in varchar2 default null, p_desc in varchar2 default null) is
-        l_n pls_integer;
     begin
-        -- release 49: an application's own lookups are seeded only where that application is installed
-        -- (the COMMON schema gets the shared ones)
-        if p_app = 'KYC' then
-            select count(*) into l_n from user_tables where table_name = 'XXCMP_PARTIES';
-            if l_n = 0 then
-                return;
-            end if;
-        end if;
+        -- release 108: COMMON seeds only its own lookups; an application registers its own through
+        -- XXFND_LOOKUP_PKG.REGISTER_LOOKUP_* in its own install
         merge into xxfnd_lookup_types t
         using (select p_type lookup_type from dual) s on (t.lookup_type = s.lookup_type)
          -- system lookups (S) belong to the application; E/U lookups to the administrators
@@ -108,44 +101,6 @@ begin
     lv('JURISDICTION', 'US', 'United States',        80, '25', 'الولايات المتحدة');
     lv('JURISDICTION', 'OTHER', 'Other',             999, '25', 'أخرى');
 
-    lt('ENTITY_TYPE', 'Legal Entity Types', 'E', 'KYC');
-    lvs('ENTITY_TYPE', 'LLC=Limited Liability Company|PJSC=Public Joint Stock Company|PRJSC=Private Joint Stock Company'
-        || '|SOLE_EST=Sole Establishment|BRANCH=Branch of Foreign Company|FREE_ZONE=Free Zone Entity'
-        || '|PARTNERSHIP=Partnership|TRUST=Trust or Foundation|NON_PROFIT=Non-Profit Organisation'
-        || '|GOVERNMENT=Government Entity|OTHER=Other');
-
-    lt('PARTY_TYPE', 'Party Types', 'S', 'KYC');
-    lv('PARTY_TYPE', 'ORGANIZATION', 'Organization', 10, p_ar => 'منشأة');
-    lv('PARTY_TYPE', 'PERSON', 'Person', 20, p_ar => 'فرد');
-
-    lt('CONTACT_TYPE', 'Contact Types', 'E', 'KYC');
-    lvs('CONTACT_TYPE', 'EMAIL=Email|PHONE=Phone|MOBILE=Mobile|ADDRESS=Address|WEBSITE=Website');
-
-    lt('RELATIONSHIP_TYPE', 'Party Relationship Types', 'E', 'KYC');
-    lvs('RELATIONSHIP_TYPE', 'SHAREHOLDER=Shareholder|DIRECTOR=Director|MANAGER=Manager'
-        || '|AUTHORISED_SIGNATORY=Authorised Signatory|PARENT_COMPANY=Parent Company|BENEFICIAL_OWNER=Beneficial Owner'
-        || '|TRUSTEE=Trustee|SETTLOR=Settlor|BENEFICIARY=Beneficiary|OTHER=Other');
-
-    lt('DATA_PROVENANCE', 'Data Provenance', 'S', 'KYC');
-    lvs('DATA_PROVENANCE', 'SELF_DECLARED=Self-declared|REGISTRY_VERIFIED=Registry verified');
-
-    lt('UBO_STATUS', 'UBO Determination', 'S', 'KYC');
-    lvs('UBO_STATUS', 'UBO=Ultimate beneficial owner|NOT_UBO=Not a UBO|NOT_YET_ASSESSED=Not yet assessed');
-
-    lt('DUE_DILIGENCE_TYPE', 'Due Diligence Types', 'S', 'KYC');
-    lvs('DUE_DILIGENCE_TYPE', 'SIMPLIFIED=Simplified KYC|STANDARD=Standard KYC|ENHANCED=Enhanced KYC');
-
-    lt('RISK_TIER', 'Risk Tiers', 'S', 'KYC');
-    lv('RISK_TIER', 'LOW', 'Low', 10, p_ar => 'منخفض');
-    lv('RISK_TIER', 'MEDIUM', 'Medium', 20, p_ar => 'متوسط');
-    lv('RISK_TIER', 'HIGH', 'High', 30, p_ar => 'مرتفع');
-
-    lt('QA_ANSWER_TYPE', 'Question Answer Types', 'S', 'KYC');
-    lvs('QA_ANSWER_TYPE', 'SINGLE_SELECT=Single choice|MULTI_SELECT=Multiple choice|YES_NO=Yes / No|TEXT=Text|NUMBER=Number|DATE=Date');
-
-    lt('QUESTIONNAIRE_AUDIENCE', 'Questionnaire Audience', 'S', 'KYC');
-    lvs('QUESTIONNAIRE_AUDIENCE', 'REQUESTER=Requester (scored)|OFFICER=Compliance Officer (unscored)');
-
     lt('APPROVAL_STATUS', 'Configuration Approval Status');
     lvs('APPROVAL_STATUS', 'DRAFT=Draft|PENDING_APPROVAL=Pending approval|APPROVED=Approved|REJECTED=Rejected');
 
@@ -175,20 +130,6 @@ begin
 
     lt('NOTIFICATION_STATUS', 'Notification Status');
     lvs('NOTIFICATION_STATUS', 'QUEUED=Queued|SENT=Sent|FAILED=Failed|RESPONDED=Responded|EXPIRED=Expired|CANCELLED=Cancelled');
-
-    lt('RFI_CATEGORY', 'RFI Categories', 'E', 'KYC');
-    lvs('RFI_CATEGORY', 'MISSING_DOCUMENT=Missing document|CLARIFICATION=Clarification|OWNERSHIP=Ownership and control'
-        || '|SOURCE_OF_FUNDS=Source of funds or wealth|OTHER=Other');
-
-    lt('RFI_RECIPIENT_TYPE', 'RFI Recipient Types', 'S', 'KYC');
-    lvs('RFI_RECIPIENT_TYPE', 'REQUESTING_DEPARTMENT=Requesting department|EXTERNAL_PARTY=External party'
-        -- release 74: the common RFI (XXFND_RFIS) - a user of the application or an external person
-        || '|USER=User (answers in My Tasks)|EXTERNAL=External person (answers through the e-mailed link)');
-
-    lt('RFI_STATUS', 'RFI Status', 'S', 'KYC');
-    lvs('RFI_STATUS', 'WAITING_FOR_INFORMATION=Waiting for information|ON_HOLD_PENDING=On hold - pending'
-        || '|ON_HOLD_INVESTIGATION=On hold - investigation|RESOLVED=Resolved|REJECTED_RETURNED=Rejected / returned'
-        || '|CANCELLED=Cancelled|RESPONDED=Answered - waiting for review');
 
     lt('INTEGRATION_PURPOSE', 'Integration Purposes', 'E');
     lvs('INTEGRATION_PURPOSE', 'SCREENING=Sanctions / PEP / adverse media screening|DOC_AUTHENTICITY=Document authenticity check'

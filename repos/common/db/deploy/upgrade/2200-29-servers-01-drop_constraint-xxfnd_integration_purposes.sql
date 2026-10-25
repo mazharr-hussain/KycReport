@@ -242,7 +242,16 @@ begin
 end;
 /
 comment on column xxfnd_integration_purposes.endpoint_code is 'Before release 86: the retired integration endpoint. No longer read (SERVER_CODE).';
-comment on column xxfnd_transmissions.endpoint_code is 'Before release 86: the retired integration endpoint (this log is no longer written: XXFND_INTEGRATION_CALLS).';
+-- release 108: XXFND_TRANSMISSIONS is retired (not created any more): its comment only where it still exists
+declare
+    l_n pls_integer;
+begin
+    select count(*) into l_n from user_tables where table_name = 'XXFND_TRANSMISSIONS';
+    if l_n > 0 then
+        execute immediate q'~comment on column xxfnd_transmissions.endpoint_code is 'Before release 86: the retired integration endpoint (this log is no longer written: XXFND_INTEGRATION_CALLS).'~';
+    end if;
+end;
+/
 
 -- 6. setup types: Servers instead of Integration Endpoints (Document Storage: step 4)
 declare

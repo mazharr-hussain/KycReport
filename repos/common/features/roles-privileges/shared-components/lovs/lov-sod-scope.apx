@@ -1,0 +1,21 @@
+
+lov lov-sod-scope (
+    name: SOD_SCOPE
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select meaning as display_value,
+                   lookup_code as return_value
+              from xxfnd_lookup_values_vl
+             where lookup_type = 'SOD_SCOPE'
+               and active_flag = 'Y'
+             order by display_sequence, meaning
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

@@ -1,0 +1,18 @@
+
+authorization party-details-create (
+    name: Party Details - Create
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            -- release 101: the rule is in the party package (COMMON's page privilege or the requester)
+            return xxcmp_party_pkg.details_authorized('CREATE');
+            ```
+    }
+    error {
+        errorMessage: You are not allowed to create records here.
+    }
+    advanced {
+        evaluationType: perPageView
+    }
+)

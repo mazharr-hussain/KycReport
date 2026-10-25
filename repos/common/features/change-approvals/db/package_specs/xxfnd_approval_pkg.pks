@@ -26,7 +26,7 @@ create or replace package xxfnd_approval_pkg authid definer as
     -- Submits a change for approval and starts its COMMON CONFIG_CHANGE approval workflow (release 84; one running
     -- workflow per change; the workflow creates the CONFIG_CHANGE approval task).
     -- P_TABLE_NAME / P_KEY: a registered maker-checker table and its key, or a unit table and its key for all draft
-    -- or rejected rows of that unit (XXFND_CONFIG_TABLES, e.g. XXCMP_QUESTIONS / question id = its answer options).
+    -- or rejected rows of that unit (XXFND_CONFIG_TABLES, e.g. XXAPP_QUESTIONS / question id = its answer options).
     procedure request(p_table_name in varchar2, p_key in varchar2);
     -- Task actions (the approver's session): apply or reject every row of the change.
     procedure approve_change(p_detail_pk in varchar2);

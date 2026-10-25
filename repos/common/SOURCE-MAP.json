@@ -770,51 +770,45 @@
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/authorizations.apx": [
   {
    "from": 0,
-   "target": "common/app/shared-components/authorizations.apx",
+   "target": "common/app/shared-components/authorizations/app-user.apx",
    "to": 478,
-   "whole": false
+   "whole": true
   },
   {
-   "from": 478,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 905,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/page-view.apx",
+   "to": 427,
+   "whole": true
   },
   {
-   "from": 905,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 1345,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/page-create.apx",
+   "to": 440,
+   "whole": true
   },
   {
-   "from": 1345,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 1785,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/page-manage.apx",
+   "to": 440,
+   "whole": true
   },
   {
-   "from": 1785,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 2225,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/page-submit.apx",
+   "to": 440,
+   "whole": true
   },
   {
-   "from": 2225,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 2667,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/admin-area.apx",
+   "to": 442,
+   "whole": true
   },
   {
-   "from": 2667,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 3171,
-   "whole": false
-  },
-  {
-   "from": 3171,
-   "target": "common/app/shared-components/authorizations.apx",
-   "to": 3638,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/authorizations/signed-in-user.apx",
+   "to": 467,
+   "whole": true
   }
  ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/automations/fusion-hcm-sync.apx": [
@@ -868,191 +862,197 @@
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/lists.apx": [
   {
    "from": 0,
-   "target": "common/app/shared-components/lists.apx",
+   "target": "common/app/shared-components/lists/navigation-bar.apx",
    "to": 773,
-   "whole": false
-  },
-  {
-   "from": 773,
-   "target": "common/app/shared-components/lists.apx",
-   "to": 1624,
-   "whole": false
-  },
-  {
-   "from": 1624,
-   "target": "common/app/shared-components/lists.apx",
-   "to": 2821,
-   "whole": false
-  },
-  {
-   "from": 2821,
-   "target": "common/app/shared-components/lists.apx",
-   "to": 4386,
-   "whole": false
-  },
-  {
-   "from": 4386,
-   "target": "common/app/shared-components/lists.apx",
-   "to": 5281,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/applications/shared-components/lists.apx",
-   "to": 4936,
-   "whole": false
+   "target": "common/app/shared-components/lists/navigation-menu.apx",
+   "to": 851,
+   "whole": true
   },
   {
-   "from": 5281,
-   "target": "common/app/shared-components/lists.apx",
-   "to": 9777,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/lists/module-cards.apx",
+   "to": 1197,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lists/module-components.apx",
+   "to": 1565,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lists/feature-tabs.apx",
+   "to": 895,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/applications/shared-components/lists/application-journey.apx",
+   "to": 4936,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lists/administration.apx",
+   "to": 4496,
+   "whole": true
   }
  ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/lovs.apx": [
   {
    "from": 0,
-   "target": "common/app/shared-components/lovs.apx",
+   "target": "common/app/shared-components/lovs/lov-employee-source.apx",
    "to": 537,
-   "whole": false
-  },
-  {
-   "from": 537,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 1030,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/roles-privileges/shared-components/lovs.apx",
+   "target": "common/app/shared-components/lovs/lov-employees.apx",
+   "to": 493,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/shared-components/lovs/lov-privileges.apx",
    "to": 981,
-   "whole": false
-  },
-  {
-   "from": 1030,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 1660,
-   "whole": false
-  },
-  {
-   "from": 981,
-   "target": "common/features/roles-privileges/shared-components/lovs.apx",
-   "to": 1501,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/workflow-setup/shared-components/lovs.apx",
+   "target": "common/app/shared-components/lovs/lov-roles.apx",
+   "to": 630,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/roles-privileges/shared-components/lovs/lov-sod-scope.apx",
+   "to": 520,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/workflow-setup/shared-components/lovs/lov-task-definitions.apx",
    "to": 753,
-   "whole": false
-  },
-  {
-   "from": 1660,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 2210,
-   "whole": false
-  },
-  {
-   "from": 2210,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 2647,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/flexfields/shared-components/lovs.apx",
+   "target": "common/app/shared-components/lovs/lov-customization-level.apx",
+   "to": 550,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lovs/lov-lookup-types.apx",
+   "to": 437,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/shared-components/lovs/lov-df-default-type.apx",
    "to": 538,
-   "whole": false
-  },
-  {
-   "from": 2647,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 3301,
-   "whole": false
-  },
-  {
-   "from": 538,
-   "target": "common/features/flexfields/shared-components/lovs.apx",
-   "to": 985,
-   "whole": false
-  },
-  {
-   "from": 985,
-   "target": "common/features/flexfields/shared-components/lovs.apx",
-   "to": 1520,
-   "whole": false
-  },
-  {
-   "from": 1520,
-   "target": "common/features/flexfields/shared-components/lovs.apx",
-   "to": 2067,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/attachments/shared-components/lovs.apx",
+   "target": "common/features/flexfields/shared-components/lovs/lov-value-sets.apx",
+   "to": 447,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/shared-components/lovs/lov-vs-format-type.apx",
+   "to": 535,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/flexfields/shared-components/lovs/lov-vs-validation-type.apx",
+   "to": 547,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/attachments/shared-components/lovs/lov-categories.apx",
    "to": 470,
-   "whole": false
-  },
-  {
-   "from": 470,
-   "target": "common/features/attachments/shared-components/lovs.apx",
-   "to": 999,
-   "whole": false
-  },
-  {
-   "from": 999,
-   "target": "common/features/attachments/shared-components/lovs.apx",
-   "to": 1459,
-   "whole": false
-  },
-  {
-   "from": 3301,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 3830,
-   "whole": false
+   "whole": true
   },
   {
    "from": 0,
-   "target": "common/features/integrations/shared-components/lovs.apx",
-   "to": 538,
-   "whole": false
-  },
-  {
-   "from": 538,
-   "target": "common/features/integrations/shared-components/lovs.apx",
-   "to": 1073,
-   "whole": false
-  },
-  {
-   "from": 3830,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 4368,
-   "whole": false
-  },
-  {
-   "from": 4368,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 4900,
-   "whole": false
-  },
-  {
-   "from": 0,
-   "target": "common/features/retention/shared-components/lovs.apx",
+   "target": "common/features/attachments/shared-components/lovs/lov-doc-datatype.apx",
    "to": 529,
-   "whole": false
+   "whole": true
   },
   {
-   "from": 529,
-   "target": "common/features/retention/shared-components/lovs.apx",
-   "to": 1070,
-   "whole": false
+   "from": 0,
+   "target": "common/features/attachments/shared-components/lovs/lov-entities.apx",
+   "to": 460,
+   "whole": true
   },
   {
-   "from": 4900,
-   "target": "common/app/shared-components/lovs.apx",
-   "to": 5942,
-   "whole": false
+   "from": 0,
+   "target": "common/app/shared-components/lovs/lov-storage-type.apx",
+   "to": 529,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/shared-components/lovs/lov-approval-status.apx",
+   "to": 538,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/integrations/shared-components/lovs/lov-capture-method.apx",
+   "to": 535,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lovs/lov-endpoint-status.apx",
+   "to": 538,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lovs/lov-endpoint-type.apx",
+   "to": 532,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/retention/shared-components/lovs/lov-jurisdiction.apx",
+   "to": 529,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/retention/shared-components/lovs/lov-retention-action.apx",
+   "to": 541,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/app/shared-components/lovs/lov-applications.apx",
+   "to": 1042,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/notifications/shared-components/lovs/lov-applications-enabled.apx",
+   "to": 555,
+   "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/notifications/shared-components/lovs/lov-notification-templates.apx",
+   "to": 510,
+   "whole": true
   }
  ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/fusion-hcm-workers.apx": [
@@ -1271,22 +1271,6 @@
    "whole": true
   }
  ],
- "apex/tests/admin_scope_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/admin_scope_test.sql",
-   "to": 3173,
-   "whole": true
-  }
- ],
- "apex/tests/admin_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/admin_ui.py",
-   "to": 5097,
-   "whole": true
-  }
- ],
  "apex/tests/apxparse.py": [
   {
    "from": 0,
@@ -1327,67 +1311,11 @@
    "whole": true
   }
  ],
- "apex/tests/common_test_fixtures.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/common_test_fixtures.sql",
-   "to": 2365,
-   "whole": true
-  }
- ],
  "apex/tests/common_ui.py": [
   {
    "from": 0,
    "target": "common/tests/common_ui.py",
    "to": 1048,
-   "whole": true
-  }
- ],
- "apex/tests/forced_save.py": [
-  {
-   "from": 0,
-   "target": "common/tests/forced_save.py",
-   "to": 1131,
-   "whole": true
-  }
- ],
- "apex/tests/ig_save.py": [
-  {
-   "from": 0,
-   "target": "common/tests/ig_save.py",
-   "to": 1381,
-   "whole": true
-  }
- ],
- "apex/tests/kyc_functions_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/kyc_functions_test.sql",
-   "to": 2288,
-   "whole": true
-  }
- ],
- "apex/tests/kyc_functions_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/kyc_functions_ui.py",
-   "to": 1483,
-   "whole": true
-  }
- ],
- "apex/tests/r73_common_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r73_common_test.sql",
-   "to": 5310,
-   "whole": true
-  }
- ],
- "apex/tests/r76_departments_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r76_departments_test.sql",
-   "to": 3007,
    "whole": true
   }
  ],
@@ -1615,27 +1543,11 @@
    "whole": true
   }
  ],
- "apex/tests/r90_my_tasks_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/r90_my_tasks_ui.py",
-   "to": 2686,
-   "whole": true
-  }
- ],
  "apex/tests/r91_common_ui.py": [
   {
    "from": 0,
    "target": "common/tests/r91_common_ui.py",
    "to": 2613,
-   "whole": true
-  }
- ],
- "apex/tests/r92_flexfield_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r92_flexfield_test.sql",
-   "to": 3197,
    "whole": true
   }
  ],
@@ -1687,38 +1599,6 @@
    "whole": true
   }
  ],
- "apex/tests/r96_security_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r96_security_test.sql",
-   "to": 6764,
-   "whole": true
-  }
- ],
- "apex/tests/r96_security_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/r96_security_ui.py",
-   "to": 5494,
-   "whole": true
-  }
- ],
- "apex/tests/r96_security_ui_cleanup.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r96_security_ui_cleanup.sql",
-   "to": 711,
-   "whole": true
-  }
- ],
- "apex/tests/r96_security_ui_setup.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/r96_security_ui_setup.sql",
-   "to": 1079,
-   "whole": true
-  }
- ],
  "apex/tests/rules.py": [
   {
    "from": 0,
@@ -1735,67 +1615,11 @@
    "whole": true
   }
  ],
- "apex/tests/smoke.py": [
-  {
-   "from": 0,
-   "target": "common/tests/smoke.py",
-   "to": 3267,
-   "whole": true
-  }
- ],
- "apex/tests/tasks_prep.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/tasks_prep.sql",
-   "to": 2116,
-   "whole": true
-  }
- ],
- "apex/tests/tasks_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/tasks_ui.py",
-   "to": 3402,
-   "whole": true
-  }
- ],
  "apex/tests/test_users.sql": [
   {
    "from": 0,
    "target": "common/tests/test_users.sql",
    "to": 1191,
-   "whole": true
-  }
- ],
- "apex/tests/upload_limits_test.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/upload_limits_test.sql",
-   "to": 2727,
-   "whole": true
-  }
- ],
- "apex/tests/upload_limits_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/upload_limits_ui.py",
-   "to": 4227,
-   "whole": true
-  }
- ],
- "apex/tests/viewonly_role.sql": [
-  {
-   "from": 0,
-   "target": "common/tests/viewonly_role.sql",
-   "to": 1236,
-   "whole": true
-  }
- ],
- "apex/tests/viewonly_ui.py": [
-  {
-   "from": 0,
-   "target": "common/tests/viewonly_ui.py",
-   "to": 1323,
    "whole": true
   }
  ],

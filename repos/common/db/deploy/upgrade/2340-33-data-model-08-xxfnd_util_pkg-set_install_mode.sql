@@ -105,7 +105,6 @@ begin
         g('XXFND_SERVER_TESTS', 'Integrations');
         g('XXFND_INTEGRATION_PURPOSES', 'Integrations');
         g('XXFND_INTEGRATION_CALLS', 'Integrations');
-        g('XXFND_TRANSMISSIONS', 'Integrations');
     end;
     -- every registered application gets the new common function and its menu entry (only what is missing)
     for a in (select application_code from xxfnd_applications where application_code <> 'COMMON') loop

@@ -1,0 +1,21 @@
+
+list feature-tabs (
+    name: Feature Tabs
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- The list pages of the current page's feature, as tabs (XXFND_FEATURE_PAGES.TAB_LABEL).
+            select null                                  as lvl,
+                   fp.tab_label                          as label,
+                   apex_page.get_url(p_page => fp.page_id) as target,
+                   case when fp.page_id = :APP_PAGE_ID then 'YES' else 'NO' end as is_current
+              from xxfnd_feature_pages fp
+             where fp.app_alias = :APP_ALIAS
+               and fp.tab_label is not null
+               and fp.feature_code = (select c.feature_code from xxfnd_feature_pages c
+                                       where c.app_alias = :APP_ALIAS and c.page_id = :APP_PAGE_ID)
+             order by fp.tab_sequence
+            ```
+    }
+)

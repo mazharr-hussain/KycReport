@@ -392,6 +392,12 @@ create or replace package body xxcmp_party_pkg as
                     then 'Y' else 'N' end;
     end can_edit_details;
 
+    function details_authorized(p_level in varchar2) return boolean is
+    begin
+        return xxfnd_user_pkg.authorized('PAGE_' || upper(p_level))
+            or can_edit_details(to_number(v('P0_SUMMARY_PARTY_ID')), to_number(v('P0_REQUEST_ID'))) = 'Y';
+    end details_authorized;
+
     function owners_json(p_party_id in number, p_request_id in number default null) return clob is
         l_json clob;
     begin

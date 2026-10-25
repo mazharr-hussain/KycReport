@@ -1,0 +1,21 @@
+
+lov lov-roles (
+    name: ROLES
+    source {
+        location: localDatabase
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select role_name || case when :G_ADMIN_APP = 'ALL' then ' (' || application_code || ')' end as display_value,
+                   role_code as return_value
+              from xxfnd_roles
+             where enabled_flag = 'Y'
+               and (:G_ADMIN_APP = 'ALL' or application_code = :G_ADMIN_APP)   -- the application filter (COMMON)
+             order by role_name
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+)

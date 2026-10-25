@@ -40,3 +40,18 @@ No duplicate shared LOVs, authorizations or page names. `unregister_application`
 
 Aligned: HTML in PL/SQL only in `xxfnd_dff_pkg` (documented exception); theme Redwood Light, users cannot change it;
 no direct KYC data change in COMMON.
+
+## Outcome - COMMON 108 / KYC 101 (fixes done)
+- Removed: LOV `DFF_COLUMNS`, authorization `ADMIN_APP`, table `XXFND_TRANSMISSIONS` (dropped while empty, script 41a),
+  the 5 wrapper routines (callers use `XXFND_SCHEMA_PKG`).
+- Kept after checking: `XXFND_INTEGRATION_CHANGES_V` (read dynamically through `XXFND_CONFIG_TABLES.CHANGES_VIEW`),
+  `XXFND_DOCUMENT_VERSIONS_V` and `XXFND_QA_HISTORY_V` (application-facing APIs), `XXFND_RETENTION_PKG` (placeholder for
+  the planned retention), REST sources OUTLOOK_MESSAGES / SHAREPOINT_DRIVES / UCM_CONTENT and the SSO profile app items
+  (planned integrations).
+- Shared LOVs `ENABLED_APPLICATIONS`, `NOTIFICATION_TEMPLATES` on page 116.
+- C1/C2/C3/C4/C7 done: no `XXCMP_PARTY_PKG` call, no `'KYC'` fallback, no KYC lookups in seed 17, KYC-dependent tests in
+  `repos/kyc/tests/common-usage/`, generic comment examples. Rule moved to `XXCMP_PARTY_PKG.DETAILS_AUTHORIZED` (KYC 101).
+- C5: self-service pages stay signed-in user only (decision).
+- Left: the scheme name `KYC_USER` in `XXFND_USER_PKG.AUTHORIZED` (generic logic, name only; renaming touches KYC
+  authorizations); the `RFI_STATUS` / `RFI_RECIPIENT_TYPE` / `RFI_CATEGORY` lookups are registered by KYC although COMMON's
+  RFI reads `RFI_STATUS` - a standalone COMMON shows no status meaning (proposal: make them COMMON lookups).
