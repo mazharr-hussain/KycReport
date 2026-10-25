@@ -145,9 +145,10 @@ page 0 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                -- release 99: the requester's form names the types as the KYC policy does (COMMON has no routine for
-                -- an application to rename its lookup meanings: COMMON-ISSUES C15)
-                select case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
+                select /* release 99: the requester's form names the types as the KYC policy does (COMMON has no routine
+                          for an application to rename its lookup meanings: COMMON-ISSUES C15). Release 102: the query
+                          must start with SELECT - an item LOV starting with a comment runs as a PL/SQL function body */
+                       case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
                             when :APP_PAGE_ID = 201 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
                             else meaning end as display_value,
                        lookup_code as return_value
