@@ -98,16 +98,6 @@ begin
     xxfnd_schema_pkg.create_who_trigger('XXCMP_PARTY_REGISTRY_CHECKS');
 end;
 /
-y_id      in number,
-                                  p_source        in varchar2,
-                                  p_endpoint_code in varchar2,
-                                  p_check_result  in varchar2) return varchar2;
-    -- A person saved a registry check: a row from the provider is marked as changed by a person.
-    procedure registry_check_saved(p_registry_check_id in number);
-    -- Release 91: REVIEW_REGISTRY_CHECK is removed (no screen called it).
-
-end xxcmp_party_pkg;
-/
 
 create or replace package body xxcmp_party_pkg as
 
@@ -980,4 +970,34 @@ create or replace package body xxcmp_party_pkg as
         elsif p_expiry_date < p_issue_date then
             return 'The expiry date cannot be before the issue date.';
         elsif p_result = 'VERIFIED' and p_expiry_date < trunc(sysdate) then
-            ret
+            return 'An expired document cannot be recorded as verified.';
+        end if;
+        return null;
+    end id_verification_error;
+
+    function registry_check_error(p_party_id      in number,
+                                  p_source        in varchar2,
+                                  p_endpoint_code in varchar2,
+                                  p_check_result  in varchar2) return varchar2 is
+        l_type xxcmp_parties.party_type%type := party_type(p_party_id);
+    begin
+        if l_type is null then
+            return 'Choose the party.';
+        elsif l_type <> 'ORGANIZATION' then
+            return 'The company registry is checked for organisations; check an individual''s identity document.';
+        elsif p_source = 'API' and p_endpoint_code is null then
+            return 'A check from a provider names the provider.';
+        elsif p_check_result is null then
+            return 'Choose the result of the check.';
+        end if;
+        return null;
+    end registry_check_error;
+
+    procedure registry_check_saved(p_registry_check_id in number) is
+    begin
+        update xxcmp_party_registry_checks set changed_by_person_flag = 'Y'
+         where registry_check_id = p_registry_check_id and source = 'API' and changed_by_person_flag = 'N';
+    end registry_check_saved;
+
+end xxcmp_party_pkg;
+/

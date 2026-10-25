@@ -393,7 +393,7 @@
   {
    "from": 0,
    "target": "kyc/features/kyc-requests/db/packages/xxcmp_request_pkg.sql",
-   "to": 14397,
+   "to": 15471,
    "whole": false
   },
   {
@@ -553,9 +553,9 @@
    "whole": false
   },
   {
-   "from": 15053,
+   "from": 15544,
    "target": "kyc/features/parties/db/packages/xxcmp_party_pkg.sql",
-   "to": 66364,
+   "to": 67684,
    "whole": false
   }
  ],
@@ -563,7 +563,7 @@
   {
    "from": 0,
    "target": "kyc/features/parties/db/packages/xxcmp_party_pkg.sql",
-   "to": 15053,
+   "to": 15544,
    "whole": false
   }
  ],
@@ -701,9 +701,9 @@
  ],
  "apex/db/16r-request-pkg.sql": [
   {
-   "from": 14397,
+   "from": 15471,
    "target": "kyc/features/kyc-requests/db/packages/xxcmp_request_pkg.sql",
-   "to": 79765,
+   "to": 83668,
    "whole": false
   }
  ],

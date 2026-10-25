@@ -185,4 +185,13 @@ create or replace package xxcmp_party_pkg authid definer as
                                    p_issue_date      in date,
                                    p_expiry_date     in date,
                                    p_result          in varchar2) return varchar2;
-    function registry_check_error(p_part
+    function registry_check_error(p_party_id      in number,
+                                  p_source        in varchar2,
+                                  p_endpoint_code in varchar2,
+                                  p_check_result  in varchar2) return varchar2;
+    -- A person saved a registry check: a row from the provider is marked as changed by a person.
+    procedure registry_check_saved(p_registry_check_id in number);
+    -- Release 91: REVIEW_REGISTRY_CHECK is removed (no screen called it).
+
+end xxcmp_party_pkg;
+/
