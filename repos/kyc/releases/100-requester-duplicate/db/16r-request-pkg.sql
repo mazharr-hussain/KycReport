@@ -1,19 +1,3 @@
-n varchar2;
-    -- The approval history table: what happened (submit, decisions, information requests, withdraw, cancel) with
-    -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
-    -- (Waiting); before submit, the expected steps (Expected) with their role or user.
-    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined;
-    -- Release 90 (pages 205, 206): the case opened for the request, or null.
-    function request_case(p_request_id in number) return number;
-    -- Release 90 (page 206): Y when the user may decide the request's approval task P_TASK_ID (a document checklist
-    -- task the user may approve or claim): Approve, Reject, Request Information.
-    function can_decide(p_task_id in number) return varchar2;
-    -- Y when the current approver may add an approver after them (the Approval Setup approval has started and the task
-    -- is open).
-    function can_add_approver(p_request_id in number, p_task_id in number) return varchar2;
-
-end xxcmp_request_pkg;
-/
 --------------------------------------------------------------------------------
 -- 16r Request component - XXCMP_REQUEST_PKG body (release 74: own script, R1). KYC only (XXCUS).
 --   The request logic: the request form and its rules, the questionnaire, submit / cancel / withdraw, the
@@ -1206,4 +1190,65 @@ create or replace package body xxcmp_request_pkg as
                    where w.detail_pk = to_char(p_request_id) and w.state_code = 'TERMINATED'
                      and not (l_req.request_status = 'CANCELLED'
                               and abs(cast(w.last_updated_on as date) - cast(l_req.completed_date as date)) < 1 / 1440)
-                     and not exists (select 1 from xxfnd
+                     and not exists (select 1 from xxfnd_rfis r
+                                      where r.entity_name = 'XXCMP_REQUESTS' and r.pk1_value = to_char(p_request_id)
+                                        and abs(cast(w.last_updated_on as date) - cast(r.creation_date as date)) < 1 / 1440)
+                  union all
+                  select null, 'Request', null, 'Cancelled', l_req.last_updated_by, cast(l_req.completed_date as timestamp), l_req.match_note
+                    from dual where l_req.request_status = 'CANCELLED' and l_req.completed_date is not null
+                   order by 6) loop
+            pipe row (xxcmp_history_row(h.step_no, h.step_name, h.assigned_to, h.action, h.action_by, h.action_date, h.comments));
+        end loop;
+        if l_req.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
+            for p in (select * from table(xxfnd_approval_rule_pkg.steps(c_type, to_char(p_request_id), l_attrs))
+                       where step_state in ('EXPECTED', 'CURRENT', 'WAITING')
+                       order by position) loop
+                l_owners := null;
+                if p.step_state = 'CURRENT' then
+                    select max(coalesce(t.actual_owner,
+                                        (select listagg(pp.participant, ', ') within group (order by pp.participant)
+                                           from apex_task_participants pp
+                                          where pp.task_id = t.task_id and pp.participant_type = 'POTENTIAL_OWNER')))
+                      into l_owners
+                      from apex_tasks t
+                     where t.detail_pk = to_char(p_request_id) and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+                       and t.state_code in ('ASSIGNED', 'UNASSIGNED', 'INFO_REQUESTED');
+                end if;
+                pipe row (xxcmp_history_row(p.position, p.step_name,
+                              nvl(l_owners, xxfnd_approval_rule_pkg.approver_label(p.approver_type, p.role_code, p.user_name)),
+                              case when p.step_state = 'EXPECTED' then 'Expected'
+                                   when p.step_state = 'CURRENT' and l_req.request_status = 'INFO_NEEDED' then 'Information needed'
+                                   when p.step_state = 'CURRENT' then 'Pending'
+                                   else 'Waiting' end,
+                              null, null, null));
+            end loop;
+        end if;
+        return;
+    end history_rows;
+
+    -- release 90 (page 206): one place for the decision buttons' check (it was repeated six times on the page)
+    function can_decide(p_task_id in number) return varchar2 is
+    begin
+        -- the document checklist task of the request (the page also opens from the Counterparty Match task)
+        for t in (select 1 from apex_tasks where task_id = p_task_id and task_def_static_id = 'DOC_CHECKLIST_REVIEW') loop
+            return case when apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_approve)
+                          or apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_claim)
+                        then 'Y' else 'N' end;
+        end loop;
+        return 'N';
+    end can_decide;
+
+    function can_add_approver(p_request_id in number, p_task_id in number) return varchar2 is
+        l_open pls_integer;
+    begin
+        -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
+        if xxfnd_approval_rule_pkg.is_started(c_type, to_char(p_request_id)) = 'N' then
+            return 'N';
+        end if;
+        select count(*) into l_open from apex_tasks
+         where task_id = p_task_id and task_def_static_id = 'DOC_CHECKLIST_REVIEW' and state_code in ('ASSIGNED', 'UNASSIGNED');
+        return case when l_open > 0 then can_decide(p_task_id) else 'N' end;
+    end can_add_approver;
+
+end xxcmp_request_pkg;
+/

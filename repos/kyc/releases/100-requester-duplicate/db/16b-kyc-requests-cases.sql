@@ -548,7 +548,23 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Name of the current step (task subject).
     function step_name(p_request_id in number) return varchar2;
     -- Moves to the next step: Y when there is one, N when the path is complete (KYC_REQUEST workflow).
-    function next_step(p_request_id in number) retur
+    function next_step(p_request_id in number) return varchar2;
+    -- The approval history table: what happened (submit, decisions, information requests, withdraw, cancel) with
+    -- who, when and the comments; then the current step (Pending, with its approvers) and the steps still to come
+    -- (Waiting); before submit, the expected steps (Expected) with their role or user.
+    function history_rows(p_request_id in number) return xxcmp_history_tab pipelined;
+    -- Release 90 (pages 205, 206): the case opened for the request, or null.
+    function request_case(p_request_id in number) return number;
+    -- Release 90 (page 206): Y when the user may decide the request's approval task P_TASK_ID (a document checklist
+    -- task the user may approve or claim): Approve, Reject, Request Information.
+    function can_decide(p_task_id in number) return varchar2;
+    -- Y when the current approver may add an approver after them (the Approval Setup approval has started and the task
+    -- is open).
+    function can_add_approver(p_request_id in number, p_task_id in number) return varchar2;
+
+end xxcmp_request_pkg;
+/
+
 create or replace package xxcmp_case_pkg authid definer as
 
     -- Release 91: a numeric KYC parameter (CASE_SLA_DAYS, PEP_REVIEW_MONTHS, REVIEW_LEAD_DAYS). It is a KYC application

@@ -32,7 +32,26 @@ def sources():
                 raw = open(os.path.join(REPOS, p['target']), 'rb').read()
                 data += raw if p['whole'] else raw.decode('latin-1')[p['from']:p['to']].encode('latin-1')
             out[src] = data
+    check_splits()
     return out
+
+
+def check_splits():
+    """A file split into several scripts (e.g. package spec / body) must still be covered exactly by its pieces: an
+    edit that changes its length moves the cuts and truncates the scripts (KYC 100)."""
+    split = {}
+    for repo in ('kyc', 'common'):
+        for pieces in json.load(open(os.path.join(REPOS, repo, 'SOURCE-MAP.json'))).values():
+            for p in pieces:
+                if not p['whole']:
+                    split.setdefault(p['target'], []).append((p['from'], p['to']))
+    for target, ranges in split.items():
+        text = open(os.path.join(REPOS, target), 'rb').read().decode('latin-1')
+        ranges.sort()
+        if (ranges[0][0] != 0 or ranges[-1][1] != len(text)
+                or any(a[1] != b[0] for a, b in zip(ranges, ranges[1:]))):
+            raise SystemExit(f'SOURCE-MAP.json: the pieces of {target} no longer cover the file (length {len(text)}, '
+                             f'pieces {ranges}): move the cuts to where each part now ends')
 
 
 def manifest():
