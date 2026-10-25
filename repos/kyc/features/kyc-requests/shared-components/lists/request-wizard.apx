@@ -3,7 +3,7 @@ list request-wizard (
     name: Request Wizard
 
     entry step-1 (
-        label: Counterparty
+        label: Request
         layout {
             sequence: 10
         }
@@ -15,7 +15,7 @@ list request-wizard (
     )
 
     entry step-party (
-        label: Party Details
+        label: Counterparty
         layout {
             sequence: 15
         }

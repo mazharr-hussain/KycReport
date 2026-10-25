@@ -336,6 +336,107 @@ create or replace package body xxcmp_request_pkg as
         return null;
     end request_error;
 
+    -- release 103 (shared by steps 1 and 2): a rejected request is corrected and submitted again - back to Draft, its
+    -- own party back to Pending
+    procedure reopen_rejected(p_old in out nocopy xxcmp_requests%rowtype) is
+    begin
+        if p_old.request_status = 'REJECTED' then
+            if p_old.party_selection = 'NEW' and p_old.party_id is not null and xxcmp_party_pkg.party_status(p_old.party_id) = 'REJECTED' then
+                xxcmp_party_pkg.set_status(p_old.party_id, 'PENDING');
+            end if;
+            update xxcmp_requests
+               set request_status = 'DRAFT', completed_date = null, approval_path_name = null, current_step = null
+             where request_id = p_old.request_id;
+            p_old.request_status := 'DRAFT';
+        end if;
+    end reopen_rejected;
+
+    -- release 103 (shared by steps 1 and 2): the department the request is raised for
+    function request_department(p_department_id in number) return number is
+        l_dept    number := p_department_id;
+        l_allowed varchar2(4000) := allowed_departments;
+    begin
+        -- a requester raises requests for the department of the employee profile; Compliance for any department
+        if can_choose_department = 'N' and default_department is not null then
+            l_dept := default_department;
+        end if;
+        -- release 76: only the departments the user's data security allows (Level 1 / Compliance: any)
+        if l_allowed = '#NONE' then
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_ENTITY');   -- release 95
+        elsif l_allowed is not null and l_dept is not null
+              and to_char(l_dept) not member of apex_string.split(l_allowed, ',') then
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED', apex_t_varchar2(department_name(l_dept)));
+        end if;
+        return l_dept;
+    end request_department;
+
+    -- release 103: the request is locked once submitted, and only its requester changes it
+    procedure check_changeable(p_old in xxcmp_requests%rowtype) is
+    begin
+        if p_old.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+           or upper(p_old.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
+            xxfnd_error_pkg.raise_error('KYC_REQUEST_LOCKED', apex_t_varchar2(p_old.request_number));
+        end if;
+    end check_changeable;
+
+    function intake_error(p_request_id            in number,
+                          p_party_type            in varchar2,
+                          p_business_relationship in varchar2,
+                          p_draft                 in varchar2 default 'N') return varchar2 is
+    begin
+        if p_party_type is null then
+            return 'Choose the party type.';
+        elsif p_draft = 'N' and p_business_relationship is null and p_request_id is not null
+              and nvl(outcome_kyc_required(screening_outcome(p_request_id)), 'Yes') = 'Yes' then
+            return 'Choose the business relationship (what the counterparty is to the company).';
+        end if;
+        return null;
+    end intake_error;
+
+    procedure save_intake(p_request_id               in out number,
+                          p_party_type               in varchar2,
+                          p_requesting_department_id in number,
+                          p_business_relationship    in varchar2) is
+        l_old   xxcmp_requests%rowtype;
+        l_dept  number;
+        l_type  xxcmp_requests.party_type%type;
+        l_qnr   varchar2(30);
+        l_error varchar2(4000) := intake_error(p_request_id, p_party_type, p_business_relationship, 'Y');
+    begin
+        if l_error is not null then
+            raise_application_error(-20611, l_error);
+        end if;
+        if p_request_id is not null then
+            l_old := get_request(p_request_id);
+            check_changeable(l_old);
+            reopen_rejected(l_old);
+        end if;
+        l_dept := request_department(p_requesting_department_id);
+        if p_request_id is null then
+            -- the counterparty's name comes with step 2 (SAVE_REQUEST); the column is required
+            p_request_id := create_request(p_party_type => p_party_type, p_party_name => 'New counterparty',
+                                           p_requesting_department_id => l_dept,
+                                           p_business_relationship => p_business_relationship);
+            return;
+        end if;
+        -- the party type changes only while the request has no party (and with it the questionnaire)
+        l_type := case when l_old.party_id is null and l_old.request_status = 'DRAFT' then p_party_type
+                       else l_old.party_type end;
+        l_qnr  := questionnaire_for(l_type);    -- a private function is not called inside SQL
+        update xxcmp_requests
+           set party_type               = l_type,
+               business_relationship    = p_business_relationship,
+               requesting_department_id = case when l_old.request_status = 'DRAFT' then l_dept
+                                               else requesting_department_id end,
+               questionnaire_code       = case when l_old.request_status = 'DRAFT' then l_qnr else questionnaire_code end,
+               last_action_date         = sysdate
+         where request_id = p_request_id;
+        if l_old.request_status = 'DRAFT' and nvl(l_old.questionnaire_code, '#') <> l_qnr then
+            delete from xxcmp_request_answers where request_id = p_request_id and respondent_type = 'REQUESTER';
+            add_answer_rows(p_request_id, null, l_qnr, 'REQUESTER');
+        end if;
+    end save_intake;
+
     procedure save_request(p_request_id            in out number,
                            p_party_selection       in varchar2,
                            p_party_id              in number,
@@ -365,17 +466,15 @@ create or replace package body xxcmp_request_pkg as
         l_party    xxcmp_parties%rowtype;
         l_party_id number;
         l_new      boolean := false;
-        l_dept     xxcmp_requests.requesting_department_id%type := p_requesting_department_id;
+        l_dept     xxcmp_requests.requesting_department_id%type;
         l_qnr      varchar2(30);
         l_selection xxcmp_requests.party_selection%type := p_party_selection;
         l_party_in  number := p_party_id;
     begin
         if p_request_id is not null then
             l_old := get_request(p_request_id);
-            if l_old.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
-               or upper(l_old.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_LOCKED', apex_t_varchar2(l_old.request_number));
-            elsif l_old.request_status = 'INFO_NEEDED'
+            check_changeable(l_old);
+            if l_old.request_status = 'INFO_NEEDED'
                   and (p_party_selection <> l_old.party_selection
                        or (p_party_selection = 'EXISTING' and p_party_id <> l_old.party_id)) then
                 xxfnd_error_pkg.raise_error('KYC_REQUEST_PARTY_FIXED');
@@ -396,31 +495,8 @@ create or replace package body xxcmp_request_pkg as
                 l_selection := 'EXISTING';
             end if;
         end if;
-        -- a rejected request is corrected and submitted again: back to Draft, its own party back to Pending
-        if l_old.request_status = 'REJECTED' then
-            if l_old.party_selection = 'NEW' and l_old.party_id is not null and xxcmp_party_pkg.party_status(l_old.party_id) = 'REJECTED' then
-                xxcmp_party_pkg.set_status(l_old.party_id, 'PENDING');
-            end if;
-            update xxcmp_requests
-               set request_status = 'DRAFT', completed_date = null, approval_path_name = null, current_step = null
-             where request_id = p_request_id;
-            l_old.request_status := 'DRAFT';
-        end if;
-        -- a requester raises requests for the department of the employee profile; Compliance for any department
-        if can_choose_department = 'N' and default_department is not null then
-            l_dept := default_department;
-        end if;
-        -- release 76: only the departments the user's data security allows (Level 1 / Compliance: any)
-        declare
-            l_allowed varchar2(4000) := allowed_departments;
-        begin
-            if l_allowed = '#NONE' then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_NO_ENTITY');   -- release 95
-            elsif l_allowed is not null and l_dept is not null
-                  and to_char(l_dept) not member of apex_string.split(l_allowed, ',') then
-                xxfnd_error_pkg.raise_error('KYC_REQUEST_DEPT_NOT_ALLOWED', apex_t_varchar2(department_name(l_dept)));
-            end if;
-        end;
+        reopen_rejected(l_old);
+        l_dept := request_department(p_requesting_department_id);
 
         if l_selection = 'EXISTING' then
             l_party_id := l_party_in;
@@ -490,6 +566,49 @@ create or replace package body xxcmp_request_pkg as
             add_answer_rows(p_request_id, null, l_qnr, 'REQUESTER');
         end if;
     end save_request;
+
+    procedure save_counterparty(p_request_id          in out number,
+                                p_party_selection     in varchar2,
+                                p_party_id            in number,
+                                p_party_type          in varchar2,
+                                p_party_name          in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_registration_number in varchar2,
+                                p_entity_type         in varchar2,
+                                p_registration_type   in varchar2,
+                                p_incorporation_date  in date,
+                                p_email               in varchar2,
+                                p_phone               in varchar2,
+                                p_website             in varchar2,
+                                p_fax                 in varchar2,
+                                p_address             in varchar2,
+                                p_justification       in varchar2,
+                                p_draft               in varchar2 default 'N',
+                                p_use_existing        in varchar2 default null) is
+        l_req xxcmp_requests%rowtype := get_request(p_request_id);
+    begin
+        save_request(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
+                     p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone, p_website, p_fax,
+                     p_requesting_department_id => l_req.requesting_department_id,
+                     p_justification         => p_justification,
+                     p_draft                 => p_draft,
+                     p_contact_name          => l_req.contact_name,
+                     p_contact_email         => l_req.contact_email,
+                     p_contact_phone         => l_req.contact_phone,
+                     p_match_ack             => 'Y',
+                     p_registration_type     => p_registration_type,
+                     p_address               => p_address,
+                     p_business_relationship => l_req.business_relationship,
+                     p_use_existing          => p_use_existing);
+    end save_counterparty;
+
+    function business_relationship(p_request_id in number) return varchar2 is
+    begin
+        return case when p_request_id is not null then get_request(p_request_id).business_relationship end;
+    exception
+        when no_data_found then
+            return null;
+    end business_relationship;
 
     function is_editable(p_request_id in number) return varchar2 is
         l_req xxcmp_requests%rowtype;

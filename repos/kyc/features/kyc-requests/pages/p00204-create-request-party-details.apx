@@ -1,7 +1,7 @@
 page 204 (
-    name: Create Request - Party Details
+    name: Create Request - Counterparty
     alias: CREATE-REQUEST-PARTY-DETAILS
-    title: Create Request - Party Details
+    title: Create Request - Counterparty
     pageGroup: @kyc
     appearance {
         pageTemplate: @/standard
@@ -15,7 +15,7 @@ page 204 (
     help {
         helpText:
             ```
-            Step 2 of 3: the details of the counterparty: additional information, contact persons, owners / officers and documents. They can be changed only when the request created the party (a new counterparty); an existing party is shown read only.
+            Step 2 of 3 (release 103): the business justification, then the counterparty - its basic information (the same party form as before: party type from step 1, name, registration type and number, country, entity type...) and its documents. A counterparty with the registration type, number and country of another party is not created again: choose Use the Existing Party Yes (the request uses that party) or No (change the details). Save to add the documents once the counterparty is entered. Contact persons and owners / officers are not asked on the request: Compliance completes them on the case.
             ```
     }
 
@@ -62,6 +62,87 @@ page 204 (
         }
     )
 
+    region justification (
+        name: Business Justification
+        type: staticContent
+        layout {
+            sequence: 8
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: justification
+        }
+        comments {
+            comments: Release 103 - the business justification comes first on step 2, before the counterparty (the common party form, Global Page region party-form).
+        }
+    )
+
+    region existing-party (
+        name: Existing Party
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P204_PARTY_SELECTION, 'NEW') <> 'EXISTING'
+                and xxcmp_request_pkg.duplicate_party_id(to_number(:P204_REQUEST_ID), :P0_PARTY_TYPE,
+                        :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_TYPE) is not null
+                ```
+        }
+        comments {
+            comments: Release 100 (on step 1 before release 103) - shown only when the counterparty duplicates a party (XXCMP_REQUEST_PKG.DUPLICATE_PARTY_ID); XXCMP_REQUEST_PKG.REQUEST_ERROR / SAVE_REQUEST act on the answer.
+        }
+    )
+
+    region add-documents (
+        name: Counterparty Documents
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>Save the counterparty to add its documents.</p>
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--colorBG
+                t-Alert--horizontal
+                t-Alert--defaultIcons
+                t-Alert--info
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_SUMMARY_PARTY_ID is null
+                ```
+        }
+        comments {
+            comments: Release 103 - the documents of the counterparty (Global Page region party-documents) are added once the party exists.
+        }
+    )
+
     region buttons (
         name: Buttons
         type: staticContent
@@ -91,7 +172,80 @@ page 204 (
         }
     )
 
+    pageItem P204_PARTY_SELECTION (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
 
+    pageItem P204_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @buttons
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P204_JUSTIFICATION (
+        type: textarea
+        label {
+            label: Business Justification
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @justification
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 4000
+        }
+        help {
+            helpText: Why the organisation wants to deal with this counterparty. Not needed when the risk screening finds a KYC report not required.
+        }
+    )
+
+    pageItem P204_USE_EXISTING (
+        type: radioGroup
+        label {
+            label: Use the Existing Party
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Yes;Y,No - I will change the details;N
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @existing-party
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Another party already has this registration type, registration number and country. Yes - the request uses that party (no new party is created). No - change the registration type, registration number or country.
+        }
+    )
 
     button previous (
         buttonName: PREVIOUS
@@ -109,6 +263,28 @@ page 204 (
             action: submitPage
             warnOnUnsavedChanges: doNotCheck
             executeValidations: false
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 10
+            region: @add-documents
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-save
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
         }
     )
 
@@ -156,7 +332,43 @@ page 204 (
         }
     )
 
-
+    validation request-rules (
+        name: Justification and counterparty rules
+        execution {
+            sequence: 5
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                -- one rule set for the page and the database; Save / Save as Draft only need the type and a name or party
+                return xxcmp_request_pkg.request_error(
+                           p_request_id            => to_number(:P204_REQUEST_ID),
+                           p_party_selection       => nvl(:P204_PARTY_SELECTION, 'NEW'),
+                           p_party_id              => to_number(:P204_PARTY_ID),
+                           p_party_type            => :P0_PARTY_TYPE,
+                           p_party_name            => :P0_PARTY_NAME,
+                           p_jurisdiction          => :P0_PARTY_JURISDICTION,
+                           p_registration_number   => :P0_PARTY_REGISTRATION_NUMBER,
+                           p_entity_type           => :P0_PARTY_ENTITY_TYPE,
+                           p_registration_type     => :P0_PARTY_REGISTRATION_TYPE,
+                           p_business_relationship => xxcmp_request_pkg.business_relationship(to_number(:P204_REQUEST_ID)),
+                           p_incorporation_date    => to_date(:P0_PARTY_INCORPORATION_DATE),
+                           p_email                 => :P0_PARTY_EMAIL,
+                           p_phone                 => :P0_PARTY_PHONE,
+                           p_justification         => :P204_JUSTIFICATION,
+                           p_draft                 => case when :REQUEST in ('SAVE_DRAFT', 'SAVE') then 'Y' else 'N' end,
+                           -- release 99: no Possible Matches on the request form (Compliance merges a duplicate)
+                           p_match_ack             => 'Y',
+                           p_use_existing          => :P204_USE_EXISTING);
+                ```
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,SAVE_DRAFT,SAVE
+        }
+    )
 
     validation party-dff (
         name: Validate additional information
@@ -176,27 +388,96 @@ page 204 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'PREVIOUS')
+                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'SAVE')
                 and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                 ```
         }
     )
 
-    process set-context (
-        name: The request's party in the common regions
+    process load-request (
+        name: Load the justification and the counterparty
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                :P0_REQUEST_ID := :P204_REQUEST_ID;
-                select max(party_id) into :P0_SUMMARY_PARTY_ID from xxcmp_requests where request_id = :P204_REQUEST_ID;
-                :P0_PARTY_DFF_CONTEXT := null;
+                declare
+                    l_type xxcmp_requests.party_type%type;
+                begin
+                    :P0_REQUEST_ID := :P204_REQUEST_ID;
+                    -- after a failed Next / Save the page shows the posted values (no reload)
+                    if :REQUEST in ('NEXT', 'SAVE', 'SAVE_DRAFT') then
+                        return;
+                    end if;
+                    -- release 100: a fresh answer to Use the existing party for each counterparty
+                    :P204_USE_EXISTING := null;
+                    select party_selection, party_id, justification, party_type
+                      into :P204_PARTY_SELECTION, :P204_PARTY_ID, :P204_JUSTIFICATION, l_type
+                      from xxcmp_requests
+                     where request_id = :P204_REQUEST_ID;
+                    -- the counterparty in the common party form: editable while it is the request's own Pending party
+                    xxcmp_party_pkg.load_items(to_number(:P204_PARTY_ID),
+                        case when xxcmp_request_pkg.party_editable(:P204_REQUEST_ID) = 'Y' then 'N' else 'Y' end);
+                    -- release 103: a new counterparty takes the party type chosen on step 1
+                    :P0_PARTY_TYPE := nvl(:P0_PARTY_TYPE, l_type);
+                    :P0_SUMMARY_PARTY_ID := :P204_PARTY_ID;
+                    :P0_PARTY_DFF_CONTEXT := null;
+                end;
                 ```
         }
         execution {
             sequence: 10
             point: beforeHeader
+        }
+    )
+
+    process save-request (
+        name: Save the justification and the counterparty
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_request_id number := to_number(:P204_REQUEST_ID);
+                begin
+                    -- release 103: step 2 saves the counterparty and the justification; the rest of the request stays
+                    -- as step 1 saved it (XXCMP_REQUEST_PKG.SAVE_COUNTERPARTY)
+                    xxcmp_request_pkg.save_counterparty(
+                        p_request_id          => l_request_id,
+                        p_party_selection     => nvl(:P204_PARTY_SELECTION, 'NEW'),
+                        p_party_id            => to_number(:P204_PARTY_ID),
+                        p_party_type          => :P0_PARTY_TYPE,
+                        p_party_name          => :P0_PARTY_NAME,
+                        p_jurisdiction        => :P0_PARTY_JURISDICTION,
+                        p_registration_number => :P0_PARTY_REGISTRATION_NUMBER,
+                        p_entity_type         => :P0_PARTY_ENTITY_TYPE,
+                        p_registration_type   => :P0_PARTY_REGISTRATION_TYPE,
+                        p_incorporation_date  => to_date(:P0_PARTY_INCORPORATION_DATE),
+                        p_email               => :P0_PARTY_EMAIL,
+                        p_phone               => :P0_PARTY_PHONE,
+                        p_website             => :P0_PARTY_WEBSITE,
+                        p_fax                 => :P0_PARTY_FAX,
+                        p_address             => :P0_PARTY_ADDRESS,
+                        p_justification       => :P204_JUSTIFICATION,
+                        p_draft               => case when :REQUEST in ('SAVE_DRAFT', 'SAVE') then 'Y' else 'N' end,
+                        p_use_existing        => :P204_USE_EXISTING);
+                end;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: processing
+        }
+        successMessage {
+            successMessage: Request saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: NEXT,SAVE_DRAFT,SAVE
+        }
+        security {
+            authorizationScheme: @page-create
         }
     )
 
@@ -219,7 +500,8 @@ page 204 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'PREVIOUS')
+                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'SAVE')
+                and :P0_SUMMARY_PARTY_ID is not null
                 and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
                 ```
         }
@@ -242,7 +524,26 @@ page 204 (
     )
 
     branch (
-        name: Back to counterparty
+        name: Saved - add the documents
+        execution {
+            sequence: 8
+        }
+        behavior {
+            target: {
+                page: 204
+                items: {
+                    P204_REQUEST_ID: &P204_REQUEST_ID.
+                }
+                clearCache: 204
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    branch (
+        name: Back to the request (step 1)
         execution {
             sequence: 10
         }
@@ -273,9 +574,6 @@ page 204 (
                 }
                 clearCache: 203
             }
-        }
-        comments {
-            comments: Release 99 (D3) - the questionnaire is answered on step 1 (risk screening): Next goes to Review and Submit.
         }
         serverSideCondition {
             whenButtonPressed: @next
