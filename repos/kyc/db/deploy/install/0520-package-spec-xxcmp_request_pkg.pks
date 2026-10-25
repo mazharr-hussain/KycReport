@@ -44,6 +44,7 @@ create or replace package xxcmp_request_pkg authid definer as
     -- P_DRAFT = Y checks only what a draft needs (type and name, or the party).
     -- Release 99: the counterparty follows the short request form (XXCMP_PARTY_PKG.PARTY_ERROR, P_REQUEST_FORM = Y); the
     -- business relationship and justification are not asked when the risk screening finds KYC not required.
+    -- Release 104: the business relationship is always required, the business justification never.
     -- Release 100: EXISTING takes any enabled party that is not rejected or cancelled. A NEW counterparty with the
     -- registration type, number and country of another party (XXCMP_PARTY_PKG.EXACT_PARTY_ID, drafts too) is not
     -- created: P_USE_EXISTING null asks to use that party, N asks to change the details, Y uses it (SAVE_REQUEST).
@@ -65,7 +66,7 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_business_relationship in varchar2 default null,
                            p_use_existing        in varchar2 default null) return varchar2;
 
-    -- Create Request step 2 (release 103; step 1 before): creates the DRAFT request (p_request_id null) or updates it (Draft or Information
+    -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
     -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
     -- request's own Pending party); EXISTING links an approved party. A change of type replaces the questionnaire.
     -- The contact person (hidden by the build option REQUEST_CONTACT) becomes the new party's primary contact.
@@ -93,46 +94,6 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_address               in varchar2 default null,
                            p_business_relationship in varchar2 default null,
                            p_use_existing          in varchar2 default null);
-
-    -- Release 103: Create Request step 1 (Request): the requesting department, the party type (it decides the
-    -- screening questionnaire) and the business relationship. Creates the DRAFT request with no party yet (the
-    -- counterparty is entered on step 2, SAVE_REQUEST) or updates it; the party type changes only while the request
-    -- has no party, and a change of type replaces the questionnaire. Department rules as SAVE_REQUEST.
-    procedure save_intake(p_request_id               in out number,
-                          p_party_type               in varchar2,
-                          p_requesting_department_id in number,
-                          p_business_relationship    in varchar2);
-
-    -- Release 103: the rules of step 1 (null = acceptable): the party type; on Next (P_DRAFT = N) the business
-    -- relationship when the risk screening finds a KYC report required.
-    function intake_error(p_request_id            in number,
-                          p_party_type            in varchar2,
-                          p_business_relationship in varchar2,
-                          p_draft                 in varchar2 default 'N') return varchar2;
-
-    -- Release 103: Create Request step 2 (Counterparty): the business justification and the counterparty, through
-    -- SAVE_REQUEST with what step 1 saved (department, business relationship) and the stored contact fields.
-    procedure save_counterparty(p_request_id          in out number,
-                                p_party_selection     in varchar2,
-                                p_party_id            in number,
-                                p_party_type          in varchar2,
-                                p_party_name          in varchar2,
-                                p_jurisdiction        in varchar2,
-                                p_registration_number in varchar2,
-                                p_entity_type         in varchar2,
-                                p_registration_type   in varchar2,
-                                p_incorporation_date  in date,
-                                p_email               in varchar2,
-                                p_phone               in varchar2,
-                                p_website             in varchar2,
-                                p_fax                 in varchar2,
-                                p_address             in varchar2,
-                                p_justification       in varchar2,
-                                p_draft               in varchar2 default 'N',
-                                p_use_existing        in varchar2 default null);
-
-    -- Release 103: the business relationship saved on step 1 (null for an unknown request).
-    function business_relationship(p_request_id in number) return varchar2;
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;

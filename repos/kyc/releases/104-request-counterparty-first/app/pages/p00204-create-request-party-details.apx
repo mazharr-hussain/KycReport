@@ -1,0 +1,542 @@
+page 204 (
+    name: Create Request - Questions
+    alias: CREATE-REQUEST-PARTY-DETAILS
+    title: Create Request - Questions
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            // release 104: the answers go to P204_ANSWERS before every submit (as step 1 before)
+            kycQuestionnaire.bind('screening_questions', 'P204_ANSWERS');
+            ```
+    }
+    help {
+        helpText:
+            ```
+            Step 2 of 3 (release 104): the risk screening questions of the counterparty's type, all on one page. Next saves the answers and goes to Review and Submit, which shows whether a KYC report is required.
+            ```
+    }
+
+    region breadcrumb (
+        name: Create Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region wizard (
+        name: Create Request
+        type: list
+        source {
+            list: @request-wizard
+        }
+        layout {
+            sequence: 5
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: wizard
+        }
+    )
+
+    region screening-questions (
+        name: Screening Questions
+        type: appTemplateComponent/question
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- the questionnaire form from data (as page 202): one group per question, one row per approved option of a
+                -- choice question or one row for a text / number / date answer
+                -- release 104: the requester questionnaire on step 2 - the request's answer rows (step 1 saved the request
+                -- and the questionnaire of the counterparty's type)
+                with q as (
+                    select qu.question_id, a.answer_option_id, a.answer_text, qu.answer_type, qu.required_flag,
+                           qu.display_sequence,
+                           nvl(tl.question_text, qu.question_text) as question_text,
+                           nvl(nvl(tl.section_name, qu.section_name), 'General') as section_name
+                      from xxcmp_questions qu
+                      left join xxcmp_request_answers a on a.question_id = qu.question_id
+                                                       and a.request_id = :P204_REQUEST_ID
+                                                       and a.respondent_type = 'REQUESTER'
+                      left join xxcmp_questions_tl tl on tl.question_id = qu.question_id
+                                                     and tl.language_code = xxfnd_util_pkg.current_lang
+                     where a.request_id is not null)
+                select q.question_id || '-' || o.answer_option_id as row_key,
+                       q.question_id as group_question_id,
+                       q.answer_type as group_answer_type,
+                       q.question_text,
+                       case when q.required_flag = 'Y' then 'Y' end as required,
+                       case when q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then 'Y' end as choice,
+                       -- the section title on its first question; a section's questions stay together, in the order
+                       -- of its first question
+                       case when dense_rank() over (partition by q.section_name
+                                                    order by q.display_sequence, q.question_id) = 1
+                            then q.section_name end as section_title,
+                       case when q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT')
+                            then nvl2(o.answer_option_id, 'OPTION', null)
+                            when q.answer_type in ('TEXT', 'DATE') then q.answer_type
+                            else 'NUMBER' end as row_kind,
+                       o.answer_option_id as option_id,
+                       o.answer_label as option_label,
+                       case when o.answer_option_id = q.answer_option_id then 'Y' end as checked,
+                       case when q.answer_type not in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT') then q.answer_text end as answer_text,
+                       min(q.display_sequence) over (partition by q.section_name) as section_seq,
+                       q.display_sequence as question_seq,
+                       o.display_sequence as option_seq
+                  from q
+                  left join xxcmp_answer_options o
+                    on o.question_id = q.question_id
+                   and q.answer_type in ('YES_NO', 'SINGLE_SELECT', 'MULTI_SELECT')
+                   and o.approval_status = 'APPROVED'
+                   and o.enabled_flag = 'Y'
+                 order by section_seq, q.section_name, question_seq, q.question_id, option_seq, o.answer_option_id
+                ```
+            pageItemsToSubmit: [
+                P204_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: screening_questions
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            rowKind: &ROW_KIND.
+            questionId: &GROUP_QUESTION_ID.
+            optionId: &OPTION_ID.
+            optionLabel: &OPTION_LABEL.
+            checked: &CHECKED.
+            answerText: &ANSWER_TEXT.
+            inputLabel: &QUESTION_TEXT.
+        }
+        plugin-question {
+            groupQuestionId: &GROUP_QUESTION_ID.
+            groupAnswerType: &GROUP_ANSWER_TYPE.
+            questionText: &QUESTION_TEXT.
+            required: &REQUIRED.
+            choice: &CHOICE.
+            sectionTitle: &SECTION_TITLE.
+        }
+        pagination {
+            type: page
+            entitiesPerPage: 1000
+            showTotalCount: false
+        }
+        messages {
+            whenNoDataFound: No questions are configured for this counterparty type.
+        }
+        comments {
+            comments: Release 104 - the requester questionnaire, all questions on one page (no Check: Next saves the answers); kycQuestionnaire (kyc-app.js) collects the answers into P204_ANSWERS and XXCMP_REQUEST_PKG.SAVE_SCREENING checks and saves them. Release 99 (B1): on step 1 before.
+        }
+
+        column ROW_KEY (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: ROW_KEY
+                dataType: varchar2
+                primaryKey: true
+            }
+        )
+
+        column GROUP_QUESTION_ID (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: GROUP_QUESTION_ID
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column GROUP_ANSWER_TYPE (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: GROUP_ANSWER_TYPE
+                dataType: varchar2
+            }
+        )
+
+        column QUESTION_TEXT (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: QUESTION_TEXT
+                dataType: varchar2
+            }
+        )
+
+        column REQUIRED (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: REQUIRED
+                dataType: varchar2
+            }
+        )
+
+        column CHOICE (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: CHOICE
+                dataType: varchar2
+            }
+        )
+
+        column SECTION_TITLE (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: SECTION_TITLE
+                dataType: varchar2
+            }
+        )
+
+        column ROW_KIND (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: ROW_KIND
+                dataType: varchar2
+            }
+        )
+
+        column OPTION_ID (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: OPTION_ID
+                dataType: number
+            }
+        )
+
+        column OPTION_LABEL (
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: OPTION_LABEL
+                dataType: varchar2
+            }
+        )
+
+        column CHECKED (
+            layout {
+                sequence: 110
+            }
+            source {
+                databaseColumn: CHECKED
+                dataType: varchar2
+            }
+        )
+
+        column ANSWER_TEXT (
+            layout {
+                sequence: 120
+            }
+            source {
+                databaseColumn: ANSWER_TEXT
+                dataType: varchar2
+            }
+        )
+
+        column SECTION_SEQ (
+            layout {
+                sequence: 130
+            }
+            source {
+                databaseColumn: SECTION_SEQ
+                dataType: number
+            }
+        )
+
+        column QUESTION_SEQ (
+            layout {
+                sequence: 140
+            }
+            source {
+                databaseColumn: QUESTION_SEQ
+                dataType: number
+            }
+        )
+
+        column OPTION_SEQ (
+            layout {
+                sequence: 150
+            }
+            source {
+                databaseColumn: OPTION_SEQ
+                dataType: number
+            }
+        )
+
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 990
+            slot: BODY
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-actionbar
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+    pageItem P204_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @buttons
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P204_ANSWERS (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @buttons
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Unrestricted on purpose: filled in the browser just before submit by kycQuestionnaire (kyc-app.js). XXCMP_REQUEST_PKG.SAVE_SCREENING keeps only the request's own questions and valid options.
+        }
+    )
+
+    button previous (
+        buttonName: PREVIOUS
+        label: Previous
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: PREVIOUS
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+    )
+
+    button save-draft (
+        buttonName: SAVE_DRAFT
+        label: Save as Draft
+        layout {
+            sequence: 15
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+            executeValidations: false
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button next (
+        buttonName: NEXT
+        label: Next
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process set-context (
+        name: The request in the common regions
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P0_REQUEST_ID := :P204_REQUEST_ID;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-answers (
+        name: Save the answers
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxcmp_request_pkg.save_screening(:P204_REQUEST_ID, :P204_ANSWERS);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Answers saved.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST in ('NEXT', 'SAVE_DRAFT', 'PREVIOUS') and xxcmp_request_pkg.is_editable(:P204_REQUEST_ID) = 'Y'
+                ```
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    branch (
+        name: Draft saved
+        execution {
+            sequence: 5
+        }
+        behavior {
+            target: {
+                page: 200
+                clearCache: 200
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @save-draft
+        }
+    )
+
+    branch (
+        name: Back to the counterparty (step 1)
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P204_REQUEST_ID.
+                }
+                clearCache: 201
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @previous
+        }
+    )
+
+    branch (
+        name: To review and submit
+        execution {
+            sequence: 20
+        }
+        behavior {
+            target: {
+                page: 203
+                items: {
+                    P203_REQUEST_ID: &P204_REQUEST_ID.
+                }
+                clearCache: 203
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @next
+        }
+    )
+
+)

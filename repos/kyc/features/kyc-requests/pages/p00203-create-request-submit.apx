@@ -199,6 +199,41 @@ page 203 (
         }
     )
 
+    pageItem P203_KYC_REQUIRED (
+        type: displayOnly
+        label {
+            label: KYC Report Required
+            alignment: left
+        }
+        layout {
+            sequence: 28
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select /* release 104: the outcome of the answers of step 2 (XXCMP_REQUEST_PKG.SCREENING_OUTCOME, the rule
+                          of the submit); not required - the evidence is attached with the counterparty's documents */
+                       case xxcmp_request_pkg.outcome_kyc_required(xxcmp_request_pkg.screening_outcome(:P203_REQUEST_ID))
+                            when 'Yes' then 'Yes'
+                            when 'No' then 'No - attach the evidence (for example the stock exchange listing or the government ownership document) under Party Documents, then submit: the request is recorded as not requiring KYC.'
+                       end
+                  from dual
+                ```
+            used: always
+        }
+    )
+
     pageItem P203_SUBMIT_CHECK (
         type: displayOnly
         label {

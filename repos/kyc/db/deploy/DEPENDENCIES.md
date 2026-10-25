@@ -17,7 +17,7 @@ table - feature `monitoring` - `kyc/features/monitoring/db/tables/xxcmp_alerts.s
 table - feature `kyc-rules` - `kyc/features/kyc-rules/db/tables/xxcmp_answer_options.sql`
 
 - **Uses**: xxcmp_questions, xxfnd_ddl_pkg [COMMON], xxfnd_lookup_values [COMMON]
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00161-questionnaire.apx, apex:KYC:pages/p00162-question.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00211-case.apx, xxcmp_answer_options_mc, xxcmp_answer_options_ver, xxcmp_config_changes_v, xxcmp_request_answers, xxcmp_request_pkg
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00161-questionnaire.apx, apex:KYC:pages/p00162-question.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00211-case.apx, xxcmp_answer_options_mc, xxcmp_answer_options_ver, xxcmp_config_changes_v, xxcmp_request_answers, xxcmp_request_pkg
 
 ## xxcmp_answer_options_mc
 trigger - feature `kyc-rules` - `kyc/features/kyc-rules/db/triggers/xxcmp_answer_options_mc.sql`
@@ -182,7 +182,7 @@ package spec - feature `parties` - `kyc/features/parties/db/package_specs/xxcmp_
 
 - **Uses**: xxcmp_parties
 - **Uses (body)**: xxcmp_alerts, xxcmp_case_notes, xxcmp_case_pkg, xxcmp_cases, xxcmp_parties, xxcmp_party_contacts, xxcmp_party_id_verifications, xxcmp_party_registry_checks, xxcmp_party_relationships, xxcmp_request_pkg, xxcmp_requests, xxcmp_screenings, xxfnd_attach_pkg [COMMON], xxfnd_attached_documents_v [COMMON], xxfnd_dff_pkg [COMMON], xxfnd_error_pkg [COMMON], xxfnd_lookup_pkg [COMMON], xxfnd_privilege_pkg [COMMON], xxfnd_ui_pkg [COMMON], xxfnd_user_pkg [COMMON], xxfnd_util_pkg [COMMON], xxfnd_vpd_pkg [COMMON]
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00023-party-relationship.apx, apex:KYC:pages/p00024-party-details.apx, apex:KYC:pages/p00025-party-details-step.apx, apex:KYC:pages/p00026-id-verification.apx, apex:KYC:pages/p00027-registry-check.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00222-reassessment.apx, apex:KYC:shared-components/app-processes.apx, apex:KYC:shared-components/authorizations.apx, xxcmp_case_pkg, xxcmp_request_pkg
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00023-party-relationship.apx, apex:KYC:pages/p00024-party-details.apx, apex:KYC:pages/p00025-party-details-step.apx, apex:KYC:pages/p00026-id-verification.apx, apex:KYC:pages/p00027-registry-check.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00222-reassessment.apx, apex:KYC:shared-components/app-processes.apx, apex:KYC:shared-components/authorizations.apx, xxcmp_case_pkg, xxcmp_request_pkg
 
 ## xxcmp_party_registry_checks
 table - feature `parties` - `kyc/features/parties/db/tables/xxcmp_party_registry_checks.sql`
@@ -211,13 +211,13 @@ table - feature `kyc-rules` - `kyc/features/kyc-rules/db/tables/xxcmp_questionna
 table - feature `kyc-rules` - `kyc/features/kyc-rules/db/tables/xxcmp_questions.sql`
 
 - **Uses**: xxcmp_questionnaires, xxfnd_ddl_pkg [COMMON], xxfnd_lookup_types [COMMON]
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00160-questionnaires.apx, apex:KYC:pages/p00161-questionnaire.apx, apex:KYC:pages/p00162-question.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00211-case.apx, xxcmp_answer_options, xxcmp_answer_options_ver, xxcmp_case_pkg, xxcmp_config_changes_v, xxcmp_request_answers, xxcmp_request_pkg
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00160-questionnaires.apx, apex:KYC:pages/p00161-questionnaire.apx, apex:KYC:pages/p00162-question.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00211-case.apx, xxcmp_answer_options, xxcmp_answer_options_ver, xxcmp_case_pkg, xxcmp_config_changes_v, xxcmp_request_answers, xxcmp_request_pkg
 
 ## xxcmp_request_answers
 table - feature `kyc-requests` - `kyc/features/kyc-requests/db/tables/xxcmp_request_answers.sql`
 
 - **Uses**: xxcmp_answer_options, xxcmp_cases, xxcmp_questions, xxcmp_requests
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg, xxcmp_request_pkg
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg, xxcmp_request_pkg
 
 ## xxcmp_request_number_s
 sequence - feature `kyc-requests` - `kyc/features/kyc-requests/db/sequences/xxcmp_request_number_s.sql`
@@ -241,7 +241,7 @@ package spec - feature `kyc-requests` - `kyc/features/kyc-requests/db/package_sp
 table - feature `kyc-requests` - `kyc/features/kyc-requests/db/tables/xxcmp_requests.sql`
 
 - **Uses**: xxcmp_parties, xxcmp_questionnaires
-- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00200-kyc-requests.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00203-create-request-submit.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00205-kyc-request.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00210-cases.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00217-compliance-report.apx, apex:KYC:pages/p00221-alerts.apx, apex:KYC:pages/p00230-executive-dashboard.apx, apex:KYC:shared-components/app-processes.apx, apex:KYC:shared-components/build-options.apx, apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, xxcmp_alerts, xxcmp_case_pkg, xxcmp_cases, xxcmp_monitor_pkg, xxcmp_party_pkg, xxcmp_request_answers, xxcmp_request_pkg, xxcmp_request_ui_pkg, xxcmp_risk_pkg, xxcmp_watchlist_v
+- **Used by**: apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00200-kyc-requests.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00203-create-request-submit.apx, apex:KYC:pages/p00205-kyc-request.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00210-cases.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00217-compliance-report.apx, apex:KYC:pages/p00221-alerts.apx, apex:KYC:pages/p00230-executive-dashboard.apx, apex:KYC:shared-components/app-processes.apx, apex:KYC:shared-components/build-options.apx, apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, xxcmp_alerts, xxcmp_case_pkg, xxcmp_cases, xxcmp_monitor_pkg, xxcmp_party_pkg, xxcmp_request_answers, xxcmp_request_pkg, xxcmp_request_ui_pkg, xxcmp_risk_pkg, xxcmp_watchlist_v
 
 ## xxcmp_rfi_number_s
 sequence - feature `cases` - `kyc/features/cases/db/sequences/xxcmp_rfi_number_s.sql`
@@ -339,10 +339,10 @@ view - feature `monitoring` - `kyc/features/monitoring/db/views/xxcmp_watchlist_
 - `apex:KYC:pages/p00165-approval-matrix.apx`: xxcmp_approval_matrix
 - `apex:KYC:pages/p00167-risk-model.apx`: xxcmp_risk_countries, xxcmp_risk_factors, xxcmp_risk_pkg, xxcmp_risk_tiers, xxfnd_lookup_values [COMMON]
 - `apex:KYC:pages/p00200-kyc-requests.apx`: xxcmp_cases, xxcmp_request_pkg, xxcmp_requests, xxfnd_lookup_pkg [COMMON], xxfnd_ui_pkg [COMMON]
-- `apex:KYC:pages/p00201-create-request.apx`: xxcmp_answer_options, xxcmp_questions, xxcmp_request_answers, xxcmp_request_pkg, xxcmp_requests, xxfnd_lookup_values [COMMON], xxfnd_util_pkg [COMMON], xxhr_organizations [COMMON]
+- `apex:KYC:pages/p00201-create-request.apx`: xxcmp_party_pkg, xxcmp_request_pkg, xxcmp_requests, xxfnd_lookup_values [COMMON], xxhr_organizations [COMMON]
 - `apex:KYC:pages/p00202-create-request-questionnaire.apx`: xxcmp_answer_options, xxcmp_questions, xxcmp_request_answers, xxcmp_request_pkg, xxfnd_util_pkg [COMMON]
 - `apex:KYC:pages/p00203-create-request-submit.apx`: xxcmp_request_pkg, xxcmp_requests, xxfnd_lookup_pkg [COMMON]
-- `apex:KYC:pages/p00204-create-request-party-details.apx`: xxcmp_party_pkg, xxcmp_request_pkg, xxcmp_requests
+- `apex:KYC:pages/p00204-create-request-party-details.apx`: xxcmp_answer_options, xxcmp_questions, xxcmp_request_answers, xxcmp_request_pkg, xxfnd_util_pkg [COMMON]
 - `apex:KYC:pages/p00205-kyc-request.apx`: xxcmp_case_pkg, xxcmp_request_pkg, xxcmp_requests, xxfnd_privilege_pkg [COMMON]
 - `apex:KYC:pages/p00206-kyc-request-approval.apx`: xxcmp_case_pkg, xxcmp_parties, xxcmp_party_pkg, xxcmp_request_pkg, xxcmp_requests, xxfnd_approval_rule_pkg [COMMON], xxfnd_attach_pkg [COMMON], xxfnd_error_pkg [COMMON], xxfnd_privilege_pkg [COMMON], xxfnd_workflow_pkg [COMMON]
 - `apex:KYC:pages/p00210-cases.apx`: xxcmp_cases, xxcmp_parties, xxcmp_requests, xxfnd_lookup_pkg [COMMON], xxfnd_ui_pkg [COMMON]

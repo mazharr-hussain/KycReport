@@ -833,9 +833,11 @@
    "xxfnd_lookup_values"
   ],
   "apex:KYC:pages/p00204-create-request-party-details.apx": [
-   "xxcmp_party_pkg",
+   "xxcmp_answer_options",
+   "xxcmp_questions",
+   "xxcmp_request_answers",
    "xxcmp_request_pkg",
-   "xxcmp_requests"
+   "xxfnd_util_pkg"
   ],
   "apex:KYC:pages/p00160-questionnaires.apx": [
    "xxcmp_questionnaires",
@@ -901,13 +903,10 @@
    "xxfnd_lookup_pkg"
   ],
   "apex:KYC:pages/p00201-create-request.apx": [
-   "xxcmp_answer_options",
-   "xxcmp_questions",
-   "xxcmp_request_answers",
+   "xxcmp_party_pkg",
    "xxcmp_request_pkg",
    "xxcmp_requests",
    "xxfnd_lookup_values",
-   "xxfnd_util_pkg",
    "xxhr_organizations"
   ],
   "apex:KYC:pages/p00162-question.apx": [
@@ -1111,8 +1110,8 @@
    "apex:KYC:pages/p00160-questionnaires.apx",
    "apex:KYC:pages/p00161-questionnaire.apx",
    "apex:KYC:pages/p00162-question.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00202-create-request-questionnaire.apx",
+   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00211-case.apx",
    "xxcmp_answer_options",
    "xxcmp_answer_options_ver",
@@ -1134,8 +1133,8 @@
    "apex:KYC:pages/p00000-global-page.apx",
    "apex:KYC:pages/p00161-questionnaire.apx",
    "apex:KYC:pages/p00162-question.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00202-create-request-questionnaire.apx",
+   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00211-case.apx",
    "xxcmp_answer_options_mc",
    "xxcmp_answer_options_ver",
@@ -1181,7 +1180,6 @@
    "apex:KYC:pages/p00200-kyc-requests.apx",
    "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00203-create-request-submit.apx",
-   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00205-kyc-request.apx",
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:pages/p00210-cases.apx",
@@ -1275,7 +1273,7 @@
    "apex:KYC:pages/p00025-party-details-step.apx",
    "apex:KYC:pages/p00026-id-verification.apx",
    "apex:KYC:pages/p00027-registry-check.apx",
-   "apex:KYC:pages/p00204-create-request-party-details.apx",
+   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:pages/p00222-reassessment.apx",
    "apex:KYC:shared-components/app-processes.apx",
@@ -1285,8 +1283,8 @@
   ],
   "xxcmp_request_answers": [
    "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00202-create-request-questionnaire.apx",
+   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00211-case.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg"

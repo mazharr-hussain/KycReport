@@ -22,7 +22,7 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
 - 201 Create Request - Counterparty (`pages/p00201-create-request.apx`)
 - 202 Create Request - Questionnaire (`pages/p00202-create-request-questionnaire.apx`)
 - 203 Create Request - Review and Submit (`pages/p00203-create-request-submit.apx`)
-- 204 Create Request - Counterparty (`pages/p00204-create-request-party-details.apx`)
+- 204 Create Request - Questions (`pages/p00204-create-request-party-details.apx`)
 - 205 KYC Request (`pages/p00205-kyc-request.apx`)
 - 206 KYC Request Approval (`pages/p00206-kyc-request-approval.apx`)
 
@@ -35,6 +35,7 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
 - Lists: request-wizard
 - Task definitions: CASE_APPROVAL, COUNTERPARTY_MATCH, DOC_CHECKLIST_REVIEW
 - Workflows: KYC_REQUEST
+- buildOption: request-contact
 - APIs: APEX_HUMAN_TASK
 
 ### Custom database objects
@@ -73,7 +74,7 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
 ## Test scripts
 
 - `features/kyc-requests/tests/r100_duplicate_party_test.sql`
-- `features/kyc-requests/tests/r103_request_steps_test.sql`
+- `features/kyc-requests/tests/r104_request_rules_test.sql`
 - `features/kyc-requests/tests/r74_kyc_test.sql`
 - `features/kyc-requests/tests/r99_requester_test.sql`
 - `features/kyc-requests/tests/request_party_test.sql`

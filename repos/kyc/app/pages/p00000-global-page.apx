@@ -59,7 +59,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 204)
+                :APP_PAGE_ID in (23, 24, 201)
                 ```
         }
         readOnly {
@@ -71,7 +71,7 @@ page 0 (
                 ```
         }
         comments {
-            comments: The one party form (common region). Pages 23 (new owner / officer), 24 (Party wizard step 1) and 204 (Create Request step 2, the counterparty - release 103; 201 before) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
+            comments: The one party form (common region). Pages 23 (new owner / officer), 24 (Party wizard step 1) and 201 (Create Request, new counterparty) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
         }
     )
 
@@ -148,8 +148,8 @@ page 0 (
                 select /* release 99: the requester's form names the types as the KYC policy does (COMMON has no routine
                           for an application to rename its lookup meanings: COMMON-ISSUES C15). Release 102: the query
                           must start with SELECT - an item LOV starting with a comment runs as a PL/SQL function body */
-                       case when :APP_PAGE_ID = 204 and lookup_code = 'ORGANIZATION' then 'Legal Person'
-                            when :APP_PAGE_ID = 204 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
+                       case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
+                            when :APP_PAGE_ID = 201 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
                             else meaning end as display_value,
                        lookup_code as return_value
                   from xxfnd_lookup_values
@@ -163,7 +163,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P0_PARTY_ID is not null or :APP_PAGE_ID = 204
+                :P0_PARTY_ID is not null and :APP_PAGE_ID <> 201
                 ```
         }
     )
@@ -341,7 +341,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 204
+                :APP_PAGE_ID <> 201
                 ```
         }
         appearance {
@@ -370,7 +370,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 204
+                :APP_PAGE_ID <> 201
                 ```
         }
         appearance {
@@ -399,7 +399,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 204
+                :APP_PAGE_ID <> 201
                 ```
         }
         appearance {
@@ -428,7 +428,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID <> 204
+                :APP_PAGE_ID <> 201
                 ```
         }
         appearance {
@@ -919,7 +919,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
+                (:APP_PAGE_ID in (21, 25, 201, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
                 ```
         }
         componentAppearance {
@@ -1041,7 +1041,7 @@ page 0 (
             plsqlFunctionBody:
                 ```plsql
                 return xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT,
-                                                case when :APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y') then 'Y' else 'N' end);
+                                                case when :APP_PAGE_ID = 25 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y') then 'Y' else 'N' end);
                 ```
             pageItemsToSubmit: [
                 P0_SUMMARY_PARTY_ID
@@ -1065,7 +1065,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 -- hidden when the party type has no Additional Information fields (release 90: COMMON's rendering returns
                 -- nothing then; no test on the markup)
                 and nvl(dbms_lob.getlength(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N')), 0) > 0
@@ -2008,7 +2008,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (21, 25, 203, 204, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                (:APP_PAGE_ID in (21, 25, 203, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
                 ```
         }
         componentAppearance {
@@ -2159,7 +2159,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                (:APP_PAGE_ID in (25, 203) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
         and xxfnd_attach_pkg.block_permission(:APP_ALIAS, :APP_PAGE_ID, 'party_attachments', 'XXCMP_PARTIES', 'INSERT') = 'Y'
                 ```
         }
@@ -2245,7 +2245,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
         componentAppearance {
@@ -2645,7 +2645,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
                 -- release 99: the questionnaire and the approval path are for Compliance and the approvers; a requester
                 -- (no Cases - View) answered the risk screening on step 1 and sees the next steps instead
                 and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))
@@ -2871,7 +2871,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
                 ```
         }
         componentAppearance {
@@ -3088,7 +3088,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (203, 205, 206) and :P0_REQUEST_ID is not null
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
                 -- release 99: the questionnaire and the approval path are for Compliance and the approvers; a requester
                 -- (no Cases - View) answered the risk screening on step 1 and sees the next steps instead
                 and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))
@@ -3192,80 +3192,6 @@ page 0 (
             }
             layout {
                 sequence: 70
-            }
-        )
-
-    )
-
-    region request-next-steps (
-        name: Next Steps
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                -- release 99 (requester, Review and Submit): what happens once the request is submitted
-                select 1 as step_no, 'Sent for Risk Management Review' as step_name from dual
-                ```
-        }
-        layout {
-            sequence: 63
-            slot: BODY
-        }
-        appearance {
-            template: @/standard
-            templateOptions: #DEFAULT#
-        }
-        advanced {
-            htmlDomId: request_next_steps
-        }
-        serverSideCondition {
-            type: expression
-            language: plsql
-            plsqlExpression:
-                ```plsql
-                :APP_PAGE_ID = 203 and :P0_REQUEST_ID is not null and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
-                ```
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--staticRowColors
-                t-Report--rowHighlight
-                t-Report--horizontalBorders
-            ]
-        }
-        pagination {
-            type: rowRangesXToYOfZWithPagination
-        }
-        reportLayout {
-            numberOfRowsType: staticValue
-            numberOfRows: 50
-        }
-        comments {
-            comments: Release 99 - the requester's view of the approval path on Review and Submit (Compliance and the approvers see Approval History).
-        }
-
-        column STEP_NO (
-            type: plainText
-            heading {
-                heading: Step
-            }
-            layout {
-                sequence: 10
-            }
-        )
-
-        column STEP_NAME (
-            type: plainText
-            heading {
-                heading: Step Name
-            }
-            layout {
-                sequence: 20
             }
         )
 
@@ -3468,7 +3394,7 @@ page 0 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :APP_PAGE_ID in (23, 24, 204)
+                :APP_PAGE_ID in (23, 24, 201)
                 ```
         }
 
@@ -3479,7 +3405,7 @@ page 0 (
                     ```javascript
                     // one column per organisation / individual pair: the label follows the party type
                     var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
-                        requestForm = $v("pFlowStepId") === "204",   // release 103: the requester's KYC request form (step 2)
+                        requestForm = $v("pFlowStepId") === "201",   // release 99: the requester's KYC request form
                         labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
                                    P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
                                    P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
