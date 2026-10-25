@@ -3497,9 +3497,10 @@ page 0 (
                     row("P0_PARTY_ENTITY_TYPE").insertBefore(row("P0_PARTY_NAME"))[person ? "hide" : "show"]();
                     if (person) { apex.item("P0_PARTY_ENTITY_TYPE").setValue(""); }
                     row("P0_PARTY_REGISTRATION_TYPE").insertBefore(row("P0_PARTY_REGISTRATION_NUMBER"));
-                    // release 99: the request form asks an organisation for no registration type or incorporation date
+                    // release 99: the request form asks an organisation for no incorporation date (release 100: the
+                    // registration type is asked - part of the duplicate rule)
                     if (requestForm) {
-                        ["P0_PARTY_REGISTRATION_TYPE", "P0_PARTY_INCORPORATION_DATE"].forEach(function (item) {
+                        ["P0_PARTY_INCORPORATION_DATE"].forEach(function (item) {
                             row(item)[person ? "show" : "hide"]();
                             if (!person) { apex.item(item).setValue(""); }
                         });

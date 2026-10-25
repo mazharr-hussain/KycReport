@@ -1,5 +1,5 @@
--- KYC 99 (requester area): the short request form rules (no registration type for an organisation, no email or
--- phone), the risk screening on step 1 (same outcome as EVALUATE at submit, without changing the request), the seeded
+-- KYC 99 (requester area): the short request form rules (no email or phone; release 100: the registration type is
+-- asked), the risk screening on step 1 (same outcome as EVALUATE at submit, without changing the request), the seeded
 -- ownership question, and the requester's access to the new counterparty's documents. Everything is rolled back.
 -- Needs security_test.sql (REQ1) and the starter questionnaires (18e, 18k).
 set serveroutput on size unlimited feedback off
@@ -37,11 +37,13 @@ begin
     apex_session.create_session(l_app, 201, 'REQ1');
 
     ---------------------------------------------------------------- the short request form
-    ok('organisation without registration type, email or phone: accepted on the request form',
+    -- release 100: the registration type is part of the duplicate rule - asked on the request form too
+    ok('organisation without email or phone: accepted on the request form',
        xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'R99 ' || l_tag, 'AE', 'R99-' || l_tag, 'PRIVATE_COMPANY', null,
-                                   null, null, p_request_form => 'Y') is null
-       or xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'R99 ' || l_tag, 'AE', 'R99-' || l_tag, 'PRIVATE_COMPANY', null,
-                                      null, null, p_request_form => 'Y') = 'Choose the entity type.');
+                                   null, null, p_registration_type => 'COMMERCIAL_REGISTRATION', p_request_form => 'Y') is null);
+    ok('the request form asks for the registration type (release 100)',
+       xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'R99 ' || l_tag, 'AE', 'R99-' || l_tag, 'PRIVATE_COMPANY', null,
+                                   null, null, p_request_form => 'Y') = 'Choose the registration type of the registration number.');
     ok('the party form still asks for the registration type',
        xxcmp_party_pkg.party_error(null, 'ORGANIZATION', 'R99 ' || l_tag, 'AE', 'R99-' || l_tag, 'X', null,
                                    'a@example.com', null) = 'Choose the registration type of the registration number.');

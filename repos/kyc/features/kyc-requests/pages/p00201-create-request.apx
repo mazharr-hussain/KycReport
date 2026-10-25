@@ -678,6 +678,45 @@ page 201 (
         }
     )
 
+    pageItem P201_USE_EXISTING (
+        type: radioGroup
+        label {
+            label: Use the Existing Party
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Yes;Y,No - I will change the details;N
+            displayNullValue: false
+        }
+        layout {
+            sequence: 90
+            region: @request
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                nvl(:P201_PARTY_SELECTION, 'NEW') <> 'EXISTING'
+                and xxcmp_request_pkg.duplicate_party_id(to_number(:P201_REQUEST_ID), :P0_PARTY_TYPE,
+                        :P0_PARTY_REGISTRATION_NUMBER, :P0_PARTY_JURISDICTION, :P0_PARTY_REGISTRATION_TYPE) is not null
+                ```
+        }
+        help {
+            helpText: Another party already has this registration type, registration number and country. Yes - the request uses that party (no new party is created). No - change the registration type, number or country.
+        }
+        comments {
+            comments: Release 100 - shown only when the counterparty duplicates a party (XXCMP_REQUEST_PKG.DUPLICATE_PARTY_ID); XXCMP_REQUEST_PKG.REQUEST_ERROR / SAVE_REQUEST read it.
+        }
+    )
+
     pageItem P201_CONTACT_NAME (
         type: textField
         label {
@@ -968,6 +1007,8 @@ page 201 (
                     if :REQUEST in ('NEXT', 'CHECK', 'SAVE_DRAFT', 'CANCEL_REQUEST') then
                         return;
                     end if;
+                    -- release 100: a fresh answer to Use the existing party for each counterparty
+                    :P201_USE_EXISTING := null;
                     if :P201_REQUEST_ID is not null then
                         select business_relationship into :P201_BUSINESS_RELATIONSHIP from xxcmp_requests where request_id = :P201_REQUEST_ID;
                         select party_selection, case when party_selection = 'EXISTING' then party_id end, request_status,
@@ -1032,7 +1073,8 @@ page 201 (
                            p_justification       => :P201_JUSTIFICATION,
                            p_draft               => case when :REQUEST in ('SAVE_DRAFT', 'CHECK') then 'Y' else 'N' end,
                            -- release 99: no Possible Matches on the request form (Compliance merges a duplicate)
-                           p_match_ack           => 'Y');
+                           p_match_ack           => 'Y',
+                           p_use_existing        => :P201_USE_EXISTING);
                 ```
         }
         serverSideCondition {
@@ -1074,7 +1116,8 @@ page 201 (
                         p_contact_name          => :P201_CONTACT_NAME,
                         p_contact_email         => :P201_CONTACT_EMAIL,
                         p_contact_phone         => :P201_CONTACT_PHONE,
-                        p_match_ack             => 'Y');
+                        p_match_ack             => 'Y',
+                        p_use_existing          => :P201_USE_EXISTING);
                     :P201_REQUEST_ID := l_request_id;
                     -- release 99: the risk screening answers of step 1
                     xxcmp_request_pkg.save_screening(l_request_id, :P201_ANSWERS);

@@ -31,11 +31,22 @@ create or replace package xxcmp_request_pkg authid definer as
     -- party type changed before the check) are left out.
     procedure save_screening(p_request_id in number, p_answers in clob);
 
+    -- Release 100: the other party a NEW counterparty of the request duplicates (XXCMP_PARTY_PKG.EXACT_PARTY_ID; the
+    -- request's own party excluded), or null. Page 201 asks Use the existing party Yes / No when it is set.
+    function duplicate_party_id(p_request_id          in number,
+                                p_party_type          in varchar2,
+                                p_registration_number in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_registration_type   in varchar2) return number;
+
     -- The rules of Create Request step 1 (null = acceptable): EXISTING needs an approved party; NEW follows the
     -- common party form (XXCMP_PARTY_PKG.PARTY_ERROR); the business justification is required.
     -- P_DRAFT = Y checks only what a draft needs (type and name, or the party).
     -- Release 99: the counterparty follows the short request form (XXCMP_PARTY_PKG.PARTY_ERROR, P_REQUEST_FORM = Y); the
     -- business relationship and justification are not asked when the risk screening finds KYC not required.
+    -- Release 100: EXISTING takes any enabled party that is not rejected or cancelled. A NEW counterparty with the
+    -- registration type, number and country of another party (XXCMP_PARTY_PKG.EXACT_PARTY_ID, drafts too) is not
+    -- created: P_USE_EXISTING null asks to use that party, N asks to change the details, Y uses it (SAVE_REQUEST).
     function request_error(p_request_id          in number,
                            p_party_selection     in varchar2,
                            p_party_id            in number,
@@ -51,7 +62,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_draft               in varchar2 default 'N',
                            p_match_ack           in varchar2 default 'Y',
                            p_registration_type   in varchar2 default null,
-                           p_business_relationship in varchar2 default null) return varchar2;
+                           p_business_relationship in varchar2 default null,
+                           p_use_existing        in varchar2 default null) return varchar2;
 
     -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
     -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
@@ -79,7 +91,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_match_ack             in varchar2 default 'Y',
                            p_registration_type     in varchar2 default null,
                            p_address               in varchar2 default null,
-                           p_business_relationship in varchar2 default null);
+                           p_business_relationship in varchar2 default null,
+                           p_use_existing          in varchar2 default null);
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;
@@ -439,6 +452,20 @@ create or replace package body xxcmp_request_pkg as
         return case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then 'Y' else 'N' end;
     end can_choose_department;
 
+    function duplicate_party_id(p_request_id          in number,
+                                p_party_type          in varchar2,
+                                p_registration_number in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_registration_type   in varchar2) return number is
+        l_own number;
+    begin
+        if p_request_id is not null then
+            l_own := get_request(p_request_id).party_id;
+        end if;
+        return xxcmp_party_pkg.exact_party_id(p_party_type, p_registration_number, p_jurisdiction, l_own,
+                                              p_registration_type);
+    end duplicate_party_id;
+
     function request_error(p_request_id          in number,
                            p_party_selection     in varchar2,
                            p_party_id            in number,
@@ -454,28 +481,48 @@ create or replace package body xxcmp_request_pkg as
                            p_draft               in varchar2 default 'N',
                            p_match_ack           in varchar2 default 'Y',
                            p_registration_type   in varchar2 default null,
-                           p_business_relationship in varchar2 default null) return varchar2 is
+                           p_business_relationship in varchar2 default null,
+                           p_use_existing        in varchar2 default null) return varchar2 is
         l_own   number;
+        l_dup   number;
+        l_party xxcmp_parties%rowtype;
         l_error varchar2(4000);
         l_asked boolean := true;
     begin
         if p_party_selection = 'EXISTING' then
             if p_party_id is null then
                 return 'Choose the existing counterparty.';
-            elsif xxcmp_party_pkg.party_status(p_party_id) <> 'APPROVED' or xxcmp_party_pkg.is_enabled(p_party_id) = 'N' then
-                return 'Choose an approved, enabled party.';
+            elsif xxcmp_party_pkg.party_status(p_party_id) in ('REJECTED', 'CANCELLED')
+                  or xxcmp_party_pkg.is_enabled(p_party_id) = 'N' then
+                return 'Choose an enabled party that is not rejected or cancelled.';
             end if;
         else
             -- the request's own party is not a duplicate of itself
             if p_request_id is not null then
                 l_own := get_request(p_request_id).party_id;
             end if;
-            l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
-                                                   p_registration_number, p_entity_type, p_incorporation_date,
-                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type,
-                                                   p_request_form => 'Y');
-            if l_error is not null then
-                return l_error;
+            -- release 100: no duplicate counterparty - the requester uses the existing party (Yes) or changes the
+            -- details (No)
+            l_dup := duplicate_party_id(p_request_id, p_party_type, p_registration_number, p_jurisdiction,
+                                        p_registration_type);
+            if l_dup is not null and nvl(p_use_existing, '#') <> 'Y' then
+                l_party := xxcmp_party_pkg.get_party(l_dup);
+                return case when p_use_existing = 'N'
+                            then 'Change the registration type, registration number or country: party '
+                                 || l_party.party_number || ' - ' || l_party.party_name || ' already has them.'
+                            else 'Party ' || l_party.party_number || ' - ' || l_party.party_name
+                                 || ' already has this registration type, registration number and country. Use the'
+                                 || ' existing party? Choose Yes or No under the counterparty.' end;
+            end if;
+            -- Yes: SAVE_REQUEST links the existing party - its own rules apply, not the form's
+            if l_dup is null then
+                l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
+                                                       p_registration_number, p_entity_type, p_incorporation_date,
+                                                       p_email, p_phone, p_draft, p_match_ack, p_registration_type,
+                                                       p_request_form => 'Y');
+                if l_error is not null then
+                    return l_error;
+                end if;
             end if;
         end if;
         -- release 99: no relationship and justification when the risk screening finds KYC not required
@@ -514,7 +561,8 @@ create or replace package body xxcmp_request_pkg as
                            p_match_ack             in varchar2 default 'Y',
                            p_registration_type     in varchar2 default null,
                            p_address               in varchar2 default null,
-                           p_business_relationship in varchar2 default null) is
+                           p_business_relationship in varchar2 default null,
+                           p_use_existing          in varchar2 default null) is
         l_error    varchar2(4000);
         l_old      xxcmp_requests%rowtype;
         l_party    xxcmp_parties%rowtype;
@@ -522,6 +570,8 @@ create or replace package body xxcmp_request_pkg as
         l_new      boolean := false;
         l_dept     xxcmp_requests.requesting_department_id%type := p_requesting_department_id;
         l_qnr      varchar2(30);
+        l_selection xxcmp_requests.party_selection%type := p_party_selection;
+        l_party_in  number := p_party_id;
     begin
         if p_request_id is not null then
             l_old := get_request(p_request_id);
@@ -536,9 +586,18 @@ create or replace package body xxcmp_request_pkg as
         end if;
         l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
                                  p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone,
-                                 p_justification, p_draft, p_match_ack, p_registration_type, p_business_relationship);
+                                 p_justification, p_draft, p_match_ack, p_registration_type, p_business_relationship,
+                                 p_use_existing);
         if l_error is not null then
             raise_application_error(-20611, l_error);
+        end if;
+        -- release 100: Yes to the duplicate - the request uses the existing party instead of a new one
+        if p_party_selection <> 'EXISTING' and p_use_existing = 'Y' then
+            l_party_in := duplicate_party_id(p_request_id, p_party_type, p_registration_number, p_jurisdiction,
+                                             p_registration_type);
+            if l_party_in is not null then
+                l_selection := 'EXISTING';
+            end if;
         end if;
         -- a rejected request is corrected and submitted again: back to Draft, its own party back to Pending
         if l_old.request_status = 'REJECTED' then
@@ -566,10 +625,10 @@ create or replace package body xxcmp_request_pkg as
             end if;
         end;
 
-        if p_party_selection = 'EXISTING' then
-            l_party_id := p_party_id;
+        if l_selection = 'EXISTING' then
+            l_party_id := l_party_in;
             -- the Pending party this request created before is no longer needed
-            if l_old.party_selection = 'NEW' and l_old.party_id is not null and l_old.party_id <> p_party_id then
+            if l_old.party_selection = 'NEW' and l_old.party_id is not null and l_old.party_id <> l_party_in then
                 release_party(l_old.party_id, p_request_id, 'CANCELLED');
             end if;
         else
@@ -607,7 +666,7 @@ create or replace package body xxcmp_request_pkg as
             l_old := get_request(p_request_id);
         end if;
         update xxcmp_requests
-           set party_selection       = p_party_selection,
+           set party_selection       = l_selection,
                party_id              = l_party_id,
                party_type            = l_party.party_type,
                party_name            = l_party.party_name,
@@ -617,7 +676,7 @@ create or replace package body xxcmp_request_pkg as
                business_relationship = p_business_relationship,
                incorporation_date    = l_party.incorporation_date,
                jurisdiction          = l_party.jurisdiction,
-               match_status          = case when p_party_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
+               match_status          = case when l_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
                match_ack_flag        = case when p_match_ack = 'Y' then 'Y' else 'N' end,
                contact_name          = trim(p_contact_name),
                contact_email         = trim(p_contact_email),
