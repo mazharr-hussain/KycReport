@@ -18,3 +18,4 @@ begin
     -- (XXCMP_PARTY_CONTACTS_U1 became one primary contact person per party in release 23: 16f)
 end;
 /
+

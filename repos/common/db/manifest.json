@@ -183,14 +183,14 @@
   ],
   "upgrade_units": [
    "common/db/scripts/05-core-packages-part-1-of-2-upgrade/01-step.sql",
-   "common/db/package_specs/xxfnd_schema_pkg.pks",
-   "common/db/package_bodies/xxfnd_schema_pkg.pkb",
-   "common/db/package_specs/xxfnd_util_pkg.pks",
-   "common/db/package_bodies/xxfnd_util_pkg.pkb",
-   "common/db/package_specs/xxfnd_audit_pkg.pks",
-   "common/db/package_bodies/xxfnd_audit_pkg.pkb",
-   "common/db/views/xxfnd_user_roles_v.sql",
-   "common/db/package_specs/xxfnd_approval_pkg.pks"
+   "common/db/framework/package_specs/xxfnd_schema_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_schema_pkg.pkb",
+   "common/db/framework/package_specs/xxfnd_util_pkg.pks",
+   "common/db/framework/package_bodies/xxfnd_util_pkg.pkb",
+   "common/features/audit-log/db/package_specs/xxfnd_audit_pkg.pks",
+   "common/features/audit-log/db/package_bodies/xxfnd_audit_pkg.pkb",
+   "common/features/users-access/db/views/xxfnd_user_roles_v.sql",
+   "common/features/change-approvals/db/package_specs/xxfnd_approval_pkg.pks"
   ]
  },
  {

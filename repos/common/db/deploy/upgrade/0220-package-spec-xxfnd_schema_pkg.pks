@@ -1,4 +1,3 @@
-
 --------------------------------------------------------------------------------
 -- 03_xxfnd_core_pkgs.sql
 --   XXFND_UTIL_PKG      session user/language, WHO-trigger generator (release 80: lookups in XXFND_LOOKUP_PKG, 05c)
