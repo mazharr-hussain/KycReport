@@ -110,7 +110,7 @@ begin
     l_txt := xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'Other ' || l_tag, 'AE', 'app ' || lower(l_tag), 'LLC',
                                              null, 'x@example.com', null, 'Why', p_registration_type => 'COMMERCIAL_REGISTRATION',
                                              p_business_relationship => 'VENDOR');
-    ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this %: use that party.');
+    ok('same number and country as an existing party is refused: ' || l_txt, l_txt like 'Party P-% already has this registration type, registration number and country. Use the existing party?%');
 
     ---------------------------------------------------------------- a new counterparty becomes a Pending party
     save_org(l_req, 'Draft Org ' || l_tag, null, 'Y');

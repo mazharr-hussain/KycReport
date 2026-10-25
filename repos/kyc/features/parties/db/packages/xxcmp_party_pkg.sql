@@ -22,6 +22,12 @@ create or replace package xxcmp_party_pkg authid definer as
                                 p_jurisdiction        in varchar2,
                                 p_exclude_party_id    in number default null,
                                 p_registration_type   in varchar2 default null) return varchar2;
+    -- Release 100: the party ID of that other party (the same rule), or null - the request form offers to use it.
+    function exact_party_id(p_party_type          in varchar2,
+                            p_registration_number in varchar2,
+                            p_jurisdiction        in varchar2,
+                            p_exclude_party_id    in number default null,
+                            p_registration_type   in varchar2 default null) return number;
 
     -- The rules of the common party form (null = acceptable). Type, name and country required;
     -- organisation: registration number and entity type required; individual: ID type required when an
@@ -29,8 +35,9 @@ create or replace package xxcmp_party_pkg authid definer as
     -- no other party with the same number and country; when similar parties exist the user must confirm
     -- (P_MATCH_ACK = Y) that none of them is this party. P_DRAFT = Y checks only the type and the name.
     -- Release 99: P_REQUEST_FORM = Y is the requester's KYC request form (the short counterparty data Risk Management
-    -- completes later): no registration type for an organisation and no email or phone are asked there, and a party
-    -- with the same number does not stop it (the requester cannot choose an existing party; Compliance merges it).
+    -- completes later): no email or phone are asked there, and a party with the same number is not checked here
+    -- (release 100: XXCMP_REQUEST_PKG.REQUEST_ERROR asks to use the existing party); the registration type is required
+    -- (release 100).
     function party_error(p_party_id            in number,
                          p_party_type          in varchar2,
                          p_party_name          in varchar2,
@@ -349,19 +356,19 @@ create or replace package body xxcmp_party_pkg as
         return upper(regexp_replace(p_value, '[^[:alnum:]]', ''));
     end norm;
 
-    function exact_party_number(p_party_type          in varchar2,
-                                p_registration_number in varchar2,
-                                p_jurisdiction        in varchar2,
-                                p_exclude_party_id    in number default null,
-                                p_registration_type   in varchar2 default null) return varchar2 is
-        l_id     varchar2(100) := norm(p_registration_number);
-        l_number xxcmp_parties.party_number%type;
+    function exact_party_id(p_party_type          in varchar2,
+                            p_registration_number in varchar2,
+                            p_jurisdiction        in varchar2,
+                            p_exclude_party_id    in number default null,
+                            p_registration_type   in varchar2 default null) return number is
+        l_id    varchar2(100) := norm(p_registration_number);
+        l_party xxcmp_parties.party_id%type;
     begin
         if l_id is null or p_jurisdiction is null then
             return null;
         end if;
-        xxfnd_vpd_pkg.begin_trusted;    -- requesters cannot read the party master; only the number leaves
-        select min(party_number) into l_number
+        xxfnd_vpd_pkg.begin_trusted;    -- requesters cannot read the party master; only the ID leaves
+        select min(party_id) into l_party
           from xxcmp_parties p
          where p.party_type = p_party_type and p.enabled_flag = 'Y' and p.jurisdiction = p_jurisdiction
            and p.party_status not in ('REJECTED', 'CANCELLED')
@@ -370,11 +377,22 @@ create or replace package body xxcmp_party_pkg as
            -- the same registration / ID type too: another type (or none recorded) is a different registration
            and nvl(p.registration_type, '#') = nvl(p_registration_type, '#');
         xxfnd_vpd_pkg.end_trusted;
-        return l_number;
+        return l_party;
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
             raise;
+    end exact_party_id;
+
+    function exact_party_number(p_party_type          in varchar2,
+                                p_registration_number in varchar2,
+                                p_jurisdiction        in varchar2,
+                                p_exclude_party_id    in number default null,
+                                p_registration_type   in varchar2 default null) return varchar2 is
+        l_party number := exact_party_id(p_party_type, p_registration_number, p_jurisdiction, p_exclude_party_id,
+                                         p_registration_type);
+    begin
+        return case when l_party is not null then get_party(l_party).party_number end;
     end exact_party_number;
 
     function party_error(p_party_id            in number,
@@ -404,7 +422,9 @@ create or replace package body xxcmp_party_pkg as
             return 'Enter the registration number.';
         elsif p_party_type = 'ORGANIZATION' and p_entity_type is null then
             return 'Choose the entity type.';
-        elsif p_party_type = 'ORGANIZATION' and p_registration_type is null and p_request_form = 'N' then
+        -- release 100: the registration type (CR, passport, ID ...) is part of the duplicate rule - required on the
+        -- request form too
+        elsif p_party_type = 'ORGANIZATION' and p_registration_type is null then
             return 'Choose the registration type of the registration number.';
         elsif p_party_type = 'PERSON' and trim(p_registration_number) is not null and p_registration_type is null then
             return 'Choose the ID type of the ID number.';
@@ -417,7 +437,8 @@ create or replace package body xxcmp_party_pkg as
         end if;
         l_exact := exact_party_number(p_party_type, p_registration_number, p_jurisdiction, p_party_id,
                                       p_registration_type);
-        -- release 99: the requester cannot choose an existing party - Compliance merges a duplicate counterparty
+        -- release 100: on the request form the duplicate is the request's rule (XXCMP_REQUEST_PKG.REQUEST_ERROR: use
+        -- the existing party Yes / No)
         if l_exact is not null and p_request_form = 'N' then
             return 'Party ' || l_exact || ' already has this '
                    || lower(case when p_party_type = 'PERSON' then 'ID type' else 'registration type' end) || ', '
@@ -986,8 +1007,8 @@ create or replace package body xxcmp_party_pkg as
             end if;
             fld('Identity', field_label(l_p.party_type, 'JURISDICTION'), xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', l_p.jurisdiction));
             fld('Identity', field_label(l_p.party_type, 'REGISTRATION_NUMBER'), l_p.registration_number,
-                case when p_request_form = 'N' or l_p.party_type = 'PERSON'
-                     then xxfnd_lookup_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type) end);
+                -- release 100: the registration type is shown on the request form too (part of the duplicate rule)
+                xxfnd_lookup_pkg.lookup_meaning(registration_lookup(l_p.party_type), l_p.registration_type));
             if p_request_form = 'N' then
                 fld('Identity', field_label(l_p.party_type, 'INCORPORATION_DATE'), to_char(l_p.incorporation_date, 'DD-MON-YYYY'));
                 fld('Contact', 'Email', l_p.email, null, null, case when l_p.email is not null then 'mailto:' || l_p.email end);
