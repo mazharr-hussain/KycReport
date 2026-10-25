@@ -1,6 +1,16 @@
-# home
+# Home
 
 Feature of KYC Compliance Platform. Copied as it is from the current application (no change).
+
+## Purpose
+The KYC landing page.
+
+## Usage
+Page 1: KPI tiles (department requests, my tasks, information requested from me), Create Request; page 10010 About.
+
+## Benefit
+Each user starts from what needs their action.
+
 
 ## Uses (objects of these features are named in its files)
 cases, common:information-requests, common:lookups, common:roles-privileges, common:workflow-setup, kyc-requests
@@ -9,5 +19,4 @@ cases, common:information-requests, common:lookups, common:roles-privileges, com
 -
 
 ## Files
-- `pages/p00001-home.apx`
-- `pages/p10010-about.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

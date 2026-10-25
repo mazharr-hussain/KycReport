@@ -47,6 +47,4 @@ The application creates audit triggers on its tables with `XXFND_AUDIT_PKG.CREAT
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_audit_pkg.sql`
-- `db/tables/xxfnd_audit_log.sql`
-- `pages/p00111-audit-log.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

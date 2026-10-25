@@ -47,5 +47,4 @@ Nothing to register: the workflows of every application appear. `XXFND_WORKFLOW_
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p00141-workflow-monitor.apx`
-- `pages/p00142-workflow.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

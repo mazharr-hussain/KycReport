@@ -1,6 +1,16 @@
-# kyc-requests
+# KYC Requests
 
 Feature of KYC Compliance Platform.
+
+## Purpose
+Requesting departments ask for KYC on a counterparty.
+
+## Usage
+200 lists requests; 201-204 create a request (counterparty, risk screening, party details, review and submit); 205 shows a request; 206 is the approval task page.
+
+## Benefit
+One intake that screens risk, avoids duplicate counterparties and routes to approval.
+
 
 ## Release 99 - requester area
 - Create Request is 3 steps: Counterparty (201, with the Risk Screening), Party Details (204), Review and Submit (203);
@@ -20,27 +30,4 @@ cases, common:approval-setup, common:attachments, common:data-security, common:i
 cases, dashboard, home, kyc-rules, monitoring, parties
 
 ## Files
-- `db/packages/xxcmp_approval_pkg.sql`
-- `db/packages/xxcmp_request_pkg.sql`
-- `db/packages/xxcmp_request_ui_pkg.sql`
-- `db/sequences/xxcmp_request_number_s.sql`
-- `db/tables/xxcmp_approval_paths.sql`
-- `db/tables/xxcmp_request_answers.sql`
-- `db/tables/xxcmp_requests.sql`
-- `db/types/xxcmp_history_row.sql`
-- `db/types/xxcmp_history_tab.sql`
-- `pages/p00200-kyc-requests.apx`
-- `pages/p00201-create-request.apx`
-- `pages/p00202-create-request-questionnaire.apx`
-- `pages/p00203-create-request-submit.apx`
-- `pages/p00204-create-request-party-details.apx`
-- `pages/p00205-kyc-request.apx`
-- `pages/p00206-kyc-request-approval.apx`
-- `shared-components/lists.apx`
-- `shared-components/task-definitions/COUNTERPARTY-MATCH.apx`
-- `shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx`
-- `shared-components/workflows/KYC-REQUEST.apx`
-- `tests/r74_kyc_test.sql`
-- `tests/r99_requester_test.sql`
-- `tests/request_party_test.sql`
-- `tests/request_party_ui.py`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

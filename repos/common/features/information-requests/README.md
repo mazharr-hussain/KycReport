@@ -52,13 +52,4 @@ The application creates an RFI with `XXFND_RFI_PKG.CREATE_RFI` (entity, key, rec
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_rfi_pkg.sql`
-- `db/tables/xxfnd_rfis.sql`
-- `db/triggers/xxfnd_rfis_bi.sql`
-- `db/types/xxfnd_qa_row.sql`
-- `db/types/xxfnd_qa_tab.sql`
-- `db/views/xxfnd_qa_history_v.sql`
-- `pages/p00050-provide-information.apx`
-- `shared-components/task-definitions/RFI-RESPONSE.apx`
-- `shared-components/task-definitions/RFI-REVIEW.apx`
-- `shared-components/workflows/RFI.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

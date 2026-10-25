@@ -49,9 +49,4 @@ The application reads the policy that applies with `XXFND_RETENTION_PKG.POLICY_F
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_retention_pkg.sql`
-- `db/seed/xxfnd_retention_policies.sql`
-- `db/tables/xxfnd_retention_policies.sql`
-- `pages/p00112-retention-policies.apx`
-- `pages/p00113-retention-policy.apx`
-- `shared-components/lovs.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

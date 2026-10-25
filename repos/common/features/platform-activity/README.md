@@ -46,4 +46,4 @@ Nothing to do: every registered application appears.
 - in `../../tests/` (whole application)
 
 ## Files
-- `pages/p00170-platform-activity.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

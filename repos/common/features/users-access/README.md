@@ -53,20 +53,4 @@ The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` /
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_auth_pkg.sql`
-- `db/packages/xxfnd_user_pkg.sql`
-- `db/seed/xxfnd_user_roles.sql`
-- `db/seed/xxfnd_users.sql`
-- `db/tables/xxfnd_employees.sql`
-- `db/tables/xxfnd_user_applications.sql`
-- `db/tables/xxfnd_user_roles.sql`
-- `db/tables/xxfnd_users.sql`
-- `db/triggers/xxfnd_user_roles_user.sql`
-- `db/views/xxfnd_user_data_access_v.sql`
-- `db/views/xxfnd_user_role_tree_v.sql`
-- `db/views/xxfnd_user_roles_v.sql`
-- `pages/p00103-users.apx`
-- `pages/p00104-user.apx`
-- `pages/p00183-assign.apx`
-- `pages/p00184-data-access-values.apx`
-- `shared-components/automations/fusion-hcm-sync.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

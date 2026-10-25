@@ -47,6 +47,4 @@ Link to COMMON page 46 (`app: COMMON`) for the record (KYC: page 211); `XXFND_NO
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/tables/xxfnd_communications.sql`
-- `pages/p00045-communications.apx`
-- `pages/p00046-e-mail.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

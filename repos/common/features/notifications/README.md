@@ -50,10 +50,4 @@ The application registers its templates with `XXFND_NOTIFY_PKG.REGISTER_TEMPLATE
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_notify_pkg.sql`
-- `db/tables/xxfnd_notification_templates.sql`
-- `db/tables/xxfnd_notify_channels.sql`
-- `pages/p00109-notification-templates.apx`
-- `pages/p00110-notification-template.apx`
-- `pages/p00116-notification-delivery.apx`
-- `pages/p00117-notification-log.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

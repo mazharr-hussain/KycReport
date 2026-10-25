@@ -47,6 +47,4 @@ An application declares its settings in its own application.apx (appSetting). CO
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_app_setting_pkg.sql`
-- `pages/p10022-application-settings.apx`
-- `pages/p10023-application-setting.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

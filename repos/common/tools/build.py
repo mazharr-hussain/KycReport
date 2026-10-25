@@ -143,6 +143,8 @@ def build(repo, release, out):
                         z.write(os.path.join(d, f), os.path.relpath(os.path.join(d, f), dist_app))
         print('wrote', target)
     deploy(repo, app)
+    import feature_docs                     # every feature's docs/TECHNICAL.md, from the same source
+    feature_docs.run((repo,))
 
 
 KIND = {'tables': 'table', 'views': 'view', 'types': 'type', 'type_bodies': 'type body', 'package_specs': 'package spec',

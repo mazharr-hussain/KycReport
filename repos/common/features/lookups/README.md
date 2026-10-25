@@ -50,10 +50,4 @@ The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REG
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_lookup_pkg.sql`
-- `db/tables/xxfnd_lookup_types.sql`
-- `db/tables/xxfnd_lookup_values.sql`
-- `db/triggers/xxfnd_lookup_values_lvl.sql`
-- `db/views/xxfnd_lookup_values_vl.sql`
-- `pages/p00101-lookups.apx`
-- `pages/p00102-lookup-type.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

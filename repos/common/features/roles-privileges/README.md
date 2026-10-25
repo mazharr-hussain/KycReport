@@ -54,20 +54,4 @@ The application registers its features, privileges, pages, roles and SoD rules w
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_privilege_pkg.sql`
-- `db/seed/xxfnd_roles.sql`
-- `db/tables/xxfnd_feature_pages.sql`
-- `db/tables/xxfnd_features.sql`
-- `db/tables/xxfnd_privileges.sql`
-- `db/tables/xxfnd_role_privileges.sql`
-- `db/tables/xxfnd_roles.sql`
-- `db/tables/xxfnd_sod_rules.sql`
-- `db/triggers/xxfnd_roles_every_role.sql`
-- `db/triggers/xxfnd_sod_rules_order.sql`
-- `db/views/xxfnd_effective_access_v.sql`
-- `pages/p00105-roles.apx`
-- `pages/p00106-role.apx`
-- `pages/p00107-segregation-of-duties.apx`
-- `pages/p00108-segregation-of-duties-rule.apx`
-- `pages/p00182-privileges.apx`
-- `shared-components/lovs.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.

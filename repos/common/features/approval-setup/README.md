@@ -50,11 +50,4 @@ The application registers its approval types and default rule (`XXFND_APPROVAL_R
 - in `../../tests/` (whole application)
 
 ## Files
-- `db/packages/xxfnd_approval_rule_pkg.sql`
-- `db/tables/xxfnd_approval_types.sql`
-- `db/triggers/xxfnd_approval_rule_steps_type.sql`
-- `db/triggers/xxfnd_approval_rules_bi.sql`
-- `db/types/xxfnd_approval_step_row.sql`
-- `db/types/xxfnd_approval_step_tab.sql`
-- `pages/p00148-approval-setup.apx`
-- `pages/p00149-approval-rule.apx`
+See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
