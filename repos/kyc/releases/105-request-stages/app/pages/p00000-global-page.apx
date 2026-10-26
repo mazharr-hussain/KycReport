@@ -1,0 +1,4031 @@
+page 0 (
+    name: Global Page
+
+    region feature-tabs (
+        name: Feature Tabs
+        type: list
+        source {
+            list: @feature-tabs
+        }
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/tabs
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: feature-tabs
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- Only on a tab page of a feature that has more than one tab.
+                select 1
+                  from xxfnd_feature_pages c
+                 where c.app_alias = :APP_ALIAS
+                   and c.page_id   = :APP_PAGE_ID
+                   and c.tab_label is not null
+                   and (select count(*) from xxfnd_feature_pages t
+                         where t.app_alias = c.app_alias and t.feature_code = c.feature_code
+                           and t.tab_label is not null) > 1
+                ```
+        }
+    )
+
+
+    region party-form (
+        name: Party Details
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-form-2col
+        }
+        advanced {
+            htmlDomId: party-form
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (23, 24, 201)
+                ```
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+        comments {
+            comments: The one party form (common region). Pages 23 (new owner / officer), 24 (Party wizard step 1) and 201 (Create Request, new counterparty) fill it with XXCMP_PARTY_PKG.LOAD_ITEMS and save it with their own process; the rules are XXCMP_PARTY_PKG.PARTY_ERROR. Change the party form here, once.
+        }
+    )
+
+    pageItem P0_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @party-form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    pageItem P0_PARTY_READ_ONLY (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @party-form
+            slot: regionBody
+        }
+    )
+
+    pageItem P0_PARTY_NUMBER (
+        type: displayOnly
+        label {
+            label: Party Number
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null and :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_TYPE (
+        type: radioGroup
+        label {
+            label: Party Type
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select /* release 99: the requester's form names the types as the KYC policy does (COMMON has no routine
+                          for an application to rename its lookup meanings: COMMON-ISSUES C15). Release 102: the query
+                          must start with SELECT - an item LOV starting with a comment runs as a PL/SQL function body */
+                       case when :APP_PAGE_ID = 201 and lookup_code = 'ORGANIZATION' then 'Legal Person'
+                            when :APP_PAGE_ID = 201 and lookup_code = 'PERSON' then 'Natural Person (Individual)'
+                            else meaning end as display_value,
+                       lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'PARTY_TYPE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: false
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null and :APP_PAGE_ID <> 201
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 360
+        }
+    )
+
+    pageItem P0_PARTY_JURISDICTION (
+        type: selectList
+        label {
+            label: Country
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'JURISDICTION' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+    )
+
+    pageItem P0_PARTY_REGISTRATION_NUMBER (
+        type: textField
+        label {
+            label: Registration No.
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 100
+        }
+    )
+
+    pageItem P0_PARTY_ENTITY_TYPE (
+        type: selectList
+        label {
+            label: Entity Type
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = xxcmp_party_pkg.entity_lookup(:P0_PARTY_TYPE) and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P0_PARTY_TYPE
+        }
+    )
+
+    pageItem P0_PARTY_REGISTRATION_TYPE (
+        type: selectList
+        label {
+            label: Registration Type
+            alignment: left
+        }
+        layout {
+            sequence: 45
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = xxcmp_party_pkg.registration_lookup(:P0_PARTY_TYPE) and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: P0_PARTY_TYPE
+        }
+    )
+
+    pageItem P0_PARTY_INCORPORATION_DATE (
+        type: datePicker
+        label {
+            label: Incorporation Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P0_PARTY_EMAIL (
+        type: textField
+        label {
+            label: Email
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 320
+        }
+    )
+
+    pageItem P0_PARTY_PHONE (
+        type: textField
+        label {
+            label: Phone
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+    )
+
+    pageItem P0_PARTY_WEBSITE (
+        type: textField
+        label {
+            label: Website
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 500
+        }
+    )
+
+    pageItem P0_PARTY_FAX (
+        type: textField
+        label {
+            label: Fax
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID <> 201
+                ```
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 50
+        }
+    )
+
+    pageItem P0_PARTY_ADDRESS (
+        type: textarea
+        label {
+            label: Headquarters Address
+            alignment: left
+        }
+        layout {
+            sequence: 115
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            resizable: true
+            autoHeight: true
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    pageItem P0_PARTY_STATUS (
+        type: displayOnly
+        label {
+            label: Party Status
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null and :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_NEXT_KYC_DATE (
+        type: displayOnly
+        label {
+            label: Next KYC Date
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P0_PARTY_ID is not null and :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_DATA_PROVENANCE (
+        type: selectList
+        label {
+            label: Data Provenance
+            alignment: left
+        }
+        layout {
+            sequence: 140
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values
+                 where lookup_type = 'DATA_PROVENANCE' and enabled_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24)
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_LAST_VERIFIED_DATE (
+        type: displayOnly
+        label {
+            label: Last Verified
+            alignment: left
+        }
+        layout {
+            sequence: 150
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24) and :P0_PARTY_ID is not null and :P0_PARTY_READ_ONLY = 'Y'
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 160
+            region: @party-form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 24) and :P0_PARTY_ID is not null
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_MATCH_ACK (
+        type: hidden
+        layout {
+            sequence: 170
+            region: @party-form
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: Answer of the similar-parties dialog (Global Page dynamic action party-match-dialog): Y = none of the possible matches is this party, N = a possible match exists. Stored on a request as MATCH_ACK_FLAG; empty = not answered (the save is stopped).
+        }
+    )
+
+    region request-context (
+        name: Request Context
+        type: staticContent
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (21, 25, 201, 203, 204, 205, 206, 211)
+                ```
+        }
+        comments {
+            comments: Holds the context of the common Party and Request regions: P0_SUMMARY_PARTY_ID (the party shown), P0_REQUEST_ID (the request, empty on the party screens). Each page sets them before header.
+        }
+    )
+
+    pageItem P0_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request-context
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        help {
+            helpText: The case of the case screen (211, release 42): Owners and Officers shows the case's party and each party's screening in the case.
+        }
+    )
+
+    pageItem P0_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request-context
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+    )
+
+    pageItem P0_SUMMARY_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @request-context
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+    )
+
+    region possible_matches (
+        name: Possible Matches
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_id, j.party_number, j.registration_type, j.registration_number,
+                       j.party_name, j.country, j.status, j.score, j.reg_match, j.reasons,
+                       case when :APP_PAGE_ID = 201 then 'Use this party' end as use_party
+                  from json_table(xxcmp_party_pkg.party_candidates_json(:P0_PARTY_TYPE, :P0_PARTY_NAME, :P0_PARTY_REGISTRATION_NUMBER,
+                                      to_date(:P0_PARTY_INCORPORATION_DATE), :P0_PARTY_JURISDICTION, to_number(:P0_PARTY_ID)), '$[*]'
+                         columns (party_id number path '$.party_id', party_number varchar2(30) path '$.party_number',
+                                  registration_type varchar2(240) path '$.registration_type',
+                                  registration_number varchar2(100) path '$.registration_number',
+                                  party_name varchar2(360) path '$.party_name', country varchar2(240) path '$.country',
+                                  status varchar2(80) path '$.status',
+                                  score number path '$.score', reg_match number path '$.reg_match',
+                                  reasons varchar2(1000) path '$.reasons')) j
+                ```
+            pageItemsToSubmit: [
+                P0_PARTY_ID
+                P0_PARTY_TYPE
+                P0_PARTY_NAME
+                P0_PARTY_REGISTRATION_NUMBER
+                P0_PARTY_INCORPORATION_DATE
+                P0_PARTY_JURISDICTION
+            ]
+        }
+        layout {
+            sequence: 35
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: possible_matches
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (23, 24) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No existing party resembles this party.
+        }
+
+        column PARTY_ID (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column PARTY_NUMBER (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column REGISTRATION_TYPE (
+            type: plainText
+            heading {
+                heading: Registration / ID Type
+            }
+            layout {
+                sequence: 25
+            }
+        )
+
+        column REGISTRATION_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration / ID No.
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column COUNTRY (
+            type: plainText
+            heading {
+                heading: Country
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Party Status
+            }
+            layout {
+                sequence: 55
+            }
+        )
+
+        column SCORE (
+            type: plainText
+            heading {
+                heading: Match %
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column REG_MATCH (
+            type: plainText
+            heading {
+                heading: Registration Match %
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column REASONS (
+            type: plainText
+            heading {
+                heading: Why
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column USE_PARTY (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 90
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-use-party" data-party="#PARTY_ID#" data-status="#STATUS#" data-label="#PARTY_NAME# (#PARTY_NUMBER#)">#USE_PARTY#</a>
+                    ```
+            }
+        )
+
+    )
+
+    region party-summary (
+        name: Party
+        type: appTemplateComponent/fieldGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.seq, j.label, j.value, j.meta, j.tone, j.url, j.group_name,
+                       min(j.seq) over (partition by j.group_name) as group_seq
+                  from json_table(xxcmp_party_pkg.card_json(to_number(:P0_SUMMARY_PARTY_ID), to_number(:P0_REQUEST_ID),
+                                     p_request_form => case when :APP_PAGE_ID in (201, 204) then 'Y' else 'N' end), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    meta       varchar2(1000) path '$.meta',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url')) j
+                 order by j.seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+                P0_SUMMARY_PARTY_ID
+            ]
+        }
+        layout {
+            sequence: 25
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_card
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (21, 25, 201, 203, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW')))
+                ```
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            meta: &META.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
+        }
+        messages {
+            whenNoDataFound: No party linked yet.
+        }
+        comments {
+            comments: Common Party region (Global Page): the party in full on the party and request screens (no party status on a request). Release 75 (U-01, U-02): the KYC Field Grid template component - groups Party / Identity / Contact / KYC in a 3-column grid; data from XXCMP_PARTY_PKG.CARD_JSON.
+        }
+
+        column SEQ (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LABEL (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column META (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: META
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_NAME (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+    )
+
+
+
+
+
+
+    region party-dff (
+        name: Additional Information
+        type: dynamicContent
+        source {
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT,
+                                                case when :APP_PAGE_ID = 25 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y') then 'Y' else 'N' end);
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+                P0_PARTY_DFF_CONTEXT
+            ]
+        }
+        layout {
+            sequence: 26
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_dff
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (21, 25, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- hidden when the party type has no Additional Information fields (release 90: COMMON's rendering returns
+                -- nothing then; no test on the markup)
+                and nvl(dbms_lob.getlength(xxcmp_party_pkg.dff_html(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, :P0_PARTY_DFF_CONTEXT, 'N')), 0) > 0
+                ```
+        }
+    )
+
+    pageItem P0_PARTY_DFF_JSON (
+        type: hidden
+        layout {
+            sequence: 900
+            region: @party-dff
+            slot: regionBody
+        }
+        sessionState {
+            dataType: clob
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Unrestricted on purpose: filled in the browser before submit by xxfnd-dff.js (dynamic action bind-party-dff); XXCMP_PARTY_PKG.DFF_ERROR / SAVE_DFF re-validate every value on the server.
+        }
+    )
+
+    pageItem P0_PARTY_DFF_CONTEXT (
+        type: hidden
+        layout {
+            sequence: 901
+            region: @party-dff
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        comments {
+            comments: Unrestricted on purpose: filled in the browser before submit by xxfnd-dff.js (dynamic action bind-party-dff); XXCMP_PARTY_PKG.DFF_ERROR / SAVE_DFF re-validate every value on the server.
+        }
+    )
+
+    dynamicAction bind-party-dff (
+        name: Bind additional information
+        execution {
+            sequence: 1
+        }
+        when {
+            event: ready
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (25, 204, 211)
+                ```
+        }
+
+        action bind-party-dff-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    if (window.xxfndDff) { xxfndDff.bind('party_dff', 'P0_PARTY_DFF_JSON', 'P0_PARTY_DFF_CONTEXT'); }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    region party-contacts (
+        name: Contact Persons
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.party_contact_id, c.contact_name, c.job_title, c.email, c.phone,
+                       case c.primary_flag when 'Y' then 'Y' end as primary_contact,
+                       case c.enabled_flag when 'N' then 'Y' end as enabled,
+                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 22, p_items => 'P22_PARTY_CONTACT_ID,P22_PARTY_ID', p_values => to_char(c.party_contact_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '22') end as edit_url
+                  from xxcmp_party_contacts c
+                 where c.party_id = :P0_SUMMARY_PARTY_ID
+                   and xxcmp_party_pkg.can_view(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                 order by c.primary_flag desc, c.contact_name
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 27
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_contacts
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (21, 25, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- release 99: no contact persons or owners for an individual on Create Request - Party Details
+                and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No contact persons.
+        }
+
+        column PARTY_CONTACT_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column CONTACT_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#CONTACT_NAME#</strong> {if PRIMARY_CONTACT/}<span class="kyc-badge kyc-badge--info">Primary</span>{endif/} {if ENABLED/}<span class="kyc-badge kyc-badge--neutral">Disabled</span>{endif/}
+                    ```
+            }
+        )
+
+        column JOB_TITLE (
+            type: plainText
+            heading {
+                heading: Job Title
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column PHONE (
+            type: plainText
+            heading {
+                heading: Phone
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column PRIMARY_CONTACT (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ENABLED (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    ```
+            }
+        )
+
+    )
+
+    button add-contact (
+        buttonName: ADD_CONTACT
+        label: Add Contact Person
+        layout {
+            sequence: 10
+            region: @party-contacts
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 22
+                items: {
+                    P22_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                }
+                clearCache: 22
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-contacts (
+        name: Refresh contact persons
+        execution {
+            sequence: 55
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-contacts
+        }
+
+        action refresh-contacts-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-contacts
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region party-owners (
+        name: Owners and Officers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select j.party_relationship_id, j.direction, j.related_party, j.relationship_type, j.ownership_percentage, j.beneficial_owner, j.start_date, j.end_date,
+                       case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y' and (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) then apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID', p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url
+                  from json_table(xxcmp_party_pkg.owners_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID), '$[*]'
+                         columns (party_relationship_id number path '$.party_relationship_id', direction varchar2(100) path '$.direction',
+                                  related_party varchar2(400) path '$.related_party', relationship_type varchar2(240) path '$.relationship_type',
+                                  ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
+                                  end_date varchar2(20) path '$.end_date', beneficial_owner varchar2(200) path '$.beneficial_owner')) j
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+                P0_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 28
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_owners
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (21, 25, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                -- release 99: no contact persons or owners for an individual on Create Request - Party Details
+                and (:APP_PAGE_ID <> 204 or xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) <> 'PERSON')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No owners or officers.
+        }
+
+        column PARTY_RELATIONSHIP_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column RELATED_PARTY (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#RELATED_PARTY#</strong>
+                    ```
+            }
+        )
+
+        column RELATIONSHIP_TYPE (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OWNERSHIP_PERCENTAGE (
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column BENEFICIAL_OWNER (
+            type: plainText
+            heading {
+                heading: Beneficial Owner
+            }
+            layout {
+                sequence: 45
+            }
+        )
+
+        column START_DATE (
+            type: plainText
+            heading {
+                heading: Start Date
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column END_DATE (
+            type: plainText
+            heading {
+                heading: End Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    ```
+            }
+        )
+
+    )
+
+    button add-owner (
+        buttonName: ADD_RELATIONSHIP
+        label: Add Owner / Officer
+        layout {
+            sequence: 10
+            region: @party-owners
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 23
+                items: {
+                    P23_OBJECT_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                }
+                clearCache: 23
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (25, 204) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-owners (
+        name: Refresh owners / officers
+        execution {
+            sequence: 56
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-owners
+        }
+
+        action refresh-owners-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-owners
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region ownership-tree (
+        name: Ownership Tree
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 42: the whole ownership tree (owners of owners); on the case screen also the case's party and
+                -- each party's latest screening in the case
+                select j.party_relationship_id, j.lvl, j.direction, j.related_party, j.party_type, j.relationship_type,
+                       j.ownership_percentage, j.start_date, j.end_date, j.country, j.birth_date, j.id_number, j.id_expiry,
+                       j.results, j.conclusion, j.source, j.risk_tier,
+                       j.lvl * 1.5 as indent,
+                       case when l.can_edit = 'Y' and j.lvl = 1 then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_PARTY_RELATIONSHIP_ID,P23_OBJECT_PARTY_ID',
+                                              p_values => to_char(j.party_relationship_id) || ',' || :P0_SUMMARY_PARTY_ID, p_clear_cache => '23') end as edit_url,
+                       -- owners of a related company are added from here too (Compliance)
+                       case when l.can_edit = 'Y' and j.grp = 1 and j.lvl >= 1 and j.party_type_code = 'ORGANIZATION'
+                                 and xxfnd_privilege_pkg.has_privilege('PARTIES', 'MANAGE') then
+                            apex_page.get_url(p_page => 23, p_items => 'P23_OBJECT_PARTY_ID', p_values => to_char(j.related_party_id), p_clear_cache => '23') end as add_owner_url,
+                       case when :APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y' then
+                            apex_page.get_url(p_page => 213, p_items => 'P213_CASE_ID,P213_SCREEN_PARTY_ID,P213_SCREENING_ID',
+                                              p_values => :P0_CASE_ID || ',' || j.related_party_id || ',' || j.screening_id, p_clear_cache => '213') end as screen_url
+                  from (select case when xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                                     and (:APP_PAGE_ID = 211 and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y')
+                                    then 'Y' else 'N' end as can_edit
+                          from dual) l,
+                       json_table(xxcmp_party_pkg.ownership_tree_json(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID, case when :APP_PAGE_ID = 211 then to_number(:P0_CASE_ID) end), '$[*]'
+                         columns (party_relationship_id number path '$.party_relationship_id', grp number path '$.grp', lvl number path '$.lvl',
+                                  direction varchar2(400) path '$.direction', related_party_id number path '$.related_party_id',
+                                  related_party varchar2(400) path '$.related_party', party_type varchar2(240) path '$.party_type',
+                                  party_type_code varchar2(30) path '$.party_type_code',
+                                  relationship_type varchar2(240) path '$.relationship_type',
+                                  ownership_percentage number path '$.ownership_percentage', start_date varchar2(20) path '$.start_date',
+                                  end_date varchar2(20) path '$.end_date', country varchar2(240) path '$.country',
+                                  birth_date varchar2(20) path '$.birth_date', id_number varchar2(100) path '$.id_number',
+                                  id_expiry varchar2(20) path '$.id_expiry', screening_id number path '$.screening_id',
+                                  results varchar2(240) path '$.results', conclusion varchar2(4000) path '$.conclusion',
+                                  source varchar2(1000) path '$.source', risk_tier varchar2(240) path '$.risk_tier')) j
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+                P0_CASE_ID
+            ]
+        }
+        layout {
+            sequence: 29
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: ownership_tree
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 42: the party screen and the case's Ownership Tree section only
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION = 'TREE')) and :P0_SUMMARY_PARTY_ID is not null
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No owners, officers or related parties.
+        }
+
+        column PARTY_RELATIONSHIP_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column LVL (
+            type: hidden
+            layout {
+                sequence: 6
+            }
+        )
+
+        column INDENT (
+            type: hidden
+            layout {
+                sequence: 7
+            }
+        )
+
+        column RELATED_PARTY (
+            type: plainText
+            heading {
+                heading: Party
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <div style="padding-left:#INDENT#rem"><strong>#RELATED_PARTY#</strong><div class="u-color-text-secondary">#PARTY_TYPE#</div></div>
+                    ```
+            }
+        )
+
+        column PARTY_TYPE (
+            type: hidden
+            layout {
+                sequence: 11
+            }
+        )
+
+        column RELATIONSHIP_TYPE (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DIRECTION (
+            type: plainText
+            heading {
+                heading: Relationship
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column OWNERSHIP_PERCENTAGE (
+            type: plainText
+            heading {
+                heading: Ownership %
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column COUNTRY (
+            type: plainText
+            heading {
+                heading: Country / Nationality
+            }
+            layout {
+                sequence: 42
+            }
+        )
+
+        column BIRTH_DATE (
+            type: plainText
+            heading {
+                heading: Incorporation / Birth Date
+            }
+            layout {
+                sequence: 44
+            }
+        )
+
+        column ID_NUMBER (
+            type: plainText
+            heading {
+                heading: Registration / ID No.
+            }
+            layout {
+                sequence: 46
+            }
+        )
+
+        column ID_EXPIRY (
+            type: plainText
+            heading {
+                heading: Document Expiry
+            }
+            layout {
+                sequence: 48
+            }
+        )
+
+        column START_DATE (
+            type: plainText
+            heading {
+                heading: Start Date
+            }
+            layout {
+                sequence: 50
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID <> 211
+                    ```
+            }
+        )
+
+        column END_DATE (
+            type: plainText
+            heading {
+                heading: End Date
+            }
+            layout {
+                sequence: 60
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID <> 211
+                    ```
+            }
+        )
+
+        column RESULTS (
+            type: plainText
+            heading {
+                heading: Results
+            }
+            layout {
+                sequence: 62
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column CONCLUSION (
+            type: plainText
+            heading {
+                heading: Conclusion
+            }
+            layout {
+                sequence: 64
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 66
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column RISK_TIER (
+            type: plainText
+            heading {
+                heading: Risk Level
+            }
+            layout {
+                sequence: 68
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    :APP_PAGE_ID = 211
+                    ```
+            }
+        )
+
+        column ADD_OWNER_URL (
+            type: hidden
+            layout {
+                sequence: 69
+            }
+        )
+
+        column SCREEN_URL (
+            type: hidden
+            layout {
+                sequence: 69
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 70
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a> {endif/}{if ADD_OWNER_URL/}<a href="#ADD_OWNER_URL#">Add Owner</a> {endif/}{if SCREEN_URL/}<a href="#SCREEN_URL#">Screen</a>{endif/}
+                    ```
+            }
+            serverSideCondition {
+                type: expression
+                language: plsql
+                plsqlExpression:
+                    ```plsql
+                    (:APP_PAGE_ID = 211 and xxcmp_case_pkg.is_editable(:P0_CASE_ID) = 'Y') and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                    ```
+            }
+        )
+
+    )
+
+    dynamicAction refresh-ownership-tree (
+        name: Refresh ownership tree
+        execution {
+            sequence: 57
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @ownership-tree
+        }
+
+        action refresh-ownership-tree-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @ownership-tree
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region party-documents (
+        name: Party Documents
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id, a.title, a.category_name, a.document_date, a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id))
+                            when a.datatype_code = 'WEB_PAGE' then a.url end as open_url,
+                       a.created_by, a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = :P0_SUMMARY_PARTY_ID
+                   and xxcmp_party_pkg.can_view(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 29
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_attachments
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (21, 25, 203, 205, 206, 211) and (:APP_PAGE_ID <> 211 or :P211_SECTION in ('DOCUMENTS', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No party documents.
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if OPEN_URL/}<a href="#OPEN_URL#">#TITLE#</a>{else/}#TITLE#{endif/}
+                    ```
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 12
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Document Date
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expiry Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Expired
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    button add-party-document (
+        buttonName: PARTY_ATTACHMENTS_ADD
+        label: Add Document
+        layout {
+            sequence: 10
+            region: @party-documents
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-paperclip
+        }
+        behavior {
+            action: redirectOtherApp
+            target: {
+                app: COMMON
+                page: 47
+                items: {
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: &APP_PAGE_ID.
+                    P47_SOURCE_REGION: party_attachments
+                    P47_ENTITY_NAME: XXCMP_PARTIES
+                    P47_PK1_VALUE: &P0_SUMMARY_PARTY_ID.
+                }
+                clearCache: 47
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID in (25, 203) or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW' and xxcmp_case_pkg.is_editable(:P211_CASE_ID) = 'Y')) and xxcmp_party_pkg.can_edit_details(:P0_SUMMARY_PARTY_ID, :P0_REQUEST_ID) = 'Y'
+        and xxfnd_attach_pkg.block_permission(:APP_ALIAS, :APP_PAGE_ID, 'party_attachments', 'XXCMP_PARTIES', 'INSERT') = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-documents (
+        name: Refresh party documents
+        execution {
+            sequence: 57
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-documents
+        }
+
+        action refresh-party-documents-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-documents
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region request-stages (
+        name: Request Stages
+        type: list
+        source {
+            list: @request-stages
+        }
+        layout {
+            sequence: 4
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/wizard-progress
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_stages
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        comments {
+            comments: Release 105 - the request's stages (Draft, Submitted, Under Review, In Approval, Approved / KYC Not Required / Rejected / Cancelled), current stage highlighted. Standard Wizard Progress list template.
+        }
+    )
+
+    region record-header (
+        name: Request Header
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the header card from data (no HTML from PL/SQL); data security applies
+                select r.request_number || ' · ' || r.party_name as title,
+                       xxfnd_ui_pkg.status_label('REQUEST', r.request_status) as status_label,
+                       xxcmp_request_pkg.status_tone(r.request_status) as status_tone,
+                       -- release 105: everyone sees KYC Required / Not Required; the score only Compliance (Cases - View)
+                       case xxcmp_request_pkg.kyc_required(r.request_id) when 'Yes' then 'KYC Required'
+                                                                          when 'No' then 'KYC Not Required' end as kyc_label,
+                       case xxcmp_request_pkg.kyc_required(r.request_id) when 'No' then 'success' else 'warning' end as kyc_tone,
+                       case when r.intake_score is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                            then 'Score ' || r.intake_score || case when r.intake_critical_flag = 'Y' then ' · critical answer' end
+                       end as score_label,
+                       case when r.intake_critical_flag = 'Y' then 'danger' else 'neutral' end as score_tone,
+                       (select max(c.case_number) from xxcmp_cases c where c.request_id = r.request_id) as case_number,
+                       rtrim(xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_TYPE', r.request_type)
+                             || nvl2(r.business_relationship, ' · ' || xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), null)
+                             || nvl2(coalesce(to_char(r.requesting_department_id), r.requesting_department),   -- release 96
+                                     ' · ' || coalesce(xxcmp_request_pkg.department_name(r.requesting_department_id),
+                                                       xxfnd_lookup_pkg.lookup_meaning('REQUESTING_DEPARTMENT', r.requesting_department)), null),
+                             ' ·') as type_line,
+                       r.requester_user_name as requester,
+                       xxfnd_ui_pkg.person_name(r.requester_user_name) as requester_name,
+                       w.pending_user,
+                       xxfnd_ui_pkg.person_name(w.pending_user) as pending_name,
+                       case when w.pending_user is not null then to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI') end as since
+                  from xxcmp_requests r
+                 cross apply (select case when r.request_status in ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL', 'INFO_NEEDED')
+                                          then xxcmp_request_pkg.pending_with(r.request_id) end as pending_user
+                                from dual) w
+                 where r.request_id = :P0_REQUEST_ID
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 1
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: record_header
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+            ]
+        }
+        heading {
+            type: none
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+        comments {
+            comments: UI/UX standard header card of a request. Release 74: SQL data and the column's HTML template (kyc-hcard classes); kyc-app.js builds the section menu from the regions under it.
+        }
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Request
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <div class="kyc-hcard"><div class="kyc-hcard-top"><span class="kyc-hcard-title">#TITLE#</span><span class="kyc-badge kyc-badge--#STATUS_TONE#">#STATUS_LABEL#</span>{if KYC_LABEL/}<span class="kyc-badge kyc-badge--#KYC_TONE#">#KYC_LABEL#</span>{endif/}{if SCORE_LABEL/}<span class="kyc-badge kyc-badge--#SCORE_TONE#">#SCORE_LABEL#</span>{endif/}{if CASE_NUMBER/}<span class="kyc-badge kyc-badge--info">#CASE_NUMBER#</span>{endif/}</div><div class="kyc-hcard-line">#TYPE_LINE# · requested by <span class="kyc-person" tabindex="0" data-user="#REQUESTER#">#REQUESTER_NAME#</span></div>{if PENDING_USER/}<div class="kyc-hcard-line">Waiting for <b><span class="kyc-person" tabindex="0" data-user="#PENDING_USER#">#PENDING_NAME#</span></b>{if SINCE/} since #SINCE#{endif/}</div>{endif/}</div>
+                    ```
+            }
+        )
+
+        column STATUS_LABEL (
+            type: hidden
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS_TONE (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column KYC_LABEL (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+        column KYC_TONE (
+            type: hidden
+            layout {
+                sequence: 45
+            }
+        )
+
+        column SCORE_LABEL (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+        )
+
+        column SCORE_TONE (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CASE_NUMBER (
+            type: hidden
+            layout {
+                sequence: 70
+            }
+        )
+
+        column TYPE_LINE (
+            type: hidden
+            layout {
+                sequence: 80
+            }
+        )
+
+        column REQUESTER (
+            type: hidden
+            layout {
+                sequence: 90
+            }
+        )
+
+        column REQUESTER_NAME (
+            type: hidden
+            layout {
+                sequence: 100
+            }
+        )
+
+        column PENDING_USER (
+            type: hidden
+            layout {
+                sequence: 110
+            }
+        )
+
+        column PENDING_NAME (
+            type: hidden
+            layout {
+                sequence: 120
+            }
+        )
+
+        column SINCE (
+            type: hidden
+            layout {
+                sequence: 130
+            }
+        )
+
+    )
+
+    region request-details (
+        name: Request
+        type: appTemplateComponent/fieldGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R11): the request's details as data (XXCMP_REQUEST_UI_PKG.DETAILS_JSON)
+                select j.group_name, j.seq, j.label, j.value, j.tone, j.url, j.user_name,
+                         min(j.seq) over (partition by j.group_name) as group_seq,
+                         case when length(j.value) > 80 then 'Y' end as full_width
+                  from json_table(xxcmp_request_ui_pkg.details_json(to_number(:P0_REQUEST_ID)), '$[*]'
+                           columns (group_name varchar2(30)   path '$.group_name',
+                                    seq        number         path '$.seq',
+                                    label      varchar2(100)  path '$.label',
+                                    value      varchar2(4000) path '$.value',
+                                    tone       varchar2(30)   path '$.tone',
+                                    url        varchar2(4000) path '$.url',
+                                    user_name  varchar2(255)  path '$.user_name')) j
+                   order by j.seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_details
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            label: &LABEL.
+            value: &VALUE.
+            tone: &TONE.
+            link: &URL.
+            person: &USER_NAME.
+            fullWidth: &FULL_WIDTH.
+        }
+        plugin-grouping {
+            groupTitle: &GROUP_NAME.
+        }
+        messages {
+            whenNoDataFound: The request is not available.
+        }
+        comments {
+            comments: Release 75 (U-01, U-02): the KYC Field Grid template component (grouped 3-column grid). Release 90: defined once here for the request (205) and its approval (206); each page sets P0_REQUEST_ID before header.
+        }
+
+        column GROUP_NAME (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: GROUP_NAME
+                dataType: varchar2
+            }
+        )
+
+        column SEQ (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: SEQ
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column LABEL (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: LABEL
+                dataType: varchar2
+            }
+        )
+
+        column VALUE (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: VALUE
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: TONE
+                dataType: varchar2
+            }
+        )
+
+        column URL (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: URL
+                dataType: varchar2
+            }
+        )
+
+        column USER_NAME (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: USER_NAME
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_SEQ (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: GROUP_SEQ
+                dataType: number
+            }
+            appearance {
+                group: true
+            }
+        )
+
+        column FULL_WIDTH (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: FULL_WIDTH
+                dataType: varchar2
+            }
+        )
+
+    )
+
+    region checklist (
+        name: Document Checklist
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select c.column_value as category_code,
+                       (select nvl(tl.category_name, dc.category_name) from xxfnd_document_categories dc
+                          left join xxfnd_document_categories_tl tl on tl.category_code = dc.category_code and tl.language_code = xxfnd_util_pkg.current_lang
+                         where dc.category_code = c.column_value) as category,
+                       case when exists (select 1 from xxfnd_attached_documents_v a
+                                          where a.category_code = c.column_value and nvl(a.expired_flag, 'N') = 'N'
+                                            and ((a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P0_REQUEST_ID)
+                                              or (a.entity_name = 'XXCMP_PARTIES' and a.pk1_value = (select to_char(party_id) from xxcmp_requests where request_id = :P0_REQUEST_ID))))
+                            then 'Present' else 'Missing' end as status
+                  from table(xxcmp_doc_rule_pkg.mandatory_categories('XXCMP_PARTIES',
+                                 (select jurisdiction from xxcmp_requests where request_id = :P0_REQUEST_ID),
+                                 (select case when party_type = 'PERSON' then registration_type else entity_type end from xxcmp_requests where request_id = :P0_REQUEST_ID))) c
+                ```
+            pageItemsToSubmit: P0_REQUEST_ID
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: checklist
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No mandatory documents are configured for this counterparty.
+        }
+        comments {
+            comments: Release 90: defined once here for the request (205) and its approval (206) - the mandatory documents of the counterparty and whether each is attached.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+
+        column CATEGORY_CODE (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Mandatory Document
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    region request-answers (
+        name: Questionnaire
+        type: staticContent
+        layout {
+            sequence: 31
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: answer_summary
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 105: also on Review and Submit (203), for the requester to check the answers (the score is
+                -- Compliance's: subregion request-answers-score)
+                :P0_REQUEST_ID is not null
+                and (:APP_PAGE_ID = 203
+                     or (:APP_PAGE_ID in (205, 206)
+                         and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))))
+                ```
+        }
+        comments {
+            comments: Release 74 (R11): the requester's answers as standard reports - the score badges and the question / answer list.
+        }
+    )
+
+    region request-answers-score (
+        name: Questionnaire Score
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(sum(nvl(o.risk_points, 0)), 0) as risk_points,
+                       count(case when o.critical_flag = 'Y' then 1 end) as critical_answers,
+                       count(case when nvl(o.risk_points, 0) > 0 and nvl(o.critical_flag, 'N') = 'N' then 1 end) as risk_answers
+                  from xxcmp_request_answers a
+                  left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
+                having count(*) > 0
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 105: the score is Compliance's (contributor, L1, L2), not the requester's
+                xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @request-answers
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/badge-list
+            templateOptions: [
+                #DEFAULT#
+                t-BadgeList--flex
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 1
+        }
+        messages {
+            whenNoDataFound: No answers yet.
+        }
+
+        column RISK_POINTS (
+            type: plainText
+            heading {
+                heading: Risk Points
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CRITICAL_ANSWERS (
+            type: plainText
+            heading {
+                heading: Critical Answers
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column RISK_ANSWERS (
+            type: plainText
+            heading {
+                heading: Risk Answers
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+    )
+
+    region request-answers-list (
+        name: Questionnaire Answers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select q.display_sequence,
+                       q.question_text,
+                       nvl(coalesce(o.answer_label, a.answer_text), '-') as answer,
+                       -- release 105: the risk flags are Compliance's, not the requester's
+                       case when not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW') then null
+                            when o.critical_flag = 'Y' then 'Critical' when nvl(o.risk_points, 0) > 0 then 'Risk' end as flag,
+                       case when o.critical_flag = 'Y' then 'danger' else 'warning' end as flag_tone
+                  from xxcmp_request_answers a
+                  join xxcmp_questions q on q.question_id = a.question_id
+                  left join xxcmp_answer_options o on o.answer_option_id = a.answer_option_id
+                 where a.request_id = :P0_REQUEST_ID and a.respondent_type = 'REQUESTER'
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            parentRegion: @request-answers
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--horizontalBorders
+            ]
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 500
+        }
+        messages {
+            whenNoDataFound: No answers yet.
+        }
+
+        column DISPLAY_SEQUENCE (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+            sorting {
+                defaultSequence: 1
+            }
+        )
+
+        column QUESTION_TEXT (
+            type: plainText
+            heading {
+                heading: Question
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column ANSWER (
+            type: plainText
+            heading {
+                heading: Answer
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#ANSWER#</strong>{if FLAG/} <span class="kyc-badge kyc-badge--#FLAG_TONE#">#FLAG#</span>{endif/}
+                    ```
+            }
+        )
+
+        column FLAG (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+        )
+
+        column FLAG_TONE (
+            type: hidden
+            layout {
+                sequence: 40
+            }
+        )
+
+    )
+
+    region request-documents (
+        name: Request Documents
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select a.attached_document_id, a.title, a.category_name, a.document_date, a.expiry_date,
+                       case when a.expired_flag = 'Y' then 'Expired' end as expired,
+                       case when a.datatype_code = 'FILE' then
+                           apex_page.get_url(p_page => 1, p_request => 'APPLICATION_PROCESS=DOWNLOAD_DOCUMENT',
+                                             p_items => 'G_DOCUMENT_ID', p_values => to_char(a.document_id))
+                            when a.datatype_code = 'WEB_PAGE' then a.url end as open_url,
+                       a.created_by, a.creation_date
+                  from xxfnd_attached_documents_v a
+                 where a.entity_name = 'XXCMP_REQUESTS' and a.pk1_value = :P0_REQUEST_ID
+                 order by a.seq_num, a.creation_date
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 41
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_attachments
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No documents attached.
+        }
+
+        column ATTACHED_DOCUMENT_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column TITLE (
+            type: plainText
+            heading {
+                heading: Title
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if OPEN_URL/}<a href="#OPEN_URL#">#TITLE#</a>{else/}#TITLE#{endif/}
+                    ```
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 12
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column DOCUMENT_DATE (
+            type: plainText
+            heading {
+                heading: Document Date
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expiry Date
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column EXPIRED (
+            type: plainText
+            heading {
+                heading: Expired
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Added By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column CREATION_DATE (
+            type: plainText
+            heading {
+                heading: Added On
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    button add-request-document (
+        buttonName: REQUEST_ATTACHMENTS_ADD
+        label: Add Document
+        layout {
+            sequence: 10
+            region: @request-documents
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-paperclip
+        }
+        behavior {
+            action: redirectOtherApp
+            target: {
+                app: COMMON
+                page: 47
+                items: {
+                    P47_APP_ALIAS: &APP_ALIAS.
+                    P47_SOURCE_PAGE: 203
+                    P47_SOURCE_REGION: request_attachments
+                    P47_ENTITY_NAME: XXCMP_REQUESTS
+                    P47_PK1_VALUE: &P0_REQUEST_ID.
+                }
+                clearCache: 47
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID = 203 and xxcmp_request_pkg.is_editable(:P0_REQUEST_ID) = 'Y'
+        and xxfnd_attach_pkg.block_permission(:APP_ALIAS, 203, 'request_attachments', 'XXCMP_REQUESTS', 'INSERT') = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-request-documents (
+        name: Refresh request documents
+        execution {
+            sequence: 58
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @request-documents
+        }
+
+        action refresh-request-documents-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @request-documents
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region approval-history (
+        name: Approval History
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 75 (U-09): person names (a role or System stays as it is)
+                select rownum as seq, h.step_no, h.step_name, xxfnd_ui_pkg.person_name(h.assigned_to) as assigned_to, h.action,
+                       xxfnd_ui_pkg.person_name(h.action_by) as action_by,
+                       to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
+                  from table(xxcmp_request_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                 order by seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 62
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: approval_history
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (205, 206) and :P0_REQUEST_ID is not null
+                -- release 99: the questionnaire and the approval path are for Compliance and the approvers; a requester
+                -- (no Cases - View) answered the risk screening on step 1 and sees the next steps instead
+                and (:APP_PAGE_ID = 206 or xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW'))
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: No approval path applies.
+        }
+        comments {
+            comments: One table for the approval path and its history: what happened (who, when, comments), then the current step (Pending) and the steps to come (Waiting); before submit, the expected steps.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column STEP_NO (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Step Name
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ASSIGNED_TO (
+            type: plainText
+            heading {
+                heading: Approver
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Action / Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ACTION_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ACTION_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comments
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    region request-history-requester (
+        name: History
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 99 (requester, View Request): the request's history without the approvers; the requester's own
+                -- actions read "Request Submitted", "Request Withdrawn"...
+                select rownum as seq, h.step_no,
+                       case when h.step_name = 'Request' then 'Request ' || h.action else h.step_name end as step_name,
+                       h.action, xxfnd_ui_pkg.person_name(h.action_by) as action_by,
+                       to_char(h.action_date, 'DD-MON-YYYY HH24:MI') as action_date, h.comments
+                  from table(xxcmp_request_pkg.history_rows(to_number(:P0_REQUEST_ID))) h
+                 order by seq
+                ```
+            pageItemsToSubmit: [
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 64
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request_history_requester
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID = 205 and :P0_REQUEST_ID is not null and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 50
+        }
+        messages {
+            whenNoDataFound: Nothing has happened to the request yet.
+        }
+        comments {
+            comments: Release 99 - the requester's view of Approval History on View Request: no approver column.
+        }
+
+        column SEQ (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column STEP_NO (
+            type: plainText
+            heading {
+                heading: Step
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STEP_NAME (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column ACTION (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ACTION_BY (
+            type: plainText
+            heading {
+                heading: By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column ACTION_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column COMMENTS (
+            type: plainText
+            heading {
+                heading: Comments
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+    )
+
+    dynamicAction refresh-matches (
+        name: Look for similar parties
+        execution {
+            sequence: 30
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (23, 24) and nvl(:P0_PARTY_READ_ONLY, 'N') <> 'Y'
+                ```
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P0_PARTY_TYPE,P0_PARTY_NAME,P0_PARTY_REGISTRATION_NUMBER,P0_PARTY_INCORPORATION_DATE,P0_PARTY_JURISDICTION
+        }
+
+        action refresh-matches-reset (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.item("P0_PARTY_MATCH_ACK").setValue("");   // asked again on the next save
+                    ```
+            }
+            execution {
+                sequence: 5
+                fireOnInit: false
+            }
+        )
+
+        action refresh-matches-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @possible_matches
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+
+
+    dynamicAction party-form-labels (
+        name: Party form - labels by party type
+        execution {
+            sequence: 10
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P0_PARTY_TYPE
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :APP_PAGE_ID in (23, 24, 201)
+                ```
+        }
+
+        action party-form-labels-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    // one column per organisation / individual pair: the label follows the party type
+                    var person = apex.item("P0_PARTY_TYPE").getValue() === "PERSON",
+                        requestForm = $v("pFlowStepId") === "201",   // release 99: the requester's KYC request form
+                        labels = { P0_PARTY_JURISDICTION: ["Country", "Nationality"],
+                                   P0_PARTY_REGISTRATION_NUMBER: ["Registration No.", "ID Number"],
+                                   P0_PARTY_REGISTRATION_TYPE: ["Registration Type", "ID Type"],
+                                   P0_PARTY_INCORPORATION_DATE: ["Incorporation Date", "Date of Birth"],
+                                   P0_PARTY_ADDRESS: ["Headquarters Address", "Address"] };
+                    if (requestForm) {
+                        labels.P0_PARTY_NAME = ["Name (as per CR / Official Documents)", "Full name as per Official Document (in English)"];
+                        labels.P0_PARTY_INCORPORATION_DATE = ["Incorporation Date", "Date of Birth as per Official Document"];
+                    }
+                    Object.keys(labels).forEach(function (item) {
+                        $("#" + item + "_LABEL").text(labels[item][person ? 1 : 0]);
+                    });
+                    // order: organisation = Entity Type before Name, Registration Type before Registration No.;
+                    // individual = no entity type (category of organisations only), ID Type before ID Number
+                    var row = function (item) { return $("#" + item + "_CONTAINER").closest(".row"); };
+                    row("P0_PARTY_ENTITY_TYPE").insertBefore(row("P0_PARTY_NAME"))[person ? "hide" : "show"]();
+                    if (person) { apex.item("P0_PARTY_ENTITY_TYPE").setValue(""); }
+                    row("P0_PARTY_REGISTRATION_TYPE").insertBefore(row("P0_PARTY_REGISTRATION_NUMBER"));
+                    // release 99: the request form asks an organisation for no incorporation date (release 100: the
+                    // registration type is asked - part of the duplicate rule)
+                    if (requestForm) {
+                        ["P0_PARTY_INCORPORATION_DATE"].forEach(function (item) {
+                            row(item)[person ? "show" : "hide"]();
+                            if (!person) { apex.item(item).setValue(""); }
+                        });
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    region party-id-verifications (
+        name: ID Verifications
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): identity document checks of the individual (manual)
+                select v.id_verification_id,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_DOCUMENT_TYPE', v.document_type) as document_type,
+                       v.document_number,
+                       xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', v.issuing_country) as issuing_country,
+                       v.expiry_date,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_VERIFICATION_METHOD', v.verification_method) as verification_method,
+                       xxfnd_lookup_pkg.lookup_meaning('ID_VERIFICATION_RESULT', v.verification_result) as verification_result,
+                       decode(v.verification_result, 'VERIFIED', 'success', 'NOT_VERIFIED', 'danger', 'warning') as result_tone,
+                       xxfnd_ui_pkg.person_name(v.verified_by) as verified_by,
+                       v.verified_date,
+                       case when (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y' then apex_page.get_url(p_page => 26, p_items => 'P26_ID_VERIFICATION_ID,P26_PARTY_ID,P26_CASE_ID', p_values => to_char(v.id_verification_id) || ',' || :P0_SUMMARY_PARTY_ID || ',' || v.case_id, p_clear_cache => '26') end as edit_url
+                  from xxcmp_party_id_verifications v
+                 where v.party_id = :P0_SUMMARY_PARTY_ID
+                 order by v.verified_date desc, v.id_verification_id desc
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_id_verifications
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') and xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) = 'PERSON'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: No identity document checked yet.
+        }
+        comments {
+            comments: Release 74 (R14): identity document checks of an individual, recorded by hand (Compliance only).
+        }
+
+        column ID_VERIFICATION_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column DOCUMENT_TYPE (
+            type: plainText
+            heading {
+                heading: Document
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#DOCUMENT_TYPE#</strong> #DOCUMENT_NUMBER#
+                    ```
+            }
+        )
+
+        column DOCUMENT_NUMBER (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+        )
+
+        column ISSUING_COUNTRY (
+            type: plainText
+            heading {
+                heading: Issued By
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column EXPIRY_DATE (
+            type: plainText
+            heading {
+                heading: Expires
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column VERIFICATION_METHOD (
+            type: plainText
+            heading {
+                heading: How Checked
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column VERIFICATION_RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 50
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RESULT_TONE#">#VERIFICATION_RESULT#</span>
+                    ```
+            }
+        )
+
+        column RESULT_TONE (
+            type: hidden
+            layout {
+                sequence: 55
+            }
+        )
+
+        column VERIFIED_BY (
+            type: plainText
+            heading {
+                heading: Checked By
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column VERIFIED_DATE (
+            type: plainText
+            heading {
+                heading: Checked On
+            }
+            layout {
+                sequence: 70
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+        )
+
+    )
+
+    button add-id-verification (
+        buttonName: ADD_ID_VERIFICATION
+        label: Add ID Verification
+        layout {
+            sequence: 10
+            region: @party-id-verifications
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 26
+                items: {
+                    P26_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                    P26_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 26
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-id-verifications (
+        name: Refresh id verifications
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-id-verifications
+        }
+
+        action refresh-party-id-verifications-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-id-verifications
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    region party-registry-checks (
+        name: Registry Checks
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 74 (R14): company registry (KYB) checks of the organisation (manual now, from a provider later)
+                select r.registry_check_id,
+                       r.registry_name,
+                       r.external_reference,
+                       xxfnd_lookup_pkg.lookup_meaning('DATA_SOURCE', r.source) as source,
+                       xxfnd_lookup_pkg.lookup_meaning('REGISTRATION_STATUS', r.registration_status) as registration_status,
+                       xxfnd_lookup_pkg.lookup_meaning('REGISTRY_CHECK_RESULT', r.check_result) as check_result,
+                       decode(r.check_result, 'MATCH', 'success', 'MISMATCH', 'danger', 'warning') as result_tone,
+                       xxfnd_ui_pkg.person_name(r.checked_by) as checked_by,
+                       r.checked_date,
+                       case when r.source = 'API' then nvl(xxfnd_ui_pkg.person_name(r.reviewed_by), 'Not reviewed') end as reviewed_by,
+                       case r.changed_by_person_flag when 'Y' then 'Changed by a person' end as changed,
+                       case when (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y' then apex_page.get_url(p_page => 27, p_items => 'P27_REGISTRY_CHECK_ID,P27_PARTY_ID,P27_CASE_ID', p_values => to_char(r.registry_check_id) || ',' || :P0_SUMMARY_PARTY_ID || ',' || r.case_id, p_clear_cache => '27') end as edit_url
+                  from xxcmp_party_registry_checks r
+                 where r.party_id = :P0_SUMMARY_PARTY_ID
+                 order by r.checked_date desc, r.registry_check_id desc
+                ```
+            pageItemsToSubmit: [
+                P0_SUMMARY_PARTY_ID
+                P0_REQUEST_ID
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: party_registry_checks
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION in ('PARTY', 'REVIEW'))) and :P0_SUMMARY_PARTY_ID is not null and xxfnd_privilege_pkg.has_privilege('PARTIES', 'VIEW') and xxcmp_party_pkg.party_type(:P0_SUMMARY_PARTY_ID) = 'ORGANIZATION'
+                ```
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--staticRowColors
+                t-Report--rowHighlight
+                t-Report--horizontalBorders
+            ]
+        }
+        pagination {
+            type: rowRangesXToYOfZWithPagination
+        }
+        reportLayout {
+            numberOfRowsType: staticValue
+            numberOfRows: 20
+        }
+        messages {
+            whenNoDataFound: No registry check yet.
+        }
+        comments {
+            comments: Release 74 (R14): company registry (KYB) checks of an organisation - by hand now, from a registry provider later (Compliance only).
+        }
+
+        column REGISTRY_CHECK_ID (
+            type: hidden
+            layout {
+                sequence: 5
+            }
+        )
+
+        column REGISTRY_NAME (
+            type: plainText
+            heading {
+                heading: Registry
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <strong>#REGISTRY_NAME#</strong> #EXTERNAL_REFERENCE#
+                    ```
+            }
+        )
+
+        column EXTERNAL_REFERENCE (
+            type: hidden
+            layout {
+                sequence: 15
+            }
+        )
+
+        column SOURCE (
+            type: plainText
+            heading {
+                heading: Source
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    #SOURCE#{if CHANGED/} <span class="kyc-badge kyc-badge--neutral">#CHANGED#</span>{endif/}
+                    ```
+            }
+        )
+
+        column REGISTRATION_STATUS (
+            type: plainText
+            heading {
+                heading: Registry Status
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column CHECK_RESULT (
+            type: plainText
+            heading {
+                heading: Result
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <span class="kyc-badge kyc-badge--#RESULT_TONE#">#CHECK_RESULT#</span>
+                    ```
+            }
+        )
+
+        column RESULT_TONE (
+            type: hidden
+            layout {
+                sequence: 45
+            }
+        )
+
+        column CHECKED_BY (
+            type: plainText
+            heading {
+                heading: Checked By
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CHECKED_DATE (
+            type: plainText
+            heading {
+                heading: Checked On
+            }
+            layout {
+                sequence: 60
+            }
+            sorting {
+                defaultSequence: 1
+                direction: desc
+            }
+        )
+
+        column REVIEWED_BY (
+            type: plainText
+            heading {
+                heading: Reviewed By
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CHANGED (
+            type: hidden
+            layout {
+                sequence: 75
+            }
+        )
+
+        column EDIT_URL (
+            type: plainText
+            heading {
+                heading: Action
+            }
+            layout {
+                sequence: 80
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {if EDIT_URL/}<a href="#EDIT_URL#">Edit</a>{endif/}
+                    ```
+            }
+        )
+
+    )
+
+    button add-registry-check (
+        buttonName: ADD_REGISTRY_CHECK
+        label: Add Registry Check
+        layout {
+            sequence: 10
+            region: @party-registry-checks
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 27
+                items: {
+                    P27_PARTY_ID: &P0_SUMMARY_PARTY_ID.
+                    P27_CASE_ID: &P211_CASE_ID.
+                }
+                clearCache: 27
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                (:APP_PAGE_ID = 21 or (:APP_PAGE_ID = 211 and :P211_SECTION <> 'REVIEW')) and xxcmp_party_pkg.can_record_verification(:P0_SUMMARY_PARTY_ID, case when :APP_PAGE_ID = 211 then :P211_CASE_ID end) = 'Y'
+                ```
+        }
+    )
+
+    dynamicAction refresh-party-registry-checks (
+        name: Refresh registry checks
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @party-registry-checks
+        }
+
+        action refresh-party-registry-checks-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @party-registry-checks
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

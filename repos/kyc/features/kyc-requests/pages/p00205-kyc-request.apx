@@ -88,6 +88,80 @@ page 205 (
         }
     )
 
+    pageItem P205_SUBMITTED (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        comments {
+            comments: Release 105: Y right after the requester submits - the outcome message pops up once.
+        }
+    )
+
+    pageItem P205_SUBMIT_MESSAGE (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @request
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    process submit-message (
+        name: Submit outcome message
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 105: KYC not required / submitted for the KYC report (request package), shown once
+                :P205_SUBMIT_MESSAGE := case when :P205_SUBMITTED = 'Y'
+                                             then xxcmp_request_pkg.submit_message(to_number(:P205_REQUEST_ID)) end;
+                :P205_SUBMITTED := null;
+                ```
+        }
+        execution {
+            sequence: 50
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction show-submit-message (
+        name: Show the submit outcome
+        execution {
+            sequence: 6
+        }
+        when {
+            event: ready
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_SUBMIT_MESSAGE
+        }
+
+        action show-submit-message-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.message.alert($v("P205_SUBMIT_MESSAGE"));
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
     pageItem P205_OPEN_ASSIGN (
         type: hidden
         layout {

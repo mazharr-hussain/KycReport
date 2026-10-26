@@ -64,6 +64,7 @@ One guided investigation with the evidence, risk decision and approvals in one p
     - `db/scripts/16v-performance/01-xxfnd_ddl_pkg-ensure_index.sql`
     - `db/scripts/16x-case-department/01-add_column-xxcmp_cases.sql`
     - `db/scripts/16y-department-id/01-add_column-xxcmp_requests.sql`
+    - `db/scripts/16z-request-stages/03-update-xxcmp_requests.sql`
     - `db/scripts/18e-kyc-requests-cases/01-mark_release-r13.sql`
     - `db/scripts/18h-register-with-common/01-release_applied-r10.sql`
 

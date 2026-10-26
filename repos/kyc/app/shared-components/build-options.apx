@@ -57,3 +57,15 @@ buildOption request-contact (
         comments: Contact person fields on Create Request (page 201). Excluded: the fields stay in XXCMP_REQUESTS but are hidden. Set to Include to show them.
     }
 )
+
+buildOption request-approve (
+    name: Request - Approve / Add Approver
+    status {
+        status: exclude
+        defaultOnExport: exclude
+        onUpgradeKeepStatus: true
+    }
+    comments {
+        comments: Release 105 - Approve and Add Approver on the request approval page (206). Excluded: stage 1 decides with Assign (approves and gives the case to the contributor), Request Information or Reject. Set to Include to show them again.
+    }
+)

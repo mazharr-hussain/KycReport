@@ -66,7 +66,7 @@ page 203 (
     )
 
     region summary (
-        name: Summary
+        name: Request
         type: staticContent
         layout {
             sequence: 20
@@ -75,6 +75,7 @@ page 203 (
         appearance {
             template: @/standard
             templateOptions: #DEFAULT#
+            cssClasses: kyc-form-2col
         }
         advanced {
             htmlDomId: summary
@@ -194,6 +195,93 @@ page 203 (
                 select party_name || ' (' || xxfnd_lookup_pkg.lookup_meaning('PARTY_TYPE', party_type)
                        || nvl2(jurisdiction, ', ' || xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', jurisdiction), null) || ')'
                   from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_DEPARTMENT (
+        type: displayOnly
+        label {
+            label: Requesting Department
+            alignment: left
+        }
+        layout {
+            sequence: 12
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxcmp_request_pkg.department_name(requesting_department_id) from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_REQUESTING_COUNTRY (
+        type: displayOnly
+        label {
+            label: Requesting Country
+            alignment: left
+        }
+        layout {
+            sequence: 14
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', requesting_country) from xxcmp_requests where request_id = :P203_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+    pageItem P203_JUSTIFICATION (
+        type: displayOnly
+        label {
+            label: Business Justification
+            alignment: left
+        }
+        layout {
+            sequence: 27
+            region: @summary
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select justification from xxcmp_requests where request_id = :P203_REQUEST_ID
                 ```
             used: always
         }
@@ -555,9 +643,6 @@ page 203 (
             sequence: 10
             point: processing
         }
-        successMessage {
-            successMessage: Request submitted.
-        }
         serverSideCondition {
             whenButtonPressed: @submit
         }
@@ -576,13 +661,33 @@ page 203 (
                 page: 205
                 items: {
                     P205_REQUEST_ID: &P203_REQUEST_ID.
+                    P205_SUBMITTED: Y
+                }
+                clearCache: 205
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @submit
+        }
+    )
+
+    branch (
+        name: To the request (answer sent)
+        execution {
+            sequence: 15
+        }
+        behavior {
+            target: {
+                page: 205
+                items: {
+                    P205_REQUEST_ID: &P203_REQUEST_ID.
                 }
                 clearCache: 205
             }
         }
         serverSideCondition {
             type: requestIsContainedInValue
-            value: SUBMIT,RESPOND
+            value: RESPOND
         }
     )
 

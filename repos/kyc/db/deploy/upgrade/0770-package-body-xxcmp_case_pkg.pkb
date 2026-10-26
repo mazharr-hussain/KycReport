@@ -70,7 +70,7 @@ create or replace package body xxcmp_case_pkg as
           from xxcmp_cases c where c.party_id = p_party_id;
         l_req  := xxcmp_request_pkg.create_case_request(p_party_id, p_justification, l_rel);
         l_case := create_case(l_req, xxfnd_util_pkg.current_user);
-        xxcmp_request_pkg.close_without_case(l_req);       -- the request and its party are Approved (request package)
+        xxcmp_request_pkg.case_opened(l_req);       -- release 105: the request is Under Review, its party approved (request package)
         return l_case;
     end create_manual_case;
 
@@ -211,6 +211,7 @@ create or replace package body xxcmp_case_pkg as
         l_wf := xxfnd_workflow_pkg.start_process('KYC_CASE', to_char(p_case_id), l_init);
         update xxcmp_cases set workflow_id = l_wf where case_id = p_case_id;
         xxfnd_vpd_pkg.end_trusted;
+        xxcmp_request_pkg.case_changed(l_case.request_id, 'INVESTIGATION');   -- release 105: the request follows its case
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -451,10 +452,15 @@ create or replace package body xxcmp_case_pkg as
     end approval_error;
 
     procedure set_approval_status(p_case_id in number, p_from in varchar2, p_to in varchar2) is
+        l_rows pls_integer;
     begin
         xxfnd_vpd_pkg.begin_trusted;
         update xxcmp_cases set case_status = p_to where case_id = p_case_id and case_status = p_from;
+        l_rows := sql%rowcount;
         xxfnd_vpd_pkg.end_trusted;
+        if l_rows > 0 then
+            xxcmp_request_pkg.case_changed(request_of(p_case_id), p_to);   -- release 105: the request follows its case
+        end if;
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -546,6 +552,7 @@ create or replace package body xxcmp_case_pkg as
                                          then systimestamp end
          where case_id = p_case_id;
         xxfnd_vpd_pkg.end_trusted;
+        xxcmp_request_pkg.case_changed(request_of(p_case_id), 'PENDING_APPROVAL');   -- release 105: In Approval
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
@@ -587,6 +594,7 @@ create or replace package body xxcmp_case_pkg as
         -- the party's next KYC date follows its latest decided case (cleared when the KYC is rejected)
         update xxcmp_parties set next_kyc_date = l_next where party_id = l_case.party_id;
         xxfnd_vpd_pkg.end_trusted;
+        xxcmp_request_pkg.case_changed(l_case.request_id, p_decision);   -- release 105: the request is Approved / Rejected
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;

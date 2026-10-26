@@ -35,7 +35,7 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
 - Lists: request-wizard
 - Task definitions: CASE_APPROVAL, COUNTERPARTY_MATCH, DOC_CHECKLIST_REVIEW
 - Workflows: KYC_REQUEST
-- buildOption: request-contact
+- buildOption: request-approve, request-contact
 - APIs: APEX_HUMAN_TASK
 
 ### Custom database objects
@@ -61,6 +61,10 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
     - `db/scripts/16w-case-assignment/01-add_column-xxcmp_requests.sql`
     - `db/scripts/16x-case-department/01-add_column-xxcmp_cases.sql`
     - `db/scripts/16y-department-id/01-add_column-xxcmp_requests.sql`
+    - `db/scripts/16z-request-stages/01-add_column-xxcmp_requests.sql`
+    - `db/scripts/16z-request-stages/02-drop_constraint-xxcmp_requests_ck3.sql`
+    - `db/scripts/16z-request-stages/03-update-xxcmp_requests.sql`
+    - `db/scripts/16z-request-stages/04-add_constraint-xxcmp_requests_ck3.sql`
     - `db/scripts/18h-register-with-common/01-release_applied-r10.sql`
     - `db/scripts/18k-requester-screening/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/admin/qd-users-and-roles/01-xxfnd_privilege_pkg-register_role.sql`
@@ -69,12 +73,12 @@ One intake that screens risk, avoids duplicate counterparties and routes to appr
 
 - Uses: XXCMP_ANSWER_OPTIONS, XXCMP_CASES, XXCMP_CASE_PKG, XXCMP_DOC_RULE_PKG, XXCMP_PARTIES, XXCMP_PARTY_CONTACTS, XXCMP_PARTY_PKG, XXCMP_QUESTIONNAIRES, XXCMP_QUESTIONS, XXFND_APPROVAL_RULES, XXFND_APPROVAL_RULE_PKG, XXFND_ATTACHED_DOCUMENTS_V, XXFND_ATTACH_PKG, XXFND_DOCUMENT_CATEGORIES, XXFND_ERROR_PKG, XXFND_LOOKUP_PKG, XXFND_LOOKUP_VALUES, XXFND_PRIVILEGE_PKG, XXFND_RFIS, XXFND_RFI_PKG, XXFND_UI_PKG, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES, XXHR_ORGANIZATIONS
 - Used by objects: XXCMP_ALERTS, XXCMP_CASES, XXCMP_CASE_PKG, XXCMP_MONITOR_PKG, XXCMP_PARTY_PKG, XXCMP_RISK_PKG, XXCMP_WATCHLIST_V
-- Used by KYC pages / components: 0, 1, 20, 200, 201, 202, 203, 204, 205, 206, 210, 211, 217, 221, 230, COUNTERPARTY-MATCH, DOC-CHECKLIST-REVIEW, KYC-REQUEST, app-processes, build-options
+- Used by KYC pages / components: 0, 1, 20, 200, 201, 202, 203, 204, 205, 206, 210, 211, 217, 221, 230, lists, COUNTERPARTY-MATCH, DOC-CHECKLIST-REVIEW, KYC-REQUEST, app-processes, build-options
 
 ## Test scripts
 
-- `features/kyc-requests/tests/r100_duplicate_party_test.sql`
 - `features/kyc-requests/tests/r104_request_rules_test.sql`
+- `features/kyc-requests/tests/r105_request_stages_test.sql`
 - `features/kyc-requests/tests/r74_kyc_test.sql`
 - `features/kyc-requests/tests/r99_requester_test.sql`
 - `features/kyc-requests/tests/request_party_test.sql`

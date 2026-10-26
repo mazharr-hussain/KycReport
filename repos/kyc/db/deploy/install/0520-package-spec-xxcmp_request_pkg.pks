@@ -45,6 +45,7 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Release 99: the counterparty follows the short request form (XXCMP_PARTY_PKG.PARTY_ERROR, P_REQUEST_FORM = Y); the
     -- business relationship and justification are not asked when the risk screening finds KYC not required.
     -- Release 104: the business relationship is always required, the business justification never.
+    -- Release 105: no duplicate check (P_USE_EXISTING is no longer used); the requesting country is required.
     -- Release 100: EXISTING takes any enabled party that is not rejected or cancelled. A NEW counterparty with the
     -- registration type, number and country of another party (XXCMP_PARTY_PKG.EXACT_PARTY_ID, drafts too) is not
     -- created: P_USE_EXISTING null asks to use that party, N asks to change the details, Y uses it (SAVE_REQUEST).
@@ -64,7 +65,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_match_ack           in varchar2 default 'Y',
                            p_registration_type   in varchar2 default null,
                            p_business_relationship in varchar2 default null,
-                           p_use_existing        in varchar2 default null) return varchar2;
+                           p_use_existing        in varchar2 default null,
+                           p_requesting_country  in varchar2 default null) return varchar2;
 
     -- Create Request step 1: creates the DRAFT request (p_request_id null) or updates it (Draft or Information
     -- Needed, by its requester). NEW creates the counterparty as a party with status Pending (or updates the
@@ -93,7 +95,8 @@ create or replace package xxcmp_request_pkg authid definer as
                            p_registration_type     in varchar2 default null,
                            p_address               in varchar2 default null,
                            p_business_relationship in varchar2 default null,
-                           p_use_existing          in varchar2 default null);
+                           p_use_existing          in varchar2 default null,
+                           p_requesting_country    in varchar2 default null);
 
     -- Y when the signed-in user may change the request (its requester, while Draft or Information Needed).
     function is_editable(p_request_id in number) return varchar2;
@@ -145,7 +148,21 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Workflow steps (KYC_REQUEST). Run as system steps, not limited by data security.
     procedure evaluate(p_request_id in number);
     function outcome(p_request_id in number) return varchar2;
+    -- Release 105: KYC not required / auto-approved: the request is closed as KYC Not Required, its party approved.
     procedure close_without_case(p_request_id in number);
+    -- Release 105: the request's case is open (Under Review); its party is approved. Used by OPEN_CASE and the manual
+    -- case (XXCMP_CASE_PKG.CREATE_MANUAL_CASE).
+    procedure case_opened(p_request_id in number);
+    -- Release 105: the case is the child of the request - the case package reports each change of the case status and
+    -- the request follows it: Investigation = Under Review, Pending Approval = In Approval, Pending Information =
+    -- Information Needed, Approved / Rejected / Cancelled the same.
+    procedure case_changed(p_request_id in number, p_case_status in varchar2);
+    -- Release 105: the badge tone of a request status (info / warning / success / danger / neutral). The request's own
+    -- rule: COMMON's XXFND_UI_PKG.STATUS_TONE('REQUEST') does not know the stages (listed in COMMON-ISSUES).
+    function status_tone(p_status in varchar2) return varchar2;
+    -- Release 105: the message shown to the requester after Submit - KYC not required (the request is closed as KYC
+    -- Not Required) or submitted for the KYC report.
+    function submit_message(p_request_id in number) return varchar2;
     -- release 74: the request asks the case package to open the case (XXCMP_CASE_PKG.CREATE_CASE), then the request and
     -- its party are Approved here.
     procedure open_case(p_request_id in number);
@@ -196,6 +213,18 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Release 90 (page 206): Y when the user may decide the request's approval task P_TASK_ID (a document checklist
     -- task the user may approve or claim): Approve, Reject, Request Information.
     function can_decide(p_task_id in number) return varchar2;
+    -- Release 105 (stage 1, initial assessment): the user's open document checklist task on the request (null when
+    -- there is none they may decide).
+    function assignable_task(p_request_id in number) return number;
+    -- Release 105: Assign = the stage 1 decision. Gives the request's case to the contributor (SET_CASE_ASSIGNEE) and
+    -- approves the document checklist task P_TASK_ID of the request: the approval that opens the case creates it for
+    -- that person (OPEN_CASE). P_COMMENT is kept on the task.
+    procedure assign_request(p_request_id in number, p_task_id in number, p_user_name in varchar2,
+                             p_comment in varchar2 default null);
+    -- Release 105: Assign on KYC Requests (200) for several requests (colon-separated IDs) to one contributor; a
+    -- request without a checklist task of the user is skipped. Returns how many were assigned.
+    function assign_requests(p_request_ids in varchar2, p_user_name in varchar2, p_comment in varchar2 default null)
+        return number;
     -- Y when the current approver may add an approver after them (the Approval Setup approval has started and the task
     -- is open).
     function can_add_approver(p_request_id in number, p_task_id in number) return varchar2;

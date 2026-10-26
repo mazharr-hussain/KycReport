@@ -7,7 +7,7 @@ create or replace package body xxcmp_monitor_pkg as
         select max(request_number) into l_number
           from xxcmp_requests
          where party_id = p_party_id
-           and request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED');
+           and request_status in ('DRAFT','SUBMITTED','UNDER_REVIEW','IN_APPROVAL','INFO_NEEDED');
         return l_number;
     end open_review;
 

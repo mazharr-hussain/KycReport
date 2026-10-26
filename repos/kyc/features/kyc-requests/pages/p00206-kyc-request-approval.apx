@@ -626,6 +626,40 @@ page 206 (
                 xxcmp_request_pkg.can_decide(:P206_TASK_ID) = 'Y'
                 ```
         }
+        config {
+            buildOption: @request-approve
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 25
+            region: @decision-buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ASSIGN
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 90: one check in the request package (the document checklist task the user may approve or claim)
+                xxcmp_request_pkg.can_decide(:P206_TASK_ID) = 'Y'
+                ```
+        }
+        comments {
+            comments: Release 105 (stage 1) - Assign approves the document checklist and gives the case to the contributor chosen in the dialog (XXCMP_REQUEST_PKG.ASSIGN_REQUEST).
+        }
     )
 
     button approve-top (
@@ -653,6 +687,40 @@ page 206 (
                 -- release 90: one check in the request package (the document checklist task the user may approve or claim)
                 xxcmp_request_pkg.can_decide(:P206_TASK_ID) = 'Y'
                 ```
+        }
+        config {
+            buildOption: @request-approve
+        }
+    )
+
+    button assign-top (
+        buttonName: ASSIGN_TOP
+        label: Assign
+        layout {
+            sequence: 45
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+            cssClasses: kyc-decide kyc-decide-ASSIGN
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 90: one check in the request package (the document checklist task the user may approve or claim)
+                xxcmp_request_pkg.can_decide(:P206_TASK_ID) = 'Y'
+                ```
+        }
+        comments {
+            comments: Release 105 (stage 1) - Assign approves the document checklist and gives the case to the contributor chosen in the dialog (XXCMP_REQUEST_PKG.ASSIGN_REQUEST).
         }
     )
 
@@ -789,6 +857,9 @@ page 206 (
                 xxcmp_request_pkg.can_add_approver(:P206_REQUEST_ID, :P206_TASK_ID) = 'Y'
                 ```
         }
+        config {
+            buildOption: @request-approve
+        }
     )
 
     button add-approver-top (
@@ -815,6 +886,9 @@ page 206 (
                 -- release 74: the current approver adds an approver after them (Approval Setup, ad-hoc)
                 xxcmp_request_pkg.can_add_approver(:P206_REQUEST_ID, :P206_TASK_ID) = 'Y'
                 ```
+        }
+        config {
+            buildOption: @request-approve
         }
     )
 
@@ -976,6 +1050,33 @@ page 206 (
                 -- request's Assign Case popup (205) instead of choosing the officer in this common approval dialog
                 select xxcmp_request_pkg.opens_case_on_approval(to_number(:P206_REQUEST_ID)) from dual
                 ```
+        }
+    )
+
+    pageItem P206_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Contributor
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 3
+            region: @decision-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        help {
+            helpText: Release 105: who produces the KYC report (stage 2). Assign approves the document checklist and opens the case for this person.
         }
     )
 
@@ -1259,7 +1360,7 @@ page 206 (
             language: plsql
             plsqlExpression:
                 ```plsql
-                :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO')
+                :P206_COMMENT is not null and :P206_TASK_ID is not null and nvl(:P206_DECISION, '#') not in ('SUBMIT_INFO', 'REQUEST_INFO', 'ASSIGN')
                 ```
         }
     )
@@ -1287,6 +1388,35 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'CONFIRM' and :P206_DECISION = 'APPROVE'
+                ```
+        }
+    )
+
+    process assign-task (
+        name: Assign to the contributor
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 105 (stage 1): approves the checklist and gives the case to the contributor (request package)
+                xxcmp_request_pkg.assign_request(to_number(:P206_REQUEST_ID), to_number(:P206_TASK_ID), :P206_ASSIGN_TO,
+                                                 :P206_COMMENT);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Assigned.
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'ASSIGN'
                 ```
         }
     )
@@ -1445,6 +1575,30 @@ page 206 (
             plsqlExpression:
                 ```plsql
                 :REQUEST = 'CONFIRM' and :P206_FILE is not null
+                ```
+        }
+    )
+
+    branch (
+        name: Assigned - to the request
+        execution {
+            sequence: 15
+        }
+        behavior {
+            target: {
+                page: 205
+                items: {
+                    P205_REQUEST_ID: &P206_REQUEST_ID.
+                }
+                clearCache: 205
+            }
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :REQUEST = 'CONFIRM' and :P206_DECISION = 'ASSIGN'
                 ```
         }
     )

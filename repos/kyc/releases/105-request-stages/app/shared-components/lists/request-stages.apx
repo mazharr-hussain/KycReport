@@ -1,0 +1,47 @@
+
+list request-stages (
+    name: Request Stages
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            -- release 105: the request's stages (Draft, Submitted, Under Review, In Approval, Approved) as the Wizard
+            -- Progress of the request pages (205, 206). The current stage follows the request and its case; Information
+            -- Needed stays on the stage it came from; the last step reads the outcome (Approved, KYC Not Required,
+            -- Rejected, Cancelled).
+            with r as (
+                select r.request_status as st,
+                       (select max(c.case_status) keep (dense_rank last order by c.case_id)
+                          from xxcmp_cases c where c.request_id = r.request_id) as case_st
+                  from xxcmp_requests r
+                 where r.request_id = :P0_REQUEST_ID),
+            cur as (
+                select case when st = 'DRAFT' then 1
+                            when st = 'SUBMITTED' then 2
+                            when st = 'UNDER_REVIEW' then 3
+                            when st = 'IN_APPROVAL' then 4
+                            when st = 'INFO_NEEDED' then case case_st when 'INVESTIGATION' then 3
+                                                                      when 'PENDING_INFORMATION' then 4
+                                                                      when 'PENDING_APPROVAL' then 4 else 2 end
+                            else 5 end as step,
+                       xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS',
+                           case when st in ('APPROVED', 'NOT_REQUIRED', 'REJECTED', 'CANCELLED') then st else 'APPROVED' end) as last_label
+                  from r)
+            select null as lvl,
+                   case s.step when 5 then cur.last_label
+                        else xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', s.code) end as label,
+                   null as target,
+                   case when s.step = cur.step then 'YES' else 'NO' end as is_current,
+                   null as image,
+                   null as image_attribute,
+                   null as image_alt
+              from (select 1 as step, 'DRAFT' as code from dual
+                    union all select 2, 'SUBMITTED' from dual
+                    union all select 3, 'UNDER_REVIEW' from dual
+                    union all select 4, 'IN_APPROVAL' from dual
+                    union all select 5, 'APPROVED' from dual) s
+             cross join cur
+             order by s.step
+            ```
+    }
+)
