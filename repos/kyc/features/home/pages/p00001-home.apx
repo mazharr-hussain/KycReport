@@ -53,34 +53,45 @@ page 1 (
                        case when k.cnt = 0 then 'kyc-metric--zero'
                             when k.card_color = 'u-danger' then 'kyc-metric--danger' else 'kyc-metric' end as metric_class
                   from (
-                select 10 as seq, 'My open requests' as card_title, cnt as card_text, cnt,
-                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_REQUESTER_USER_NAME', p_values => :APP_USER) as card_link,
-                       'fa-file-text-o' as card_icon, 'u-info' as card_color
-                  from (select count(*) cnt from xxcmp_requests
-                         where upper(requester_user_name) = upper(:APP_USER) and request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED'))
-                 where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
-                union all
-                -- release 99 (A1): a requester's department - the requests data security lets him see (his own and,
-                -- with access by department, his departments'), open and closed; Compliance has its own tiles
-                select 15, 'Department open requests', cnt, cnt,
-                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_OPEN_CLOSED', p_values => 'Open'),
-                       'fa-building-o', 'u-info'
-                  from (select count(*) cnt from xxcmp_requests where request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED'))
+                -- release 105: the requester's KPIs - the department's requests (what data security lets the requester
+                -- see: their own and their departments') and their own: total, pending information, open (draft
+                -- included), closed; Compliance has its own tiles
+                select s.seq as seq, s.card_title as card_title, s.cnt as card_text, s.cnt as cnt,
+                       apex_page.get_url(p_page => 200, p_request => 'RIR',
+                                         p_items  => trim(both ',' from s.mine_item || ',' || s.filter_item),
+                                         p_values => trim(both ',' from s.mine_value || ',' || s.filter_value)) as card_link,
+                       s.card_icon as card_icon, s.card_color as card_color
+                  from (select g.seq, g.prefix || g.label as card_title,
+                               (select count(*) from xxcmp_requests r
+                                 where (g.mine = 'N' or upper(r.requester_user_name) = upper(:APP_USER))
+                                   and (g.kind = 'TOTAL'
+                                        or (g.kind = 'INFO' and r.request_status = 'INFO_NEEDED')
+                                        or (g.kind = 'OPEN' and r.request_status in ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL', 'INFO_NEEDED'))
+                                        or (g.kind = 'CLOSED' and r.request_status in ('APPROVED', 'NOT_REQUIRED', 'REJECTED', 'CANCELLED')))) as cnt,
+                               case g.mine when 'Y' then 'IR_REQUESTER_USER_NAME' end as mine_item,
+                               case g.mine when 'Y' then :APP_USER end as mine_value,
+                               case g.kind when 'INFO' then 'IR_STAGE' when 'OPEN' then 'IR_OPEN_CLOSED'
+                                           when 'CLOSED' then 'IR_OPEN_CLOSED' end as filter_item,
+                               case g.kind when 'INFO' then xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')
+                                           when 'OPEN' then 'Open' when 'CLOSED' then 'Closed' end as filter_value,
+                               g.card_icon, g.card_color
+                          from (select 1 seq, 'N' mine, 'Department ' prefix, 'TOTAL' kind, 'Total Requests' label, 'fa-building-o' card_icon, 'u-info' card_color from dual
+                                union all select 2, 'N', 'Department ', 'INFO', 'Pending Information Requests', 'fa-question-circle-o', 'u-warning' from dual
+                                union all select 3, 'N', 'Department ', 'OPEN', 'Open Requests', 'fa-folder-open-o', 'u-info' from dual
+                                union all select 4, 'N', 'Department ', 'CLOSED', 'Closed Requests', 'fa-archive', 'u-info' from dual
+                                union all select 5, 'Y', 'My ', 'TOTAL', 'Total Requests', 'fa-file-text-o', 'u-info' from dual
+                                union all select 6, 'Y', 'My ', 'INFO', 'Pending Information Requests', 'fa-question-circle-o', 'u-warning' from dual
+                                union all select 7, 'Y', 'My ', 'OPEN', 'Open Requests', 'fa-folder-open-o', 'u-info' from dual
+                                union all select 8, 'Y', 'My ', 'CLOSED', 'Closed Requests', 'fa-archive', 'u-info' from dual) g) s
                  where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW') and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
                 union all
-                select 16, 'Department closed requests', cnt, cnt,
-                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_OPEN_CLOSED', p_values => 'Closed'),
-                       'fa-archive', 'u-info'
-                  from (select count(*) cnt from xxcmp_requests where request_status in ('APPROVED', 'REJECTED', 'CANCELLED'))
-                 where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW') and not xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
-                union all
-                select 20, 'Pending information', cnt, cnt,
-                       apex_page.get_url(p_page => 200, p_request => 'RIR', p_items => 'IR_STAGE',
-                                         p_values => xxfnd_lookup_pkg.lookup_meaning('KYC_REQUEST_STATUS', 'INFO_NEEDED')),
-                       'fa-question-circle-o', 'u-warning'
-                  from (select count(*) cnt from xxcmp_requests
-                         where upper(requester_user_name) = upper(:APP_USER) and request_status = 'INFO_NEEDED')
-                 where xxfnd_privilege_pkg.has_privilege('KYC_REQUESTS', 'VIEW')
+                -- release 105 (stage 1): L1's new requests - submitted and waiting for the user's initial assessment;
+                -- the tile opens KYC Requests, whose New Requests section lists them for Assign
+                select 25, 'New Requests', cnt, cnt, apex_page.get_url(p_page => 200, p_clear_cache => '200'),
+                       'fa-inbox', 'u-info'
+                  from (select count(*) cnt from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
+                         where state_code in ('ASSIGNED', 'UNASSIGNED') and task_def_static_id = 'DOC_CHECKLIST_REVIEW')
+                 where xxfnd_privilege_pkg.has_privilege('CASE_ASSIGNMENT', 'MANAGE')
                 union all
                 select 30, 'Pending my approval', cnt, cnt, apex_page.get_url(p_application => 'COMMON', p_page => 40), 'fa-check-square-o', 'u-warning'
                   from (select count(*) cnt from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))

@@ -37,7 +37,7 @@ create or replace package body xxcmp_request_ui_pkg as
             fld('Details', 'Submitted', to_char(r.submitted_date, 'DD-MON-YYYY HH24:MI'));
             fld('Details', 'Last action', to_char(r.last_action_date, 'DD-MON-YYYY HH24:MI'));
             fld('Details', 'Status', xxfnd_ui_pkg.status_label('REQUEST', r.request_status),
-                xxfnd_ui_pkg.status_tone('REQUEST', r.request_status));
+                xxcmp_request_pkg.status_tone(r.request_status));
             if l_case.case_id is not null then
                 fld('Details', 'Case', l_case.case_number, null,
                     case when xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')

@@ -26,6 +26,15 @@ declare
         return l_count > 0;
     end has_cons;
 
+    -- release 105: the request statuses of script 18m are in place
+    function request_stages return boolean is
+        l_count pls_integer;
+    begin
+        select count(*) into l_count from user_constraints
+         where constraint_name = 'XXCMP_REQUESTS_CK3' and search_condition_vc like '%UNDER_REVIEW%';
+        return l_count > 0;
+    end request_stages;
+
     procedure run(p_sql in varchar2) is
     begin
         execute immediate p_sql;
@@ -89,15 +98,18 @@ begin
     ---------------------------------------------------------------- requests (the counterparty typed on the request)
     merge_pairs('XXCMP_REQUESTS');
     -- statuses: Draft, In Progress, Information Needed, Approved, Rejected, Cancelled
-    for c in (select constraint_name from user_constraints
-               where constraint_name = 'XXCMP_REQUESTS_CK3' and search_condition_vc like '%SUBMITTED%') loop
-        run('alter table xxcmp_requests drop constraint xxcmp_requests_ck3');
-    end loop;
-    run(q'[update xxcmp_requests set request_status = 'IN_PROGRESS' where request_status = 'SUBMITTED']');
-    run(q'[update xxcmp_requests set request_status = 'APPROVED'    where request_status = 'COMPLETED']');
-    if not has_cons('XXCMP_REQUESTS_CK3') then
-        run(q'[alter table xxcmp_requests add constraint xxcmp_requests_ck3
-                   check (request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED','APPROVED','REJECTED','CANCELLED'))]');
+    -- release 105: skipped once script 18m has given the request its stages (constraint with UNDER_REVIEW)
+    if not has_cons('XXCMP_REQUESTS_CK3') or not request_stages() then
+        for c in (select constraint_name from user_constraints
+                   where constraint_name = 'XXCMP_REQUESTS_CK3' and search_condition_vc like '%SUBMITTED%') loop
+            run('alter table xxcmp_requests drop constraint xxcmp_requests_ck3');
+        end loop;
+        run(q'[update xxcmp_requests set request_status = 'IN_PROGRESS' where request_status = 'SUBMITTED']');
+        run(q'[update xxcmp_requests set request_status = 'APPROVED'    where request_status = 'COMPLETED']');
+        if not has_cons('XXCMP_REQUESTS_CK3') then
+            run(q'[alter table xxcmp_requests add constraint xxcmp_requests_ck3
+                       check (request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED','APPROVED','REJECTED','CANCELLED'))]');
+        end if;
     end if;
     run(q'[update xxcmp_requests set last_action_date = cast(coalesce(completed_date, submitted_date, last_update_date) as date)
             where last_action_date is null]');

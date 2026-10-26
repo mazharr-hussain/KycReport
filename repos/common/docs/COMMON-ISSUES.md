@@ -162,3 +162,12 @@ COMMON 87 and 88 fixed C1-C6 and C8-C11 (each issue's **Status**); C7 stays open
   (every value) and KYC's Create Request lists every department. KYC's own QD script passes codes and is right.
 - **Needed:** pass the department codes (e.g. FINANCE) to SET_ASSIGNMENT_VALUES in test-users.sql and run it again
   (optionally: SET_ASSIGNMENT_VALUES refuses a value that is not a code of the dimension).
+
+## C17 - XXFND_UI_PKG.STATUS_TONE holds an application's statuses
+- **Status:** Open (found in KYC 105, request stages).
+- **Where:** `XXFND_UI_PKG.STATUS_TONE('REQUEST' / 'CASE' / 'PARTY' / ...)` maps KYC's own status codes to badge tones
+  inside COMMON.
+- **Effect:** KYC 105's request statuses (Submitted, Under Review, In Approval, KYC Not Required) are unknown to it, so
+  KYC uses its own rule (`XXCMP_REQUEST_PKG.STATUS_TONE`) for the request badge.
+- **Needed:** an application-neutral tone, e.g. from the status lookup value's tag (TAG = info / warning / success /
+  danger), so each application sets its tones in its own lookups.

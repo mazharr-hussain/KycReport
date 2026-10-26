@@ -48,7 +48,7 @@ page 200 (
             sqlQuery:
                 ```sql
                 select q.*,
-                       xxfnd_ui_pkg.status_tone('REQUEST', q.request_status) as stage_tone,
+                       xxcmp_request_pkg.status_tone(q.request_status) as stage_tone,
                        xxfnd_ui_pkg.person_name(q.pending_with) as pending_with_name,
                        xxfnd_ui_pkg.person_name(q.requester_user_name) as requester_name,
                        case when q.case_id is not null then
@@ -57,14 +57,15 @@ page 200 (
                        apex_page.get_url(p_page => 205, p_items => 'P205_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '205') as open_url,
                        -- the requester's action by status: Edit (Draft, Information Needed; Cancel is on the edit screen),
                        -- Withdraw (waiting for approval: back to Draft)
+                       -- release 105: no Edit once a case exists (its questions are answered on 206); Withdraw while Submitted
                        case when upper(q.requester_user_name) <> upper(:APP_USER) then null
-                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED') and q.case_number is null
                             then apex_page.get_url(p_page => 201, p_items => 'P201_REQUEST_ID', p_values => to_char(q.request_id), p_clear_cache => '201,202,203,204')
-                            when q.request_status = 'IN_PROGRESS' and q.case_number is null then '#'
+                            when q.request_status = 'SUBMITTED' and q.case_number is null then '#'
                        end as edit_url,
                        case when upper(q.requester_user_name) <> upper(:APP_USER) then null
-                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then 'Edit'
-                            when q.request_status = 'IN_PROGRESS' and q.case_number is null then 'Withdraw'
+                            when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED') and q.case_number is null then 'Edit'
+                            when q.request_status = 'SUBMITTED' and q.case_number is null then 'Withdraw'
                        end as edit
                   from (
                         select r.request_id,
@@ -83,7 +84,7 @@ page 200 (
                                r.requester_user_name,
                                r.request_status,
                                -- release 99: the Home tiles open the list on Open / Closed
-                               case when r.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then 'Open' else 'Closed' end as open_closed,
+                               case when r.request_status in ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL', 'INFO_NEEDED') then 'Open' else 'Closed' end as open_closed,
                                r.submitted_date,
                                (select c.case_number from xxcmp_cases c where c.request_id = r.request_id) as case_number,
                                (select c.case_id from xxcmp_cases c where c.request_id = r.request_id) as case_id,
@@ -729,4 +730,309 @@ page 200 (
         }
     )
 
+    region new-requests (
+        name: New Requests
+        type: themeTemplateComponent/contentRow
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 105 (stage 1): the submitted requests waiting for the user's initial assessment (their open
+                -- document checklist task); selected rows are assigned to one contributor (Assign)
+                select r.request_id,
+                       r.request_number || ' - ' || r.party_name as title,
+                       coalesce(xxcmp_request_pkg.department_name(r.requesting_department_id), '-')
+                       || ' · ' || nvl(xxfnd_lookup_pkg.lookup_meaning('BUSINESS_RELATIONSHIP', r.business_relationship), '-')
+                       || ' · ' || nvl(xxfnd_lookup_pkg.lookup_meaning('JURISDICTION', r.requesting_country), '-') as description,
+                       to_char(r.submitted_date, 'DD-MON-YYYY') as submitted,
+                       r.submitted_date
+                  from xxcmp_requests r
+                 where to_char(r.request_id) in (
+                           select t.detail_pk
+                             from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID)) t
+                            where t.task_def_static_id = 'DOC_CHECKLIST_REVIEW' and t.state_code in ('ASSIGNED', 'UNASSIGNED'))
+                ```
+        }
+        orderBy {
+            type: staticValue
+            orderByClause: submitted_date, request_id
+        }
+        layout {
+            sequence: 10
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: new_requests
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            title: &TITLE.
+            description: &DESCRIPTION.
+            miscellaneous: &SUBMITTED.
+        }
+        rowSelection {
+            type: multipleSelection
+            currentSelectionPageItem: P200_ASSIGN_REQUESTS
+            selectAllPageItem: P200_SELECT_ALL
+        }
+        pagination {
+            type: page
+            entitiesPerPage: 50
+        }
+        messages {
+            whenNoDataFound: No new requests.
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                select 1
+                  from table(apex_human_task.get_tasks(p_context => 'MY_TASKS', p_application_id => :APP_ID))
+                 where task_def_static_id = 'DOC_CHECKLIST_REVIEW' and state_code in ('ASSIGNED', 'UNASSIGNED')
+                ```
+        }
+        comments {
+            comments: Release 105 - stage 1: the requests waiting for the user's initial assessment; select and Assign gives them to one contributor (XXCMP_REQUEST_PKG.ASSIGN_REQUESTS). Native row selection (Content Row template component).
+        }
+
+        column REQUEST_ID (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: REQUEST_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column TITLE (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: TITLE
+                dataType: varchar2
+            }
+        )
+
+        column DESCRIPTION (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+        )
+
+        column SUBMITTED (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: SUBMITTED
+                dataType: varchar2
+            }
+        )
+
+        column SUBMITTED_DATE (
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: SUBMITTED_DATE
+                dataType: timestamp
+            }
+        )
+
+    )
+
+    pageItem P200_ASSIGN_REQUESTS (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @new-requests
+            slot: regionBody
+        }
+        settings {
+            valueProtected: false
+        }
+        comments {
+            comments: Release 105: the selected request IDs (colon-separated), set by the row selection. XXCMP_REQUEST_PKG.ASSIGN_REQUESTS skips any request without the user's own open checklist task.
+        }
+    )
+
+    pageItem P200_SELECT_ALL (
+        type: checkbox
+        label {
+            label: Select All
+            alignment: left
+        }
+        layout {
+            sequence: 2
+            region: @new-requests
+            slot: regionBody
+            alignment: left
+        }
+    )
+
+    button open-assign (
+        buttonName: OPEN_ASSIGN
+        label: Assign
+        layout {
+            sequence: 5
+            region: @new-requests
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-user
+            cssClasses: kyc-open-assign_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        comments {
+            comments: Release 105 - assigns the selected new requests to one contributor (XXCMP_REQUEST_PKG.ASSIGN_REQUESTS).
+        }
+    )
+
+    region assign-dialog (
+        name: Assign
+        type: staticContent
+        layout {
+            sequence: 97
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign_dialog
+        }
+    )
+
+    pageItem P200_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Contributor
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 20
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    pageItem P200_ASSIGN_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    validation assign-selection (
+        name: A request is selected
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: functionBody
+            language: plsql
+            plsqlFunctionBody:
+                ```plsql
+                return case when :P200_ASSIGN_REQUESTS is null then 'Select one or more new requests.' end;
+                ```
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+    process assign-requests (
+        name: Assign the requests
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_done number;
+                begin
+                    -- release 105: the request package approves each checklist and gives its case to the contributor
+                    l_done := xxcmp_request_pkg.assign_requests(:P200_ASSIGN_REQUESTS, :P200_ASSIGN_TO, :P200_ASSIGN_COMMENT);
+                    apex_application.g_print_success_message := l_done || ' request(s) assigned.';
+                    :P200_ASSIGN_REQUESTS := null;
+                    :P200_ASSIGN_TO := null;
+                    :P200_ASSIGN_COMMENT := null;
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
 )

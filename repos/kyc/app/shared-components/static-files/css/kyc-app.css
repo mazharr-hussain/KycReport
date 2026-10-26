@@ -215,3 +215,12 @@
 /* wizard steps are clickable (kyc-app.js) */
 .kyc-step-link { cursor: pointer; }
 .kyc-step-link:hover .t-WizardSteps-label, .kyc-step-link:focus .t-WizardSteps-label { text-decoration: underline; color: var(--kyc-info, #2f6ea7); }
+
+/* release 105: form regions in two columns (Create Request: Request and Party sections, Review). The region's items
+   flow left to right; a text area and items marked kyc-col-full take the whole width; one column on a phone. */
+.kyc-form-2col .t-Region-body > .container { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
+.kyc-form-2col .t-Region-body > .container > .row { display: contents; }
+.kyc-form-2col .t-Region-body > .container > .row > .col { width: auto; max-width: none; flex: none; }
+.kyc-form-2col .t-Region-body > .container > .row > .col:has(textarea),
+.kyc-form-2col .t-Region-body > .container > .row > .col:has(.kyc-col-full) { grid-column: 1 / -1; }
+@media (max-width: 767px) { .kyc-form-2col .t-Region-body > .container { grid-template-columns: 1fr; } }

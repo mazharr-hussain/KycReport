@@ -542,6 +542,12 @@
   },
   {
    "from": 0,
+   "target": "kyc/features/kyc-requests/shared-components/lists/request-stages.apx",
+   "to": 2550,
+   "whole": true
+  },
+  {
+   "from": 0,
    "target": "kyc/features/parties/shared-components/lists/party-wizard.apx",
    "to": 622,
    "whole": true

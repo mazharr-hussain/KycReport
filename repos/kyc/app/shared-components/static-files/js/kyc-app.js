@@ -190,7 +190,7 @@ window.kycQuestionnaire = (function ($) {
 /*
  * Decision buttons (approval screen 206): a button with classes "kyc-decide kyc-decide-<DECISION>" opens the
  * inline dialog "decision_dialog" titled with the button label; P<page>_DECISION holds the decision and
- * P<page>_COMMENT is required for every decision except APPROVE. Confirm submits the request CONFIRM; the
+ * P<page>_COMMENT is required for every decision except APPROVE and ASSIGN (release 105). Confirm submits the request CONFIRM; the
  * server validations repeat the comment rule.
  */
 (function ($) {
@@ -198,13 +198,15 @@ window.kycQuestionnaire = (function ($) {
     function pageItem(name) { return "P" + $v("pFlowStepId") + "_" + name; }
     $(document).on("click", "button.kyc-decide", function (e) {
         var m = this.className.match(/kyc-decide-([A-Z_]+)/), label = $.trim($(this).text()),
-            required = m && m[1] !== "APPROVE", dlg = $("#decision_dialog");
+            required = m && m[1] !== "APPROVE" && m[1] !== "ASSIGN", dlg = $("#decision_dialog");
         if (!m) { return; }
         e.preventDefault();
         apex.item(pageItem("DECISION")).setValue(m[1]);
         $("#" + pageItem("COMMENT") + "_CONTAINER").toggleClass("is-required", required);
         // release 74: Add Approver picks the person who approves next
         $("#" + pageItem("ADD_USER") + "_CONTAINER").toggle(m[1] === "ADD_APPROVER");
+        // release 105: Assign picks the contributor (stage 1)
+        $("#" + pageItem("ASSIGN_TO") + "_CONTAINER").toggle(m[1] === "ASSIGN");
         // release 74: Submit Information shows the approver's question
         $("#" + pageItem("INFO_QUESTION") + "_CONTAINER").toggle(m[1] === "SUBMIT_INFO");
         apex.message.clearErrors();
@@ -221,7 +223,13 @@ window.kycQuestionnaire = (function ($) {
                                        message: "Choose the approver to add.", unsafe: false }]);
             return;
         }
-        if ($v(pageItem("DECISION")) !== "APPROVE" && $.trim($v(comment)) === "") {
+        if ($v(pageItem("DECISION")) === "ASSIGN" && $.trim($v(pageItem("ASSIGN_TO"))) === "") {
+            apex.message.clearErrors();
+            apex.message.showErrors([{ type: "error", location: "inline", pageItem: pageItem("ASSIGN_TO"),
+                                       message: "Choose the contributor.", unsafe: false }]);
+            return;
+        }
+        if (["APPROVE", "ASSIGN"].indexOf($v(pageItem("DECISION"))) < 0 && $.trim($v(comment)) === "") {
             apex.message.clearErrors();
             apex.message.showErrors([{ type: "error", location: "inline", pageItem: comment,
                                        message: "Enter a comment.", unsafe: false }]);

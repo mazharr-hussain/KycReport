@@ -13,7 +13,7 @@ with latest as (
     select r.party_id, max(r.request_id) as request_id, max(r.request_number) as request_number
       from xxcmp_requests r
      where r.request_type <> 'NEW_ONBOARDING'
-       and r.request_status in ('DRAFT','IN_PROGRESS','INFO_NEEDED')
+       and r.request_status in ('DRAFT','SUBMITTED','UNDER_REVIEW','IN_APPROVAL','INFO_NEEDED')
      group by r.party_id
 )
 select p.party_id,

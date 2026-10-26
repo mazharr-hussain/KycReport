@@ -16,7 +16,7 @@ declare
         return xxcmp_request_pkg.request_error(null, 'NEW', null, 'ORGANIZATION', 'R104 ' || l_tag, 'AE', 'CR-' || l_tag,
                                                'PRIVATE_COMPANY', null, null, null, p_justification,
                                                p_registration_type => 'COMMERCIAL_REGISTRATION',
-                                               p_business_relationship => p_relationship);
+                                               p_business_relationship => p_relationship, p_requesting_country => 'QA');
     end rule;
 begin
     select application_id into l_app from apex_applications where workspace = 'XXCUS' and upper(alias) = 'KYC';

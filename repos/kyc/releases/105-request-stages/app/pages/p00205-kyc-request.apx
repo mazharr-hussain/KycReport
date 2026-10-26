@@ -1,0 +1,505 @@
+page 205 (
+    name: KYC Request
+    alias: KYC-REQUEST
+    title: KYC Request
+    pageGroup: @kyc
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            A KYC request, read only: where it stands, the party and its details, the answers, the documents and the approval history. Edit (top right, for the requester while the request is Draft, Information Needed or Rejected) opens the request wizard; Withdraw is on the KYC Requests list; approvers decide from their task.
+            ```
+    }
+
+    region breadcrumb (
+        name: KYC Request
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region request (
+        name: Request Items
+        type: staticContent
+        layout {
+            sequence: 19
+            slot: BODY
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: request
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 15
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: buttons
+        }
+    )
+
+
+
+    pageItem P205_REQUEST_ID (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_SUBMITTED (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        comments {
+            comments: Release 105: Y right after the requester submits - the outcome message pops up once.
+        }
+    )
+
+    pageItem P205_SUBMIT_MESSAGE (
+        type: hidden
+        layout {
+            sequence: 6
+            region: @request
+            slot: regionBody
+        }
+        settings {
+            valueProtected: true
+        }
+    )
+
+    process submit-message (
+        name: Submit outcome message
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 105: KYC not required / submitted for the KYC report (request package), shown once
+                :P205_SUBMIT_MESSAGE := case when :P205_SUBMITTED = 'Y'
+                                             then xxcmp_request_pkg.submit_message(to_number(:P205_REQUEST_ID)) end;
+                :P205_SUBMITTED := null;
+                ```
+        }
+        execution {
+            sequence: 50
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction show-submit-message (
+        name: Show the submit outcome
+        execution {
+            sequence: 6
+        }
+        when {
+            event: ready
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P205_SUBMIT_MESSAGE
+        }
+
+        action show-submit-message-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.message.alert($v("P205_SUBMIT_MESSAGE"));
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    pageItem P205_OPEN_ASSIGN (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+        comments {
+            comments: Release 76: Y when the approver comes from the approval that opened the case - Assign Case opens at once.
+        }
+    )
+
+    pageItem P205_CASE_ID (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_PARTY_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @request
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P205_REQUEST_NUMBER (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @request
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select request_number from xxcmp_requests where request_id = :P205_REQUEST_ID
+                ```
+            used: always
+        }
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    button edit (
+        buttonName: EDIT
+        label: Edit
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-pencil
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 201
+                items: {
+                    P201_REQUEST_ID: &P205_REQUEST_ID.
+                }
+                clearCache: 201,202,203,204
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: rowsReturned
+            sqlQuery:
+                ```sql
+                -- same rule as Edit on the KYC Requests list: the requester, while the request can change
+                select 1
+                  from xxcmp_requests r
+                 where r.request_id = :P205_REQUEST_ID
+                   and upper(r.requester_user_name) = upper(:APP_USER)
+                   and r.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
+                ```
+        }
+    )
+
+    button open-case (
+        buttonName: OPEN_CASE
+        label: Open Case
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 211
+                items: {
+                    P211_CASE_ID: &P205_CASE_ID.
+                }
+                clearCache: 211
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_CASE_ID is not null and xxfnd_privilege_pkg.has_privilege('CASES', 'VIEW')
+                ```
+        }
+    )
+
+    button open-assign (
+        buttonName: OPEN_ASSIGN
+        label: Assign Case
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+            icon: fa-user
+            cssClasses: kyc-open-assign_dialog
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                -- release 75 (B2): the approved request's case, for whoever may assign it on the case screen;
+                -- release 76: also right after the approval, while the workflow opens the case
+                xxcmp_request_pkg.can_assign_case(to_number(:P205_REQUEST_ID)) = 'Y'
+                ```
+        }
+    )
+
+    region assign-dialog (
+        name: Assign Case
+        type: staticContent
+        layout {
+            sequence: 97
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: assign_dialog
+        }
+    )
+
+    pageItem P205_ASSIGN_TO (
+        type: selectList
+        label {
+            label: Officer
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-case-officers
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: expression
+            language: plsql
+            plsqlExpression: case when xxcmp_case_pkg.is_case_officer(:APP_USER) = 'Y' then upper(:APP_USER) end
+        }
+    )
+
+    pageItem P205_ASSIGN_COMMENT (
+        type: textarea
+        label {
+            label: Comment
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @assign-dialog
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+    )
+
+    button assign (
+        buttonName: ASSIGN
+        label: Assign
+        layout {
+            sequence: 10
+            region: @assign-dialog
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction open-assign-after-approval (
+        name: Open Assign Case after the approval
+        execution {
+            sequence: 5
+        }
+        when {
+            event: ready
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P205_OPEN_ASSIGN = 'Y' and xxcmp_request_pkg.can_assign_case(to_number(:P205_REQUEST_ID)) = 'Y'
+                ```
+        }
+
+        action open-assign-dialog (
+            action: openRegion
+            affectedElements {
+                selectionType: region
+                region: @assign-dialog
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    process assign-case (
+        name: Assign case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 76: the request package gives the case to the officer (XXCMP_CASE_PKG.ASSIGN when the case
+                -- exists, else the case is created for them)
+                xxcmp_request_pkg.assign_case(to_number(:P205_REQUEST_ID), :P205_ASSIGN_TO, :P205_ASSIGN_COMMENT);
+                :P205_OPEN_ASSIGN := null;
+                :P205_ASSIGN_TO := null;
+                :P205_ASSIGN_COMMENT := null;
+                ```
+        }
+        execution {
+            sequence: 32
+            point: processing
+        }
+        successMessage {
+            successMessage: Case assigned.
+        }
+        serverSideCondition {
+            whenButtonPressed: @assign
+        }
+    )
+
+    process load-case (
+        name: Load case
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                :P205_CASE_ID := xxcmp_request_pkg.request_case(:P205_REQUEST_ID);      -- release 90: the request package's read
+                -- the breadcrumb shows the request number before the page items are rendered
+                select max(request_number), max(party_id) into :P205_REQUEST_NUMBER, :P205_PARTY_ID
+                  from xxcmp_requests where request_id = :P205_REQUEST_ID;
+                -- the common Party / Approval Path / History regions (Global Page)
+                :P0_REQUEST_ID := :P205_REQUEST_ID;
+                :P0_SUMMARY_PARTY_ID := :P205_PARTY_ID;
+                ```
+        }
+        execution {
+            sequence: 6
+            point: beforeHeader
+        }
+    )
+
+)

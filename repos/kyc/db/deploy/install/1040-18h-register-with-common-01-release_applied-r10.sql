@@ -191,7 +191,9 @@ begin
         'NEW_ONBOARDING=New onboarding|PERIODIC_REVIEW=Periodic review|EVENT_TRIGGERED_REVIEW=Event-triggered review');
     lookups('KYC_TRIGGER_SOURCE', 'KYC Request Trigger Sources', 'S', 'MANUAL=Manual|SCHEDULED=Scheduled|EVENT_DRIVEN=Event driven');
     lookups('KYC_REQUEST_STATUS', 'KYC Request Status', 'S',
-        'DRAFT=Draft|IN_PROGRESS=In Progress|INFO_NEEDED=Pending Information|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
+        -- release 105: the request stages (IN_PROGRESS kept for older history only)
+        'DRAFT=Draft|SUBMITTED=Submitted|UNDER_REVIEW=Under Review|IN_APPROVAL=In Approval|INFO_NEEDED=Pending Information'
+        || '|APPROVED=Approved|NOT_REQUIRED=KYC Not Required|REJECTED=Rejected|CANCELLED=Cancelled|IN_PROGRESS=In Progress');
     lookups('PARTY_STATUS', 'Party Status', 'S', 'PENDING=Pending|APPROVED=Approved|REJECTED=Rejected|CANCELLED=Cancelled');
     lookups('ID_DOCUMENT_TYPE', 'Identity Document Types', 'E',
         'PASSPORT=Passport|NATIONAL_ID=National ID card|RESIDENCE_PERMIT=Residence permit');

@@ -67,7 +67,6 @@ One record per counterparty, shared by requests, cases and monitoring.
 
 ## Test scripts
 
-- `features/kyc-requests/tests/r100_duplicate_party_test.sql`
 - `features/kyc-requests/tests/r74_kyc_test.sql`
 - `features/kyc-requests/tests/r99_requester_test.sql`
 - `features/kyc-requests/tests/request_party_test.sql`

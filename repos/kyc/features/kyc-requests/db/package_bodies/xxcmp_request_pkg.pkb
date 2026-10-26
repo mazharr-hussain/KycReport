@@ -279,9 +279,9 @@ create or replace package body xxcmp_request_pkg as
                            p_match_ack           in varchar2 default 'Y',
                            p_registration_type   in varchar2 default null,
                            p_business_relationship in varchar2 default null,
-                           p_use_existing        in varchar2 default null) return varchar2 is
+                           p_use_existing        in varchar2 default null,
+                           p_requesting_country  in varchar2 default null) return varchar2 is
         l_own   number;
-        l_dup   number;
         l_party xxcmp_parties%rowtype;
         l_error varchar2(4000);
     begin
@@ -297,34 +297,22 @@ create or replace package body xxcmp_request_pkg as
             if p_request_id is not null then
                 l_own := get_request(p_request_id).party_id;
             end if;
-            -- release 100: no duplicate counterparty - the requester uses the existing party (Yes) or changes the
-            -- details (No)
-            l_dup := duplicate_party_id(p_request_id, p_party_type, p_registration_number, p_jurisdiction,
-                                        p_registration_type);
-            if l_dup is not null and nvl(p_use_existing, '#') <> 'Y' then
-                l_party := xxcmp_party_pkg.get_party(l_dup);
-                return case when p_use_existing = 'N'
-                            then 'Change the registration type, registration number or country: party '
-                                 || l_party.party_number || ' - ' || l_party.party_name || ' already has them.'
-                            else 'Party ' || l_party.party_number || ' - ' || l_party.party_name
-                                 || ' already has this registration type, registration number and country. Use the'
-                                 || ' existing party? Choose Yes or No under the counterparty.' end;
-            end if;
-            -- Yes: SAVE_REQUEST links the existing party - its own rules apply, not the form's
-            if l_dup is null then
-                l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
-                                                       p_registration_number, p_entity_type, p_incorporation_date,
-                                                       p_email, p_phone, p_draft, p_match_ack, p_registration_type,
-                                                       p_request_form => 'Y');
-                if l_error is not null then
-                    return l_error;
-                end if;
+            -- release 105: no duplicate check on the request form (release 100 removed): a counterparty like an existing
+            -- party is created as usual and Compliance decides on it (Counterparty Match task)
+            l_error := xxcmp_party_pkg.party_error(l_own, p_party_type, p_party_name, p_jurisdiction,
+                                                   p_registration_number, p_entity_type, p_incorporation_date,
+                                                   p_email, p_phone, p_draft, p_match_ack, p_registration_type,
+                                                   p_request_form => 'Y');
+            if l_error is not null then
+                return l_error;
             end if;
         end if;
         -- release 104: the business relationship is required whatever the risk screening finds; the business
         -- justification is optional
         if p_draft = 'N' and p_business_relationship is null then
             return 'Choose the business relationship (what the counterparty is to the company).';
+        elsif p_draft = 'N' and p_requesting_country is null then
+            return 'Choose the requesting country.';     -- release 105
         end if;
         return null;
     end request_error;
@@ -395,7 +383,8 @@ create or replace package body xxcmp_request_pkg as
                            p_registration_type     in varchar2 default null,
                            p_address               in varchar2 default null,
                            p_business_relationship in varchar2 default null,
-                           p_use_existing          in varchar2 default null) is
+                           p_use_existing          in varchar2 default null,
+                           p_requesting_country    in varchar2 default null) is
         l_error    varchar2(4000);
         l_old      xxcmp_requests%rowtype;
         l_party    xxcmp_parties%rowtype;
@@ -418,17 +407,9 @@ create or replace package body xxcmp_request_pkg as
         l_error := request_error(p_request_id, p_party_selection, p_party_id, p_party_type, p_party_name, p_jurisdiction,
                                  p_registration_number, p_entity_type, p_incorporation_date, p_email, p_phone,
                                  p_justification, p_draft, p_match_ack, p_registration_type, p_business_relationship,
-                                 p_use_existing);
+                                 p_use_existing, p_requesting_country);
         if l_error is not null then
             raise_application_error(-20611, l_error);
-        end if;
-        -- release 100: Yes to the duplicate - the request uses the existing party instead of a new one
-        if p_party_selection <> 'EXISTING' and p_use_existing = 'Y' then
-            l_party_in := duplicate_party_id(p_request_id, p_party_type, p_registration_number, p_jurisdiction,
-                                             p_registration_type);
-            if l_party_in is not null then
-                l_selection := 'EXISTING';
-            end if;
         end if;
         reopen_rejected(l_old);
         l_dept := request_department(p_requesting_department_id);
@@ -482,6 +463,7 @@ create or replace package body xxcmp_request_pkg as
                entity_type           = l_party.entity_type,
                registration_type     = l_party.registration_type,
                business_relationship = p_business_relationship,
+               requesting_country    = p_requesting_country,
                incorporation_date    = l_party.incorporation_date,
                jurisdiction          = l_party.jurisdiction,
                match_status          = case when l_selection = 'EXISTING' then 'SELECTED' else 'NEW' end,
@@ -509,8 +491,10 @@ create or replace package body xxcmp_request_pkg as
             return 'Y';
         end if;
         l_req := get_request(p_request_id);
+        -- release 105: not once a case exists (the case's questions are answered on page 206)
         return case when l_req.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED')
-                     and upper(l_req.requester_user_name) = upper(xxfnd_util_pkg.current_user) then 'Y' else 'N' end;
+                     and upper(l_req.requester_user_name) = upper(xxfnd_util_pkg.current_user)
+                     and request_case(p_request_id) is null then 'Y' else 'N' end;
     exception
         when no_data_found then
             return 'N';
@@ -681,10 +665,12 @@ create or replace package body xxcmp_request_pkg as
                                      l_party.registration_number, l_party.entity_type, l_party.incorporation_date,
                                      l_party.email, l_party.phone, l_req.justification,
                                      p_registration_type => l_party.registration_type,
-                                     p_business_relationship => nvl(l_req.business_relationship, 'X'));
+                                     p_business_relationship => nvl(l_req.business_relationship, 'X'),
+                                     p_requesting_country => l_req.requesting_country);
         else
             l_error := request_error(p_request_id, 'EXISTING', l_req.party_id, null, null, null, null, null, null, null,
-                                     null, l_req.justification, p_business_relationship => nvl(l_req.business_relationship, 'X'));
+                                     null, l_req.justification, p_business_relationship => nvl(l_req.business_relationship, 'X'),
+                                     p_requesting_country => l_req.requesting_country);
         end if;
         if l_error is not null then
             return l_error;
@@ -719,7 +705,7 @@ create or replace package body xxcmp_request_pkg as
             raise_application_error(-20601, l_error);
         end if;
         update xxcmp_requests
-           set request_status = 'IN_PROGRESS', submitted_date = systimestamp, last_action_date = sysdate
+           set request_status = 'SUBMITTED', submitted_date = systimestamp, last_action_date = sysdate
          where request_id = p_request_id;
         -- release 73: the requester's answer to a question returned by the approver (return_for_info) is the resubmitted
         -- request (release 74: the common RFI)
@@ -759,7 +745,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
             return 'Only the requester can cancel request ' || l_req.request_number || '.';
-        elsif l_req.request_status = 'IN_PROGRESS' then
+        elsif l_req.request_status = 'SUBMITTED' then
             return 'Request ' || l_req.request_number || ' is waiting for approval: withdraw it first.';
         elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then
             return 'Request ' || l_req.request_number || ' is closed and cannot be cancelled.';
@@ -798,7 +784,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
             return 'Only the requester can withdraw request ' || l_req.request_number || '.';
-        elsif l_req.request_status <> 'IN_PROGRESS' then
+        elsif l_req.request_status <> 'SUBMITTED' then
             return 'Only a request waiting for approval can be withdrawn.';
         end if;
         select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
@@ -848,7 +834,7 @@ create or replace package body xxcmp_request_pkg as
     begin
         if p_comment is null then
             xxfnd_error_pkg.raise_error('KYC_REQUEST_INFO_TEXT');
-        elsif l_req.request_status <> 'IN_PROGRESS' then
+        elsif l_req.request_status <> 'SUBMITTED' then
             xxfnd_error_pkg.raise_error('KYC_REQUEST_NOT_IN_APPROVAL', apex_t_varchar2(l_req.request_number));
         elsif not (apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_approve)
                    or apex_human_task.is_allowed(p_task_id => p_task_id, p_operation => apex_human_task.c_task_op_claim)) then
@@ -886,12 +872,12 @@ create or replace package body xxcmp_request_pkg as
 
     procedure info_requested(p_request_id in number) is
     begin
-        set_status(p_request_id, 'IN_PROGRESS', 'INFO_NEEDED');
+        set_status(p_request_id, 'SUBMITTED', 'INFO_NEEDED');
     end info_requested;
 
     procedure info_submitted(p_request_id in number) is
     begin
-        set_status(p_request_id, 'INFO_NEEDED', 'IN_PROGRESS');
+        set_status(p_request_id, 'INFO_NEEDED', 'SUBMITTED');
     end info_submitted;
 
     -- The request's party: the one chosen or created with the request. Requests saved before release 23 may
@@ -928,7 +914,7 @@ create or replace package body xxcmp_request_pkg as
              where request_id = p_request_id;
         end if;
         update xxcmp_requests
-           set intake_outcome = l_outcome, request_status = 'IN_PROGRESS', last_action_date = sysdate
+           set intake_outcome = l_outcome, request_status = 'SUBMITTED', last_action_date = sysdate
          where request_id = p_request_id;
         xxfnd_vpd_pkg.end_trusted;
     exception
@@ -942,33 +928,86 @@ create or replace package body xxcmp_request_pkg as
         return get_request(p_request_id).intake_outcome;
     end outcome;
 
-    procedure close_without_case(p_request_id in number) is
+    -- the request's own Pending party is approved with the request's decision (Compliance accepted the counterparty)
+    procedure approve_party(p_request_id in number) is
         l_party number;
     begin
-        xxfnd_vpd_pkg.begin_trusted;
-        update xxcmp_requests
-           set request_status = 'APPROVED', completed_date = systimestamp, last_action_date = sysdate
-         where request_id = p_request_id
-        returning party_id into l_party;
-        xxfnd_vpd_pkg.end_trusted;
+        select party_id into l_party from xxcmp_requests where request_id = p_request_id;
         if xxcmp_party_pkg.party_status(l_party) = 'PENDING' then
             xxcmp_party_pkg.set_status(l_party, 'APPROVED');
         end if;
+    end approve_party;
+
+    procedure close_without_case(p_request_id in number) is
+    begin
+        -- release 105: KYC not required (or auto-approved) closes the request as KYC Not Required
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests
+           set request_status = 'NOT_REQUIRED', completed_date = systimestamp, last_action_date = sysdate
+         where request_id = p_request_id;
+        xxfnd_vpd_pkg.end_trusted;
+        approve_party(p_request_id);
     exception
         when others then
             xxfnd_vpd_pkg.end_trusted;
             raise;
     end close_without_case;
 
+    procedure case_opened(p_request_id in number) is
+    begin
+        -- release 105: the case is the child of the request - the request is Under Review (no longer Approved here)
+        case_changed(p_request_id, 'INVESTIGATION');
+        approve_party(p_request_id);
+    end case_opened;
+
+    procedure case_changed(p_request_id in number, p_case_status in varchar2) is
+        l_status xxcmp_requests.request_status%type;
+    begin
+        l_status := case p_case_status when 'INVESTIGATION'       then 'UNDER_REVIEW'
+                                       when 'PENDING_APPROVAL'    then 'IN_APPROVAL'
+                                       when 'PENDING_INFORMATION' then 'INFO_NEEDED'
+                                       when 'APPROVED'            then 'APPROVED'
+                                       when 'REJECTED'            then 'REJECTED'
+                                       when 'CANCELLED'           then 'CANCELLED' end;
+        if l_status is null then
+            return;
+        end if;
+        xxfnd_vpd_pkg.begin_trusted;
+        update xxcmp_requests
+           set request_status   = l_status,
+               completed_date   = case when l_status in ('APPROVED', 'REJECTED', 'CANCELLED') then systimestamp end,
+               last_action_date = sysdate
+         where request_id = p_request_id;
+        xxfnd_vpd_pkg.end_trusted;
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end case_changed;
+
+    function status_tone(p_status in varchar2) return varchar2 is
+    begin
+        return case when p_status in ('SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL', 'IN_PROGRESS') then 'info'
+                    when p_status = 'INFO_NEEDED' then 'warning'
+                    when p_status in ('APPROVED', 'NOT_REQUIRED') then 'success'
+                    when p_status = 'REJECTED' then 'danger'
+                    else 'neutral' end;
+    end status_tone;
+
+    function submit_message(p_request_id in number) return varchar2 is
+    begin
+        return case when get_request(p_request_id).request_status = 'NOT_REQUIRED'
+                    then 'KYC is not needed. Kindly proceed.'
+                    else 'The request is submitted for KYC report.' end;
+    end submit_message;
+
     procedure open_case(p_request_id in number) is
         l_case     number;
         l_assignee xxcmp_requests.case_assignee%type;
     begin
-        -- release 75: the officer chosen on the approval (null: the approver, as before)
-        -- release 76: locked, so an Assign Case on the request (ASSIGN_CASE) waits for the case or is read here
         select case_assignee into l_assignee from xxcmp_requests where request_id = p_request_id for update;
         l_case := xxcmp_case_pkg.create_case(p_request_id, l_assignee);
-        close_without_case(p_request_id);      -- Compliance approved the request: the request and its party are Approved
+        case_opened(p_request_id);       -- release 105: Under Review; its party is approved
     end open_case;
 
     procedure set_case_assignee(p_request_id in number, p_user_name in varchar2) is
@@ -994,7 +1033,7 @@ create or replace package body xxcmp_request_pkg as
             return xxcmp_case_pkg.can_assign(l_case);
         end if;
         select * into l_req from xxcmp_requests where request_id = p_request_id;
-        return case when l_req.request_status in ('IN_PROGRESS', 'APPROVED') and l_req.intake_outcome = 'ASSIGNED'
+        return case when l_req.request_status = 'SUBMITTED' and l_req.intake_outcome = 'ASSIGNED'
                          and l_req.workflow_id is not null
                          and xxfnd_approval_rule_pkg.is_started('KYC_REQUEST', to_char(p_request_id)) = 'N'
                          and xxfnd_privilege_pkg.has_privilege('CASE_ASSIGNMENT', 'MANAGE')
@@ -1047,7 +1086,7 @@ create or replace package body xxcmp_request_pkg as
                      p_request_type          => 'EVENT_TRIGGERED_REVIEW',
                      p_trigger_source        => 'MANUAL',
                      p_party_id              => p_party_id);
-        update xxcmp_requests set request_status = 'IN_PROGRESS', intake_outcome = 'ASSIGNED', submitted_date = systimestamp,
+        update xxcmp_requests set request_status = 'SUBMITTED', intake_outcome = 'ASSIGNED', submitted_date = systimestamp,
                                   party_selection = 'EXISTING', match_status = 'SELECTED', last_action_date = sysdate
          where request_id = l_req;
         return l_req;
@@ -1095,7 +1134,7 @@ create or replace package body xxcmp_request_pkg as
         l_req := get_request(p_request_id);
         if l_req.request_status in ('DRAFT', 'INFO_NEEDED') then
             return l_req.requester_user_name;
-        elsif l_req.request_status = 'IN_PROGRESS' then
+        elsif l_req.request_status = 'SUBMITTED' then
             select max(actual_owner), count(*) into l_owner, l_open
               from apex_tasks
              where detail_pk = to_char(p_request_id)
@@ -1104,6 +1143,17 @@ create or replace package body xxcmp_request_pkg as
             return case when l_owner is not null then l_owner
                         when l_open > 0 then 'Compliance'
                         else 'System' end;
+        elsif l_req.request_status = 'UNDER_REVIEW' then
+            -- release 105: the contributor investigating the case
+            select max(assigned_to) into l_owner from xxcmp_cases where request_id = p_request_id;
+            return nvl(l_owner, 'Compliance');
+        elsif l_req.request_status = 'IN_APPROVAL' then
+            -- release 105: the case approver (the approval task's owner, else the approvers' pool)
+            select max(t.actual_owner) into l_owner
+              from apex_tasks t join xxcmp_cases c on to_char(c.case_id) = t.detail_pk
+             where c.request_id = p_request_id and t.task_def_static_id = 'CASE_APPROVAL'
+               and t.state_code in ('UNASSIGNED', 'ASSIGNED');
+            return nvl(l_owner, 'Compliance');
         end if;
         return null;
     exception
@@ -1210,7 +1260,7 @@ create or replace package body xxcmp_request_pkg as
                    order by 6) loop
             pipe row (xxcmp_history_row(h.step_no, h.step_name, h.assigned_to, h.action, h.action_by, h.action_date, h.comments));
         end loop;
-        if l_req.request_status in ('DRAFT', 'IN_PROGRESS', 'INFO_NEEDED') then
+        if l_req.request_status in ('DRAFT', 'SUBMITTED', 'INFO_NEEDED') then
             for p in (select * from table(xxfnd_approval_rule_pkg.steps(c_type, to_char(p_request_id), l_attrs))
                        where step_state in ('EXPECTED', 'CURRENT', 'WAITING')
                        order by position) loop
@@ -1248,6 +1298,56 @@ create or replace package body xxcmp_request_pkg as
         end loop;
         return 'N';
     end can_decide;
+
+    function assignable_task(p_request_id in number) return number is
+        l_task number;
+    begin
+        select max(t.task_id) into l_task
+          from table(apex_human_task.get_tasks(p_context => 'MY_TASKS')) t
+         where t.detail_pk = to_char(p_request_id)
+           and t.task_def_static_id = 'DOC_CHECKLIST_REVIEW'
+           and t.state_code in ('ASSIGNED', 'UNASSIGNED');
+        return case when l_task is not null and can_decide(l_task) = 'Y' then l_task end;
+    end assignable_task;
+
+    procedure assign_request(p_request_id in number, p_task_id in number, p_user_name in varchar2,
+                             p_comment in varchar2 default null) is
+        l_ok pls_integer;
+    begin
+        -- the task must be this request's document checklist task, and the user may decide it
+        select count(*) into l_ok from apex_tasks
+         where task_id = p_task_id and task_def_static_id = 'DOC_CHECKLIST_REVIEW' and detail_pk = to_char(p_request_id)
+           and state_code in ('ASSIGNED', 'UNASSIGNED');
+        if l_ok = 0 or can_decide(p_task_id) = 'N' then
+            xxfnd_error_pkg.raise_error('KYC_CASE_REASSIGN_NOT_ALLOWED');
+        elsif p_user_name is null then
+            xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_REQUIRED');
+        end if;
+        set_case_assignee(p_request_id, p_user_name);       -- checks the contributor (XXCMP_CASE_PKG.IS_CASE_OFFICER)
+        if trim(p_comment) is not null then
+            apex_human_task.add_task_comment(p_task_id => p_task_id, p_text => p_comment);
+        end if;
+        apex_human_task.approve_task(p_task_id => p_task_id, p_autoclaim => true);
+    end assign_request;
+
+    function assign_requests(p_request_ids in varchar2, p_user_name in varchar2, p_comment in varchar2 default null)
+        return number is
+        l_task number;
+        l_done pls_integer := 0;
+    begin
+        if p_user_name is null then
+            xxfnd_error_pkg.raise_error('KYC_CASE_OFFICER_REQUIRED');
+        end if;
+        for r in (select to_number(column_value) as request_id from table(apex_string.split(p_request_ids, ':'))
+                   where column_value is not null) loop
+            l_task := assignable_task(r.request_id);
+            if l_task is not null then
+                assign_request(r.request_id, l_task, p_user_name, p_comment);
+                l_done := l_done + 1;
+            end if;
+        end loop;
+        return l_done;
+    end assign_requests;
 
     function can_add_approver(p_request_id in number, p_task_id in number) return varchar2 is
         l_open pls_integer;
