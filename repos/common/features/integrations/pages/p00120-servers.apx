@@ -51,7 +51,9 @@ page 120 (
             sqlQuery:
                 ```sql
                 -- release 86: the servers the COMMON administrator defined (XXFND_SERVERS_V: state, URL, credential, health)
+                -- release 112: name and URL read from the linked APEX Remote Server
                 select s.server_code                                                  as static_id,
+                       s.remote_server_code                                           as remote_server,
                        s.server_name,
                        s.server_type_name                                             as server_type,
                        initcap(s.usage)                                               as usage,
@@ -103,6 +105,19 @@ page 120 (
             }
             layout {
                 sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column REMOTE_SERVER (
+            type: plainText
+            heading {
+                heading: APEX Remote Server
+            }
+            layout {
+                sequence: 15
             }
             source {
                 dataType: STRING
@@ -281,10 +296,19 @@ page 120 (
             sqlQuery:
                 ```sql
                 -- release 109: the workspace's APEX Remote Servers (Workspace Utilities), read only: COMMON maps them, it
-                -- does not create them
-                select remote_server_name, remote_server_static_id, base_url
-                  from apex_workspace_remote_servers
-                 order by remote_server_name
+                -- does not create them; release 112: the COMMON server linked to each (opens it), else Add (a new server
+                -- for it, filled in from the Remote Server)
+                select r.remote_server_name, r.remote_server_static_id, r.base_url,
+                       nvl(s.server_name || ' (' || s.server_code || ')', 'Add')       as common_server,
+                       case when s.server_code is null
+                            then apex_page.get_url(p_page => 121, p_items => 'P121_REMOTE_SERVER_CODE,P121_SERVER_CODE',
+                                                   p_values => r.remote_server_static_id || ',' || r.remote_server_static_id,
+                                                   p_clear_cache => '121')
+                            else apex_page.get_url(p_page => 121, p_items => 'P121_SERVER_CODE', p_values => s.server_code,
+                                                   p_clear_cache => '121') end   as common_url
+                  from apex_workspace_remote_servers r
+                  left join xxfnd_servers_v s on s.remote_server_code = r.remote_server_static_id
+                 order by r.remote_server_name
                 ```
         }
         layout {
@@ -306,7 +330,7 @@ page 120 (
             whenNoDataFound: No Remote Servers in the workspace.
         }
         comments {
-            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Remote Servers.
+            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Remote Servers. Release 112 - COMMON Server opens the linked server, or Add creates one for the Remote Server.
         }
 
         column REMOTE_SERVER_NAME (
@@ -336,6 +360,29 @@ page 120 (
             }
             layout {
                 sequence: 30
+            }
+        )
+
+        column COMMON_SERVER (
+            type: plainText
+            heading {
+                heading: COMMON Server
+            }
+            layout {
+                sequence: 40
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#COMMON_URL#">#COMMON_SERVER#</a>
+                    ```
+            }
+        )
+
+        column COMMON_URL (
+            type: hidden
+            layout {
+                sequence: 50
             }
         )
     )

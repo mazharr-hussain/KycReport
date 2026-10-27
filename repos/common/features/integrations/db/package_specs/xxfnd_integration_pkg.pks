@@ -47,11 +47,15 @@ create or replace package xxfnd_integration_pkg authid definer as
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
                           p_base_url             in varchar2 default null,
-                          -- release 93: FUSION - the workspace's Fusion integration application
-                          p_source_application_id in number  default null,
                           -- release 109: the APEX Remote Server (type Authentication) of the OAuth token URL; the token
                           -- URL, region and namespace are read from APEX (the typed ones above are kept for older servers)
-                          p_auth_server_code     in varchar2 default null);
+                          p_auth_server_code     in varchar2 default null,
+                          -- release 112: the APEX Remote Server the server is linked to (its name and URL are read from
+                          -- it); empty = the Remote Server whose static ID is P_SERVER_CODE
+                          p_remote_server_code   in varchar2 default null);
+    -- Release 112: the REST Source Catalogs of a server (P_CATALOG_IDS colon-separated, as a multi-select gives them);
+    -- catalogs not in the list are taken off the server.
+    procedure set_server_catalogs(p_server_code in varchar2, p_catalog_ids in varchar2);
     -- Deletes a server nothing uses; ORA-20342 when a storage rule or a purpose uses it (disable it instead).
     procedure delete_server(p_server_code in varchar2);
     -- Release 86: the Purposes screen (123). P_NEW = Y creates (ORA-20343 when the code exists), N changes the purpose

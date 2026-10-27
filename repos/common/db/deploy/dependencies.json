@@ -270,6 +270,12 @@
    "file": "common/features/integrations/db/tables/xxfnd_servers.sql",
    "application": "COMMON"
   },
+  "xxfnd_server_catalogs": {
+   "type": "table",
+   "feature": "integrations",
+   "file": "common/features/integrations/db/tables/xxfnd_server_catalogs.sql",
+   "application": "COMMON"
+  },
   "xxfnd_servers_v": {
    "type": "view",
    "feature": "integrations",
@@ -887,78 +893,6 @@
    "feature": "data-model",
    "file": "common/features/data-model/db/package_specs/xxfnd_data_model_pkg.pks",
    "application": "COMMON"
-  },
-  "xxfnd_fi_catalog": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_objects": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_attributes": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_children": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_children.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_versions": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_drift": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_runs": {
-   "type": "table",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_meta_pkg": {
-   "type": "package spec",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_meta_pkg.pks",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_gen_pkg": {
-   "type": "package spec",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_gen_pkg.pks",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_registry_pkg": {
-   "type": "package spec",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_registry_pkg.pks",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_drift_pkg": {
-   "type": "package spec",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_drift_pkg.pks",
-   "application": "COMMON"
-  },
-  "xxfnd_fi_run_pkg": {
-   "type": "package spec",
-   "feature": "fusion-objects",
-   "file": "common/features/fusion-objects/db/package_specs/xxfnd_fi_run_pkg.pks",
-   "application": "COMMON"
   }
  },
  "uses": {
@@ -1133,6 +1067,11 @@
    "xxfnd_ddl_pkg",
    "xxfnd_integration_endpoints"
   ],
+  "xxfnd_server_catalogs": [
+   "xxfnd_ddl_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_servers"
+  ],
   "xxfnd_servers_v": [
    "xxfnd_applications",
    "xxfnd_integration_calls",
@@ -1147,6 +1086,7 @@
    "xxfnd_integration_calls",
    "xxfnd_integration_purposes",
    "xxfnd_privilege_pkg",
+   "xxfnd_server_catalogs",
    "xxfnd_server_tests",
    "xxfnd_servers",
    "xxfnd_servers_v",
@@ -1829,98 +1769,6 @@
    "xxfnd_util_pkg",
    "xxfnd_vpd_pkg"
   ],
-  "xxfnd_fi_catalog": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_objects": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_catalog",
-   "xxfnd_fi_run_pkg",
-   "xxfnd_schema_pkg",
-   "xxfnd_servers"
-  ],
-  "xxfnd_fi_attributes": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_children": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_versions": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_drift": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_runs": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_integration_calls",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_fi_meta_pkg": [],
-  "xxfnd_fi_meta_pkg (body)": [
-   "xxfnd_error_pkg",
-   "xxfnd_fi_catalog",
-   "xxfnd_integration_pkg"
-  ],
-  "xxfnd_fi_gen_pkg": [],
-  "xxfnd_fi_gen_pkg (body)": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_error_pkg",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_versions"
-  ],
-  "xxfnd_fi_registry_pkg": [],
-  "xxfnd_fi_registry_pkg (body)": [
-   "xxfnd_error_pkg",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_catalog",
-   "xxfnd_fi_children",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_privilege_pkg",
-   "xxfnd_util_pkg",
-   "xxfnd_vpd_pkg"
-  ],
-  "xxfnd_fi_drift_pkg": [],
-  "xxfnd_fi_drift_pkg (body)": [
-   "xxfnd_error_pkg",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_drift",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_runs",
-   "xxfnd_notify_pkg",
-   "xxfnd_util_pkg",
-   "xxfnd_workflow_pkg"
-  ],
-  "xxfnd_fi_run_pkg": [],
-  "xxfnd_fi_run_pkg (body)": [
-   "xxfnd_ddl_pkg",
-   "xxfnd_error_pkg",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_runs",
-   "xxfnd_integration_pkg"
-  ],
   "apex:COMMON:page-groups.apx": [],
   "apex:COMMON:application.apx": [
    "xxfnd_error_pkg",
@@ -2028,9 +1876,6 @@
   "apex:COMMON:shared-components/rest-data-sources/ucm-content.apx": [
    "xxfnd_integration_pkg"
   ],
-  "apex:COMMON:shared-components/rest-data-sources/fusion-root.apx": [
-   "xxfnd_integration_pkg"
-  ],
   "apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx": [
    "xxfnd_integration_pkg"
   ],
@@ -2039,9 +1884,6 @@
   ],
   "apex:COMMON:shared-components/automations/task-deadlines.apx": [
    "xxfnd_workflow_pkg"
-  ],
-  "apex:COMMON:shared-components/automations/fusion-objects-run.apx": [
-   "xxfnd_fi_run_pkg"
   ],
   "apex:COMMON:shared-components/automations/fusion-hcm-sync.apx": [
    "xxfnd_integration_pkg"
@@ -2232,6 +2074,7 @@
    "xxfnd_integration_calls",
    "xxfnd_integration_pkg",
    "xxfnd_lookup_values_vl",
+   "xxfnd_server_catalogs",
    "xxfnd_server_tests",
    "xxfnd_servers",
    "xxfnd_servers_v"
@@ -2287,6 +2130,7 @@
    "xxfnd_audit_pkg",
    "xxfnd_integration_pkg",
    "xxfnd_integration_purposes",
+   "xxfnd_server_catalogs",
    "xxfnd_servers_v"
   ],
   "apex:COMMON:pages/p00050-provide-information.apx": [
@@ -2336,10 +2180,6 @@
    "xxfnd_roles",
    "xxfnd_sod_rules"
   ],
-  "apex:COMMON:pages/p00190-fusion-objects.apx": [
-   "xxfnd_fi_drift",
-   "xxfnd_fi_objects"
-  ],
   "apex:COMMON:pages/p00137-storage-rule.apx": [
    "xxfnd_app_storage_v",
    "xxfnd_attach_pkg",
@@ -2352,21 +2192,6 @@
   "apex:COMMON:pages/p00113-retention-policy.apx": [
    "xxfnd_retention_policies",
    "xxfnd_setup_tables_v"
-  ],
-  "apex:COMMON:pages/p00193-drift-queue.apx": [
-   "xxfnd_fi_drift",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_objects"
-  ],
-  "apex:COMMON:pages/p00192-object-detail.apx": [
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_drift",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg",
-   "xxfnd_fi_runs",
-   "xxfnd_fi_versions"
   ],
   "apex:COMMON:pages/p00168-menu-entry.apx": [
    "xxfnd_app_menu_entries",
@@ -2418,16 +2243,6 @@
   ],
   "apex:COMMON:pages/p00130-document-entities.apx": [
    "xxfnd_document_entities_vl"
-  ],
-  "apex:COMMON:pages/p00191-onboard-object.apx": [
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_catalog",
-   "xxfnd_fi_children",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg",
-   "xxfnd_servers"
   ],
   "apex:COMMON:pages/p00117-notification-log.apx": [
    "xxfnd_notifications",
@@ -2509,10 +2324,6 @@
    "xxfnd_role_privileges",
    "xxfnd_roles"
   ],
-  "apex:COMMON:pages/p00194-run-log.apx": [
-   "xxfnd_fi_objects",
-   "xxfnd_fi_runs"
-  ],
   "apex:COMMON:pages/p00115-delegation.apx": [
    "xxfnd_wf_delegations"
   ]
@@ -2570,15 +2381,6 @@
    "xxfnd_documents",
    "xxfnd_entity_containers",
    "xxfnd_error_log",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_catalog",
-   "xxfnd_fi_children",
-   "xxfnd_fi_drift",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_run_pkg",
-   "xxfnd_fi_runs",
-   "xxfnd_fi_versions",
    "xxfnd_integration_calls",
    "xxfnd_integration_endpoints",
    "xxfnd_integration_purposes",
@@ -2598,6 +2400,7 @@
    "xxfnd_role_data_access",
    "xxfnd_role_members",
    "xxfnd_roles",
+   "xxfnd_server_catalogs",
    "xxfnd_server_tests",
    "xxfnd_servers",
    "xxfnd_setup_type_apps",
@@ -2819,11 +2622,6 @@
    "xxfnd_attach_pkg",
    "xxfnd_data_model_pkg",
    "xxfnd_dff_pkg",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg",
    "xxfnd_lookup_pkg",
    "xxfnd_notify_pkg",
    "xxfnd_onboard_pkg",
@@ -2894,7 +2692,6 @@
    "xxfnd_app_setting_pkg",
    "xxfnd_application_pkg",
    "xxfnd_data_model_pkg",
-   "xxfnd_fi_registry_pkg",
    "xxfnd_integration_pkg",
    "xxfnd_notify_pkg",
    "xxfnd_rfi_pkg",
@@ -2952,8 +2749,6 @@
    "xxfnd_dff_pkg",
    "xxfnd_document_categories_vl",
    "xxfnd_document_entities_vl",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_registry_pkg",
    "xxfnd_integration_pkg",
    "xxfnd_lookup_pkg",
    "xxfnd_lookup_values_lvl",
@@ -2987,7 +2782,6 @@
    "xxfnd_attach_pkg",
    "xxfnd_data_model_pkg",
    "xxfnd_data_security_rules",
-   "xxfnd_fi_registry_pkg",
    "xxfnd_notify_pkg",
    "xxfnd_privilege_pkg",
    "xxfnd_rfi_pkg",
@@ -3026,7 +2820,6 @@
    "xxfnd_application_pkg",
    "xxfnd_approval_pkg",
    "xxfnd_approval_rule_pkg",
-   "xxfnd_fi_drift_pkg",
    "xxfnd_notify_pkg",
    "xxfnd_qa_history_v",
    "xxfnd_rfi_pkg",
@@ -3147,7 +2940,6 @@
    "apex:COMMON:shared-components/email-templates.apx",
    "xxcmp_monitor_pkg",
    "xxfnd_application_pkg",
-   "xxfnd_fi_drift_pkg",
    "xxfnd_rfi_pkg",
    "xxfnd_workflow_pkg"
   ],
@@ -3445,7 +3237,6 @@
    "apex:COMMON:pages/p00125-call.apx",
    "apex:COMMON:shared-components/automations/fusion-hcm-sync.apx",
    "apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx",
-   "apex:COMMON:shared-components/rest-data-sources/fusion-root.apx",
    "apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx",
    "apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx",
    "apex:COMMON:shared-components/rest-data-sources/ucm-content.apx",
@@ -3454,17 +3245,25 @@
    "apex:COMMON:workspace-components/rest-data-source-servers/ucm-main.apx",
    "xxfnd_application_pkg",
    "xxfnd_attach_pkg",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_run_pkg",
    "xxfnd_integration_calls",
    "xxfnd_notify_pkg",
+   "xxfnd_server_catalogs",
    "xxhr_employees_src"
+  ],
+  "xxfnd_servers": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00137-storage-rule.apx",
+   "xxfnd_app_storage_v",
+   "xxfnd_attach_pkg",
+   "xxfnd_integration_pkg",
+   "xxfnd_server_catalogs",
+   "xxfnd_servers_v",
+   "xxfnd_setup_rows_v"
   ],
   "xxfnd_integration_calls": [
    "apex:COMMON:pages/p00121-server.apx",
    "apex:COMMON:pages/p00124-transmission-log.apx",
    "apex:COMMON:pages/p00125-call.apx",
-   "xxfnd_fi_runs",
    "xxfnd_integration_pkg",
    "xxfnd_servers_v"
   ],
@@ -3472,17 +3271,6 @@
    "apex:COMMON:pages/p00121-server.apx",
    "xxfnd_integration_pkg",
    "xxfnd_servers_v"
-  ],
-  "xxfnd_servers": [
-   "apex:COMMON:pages/p00121-server.apx",
-   "apex:COMMON:pages/p00137-storage-rule.apx",
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "xxfnd_app_storage_v",
-   "xxfnd_attach_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_integration_pkg",
-   "xxfnd_servers_v",
-   "xxfnd_setup_rows_v"
   ],
   "xxfnd_integration_purposes": [
    "apex:COMMON:pages/p00000-global-page.apx",
@@ -3494,6 +3282,11 @@
    "xxfnd_integration_changes_v",
    "xxfnd_integration_pkg",
    "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_server_catalogs": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "xxfnd_integration_pkg"
   ],
   "xxfnd_servers_v": [
    "apex:COMMON:pages/p00000-global-page.apx",
@@ -3689,13 +3482,6 @@
    "xxfnd_app_menu_entries",
    "xxfnd_application_functions",
    "xxfnd_contact_sources",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_catalog",
-   "xxfnd_fi_children",
-   "xxfnd_fi_drift",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_runs",
-   "xxfnd_fi_versions",
    "xxfnd_page_opens",
    "xxfnd_share_pkg"
   ],
@@ -3879,85 +3665,6 @@
   "xxfnd_page_opens": [
    "xxfnd_nav_pkg",
    "xxfnd_page_catalogue_v"
-  ],
-  "xxfnd_fi_catalog": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "xxfnd_fi_meta_pkg",
-   "xxfnd_fi_objects",
-   "xxfnd_fi_registry_pkg"
-  ],
-  "xxfnd_fi_run_pkg": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "apex:COMMON:shared-components/automations/fusion-objects-run.apx",
-   "xxfnd_fi_objects"
-  ],
-  "xxfnd_fi_objects": [
-   "apex:COMMON:pages/p00190-fusion-objects.apx",
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "apex:COMMON:pages/p00193-drift-queue.apx",
-   "apex:COMMON:pages/p00194-run-log.apx",
-   "xxfnd_fi_attributes",
-   "xxfnd_fi_children",
-   "xxfnd_fi_drift",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg",
-   "xxfnd_fi_runs",
-   "xxfnd_fi_versions"
-  ],
-  "xxfnd_fi_attributes": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg"
-  ],
-  "xxfnd_fi_meta_pkg": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_gen_pkg",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg"
-  ],
-  "xxfnd_fi_versions": [
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "xxfnd_fi_gen_pkg"
-  ],
-  "xxfnd_fi_children": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "xxfnd_fi_registry_pkg"
-  ],
-  "xxfnd_fi_gen_pkg": [
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_registry_pkg",
-   "xxfnd_fi_run_pkg"
-  ],
-  "xxfnd_fi_drift": [
-   "apex:COMMON:pages/p00190-fusion-objects.apx",
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "apex:COMMON:pages/p00193-drift-queue.apx",
-   "xxfnd_fi_drift_pkg"
-  ],
-  "xxfnd_fi_registry_pkg": [
-   "apex:COMMON:pages/p00191-onboard-object.apx",
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_run_pkg"
-  ],
-  "xxfnd_fi_runs": [
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "apex:COMMON:pages/p00194-run-log.apx",
-   "xxfnd_fi_drift_pkg",
-   "xxfnd_fi_run_pkg"
-  ],
-  "xxfnd_fi_drift_pkg": [
-   "apex:COMMON:pages/p00192-object-detail.apx",
-   "apex:COMMON:pages/p00193-drift-queue.apx",
-   "xxfnd_fi_run_pkg"
   ],
   "xxfnd_modules_v": [
    "apex:COMMON:shared-components/lists.apx"

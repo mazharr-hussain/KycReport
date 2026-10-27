@@ -223,11 +223,15 @@ create or replace package body xxfnd_integration_pkg as
                           p_enabled_flag         in varchar2 default 'Y',
                           p_description          in varchar2 default null,
                           p_base_url             in varchar2 default null,
-                          -- release 93: FUSION - the workspace's Fusion integration application
-                          p_source_application_id in number  default null,
-                          p_auth_server_code     in varchar2 default null) is
+                          p_auth_server_code     in varchar2 default null,
+                          p_remote_server_code   in varchar2 default null) is
         l_type varchar2(30) := upper(p_server_type);
+        l_rs   varchar2(255) := nvl(p_remote_server_code, p_server_code);
+        l_name xxfnd_servers.server_name%type;
     begin
+        -- release 112: the name is the Remote Server's (kept only as the fallback of a Remote Server that is gone)
+        select coalesce(max(remote_server_name), p_server_name, l_rs) into l_name
+          from apex_workspace_remote_servers where remote_server_static_id = l_rs;
         if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM', 'FUSION', 'REST', 'OUTLOOK') then
             raise_application_error(-20341, 'Choose the server type: OCI Object Storage, SharePoint, UCM, Fusion, REST or Outlook.');
         end if;
@@ -235,7 +239,8 @@ create or replace package body xxfnd_integration_pkg as
         using (select p_server_code server_code from dual) s
            on (t.server_code = s.server_code)
          when matched then update set
-              t.server_name          = p_server_name,
+              t.server_name          = l_name,
+              t.remote_server_code   = p_remote_server_code,
               t.server_type          = l_type,
               t.credential_static_id = p_credential_static_id,
               -- release 109: a value not given keeps the stored one (older servers); new ones come from APEX
@@ -245,20 +250,32 @@ create or replace package body xxfnd_integration_pkg as
               t.auth_server_code     = case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_auth_server_code end,
               t.enabled_flag         = nvl(p_enabled_flag, 'Y'),
               t.description          = p_description,
-              t.base_url             = nvl(p_base_url, t.base_url),
-              t.source_application_id = case when l_type = 'FUSION' then p_source_application_id end
+              t.base_url             = nvl(p_base_url, t.base_url)
          when not matched then insert
               (server_code, server_name, server_type, credential_static_id, oauth_token_url, oci_region, oci_namespace,
-               enabled_flag, description, base_url, source_application_id, auth_server_code)
+               enabled_flag, description, base_url, auth_server_code, remote_server_code)
               values
-              (s.server_code, p_server_name, l_type, p_credential_static_id,
+              (s.server_code, l_name, l_type, p_credential_static_id,
                case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
                nvl(p_enabled_flag, 'Y'), p_description, p_base_url,
-               case when l_type = 'FUSION' then p_source_application_id end,
-               case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_auth_server_code end);
+               case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_auth_server_code end, p_remote_server_code);
     end save_server;
+
+    procedure set_server_catalogs(p_server_code in varchar2, p_catalog_ids in varchar2) is
+        l_ids apex_t_varchar2 := apex_string.split(p_catalog_ids, ':');
+    begin
+        delete from xxfnd_server_catalogs
+         where server_code = p_server_code
+           and to_char(catalog_id) not in (select column_value from table(l_ids) where column_value is not null);
+        insert into xxfnd_server_catalogs (server_code, catalog_id, created_by)
+        select p_server_code, to_number(i.column_value), xxfnd_util_pkg.current_user
+          from table(l_ids) i
+         where i.column_value is not null
+           and not exists (select 1 from xxfnd_server_catalogs c
+                            where c.server_code = p_server_code and c.catalog_id = to_number(i.column_value));
+    end set_server_catalogs;
 
     procedure delete_server(p_server_code in varchar2) is
         e_child exception;

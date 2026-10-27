@@ -209,6 +209,9 @@
    "common/db/scripts/05b-integration-pkg/05-add_column-xxfnd_servers.sql",
    "common/db/scripts/05b-integration-pkg/07-add_column-xxfnd_servers-auth.sql",
    "common/db/scripts/05b-integration-pkg/09-add_column-xxfnd_integration_purposes-catalog.sql",
+   "common/db/scripts/05b-integration-pkg/10-add_column-xxfnd_servers-remote.sql",
+   "common/db/scripts/05b-integration-pkg/11-drop_column-xxfnd_servers-source-app.sql",
+   "common/features/integrations/db/tables/xxfnd_server_catalogs.sql",
    "common/db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql",
    "common/features/integrations/db/views/xxfnd_servers_v.sql",
    "common/db/scripts/05b-integration-pkg/08-step.sql",
@@ -1048,180 +1051,6 @@
   ]
  },
  {
-  "name": "40a Fusion Objects - catalog table",
-  "file": "40a-xxfnd-fi-catalog.sql",
-  "install_sequence": 240,
-  "upgrade_sequence": 240,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 98,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql"
-  ]
- },
- {
-  "name": "40b Fusion Objects - objects table",
-  "file": "40b-xxfnd-fi-objects.sql",
-  "install_sequence": 241,
-  "upgrade_sequence": 241,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 99,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql"
-  ]
- },
- {
-  "name": "40c Fusion Objects - attributes table",
-  "file": "40c-xxfnd-fi-attributes.sql",
-  "install_sequence": 242,
-  "upgrade_sequence": 242,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 100,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql"
-  ]
- },
- {
-  "name": "40d Fusion Objects - children table",
-  "file": "40d-xxfnd-fi-children.sql",
-  "install_sequence": 243,
-  "upgrade_sequence": 243,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 101,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_children.sql"
-  ]
- },
- {
-  "name": "40e Fusion Objects - versions table",
-  "file": "40e-xxfnd-fi-versions.sql",
-  "install_sequence": 244,
-  "upgrade_sequence": 244,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 102,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql"
-  ]
- },
- {
-  "name": "40f Fusion Objects - drift table",
-  "file": "40f-xxfnd-fi-drift.sql",
-  "install_sequence": 245,
-  "upgrade_sequence": 245,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 103,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql"
-  ]
- },
- {
-  "name": "40g Fusion Objects - runs table",
-  "file": "40g-xxfnd-fi-runs.sql",
-  "install_sequence": 246,
-  "upgrade_sequence": 246,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 104,
-  "units": [
-   "common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql"
-  ]
- },
- {
-  "name": "40h Fusion Objects - metadata harvester",
-  "file": "40h-xxfnd-fi-meta-pkg.sql",
-  "install_sequence": 247,
-  "upgrade_sequence": 247,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 105,
-  "units": [
-   "common/features/fusion-objects/db/package_specs/xxfnd_fi_meta_pkg.pks",
-   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_meta_pkg.pkb"
-  ]
- },
- {
-  "name": "40i Fusion Objects - generators",
-  "file": "40i-xxfnd-fi-gen-pkg.sql",
-  "install_sequence": 248,
-  "upgrade_sequence": 248,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 106,
-  "units": [
-   "common/features/fusion-objects/db/package_specs/xxfnd_fi_gen_pkg.pks",
-   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_gen_pkg.pkb"
-  ]
- },
- {
-  "name": "40j Fusion Objects - registry",
-  "file": "40j-xxfnd-fi-registry-pkg.sql",
-  "install_sequence": 249,
-  "upgrade_sequence": 249,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 107,
-  "units": [
-   "common/features/fusion-objects/db/package_specs/xxfnd_fi_registry_pkg.pks",
-   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_registry_pkg.pkb"
-  ]
- },
- {
-  "name": "40k Fusion Objects - drift governance",
-  "file": "40k-xxfnd-fi-drift-pkg.sql",
-  "install_sequence": 250,
-  "upgrade_sequence": 250,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 108,
-  "units": [
-   "common/features/fusion-objects/db/package_specs/xxfnd_fi_drift_pkg.pks",
-   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_drift_pkg.pkb"
-  ]
- },
- {
-  "name": "40l Fusion Objects - runtime",
-  "file": "40l-xxfnd-fi-run-pkg.sql",
-  "install_sequence": 251,
-  "upgrade_sequence": 251,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 109,
-  "units": [
-   "common/features/fusion-objects/db/package_specs/xxfnd_fi_run_pkg.pks",
-   "common/features/fusion-objects/db/package_bodies/xxfnd_fi_run_pkg.pkb"
-  ]
- },
- {
-  "name": "40z Fusion Objects - setup",
-  "file": "40z-fusion-objects-setup.sql",
-  "install_sequence": 252,
-  "upgrade_sequence": 252,
-  "apps": [
-   "COMMON"
-  ],
-  "source_index": 110,
-  "units": [
-   "common/db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql"
-  ]
- },
- {
   "name": "41a COMMON 108 cleanup",
   "file": "41a-common-108-cleanup.sql",
   "install_sequence": 253,
@@ -1245,6 +1074,19 @@
   "source_index": 112,
   "units": [
    "common/db/scripts/41b-rfi-lookups/01-register-rfi-lookups.sql"
+  ]
+ },
+ {
+  "name": "41c Fusion Objects removal",
+  "file": "41c-fusion-objects-removal.sql",
+  "install_sequence": 255,
+  "upgrade_sequence": 255,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 113,
+  "units": [
+   "common/db/scripts/41c-fusion-objects-removal/01-remove-fusion-objects.sql"
   ]
  }
 ]

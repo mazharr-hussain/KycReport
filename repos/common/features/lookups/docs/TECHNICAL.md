@@ -65,6 +65,7 @@ Lists of values are data, maintained from the console, with translations and lev
 ## Test scripts
 
 - `tests/common_test_fixture.sql`
+- `tests/r111_common_pending_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r80_platform_test.sql`
 - `tests/r82_workflow_test.sql`

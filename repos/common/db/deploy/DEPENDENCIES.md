@@ -271,7 +271,7 @@ table - feature `data-security` - `common/features/data-security/db/tables/xxfnd
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_ddl_pkg.pks`
 
 - **Uses (body)**: xxfnd_dropped_objects, xxfnd_schema_releases
-- **Used by**: xxcmp_answer_options [KYC], xxcmp_approval_matrix [KYC], xxcmp_attachment_rules [KYC], xxcmp_case_funds [KYC], xxcmp_case_risk_scores [KYC], xxcmp_conclusion_templates [KYC], xxcmp_fiu_reports [KYC], xxcmp_parties [KYC], xxcmp_party_contacts [KYC], xxcmp_party_id_verifications [KYC], xxcmp_party_number_s [KYC], xxcmp_party_registry_checks [KYC], xxcmp_party_relationships [KYC], xxcmp_questionnaires [KYC], xxcmp_questions [KYC], xxcmp_rfi_number_s [KYC], xxcmp_rfis [KYC], xxcmp_risk_countries [KYC], xxcmp_risk_factors [KYC], xxcmp_risk_tiers [KYC], xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_assignment_values, xxfnd_attached_documents, xxfnd_attachment_blk_entities, xxfnd_attachment_blocks, xxfnd_attachment_functions, xxfnd_audit_log, xxfnd_communications, xxfnd_contact_sources, xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_data_rule_assignments, xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_segments, xxfnd_dm_app_scopes, xxfnd_dm_table_groups, xxfnd_doc_category_usages, xxfnd_document_categories, xxfnd_document_entities, xxfnd_documents, xxfnd_entity_containers, xxfnd_error_log, xxfnd_fi_attributes, xxfnd_fi_catalog, xxfnd_fi_children, xxfnd_fi_drift, xxfnd_fi_gen_pkg, xxfnd_fi_objects, xxfnd_fi_run_pkg, xxfnd_fi_runs, xxfnd_fi_versions, xxfnd_integration_calls, xxfnd_integration_endpoints, xxfnd_integration_purposes, xxfnd_lookup_types, xxfnd_lookup_values, xxfnd_messages, xxfnd_notification_templates, xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules, xxfnd_page_opens, xxfnd_retention_policies, xxfnd_rfi_rounds, xxfnd_rfis, xxfnd_role_data_access, xxfnd_role_members, xxfnd_roles, xxfnd_server_tests, xxfnd_servers, xxfnd_setup_type_apps, xxfnd_setup_types, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_storage_config, xxfnd_user_applications, xxfnd_user_roles, xxfnd_value_sets, xxfnd_wf_delegations, xxfnd_workflow_processes, xxhr_employees, xxhr_organizations
+- **Used by**: xxcmp_answer_options [KYC], xxcmp_approval_matrix [KYC], xxcmp_attachment_rules [KYC], xxcmp_case_funds [KYC], xxcmp_case_risk_scores [KYC], xxcmp_conclusion_templates [KYC], xxcmp_fiu_reports [KYC], xxcmp_parties [KYC], xxcmp_party_contacts [KYC], xxcmp_party_id_verifications [KYC], xxcmp_party_number_s [KYC], xxcmp_party_registry_checks [KYC], xxcmp_party_relationships [KYC], xxcmp_questionnaires [KYC], xxcmp_questions [KYC], xxcmp_rfi_number_s [KYC], xxcmp_rfis [KYC], xxcmp_risk_countries [KYC], xxcmp_risk_factors [KYC], xxcmp_risk_tiers [KYC], xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_assignment_values, xxfnd_attached_documents, xxfnd_attachment_blk_entities, xxfnd_attachment_blocks, xxfnd_attachment_functions, xxfnd_audit_log, xxfnd_communications, xxfnd_contact_sources, xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_data_rule_assignments, xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_segments, xxfnd_dm_app_scopes, xxfnd_dm_table_groups, xxfnd_doc_category_usages, xxfnd_document_categories, xxfnd_document_entities, xxfnd_documents, xxfnd_entity_containers, xxfnd_error_log, xxfnd_integration_calls, xxfnd_integration_endpoints, xxfnd_integration_purposes, xxfnd_lookup_types, xxfnd_lookup_values, xxfnd_messages, xxfnd_notification_templates, xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules, xxfnd_page_opens, xxfnd_retention_policies, xxfnd_rfi_rounds, xxfnd_rfis, xxfnd_role_data_access, xxfnd_role_members, xxfnd_roles, xxfnd_server_catalogs, xxfnd_server_tests, xxfnd_servers, xxfnd_setup_type_apps, xxfnd_setup_types, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_storage_config, xxfnd_user_applications, xxfnd_user_roles, xxfnd_value_sets, xxfnd_wf_delegations, xxfnd_workflow_processes, xxhr_employees, xxhr_organizations
 
 ## xxfnd_df_contexts
 table - feature `flexfields` - `common/features/flexfields/db/tables/xxfnd_df_contexts.sql`
@@ -405,7 +405,7 @@ table - feature `framework` - `common/db/framework/tables/xxfnd_error_log.sql`
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_error_pkg.pks`
 
 - **Uses (body)**: xxfnd_error_log, xxfnd_messages
-- **Used by**: apex:COMMON:application.apx, apex:KYC:application.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_dff_pkg, xxfnd_fi_drift_pkg, xxfnd_fi_gen_pkg, xxfnd_fi_meta_pkg, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg, xxfnd_lookup_pkg, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:application.apx, apex:KYC:application.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_dff_pkg, xxfnd_lookup_pkg, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_feature_pages
 table - feature `roles-privileges` - `common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql`
@@ -418,78 +418,6 @@ table - feature `roles-privileges` - `common/features/roles-privileges/db/tables
 
 - **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00162-setup-types.apx, apex:COMMON:pages/p00167-application-menu.apx, apex:COMMON:pages/p00168-menu-entry.apx, apex:COMMON:pages/p00182-privileges.apx, apex:COMMON:shared-components/lists.apx, apex:COMMON:shared-components/lovs.apx, xxfnd_admin_menu_v, xxfnd_application_functions, xxfnd_application_pkg, xxfnd_feature_pages, xxfnd_nav_menu_v, xxfnd_page_catalogue_v, xxfnd_privilege_pkg, xxfnd_privileges, xxfnd_share_pkg
 
-## xxfnd_fi_attributes
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_objects, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, apex:COMMON:pages/p00192-object-detail.apx, xxfnd_fi_drift_pkg, xxfnd_fi_gen_pkg, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg
-
-## xxfnd_fi_catalog
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_catalog.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_fi_registry_pkg
-
-## xxfnd_fi_children
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_children.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_objects, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, xxfnd_fi_registry_pkg
-
-## xxfnd_fi_drift
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_drift.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_objects, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00190-fusion-objects.apx, apex:COMMON:pages/p00192-object-detail.apx, apex:COMMON:pages/p00193-drift-queue.apx, xxfnd_fi_drift_pkg
-
-## xxfnd_fi_drift_pkg
-package spec - feature `fusion-objects` - `common/features/fusion-objects/db/package_specs/xxfnd_fi_drift_pkg.pks`
-
-- **Uses (body)**: xxfnd_error_pkg, xxfnd_fi_attributes, xxfnd_fi_drift, xxfnd_fi_gen_pkg, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_fi_registry_pkg, xxfnd_fi_runs, xxfnd_notify_pkg, xxfnd_util_pkg, xxfnd_workflow_pkg
-- **Used by**: apex:COMMON:pages/p00192-object-detail.apx, apex:COMMON:pages/p00193-drift-queue.apx, xxfnd_fi_run_pkg
-
-## xxfnd_fi_gen_pkg
-package spec - feature `fusion-objects` - `common/features/fusion-objects/db/package_specs/xxfnd_fi_gen_pkg.pks`
-
-- **Uses (body)**: xxfnd_ddl_pkg, xxfnd_error_pkg, xxfnd_fi_attributes, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_fi_versions
-- **Used by**: xxfnd_fi_drift_pkg, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg
-
-## xxfnd_fi_meta_pkg
-package spec - feature `fusion-objects` - `common/features/fusion-objects/db/package_specs/xxfnd_fi_meta_pkg.pks`
-
-- **Uses (body)**: xxfnd_error_pkg, xxfnd_fi_catalog, xxfnd_integration_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, xxfnd_fi_drift_pkg, xxfnd_fi_gen_pkg, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg
-
-## xxfnd_fi_objects
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_objects.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_catalog, xxfnd_fi_run_pkg, xxfnd_schema_pkg, xxfnd_servers
-- **Used by**: apex:COMMON:pages/p00190-fusion-objects.apx, apex:COMMON:pages/p00191-onboard-object.apx, apex:COMMON:pages/p00192-object-detail.apx, apex:COMMON:pages/p00193-drift-queue.apx, apex:COMMON:pages/p00194-run-log.apx, xxfnd_fi_attributes, xxfnd_fi_children, xxfnd_fi_drift, xxfnd_fi_drift_pkg, xxfnd_fi_gen_pkg, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg, xxfnd_fi_runs, xxfnd_fi_versions
-
-## xxfnd_fi_registry_pkg
-package spec - feature `fusion-objects` - `common/features/fusion-objects/db/package_specs/xxfnd_fi_registry_pkg.pks`
-
-- **Uses (body)**: xxfnd_error_pkg, xxfnd_fi_attributes, xxfnd_fi_catalog, xxfnd_fi_children, xxfnd_fi_gen_pkg, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_privilege_pkg, xxfnd_util_pkg, xxfnd_vpd_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, apex:COMMON:pages/p00192-object-detail.apx, xxfnd_fi_drift_pkg, xxfnd_fi_run_pkg
-
-## xxfnd_fi_run_pkg
-package spec - feature `fusion-objects` - `common/features/fusion-objects/db/package_specs/xxfnd_fi_run_pkg.pks`
-
-- **Uses (body)**: xxfnd_ddl_pkg, xxfnd_error_pkg, xxfnd_fi_attributes, xxfnd_fi_drift_pkg, xxfnd_fi_gen_pkg, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_fi_registry_pkg, xxfnd_fi_runs, xxfnd_integration_pkg
-- **Used by**: apex:COMMON:pages/p00191-onboard-object.apx, apex:COMMON:pages/p00192-object-detail.apx, apex:COMMON:shared-components/automations/fusion-objects-run.apx, xxfnd_fi_objects
-
-## xxfnd_fi_runs
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_runs.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_objects, xxfnd_integration_calls, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00192-object-detail.apx, apex:COMMON:pages/p00194-run-log.apx, xxfnd_fi_drift_pkg, xxfnd_fi_run_pkg
-
-## xxfnd_fi_versions
-table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_versions.sql`
-
-- **Uses**: xxfnd_ddl_pkg, xxfnd_fi_objects, xxfnd_schema_pkg
-- **Used by**: apex:COMMON:pages/p00192-object-detail.apx, xxfnd_fi_gen_pkg
-
 ## xxfnd_int_purposes_mc
 trigger - feature `integrations` - `common/features/integrations/db/triggers/xxfnd_int_purposes_mc.sql`
 
@@ -499,7 +427,7 @@ trigger - feature `integrations` - `common/features/integrations/db/triggers/xxf
 table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_integration_calls.sql`
 
 - **Uses**: xxfnd_ddl_pkg, xxfnd_integration_pkg
-- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00124-transmission-log.apx, apex:COMMON:pages/p00125-call.apx, xxfnd_fi_runs, xxfnd_integration_pkg, xxfnd_servers_v
+- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00124-transmission-log.apx, apex:COMMON:pages/p00125-call.apx, xxfnd_integration_pkg, xxfnd_servers_v
 
 ## xxfnd_integration_changes_v
 view - feature `integrations` - `common/features/integrations/db/views/xxfnd_integration_changes_v.sql`
@@ -515,8 +443,8 @@ table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_i
 ## xxfnd_integration_pkg
 package spec - feature `integrations` - `common/features/integrations/db/package_specs/xxfnd_integration_pkg.pks`
 
-- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_integration_calls, xxfnd_integration_purposes, xxfnd_privilege_pkg, xxfnd_server_tests, xxfnd_servers, xxfnd_servers_v, xxfnd_util_pkg, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00123-integration-purpose.apx, apex:COMMON:pages/p00124-transmission-log.apx, apex:COMMON:pages/p00125-call.apx, apex:COMMON:shared-components/automations/fusion-hcm-sync.apx, apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx, apex:COMMON:shared-components/rest-data-sources/fusion-root.apx, apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx, apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx, apex:COMMON:shared-components/rest-data-sources/ucm-content.apx, apex:COMMON:workspace-components/rest-data-source-servers/outlook-graph.apx, apex:COMMON:workspace-components/rest-data-source-servers/sharepoint-main.apx, apex:COMMON:workspace-components/rest-data-source-servers/ucm-main.apx, xxfnd_application_pkg, xxfnd_attach_pkg, xxfnd_fi_meta_pkg, xxfnd_fi_run_pkg, xxfnd_integration_calls, xxfnd_notify_pkg, xxhr_employees_src
+- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_integration_calls, xxfnd_integration_purposes, xxfnd_privilege_pkg, xxfnd_server_catalogs, xxfnd_server_tests, xxfnd_servers, xxfnd_servers_v, xxfnd_util_pkg, xxhr_employees
+- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00123-integration-purpose.apx, apex:COMMON:pages/p00124-transmission-log.apx, apex:COMMON:pages/p00125-call.apx, apex:COMMON:shared-components/automations/fusion-hcm-sync.apx, apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx, apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx, apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx, apex:COMMON:shared-components/rest-data-sources/ucm-content.apx, apex:COMMON:workspace-components/rest-data-source-servers/outlook-graph.apx, apex:COMMON:workspace-components/rest-data-source-servers/sharepoint-main.apx, apex:COMMON:workspace-components/rest-data-source-servers/ucm-main.apx, xxfnd_application_pkg, xxfnd_attach_pkg, xxfnd_integration_calls, xxfnd_notify_pkg, xxfnd_server_catalogs, xxhr_employees_src
 
 ## xxfnd_integration_purposes
 table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_integration_purposes.sql`
@@ -606,7 +534,7 @@ package spec - feature `notifications` - `common/features/notifications/db/packa
 
 - **Uses**: xxfnd_contact_tab
 - **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_attach_pkg, xxfnd_communications, xxfnd_contact_row, xxfnd_contact_sources, xxfnd_contact_tab, xxfnd_document_entities, xxfnd_error_pkg, xxfnd_integration_pkg, xxfnd_notification_templates, xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules, xxfnd_privilege_pkg, xxfnd_users, xxfnd_util_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00043-notifications.apx, apex:COMMON:pages/p00045-communications.apx, apex:COMMON:pages/p00046-e-mail.apx, apex:COMMON:pages/p00110-notification-template.apx, apex:COMMON:shared-components/app-computations.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/email-templates.apx, xxcmp_monitor_pkg [KYC], xxfnd_application_pkg, xxfnd_fi_drift_pkg, xxfnd_rfi_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00043-notifications.apx, apex:COMMON:pages/p00045-communications.apx, apex:COMMON:pages/p00046-e-mail.apx, apex:COMMON:pages/p00110-notification-template.apx, apex:COMMON:shared-components/app-computations.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/email-templates.apx, xxcmp_monitor_pkg [KYC], xxfnd_application_pkg, xxfnd_rfi_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_notify_recipient_types
 table - feature `notifications` - `common/features/notifications/db/tables/xxfnd_notify_recipient_types.sql`
@@ -642,7 +570,7 @@ table - feature `framework` - `common/db/tables/xxfnd_page_opens.sql`
 package spec - feature `roles-privileges` - `common/features/roles-privileges/db/package_specs/xxfnd_privilege_pkg.pks`
 
 - **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_error_pkg, xxfnd_feature_pages, xxfnd_features, xxfnd_privileges, xxfnd_role_members, xxfnd_role_privileges, xxfnd_roles, xxfnd_sod_rules, xxfnd_user_role_tree_v, xxfnd_user_roles, xxfnd_util_pkg, xxfnd_vpd_pkg
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00166-application.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:pages/p00186-organizations.apx, apex:COMMON:shared-components/app-processes.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00205-kyc-request.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00220-monitoring-watchlist.apx, apex:KYC:pages/p00221-alerts.apx, apex:KYC:shared-components/app-processes.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_request_ui_pkg [KYC], xxfnd_admin_menu_v, xxfnd_app_setting_pkg, xxfnd_application_pkg, xxfnd_data_model_pkg, xxfnd_fi_registry_pkg, xxfnd_integration_pkg, xxfnd_notify_pkg, xxfnd_rfi_pkg, xxfnd_roles_every_role, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00166-application.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:pages/p00186-organizations.apx, apex:COMMON:shared-components/app-processes.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00020-parties.apx, apex:KYC:pages/p00021-party.apx, apex:KYC:pages/p00205-kyc-request.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00220-monitoring-watchlist.apx, apex:KYC:pages/p00221-alerts.apx, apex:KYC:shared-components/app-processes.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_request_ui_pkg [KYC], xxfnd_admin_menu_v, xxfnd_app_setting_pkg, xxfnd_application_pkg, xxfnd_data_model_pkg, xxfnd_integration_pkg, xxfnd_notify_pkg, xxfnd_rfi_pkg, xxfnd_roles_every_role, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_privileges
 table - feature `roles-privileges` - `common/features/roles-privileges/db/tables/xxfnd_privileges.sql`
@@ -733,12 +661,18 @@ trigger - feature `roles-privileges` - `common/features/roles-privileges/db/trig
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_schema_pkg.pks`
 
 - **Uses (body)**: xxfnd_audit_pkg, xxfnd_config_tables, xxfnd_data_security_rules, xxfnd_util_pkg, xxfnd_vpd_pkg
-- **Used by**: xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_contact_sources, xxfnd_fi_attributes, xxfnd_fi_catalog, xxfnd_fi_children, xxfnd_fi_drift, xxfnd_fi_objects, xxfnd_fi_runs, xxfnd_fi_versions, xxfnd_page_opens, xxfnd_share_pkg
+- **Used by**: xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_contact_sources, xxfnd_page_opens, xxfnd_share_pkg
 
 ## xxfnd_schema_releases
 table - feature `framework` - `common/db/framework/tables/xxfnd_schema_releases.sql`
 
 - **Used by**: xxfnd_ddl_pkg, xxfnd_share_pkg
+
+## xxfnd_server_catalogs
+table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_server_catalogs.sql`
+
+- **Uses**: xxfnd_ddl_pkg, xxfnd_integration_pkg, xxfnd_servers
+- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00123-integration-purpose.apx, xxfnd_integration_pkg
 
 ## xxfnd_server_tests
 table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_server_tests.sql`
@@ -750,7 +684,7 @@ table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_s
 table - feature `integrations` - `common/features/integrations/db/tables/xxfnd_servers.sql`
 
 - **Uses**: xxfnd_ddl_pkg, xxfnd_integration_endpoints
-- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00137-storage-rule.apx, apex:COMMON:pages/p00191-onboard-object.apx, xxfnd_app_storage_v, xxfnd_attach_pkg, xxfnd_fi_objects, xxfnd_integration_pkg, xxfnd_servers_v, xxfnd_setup_rows_v
+- **Used by**: apex:COMMON:pages/p00121-server.apx, apex:COMMON:pages/p00137-storage-rule.apx, xxfnd_app_storage_v, xxfnd_attach_pkg, xxfnd_integration_pkg, xxfnd_server_catalogs, xxfnd_servers_v, xxfnd_setup_rows_v
 
 ## xxfnd_servers_v
 view - feature `integrations` - `common/features/integrations/db/views/xxfnd_servers_v.sql`
@@ -878,7 +812,7 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxfnd_u
 ## xxfnd_util_pkg
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_util_pkg.pks`
 
-- **Used by**: apex:COMMON:shared-components/app-computations.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00217-compliance-report.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_attached_documents_v, xxfnd_audit_pkg, xxfnd_data_model_pkg, xxfnd_df_contexts_protect, xxfnd_df_contexts_vl, xxfnd_dff_pkg, xxfnd_document_categories_vl, xxfnd_document_entities_vl, xxfnd_fi_drift_pkg, xxfnd_fi_registry_pkg, xxfnd_integration_pkg, xxfnd_lookup_pkg, xxfnd_lookup_values_lvl, xxfnd_lookup_values_vl, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees_src
+- **Used by**: apex:COMMON:shared-components/app-computations.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00217-compliance-report.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_attached_documents_v, xxfnd_audit_pkg, xxfnd_data_model_pkg, xxfnd_df_contexts_protect, xxfnd_df_contexts_vl, xxfnd_dff_pkg, xxfnd_document_categories_vl, xxfnd_document_entities_vl, xxfnd_integration_pkg, xxfnd_lookup_pkg, xxfnd_lookup_values_lvl, xxfnd_lookup_values_vl, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees_src
 
 ## xxfnd_value_sets
 table - feature `flexfields` - `common/features/flexfields/db/tables/xxfnd_value_sets.sql`
@@ -890,7 +824,7 @@ table - feature `flexfields` - `common/features/flexfields/db/tables/xxfnd_value
 package spec - feature `data-security` - `common/features/data-security/db/package_specs/xxfnd_vpd_pkg.pks`
 
 - **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_assignment_values, xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_data_rule_assignments, xxfnd_data_security_rules, xxfnd_error_pkg, xxfnd_privilege_pkg, xxfnd_role_data_access, xxfnd_roles, xxfnd_user_data_access_v, xxfnd_user_roles, xxfnd_user_roles_v, xxfnd_users, xxfnd_util_pkg, xxfnd_wf_delegations, xxhr_organizations
-- **Used by**: apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00180-data-security.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:pages/p00186-organizations.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_data_security_rules, xxfnd_fi_registry_pkg, xxfnd_notify_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00180-data-security.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:pages/p00186-organizations.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_data_security_rules, xxfnd_notify_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_wf_delegations
 table - feature `workflow-setup` - `common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql`
@@ -903,7 +837,7 @@ package spec - feature `workflow-setup` - `common/features/workflow-setup/db/pac
 
 - **Uses**: xxfnd_qa_tab
 - **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_config_tables, xxfnd_error_pkg, xxfnd_notify_pkg, xxfnd_privilege_pkg, xxfnd_qa_row, xxfnd_qa_tab, xxfnd_role_privileges, xxfnd_task_alerts, xxfnd_task_settings, xxfnd_user_roles_v, xxfnd_util_pkg, xxfnd_vpd_pkg, xxfnd_wf_delegations, xxfnd_workflow_processes
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00142-workflow.apx, apex:COMMON:pages/p00143-information-request.apx, apex:COMMON:pages/p00144-configuration-change.apx, apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00165-application-journey.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/automations/task-deadlines.apx, apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx, apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx, apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx, apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx, apex:COMMON:shared-components/workflows/RFI.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/task-definitions/CASE-APPROVAL.apx, apex:KYC:shared-components/task-definitions/CASE-INVESTIGATION.apx, apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, apex:KYC:shared-components/workflows/KYC-CASE.apx, apex:KYC:shared-components/workflows/KYC-REQUEST.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_fi_drift_pkg, xxfnd_notify_pkg, xxfnd_qa_history_v, xxfnd_rfi_pkg, xxfnd_wf_delegations
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00142-workflow.apx, apex:COMMON:pages/p00143-information-request.apx, apex:COMMON:pages/p00144-configuration-change.apx, apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00165-application-journey.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/automations/task-deadlines.apx, apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx, apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx, apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx, apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx, apex:COMMON:shared-components/workflows/RFI.apx, apex:KYC:pages/p00001-home.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/task-definitions/CASE-APPROVAL.apx, apex:KYC:shared-components/task-definitions/CASE-INVESTIGATION.apx, apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, apex:KYC:shared-components/workflows/KYC-CASE.apx, apex:KYC:shared-components/workflows/KYC-REQUEST.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_notify_pkg, xxfnd_qa_history_v, xxfnd_rfi_pkg, xxfnd_wf_delegations
 
 ## xxfnd_workflow_processes
 table - feature `applications` - `common/features/applications/db/tables/xxfnd_workflow_processes.sql`
@@ -967,9 +901,9 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:pages/p00116-notification-delivery.apx`: xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules
 - `apex:COMMON:pages/p00117-notification-log.apx`: xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events
 - `apex:COMMON:pages/p00120-servers.apx`: xxfnd_servers_v
-- `apex:COMMON:pages/p00121-server.apx`: xxfnd_integration_calls, xxfnd_integration_pkg, xxfnd_lookup_values_vl, xxfnd_server_tests, xxfnd_servers, xxfnd_servers_v
+- `apex:COMMON:pages/p00121-server.apx`: xxfnd_integration_calls, xxfnd_integration_pkg, xxfnd_lookup_values_vl, xxfnd_server_catalogs, xxfnd_server_tests, xxfnd_servers, xxfnd_servers_v
 - `apex:COMMON:pages/p00122-integration-purposes.apx`: xxfnd_integration_purposes, xxfnd_lookup_pkg
-- `apex:COMMON:pages/p00123-integration-purpose.apx`: xxfnd_approval_pkg, xxfnd_audit_pkg, xxfnd_integration_pkg, xxfnd_integration_purposes, xxfnd_servers_v
+- `apex:COMMON:pages/p00123-integration-purpose.apx`: xxfnd_approval_pkg, xxfnd_audit_pkg, xxfnd_integration_pkg, xxfnd_integration_purposes, xxfnd_server_catalogs, xxfnd_servers_v
 - `apex:COMMON:pages/p00124-transmission-log.apx`: xxfnd_integration_calls, xxfnd_integration_pkg
 - `apex:COMMON:pages/p00125-call.apx`: xxfnd_integration_calls, xxfnd_integration_pkg
 - `apex:COMMON:pages/p00130-document-entities.apx`: xxfnd_document_entities_vl
@@ -1013,11 +947,6 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:pages/p00183-assign.apx`: xxfnd_data_security_rules, xxfnd_roles, xxfnd_user_pkg, xxfnd_users, xxfnd_vpd_pkg
 - `apex:COMMON:pages/p00184-data-access-values.apx`: xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_lookup_values_vl, xxfnd_privilege_pkg, xxfnd_role_data_access, xxfnd_user_role_tree_v, xxfnd_user_roles_v, xxfnd_vpd_pkg, xxhr_organizations
 - `apex:COMMON:pages/p00186-organizations.apx`: xxfnd_assignment_values, xxfnd_data_dimensions, xxfnd_privilege_pkg, xxfnd_vpd_pkg, xxhr_organizations
-- `apex:COMMON:pages/p00190-fusion-objects.apx`: xxfnd_fi_drift, xxfnd_fi_objects
-- `apex:COMMON:pages/p00191-onboard-object.apx`: xxfnd_fi_attributes, xxfnd_fi_catalog, xxfnd_fi_children, xxfnd_fi_meta_pkg, xxfnd_fi_objects, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg, xxfnd_servers
-- `apex:COMMON:pages/p00192-object-detail.apx`: xxfnd_fi_attributes, xxfnd_fi_drift, xxfnd_fi_drift_pkg, xxfnd_fi_objects, xxfnd_fi_registry_pkg, xxfnd_fi_run_pkg, xxfnd_fi_runs, xxfnd_fi_versions
-- `apex:COMMON:pages/p00193-drift-queue.apx`: xxfnd_fi_drift, xxfnd_fi_drift_pkg, xxfnd_fi_objects
-- `apex:COMMON:pages/p00194-run-log.apx`: xxfnd_fi_objects, xxfnd_fi_runs
 - `apex:COMMON:pages/p10020-optional-features.apx`: xxfnd_applications
 - `apex:COMMON:pages/p10021-optional-feature.apx`: xxfnd_app_setting_pkg, xxfnd_application_pkg
 - `apex:COMMON:pages/p10022-application-settings.apx`: xxfnd_applications
@@ -1028,13 +957,11 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:shared-components/authentications.apx`: xxfnd_user_pkg
 - `apex:COMMON:shared-components/authorizations.apx`: xxfnd_user_pkg
 - `apex:COMMON:shared-components/automations/fusion-hcm-sync.apx`: xxfnd_integration_pkg
-- `apex:COMMON:shared-components/automations/fusion-objects-run.apx`: xxfnd_fi_run_pkg
 - `apex:COMMON:shared-components/automations/task-deadlines.apx`: xxfnd_workflow_pkg
 - `apex:COMMON:shared-components/email-templates.apx`: xxfnd_notification_templates, xxfnd_notify_pkg
 - `apex:COMMON:shared-components/lists.apx`: xxfnd_admin_menu_v, xxfnd_app_storage_v, xxfnd_application_pkg, xxfnd_applications, xxfnd_feature_pages, xxfnd_features, xxfnd_integration_purposes, xxfnd_modules_v, xxfnd_nav_menu_v, xxfnd_nav_pkg, xxfnd_notify_rules, xxfnd_privileges, xxfnd_role_privileges, xxfnd_roles, xxfnd_setup_types, xxfnd_user_roles_v, xxfnd_workflow_processes
 - `apex:COMMON:shared-components/lovs.apx`: xxfnd_application_pkg, xxfnd_applications, xxfnd_document_categories_vl, xxfnd_document_entities_vl, xxfnd_features, xxfnd_lookup_types, xxfnd_lookup_values_vl, xxfnd_notification_templates, xxfnd_privileges, xxfnd_roles, xxfnd_setup_types, xxfnd_value_sets, xxhr_employees
 - `apex:COMMON:shared-components/rest-data-sources/fusion-hcm-workers.apx`: xxfnd_integration_pkg
-- `apex:COMMON:shared-components/rest-data-sources/fusion-root.apx`: xxfnd_integration_pkg
 - `apex:COMMON:shared-components/rest-data-sources/outlook-messages.apx`: xxfnd_integration_pkg
 - `apex:COMMON:shared-components/rest-data-sources/sharepoint-drives.apx`: xxfnd_integration_pkg
 - `apex:COMMON:shared-components/rest-data-sources/ucm-content.apx`: xxfnd_integration_pkg

@@ -58,12 +58,12 @@ Notifications are templates and rules (data), sent the same way for every applic
     - `db/scripts/28-registration/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/32-registration-removal-rfi-contacts/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
-    - `db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql`
+    - `db/scripts/41c-fusion-objects-removal/01-remove-fusion-objects.sql`
 
 ## Dependencies
 
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_ATTACH_PKG, XXFND_COMMUNICATIONS, XXFND_CONTACT_ROW, XXFND_CONTACT_SOURCES, XXFND_CONTACT_TAB, XXFND_DDL_PKG, XXFND_DOCUMENT_ENTITIES, XXFND_ERROR_PKG, XXFND_INTEGRATION_PKG, XXFND_PRIVILEGE_PKG, XXFND_USERS, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES
-- Used by objects: XXCMP_MONITOR_PKG, XXFND_APPLICATION_PKG, XXFND_FI_DRIFT_PKG, XXFND_RFI_PKG, XXFND_SETUP_ROWS_V, XXFND_WORKFLOW_PKG
+- Used by objects: XXCMP_MONITOR_PKG, XXFND_APPLICATION_PKG, XXFND_RFI_PKG, XXFND_SETUP_ROWS_V, XXFND_WORKFLOW_PKG
 - Used by COMMON pages / components: 0, 1, 43, 45, 46, 109, 110, 116, 117, lovs, lists, app-computations, app-processes, email-templates
 
 ## Test scripts

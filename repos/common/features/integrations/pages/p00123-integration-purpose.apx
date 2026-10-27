@@ -261,13 +261,22 @@ page 123 (
             type: sqlQuery
             sqlQuery:
                 ```sql
+                -- release 112: the services of the REST Source Catalogs of the purpose's server
                 select cs.catalog_name || ' - ' || cs.service_name || ' (' || cs.url_endpoint || ')' as display_value,
                        cs.service_id as return_value
                   from apex_rest_catalog_services cs
+                 where cs.catalog_id in (select c.catalog_id from xxfnd_server_catalogs c
+                                          where c.server_code = :P123_SERVER_CODE)
+                    or cs.service_id = :P123_CATALOG_SERVICE_ID
                  order by 1
                 ```
             displayNullValue: true
             nullDisplayValue: - Select -
+        }
+        cascadingLov {
+            parentItems: [
+                P123_SERVER_CODE
+            ]
         }
         layout {
             sequence: 38
@@ -285,7 +294,7 @@ page 123 (
             dataType: number
         }
         help {
-            helpText: The REST Source Catalog service (Workspace Utilities) whose endpoint the purpose calls on its server (release 110); the server's Web Credential is used, else the catalog's. When empty, the REST Data Source is used.
+            helpText: The REST Source Catalog service (Workspace Utilities) whose endpoint the purpose calls on its server (release 110); only the services of the server's catalogs are listed (release 112). The server's Web Credential is used, else the catalog's. When empty, the REST Data Source is used.
         }
     )
 
