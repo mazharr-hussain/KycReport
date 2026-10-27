@@ -251,6 +251,44 @@ page 123 (
         }
     )
 
+    pageItem P123_CATALOG_SERVICE_ID (
+        type: selectList
+        label {
+            label: Catalog Service
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select cs.catalog_name || ' - ' || cs.service_name || ' (' || cs.url_endpoint || ')' as display_value,
+                       cs.service_id as return_value
+                  from apex_rest_catalog_services cs
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 38
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: CATALOG_SERVICE_ID
+            dataType: number
+        }
+        help {
+            helpText: The REST Source Catalog service (Workspace Utilities) whose endpoint the purpose calls on its server (release 110); the server's Web Credential is used, else the catalog's. When empty, the REST Data Source is used.
+        }
+    )
+
     pageItem P123_REST_SOURCE_STATIC_ID (
         type: selectList
         label {
@@ -551,6 +589,7 @@ page 123 (
                     p_capture_method        => :P123_CAPTURE_METHOD,
                     p_server_code           => :P123_SERVER_CODE,
                     p_rest_source_static_id => :P123_REST_SOURCE_STATIC_ID,
+                    p_catalog_service_id    => :P123_CATALOG_SERVICE_ID,
                     p_new                   => case when :REQUEST = 'CREATE' then 'Y' else 'N' end);
                 ```
         }

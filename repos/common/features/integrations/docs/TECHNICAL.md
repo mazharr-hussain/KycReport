@@ -53,6 +53,7 @@ Every outbound call is logged and can be retried; servers and credentials are se
     - `db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/05b-integration-pkg/07-add_column-xxfnd_servers-auth.sql`
     - `db/scripts/05b-integration-pkg/08-step.sql`
+    - `db/scripts/05b-integration-pkg/09-add_column-xxfnd_integration_purposes-catalog.sql`
     - `db/scripts/09-views/11-step.sql`
     - `db/scripts/14-attachments/01-add_column-xxfnd_storage_config.sql`
     - `db/scripts/15e-communications/01-xxfnd_util_pkg-set_install_mode.sql`
@@ -73,6 +74,8 @@ Every outbound call is logged and can be retried; servers and credentials are se
 
 ## Test scripts
 
+- `features/integrations/tests/r109_servers_users_test.sql`
+- `features/integrations/tests/r110_catalog_service_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r83_integrations_test.sql`
 - `tests/r84_notifications_test.sql`

@@ -68,6 +68,7 @@ One user record and one role assignment for all applications; sign-in and author
 
 ## Test scripts
 
+- `features/integrations/tests/r109_servers_users_test.sql`
 - `tests/common_apps_ui.py`
 - `tests/common_test_fixture.sql`
 - `tests/r79_security_test.sql`

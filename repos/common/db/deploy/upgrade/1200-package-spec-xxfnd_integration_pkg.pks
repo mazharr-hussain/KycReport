@@ -62,11 +62,14 @@ create or replace package xxfnd_integration_pkg authid definer as
                            p_capture_method        in varchar2,
                            p_server_code           in varchar2,
                            p_rest_source_static_id in varchar2,
-                           p_new                   in varchar2 default 'N');
+                           p_new                   in varchar2 default 'N',
+                           p_catalog_service_id    in number   default null);
     -- ORA-20344 when calls or transmissions refer to it.
     procedure delete_purpose(p_purpose_code in varchar2);
-    -- The one call procedure: the purpose's REST Data Source on its Remote Server, with its Web Credential; p_path and
-    -- p_query are added to the REST Data Source URL. Logged (XXFND_INTEGRATION_CALLS) and retryable. Raises ORA-20311
+    -- The one call procedure. Release 110: a purpose with a REST Source Catalog service calls the service's endpoint on
+    -- the purpose's server (its Remote Server URL replaces the endpoint's host) with the server's Web Credential, else the
+    -- catalog's; otherwise the purpose's REST Data Source on its Remote Server, with its Web Credential. p_path and
+    -- p_query are added to the URL. Logged (XXFND_INTEGRATION_CALLS) and retryable. Raises ORA-20311
     -- with the HTTP status when the call fails; ORA-20312 when the purpose has no REST Data Source.
     function call(p_purpose_code in varchar2,
                   p_http_method  in varchar2 default 'GET',
