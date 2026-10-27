@@ -386,7 +386,9 @@ create or replace package body xxfnd_attach_pkg as
             raise_application_error(-20336, 'OCI Object Storage needs the namespace (server ' || p_srv.static_id
                 || ') and the bucket.');
         end if;
-        return rtrim(coalesce(p_srv.base_url, 'https://objectstorage.' || p_srv.oci_region || '.oraclecloud.com'), '/')
+        -- release 109: the Remote Server URL may already end with /n/<namespace> (the namespace is read from it)
+        return rtrim(regexp_replace(coalesce(p_srv.base_url, 'https://objectstorage.' || p_srv.oci_region || '.oraclecloud.com'),
+                                    '/n/[^/]*/?$', ''), '/')
             || '/n/' || utl_url.escape(p_srv.oci_namespace, true, 'AL32UTF8')
             || '/b/' || utl_url.escape(p_bucket, true, 'AL32UTF8') || '/o';
     end os_base;

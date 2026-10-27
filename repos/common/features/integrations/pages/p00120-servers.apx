@@ -253,9 +253,10 @@ page 120 (
             htmlCode:
                 ```html
                 <p>A server is an APEX Remote Server of the workspace (its URL) and an APEX Web Credential (its secret): the
-                workspace administrator keeps both in Workspace Utilities, Remote Servers and Web Credentials. The COMMON
-                administrator defines each server here once - its type and the type's details - and every application uses it.
-                See the admin guide, "How to change a server".</p>
+                workspace administrator keeps both in Workspace Utilities, Remote Servers and Web Credentials. COMMON only maps
+                them to their use (type, Remote Server, Web Credential; for SharePoint / Outlook the Authentication Remote
+                Server of the token URL). Object Storage reads its region and namespace from the Remote Server URL
+                (https://objectstorage.&lt;region&gt;.oraclecloud.com/n/&lt;namespace&gt;). Nothing is typed twice.</p>
                 ```
         }
         layout {
@@ -269,6 +270,132 @@ page 120 (
         advanced {
             htmlDomId: howto
         }
+    )
+
+    region apex-remote-servers (
+        name: APEX Remote Servers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 109: the workspace's APEX Remote Servers (Workspace Utilities), read only: COMMON maps them, it
+                -- does not create them
+                select remote_server_name, remote_server_static_id, base_url
+                  from apex_workspace_remote_servers
+                 order by remote_server_name
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: apex_remote_servers
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No Remote Servers in the workspace.
+        }
+        comments {
+            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Remote Servers.
+        }
+
+        column REMOTE_SERVER_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column REMOTE_SERVER_STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column BASE_URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+
+    region apex-web-credentials (
+        name: APEX Web Credentials
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 109: the workspace's APEX Web Credentials (Workspace Utilities), read only; the secrets stay in
+                -- APEX (or in the database credential they use)
+                select name, static_id
+                  from apex_workspace_credentials
+                 order by name
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: apex_web_credentials
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No Web Credentials in the workspace.
+        }
+        comments {
+            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Web Credentials.
+        }
+
+        column NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 20
+            }
+        )
     )
 
     button create (

@@ -329,7 +329,7 @@ page 121 (
         }
     )
     pageItem P121_OCI_REGION (
-        type: textField
+        type: displayOnly
         label {
             label: OCI Region
             alignment: left
@@ -345,20 +345,23 @@ page 121 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 100
+        settings {
+            sendOnPageSubmit: false
         }
         source {
-            formRegion: @form
-            column: OCI_REGION
-            dataType: varchar2
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select oci_region from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+            used: always
         }
         help {
-            helpText: 'OCI Object Storage: the region, e.g. eu-frankfurt-1.'
+            helpText: Release 109: read from the APEX Remote Server URL (https://objectstorage.<region>.oraclecloud.com/n/<namespace>).
         }
     )
     pageItem P121_OCI_NAMESPACE (
-        type: textField
+        type: displayOnly
         label {
             label: Namespace
             alignment: left
@@ -375,23 +378,38 @@ page 121 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 200
+        settings {
+            sendOnPageSubmit: false
         }
         source {
-            formRegion: @form
-            column: OCI_NAMESPACE
-            dataType: varchar2
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select oci_namespace from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+            used: always
         }
         help {
-            helpText: 'OCI Object Storage: the Object Storage namespace of the tenancy.'
+            helpText: Release 109: read from the APEX Remote Server URL (the /n/<namespace> part).
         }
     )
-    pageItem P121_OAUTH_TOKEN_URL (
-        type: textField
+    pageItem P121_AUTH_SERVER_CODE (
+        type: selectList
         label {
-            label: OAuth Token URL
+            label: Authentication Server
             alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select remote_server_name || ' (' || remote_server_static_id || ')' as display_value,
+                       remote_server_static_id as return_value
+                  from apex_workspace_remote_servers
+                 order by remote_server_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
         }
         layout {
             sequence: 70
@@ -403,16 +421,13 @@ page 121 (
             template: @/optional-above
             templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 1000
-        }
         source {
             formRegion: @form
-            column: OAUTH_TOKEN_URL
+            column: AUTH_SERVER_CODE
             dataType: varchar2
         }
         help {
-            helpText: 'SharePoint and Outlook (Microsoft Graph): the token URL of the tenant, e.g. https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token.'
+            helpText: 'Release 109 - SharePoint and Outlook (Microsoft Graph): the APEX Remote Server of type Authentication whose URL is the OAuth token URL (e.g. https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token). Created in Workspace Utilities, Remote Servers.'
         }
     )
     pageItem P121_ENABLED_FLAG (
@@ -851,12 +866,10 @@ page 121 (
                     p_server_name          => :P121_SERVER_NAME,
                     p_server_type          => :P121_SERVER_TYPE,
                     p_credential_static_id => :P121_CREDENTIAL_STATIC_ID,
-                    p_oauth_token_url      => :P121_OAUTH_TOKEN_URL,
-                    p_oci_region           => :P121_OCI_REGION,
-                    p_oci_namespace        => :P121_OCI_NAMESPACE,
                     p_enabled_flag         => nvl(:P121_ENABLED_FLAG, 'N'),
                     p_description          => :P121_DESCRIPTION,
-                    p_source_application_id => :P121_SOURCE_APPLICATION_ID);
+                    p_source_application_id => :P121_SOURCE_APPLICATION_ID,
+                    p_auth_server_code     => :P121_AUTH_SERVER_CODE);
                 ```
         }
         execution {
@@ -1041,7 +1054,7 @@ page 121 (
             action: show
             affectedElements {
                 selectionType: items
-                items: P121_OAUTH_TOKEN_URL
+                items: P121_AUTH_SERVER_CODE
             }
             execution {
                 sequence: 10
@@ -1054,7 +1067,7 @@ page 121 (
             action: hide
             affectedElements {
                 selectionType: items
-                items: P121_OAUTH_TOKEN_URL
+                items: P121_AUTH_SERVER_CODE
             }
             execution {
                 sequence: 20

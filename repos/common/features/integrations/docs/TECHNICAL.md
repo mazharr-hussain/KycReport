@@ -27,7 +27,7 @@ Every outbound call is logged and can be retried; servers and credentials are se
 
 ### Standard APEX features used
 
-- Regions: breadcrumb, form, interactiveReport
+- Regions: breadcrumb, classicReport, form, interactiveReport
 - App items: G_ADMIN_APP, G_ADMIN_LOCK
 - Authorizations: page-create, page-manage, page-submit, page-view
 - Breadcrumbs: breadcrumb
@@ -51,6 +51,7 @@ Every outbound call is logged and can be retried; servers and credentials are se
     - `db/scripts/05b-integration-pkg/03-add_column-xxfnd_integration_purposes.sql`
     - `db/scripts/05b-integration-pkg/05-add_column-xxfnd_servers.sql`
     - `db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql`
+    - `db/scripts/05b-integration-pkg/07-add_column-xxfnd_servers-auth.sql`
     - `db/scripts/05b-integration-pkg/08-step.sql`
     - `db/scripts/09-views/11-step.sql`
     - `db/scripts/14-attachments/01-add_column-xxfnd_storage_config.sql`

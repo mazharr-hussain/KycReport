@@ -66,6 +66,9 @@ page 103 (
                        (select l.meaning from xxfnd_lookup_values l
                          where l.lookup_type = 'LANGUAGE' and l.lookup_code = u.language_code) as language,
                        decode(u.enabled_flag, 'Y', 'Enabled', 'Disabled') as status,
+                       -- release 109: the APEX account (Locked after failed sign-ins / Active / SSO) and its failed sign-ins
+                       xxfnd_user_pkg.account_status(u.user_name) as account,
+                       xxfnd_user_pkg.failed_sign_ins(u.user_name) as failed_sign_ins,
                        apex_page.get_url(p_page => 104, p_items => 'P104_USER_ID', p_values => to_char(u.user_id),
                                          p_clear_cache => '104') as open_url
                   from xxfnd_users u
@@ -235,6 +238,32 @@ page 103 (
             }
             source {
                 dataType: STRING
+            }
+        )
+
+        column ACCOUNT (
+            type: plainText
+            heading {
+                heading: Account
+            }
+            layout {
+                sequence: 105
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FAILED_SIGN_INS (
+            type: plainText
+            heading {
+                heading: Failed Sign-ins
+            }
+            layout {
+                sequence: 106
+            }
+            source {
+                dataType: NUMBER
             }
         )
 

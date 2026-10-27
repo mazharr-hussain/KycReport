@@ -207,6 +207,7 @@
    "common/db/scripts/05b-integration-pkg/03-add_column-xxfnd_integration_purposes.sql",
    "common/features/integrations/db/tables/xxfnd_servers.sql",
    "common/db/scripts/05b-integration-pkg/05-add_column-xxfnd_servers.sql",
+   "common/db/scripts/05b-integration-pkg/07-add_column-xxfnd_servers-auth.sql",
    "common/db/scripts/05b-integration-pkg/06-xxfnd_util_pkg-set_install_mode.sql",
    "common/features/integrations/db/views/xxfnd_servers_v.sql",
    "common/db/scripts/05b-integration-pkg/08-step.sql",
