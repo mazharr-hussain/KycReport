@@ -3,7 +3,7 @@
 -- storage of the applications, purposes)
 create or replace view xxfnd_servers_v as
 select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage, q.base_url, q.remote_server_flag,
-       q.source_application_id, q.source_application, q.source_remote_server, q.credential_static_id, q.oauth_token_url, q.oci_region, q.oci_namespace, q.enabled_flag, q.description,
+       q.source_application_id, q.source_application, q.source_remote_server, q.credential_static_id, q.auth_server_code, q.oauth_token_url, q.oci_region, q.oci_namespace, q.enabled_flag, q.description,
        q.last_call, q.last_error, q.last_test, q.missing,
        case when q.enabled_flag = 'N' then 'DISABLED'
             when q.missing is not null then 'INCOMPLETE'
@@ -34,7 +34,17 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                                                      where a.application_code = 'COMMON')),
                         (select max(c.static_id) from apex_workspace_credentials c
                           where c.static_id = s.server_code || '_CREDENTIALS')) as credential_static_id,
-               s.oauth_token_url, s.oci_region, s.oci_namespace, s.enabled_flag, s.description,
+               -- release 109: from APEX - the token URL of the Authentication Remote Server, the region and namespace of
+               -- the Object Storage Remote Server URL (https://objectstorage.<region>.oraclecloud.com/n/<namespace>);
+               -- the typed values of older servers are only the fallback
+               s.auth_server_code,
+               coalesce((select max(a.base_url) from apex_workspace_remote_servers a
+                          where a.remote_server_static_id = s.auth_server_code), s.oauth_token_url) as oauth_token_url,
+               coalesce(regexp_substr(coalesce(f.base_url, r.base_url, s.base_url), 'objectstorage\.([^.]+)\.', 1, 1, null, 1),
+                        s.oci_region)                                       as oci_region,
+               coalesce(regexp_substr(coalesce(f.base_url, r.base_url, s.base_url), '/n/([^/]+)', 1, 1, null, 1),
+                        s.oci_namespace)                                    as oci_namespace,
+               s.enabled_flag, s.description,
                (select max(c.called_date) from xxfnd_integration_calls c
                  where c.server_static_id = s.server_code)                 as last_call,
                (select max(c.called_date) from xxfnd_integration_calls c
@@ -51,10 +61,14 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                            and not exists (select 1 from apex_workspace_credentials c
                                             where c.static_id = s.server_code || '_CREDENTIALS')
                           then 'a Web Credential, ' end
-                  || case when s.server_type = 'OBJECT_STORAGE' and (s.oci_region is null or s.oci_namespace is null)
-                          then 'the region and namespace, ' end
+                  || case when s.server_type = 'OBJECT_STORAGE'
+                           and (coalesce(regexp_substr(coalesce(f.base_url, r.base_url, s.base_url), 'objectstorage\.([^.]+)\.', 1, 1, null, 1), s.oci_region) is null
+                                or coalesce(regexp_substr(coalesce(f.base_url, r.base_url, s.base_url), '/n/([^/]+)', 1, 1, null, 1), s.oci_namespace) is null)
+                          then 'a Remote Server URL with the region and namespace, ' end
                   || case when s.server_type in ('SHAREPOINT', 'OUTLOOK') and s.oauth_token_url is null
-                          then 'the OAuth token URL, ' end, ', ')           as missing
+                           and not exists (select 1 from apex_workspace_remote_servers a
+                                            where a.remote_server_static_id = s.auth_server_code)
+                          then 'an Authentication Remote Server (OAuth token URL), ' end, ', ')           as missing
           from xxfnd_servers s
           left join apex_workspace_remote_servers r on r.remote_server_static_id = s.server_code
           -- release 93: the Remote Server and Web Credential of the source application's REST Data Sources

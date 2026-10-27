@@ -1,0 +1,451 @@
+page 120 (
+    name: Servers
+    alias: SERVERS
+    title: Servers
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The servers of the workspace, defined once by the COMMON administrator (release 86): each one is an APEX Remote
+            Server (static ID) with its Web Credential, a type (storage: OCI Object Storage, SharePoint, UCM; integration:
+            Fusion, REST, Outlook) and the type's details, with its state and health. Applications store documents on the
+            storage servers (Document Storage) and integration purposes call the integration servers.
+            ```
+    }
+
+    region breadcrumb (
+        name: Servers
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region servers (
+        name: Servers
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 86: the servers the COMMON administrator defined (XXFND_SERVERS_V: state, URL, credential, health)
+                select s.server_code                                                  as static_id,
+                       s.server_name,
+                       s.server_type_name                                             as server_type,
+                       initcap(s.usage)                                               as usage,
+                       s.base_url,
+                       s.credential_static_id                                         as credential_name,
+                       s.status_text                                                  as status,
+                       s.last_call,
+                       s.last_error,
+                       s.last_test,
+                       apex_page.get_url(p_page => 121, p_items => 'P121_SERVER_CODE', p_values => s.server_code,
+                                         p_clear_cache => '121') as open_url
+                  from xxfnd_servers_v s
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: servers
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No server yet. Create one for an APEX Remote Server of the workspace.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SERVER_NAME (
+            type: plainText
+            heading {
+                heading: Server
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#SERVER_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column SERVER_TYPE (
+            type: plainText
+            heading {
+                heading: Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column BASE_URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column CREDENTIAL_NAME (
+            type: plainText
+            heading {
+                heading: Web Credential
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column USAGE (
+            type: plainText
+            heading {
+                heading: Used For
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 65
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LAST_CALL (
+            type: plainText
+            heading {
+                heading: Last Call
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column LAST_ERROR (
+            type: plainText
+            heading {
+                heading: Last Error
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+        )
+
+        column LAST_TEST (
+            type: plainText
+            heading {
+                heading: Last Test
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    region howto (
+        name: How to Change a Server
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <p>A server is an APEX Remote Server of the workspace (its URL) and an APEX Web Credential (its secret): the
+                workspace administrator keeps both in Workspace Utilities, Remote Servers and Web Credentials. COMMON only maps
+                them to their use (type, Remote Server, Web Credential; for SharePoint / Outlook the Authentication Remote
+                Server of the token URL). Object Storage reads its region and namespace from the Remote Server URL
+                (https://objectstorage.&lt;region&gt;.oraclecloud.com/n/&lt;namespace&gt;). Nothing is typed twice.</p>
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: howto
+        }
+    )
+
+    region apex-remote-servers (
+        name: APEX Remote Servers
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 109: the workspace's APEX Remote Servers (Workspace Utilities), read only: COMMON maps them, it
+                -- does not create them
+                select remote_server_name, remote_server_static_id, base_url
+                  from apex_workspace_remote_servers
+                 order by remote_server_name
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: apex_remote_servers
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No Remote Servers in the workspace.
+        }
+        comments {
+            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Remote Servers.
+        }
+
+        column REMOTE_SERVER_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column REMOTE_SERVER_STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column BASE_URL (
+            type: plainText
+            heading {
+                heading: URL
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+
+    region apex-web-credentials (
+        name: APEX Web Credentials
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 109: the workspace's APEX Web Credentials (Workspace Utilities), read only; the secrets stay in
+                -- APEX (or in the database credential they use)
+                select name, static_id
+                  from apex_workspace_credentials
+                 order by name
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: apex_web_credentials
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No Web Credentials in the workspace.
+        }
+        comments {
+            comments: Release 109 - read only; created and changed in APEX Workspace Utilities, Web Credentials.
+        }
+
+        column NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column STATIC_ID (
+            type: plainText
+            heading {
+                heading: Static ID
+            }
+            layout {
+                sequence: 20
+            }
+        )
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create Server
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 121
+                clearCache: 121
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-servers (
+        name: Refresh after the dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @servers
+        }
+
+        action refresh-servers-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @servers
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+)

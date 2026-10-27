@@ -224,7 +224,8 @@ create or replace package body xxfnd_integration_pkg as
                           p_description          in varchar2 default null,
                           p_base_url             in varchar2 default null,
                           -- release 93: FUSION - the workspace's Fusion integration application
-                          p_source_application_id in number  default null) is
+                          p_source_application_id in number  default null,
+                          p_auth_server_code     in varchar2 default null) is
         l_type varchar2(30) := upper(p_server_type);
     begin
         if l_type is null or l_type not in ('OBJECT_STORAGE', 'SHAREPOINT', 'UCM', 'FUSION', 'REST', 'OUTLOOK') then
@@ -237,23 +238,26 @@ create or replace package body xxfnd_integration_pkg as
               t.server_name          = p_server_name,
               t.server_type          = l_type,
               t.credential_static_id = p_credential_static_id,
-              t.oauth_token_url      = case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
-              t.oci_region           = case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
-              t.oci_namespace        = case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
+              -- release 109: a value not given keeps the stored one (older servers); new ones come from APEX
+              t.oauth_token_url      = case when l_type in ('SHAREPOINT', 'OUTLOOK') then nvl(p_oauth_token_url, t.oauth_token_url) end,
+              t.oci_region           = case when l_type = 'OBJECT_STORAGE' then nvl(p_oci_region, t.oci_region) end,
+              t.oci_namespace        = case when l_type = 'OBJECT_STORAGE' then nvl(p_oci_namespace, t.oci_namespace) end,
+              t.auth_server_code     = case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_auth_server_code end,
               t.enabled_flag         = nvl(p_enabled_flag, 'Y'),
               t.description          = p_description,
               t.base_url             = nvl(p_base_url, t.base_url),
               t.source_application_id = case when l_type = 'FUSION' then p_source_application_id end
          when not matched then insert
               (server_code, server_name, server_type, credential_static_id, oauth_token_url, oci_region, oci_namespace,
-               enabled_flag, description, base_url, source_application_id)
+               enabled_flag, description, base_url, source_application_id, auth_server_code)
               values
               (s.server_code, p_server_name, l_type, p_credential_static_id,
                case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_oauth_token_url end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_region end,
                case when l_type = 'OBJECT_STORAGE' then p_oci_namespace end,
                nvl(p_enabled_flag, 'Y'), p_description, p_base_url,
-               case when l_type = 'FUSION' then p_source_application_id end);
+               case when l_type = 'FUSION' then p_source_application_id end,
+               case when l_type in ('SHAREPOINT', 'OUTLOOK') then p_auth_server_code end);
     end save_server;
 
     procedure delete_server(p_server_code in varchar2) is

@@ -441,6 +441,46 @@ page 104 (
             helpText: Enabled users can sign in. Disable keeps the user and the history; Enable gives the access back.
         }
     )
+    pageItem P104_ACCOUNT (
+        type: displayOnly
+        label {
+            label: Account
+            alignment: left
+        }
+        layout {
+            sequence: 95
+            region: @user
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select xxfnd_user_pkg.account_status(user_name)
+                       || case when xxfnd_user_pkg.failed_sign_ins(user_name) > 0
+                               then ' (' || xxfnd_user_pkg.failed_sign_ins(user_name) || ' failed sign-ins)' end
+                  from xxfnd_users where user_id = :P104_USER_ID
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P104_USER_ID
+        }
+        help {
+            helpText: Release 109 - the APEX account. APEX locks it after too many failed sign-ins; Unlock Account opens it again without disabling the user. SSO users sign in with the company account.
+        }
+    )
     pageItem P104_DESCRIPTION (
         type: textarea
         label {
@@ -620,6 +660,66 @@ page 104 (
             plsqlExpression:
                 ```plsql
                 :P104_USER_ID is not null and :P104_STATUS = 'Disabled'
+                ```
+        }
+    )
+
+    button unlock-account (
+        buttonName: UNLOCK_ACCOUNT
+        label: Unlock Account
+        layout {
+            sequence: 18
+            region: @user
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_ID is not null and xxfnd_user_pkg.account_status(:P104_USER_NAME) = 'Locked'
+                ```
+        }
+    )
+
+    button lock-account (
+        buttonName: LOCK_ACCOUNT
+        label: Lock Account
+        layout {
+            sequence: 19
+            region: @user
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Lock the APEX account? The user cannot sign in until it is unlocked; the user stays enabled.
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                :P104_USER_ID is not null and xxfnd_user_pkg.account_status(:P104_USER_NAME) = 'Active'
                 ```
         }
     )
@@ -1482,6 +1582,32 @@ page 104 (
         serverSideCondition {
             type: requestIsContainedInValue
             value: ENABLE,DISABLE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process lock-account (
+        name: Lock or unlock the APEX account
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 109: the user package (APEX_UTIL lock / unlock); the user stays enabled
+                xxfnd_user_pkg.lock_account(to_number(:P104_USER_ID), case :REQUEST when 'LOCK_ACCOUNT' then 'Y' else 'N' end);
+                ```
+        }
+        execution {
+            sequence: 45
+            point: processing
+        }
+        successMessage {
+            successMessage: Account updated.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: LOCK_ACCOUNT,UNLOCK_ACCOUNT
         }
         security {
             authorizationScheme: @page-submit

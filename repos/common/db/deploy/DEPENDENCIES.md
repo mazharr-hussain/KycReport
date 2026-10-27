@@ -844,7 +844,7 @@ view - feature `users-access` - `common/features/users-access/db/views/xxfnd_use
 package spec - feature `users-access` - `common/features/users-access/db/package_specs/xxfnd_user_pkg.pks`
 
 - **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_audit_log, xxfnd_privilege_pkg, xxfnd_roles, xxfnd_user_applications, xxfnd_user_roles, xxfnd_users, xxfnd_util_pkg, xxfnd_vpd_pkg, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:shared-components/app-items.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/authentications.apx, apex:COMMON:shared-components/authorizations.apx, apex:KYC:shared-components/authentications.apx, apex:KYC:shared-components/authorizations.apx, xxcmp_cases_lock [KYC], xxcmp_party_pkg [KYC], xxfnd_application_pkg, xxfnd_roles, xxfnd_share_pkg, xxhr_employees_rename
+- **Used by**: apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:shared-components/app-items.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/authentications.apx, apex:COMMON:shared-components/authorizations.apx, apex:KYC:shared-components/authentications.apx, apex:KYC:shared-components/authorizations.apx, xxcmp_cases_lock [KYC], xxcmp_party_pkg [KYC], xxfnd_application_pkg, xxfnd_roles, xxfnd_share_pkg, xxhr_employees_rename
 
 ## xxfnd_user_role_tree_v
 view - feature `users-access` - `common/features/users-access/db/views/xxfnd_user_role_tree_v.sql`
@@ -878,7 +878,7 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxfnd_u
 ## xxfnd_util_pkg
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_util_pkg.pks`
 
-- **Used by**: apex:COMMON:shared-components/app-computations.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00201-create-request.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00217-compliance-report.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_attached_documents_v, xxfnd_audit_pkg, xxfnd_data_model_pkg, xxfnd_df_contexts_protect, xxfnd_df_contexts_vl, xxfnd_dff_pkg, xxfnd_document_categories_vl, xxfnd_document_entities_vl, xxfnd_fi_drift_pkg, xxfnd_fi_registry_pkg, xxfnd_integration_pkg, xxfnd_lookup_pkg, xxfnd_lookup_values_lvl, xxfnd_lookup_values_vl, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees_src
+- **Used by**: apex:COMMON:shared-components/app-computations.apx, apex:KYC:pages/p00000-global-page.apx, apex:KYC:pages/p00202-create-request-questionnaire.apx, apex:KYC:pages/p00204-create-request-party-details.apx, apex:KYC:pages/p00217-compliance-report.apx, xxcmp_case_pkg [KYC], xxcmp_monitor_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxcmp_risk_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_attached_documents_v, xxfnd_audit_pkg, xxfnd_data_model_pkg, xxfnd_df_contexts_protect, xxfnd_df_contexts_vl, xxfnd_dff_pkg, xxfnd_document_categories_vl, xxfnd_document_entities_vl, xxfnd_fi_drift_pkg, xxfnd_fi_registry_pkg, xxfnd_integration_pkg, xxfnd_lookup_pkg, xxfnd_lookup_values_lvl, xxfnd_lookup_values_vl, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_rfi_pkg, xxfnd_schema_pkg, xxfnd_share_pkg, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees_src
 
 ## xxfnd_value_sets
 table - feature `flexfields` - `common/features/flexfields/db/tables/xxfnd_value_sets.sql`
@@ -952,7 +952,7 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:pages/p00100-administration.apx`: xxfnd_modules_v
 - `apex:COMMON:pages/p00101-lookups.apx`: xxfnd_lookup_pkg, xxfnd_lookup_types, xxfnd_lookup_values
 - `apex:COMMON:pages/p00102-lookup-type.apx`: xxfnd_lookup_pkg, xxfnd_lookup_types, xxfnd_lookup_values
-- `apex:COMMON:pages/p00103-users.apx`: xxfnd_effective_access_v, xxfnd_lookup_values, xxfnd_user_roles_v, xxfnd_users, xxhr_employees
+- `apex:COMMON:pages/p00103-users.apx`: xxfnd_effective_access_v, xxfnd_lookup_values, xxfnd_user_pkg, xxfnd_user_roles_v, xxfnd_users, xxhr_employees
 - `apex:COMMON:pages/p00104-user.apx`: xxfnd_applications, xxfnd_features, xxfnd_lookup_values, xxfnd_privilege_pkg, xxfnd_privileges, xxfnd_role_privileges, xxfnd_roles, xxfnd_user_applications, xxfnd_user_data_access_v, xxfnd_user_pkg, xxfnd_user_role_tree_v, xxfnd_user_roles_v, xxfnd_users, xxhr_employees
 - `apex:COMMON:pages/p00105-roles.apx`: xxfnd_roles, xxfnd_user_roles_v
 - `apex:COMMON:pages/p00106-role.apx`: xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_privilege_pkg, xxfnd_role_data_access, xxfnd_role_members, xxfnd_role_privileges, xxfnd_roles, xxfnd_user_pkg, xxfnd_user_roles_v, xxfnd_vpd_pkg

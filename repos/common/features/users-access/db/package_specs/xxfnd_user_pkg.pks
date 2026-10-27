@@ -43,6 +43,14 @@ create or replace package xxfnd_user_pkg authid definer as
     -- Y when the user is a LOCAL user (APEX account), N for SSO, null when unknown.
     function is_local(p_user_name in varchar2) return varchar2;
 
+    -- Release 109: the user's APEX account - Locked / Active (an account APEX locked after failed sign-ins shows
+    -- Locked), SSO for a user without an APEX account.
+    function account_status(p_user_name in varchar2) return varchar2;
+    -- Release 109: failed sign-in attempts of the APEX account (null when unknown).
+    function failed_sign_ins(p_user_name in varchar2) return number;
+    -- Release 109: lock (P_LOCKED = Y) / unlock (N) the user's APEX account, without disabling the user. Users - Manage.
+    procedure lock_account(p_user_id in number, p_locked in varchar2);
+
     -- Release 103: the application a user works in, for the Home of COMMON's shared pages when the user may not open
     -- COMMON Home: the APEX alias of the user's first active application other than COMMON (Users & Access), or null.
     function home_application(p_user_name in varchar2 default null) return varchar2;

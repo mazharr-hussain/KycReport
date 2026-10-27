@@ -1,0 +1,311 @@
+page 103 (
+    name: Users and Access
+    alias: USERS
+    title: Users and Access
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The users of every application, with their roles and data access rules, so you see who has what without
+            opening each user. A user is a local user (user name and password) or an employee who signs in with the
+            company account. Open a user to change it, assign roles and data access, or see the effective access.
+            ```
+    }
+
+    region breadcrumb (
+        name: Users and Access
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region report (
+        name: Users and Access
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 79: the users (XXFND_USERS) with the linked employee, their active roles and the data access
+                -- rules that apply to them (directly or through a role)
+                select u.user_id,
+                       u.user_name,
+                       coalesce(e.full_name, u.full_name) as full_name,
+                       coalesce(e.email_address, u.email_address) as email_address,
+                       decode(u.user_type, 'SSO', 'Employee', 'Local') as user_type,
+                       e.department_name,
+                       (select listagg(ur.role_name, ', ') within group (order by ur.role_name)
+                          from xxfnd_user_roles_v ur
+                         where ur.user_id = u.user_id and ur.active_flag = 'Y') as roles,
+                       (select listagg(distinct x.table_name, ', ') within group (order by x.table_name)
+                          from xxfnd_effective_access_v x
+                         where x.user_id = u.user_id) as data_access,
+                       (select l.meaning from xxfnd_lookup_values l
+                         where l.lookup_type = 'LANGUAGE' and l.lookup_code = u.language_code) as language,
+                       decode(u.enabled_flag, 'Y', 'Enabled', 'Disabled') as status,
+                       -- release 109: the APEX account (Locked after failed sign-ins / Active / SSO) and its failed sign-ins
+                       xxfnd_user_pkg.account_status(u.user_name) as account,
+                       xxfnd_user_pkg.failed_sign_ins(u.user_name) as failed_sign_ins,
+                       apex_page.get_url(p_page => 104, p_items => 'P104_USER_ID', p_values => to_char(u.user_id),
+                                         p_clear_cache => '104') as open_url
+                  from xxfnd_users u
+                  left join xxhr_employees e on e.employee_id = u.employee_id
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: report
+        }
+        componentAppearance {
+            showNullValuesAs: -
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No users.
+        }
+        searchBar {
+            includeSearchBar: true
+        }
+        download {
+            formats: [
+                csv
+                html
+            ]
+        }
+
+        column USER_ID (
+            type: hidden
+            heading {
+                heading: User Id
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column USER_NAME (
+            type: plainText
+            heading {
+                heading: User Name
+            }
+            layout {
+                sequence: 20
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#USER_NAME#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FULL_NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: plainText
+            heading {
+                heading: E-mail
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column USER_TYPE (
+            type: plainText
+            heading {
+                heading: Kind
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DEPARTMENT_NAME (
+            type: plainText
+            heading {
+                heading: Department
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ROLES (
+            type: plainText
+            heading {
+                heading: Roles
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column DATA_ACCESS (
+            type: plainText
+            heading {
+                heading: Data Access (tables)
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column LANGUAGE (
+            type: plainText
+            heading {
+                heading: Language
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column ACCOUNT (
+            type: plainText
+            heading {
+                heading: Account
+            }
+            layout {
+                sequence: 105
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+        column FAILED_SIGN_INS (
+            type: plainText
+            heading {
+                heading: Failed Sign-ins
+            }
+            layout {
+                sequence: 106
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            heading {
+                heading: Open Url
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create User
+        layout {
+            sequence: 10
+            region: @report
+            slot: RIGHT_OF_IR_SEARCH_BAR
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 104
+                clearCache: 104
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+)

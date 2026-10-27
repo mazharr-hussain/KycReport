@@ -209,6 +209,40 @@ create or replace package body xxfnd_user_pkg as
         apex_account('PASSWORD', l_user.user_name, p_password => p_password);
     end reset_password;
 
+    function account_status(p_user_name in varchar2) return varchar2 is
+    begin
+        if apex_util.get_user_id(p_user_name) is null then
+            return case when is_local(p_user_name) = 'N' then 'SSO' end;
+        end if;
+        return case when apex_util.get_account_locked_status(p_user_name => p_user_name) then 'Locked' else 'Active' end;
+    exception
+        when others then
+            return null;
+    end account_status;
+
+    function failed_sign_ins(p_user_name in varchar2) return number is
+        l_n number;
+    begin
+        -- the workspace's APEX accounts view (dynamic: an APEX version without the column gives null, not an error)
+        execute immediate 'select max(failed_access_attempts) from apex_workspace_apex_users where user_name = upper(:u)'
+           into l_n using p_user_name;
+        return l_n;
+    exception
+        when others then
+            return null;
+    end failed_sign_ins;
+
+    procedure lock_account(p_user_id in number, p_locked in varchar2) is
+        l_name xxfnd_users.user_name%type;
+    begin
+        check_admin;
+        select user_name into l_name from xxfnd_users where user_id = p_user_id;
+        if apex_util.get_user_id(l_name) is null then
+            raise_application_error(-20066, l_name || ' signs in with the company account (SSO): no APEX account to lock.');
+        end if;
+        apex_account('LOCK', l_name, p_locked => case when p_locked = 'Y' then 'Y' else 'N' end);
+    end lock_account;
+
     procedure set_enabled(p_user_id in number, p_enabled in varchar2) is
         l_user xxfnd_users%rowtype;
     begin

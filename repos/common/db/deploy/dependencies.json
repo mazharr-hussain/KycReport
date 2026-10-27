@@ -2147,6 +2147,7 @@
   "apex:COMMON:pages/p00103-users.apx": [
    "xxfnd_effective_access_v",
    "xxfnd_lookup_values",
+   "xxfnd_user_pkg",
    "xxfnd_user_roles_v",
    "xxfnd_users",
    "xxhr_employees"
@@ -2762,6 +2763,7 @@
   ],
   "xxfnd_user_pkg": [
    "apex:COMMON:pages/p00001-home.apx",
+   "apex:COMMON:pages/p00103-users.apx",
    "apex:COMMON:pages/p00104-user.apx",
    "apex:COMMON:pages/p00106-role.apx",
    "apex:COMMON:pages/p00183-assign.apx",
@@ -2929,8 +2931,8 @@
   "xxfnd_util_pkg": [
    "apex:COMMON:shared-components/app-computations.apx",
    "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "apex:KYC:pages/p00202-create-request-questionnaire.apx",
+   "apex:KYC:pages/p00204-create-request-party-details.apx",
    "apex:KYC:pages/p00217-compliance-report.apx",
    "xxcmp_case_pkg",
    "xxcmp_monitor_pkg",
