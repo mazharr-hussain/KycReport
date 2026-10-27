@@ -1,0 +1,171 @@
+page 100 (
+    name: Modules
+    alias: ADMINISTRATION
+    title: &P100_GROUP_NAME.
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            // release 78 / 111: the group opened from the menu is expanded there, showing its entries
+            function expandCurrentModule() {
+                var nav = apex.jQuery("#t_TreeNav");
+                if (nav.length && nav.data("apex-treeView")) {
+                    var sel = nav.treeView("getSelection");
+                    if (sel.length) {
+                        nav.treeView("expand", sel);
+                    }
+                }
+            }
+            expandCurrentModule();
+            apex.jQuery(window).on("theme42ready", expandCurrentModule);
+            ```
+    }
+    security {
+        authorizationScheme: @app-user
+        pageAccessProtection: unrestricted
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            The menu group page (release 111). Without a group it shows every COMMON module you may open, with its
+            state (for example inactive endpoints or e-mail switched off). With a group (chosen in the menu, the
+            breadcrumb or a card) it shows the entries of that group you may open, in the menu of the application you
+            work in: a page opens it, a group opens its own group page.
+            ```
+    }
+
+    region breadcrumb (
+        name: Modules
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region modules (
+        name: Modules
+        type: list
+        source {
+            list: @module-cards
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: modules
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P100_GROUP
+        }
+    )
+
+    region components (
+        name: Components
+        type: list
+        source {
+            list: @module-components
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            listTemplate: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--featured force-fa-lg
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--animColorFill
+            ]
+        }
+        advanced {
+            htmlDomId: components
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P100_GROUP
+        }
+    )
+
+    pageItem P100_GROUP (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+    )
+
+    pageItem P100_GROUP_NAME (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    process module (
+        name: Find the group
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 111: the menu group the user sees (XXFND_NAV_MENU_V), else every module
+                select max(entry_code), nvl(max(label), 'Modules')
+                  into :P100_GROUP, :P100_GROUP_NAME
+                  from xxfnd_nav_menu_v
+                 where entry_code = :P100_GROUP and target_type = 'FOLDER';
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+)

@@ -15,7 +15,7 @@ breadcrumb breadcrumb (
     )
 
     entry admin (
-        name: &P100_MODULE_NAME.
+        name: &P100_GROUP_NAME.
         pageNumber: 100
         execution {
             sequence: 100
@@ -43,13 +43,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: PLATFORM
+                    P100_GROUP: M_PLATFORM
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90010 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90010 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 
@@ -66,13 +66,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: SECURITY
+                    P100_GROUP: M_SECURITY
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90020 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90020 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 
@@ -89,13 +89,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: REFERENCE_DATA
+                    P100_GROUP: M_REFERENCE_DATA
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90030 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90030 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 
@@ -112,13 +112,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: DOCUMENTS_RECORDS
+                    P100_GROUP: M_DOCUMENTS_RECORDS
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90040 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90040 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 
@@ -135,13 +135,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: WORKFLOW
+                    P100_GROUP: M_WORKFLOW
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90050 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90050 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 
@@ -158,13 +158,13 @@ breadcrumb breadcrumb (
             target: {
                 page: 100
                 items: {
-                    P100_MODULE: INTEGRATIONS
+                    P100_GROUP: M_INTEGRATIONS
                 }
                 clearCache: 100
             }
         }
         comments {
-            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90060 does not exist (an entry needs a page), the link opens the module on page 100.
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90060 does not exist (an entry needs a page), the link opens the module's group page (page 100).
         }
     )
 

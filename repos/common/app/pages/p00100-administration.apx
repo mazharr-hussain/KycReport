@@ -1,7 +1,7 @@
 page 100 (
     name: Modules
     alias: ADMINISTRATION
-    title: &P100_MODULE_NAME.
+    title: &P100_GROUP_NAME.
     pageGroup: @administration
     appearance {
         pageTemplate: @/standard
@@ -10,7 +10,7 @@ page 100 (
     javaScript {
         executeWhenPageLoads:
             ```javascript-browser
-            // release 78: the module opened from the menu is expanded there, showing its components
+            // release 78 / 111: the group opened from the menu is expanded there, showing its entries
             function expandCurrentModule() {
                 var nav = apex.jQuery("#t_TreeNav");
                 if (nav.length && nav.data("apex-treeView")) {
@@ -25,16 +25,17 @@ page 100 (
             ```
     }
     security {
-        authorizationScheme: @admin-area
-        pageAccessProtection: argumentsMustHaveChecksum
+        authorizationScheme: @app-user
+        pageAccessProtection: unrestricted
         formAutoComplete: false
     }
     help {
         helpText:
             ```
-            The COMMON modules. Without a module the page shows every module you may open, with its state (for example
-            inactive endpoints or e-mail switched off). Choose a module, here or in the menu, to see its components;
-            each component opens its own screens, and the screens of a component are tabs inside it.
+            The menu group page (release 111). Without a group it shows every COMMON module you may open, with its
+            state (for example inactive endpoints or e-mail switched off). With a group (chosen in the menu, the
+            breadcrumb or a card) it shows the entries of that group you may open, in the menu of the application you
+            work in: a page opens it, a group opens its own group page.
             ```
     }
 
@@ -87,7 +88,7 @@ page 100 (
         }
         serverSideCondition {
             type: itemIsNull
-            item: P100_MODULE
+            item: P100_GROUP
         }
     )
 
@@ -120,11 +121,11 @@ page 100 (
         }
         serverSideCondition {
             type: itemIsNotNull
-            item: P100_MODULE
+            item: P100_GROUP
         }
     )
 
-    pageItem P100_MODULE (
+    pageItem P100_GROUP (
         type: hidden
         layout {
             sequence: 10
@@ -132,11 +133,11 @@ page 100 (
             slot: regionBody
         }
         security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            sessionStateProtection: unrestricted
         }
     )
 
-    pageItem P100_MODULE_NAME (
+    pageItem P100_GROUP_NAME (
         type: hidden
         layout {
             sequence: 20
@@ -149,17 +150,17 @@ page 100 (
     )
 
     process module (
-        name: Find the module
+        name: Find the group
         type: executeCode
         source {
             language: plsql
             plsqlCode:
                 ```plsql
-                -- release 78: the module the user may open (XXFND_MODULES_V), else every module
-                select max(module_code), nvl(max(module_name), 'Modules')
-                  into :P100_MODULE, :P100_MODULE_NAME
-                  from xxfnd_modules_v
-                 where module_code = :P100_MODULE;
+                -- release 111: the menu group the user sees (XXFND_NAV_MENU_V), else every module
+                select max(entry_code), nvl(max(label), 'Modules')
+                  into :P100_GROUP, :P100_GROUP_NAME
+                  from xxfnd_nav_menu_v
+                 where entry_code = :P100_GROUP and target_type = 'FOLDER';
                 ```
         }
         execution {

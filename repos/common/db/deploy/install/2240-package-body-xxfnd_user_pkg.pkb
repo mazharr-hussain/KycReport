@@ -649,8 +649,7 @@ create or replace package body xxfnd_user_pkg as
     function authorized(p_scheme in varchar2) return boolean is
     begin
         return case upper(p_scheme)
-                   -- application level: at least one privilege through an active role
-                   when 'KYC_USER'             then xxfnd_privilege_pkg.has_any_privilege
+                   -- release 111: KYC_USER retired - every application uses APP_USER
                    -- release 61: COMMON - a privilege on a COMMON feature or any admin privilege (administrators
                    -- of an application maintain its setup on the COMMON screens)
                    -- release 71: COMMON is for IT only (Common Administrator)
@@ -663,8 +662,6 @@ create or replace package body xxfnd_user_pkg as
                                                               or signed_in
                                                          else xxfnd_privilege_pkg.has_any_privilege
                                                               or xxfnd_application_pkg.administers_any = 'Y' end
-                   -- release 61: the application in scope on a COMMON admin screen (G_ADMIN_APP) is one the user administers
-                   when 'ADMIN_APP'            then xxfnd_application_pkg.can_administer(v('G_ADMIN_APP')) = 'Y'
                    -- generic page access: the privilege on the feature the page is mapped to (XXFND_FEATURE_PAGES)
                    -- release 106: in COMMON too (any application's user with the privilege; what the page shows is
                    -- limited to the applications whose roles give it: XXFND_APPLICATION_PKG.SCOPE_PREDICATE)

@@ -1057,7 +1057,7 @@ create or replace package body xxfnd_application_pkg as
     end menu_visible;
 
     function menu_url(p_application_code in varchar2, p_target_type in varchar2, p_page_id in number,
-                      p_feature_code in varchar2) return varchar2 is
+                      p_feature_code in varchar2, p_entry_code in varchar2 default null) return varchar2 is
         l_alias xxfnd_applications.apex_app_alias%type;
     begin
         -- release 105: the entries of the user menu (navigation bar)
@@ -1079,7 +1079,10 @@ create or replace package body xxfnd_application_pkg as
              where application_code = upper(p_application_code);
             return apex_page.get_url(p_application => l_alias, p_page => p_page_id);
         elsif p_target_type = 'FOLDER' then
-            return null;     -- release 104: a folder opens its entries
+            -- release 111: a group opens its group page (its entries as cards); without a code it only expands
+            return case when p_entry_code is not null then
+                        apex_page.get_url(p_application => 'COMMON', p_page => 100, p_items => 'P100_GROUP',
+                                          p_values => p_entry_code, p_clear_cache => '100') end;
         elsif p_target_type = 'SHARED_SETUP' then
             return apex_page.get_url(p_application => 'COMMON', p_page => 100);
         elsif p_page_id = 173 then

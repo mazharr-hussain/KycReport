@@ -45,6 +45,7 @@ One RFI process, with e-mail and an answer page, for every application.
     - `db/scripts/26-notifications-module/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/32-registration-removal-rfi-contacts/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
+    - `db/scripts/41b-rfi-lookups/01-register-rfi-lookups.sql`
 
 ## Dependencies
 
