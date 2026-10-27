@@ -78,7 +78,6 @@ One register of every application: COMMON knows each application, its APEX ID an
     - `db/scripts/33-data-model/06-dbms_output-put_line.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/35-security-model-migration/01-xxfnd_data_objects-data_object_code.sql`
-    - `db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/admin/onboard-application/01-apex_util-set_workspace.sql`
 
 ## Dependencies
@@ -92,6 +91,7 @@ One register of every application: COMMON knows each application, its APEX ID an
 
 - `tests/common_apps_ui.py`
 - `tests/common_test_fixture.sql`
+- `tests/r111_common_pending_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r80_platform_test.sql`

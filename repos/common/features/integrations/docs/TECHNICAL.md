@@ -37,7 +37,7 @@ Every outbound call is logged and can be retried; servers and credentials are se
 
 ### Custom database objects
 
-- Tables: XXFND_INTEGRATION_CALLS, XXFND_INTEGRATION_ENDPOINTS, XXFND_INTEGRATION_PURPOSES, XXFND_SERVERS, XXFND_SERVER_TESTS
+- Tables: XXFND_INTEGRATION_CALLS, XXFND_INTEGRATION_ENDPOINTS, XXFND_INTEGRATION_PURPOSES, XXFND_SERVERS, XXFND_SERVER_CATALOGS, XXFND_SERVER_TESTS
 - Views: XXFND_INTEGRATION_CHANGES_V, XXFND_SERVERS_V
 - Triggers: XXFND_INT_PURPOSES_MC
 - Package specs: XXFND_INTEGRATION_PKG
@@ -54,6 +54,8 @@ Every outbound call is logged and can be retried; servers and credentials are se
     - `db/scripts/05b-integration-pkg/07-add_column-xxfnd_servers-auth.sql`
     - `db/scripts/05b-integration-pkg/08-step.sql`
     - `db/scripts/05b-integration-pkg/09-add_column-xxfnd_integration_purposes-catalog.sql`
+    - `db/scripts/05b-integration-pkg/10-add_column-xxfnd_servers-remote.sql`
+    - `db/scripts/05b-integration-pkg/11-drop_column-xxfnd_servers-source-app.sql`
     - `db/scripts/09-views/11-step.sql`
     - `db/scripts/14-attachments/01-add_column-xxfnd_storage_config.sql`
     - `db/scripts/15e-communications/01-xxfnd_util_pkg-set_install_mode.sql`
@@ -64,23 +66,23 @@ Every outbound call is logged and can be retried; servers and credentials are se
     - `db/scripts/28-registration/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/29-servers/01-drop_constraint-xxfnd_integration_purposes.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
-    - `db/scripts/40z-fusion-objects-setup/01-xxfnd_util_pkg-set_install_mode.sql`
+    - `db/scripts/41c-fusion-objects-removal/01-remove-fusion-objects.sql`
 
 ## Dependencies
 
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_APPROVAL_PKG, XXFND_AUDIT_PKG, XXFND_DDL_PKG, XXFND_LOOKUP_PKG, XXFND_LOOKUP_VALUES, XXFND_LOOKUP_VALUES_VL, XXFND_PRIVILEGE_PKG, XXFND_UTIL_PKG, XXHR_EMPLOYEES
-- Used by objects: XXCMP_PARTY_REGISTRY_CHECKS, XXFND_APPLICATION_PKG, XXFND_APP_STORAGE_V, XXFND_ATTACH_PKG, XXFND_FI_META_PKG, XXFND_FI_OBJECTS, XXFND_FI_RUNS, XXFND_FI_RUN_PKG, XXFND_MODULES_V, XXFND_NOTIFY_PKG, XXFND_SETUP_ROWS_V, XXFND_SHARE_PKG, XXFND_STORAGE_CONFIG, XXHR_EMPLOYEES_SRC
-- Used by COMMON pages / components: 0, 120, 121, 122, 123, 124, 125, 137, 191, lists, fusion-hcm-sync, fusion-hcm-workers, fusion-root, outlook-graph, outlook-messages, sharepoint-drives, sharepoint-main, ucm-content, ucm-main
+- Used by objects: XXCMP_PARTY_REGISTRY_CHECKS, XXFND_APPLICATION_PKG, XXFND_APP_STORAGE_V, XXFND_ATTACH_PKG, XXFND_MODULES_V, XXFND_NOTIFY_PKG, XXFND_SETUP_ROWS_V, XXFND_SHARE_PKG, XXFND_STORAGE_CONFIG, XXHR_EMPLOYEES_SRC
+- Used by COMMON pages / components: 0, 120, 121, 122, 123, 124, 125, 137, lists, fusion-hcm-sync, fusion-hcm-workers, outlook-graph, outlook-messages, sharepoint-drives, sharepoint-main, ucm-content, ucm-main
 
 ## Test scripts
 
 - `features/integrations/tests/r109_servers_users_test.sql`
 - `features/integrations/tests/r110_catalog_service_test.sql`
+- `features/integrations/tests/r112_server_link_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r83_integrations_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
 - `tests/r87_servers_test.sql`
 - `tests/r88_journey_test.sql`
-- `tests/r93_fusion_server_test.sql`
 - `tests/r93_fusion_server_ui.py`

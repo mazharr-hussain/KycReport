@@ -13,6 +13,7 @@ graph LR
     xxfnd_integration_pkg --> xxfnd_integration_calls
     xxfnd_integration_pkg --> xxfnd_integration_purposes
     xxfnd_integration_pkg --> xxfnd_privilege_pkg
+    xxfnd_integration_pkg --> xxfnd_server_catalogs
     xxfnd_integration_pkg --> xxfnd_server_tests
     xxfnd_integration_pkg --> xxfnd_servers
     xxfnd_integration_pkg --> xxfnd_servers_v
@@ -20,6 +21,9 @@ graph LR
     xxfnd_integration_pkg --> xxhr_employees
     xxfnd_integration_purposes --> xxfnd_ddl_pkg
     xxfnd_integration_purposes --> xxfnd_integration_endpoints
+    xxfnd_server_catalogs --> xxfnd_ddl_pkg
+    xxfnd_server_catalogs --> xxfnd_integration_pkg
+    xxfnd_server_catalogs --> xxfnd_servers
     xxfnd_server_tests --> xxfnd_ddl_pkg
     xxfnd_servers --> xxfnd_ddl_pkg
     xxfnd_servers --> xxfnd_integration_endpoints

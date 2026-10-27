@@ -56,6 +56,7 @@ One RFI process, with e-mail and an answer page, for every application.
 
 ## Test scripts
 
+- `tests/r111_common_pending_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
