@@ -278,14 +278,15 @@ create or replace package body xxfnd_integration_pkg as
                            p_capture_method        in varchar2,
                            p_server_code           in varchar2,
                            p_rest_source_static_id in varchar2,
-                           p_new                   in varchar2 default 'N') is
+                           p_new                   in varchar2 default 'N',
+                           p_catalog_service_id    in number   default null) is
     begin
         if p_new = 'Y' then
             begin
                 insert into xxfnd_integration_purposes (purpose_code, purpose_name, application_code, capture_method,
-                                                        server_code, rest_source_static_id)
+                                                        server_code, rest_source_static_id, catalog_service_id)
                 values (upper(p_purpose_code), p_purpose_name, p_application_code, p_capture_method,
-                        p_server_code, p_rest_source_static_id);
+                        p_server_code, p_rest_source_static_id, p_catalog_service_id);
             exception
                 when dup_val_on_index then
                     raise_application_error(-20343, 'Purpose ' || upper(p_purpose_code) || ' already exists.');
@@ -296,7 +297,8 @@ create or replace package body xxfnd_integration_pkg as
                    application_code      = p_application_code,
                    capture_method        = p_capture_method,
                    server_code           = p_server_code,
-                   rest_source_static_id = p_rest_source_static_id
+                   rest_source_static_id = p_rest_source_static_id,
+                   catalog_service_id    = p_catalog_service_id
              where purpose_code = p_purpose_code;
         end if;
     end save_purpose;
@@ -347,6 +349,8 @@ create or replace package body xxfnd_integration_pkg as
         l_url     varchar2(4000);
         l_cred    varchar2(255);
         l_server  varchar2(255);
+        l_service number;
+        l_srv     t_server;
         l_call_id number;
         l_resp    clob;
         procedure log_row is
@@ -361,20 +365,42 @@ create or replace package body xxfnd_integration_pkg as
             commit;
         end log_row;
     begin
-        select max(rest_source_static_id) into l_source from xxfnd_integration_purposes where purpose_code = p_purpose_code;
-        if l_source is null then
-            raise_application_error(-20312, 'Purpose ' || p_purpose_code || ' has no REST Data Source.');
-        end if;
-        select max(m.remote_server_static_id),
-               max(rtrim(s.base_url, '/') || '/' || ltrim(m.url_endpoint, '/')),
-               max(m.credential_static_id)
-          into l_server, l_url, l_cred
-          from apex_appl_web_src_modules m
-          left join apex_workspace_remote_servers s on s.remote_server_static_id = m.remote_server_static_id
-         where m.module_static_id = l_source
-           and m.application_id = (select apex_application_id from xxfnd_applications where application_code = 'COMMON');
-        if l_url is null then
-            raise_application_error(-20312, 'REST Data Source ' || l_source || ' is not in the COMMON application.');
+        select max(rest_source_static_id), max(server_code), max(catalog_service_id)
+          into l_source, l_server, l_service
+          from xxfnd_integration_purposes where purpose_code = p_purpose_code;
+        if l_service is not null then
+            -- release 110: the endpoint of the REST Source Catalog service, on the purpose's server
+            select max(cs.url_endpoint), max(c.credential_static_id)
+              into l_url, l_cred
+              from apex_rest_catalog_services cs
+              left join apex_rest_catalogs c on c.catalog_id = cs.catalog_id
+             where cs.service_id = l_service;
+            if l_url is null then
+                raise_application_error(-20312, 'Catalog service ' || l_service || ' of purpose ' || p_purpose_code
+                    || ' is not in the REST Source Catalogs.');
+            end if;
+            if l_server is not null then
+                l_srv  := server(l_server);
+                l_url  := rtrim(l_srv.base_url, '/') || '/' || ltrim(regexp_replace(l_url, '^https?://[^/]+', ''), '/');
+                l_cred := nvl(l_srv.credential_static_id, l_cred);
+            end if;
+            l_source := null;
+        else
+            if l_source is null then
+                raise_application_error(-20312, 'Purpose ' || p_purpose_code
+                    || ' has no REST Source Catalog service or REST Data Source.');
+            end if;
+            select max(m.remote_server_static_id),
+                   max(rtrim(s.base_url, '/') || '/' || ltrim(m.url_endpoint, '/')),
+                   max(m.credential_static_id)
+              into l_server, l_url, l_cred
+              from apex_appl_web_src_modules m
+              left join apex_workspace_remote_servers s on s.remote_server_static_id = m.remote_server_static_id
+             where m.module_static_id = l_source
+               and m.application_id = (select apex_application_id from xxfnd_applications where application_code = 'COMMON');
+            if l_url is null then
+                raise_application_error(-20312, 'REST Data Source ' || l_source || ' is not in the COMMON application.');
+            end if;
         end if;
         l_url := rtrim(l_url, '/') || case when p_path is not null then '/' || ltrim(p_path, '/') end
               || case when p_query is not null then '?' || ltrim(p_query, '?') end;
