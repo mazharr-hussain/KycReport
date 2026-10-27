@@ -105,7 +105,7 @@ create or replace package xxfnd_user_pkg authid definer as
     ----------------------------------------------------------------------------
     -- Authorization
     ----------------------------------------------------------------------------
-    -- One entry for the authorization schemes: KYC_USER / APP_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
+    -- One entry for the authorization schemes: APP_USER, PAGE_VIEW, PAGE_CREATE, PAGE_MANAGE, PAGE_SUBMIT,
     -- WORKFLOW_ADMINISTER, ADMIN_AREA, ADMIN_APP,
     -- SIGNED_IN (release 87: any enabled user - the shared pages of COMMON, which show only the
     -- user's own data). Reads APP_PAGE_ID, REQUEST and the Global Page party context from session state.

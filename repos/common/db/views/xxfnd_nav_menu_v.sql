@@ -19,7 +19,9 @@ app_entries as (
            case when e.target_type = 'USER_MENU' then v('APP_USER') else e.label end as label,
            xxfnd_application_pkg.entry_visible(e.application_code, e.target_type, e.page_id, e.feature_code,
                                                e.enabled_flag) as visible,
-           xxfnd_application_pkg.menu_url(e.application_code, e.target_type, e.page_id, e.feature_code) as target,
+           xxfnd_application_pkg.menu_url(e.application_code, e.target_type, e.page_id, e.feature_code,
+                                          e.entry_code) as target,
+           e.feature_code,
            (select max(fp.feature_code) from xxfnd_feature_pages fp
              where upper(fp.app_alias) = ctx.menu_alias and fp.page_id = e.page_id) as page_feature,
            ctx.cur_alias, ctx.cur_page, ctx.menu_alias
@@ -41,6 +43,9 @@ select t.menu_code, t.lvl, t.label, t.target,
                       or (t.page_feature is not null and t.page_feature = (select feature_code from cur)))
             then 'YES'
             when t.target_type = 'COMMON_PAGE' and t.cur_alias = 'COMMON' and t.page_id = t.cur_page then 'YES'
+            -- release 111: the group shown on the group page (COMMON page 100)
+            when t.target_type = 'FOLDER' and t.cur_alias = 'COMMON' and t.cur_page = 100
+                 and t.entry_code = v('P100_GROUP') then 'YES'
             else 'NO' end as is_current,
        t.icon_css as image,
        cast(null as varchar2(100)) as image_attribute,
@@ -49,7 +54,10 @@ select t.menu_code, t.lvl, t.label, t.target,
        case when t.page_id = 43 and (t.target_type = 'COMMON_PAGE' or t.menu_alias = 'COMMON')
             then v('NOTIFY_COUNT') end as a01,
        case when t.target_type = 'USER_MENU' then 'has-username' end as a02,
-       t.sort_path
+       t.sort_path,
+       -- release 111: for the group page (COMMON page 100)
+       t.entry_code, t.parent_code, t.target_type,
+       (select max(f.description) from xxfnd_features f where f.feature_code = t.feature_code) as description
   from app_tree t
  where t.target_type not in ('FOLDER', 'USER_MENU')
     or exists (select 1 from app_tree c

@@ -20,6 +20,7 @@ graph LR
     xxfnd_nav_menu_v --> xxfnd_application_pkg
     xxfnd_nav_menu_v --> xxfnd_applications
     xxfnd_nav_menu_v --> xxfnd_feature_pages
+    xxfnd_nav_menu_v --> xxfnd_features
     xxfnd_nav_pkg --> xxfnd_nav_menu_v
     xxfnd_nav_pkg --> xxfnd_page_opens
     xxfnd_onboard_pkg --> xxfnd_application_pkg

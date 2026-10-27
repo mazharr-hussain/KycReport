@@ -1794,7 +1794,8 @@
    "xxfnd_app_menu_entries",
    "xxfnd_application_pkg",
    "xxfnd_applications",
-   "xxfnd_feature_pages"
+   "xxfnd_feature_pages",
+   "xxfnd_features"
   ],
   "xxfnd_page_catalogue_v": [
    "xxfnd_app_menu_entries",
@@ -2440,7 +2441,7 @@
    "xxfnd_lookup_pkg"
   ],
   "apex:COMMON:pages/p00100-administration.apx": [
-   "xxfnd_modules_v"
+   "xxfnd_nav_menu_v"
   ],
   "apex:COMMON:pages/p00169-all-pages.apx": [
    "xxfnd_page_catalogue_v"
@@ -3228,6 +3229,7 @@
    "xxfnd_share_pkg"
   ],
   "xxfnd_nav_menu_v": [
+   "apex:COMMON:pages/p00100-administration.apx",
    "apex:COMMON:shared-components/app-items.apx",
    "apex:COMMON:shared-components/app-processes.apx",
    "apex:COMMON:shared-components/lists.apx",
@@ -3574,6 +3576,7 @@
    "xxfnd_application_functions",
    "xxfnd_application_pkg",
    "xxfnd_feature_pages",
+   "xxfnd_nav_menu_v",
    "xxfnd_page_catalogue_v",
    "xxfnd_privilege_pkg",
    "xxfnd_privileges",
@@ -3957,7 +3960,6 @@
    "xxfnd_fi_run_pkg"
   ],
   "xxfnd_modules_v": [
-   "apex:COMMON:pages/p00100-administration.apx",
    "apex:COMMON:shared-components/lists.apx"
   ],
   "xxfnd_effective_access_v": [

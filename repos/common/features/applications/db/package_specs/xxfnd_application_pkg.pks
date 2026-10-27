@@ -203,7 +203,8 @@ create or replace package xxfnd_application_pkg authid definer as
     -- For XXFND_APP_MENU_V: Y when the signed-in user sees the entry; the link of the entry.
     function menu_visible(p_application_code in varchar2, p_target_type in varchar2, p_feature_code in varchar2,
                           p_enabled_flag in varchar2) return varchar2;
+    -- Release 111: a folder (menu group) opens its group page (COMMON page 100, P100_GROUP = P_ENTRY_CODE).
     function menu_url(p_application_code in varchar2, p_target_type in varchar2, p_page_id in number,
-                      p_feature_code in varchar2) return varchar2;
+                      p_feature_code in varchar2, p_entry_code in varchar2 default null) return varchar2;
 end xxfnd_application_pkg;
 /

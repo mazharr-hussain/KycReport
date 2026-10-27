@@ -53,6 +53,7 @@ Lists of values are data, maintained from the console, with translations and lev
     - `db/scripts/29-servers/01-drop_constraint-xxfnd_integration_purposes.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/35-security-model-migration/01-xxfnd_data_objects-data_object_code.sql`
+    - `db/scripts/41b-rfi-lookups/01-register-rfi-lookups.sql`
 
 ## Dependencies
 

@@ -416,7 +416,7 @@ table - feature `roles-privileges` - `common/features/roles-privileges/db/tables
 ## xxfnd_features
 table - feature `roles-privileges` - `common/features/roles-privileges/db/tables/xxfnd_features.sql`
 
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00162-setup-types.apx, apex:COMMON:pages/p00167-application-menu.apx, apex:COMMON:pages/p00168-menu-entry.apx, apex:COMMON:pages/p00182-privileges.apx, apex:COMMON:shared-components/lists.apx, apex:COMMON:shared-components/lovs.apx, xxfnd_admin_menu_v, xxfnd_application_functions, xxfnd_application_pkg, xxfnd_feature_pages, xxfnd_page_catalogue_v, xxfnd_privilege_pkg, xxfnd_privileges, xxfnd_share_pkg
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00162-setup-types.apx, apex:COMMON:pages/p00167-application-menu.apx, apex:COMMON:pages/p00168-menu-entry.apx, apex:COMMON:pages/p00182-privileges.apx, apex:COMMON:shared-components/lists.apx, apex:COMMON:shared-components/lovs.apx, xxfnd_admin_menu_v, xxfnd_application_functions, xxfnd_application_pkg, xxfnd_feature_pages, xxfnd_nav_menu_v, xxfnd_page_catalogue_v, xxfnd_privilege_pkg, xxfnd_privileges, xxfnd_share_pkg
 
 ## xxfnd_fi_attributes
 table - feature `fusion-objects` - `common/features/fusion-objects/db/tables/xxfnd_fi_attributes.sql`
@@ -563,13 +563,13 @@ table - feature `framework` - `common/db/framework/tables/xxfnd_messages.sql`
 view - feature `applications` - `common/features/applications/db/views/xxfnd_modules_v.sql`
 
 - **Uses**: xxfnd_admin_menu_v, xxfnd_applications, xxfnd_feature_pages, xxfnd_lookup_values, xxfnd_servers_v, xxfnd_user_roles, xxfnd_workflow_processes, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00100-administration.apx, apex:COMMON:shared-components/lists.apx
+- **Used by**: apex:COMMON:shared-components/lists.apx
 
 ## xxfnd_nav_menu_v
 view - feature `framework` - `common/db/views/xxfnd_nav_menu_v.sql`
 
-- **Uses**: xxfnd_app_menu_entries, xxfnd_application_pkg, xxfnd_applications, xxfnd_feature_pages
-- **Used by**: apex:COMMON:shared-components/app-items.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/lists.apx, apex:KYC:shared-components/lists.apx, xxfnd_nav_pkg, xxfnd_share_pkg
+- **Uses**: xxfnd_app_menu_entries, xxfnd_application_pkg, xxfnd_applications, xxfnd_feature_pages, xxfnd_features
+- **Used by**: apex:COMMON:pages/p00100-administration.apx, apex:COMMON:shared-components/app-items.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/lists.apx, apex:KYC:shared-components/lists.apx, xxfnd_nav_pkg, xxfnd_share_pkg
 
 ## xxfnd_nav_pkg
 package spec - feature `framework` - `common/db/package_specs/xxfnd_nav_pkg.pks`
@@ -949,7 +949,7 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:pages/p00047-attachments.apx`: xxfnd_attach_pkg, xxfnd_attached_documents_v
 - `apex:COMMON:pages/p00048-document.apx`: xxfnd_attach_pkg, xxfnd_attached_documents_v, xxfnd_document_categories_vl
 - `apex:COMMON:pages/p00050-provide-information.apx`: xxfnd_rfi_pkg
-- `apex:COMMON:pages/p00100-administration.apx`: xxfnd_modules_v
+- `apex:COMMON:pages/p00100-administration.apx`: xxfnd_nav_menu_v
 - `apex:COMMON:pages/p00101-lookups.apx`: xxfnd_lookup_pkg, xxfnd_lookup_types, xxfnd_lookup_values
 - `apex:COMMON:pages/p00102-lookup-type.apx`: xxfnd_lookup_pkg, xxfnd_lookup_types, xxfnd_lookup_values
 - `apex:COMMON:pages/p00103-users.apx`: xxfnd_effective_access_v, xxfnd_lookup_values, xxfnd_user_pkg, xxfnd_user_roles_v, xxfnd_users, xxhr_employees

@@ -35,7 +35,7 @@ select q.server_code, q.server_name, q.server_type, q.server_type_name, q.usage,
                         (select max(c.static_id) from apex_workspace_credentials c
                           where c.static_id = s.server_code || '_CREDENTIALS')) as credential_static_id,
                -- release 109: from APEX - the token URL of the Authentication Remote Server, the region and namespace of
-               -- the Object Storage Remote Server URL (https://objectstorage.<region>.oraclecloud.com/n/<namespace>);
+               -- the Object Storage Remote Server URL (https://objectstorage.<region>.oraclecloud.com/n/<namespace>),
                -- the typed values of older servers are only the fallback
                s.auth_server_code,
                coalesce((select max(a.base_url) from apex_workspace_remote_servers a

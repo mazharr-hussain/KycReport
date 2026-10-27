@@ -171,3 +171,10 @@ COMMON 87 and 88 fixed C1-C6 and C8-C11 (each issue's **Status**); C7 stays open
   KYC uses its own rule (`XXCMP_REQUEST_PKG.STATUS_TONE`) for the request badge.
 - **Needed:** an application-neutral tone, e.g. from the status lookup value's tag (TAG = info / warning / success /
   danger), so each application sets its tones in its own lookups.
+
+## C18 - KYC_USER scheme retired (COMMON 111) - KYC must switch to APP_USER
+- **Status:** Open for KYC (COMMON 111 done).
+- **Where:** `XXFND_USER_PKG.AUTHORIZED` no longer knows `KYC_USER` (an application name in COMMON); `APP_USER` does
+  the same for every application (any privilege through an active role, or an administrator).
+- **Effect:** KYC's authorization `kyc-user` (`xxfnd_user_pkg.authorized('KYC_USER')`) returns false after COMMON 111.
+- **Needed:** KYC's `kyc-user` scheme calls `authorized('APP_USER')`. Deploy that KYC change together with COMMON 111.

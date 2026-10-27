@@ -299,5 +299,6 @@ set define off
 @@2970-package-body-xxfnd_fi_run_pkg.pkb
 @@2980-40z-fusion-objects-setup-01-xxfnd_util_pkg-set_install_mode.sql
 @@2990-41a-common-108-cleanup-01-drop_object-xxfnd_transmissions.sql
-@@3000-99-share-with-applications-last-01-xxfnd_share_pkg-grant_to_applications.sql
-@@3010-99z-hr-old-names-drop-01-drop_object-xxfnd_employees.sql
+@@3000-41b-rfi-lookups-01-register-rfi-lookups.sql
+@@3010-99-share-with-applications-last-01-xxfnd_share_pkg-grant_to_applications.sql
+@@3020-99z-hr-old-names-drop-01-drop_object-xxfnd_employees.sql

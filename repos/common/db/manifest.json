@@ -1233,5 +1233,18 @@
   "units": [
    "common/db/scripts/41a-common-108-cleanup/01-drop_object-xxfnd_transmissions.sql"
   ]
+ },
+ {
+  "name": "41b RFI lookups in COMMON",
+  "file": "41b-rfi-lookups.sql",
+  "install_sequence": 254,
+  "upgrade_sequence": 254,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 112,
+  "units": [
+   "common/db/scripts/41b-rfi-lookups/01-register-rfi-lookups.sql"
+  ]
  }
 ]
