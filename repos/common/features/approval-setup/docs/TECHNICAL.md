@@ -20,6 +20,8 @@ Approval chains are data (AME style), not code.
 
 - 148 Approval Setup (`pages/p00148-approval-setup.apx`)
 - 149 Approval Rule (`pages/p00149-approval-rule.apx`)
+- 154 Process (`pages/p00154-process.apx`)
+- 155 Approval Group (`pages/p00155-approval-group.apx`)
 
 ### Standard APEX features used
 
@@ -32,7 +34,7 @@ Approval chains are data (AME style), not code.
 
 ### Custom database objects
 
-- Tables: XXFND_APPROVAL_RULES, XXFND_APPROVAL_RULE_CONDS, XXFND_APPROVAL_RULE_STEPS, XXFND_APPROVAL_TXNS, XXFND_APPROVAL_TXN_STEPS, XXFND_APPROVAL_TYPES, XXFND_APPROVAL_TYPE_ATTRS
+- Tables: XXFND_APPROVAL_GROUPS, XXFND_APPROVAL_GROUP_MEMBERS, XXFND_APPROVAL_RULES, XXFND_APPROVAL_RULE_CONDS, XXFND_APPROVAL_RULE_STEPS, XXFND_APPROVAL_TXNS, XXFND_APPROVAL_TXN_STEPS, XXFND_APPROVAL_TYPES, XXFND_APPROVAL_TYPE_ATTRS
 - Types: XXFND_APPROVAL_STEP_ROW, XXFND_APPROVAL_STEP_TAB
 - Triggers: XXFND_APPROVAL_RULES_BI, XXFND_APPROVAL_RULE_STEPS_TYPE
 - Package specs: XXFND_APPROVAL_RULE_PKG
@@ -48,19 +50,21 @@ Approval chains are data (AME style), not code.
     - `db/scripts/15d-approval-setup/08-xxfnd_schema_pkg-create_who_trigger.sql`
     - `db/scripts/15d-approval-setup/10-xxfnd_schema_pkg-create_who_trigger.sql`
     - `db/scripts/15d-approval-setup/13-ensure_sequence-xxfnd_approval_rule_s.sql`
+    - `db/scripts/15d-approval-setup/21-add_constraint-xxfnd_approval_rule_steps-group.sql`
     - `db/scripts/24-workflow-module/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/28-registration/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
 
 ## Dependencies
 
-- Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_DDL_PKG, XXFND_ERROR_PKG, XXFND_LOOKUP_VALUES_VL, XXFND_ROLES, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES
+- Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_DDL_PKG, XXFND_ERROR_PKG, XXFND_LOOKUP_VALUES_VL, XXFND_ROLES, XXFND_USER_ROLES_V, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES
 - Used by objects: XXCMP_CASE_PKG, XXCMP_REQUEST_PKG, XXFND_APPLICATION_PKG, XXFND_RFI_PKG
-- Used by COMMON pages / components: 144, 147, 148, 149
+- Used by COMMON pages / components: 144, 147, 148, 149, 154, 155
 - Used by KYC pages / components: 206, 211, DOC-CHECKLIST-REVIEW
 
 ## Test scripts
 
+- `features/approval-setup/tests/r113_approval_groups_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`

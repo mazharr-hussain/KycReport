@@ -452,7 +452,7 @@ page 104 (
             region: @user
             slot: regionBody
             alignment: left
-            startNewRow: false
+            startNewRow: true
             columnSpan: 4
         }
         appearance {

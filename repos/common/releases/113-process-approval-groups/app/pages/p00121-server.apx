@@ -1,0 +1,1106 @@
+page 121 (
+    name: Server
+    alias: SERVER
+    title: Server
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 800
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One server of the workspace (release 86): linked to an APEX Remote Server (release 112: its name and URL are read from it)
+            with its Web Credential and REST Source Catalogs, its type and the
+            type's details - OCI Object Storage: region and namespace; SharePoint and Outlook (Microsoft Graph): the OAuth token
+            URL. Test Connection sends one request to the server's URL and keeps the result. The URL and the secret are kept by the
+            workspace administrator in Workspace Utilities, Remote Servers and Web Credentials (admin guide, "How to change a
+            server").
+            ```
+    }
+
+    region form (
+        name: Server
+        type: form
+        source {
+            location: localDatabase
+            type: tableView
+            tableName: XXFND_SERVERS
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+        }
+        advanced {
+            htmlDomId: server
+        }
+    )
+
+    region data-sources (
+        name: REST Data Sources on this Server
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 112: the REST Data Sources of COMMON and of every other application of the workspace that use
+                -- this server's APEX Remote Server
+                select m.application_name, m.module_name, m.url_endpoint
+                  from apex_appl_web_src_modules m
+                 where m.remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)
+                 order by m.application_name, m.module_name
+                ```
+            pageItemsToSubmit: [
+                P121_REMOTE_SERVER_CODE
+                P121_SERVER_CODE
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No REST Data Source uses this Remote Server.
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: Application
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column MODULE_NAME (
+            type: plainText
+            heading {
+                heading: REST Data Source
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column URL_ENDPOINT (
+            type: plainText
+            heading {
+                heading: Endpoint
+            }
+            layout {
+                sequence: 30
+            }
+        )
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P121_SAVED (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P121_TEST_RESULT (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @form
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+    pageItem P121_SERVER_CODE (
+        type: textField
+        label {
+            label: Static ID
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @form
+            column: SERVER_CODE
+            dataType: varchar2
+            primaryKey: true
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        help {
+            helpText: The server's code in COMMON (purposes and storage rules use it). Typed once when the server is added (Add on the APEX Remote Servers list fills in the Remote Server's static ID); it cannot change later.
+        }
+    )
+    pageItem P121_REMOTE_SERVER_CODE (
+        type: selectList
+        label {
+            label: APEX Remote Server
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select remote_server_name || ' (' || remote_server_static_id || ')' as display_value,
+                       remote_server_static_id                                     as return_value
+                  from apex_workspace_remote_servers
+                 order by 1
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 15
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: REMOTE_SERVER_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: The APEX Remote Server of the workspace this server is linked to (release 112). Its name and URL are always read from it, so a change in Workspace Utilities, Remote Servers shows here at once.
+        }
+    )
+    pageItem P121_SERVER_NAME (
+        type: displayOnly
+        label {
+            label: Server
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select coalesce((select max(r.remote_server_name) from apex_workspace_remote_servers r
+                                  where r.remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)),
+                                (select max(server_name) from xxfnd_servers_v where server_code = :P121_SERVER_CODE))
+                  from dual
+                ```
+        }
+        help {
+            helpText: The name of the APEX Remote Server (release 112: read from it, not typed).
+        }
+    )
+    pageItem P121_SERVER_TYPE (
+        type: selectList
+        label {
+            label: Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select meaning as display_value, lookup_code as return_value
+                  from xxfnd_lookup_values_vl
+                 where lookup_type = 'SERVER_TYPE'
+                   and active_flag = 'Y'
+                 order by display_sequence, meaning
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 30
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @form
+            column: SERVER_TYPE
+            dataType: varchar2
+        }
+        help {
+            helpText: 'Storage: OCI Object Storage, SharePoint, UCM. Integration: Fusion, REST, Outlook. The type decides which details are needed.'
+        }
+    )
+
+
+    pageItem P121_CREDENTIAL_STATIC_ID (
+        type: selectList
+        label {
+            label: Web Credential
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select name || ' (' || static_id || ')' as display_value, static_id as return_value
+                  from apex_workspace_credentials
+                 order by name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Of the REST Data Source on the server -
+        }
+        layout {
+            sequence: 40
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: CREDENTIAL_STATIC_ID
+            dataType: varchar2
+        }
+        help {
+            helpText: The APEX Web Credential that holds the secret. Empty = the one of a COMMON REST Data Source on this server, else the credential named <static ID>_CREDENTIALS.
+        }
+    )
+    pageItem P121_OCI_REGION (
+        type: displayOnly
+        label {
+            label: OCI Region
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select oci_region from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+            used: always
+        }
+        help {
+            helpText: Release 109: read from the APEX Remote Server URL (https://objectstorage.<region>.oraclecloud.com/n/<namespace>).
+        }
+    )
+    pageItem P121_OCI_NAMESPACE (
+        type: displayOnly
+        label {
+            label: Namespace
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select oci_namespace from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+            used: always
+        }
+        help {
+            helpText: Release 109: read from the APEX Remote Server URL (the /n/<namespace> part).
+        }
+    )
+    pageItem P121_AUTH_SERVER_CODE (
+        type: selectList
+        label {
+            label: Authentication Server
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select remote_server_name || ' (' || remote_server_static_id || ')' as display_value,
+                       remote_server_static_id as return_value
+                  from apex_workspace_remote_servers
+                 order by remote_server_name
+                ```
+            displayNullValue: true
+            nullDisplayValue: - Select -
+        }
+        layout {
+            sequence: 70
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: AUTH_SERVER_CODE
+            dataType: varchar2
+        }
+        help {
+            helpText: 'Release 109 - SharePoint and Outlook (Microsoft Graph): the APEX Remote Server of type Authentication whose URL is the OAuth token URL (e.g. https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token). Created in Workspace Utilities, Remote Servers.'
+        }
+    )
+    pageItem P121_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @form
+            column: ENABLED_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: A disabled server is not used; the applications that store on it use the database meanwhile.
+        }
+    )
+    pageItem P121_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            height: 3
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @form
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+        help {
+            helpText: What the server is for.
+        }
+    )
+    pageItem P121_BASE_URL (
+        type: displayOnly
+        label {
+            label: URL
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select coalesce((select max(base_url) from apex_workspace_remote_servers
+                                  where remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)),
+                                (select max(base_url) from xxfnd_servers_v where server_code = :P121_SERVER_CODE))
+                  from dual
+                ```
+        }
+        help {
+            helpText: The URL of the APEX Remote Server (OCI Object Storage without one - the URL of the region).
+        }
+    )
+    pageItem P121_STATUS (
+        type: displayOnly
+        label {
+            label: State
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select status_text from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+        }
+        help {
+            helpText: OK, Incomplete (what is missing), Disabled, or the last Test Connection failed.
+        }
+    )
+    pageItem P121_LAST_TEST (
+        type: displayOnly
+        label {
+            label: Last Test
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(result_code || ' - ' || result_message || ' (' || to_char(tested_date, 'DD-Mon-YYYY HH24:MI') || ', ' || tested_by || ')')
+                         keep (dense_rank last order by tested_date)
+                  from xxfnd_server_tests
+                 where server_static_id in (:P121_SERVER_CODE, nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE))
+                ```
+        }
+        help {
+            helpText: The result of the last Test Connection.
+        }
+    )
+    pageItem P121_LAST_ERROR (
+        type: displayOnly
+        label {
+            label: Last Error
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @form
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select max(error_message) keep (dense_rank last order by called_date)
+                  from xxfnd_integration_calls
+                 where server_static_id in (:P121_SERVER_CODE, nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE))
+                   and status_code = 'FAILED'
+                ```
+        }
+        help {
+            helpText: The last failed call to this server.
+        }
+    )
+    pageItem P121_LAST_CALL (
+        type: displayOnly
+        label {
+            label: Last Call
+            alignment: left
+        }
+        layout {
+            sequence: 135
+            region: @form
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select to_char(last_call, 'DD-Mon-YYYY HH24:MI') from xxfnd_servers_v where server_code = :P121_SERVER_CODE
+                ```
+        }
+        help {
+            helpText: The last call made to this server (release 112, same as the Servers list).
+        }
+    )
+    pageItem P121_CATALOGS (
+        type: shuttle
+        label {
+            label: REST Source Catalogs
+            alignment: left
+        }
+        layout {
+            sequence: 140
+            region: @form
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select catalog_name || nvl2(catalog_group_name, ' (' || catalog_group_name || ')', '') as display_value,
+                       catalog_id                                                                    as return_value
+                  from apex_rest_catalogs
+                 order by 1
+                ```
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select listagg(catalog_id, ':') within group (order by catalog_id)
+                  from xxfnd_server_catalogs where server_code = :P121_SERVER_CODE
+                ```
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: The APEX REST Source Catalogs (Workspace Utilities) of this server (release 112). A purpose on this server takes its endpoint from the services of these catalogs.
+        }
+    )
+
+
+    process set-saved (
+        name: Detect existing server
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                select case when count(*) > 0 then 'Y' end
+                  into :P121_SAVED
+                  from xxfnd_servers
+                 where server_code = :P121_SERVER_CODE;
+                -- release 112: a server saved before 112 is linked to the Remote Server of its own static ID
+                if :P121_SAVED = 'Y' then
+                    :P121_REMOTE_SERVER_CODE := coalesce(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE);
+                end if;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+    )
+
+    process initialize-form (
+        name: Initialize form
+        type: formInitialization
+        formRegion: @form
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button test (
+        buttonName: TEST
+        label: Test Connection
+        layout {
+            sequence: 25
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P121_SAVED
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    process save-server (
+        name: Save the server
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 86: saved by the integration package (no DML in the page)
+                xxfnd_integration_pkg.save_server(
+                    p_server_code          => :P121_SERVER_CODE,
+                    p_server_name          => null,
+                    p_server_type          => :P121_SERVER_TYPE,
+                    p_credential_static_id => :P121_CREDENTIAL_STATIC_ID,
+                    p_enabled_flag         => nvl(:P121_ENABLED_FLAG, 'N'),
+                    p_description          => :P121_DESCRIPTION,
+                    p_auth_server_code     => :P121_AUTH_SERVER_CODE,
+                    p_remote_server_code   => :P121_REMOTE_SERVER_CODE);
+                -- release 112: the server's REST Source Catalogs
+                xxfnd_integration_pkg.set_server_catalogs(:P121_SERVER_CODE, :P121_CATALOGS);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+    process delete-server (
+        name: Delete the server
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_integration_pkg.delete_server(:P121_SERVER_CODE);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Server deleted.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DELETE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process test-connection (
+        name: Test the connection
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 83: one request to the server's URL; the result is kept (XXFND_SERVER_TESTS) and shown
+                :P121_TEST_RESULT := xxfnd_integration_pkg.test_connection(:P121_SERVER_CODE);
+                ```
+        }
+        execution {
+            sequence: 30
+            point: processing
+        }
+        successMessage {
+            successMessage: &P121_TEST_RESULT.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: TEST
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+    branch (
+        name: Back to the server with the result
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 121
+                items: {
+                    P121_SERVER_CODE: &P121_SERVER_CODE.
+                }
+                clearCache: 121
+            }
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: TEST
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction show-object-storage (
+        name: The type decides the fields - Object Storage
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P121_SERVER_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P121_SERVER_TYPE.value === 'OBJECT_STORAGE'
+        }
+
+        action show-object-storage-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P121_OCI_REGION,P121_OCI_NAMESPACE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-object-storage-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P121_OCI_REGION,P121_OCI_NAMESPACE
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+
+    dynamicAction show-graph (
+        name: The type decides the fields - Microsoft Graph
+        execution {
+            sequence: 30
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P121_SERVER_TYPE
+        }
+        clientSideCondition {
+            type: jsExpression
+            javaScriptExpression: apex.items.P121_SERVER_TYPE.value === 'SHAREPOINT' || apex.items.P121_SERVER_TYPE.value === 'OUTLOOK'
+        }
+
+        action show-graph-show (
+            action: show
+            affectedElements {
+                selectionType: items
+                items: P121_AUTH_SERVER_CODE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: true
+                fireOnInit: true
+            }
+        )
+
+        action show-graph-hide (
+            action: hide
+            affectedElements {
+                selectionType: items
+                items: P121_AUTH_SERVER_CODE
+            }
+            execution {
+                sequence: 20
+                fireWhenEventResultIs: false
+                fireOnInit: true
+            }
+        )
+
+    )
+)

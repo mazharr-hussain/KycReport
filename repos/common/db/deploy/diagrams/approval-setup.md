@@ -2,10 +2,19 @@
 
 ```mermaid
 graph LR
+    xxfnd_approval_group_members --> xxfnd_approval_groups
+    xxfnd_approval_group_members --> xxfnd_approval_rule_pkg
+    xxfnd_approval_group_members --> xxfnd_ddl_pkg
+    xxfnd_approval_groups --> xxfnd_approval_group_members
+    xxfnd_approval_groups --> xxfnd_approval_rule_pkg
+    xxfnd_approval_groups --> xxfnd_approval_types
+    xxfnd_approval_groups --> xxfnd_ddl_pkg
     xxfnd_approval_rule_conds --> xxfnd_approval_rules
     xxfnd_approval_rule_conds --> xxfnd_ddl_pkg
     xxfnd_approval_rule_pkg --> xxfnd_application_pkg
     xxfnd_approval_rule_pkg --> xxfnd_applications
+    xxfnd_approval_rule_pkg --> xxfnd_approval_group_members
+    xxfnd_approval_rule_pkg --> xxfnd_approval_groups
     xxfnd_approval_rule_pkg --> xxfnd_approval_rule_conds
     xxfnd_approval_rule_pkg --> xxfnd_approval_rule_steps
     xxfnd_approval_rule_pkg --> xxfnd_approval_rules
@@ -17,6 +26,7 @@ graph LR
     xxfnd_approval_rule_pkg --> xxfnd_approval_types
     xxfnd_approval_rule_pkg --> xxfnd_error_pkg
     xxfnd_approval_rule_pkg --> xxfnd_roles
+    xxfnd_approval_rule_pkg --> xxfnd_user_roles_v
     xxfnd_approval_rule_pkg --> xxfnd_util_pkg
     xxfnd_approval_rule_pkg --> xxfnd_vpd_pkg
     xxfnd_approval_rule_pkg --> xxfnd_workflow_pkg

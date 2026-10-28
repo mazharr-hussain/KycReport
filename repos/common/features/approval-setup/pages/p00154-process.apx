@@ -1,0 +1,424 @@
+page 154 (
+    name: Process
+    alias: PROCESS
+    title: &P154_PROCESS_NAME.
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```
+            One approval process (release 113): its approval rules (when they apply and who approves at each level, in order)
+            and its approval groups (named sets of approvers - roles and users - that a level can name instead of one role
+            or user). Opened from the Process Catalogue.
+            ```
+    }
+
+    region breadcrumb (
+        name: Process
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: REGION_POSITION_01
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region rules (
+        name: Approval Rules
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 113: the rules of the process (by priority) with their conditions and levels in order
+                select r.rule_name,
+                       r.priority,
+                       (select listagg(a.attribute_name || ' = ' || c.attribute_value, '; ')
+                                   within group (order by a.display_sequence, c.attribute_value)
+                          from xxfnd_approval_rule_conds c
+                          join xxfnd_approval_type_attrs a on a.approval_type_code = r.approval_type_code
+                                                          and a.attribute_code = c.attribute_code
+                         where c.rule_id = r.rule_id)                                     as conditions,
+                       (select listagg(s.step_no || '. ' || s.step_name || ' - '
+                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name), ' > ')
+                                   within group (order by s.step_no)
+                          from xxfnd_approval_rule_steps s
+                         where s.rule_id = r.rule_id)                                     as levels,
+                       decode(r.enabled_flag, 'Y', 'Active', 'Off')                       as state,
+                       apex_page.get_url(p_page => 149, p_items => 'P149_RULE_ID', p_values => to_char(r.rule_id),
+                                         p_clear_cache => '149')                          as open_url
+                  from xxfnd_approval_rules r
+                 where r.approval_type_code = :P154_APPROVAL_TYPE_CODE
+                 order by r.priority, r.rule_name
+                ```
+            pageItemsToSubmit: [
+                P154_APPROVAL_TYPE_CODE
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: rules
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No rule yet: add one (no rule = the process cannot start an approval).
+        }
+
+        column RULE_NAME (
+            type: plainText
+            heading {
+                heading: Rule
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#RULE_NAME#</a>
+                    ```
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column CONDITIONS (
+            type: plainText
+            heading {
+                heading: When
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column LEVELS (
+            type: plainText
+            heading {
+                heading: Levels (in order)
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    region groups (
+        name: Approval Groups
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                -- release 113: the approval groups of the process with their members
+                select g.group_name,
+                       g.group_code,
+                       (select listagg(case m.member_type
+                                           when 'ROLE' then 'Role: ' || nvl((select max(r.role_name) from xxfnd_roles r
+                                                                              where r.role_code = m.member_code), m.member_code)
+                                           else xxfnd_approval_rule_pkg.approver_label('USER', null, m.member_code) end, ', ')
+                                   within group (order by m.member_type, m.member_code)
+                          from xxfnd_approval_group_members m
+                         where m.group_code = g.group_code)                                as members,
+                       (select count(*) from xxfnd_approval_rule_steps s
+                         where s.approver_type = 'GROUP' and s.role_code = g.group_code)     as used_by_levels,
+                       decode(g.enabled_flag, 'Y', 'Active', 'Off')                       as state,
+                       apex_page.get_url(p_page => 155, p_items => 'P155_GROUP_CODE', p_values => g.group_code,
+                                         p_clear_cache => '155')                          as open_url
+                  from xxfnd_approval_groups g
+                 where g.approval_type_code = :P154_APPROVAL_TYPE_CODE
+                 order by g.group_name
+                ```
+            pageItemsToSubmit: [
+                P154_APPROVAL_TYPE_CODE
+            ]
+        }
+        layout {
+            sequence: 30
+            slot: BODY
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: groups
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        messages {
+            whenNoDataFound: No approval group yet. A level can name a group instead of one role or user.
+        }
+
+        column GROUP_NAME (
+            type: plainText
+            heading {
+                heading: Group
+            }
+            layout {
+                sequence: 10
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#OPEN_URL#">#GROUP_NAME#</a>
+                    ```
+            }
+        )
+
+        column GROUP_CODE (
+            type: plainText
+            heading {
+                heading: Code
+            }
+            layout {
+                sequence: 20
+            }
+        )
+
+        column MEMBERS (
+            type: plainText
+            heading {
+                heading: Members
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column USED_BY_LEVELS (
+            type: plainText
+            heading {
+                heading: Used by Levels
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column STATE (
+            type: plainText
+            heading {
+                heading: State
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column OPEN_URL (
+            type: hidden
+            layout {
+                sequence: 60
+            }
+        )
+    )
+
+    pageItem P154_APPROVAL_TYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P154_PROCESS_NAME (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    button add-rule (
+        buttonName: ADD_RULE
+        label: Add Rule
+        layout {
+            sequence: 10
+            region: @rules
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 149
+                items: {
+                    P149_APPROVAL_TYPE_CODE: &P154_APPROVAL_TYPE_CODE.
+                }
+                clearCache: 149
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    button add-group (
+        buttonName: ADD_GROUP
+        label: Add Group
+        layout {
+            sequence: 10
+            region: @groups
+            slot: EDIT
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 155
+                items: {
+                    P155_APPROVAL_TYPE_CODE: &P154_APPROVAL_TYPE_CODE.
+                }
+                clearCache: 155
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction refresh-rules (
+        name: Refresh rules
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @rules
+        }
+
+        action refresh-rules-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @rules
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction refresh-groups (
+        name: Refresh groups
+        execution {
+            sequence: 20
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @groups
+        }
+
+        action refresh-groups-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @groups
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process find-process (
+        name: Find the process
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 113: the process the user may see (its application's, or every one for IT)
+                select max(approval_type_code), nvl(max(approval_type_name), 'Process')
+                  into :P154_APPROVAL_TYPE_CODE, :P154_PROCESS_NAME
+                  from xxfnd_approval_types
+                 where approval_type_code = :P154_APPROVAL_TYPE_CODE
+                   and (:G_ADMIN_APP = 'ALL' or application_code in (:G_ADMIN_APP, 'COMMON'));
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+)

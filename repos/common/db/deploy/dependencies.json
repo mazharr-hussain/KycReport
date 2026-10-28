@@ -684,6 +684,18 @@
    "file": "common/features/approval-setup/db/tables/xxfnd_approval_txn_steps.sql",
    "application": "COMMON"
   },
+  "xxfnd_approval_groups": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_groups.sql",
+   "application": "COMMON"
+  },
+  "xxfnd_approval_group_members": {
+   "type": "table",
+   "feature": "approval-setup",
+   "file": "common/features/approval-setup/db/tables/xxfnd_approval_group_members.sql",
+   "application": "COMMON"
+  },
   "xxfnd_approval_rules_bi": {
    "type": "trigger",
    "feature": "approval-setup",
@@ -1490,6 +1502,17 @@
    "xxfnd_approval_txns",
    "xxfnd_ddl_pkg"
   ],
+  "xxfnd_approval_groups": [
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_types",
+   "xxfnd_ddl_pkg"
+  ],
+  "xxfnd_approval_group_members": [
+   "xxfnd_approval_groups",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_ddl_pkg"
+  ],
   "xxfnd_approval_rules_bi": [
    "xxfnd_approval_rules"
   ],
@@ -1503,6 +1526,8 @@
   "xxfnd_approval_rule_pkg (body)": [
    "xxfnd_application_pkg",
    "xxfnd_applications",
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_conds",
    "xxfnd_approval_rule_steps",
    "xxfnd_approval_rules",
@@ -1514,6 +1539,7 @@
    "xxfnd_approval_types",
    "xxfnd_error_pkg",
    "xxfnd_roles",
+   "xxfnd_user_roles_v",
    "xxfnd_util_pkg",
    "xxfnd_vpd_pkg",
    "xxfnd_workflow_pkg",
@@ -1928,6 +1954,14 @@
    "xxfnd_user_pkg",
    "xxfnd_workflow_pkg"
   ],
+  "apex:COMMON:pages/p00155-approval-group.apx": [
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_groups",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_types",
+   "xxfnd_roles",
+   "xxhr_employees"
+  ],
   "apex:COMMON:pages/p00114-delegations.apx": [
    "xxfnd_wf_delegations"
   ],
@@ -1977,6 +2011,7 @@
    "xxfnd_applications"
   ],
   "apex:COMMON:pages/p00149-approval-rule.apx": [
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_conds",
    "xxfnd_approval_rule_pkg",
    "xxfnd_approval_rule_steps",
@@ -2097,11 +2132,10 @@
   ],
   "apex:COMMON:pages/p00147-process-catalogue.apx": [
    "xxfnd_applications",
-   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_steps",
    "xxfnd_approval_rules",
    "xxfnd_approval_types",
-   "xxfnd_wf_delegations",
    "xxfnd_workflow_pkg",
    "xxfnd_workflow_processes"
   ],
@@ -2255,6 +2289,17 @@
    "xxfnd_integration_purposes",
    "xxfnd_lookup_pkg"
   ],
+  "apex:COMMON:pages/p00154-process.apx": [
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_groups",
+   "xxfnd_approval_rule_conds",
+   "xxfnd_approval_rule_pkg",
+   "xxfnd_approval_rule_steps",
+   "xxfnd_approval_rules",
+   "xxfnd_approval_type_attrs",
+   "xxfnd_approval_types",
+   "xxfnd_roles"
+  ],
   "apex:COMMON:pages/p00100-administration.apx": [
    "xxfnd_nav_menu_v"
   ],
@@ -2352,6 +2397,8 @@
    "xxcmp_risk_tiers",
    "xxfnd_app_menu_entries",
    "xxfnd_application_functions",
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_conds",
    "xxfnd_approval_rule_steps",
    "xxfnd_approval_rules",
@@ -2468,6 +2515,8 @@
    "apex:COMMON:pages/p00107-segregation-of-duties.apx",
    "apex:COMMON:pages/p00145-deadlines-and-escalation.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
    "apex:COMMON:pages/p00180-data-security.apx",
    "apex:COMMON:pages/p00181-data-security-rule.apx",
    "apex:COMMON:pages/p00182-privileges.apx",
@@ -2586,15 +2635,18 @@
   ],
   "xxfnd_approval_rule_pkg": [
    "apex:COMMON:pages/p00144-configuration-change.apx",
-   "apex:COMMON:pages/p00147-process-catalogue.apx",
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
    "apex:KYC:pages/p00206-kyc-request-approval.apx",
    "apex:KYC:pages/p00211-case.apx",
    "apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg",
    "xxfnd_application_pkg",
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_steps_type",
    "xxfnd_rfi_pkg"
   ],
@@ -2602,6 +2654,7 @@
    "apex:COMMON:pages/p00147-process-catalogue.apx",
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
    "xxcmp_request_pkg",
    "xxfnd_application_pkg",
    "xxfnd_approval_rule_conds",
@@ -2829,6 +2882,7 @@
    "apex:COMMON:pages/p00103-users.apx",
    "apex:COMMON:pages/p00104-user.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
    "apex:COMMON:shared-components/lovs.apx",
    "apex:KYC:pages/p00211-case.apx",
    "apex:KYC:shared-components/lovs.apx",
@@ -2923,6 +2977,7 @@
    "apex:KYC:pages/p00211-case.apx",
    "xxcmp_case_pkg",
    "xxfnd_application_pkg",
+   "xxfnd_approval_rule_pkg",
    "xxfnd_effective_access_v",
    "xxfnd_user_role_tree_v",
    "xxfnd_vpd_pkg",
@@ -3409,7 +3464,6 @@
   "xxfnd_wf_delegations": [
    "apex:COMMON:pages/p00114-delegations.apx",
    "apex:COMMON:pages/p00115-delegation.apx",
-   "apex:COMMON:pages/p00147-process-catalogue.apx",
    "xxfnd_vpd_pkg",
    "xxfnd_workflow_pkg"
   ],
@@ -3558,11 +3612,28 @@
    "apex:COMMON:pages/p00147-process-catalogue.apx",
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
    "xxfnd_application_pkg",
+   "xxfnd_approval_groups",
    "xxfnd_approval_rule_pkg",
    "xxfnd_approval_rules",
    "xxfnd_approval_type_attrs",
    "xxfnd_rfi_pkg"
+  ],
+  "xxfnd_approval_group_members": [
+   "apex:COMMON:pages/p00154-process.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
+   "xxfnd_approval_groups",
+   "xxfnd_approval_rule_pkg"
+  ],
+  "xxfnd_approval_groups": [
+   "apex:COMMON:pages/p00147-process-catalogue.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
+   "apex:COMMON:pages/p00155-approval-group.apx",
+   "xxfnd_approval_group_members",
+   "xxfnd_approval_rule_pkg"
   ],
   "xxfnd_approval_step_tab": [
    "xxfnd_approval_rule_pkg"
@@ -3570,12 +3641,14 @@
   "xxfnd_approval_rule_conds": [
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
    "xxfnd_approval_rule_pkg"
   ],
   "xxfnd_approval_rule_steps": [
    "apex:COMMON:pages/p00147-process-catalogue.apx",
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
    "xxfnd_application_pkg",
    "xxfnd_approval_rule_pkg",
    "xxfnd_approval_rule_steps_type"
@@ -3583,6 +3656,7 @@
   "xxfnd_approval_type_attrs": [
    "apex:COMMON:pages/p00148-approval-setup.apx",
    "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00154-process.apx",
    "xxfnd_approval_rule_pkg"
   ],
   "xxfnd_user_applications": [

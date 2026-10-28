@@ -551,6 +551,9 @@
    "common/features/approval-setup/db/tables/xxfnd_approval_txns.sql",
    "common/features/approval-setup/db/tables/xxfnd_approval_txn_steps.sql",
    "common/db/scripts/15d-approval-setup/13-ensure_sequence-xxfnd_approval_rule_s.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_groups.sql",
+   "common/features/approval-setup/db/tables/xxfnd_approval_group_members.sql",
+   "common/db/scripts/15d-approval-setup/21-add_constraint-xxfnd_approval_rule_steps-group.sql",
    "common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql",
    "common/features/approval-setup/db/types/xxfnd_approval_step_row.sql",
    "common/features/approval-setup/db/types/xxfnd_approval_step_tab.sql",
@@ -1087,6 +1090,19 @@
   "source_index": 113,
   "units": [
    "common/db/scripts/41c-fusion-objects-removal/01-remove-fusion-objects.sql"
+  ]
+ },
+ {
+  "name": "41d Approval groups - process pages",
+  "file": "41d-approval-groups.sql",
+  "install_sequence": 256,
+  "upgrade_sequence": 256,
+  "apps": [
+   "COMMON"
+  ],
+  "source_index": 114,
+  "units": [
+   "common/db/scripts/41d-approval-groups/01-register-process-pages.sql"
   ]
  }
 ]

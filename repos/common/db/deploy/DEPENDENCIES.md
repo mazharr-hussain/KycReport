@@ -54,6 +54,18 @@ sequence - feature `applications` - `common/features/applications/db/sequences/x
 
 - **Used by**: xxfnd_applications, xxfnd_share_pkg
 
+## xxfnd_approval_group_members
+table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_group_members.sql`
+
+- **Uses**: xxfnd_approval_groups, xxfnd_approval_rule_pkg, xxfnd_ddl_pkg
+- **Used by**: apex:COMMON:pages/p00154-process.apx, apex:COMMON:pages/p00155-approval-group.apx, xxfnd_approval_groups, xxfnd_approval_rule_pkg
+
+## xxfnd_approval_groups
+table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_groups.sql`
+
+- **Uses**: xxfnd_approval_group_members, xxfnd_approval_rule_pkg, xxfnd_approval_types, xxfnd_ddl_pkg
+- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, apex:COMMON:pages/p00155-approval-group.apx, xxfnd_approval_group_members, xxfnd_approval_rule_pkg
+
 ## xxfnd_approval_pkg
 package spec - feature `change-approvals` - `common/features/change-approvals/db/package_specs/xxfnd_approval_pkg.pks`
 
@@ -65,20 +77,20 @@ package spec - feature `change-approvals` - `common/features/change-approvals/db
 table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_rule_conds.sql`
 
 - **Uses**: xxfnd_approval_rules, xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, xxfnd_approval_rule_pkg
+- **Used by**: apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, xxfnd_approval_rule_pkg
 
 ## xxfnd_approval_rule_pkg
 package spec - feature `approval-setup` - `common/features/approval-setup/db/package_specs/xxfnd_approval_rule_pkg.pks`
 
 - **Uses**: xxfnd_approval_step_tab
-- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_step_row, xxfnd_approval_step_tab, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_error_pkg, xxfnd_roles, xxfnd_util_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00144-configuration-change.apx, apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, xxcmp_case_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_steps_type, xxfnd_rfi_pkg
+- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_approval_group_members, xxfnd_approval_groups, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_step_row, xxfnd_approval_step_tab, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_error_pkg, xxfnd_roles, xxfnd_user_roles_v, xxfnd_util_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg, xxhr_employees
+- **Used by**: apex:COMMON:pages/p00144-configuration-change.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, apex:COMMON:pages/p00155-approval-group.apx, apex:KYC:pages/p00206-kyc-request-approval.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx, xxcmp_case_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_group_members, xxfnd_approval_groups, xxfnd_approval_rule_steps_type, xxfnd_rfi_pkg
 
 ## xxfnd_approval_rule_steps
 table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_rule_steps.sql`
 
 - **Uses**: xxfnd_approval_rules, xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps_type
+- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps_type
 
 ## xxfnd_approval_rule_steps_type
 trigger - feature `approval-setup` - `common/features/approval-setup/db/triggers/xxfnd_approval_rule_steps_type.sql`
@@ -89,7 +101,7 @@ trigger - feature `approval-setup` - `common/features/approval-setup/db/triggers
 table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_rules.sql`
 
 - **Uses**: xxfnd_approval_types, xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules_bi
+- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules_bi
 
 ## xxfnd_approval_rules_bi
 trigger - feature `approval-setup` - `common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql`
@@ -123,13 +135,13 @@ table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxf
 table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_type_attrs.sql`
 
 - **Uses**: xxfnd_approval_types, xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, xxfnd_approval_rule_pkg
+- **Used by**: apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, xxfnd_approval_rule_pkg
 
 ## xxfnd_approval_types
 table - feature `approval-setup` - `common/features/approval-setup/db/tables/xxfnd_approval_types.sql`
 
 - **Uses**: xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_rfi_pkg
+- **Used by**: apex:COMMON:pages/p00147-process-catalogue.apx, apex:COMMON:pages/p00148-approval-setup.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, apex:COMMON:pages/p00155-approval-group.apx, xxfnd_application_pkg, xxfnd_approval_groups, xxfnd_approval_rule_pkg, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_rfi_pkg
 
 ## xxfnd_assignment_values
 table - feature `users-access` - `common/features/users-access/db/tables/xxfnd_assignment_values.sql`
@@ -271,7 +283,7 @@ table - feature `data-security` - `common/features/data-security/db/tables/xxfnd
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_ddl_pkg.pks`
 
 - **Uses (body)**: xxfnd_dropped_objects, xxfnd_schema_releases
-- **Used by**: xxcmp_answer_options [KYC], xxcmp_approval_matrix [KYC], xxcmp_attachment_rules [KYC], xxcmp_case_funds [KYC], xxcmp_case_risk_scores [KYC], xxcmp_conclusion_templates [KYC], xxcmp_fiu_reports [KYC], xxcmp_parties [KYC], xxcmp_party_contacts [KYC], xxcmp_party_id_verifications [KYC], xxcmp_party_number_s [KYC], xxcmp_party_registry_checks [KYC], xxcmp_party_relationships [KYC], xxcmp_questionnaires [KYC], xxcmp_questions [KYC], xxcmp_rfi_number_s [KYC], xxcmp_rfis [KYC], xxcmp_risk_countries [KYC], xxcmp_risk_factors [KYC], xxcmp_risk_tiers [KYC], xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_assignment_values, xxfnd_attached_documents, xxfnd_attachment_blk_entities, xxfnd_attachment_blocks, xxfnd_attachment_functions, xxfnd_audit_log, xxfnd_communications, xxfnd_contact_sources, xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_data_rule_assignments, xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_segments, xxfnd_dm_app_scopes, xxfnd_dm_table_groups, xxfnd_doc_category_usages, xxfnd_document_categories, xxfnd_document_entities, xxfnd_documents, xxfnd_entity_containers, xxfnd_error_log, xxfnd_integration_calls, xxfnd_integration_endpoints, xxfnd_integration_purposes, xxfnd_lookup_types, xxfnd_lookup_values, xxfnd_messages, xxfnd_notification_templates, xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules, xxfnd_page_opens, xxfnd_retention_policies, xxfnd_rfi_rounds, xxfnd_rfis, xxfnd_role_data_access, xxfnd_role_members, xxfnd_roles, xxfnd_server_catalogs, xxfnd_server_tests, xxfnd_servers, xxfnd_setup_type_apps, xxfnd_setup_types, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_storage_config, xxfnd_user_applications, xxfnd_user_roles, xxfnd_value_sets, xxfnd_wf_delegations, xxfnd_workflow_processes, xxhr_employees, xxhr_organizations
+- **Used by**: xxcmp_answer_options [KYC], xxcmp_approval_matrix [KYC], xxcmp_attachment_rules [KYC], xxcmp_case_funds [KYC], xxcmp_case_risk_scores [KYC], xxcmp_conclusion_templates [KYC], xxcmp_fiu_reports [KYC], xxcmp_parties [KYC], xxcmp_party_contacts [KYC], xxcmp_party_id_verifications [KYC], xxcmp_party_number_s [KYC], xxcmp_party_registry_checks [KYC], xxcmp_party_relationships [KYC], xxcmp_questionnaires [KYC], xxcmp_questions [KYC], xxcmp_rfi_number_s [KYC], xxcmp_rfis [KYC], xxcmp_risk_countries [KYC], xxcmp_risk_factors [KYC], xxcmp_risk_tiers [KYC], xxfnd_app_menu_entries, xxfnd_application_functions, xxfnd_approval_group_members, xxfnd_approval_groups, xxfnd_approval_rule_conds, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_txn_steps, xxfnd_approval_txns, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_assignment_values, xxfnd_attached_documents, xxfnd_attachment_blk_entities, xxfnd_attachment_blocks, xxfnd_attachment_functions, xxfnd_audit_log, xxfnd_communications, xxfnd_contact_sources, xxfnd_data_dimensions, xxfnd_data_objects, xxfnd_data_rule_assignments, xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_segments, xxfnd_dm_app_scopes, xxfnd_dm_table_groups, xxfnd_doc_category_usages, xxfnd_document_categories, xxfnd_document_entities, xxfnd_documents, xxfnd_entity_containers, xxfnd_error_log, xxfnd_integration_calls, xxfnd_integration_endpoints, xxfnd_integration_purposes, xxfnd_lookup_types, xxfnd_lookup_values, xxfnd_messages, xxfnd_notification_templates, xxfnd_notifications, xxfnd_notify_channels, xxfnd_notify_events, xxfnd_notify_recipient_types, xxfnd_notify_rules, xxfnd_page_opens, xxfnd_retention_policies, xxfnd_rfi_rounds, xxfnd_rfis, xxfnd_role_data_access, xxfnd_role_members, xxfnd_roles, xxfnd_server_catalogs, xxfnd_server_tests, xxfnd_servers, xxfnd_setup_type_apps, xxfnd_setup_types, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_storage_config, xxfnd_user_applications, xxfnd_user_roles, xxfnd_value_sets, xxfnd_wf_delegations, xxfnd_workflow_processes, xxhr_employees, xxhr_organizations
 
 ## xxfnd_df_contexts
 table - feature `flexfields` - `common/features/flexfields/db/tables/xxfnd_df_contexts.sql`
@@ -650,7 +662,7 @@ table - feature `roles-privileges` - `common/features/roles-privileges/db/tables
 table - feature `roles-privileges` - `common/features/roles-privileges/db/tables/xxfnd_roles.sql`
 
 - **Uses**: xxfnd_ddl_pkg, xxfnd_user_pkg
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00105-roles.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00107-segregation-of-duties.apx, apex:COMMON:pages/p00145-deadlines-and-escalation.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00180-data-security.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00182-privileges.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:shared-components/lists.apx, apex:COMMON:shared-components/lovs.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00217-compliance-report.apx, apex:KYC:pages/p00225-alert-rules.apx, apex:KYC:pages/p00226-alert-rule.apx, xxcmp_approval_matrix [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_data_rule_assignments, xxfnd_data_security_rules, xxfnd_effective_access_v, xxfnd_privilege_pkg, xxfnd_role_data_access, xxfnd_role_members, xxfnd_role_privileges, xxfnd_roles_every_role, xxfnd_setup_rows_v, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_task_settings, xxfnd_user_pkg, xxfnd_user_role_tree_v, xxfnd_user_roles, xxfnd_user_roles_v, xxfnd_vpd_pkg
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00105-roles.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00107-segregation-of-duties.apx, apex:COMMON:pages/p00145-deadlines-and-escalation.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00154-process.apx, apex:COMMON:pages/p00155-approval-group.apx, apex:COMMON:pages/p00180-data-security.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00182-privileges.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:shared-components/lists.apx, apex:COMMON:shared-components/lovs.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:pages/p00217-compliance-report.apx, apex:KYC:pages/p00225-alert-rules.apx, apex:KYC:pages/p00226-alert-rule.apx, xxcmp_approval_matrix [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_data_rule_assignments, xxfnd_data_security_rules, xxfnd_effective_access_v, xxfnd_privilege_pkg, xxfnd_role_data_access, xxfnd_role_members, xxfnd_role_privileges, xxfnd_roles_every_role, xxfnd_setup_rows_v, xxfnd_share_pkg, xxfnd_sod_rules, xxfnd_task_settings, xxfnd_user_pkg, xxfnd_user_role_tree_v, xxfnd_user_roles, xxfnd_user_roles_v, xxfnd_vpd_pkg
 
 ## xxfnd_roles_every_role
 trigger - feature `roles-privileges` - `common/features/roles-privileges/db/triggers/xxfnd_roles_every_role.sql`
@@ -801,7 +813,7 @@ trigger - feature `users-access` - `common/features/users-access/db/triggers/xxf
 view - feature `users-access` - `common/features/users-access/db/views/xxfnd_user_roles_v.sql`
 
 - **Uses**: xxfnd_roles, xxfnd_user_roles, xxfnd_users, xxhr_employees
-- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00105-roles.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/lists.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg [KYC], xxfnd_application_pkg, xxfnd_effective_access_v, xxfnd_user_role_tree_v, xxfnd_vpd_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:pages/p00000-global-page.apx, apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00105-roles.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00181-data-security-rule.apx, apex:COMMON:pages/p00184-data-access-values.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/lists.apx, apex:KYC:pages/p00211-case.apx, xxcmp_case_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_effective_access_v, xxfnd_user_role_tree_v, xxfnd_vpd_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_users
 table - feature `users-access` - `common/features/users-access/db/tables/xxfnd_users.sql`
@@ -830,7 +842,7 @@ package spec - feature `data-security` - `common/features/data-security/db/packa
 table - feature `workflow-setup` - `common/features/workflow-setup/db/tables/xxfnd_wf_delegations.sql`
 
 - **Uses**: xxfnd_ddl_pkg, xxfnd_workflow_pkg
-- **Used by**: apex:COMMON:pages/p00114-delegations.apx, apex:COMMON:pages/p00115-delegation.apx, apex:COMMON:pages/p00147-process-catalogue.apx, xxfnd_vpd_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:pages/p00114-delegations.apx, apex:COMMON:pages/p00115-delegation.apx, xxfnd_vpd_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_workflow_pkg
 package spec - feature `workflow-setup` - `common/features/workflow-setup/db/package_specs/xxfnd_workflow_pkg.pks`
@@ -849,7 +861,7 @@ table - feature `applications` - `common/features/applications/db/tables/xxfnd_w
 table - feature `framework` - `common/db/tables/xxhr_employees.sql`
 
 - **Uses**: xxfnd_ddl_pkg
-- **Used by**: apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:shared-components/lovs.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/lovs.apx, xxcmp_case_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_approval_rule_pkg, xxfnd_integration_pkg, xxfnd_modules_v, xxfnd_notify_pkg, xxfnd_ui_pkg, xxfnd_user_pkg, xxfnd_user_roles, xxfnd_user_roles_user, xxfnd_user_roles_v, xxfnd_users, xxhr_employees_ins, xxhr_employees_rename, xxhr_employees_src
+- **Used by**: apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00149-approval-rule.apx, apex:COMMON:pages/p00155-approval-group.apx, apex:COMMON:shared-components/lovs.apx, apex:KYC:pages/p00211-case.apx, apex:KYC:shared-components/lovs.apx, xxcmp_case_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_approval_rule_pkg, xxfnd_integration_pkg, xxfnd_modules_v, xxfnd_notify_pkg, xxfnd_ui_pkg, xxfnd_user_pkg, xxfnd_user_roles, xxfnd_user_roles_user, xxfnd_user_roles_v, xxfnd_users, xxhr_employees_ins, xxhr_employees_rename, xxhr_employees_src
 
 ## xxhr_employees_ins
 trigger - feature `framework` - `common/db/triggers/xxhr_employees_ins.sql`
@@ -920,13 +932,15 @@ table - feature `users-access` - `common/features/users-access/db/tables/xxhr_or
 - `apex:COMMON:pages/p00144-configuration-change.apx`: xxfnd_approval_pkg, xxfnd_approval_rule_pkg, xxfnd_workflow_pkg
 - `apex:COMMON:pages/p00145-deadlines-and-escalation.apx`: xxfnd_roles, xxfnd_task_settings
 - `apex:COMMON:pages/p00146-task-deadline.apx`: xxfnd_task_settings
-- `apex:COMMON:pages/p00147-process-catalogue.apx`: xxfnd_applications, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_types, xxfnd_wf_delegations, xxfnd_workflow_pkg, xxfnd_workflow_processes
+- `apex:COMMON:pages/p00147-process-catalogue.apx`: xxfnd_applications, xxfnd_approval_groups, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_types, xxfnd_workflow_pkg, xxfnd_workflow_processes
 - `apex:COMMON:pages/p00148-approval-setup.apx`: xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_approval_types
-- `apex:COMMON:pages/p00149-approval-rule.apx`: xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_lookup_values_vl, xxfnd_roles, xxhr_employees
+- `apex:COMMON:pages/p00149-approval-rule.apx`: xxfnd_approval_groups, xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_lookup_values_vl, xxfnd_roles, xxhr_employees
 - `apex:COMMON:pages/p00150-value-sets.apx`: xxfnd_lookup_pkg, xxfnd_value_sets
 - `apex:COMMON:pages/p00151-value-set.apx`: xxfnd_dff_pkg, xxfnd_value_sets
 - `apex:COMMON:pages/p00152-descriptive-flexfields.apx`: xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_segments
 - `apex:COMMON:pages/p00153-descriptive-flexfield.apx`: xxfnd_attached_documents, xxfnd_df_contexts, xxfnd_df_flexfields, xxfnd_df_flexfields_chk, xxfnd_df_segments, xxfnd_dff_pkg, xxfnd_lookup_types, xxfnd_setup_columns_v, xxfnd_setup_tables_v, xxfnd_value_sets
+- `apex:COMMON:pages/p00154-process.apx`: xxfnd_approval_group_members, xxfnd_approval_groups, xxfnd_approval_rule_conds, xxfnd_approval_rule_pkg, xxfnd_approval_rule_steps, xxfnd_approval_rules, xxfnd_approval_type_attrs, xxfnd_approval_types, xxfnd_roles
+- `apex:COMMON:pages/p00155-approval-group.apx`: xxfnd_approval_group_members, xxfnd_approval_groups, xxfnd_approval_rule_pkg, xxfnd_approval_types, xxfnd_roles, xxhr_employees
 - `apex:COMMON:pages/p00160-applications.apx`: xxfnd_applications
 - `apex:COMMON:pages/p00162-setup-types.apx`: xxfnd_features, xxfnd_setup_type_apps, xxfnd_setup_types
 - `apex:COMMON:pages/p00163-setup-type.apx`: xxfnd_application_pkg, xxfnd_applications, xxfnd_setup_type_apps, xxfnd_setup_types

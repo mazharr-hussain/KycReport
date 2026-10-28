@@ -1,0 +1,485 @@
+page 155 (
+    name: Approval Group
+    alias: APPROVAL-GROUP
+    title: Approval Group
+    pageGroup: @administration
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+    }
+    security {
+        authorizationScheme: @page-view
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText: An approval group of a process (release 113) - a named set of approvers. Its members are roles (every active user of the role) and users; a rule level that names the group can be approved by any of them.
+    }
+
+    region group (
+        name: Approval Group
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 90
+            slot: REGION_POSITION_03
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P155_SAVED (
+        type: hidden
+        layout {
+            sequence: 1
+            region: @group
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P155_APPROVAL_TYPE_CODE (
+        type: hidden
+        layout {
+            sequence: 2
+            region: @group
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P155_APPLICATION_CODE (
+        type: hidden
+        layout {
+            sequence: 3
+            region: @group
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P155_GROUP_CODE (
+        type: textField
+        label {
+            label: Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @group
+            slot: regionBody
+            alignment: left
+            columnSpan: 4
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        readOnly {
+            type: itemIsNotNull
+            item: P155_SAVED
+        }
+        help {
+            helpText: A short code (letters, digits, _), kept once the group is saved; rule levels refer to it.
+        }
+    )
+
+    pageItem P155_GROUP_NAME (
+        type: textField
+        label {
+            label: Name
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @group
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 8
+        }
+        appearance {
+            template: @/required-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            valueRequired: true
+            maxLength: 100
+        }
+        help {
+            helpText: The name shown on the rules, for example Compliance Managers.
+        }
+    )
+
+    pageItem P155_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @group
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        validation {
+            maxLength: 1000
+        }
+        help {
+            helpText: What the group is for.
+        }
+    )
+
+    pageItem P155_ENABLED_FLAG (
+        type: switch
+        label {
+            label: Enabled
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @group
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: Y
+        }
+        help {
+            helpText: A disabled group has no approver: a level that names it cannot be started.
+        }
+    )
+
+    pageItem P155_ROLES (
+        type: shuttle
+        label {
+            label: Roles
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @group
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select role_name as display_value, role_code as return_value
+                  from xxfnd_roles
+                 order by role_name
+                ```
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: Every active user of these roles is an approver of the group.
+        }
+    )
+
+    pageItem P155_USERS (
+        type: shuttle
+        label {
+            label: Users
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @group
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select nvl(full_name, user_name) || ' (' || user_name || ')' as display_value, user_name as return_value
+                  from xxhr_employees
+                 where user_name is not null
+                 order by 1
+                ```
+        }
+        security {
+            sessionStateProtection: unrestricted
+        }
+        help {
+            helpText: Named users who are approvers of the group.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: CLOSE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: DELETE
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            executeValidations: false
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: &APP_TEXT$DELETE_MSG!RAW.
+            style: danger
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P155_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Apply Changes
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P155_SAVED
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    button create (
+        buttonName: CREATE
+        label: Create
+        layout {
+            sequence: 40
+            region: @buttons
+            slot: CREATE
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P155_SAVED
+        }
+        security {
+            authorizationScheme: @page-create
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action cancel-dialog-action (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process load-group (
+        name: Load the group
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 113: the group, its members (colon lists for the shuttles) and its process's application
+                for g in (select g.group_code, g.approval_type_code, g.group_name, g.description, g.enabled_flag
+                            from xxfnd_approval_groups g
+                           where g.group_code = :P155_GROUP_CODE) loop
+                    :P155_SAVED              := 'Y';
+                    :P155_APPROVAL_TYPE_CODE := g.approval_type_code;
+                    :P155_GROUP_NAME         := g.group_name;
+                    :P155_DESCRIPTION        := g.description;
+                    :P155_ENABLED_FLAG       := g.enabled_flag;
+                    select listagg(case when member_type = 'ROLE' then member_code end, ':') within group (order by member_code),
+                           listagg(case when member_type = 'USER' then member_code end, ':') within group (order by member_code)
+                      into :P155_ROLES, :P155_USERS
+                      from xxfnd_approval_group_members where group_code = g.group_code;
+                end loop;
+                select max(application_code) into :P155_APPLICATION_CODE
+                  from xxfnd_approval_types where approval_type_code = :P155_APPROVAL_TYPE_CODE;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    process save-group (
+        name: Save the group
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                -- release 113: saved by the approval rule package (no DML in the page)
+                xxfnd_approval_rule_pkg.save_group(
+                    p_application_code => :P155_APPLICATION_CODE,
+                    p_type             => :P155_APPROVAL_TYPE_CODE,
+                    p_group_code       => :P155_GROUP_CODE,
+                    p_group_name       => :P155_GROUP_NAME,
+                    p_description      => :P155_DESCRIPTION,
+                    p_enabled_flag     => nvl(:P155_ENABLED_FLAG, 'N'));
+                xxfnd_approval_rule_pkg.set_group_members(:P155_APPLICATION_CODE, :P155_GROUP_CODE, :P155_ROLES, :P155_USERS);
+                ```
+        }
+        execution {
+            sequence: 10
+            point: processing
+        }
+        successMessage {
+            successMessage: Changes saved.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE
+        }
+        security {
+            authorizationScheme: @page-submit
+        }
+    )
+
+    process delete-group (
+        name: Delete the group
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                xxfnd_approval_rule_pkg.delete_group(:P155_APPLICATION_CODE, :P155_GROUP_CODE);
+                ```
+        }
+        execution {
+            sequence: 20
+            point: processing
+        }
+        successMessage {
+            successMessage: Group deleted.
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DELETE
+        }
+        security {
+            authorizationScheme: @page-manage
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 90
+            point: processing
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+)
