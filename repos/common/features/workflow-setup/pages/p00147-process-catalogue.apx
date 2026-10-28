@@ -114,32 +114,28 @@ page 147 (
     )
 
     region approval-paths (
-        name: Approval Path per Process
+        name: Approval Processes
         type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select t.application_code, t.approval_type_name as process, r.rule_name, r.priority,
-                       s.step_no, s.step_name,
-                       xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name) as approver,
-                       nvl2(s.due_days, s.due_days || ' days', 'Process deadline') as deadline,
-                       (select listagg(d.delegate_user_name || ' until ' || to_char(d.end_date, 'DD-Mon-YYYY'), ', ')
-                                 within group (order by d.end_date)
-                          from xxfnd_wf_delegations d
-                         where s.approver_type = 'USER' and d.delegator_user_name = upper(s.user_name)
-                           and trunc(sysdate) between d.start_date and d.end_date) as delegated_to,
-                       case when r.enabled_flag = 'Y' and t.enabled_flag = 'Y' then 'Active' else 'Off' end as state,
-                       apex_page.get_url(p_page => 149, p_items => 'P149_RULE_ID', p_values => r.rule_id) as rule_url
-                  -- release 94 (UI issue 8): each process with its rules (by priority), their steps in order, the
-                  -- approver of each step, its deadline and the approver's active delegation (vacation rule) - the
-                  -- engine follows this order: rule, approver, delegation, deadline
+                -- release 113: one row per process (approval type) of each application - its rules, approval groups and
+                -- levels are kept on the Process page (154)
+                select t.application_code,
+                       t.approval_type_name as process,
+                       (select count(*) from xxfnd_approval_rules r where r.approval_type_code = t.approval_type_code) as rules,
+                       (select count(*) from xxfnd_approval_groups g where g.approval_type_code = t.approval_type_code) as approval_groups,
+                       (select max(s.step_no) from xxfnd_approval_rules r
+                          join xxfnd_approval_rule_steps s on s.rule_id = r.rule_id
+                         where r.approval_type_code = t.approval_type_code and r.enabled_flag = 'Y') as levels,
+                       case when t.enabled_flag = 'Y' then 'Active' else 'Off' end as state,
+                       apex_page.get_url(p_page => 154, p_items => 'P154_APPROVAL_TYPE_CODE', p_values => t.approval_type_code,
+                                         p_clear_cache => '154') as process_url
                   from xxfnd_approval_types t
-                  join xxfnd_approval_rules r on r.approval_type_code = t.approval_type_code
-                  left join xxfnd_approval_rule_steps s on s.rule_id = r.rule_id
                  where :G_ADMIN_APP = 'ALL' or t.application_code in (:G_ADMIN_APP, 'COMMON')
-                 order by t.application_code, t.approval_type_name, r.priority, s.step_no
+                 order by t.application_code, t.approval_type_name
                 ```
         }
         layout {
@@ -147,7 +143,7 @@ page 147 (
             slot: BODY
         }
         appearance {
-            template: @/standard
+            template: @/interactive-report
             templateOptions: #DEFAULT#
         }
         advanced {
@@ -160,13 +156,13 @@ page 147 (
             type: rowRangesXToY
         }
         messages {
-            whenNoDataFound: No approval rules yet.
+            whenNoDataFound: No approval process yet.
         }
         searchBar {
             includeSearchBar: true
         }
         comments {
-            comments: Release 94 (UI issue 8). Approvers are users today; position, manager, hierarchies, area of responsibility and query approvers are listed in Approval Setup as not available yet (HCM data). Rules are changed in Approval Setup, deadlines in Deadlines and Escalation, delegations in Delegations.
+            comments: Release 113 - one row per process; the Process page (154) holds its approval rules and approval groups.
         }
 
         column APPLICATION_CODE (
@@ -190,23 +186,10 @@ page 147 (
             layout {
                 sequence: 20
             }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column RULE_NAME (
-            type: plainText
-            heading {
-                heading: Rule
-            }
-            layout {
-                sequence: 30
-            }
             columnFormatting {
                 htmlExpression:
                     ```html
-                    <a href="#RULE_URL#">#RULE_NAME#</a>
+                    <a href="#PROCESS_URL#">#PROCESS#</a>
                     ```
             }
             source {
@@ -214,81 +197,42 @@ page 147 (
             }
         )
 
-        column PRIORITY (
+        column RULES (
             type: plainText
             heading {
-                heading: Priority
+                heading: Rules
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+
+        column APPROVAL_GROUPS (
+            type: plainText
+            heading {
+                heading: Approval Groups
             }
             layout {
                 sequence: 40
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
 
-        column STEP_NO (
+        column LEVELS (
             type: plainText
             heading {
-                heading: Step
+                heading: Levels
             }
             layout {
                 sequence: 50
             }
             source {
-                dataType: STRING
-            }
-        )
-
-        column STEP_NAME (
-            type: plainText
-            heading {
-                heading: Step Name
-            }
-            layout {
-                sequence: 60
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column APPROVER (
-            type: plainText
-            heading {
-                heading: Approver
-            }
-            layout {
-                sequence: 70
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column DEADLINE (
-            type: plainText
-            heading {
-                heading: Deadline
-            }
-            layout {
-                sequence: 80
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column DELEGATED_TO (
-            type: plainText
-            heading {
-                heading: Delegated To
-            }
-            layout {
-                sequence: 90
-            }
-            source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
 
@@ -298,26 +242,25 @@ page 147 (
                 heading: State
             }
             layout {
-                sequence: 100
+                sequence: 60
             }
             source {
                 dataType: STRING
             }
         )
 
-        column RULE_URL (
+        column PROCESS_URL (
             type: hidden
             heading {
-                heading: Rule URL
+                heading: Open
             }
             layout {
-                sequence: 110
+                sequence: 70
             }
             source {
                 dataType: STRING
             }
         )
-
     )
 
     region processes (

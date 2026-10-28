@@ -89,5 +89,20 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
     -- the type with its rules (refused while a transaction of the type exists: in use)
     procedure unregister_type(p_application_code in varchar2, p_type in varchar2);
     procedure unregister_application(p_application_code in varchar2);
+    -- Release 113: approval groups of a process (approval type) - a named set of approvers; a rule level of approver type
+    -- GROUP names the group code (in ROLE_CODE). The type must belong to P_APPLICATION_CODE (ORA-20186 otherwise).
+    procedure save_group(p_application_code in varchar2,
+                         p_type             in varchar2,
+                         p_group_code       in varchar2,
+                         p_group_name       in varchar2,
+                         p_description      in varchar2 default null,
+                         p_enabled_flag     in varchar2 default 'Y');
+    -- the members: P_ROLES and P_USERS colon-separated (as a shuttle gives them); members not listed are removed
+    procedure set_group_members(p_application_code in varchar2, p_group_code in varchar2,
+                                p_roles in varchar2, p_users in varchar2);
+    -- refused (ORA-20537) while a rule level names the group
+    procedure delete_group(p_application_code in varchar2, p_group_code in varchar2);
+    -- the users of a group (its users and the active users of its roles), comma-separated
+    function group_users(p_group_code in varchar2) return varchar2;
 end xxfnd_approval_rule_pkg;
 /

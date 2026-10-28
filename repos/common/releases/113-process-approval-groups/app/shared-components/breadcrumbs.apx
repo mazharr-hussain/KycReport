@@ -1,0 +1,1063 @@
+breadcrumb breadcrumb (
+    name: Breadcrumb
+
+    entry home (
+        name: Home
+        pageNumber: 1
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry admin (
+        name: &P100_GROUP_NAME.
+        pageNumber: 100
+        execution {
+            sequence: 100
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
+    entry module-platform (
+        name: Platform
+        pageNumber: 90010
+        execution {
+            sequence: 101
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_PLATFORM
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90010 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry module-security (
+        name: Security
+        pageNumber: 90020
+        execution {
+            sequence: 102
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_SECURITY
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90020 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry module-reference-data (
+        name: Reference Data
+        pageNumber: 90030
+        execution {
+            sequence: 103
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_REFERENCE_DATA
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90030 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry module-documents-records (
+        name: Documents and Records
+        pageNumber: 90040
+        execution {
+            sequence: 104
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_DOCUMENTS_RECORDS
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90040 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry module-workflow (
+        name: Workflow
+        pageNumber: 90050
+        execution {
+            sequence: 105
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_WORKFLOW
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90050 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry module-integrations (
+        name: Integrations
+        pageNumber: 90060
+        execution {
+            sequence: 106
+        }
+        appearance {
+            parentEntry: @home
+        }
+        link {
+            target: {
+                page: 100
+                items: {
+                    P100_GROUP: M_INTEGRATIONS
+                }
+                clearCache: 100
+            }
+        }
+        comments {
+            comments: Release 78 - a module level of the breadcrumb (Home > Module > Component); page 90060 does not exist (an entry needs a page), the link opens the module's group page (page 100).
+        }
+    )
+
+    entry roles (
+        name: Roles
+        pageNumber: 105
+        execution {
+            sequence: 150
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry delegations (
+        name: Delegations
+        pageNumber: 114
+        execution {
+            sequence: 200
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 114
+            }
+        }
+    )
+
+    entry data-security (
+        name: Data Security
+        pageNumber: 180
+        execution {
+            sequence: 156
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 180
+            }
+        }
+    )
+
+    entry organizations (
+        name: Organizations
+        pageNumber: 186
+        execution {
+            sequence: 126
+        }
+        appearance {
+            parentEntry: @data-security
+        }
+        link {
+            target: {
+                page: 186
+            }
+        }
+    )
+
+    entry privileges (
+        name: Privileges
+        pageNumber: 182
+        execution {
+            sequence: 152
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 182
+            }
+        }
+    )
+
+    entry employee (
+        name: &P104_TITLE.
+        pageNumber: 104
+        execution {
+            sequence: 140
+        }
+        appearance {
+            parentEntry: @employees
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry employees (
+        name: Users and Access
+        pageNumber: 103
+        execution {
+            sequence: 130
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry sod (
+        name: Segregation of Duties
+        pageNumber: 107
+        execution {
+            sequence: 160
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 107
+            }
+        }
+    )
+
+    entry lookup (
+        name: Lookup Type
+        pageNumber: 102
+        execution {
+            sequence: 120
+        }
+        appearance {
+            parentEntry: @lookups
+        }
+        link {
+            target: {
+                page: 102
+            }
+        }
+    )
+
+    entry applications (
+        name: Applications
+        pageNumber: 160
+        execution {
+            sequence: 400
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 160
+            }
+        }
+    )
+
+    entry application (
+        name: &P166_APPLICATION_CODE.
+        pageNumber: 166
+        execution {
+            sequence: 401
+        }
+        appearance {
+            parentEntry: @applications
+        }
+    )
+
+    entry application-journey (
+        name: &P165_TITLE.
+        pageNumber: 165
+        execution {
+            sequence: 405
+        }
+        appearance {
+            parentEntry: @applications
+        }
+    )
+
+    entry application-menu (
+        name: Menu by Application
+        pageNumber: 167
+        execution {
+            sequence: 167
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 167
+            }
+        }
+        comments {
+            comments: Release 106 - a tab of the Application Menu feature (Reference Data), next to All Pages (169).
+        }
+    )
+
+    entry all-pages (
+        name: Application Menu
+        pageNumber: 169
+        execution {
+            sequence: 169
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 169
+            }
+        }
+        comments {
+            comments: Release 106 - the Application Menu feature (Reference Data): every page of every application and who uses it.
+        }
+    )
+
+    entry setup-types (
+        name: Setup Types
+        pageNumber: 162
+        execution {
+            sequence: 402
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 162
+            }
+        }
+    )
+
+    entry subscriptions (
+        name: Subscriptions
+        pageNumber: 164
+        execution {
+            sequence: 403
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 164
+            }
+        }
+    )
+
+    entry lookups (
+        name: Lookups
+        pageNumber: 101
+        execution {
+            sequence: 110
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry templates (
+        name: Notification Templates
+        pageNumber: 109
+        execution {
+            sequence: 170
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 109
+            }
+        }
+    )
+
+    entry flexfield (
+        name: Descriptive Flexfield
+        pageNumber: 153
+        execution {
+            sequence: 350
+        }
+        appearance {
+            parentEntry: @flexfields
+        }
+        link {
+            target: {
+                page: 153
+            }
+        }
+    )
+
+    entry flexfields (
+        name: Descriptive Flexfields
+        pageNumber: 152
+        execution {
+            sequence: 340
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 152
+            }
+        }
+    )
+
+    entry value-sets (
+        name: Value Sets
+        pageNumber: 150
+        execution {
+            sequence: 330
+        }
+        appearance {
+            parentEntry: @module-reference-data
+        }
+        link {
+            target: {
+                page: 150
+            }
+        }
+    )
+
+    entry attach-function (
+        name: Attachment Page
+        pageNumber: 135
+        execution {
+            sequence: 270
+        }
+        appearance {
+            parentEntry: @attach-functions
+        }
+        link {
+            target: {
+                page: 135
+            }
+        }
+    )
+
+    entry attach-functions (
+        name: Attachment Pages
+        pageNumber: 134
+        execution {
+            sequence: 260
+        }
+        appearance {
+            parentEntry: @module-documents-records
+        }
+        link {
+            target: {
+                page: 134
+            }
+        }
+    )
+
+    entry storage (
+        name: Document Storage
+        pageNumber: 136
+        execution {
+            sequence: 280
+        }
+        appearance {
+            parentEntry: @module-documents-records
+        }
+        link {
+            target: {
+                page: 136
+            }
+        }
+    )
+
+    entry doc-categories (
+        name: Document Categories
+        pageNumber: 132
+        execution {
+            sequence: 250
+        }
+        appearance {
+            parentEntry: @module-documents-records
+        }
+        link {
+            target: {
+                page: 132
+            }
+        }
+    )
+
+    entry doc-entities (
+        name: Document Entities
+        pageNumber: 130
+        execution {
+            sequence: 240
+        }
+        appearance {
+            parentEntry: @module-documents-records
+        }
+        link {
+            target: {
+                page: 130
+            }
+        }
+    )
+
+    entry purposes (
+        name: Integration Purposes
+        pageNumber: 122
+        execution {
+            sequence: 220
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 122
+            }
+        }
+    )
+
+    entry endpoints (
+        name: Servers
+        pageNumber: 120
+        execution {
+            sequence: 210
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 120
+            }
+        }
+    )
+
+    entry transmissions (
+        name: Transmission Log
+        pageNumber: 124
+        execution {
+            sequence: 230
+        }
+        appearance {
+            parentEntry: @module-integrations
+        }
+        link {
+            target: {
+                page: 124
+            }
+        }
+    )
+
+    entry approval-setup (
+        name: Approval Setup
+        pageNumber: 148
+        execution {
+            sequence: 265
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 148
+            }
+        }
+    )
+
+    entry process-catalogue (
+        name: Process Catalogue
+        pageNumber: 147
+        execution {
+            sequence: 264
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 147
+            }
+        }
+    )
+
+    entry process (
+        name: &P154_PROCESS_NAME.
+        pageNumber: 154
+        execution {
+            sequence: 265
+        }
+        appearance {
+            parentEntry: @process-catalogue
+        }
+        link {
+            target: {
+                page: 154
+            }
+        }
+    )
+
+    entry retention (
+        name: Retention Policies
+        pageNumber: 112
+        execution {
+            sequence: 190
+        }
+        appearance {
+            parentEntry: @module-documents-records
+        }
+        link {
+            target: {
+                page: 112
+            }
+        }
+    )
+
+    entry app-settings (
+        name: Application Settings
+        pageNumber: 10022
+        execution {
+            sequence: 432
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 10022
+            }
+        }
+    )
+
+    entry deadlines (
+        name: Deadlines and Escalation
+        pageNumber: 145
+        execution {
+            sequence: 262
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 145
+            }
+        }
+    )
+
+    entry features (
+        name: Optional Features
+        pageNumber: 10020
+        execution {
+            sequence: 430
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 10020
+            }
+        }
+    )
+
+    entry audit (
+        name: Audit Log
+        pageNumber: 111
+        execution {
+            sequence: 180
+        }
+        appearance {
+            parentEntry: @module-security
+        }
+        link {
+            target: {
+                page: 111
+            }
+        }
+    )
+
+    entry home-from-app (
+        name: Home
+        pageNumber: 90070
+        execution {
+            sequence: 19
+        }
+        link {
+            target: {
+                type: url
+                url: &G_HOME_URL.
+            }
+        }
+        comments {
+            comments: Release 97 - the Home of My Tasks (40); release 104 - of every shared COMMON page (Notifications, Communications, Attachments, Feedback): the home page of the application the page is used from (G_HOME_URL, process WORK_APP), else the user's Home; page 90070 does not exist (an entry needs a page).
+        }
+    )
+
+    entry my-tasks (
+        name: My Tasks
+        pageNumber: 40
+        execution {
+            sequence: 20
+        }
+        appearance {
+            parentEntry: @home-from-app
+        }
+        link {
+            target: {
+                page: 40
+            }
+        }
+    )
+
+    entry workflow-monitor (
+        name: Workflow Monitor
+        pageNumber: 141
+        execution {
+            sequence: 590
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 141
+            }
+        }
+    )
+
+    entry notifications (
+        name: Notifications
+        pageNumber: 43
+        execution {
+            sequence: 25
+        }
+        appearance {
+            parentEntry: @home-from-app
+        }
+        link {
+            target: {
+                page: 43
+            }
+        }
+    )
+
+    entry notification-delivery (
+        name: Notification Delivery
+        pageNumber: 116
+        execution {
+            sequence: 175
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 116
+            }
+        }
+    )
+
+    entry notification-log (
+        name: Notification Log
+        pageNumber: 117
+        execution {
+            sequence: 176
+        }
+        appearance {
+            parentEntry: @module-workflow
+        }
+        link {
+            target: {
+                page: 117
+            }
+        }
+    )
+
+    entry information-request (
+        name: Information Request
+        pageNumber: 143
+        execution {
+            sequence: 30
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 143
+            }
+        }
+    )
+
+    entry configuration-change (
+        name: Configuration Change
+        pageNumber: 144
+        execution {
+            sequence: 35
+        }
+        appearance {
+            parentEntry: @my-tasks
+        }
+        link {
+            target: {
+                page: 144
+            }
+        }
+    )
+
+    entry communications (
+        name: Communications
+        pageNumber: 45
+        execution {
+            sequence: 40
+        }
+        appearance {
+            parentEntry: @home-from-app
+        }
+        link {
+            target: {
+                page: 45
+            }
+        }
+    )
+
+    entry e-mail (
+        name: E-mail
+        pageNumber: 46
+        execution {
+            sequence: 45
+        }
+        appearance {
+            parentEntry: @communications
+        }
+        link {
+            target: {
+                page: 46
+            }
+        }
+    )
+
+    entry attachments (
+        name: Attachments
+        pageNumber: 47
+        execution {
+            sequence: 50
+        }
+        appearance {
+            parentEntry: @home-from-app
+        }
+        link {
+            target: {
+                page: 47
+            }
+        }
+    )
+
+    entry document (
+        name: Document
+        pageNumber: 48
+        execution {
+            sequence: 55
+        }
+        appearance {
+            parentEntry: @attachments
+        }
+        link {
+            target: {
+                page: 48
+            }
+        }
+    )
+
+    entry platform-activity (
+        name: Platform Activity
+        pageNumber: 170
+        execution {
+            sequence: 90
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 170
+            }
+        }
+    )
+
+    entry data-model (
+        name: Data Model
+        pageNumber: 175
+        execution {
+            sequence: 97
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 175
+            }
+        }
+    )
+
+    entry database-object (
+        name: &P176_OBJECT.
+        pageNumber: 176
+        execution {
+            sequence: 98
+        }
+        appearance {
+            parentEntry: @data-model
+        }
+        link {
+            target: {
+                page: 176
+            }
+        }
+    )
+
+    entry data-model-diagram (
+        name: Diagram
+        pageNumber: 177
+        execution {
+            sequence: 99
+        }
+        appearance {
+            parentEntry: @data-model
+        }
+        link {
+            target: {
+                page: 177
+            }
+        }
+    )
+
+    entry feedback (
+        name: Feedback
+        pageNumber: 171
+        execution {
+            sequence: 95
+        }
+        appearance {
+            parentEntry: @module-platform
+        }
+        link {
+            target: {
+                page: 171
+            }
+        }
+    )
+
+    entry feedback-follow-up (
+        name: Feedback Follow-up
+        pageNumber: 172
+        execution {
+            sequence: 96
+        }
+        appearance {
+            parentEntry: @feedback
+        }
+        link {
+            target: {
+                page: 172
+            }
+        }
+    )
+
+    entry give-feedback (
+        name: Give Feedback
+        pageNumber: 173
+        execution {
+            sequence: 60
+        }
+        appearance {
+            parentEntry: @home-from-app
+        }
+        link {
+            target: {
+                page: 173
+            }
+        }
+    )
+)

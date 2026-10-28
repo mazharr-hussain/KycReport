@@ -85,11 +85,13 @@ create or replace package body xxfnd_approval_rule_pkg as
             return 'Step "' || s.step_name || '" uses the approver type ' || approver_label(s.approver_type, null, null)
                 || ', which is not available yet. Change the step in Approval Setup to a user (or a role).';
         end loop;
-        for s in (select step_name, role_code from xxfnd_approval_rule_steps
-                   where rule_id = l_rule and approver_type = 'ROLE' order by step_no) loop
-            if xxfnd_workflow_pkg.users_in_role(s.role_code) is null then
+        for s in (select step_name, approver_type, role_code from xxfnd_approval_rule_steps
+                   where rule_id = l_rule and approver_type in ('ROLE', 'GROUP') order by step_no) loop
+            -- release 113: a group needs at least one user (its users and the active users of its roles)
+            if (s.approver_type = 'ROLE' and xxfnd_workflow_pkg.users_in_role(s.role_code) is null)
+               or (s.approver_type = 'GROUP' and group_users(s.role_code) is null) then
                 return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_APPROVER',
-                                               apex_t_varchar2(s.step_name, approver_label('ROLE', s.role_code, null)));
+                                               apex_t_varchar2(s.step_name, approver_label(s.approver_type, s.role_code, null)));
             end if;
         end loop;
         return null;
@@ -146,6 +148,7 @@ create or replace package body xxfnd_approval_rule_pkg as
     begin
         return case l.approver_type when 'USER'      then upper(l.user_name)
                                     when 'ROLE'      then xxfnd_workflow_pkg.users_in_role(l.role_code)
+                                    when 'GROUP'     then group_users(l.role_code)
                                     when 'REQUESTER' then txn(p_type, p_txn_id).requester end;
     end current_approvers;
 
@@ -234,7 +237,7 @@ create or replace package body xxfnd_approval_rule_pkg as
     function approver_type_available(p_approver_type in varchar2) return varchar2 is
     begin
         -- release 94: the HCM-based types are placeholders; their resolvers come with the HCM tables
-        return case when upper(p_approver_type) in ('USER', 'ROLE', 'REQUESTER') then 'Y' else 'N' end;
+        return case when upper(p_approver_type) in ('USER', 'ROLE', 'GROUP', 'REQUESTER') then 'Y' else 'N' end;
     end approver_type_available;
 
     function step_due_date(p_type in varchar2, p_txn_id in varchar2) return timestamp with time zone is
@@ -251,6 +254,10 @@ create or replace package body xxfnd_approval_rule_pkg as
             return nvl(l_name, p_user_name);
         elsif p_approver_type = 'REQUESTER' then
             return 'Requester';
+        elsif p_approver_type = 'GROUP' then
+            -- release 113: an approval group (its code in ROLE_CODE)
+            select max(group_name) into l_name from xxfnd_approval_groups where group_code = p_role_code;
+            return 'Group: ' || nvl(l_name, p_role_code);
         elsif p_approver_type in ('POSITION', 'MANAGER', 'SUP_HIER', 'POS_HIER', 'AOR', 'QUERY') then
             return case p_approver_type when 'POSITION' then 'Position' when 'MANAGER' then 'Manager'
                                         when 'SUP_HIER' then 'Supervisor hierarchy' when 'POS_HIER' then 'Position hierarchy'
@@ -438,6 +445,102 @@ create or replace package body xxfnd_approval_rule_pkg as
     begin
         xxfnd_application_pkg.remove_all_registered(p_application_code, 'Approval types', 'XXFND_APPROVAL_TYPES');
     end unregister_application;
+
+    ---------------------------------------------------------------- release 113: approval groups
+    procedure check_group_type(p_application_code in varchar2, p_type in varchar2) is
+        l_n     pls_integer;
+        l_owner xxfnd_approval_types.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_owner from xxfnd_approval_types
+         where approval_type_code = upper(p_type);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Approval type', upper(p_type)));
+        end if;
+        xxfnd_application_pkg.assert_same_application('Approval type', upper(p_type), l_owner,
+                                                      xxfnd_application_pkg.registered_code(p_application_code));
+    end check_group_type;
+
+    function group_type(p_group_code in varchar2) return varchar2 is
+        l_type xxfnd_approval_groups.approval_type_code%type;
+    begin
+        select max(approval_type_code) into l_type from xxfnd_approval_groups where group_code = upper(p_group_code);
+        if l_type is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Approval group', upper(p_group_code)));
+        end if;
+        return l_type;
+    end group_type;
+
+    procedure save_group(p_application_code in varchar2,
+                         p_type             in varchar2,
+                         p_group_code       in varchar2,
+                         p_group_name       in varchar2,
+                         p_description      in varchar2 default null,
+                         p_enabled_flag     in varchar2 default 'Y') is
+        l_type xxfnd_approval_groups.approval_type_code%type;
+    begin
+        check_group_type(p_application_code, p_type);
+        select max(approval_type_code) into l_type from xxfnd_approval_groups where group_code = upper(trim(p_group_code));
+        if l_type is not null and l_type <> upper(p_type) then
+            raise_application_error(-20538, 'Approval group ' || upper(trim(p_group_code))
+                || ' already belongs to the process ' || l_type || '.');
+        end if;
+        merge into xxfnd_approval_groups t
+        using (select upper(trim(p_group_code)) group_code from dual) s
+           on (t.group_code = s.group_code)
+         when matched then update set t.group_name = p_group_name, t.description = p_description,
+                                      t.enabled_flag = nvl(p_enabled_flag, 'Y')
+         when not matched then insert (group_code, approval_type_code, group_name, description, enabled_flag)
+              values (s.group_code, upper(p_type), p_group_name, p_description, nvl(p_enabled_flag, 'Y'));
+    end save_group;
+
+    procedure set_group_members(p_application_code in varchar2, p_group_code in varchar2,
+                                p_roles in varchar2, p_users in varchar2) is
+        l_code varchar2(30) := upper(trim(p_group_code));
+    begin
+        check_group_type(p_application_code, group_type(l_code));
+        delete from xxfnd_approval_group_members m
+         where m.group_code = l_code
+           and not ((m.member_type = 'ROLE' and m.member_code in (select column_value from table(apex_string.split(p_roles, ':'))))
+                 or (m.member_type = 'USER' and m.member_code in (select upper(column_value) from table(apex_string.split(p_users, ':')))));
+        insert into xxfnd_approval_group_members (group_code, member_type, member_code)
+        select l_code, x.member_type, x.member_code
+          from (select 'ROLE' member_type, column_value member_code from table(apex_string.split(p_roles, ':'))
+                union
+                select 'USER', upper(column_value) from table(apex_string.split(p_users, ':'))) x
+         where x.member_code is not null
+           and not exists (select 1 from xxfnd_approval_group_members m
+                            where m.group_code = l_code and m.member_type = x.member_type and m.member_code = x.member_code);
+    end set_group_members;
+
+    procedure delete_group(p_application_code in varchar2, p_group_code in varchar2) is
+        l_code varchar2(30) := upper(trim(p_group_code));
+        l_n    pls_integer;
+    begin
+        check_group_type(p_application_code, group_type(l_code));
+        select count(*) into l_n from xxfnd_approval_rule_steps where approver_type = 'GROUP' and role_code = l_code;
+        if l_n > 0 then
+            raise_application_error(-20537, 'Approval group ' || l_code || ' is used by ' || l_n
+                || ' rule level(s): change them first, or disable the group.');
+        end if;
+        delete from xxfnd_approval_groups where group_code = l_code;
+    end delete_group;
+
+    function group_users(p_group_code in varchar2) return varchar2 is
+        l_list varchar2(32767);
+    begin
+        select listagg(distinct u.user_name, ',') within group (order by u.user_name)
+          into l_list
+          from (select m.member_code as user_name
+                  from xxfnd_approval_group_members m
+                 where m.group_code = upper(p_group_code) and m.member_type = 'USER'
+                union
+                select ur.user_name
+                  from xxfnd_approval_group_members m
+                  join xxfnd_user_roles_v ur on ur.role_code = m.member_code and ur.active_flag = 'Y'
+                 where m.group_code = upper(p_group_code) and m.member_type = 'ROLE') u
+         where exists (select 1 from xxfnd_approval_groups g where g.group_code = upper(p_group_code) and g.enabled_flag = 'Y');
+        return l_list;
+    end group_users;
 
 end xxfnd_approval_rule_pkg;
 /

@@ -260,10 +260,10 @@ page 121 (
             type: sqlQuerySingleValue
             sqlQuery:
                 ```sql
-                select coalesce(max(r.remote_server_name),
+                select coalesce((select max(r.remote_server_name) from apex_workspace_remote_servers r
+                                  where r.remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)),
                                 (select max(server_name) from xxfnd_servers_v where server_code = :P121_SERVER_CODE))
-                  from apex_workspace_remote_servers r
-                 where r.remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)
+                  from dual
                 ```
         }
         help {
