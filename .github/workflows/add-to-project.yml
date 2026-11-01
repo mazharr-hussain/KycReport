@@ -1,0 +1,28 @@
+# Puts each new or labelled issue on its GitHub Project board: label COMMON -> the COMMON project,
+# label KYC -> the KYC project. Project URLs come from the repository variables COMMON_PROJECT_URL and
+# KYC_PROJECT_URL; the token (classic, scopes project + repo) from the secret ADD_TO_PROJECT_PAT.
+name: Add issues to projects
+on:
+  issues:
+    types: [opened, reopened, labeled, transferred]
+permissions:
+  issues: read
+jobs:
+  common:
+    if: contains(github.event.issue.labels.*.name, 'COMMON')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: ${{ vars.COMMON_PROJECT_URL }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          labeled: COMMON
+  kyc:
+    if: contains(github.event.issue.labels.*.name, 'KYC')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: ${{ vars.KYC_PROJECT_URL }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          labeled: KYC
