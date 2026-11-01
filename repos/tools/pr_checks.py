@@ -5,7 +5,11 @@ Errors (exit 1): a manifest script or unit that does not exist; a page not liste
 leave it out); a SQL comment line ending with ';' inside a plain SQL statement (SQL Developer ends the statement there);
 a change under the frozen apex/ folder (with --base).
 Warnings: KYC code writing COMMON (XXFND_) tables directly; HTML built in PL/SQL; a release folder without "Fixes #n"
-in the PR body (with --body).
+in the PR body (with --body);
+APEX page security (no authorization scheme, unrestricted access, inline CSS/JS); PL/SQL risks (WHEN OTHERS THEN NULL,
+EXECUTE IMMEDIATE with ||, hard-coded schema, SELECT *, DBMS_OUTPUT, TO_DATE without format, COMMIT without autonomous
+transaction); COMMON referring to XXCMP_; install safety (step script not in the manifest, bare CREATE/ALTER TABLE or
+DROP in a step script, base table script edited); release folder incomplete (README, run-release.sql, its files).
 Usage: python3 repos/tools/pr_checks.py [--base <sha>] [--body-file <file>]
 """
 import argparse, glob, json, os, re, subprocess, sys
@@ -69,8 +73,98 @@ def golden_rules():
                 warnings.append(f'{os.path.relpath(f, ROOT)}:{i}: HTML in PL/SQL (use an APEX component, or comment why)')
 
 
+def src(patterns, skip=('/deploy/', '/releases/', '/dist/', '/tests/')):
+    for pat in patterns:
+        for f in glob.glob(f'{R}/{pat}', recursive=True):
+            if not any(x in f for x in skip):
+                yield f, os.path.relpath(f, ROOT)
+
+
+def apex_security():
+    for f, rel in src(['*/features/*/pages/*.apx', '*/app/pages/*.apx']):
+        txt = open(f, errors='ignore').read()
+        sec = re.search(r'\n    security \{(.*?)\n    \}', txt, re.S)
+        sec = sec.group(1) if sec else ''
+        public = re.search(r'authentication:\s*public', sec) or re.match(r'page 0+ ', txt) or 'login' in rel
+        if not public and 'authorizationScheme' not in sec:
+            warnings.append(f'{rel}: page has no authorization scheme (View / Create / Manage privilege)')
+        if re.search(r'pageAccessProtection:\s*unrestricted', sec):
+            warnings.append(f'{rel}: page access protection is unrestricted (use argumentsMustHaveChecksum unless intended)')
+        if re.search(r'\n\s+inline:', txt):
+            warnings.append(f'{rel}: inline CSS / JavaScript on the page (use the theme / a static file)')
+
+
+def plsql_rules():
+    rules = [
+        (r'(?i)\bwhen\s+others\s+then\s+null\b', 'WHEN OTHERS THEN NULL hides errors'),
+        (r'(?i)\bexecute\s+immediate\s+[^;]*\|\|', 'EXECUTE IMMEDIATE with concatenation (use binds / dbms_assert)'),
+        (r'(?i)\b(xxfusion|xxcus)\.\w', 'hard-coded schema name (use synonyms / the parsing schema)'),
+        (r'(?i)\bselect\s+\*\s+(?!into\b)', 'SELECT * (list the columns)'),
+        (r'(?i)\bdbms_output\.', 'DBMS_OUTPUT in a package (use the log routine)'),
+        (r"(?i)\bto_date\s*\([^,()]*\)", 'TO_DATE without a format mask'),
+    ]
+    for f, rel in src(['*/**/*.pkb']):
+        if '/db/framework/' in rel:  # deployment framework: dynamic DDL by design
+            continue
+        txt = open(f, errors='ignore').read()
+        auto = re.search(r'(?i)pragma\s+autonomous_transaction', txt)
+        for i, line in enumerate(txt.splitlines(), 1):
+            code = line.split('--')[0]
+            for rx, msg in rules:
+                if re.search(rx, code):
+                    warnings.append(f'{rel}:{i}: {msg}')
+            if not auto and re.search(r'(?i)^\s*(commit|rollback)\s*;', code):
+                warnings.append(f'{rel}:{i}: COMMIT / ROLLBACK in a package without an autonomous transaction (the caller commits)')
+    for f, rel in src(['common/**/*.sql', 'common/**/*.pk?']):
+        for i, line in enumerate(open(f, errors='ignore'), 1):
+            if re.search(r'(?i)\bxxcmp_\w+', line.split('--')[0]):
+                warnings.append(f'{rel}:{i}: COMMON code refers to a KYC object (XXCMP_) - COMMON has no KYC dependency')
+
+
+def install_safety(names):
+    listed = set()
+    for app in ('common', 'kyc'):
+        p = f'{R}/{app}/db/manifest.json'
+        if os.path.exists(p):
+            for e in json.load(open(p)):
+                for v in e.values():
+                    if isinstance(v, list):
+                        listed.update(x for x in v if isinstance(x, str))
+    for f, rel in src(['*/db/scripts/**/*.sql', '*/features/*/db/scripts/**/*.sql'], ('/admin/', '/tests/')):
+        unit = os.path.relpath(f, R)
+        if unit not in listed:
+            warnings.append(f'{rel}: step script not listed in db/manifest.json (never installed)')
+        for i, line in enumerate(open(f, errors='ignore'), 1):
+            code = line.split('--')[0]
+            if re.search(r'(?i)^\s*(create|alter)\s+table\b', code):
+                warnings.append(f'{rel}:{i}: bare CREATE / ALTER TABLE in a step script (use XXFND_DDL_PKG - ORA-00955 on re-run)')
+            if re.search(r'(?i)^\s*drop\s+(table|index|sequence|view|package)\b', code):
+                warnings.append(f'{rel}:{i}: unguarded DROP (use XXFND_DDL_PKG.DROP_* or check it exists)')
+    for n, st in names:
+        if st == 'M' and re.match(r'repos/[^/]+/features/[^/]+/db/tables/[^/]+\.sql$', n):
+            warnings.append(f'{n}: base table script edited - add a checked step script instead (golden rule)')
+
+
+def releases(names):
+    dirs = {m.group(0) for n, _ in names if (m := re.match(r'repos/[^/]+/releases/[^/]+', n)) and os.path.isdir(os.path.join(ROOT, m.group(0)))}
+    for d in sorted(dirs):
+        full = os.path.join(ROOT, d)
+        for need in ('README.md', 'run-release.sql'):
+            if not os.path.exists(os.path.join(full, need)):
+                warnings.append(f'{d}: release folder has no {need}')
+        rr = os.path.join(full, 'run-release.sql')
+        if os.path.exists(rr):
+            for i, line in enumerate(open(rr, errors='ignore'), 1):
+                m = re.match(r'\s*@@?(\S+)', line)
+                if m and not os.path.exists(os.path.join(full, m.group(1))):
+                    warnings.append(f'{d}/run-release.sql:{i}: file not in the release folder: {m.group(1)}')
+
+
 def changes(base, body):
-    names = subprocess.run(['git', 'diff', '--name-only', base, 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    out = subprocess.run(['git', 'diff', '--name-status', base, 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout
+    pairs = [(l.split('\t')[-1], l[0]) for l in out.splitlines() if l]
+    names = [n for n, _ in pairs]
+    install_safety(pairs); releases(pairs)
     frozen = [n for n in names if n.startswith('apex/')]
     if frozen:
         errors.append(f'changes under the frozen apex/ folder: {", ".join(frozen[:5])}{" ..." if len(frozen) > 5 else ""}')
@@ -83,7 +177,9 @@ if __name__ == '__main__':
     ap.add_argument('--base')
     ap.add_argument('--body-file')
     a = ap.parse_args()
-    manifest(); source_map(); sql_comments(); golden_rules()
+    manifest(); source_map(); sql_comments(); golden_rules(); apex_security(); plsql_rules()
+    if not a.base:
+        install_safety([])
     if a.base:
         changes(a.base, open(a.body_file).read() if a.body_file else None)
     gh = os.environ.get('GITHUB_ACTIONS')
