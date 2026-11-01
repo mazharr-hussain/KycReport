@@ -2,29 +2,30 @@
 -- Validation database bootstrap (#192). Run once as ADMIN on the empty validation ADB by
 -- .github/workflows/db-validate.yml while the secret VAL_DB_ADMIN_PASSWORD exists (then the user deletes it).
 -- Creates only what is missing - an existing user, grant, workspace or APEX user is left as it is - so a re-run
--- does nothing. Substitution variables (defined by the workflow, never echoed): xxcus_pw, xxfusion_pw.
---   1. XXCUS (workspace main schema) and XXFUSION (COMMON objects) users with the privileges 00a checks
+-- does nothing. Substitution variable (defined by the workflow, never echoed): xxcus_pw (App Builder user only).
+--   1. XXCUS (workspace main schema) and XXFUSION (COMMON objects) users with the privileges 00a checks and a random
+--      password nobody knows; ADMIN may connect through them (proxy: ADMIN[XXFUSION]), so no schema password is needed
 --   2. workspace XXCUS: primary schema XXCUS, XXFUSION added
---   3. workspace admin user XXCUS (same password as the schema) for App Builder
+--   3. workspace admin user XXCUS (password: secret VAL_DB_PASSWORD) for App Builder
 --   4. both schemas REST-enabled (App Builder installs APEXlang apps only into a REST-enabled parsing schema)
 --------------------------------------------------------------------------------
-set define on verify off feedback off serveroutput on
+set define off verify off feedback off serveroutput on
 declare
-    procedure ensure_user(p_user varchar2, p_pw varchar2) is
+    procedure ensure_user(p_user varchar2) is
         l_n pls_integer;
     begin
         select count(*) into l_n from dba_users where username = p_user;
         if l_n = 0 then
-            execute immediate 'create user ' || p_user || ' identified by "' || p_pw
-                || '" default tablespace data quota unlimited on data';
+            execute immediate 'create user ' || p_user || ' identified by "Rv' || dbms_random.string('x', 20)
+                || '#7k" default tablespace data quota unlimited on data';
             dbms_output.put_line('created user ' || p_user);
         else
             dbms_output.put_line('user ' || p_user || ' exists - left as it is');
         end if;
     end;
 begin
-    ensure_user('XXCUS', q'[&xxcus_pw]');
-    ensure_user('XXFUSION', q'[&xxfusion_pw]');
+    ensure_user('XXCUS');
+    ensure_user('XXFUSION');
 end;
 /
 set define off
@@ -32,6 +33,8 @@ grant create session, create table, create view, create sequence, create procedu
       create synonym, create job, create materialized view to xxcus, xxfusion;
 grant execute on sys.dbms_rls to xxcus, xxfusion;
 grant execute on sys.dbms_crypto to xxcus, xxfusion;
+alter user xxcus grant connect through admin;
+alter user xxfusion grant connect through admin;
 declare
     l_n pls_integer;
 begin

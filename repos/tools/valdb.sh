@@ -5,12 +5,12 @@
 # OCI_CONFIG (OCI CLI config with the session token). The database token lives 60 minutes: renewed after 40.
 # With "check" (install steps) the run stops at the first SQL error and fails on SP2- errors or code compiled with
 # errors; without it (tests) everything runs.
-# DB_AUTH=password (for now, until the IDCS trust works): direct login with the wallet zip (WALLET) and the password
-# of the schema (ADMIN_PW, XXCUS_PW, XXFUSION_PW) on VAL_DB_SERVICE.
+# DB_AUTH=password (for now, until the IDCS trust works): direct login with the wallet zip (WALLET) as ADMIN
+# (ADMIN_PW) on VAL_DB_SERVICE; for XXCUS / XXFUSION as ADMIN[schema] (proxy - their passwords are random, unknown).
 schema=$1; file=$2; mode=$3
 if [ "$DB_AUTH" = password ]; then
-  eval "pw=\$${schema}_PW"
-  login=$(printf 'set cloudconfig %s\nconnect %s/"%s"@%s' "$WALLET" "$schema" "$pw" "$VAL_DB_SERVICE")
+  who=ADMIN; [ "$schema" = ADMIN ] || who="ADMIN[$schema]"
+  login=$(printf 'set cloudconfig %s\nconnect %s/"%s"@%s' "$WALLET" "$who" "$ADMIN_PW" "$VAL_DB_SERVICE")
 elif [ -z "$(find "$HOME/.oci/db-token" -name 'oci-db-token' -mmin -40 2>/dev/null)" ]; then
   oci iam db-token get --auth security_token --config-file "$OCI_CONFIG" > /dev/null || { echo "::error::no database token"; exit 1; }
 fi

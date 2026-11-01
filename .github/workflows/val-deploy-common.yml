@@ -1,6 +1,6 @@
 # Deploy COMMON to the validation database (#192) with a direct SQLcl login (passwords) - for now, until the IDCS
-# token login (#195) works. Steps: ADMIN bootstrap (creates only what is missing: users XXCUS / XXFUSION with the
-# secret passwords, grants, workspace XXCUS, REST-enabled schemas), COMMON install as XXFUSION, no invalid objects,
+# token login (#195) works. Steps: ADMIN bootstrap (creates only what is missing: users XXCUS / XXFUSION with random
+# passwords and ADMIN as their proxy, grants, workspace XXCUS, REST-enabled schemas), COMMON install as XXFUSION, no invalid objects,
 # COMMON app validated and imported into workspace XXCUS.
 name: Validation - deploy COMMON
 
@@ -26,7 +26,6 @@ jobs:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
       XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
-      XXFUSION_PW: ${{ secrets.VAL_DB_XXFUSION_PASS }}
       SQL: ${{ github.workspace }}/opt/oracle/sqlcl/bin/sql
       WALLET: ${{ github.workspace }}/wallet.zip
       V: sh repos/tools/valdb.sh
@@ -51,17 +50,9 @@ jobs:
 
       - name: Bootstrap as ADMIN (creates only what is missing)
         run: |
-          # ADB password rules, checked here so the error names the secret (no password is printed)
-          for x in "XXCUS VAL_DB_PASSWORD $XXCUS_PW" "XXFUSION VAL_DB_XXFUSION_PASS $XXFUSION_PW"; do
-            set -- $x; u=$1; s=$2; p=$3
-            echo "$s: length ${#p}"
-            echo "$p" | grep -qi "$u" && echo "::error::$s contains the user name $u - ADB refuses it"
-            [ ${#p} -ge 12 ] && [ ${#p} -le 30 ] || echo "::error::$s must be 12-30 characters"
-          done
           f="$RUNNER_TEMP/bootstrap.sql"
           { echo "set define on verify off"
             printf 'define xxcus_pw = "%s"\n' "$XXCUS_PW"
-            printf 'define xxfusion_pw = "%s"\n' "$XXFUSION_PW"
             echo "@$PWD/repos/common/db/admin/validation-db-bootstrap.sql"; } > "$f"
           $V ADMIN "$f" check; rc=$?; rm -f "$f"; exit $rc
 
