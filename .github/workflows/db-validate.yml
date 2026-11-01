@@ -1,14 +1,15 @@
 # Validation database (#192): an Always Free ADB in a separate tenancy and region, used only by this workflow.
 # Secrets live in the environment "Oracle DB Dev". Nothing here touches the dev server (#189).
-#   bootstrap   - only while VAL_DB_ADMIN_PASSWORD exists: users XXCUS / XXFUSION, workspace XXCUS, workspace admin,
-#                 REST-enabled schemas (repos/common/db/admin/validation-db-bootstrap.sql); creates only what is missing
+# No password or API key (#195): the GitHub OIDC token is exchanged at the identity domain for an OCI session token
+# (service user github-ci-svc), which gets a database token; the global user CI_IAM connects through XXFUSION / XXCUS.
+# One-time database setup by the user: repos/common/db/admin/validation-db-iam-setup.sql (as ADMIN).
 #   upgrade     - clear both schemas, install the base branch, then run this branch's upgrade scripts
 #   over        - install this branch over the existing objects
 #   fresh       - clear both schemas, install this branch
 #   re-run      - install this branch again (nothing may fail)
 #   then        - no invalid objects, both apps validated and imported, test users, DB tests (FAIL = warning),
 #                 APEX version = 26.1 (warning)
-# COMMON runs as XXFUSION, KYC as XXCUS (VAL_DB_USER). One run at a time.
+# COMMON runs as XXFUSION, KYC as XXCUS. One run at a time.
 name: DB validation
 
 on:
@@ -18,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write   # GitHub OIDC token for the OCI token exchange
 
 concurrency:
   group: validation-db
@@ -29,13 +31,8 @@ jobs:
     environment: Oracle DB Dev
     timeout-minutes: 90
     env:
-      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      KYC_USER: ${{ secrets.VAL_DB_USER }}
-      KYC_PW: ${{ secrets.VAL_DB_PASSWORD }}
-      FUS_PW: ${{ secrets.VAL_DB_XXFUSION_PASS }}
-      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
       SQL: ${{ github.workspace }}/opt/oracle/sqlcl/bin/sql
-      WALLET: ${{ github.workspace }}/wallet.zip
+      TNS_ADMIN: ${{ github.workspace }}/wallet
       V: sh repos/tools/valdb.sh
     steps:
       - uses: actions/checkout@v4
@@ -49,51 +46,47 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: OCI session token (GitHub OIDC token exchange, no API key)
+        id: oci
+        uses: gtrevorrow/oci-token-exchange-action@v1
+        with:
+          oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
+          domain_base_url: ${{ secrets.OCI_DOMAIN_URL }}
+          oci_tenancy: ${{ secrets.OCI_TENANCY }}
+          oci_region: ${{ secrets.OCI_REGION }}
+
       - name: Start the database when it is stopped (Always Free stops after 7 idle days)
         env:
-          OCI_CLI_USER: ${{ secrets.OCI_USER }}
-          OCI_CLI_TENANCY: ${{ secrets.OCI_TENANCY }}
-          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
-          OCI_CLI_REGION: ${{ secrets.OCI_REGION }}
-          OCI_KEY: ${{ secrets.OCI_KEY }}
           DB_OCID: ${{ secrets.VAL_DB_OCID }}
         run: |
           pip install -q oci-cli
-          printf '%s\n' "$OCI_KEY" > "$RUNNER_TEMP/oci.pem"; chmod 600 "$RUNNER_TEMP/oci.pem"
-          export OCI_CLI_KEY_FILE="$RUNNER_TEMP/oci.pem"
-          state=$(oci db autonomous-database get --autonomous-database-id "$DB_OCID" --query 'data."lifecycle-state"' --raw-output)
+          echo "OCI_CONFIG=${{ steps.oci.outputs.oci_config_path }}" >> "$GITHUB_ENV"
+          O="--auth security_token --config-file ${{ steps.oci.outputs.oci_config_path }}"
+          state=$(oci db autonomous-database get $O --autonomous-database-id "$DB_OCID" --query 'data."lifecycle-state"' --raw-output)
           echo "database state: $state"
           if [ "$state" = STOPPED ]; then
-            oci db autonomous-database start --autonomous-database-id "$DB_OCID" --wait-for-state AVAILABLE > /dev/null
+            oci db autonomous-database start $O --autonomous-database-id "$DB_OCID" --wait-for-state AVAILABLE > /dev/null
             echo "started"
           fi
 
-      - name: Wallet and SQLcl 26.1.2
+      - name: Wallet (token alias "valtoken") and SQLcl 26.1.2
         env:
           WALLET_B64: ${{ secrets.VAL_DB_WALLET }}
+          SERVICE: ${{ secrets.VAL_DB_SERVICE }}
         run: |
-          printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
+          mkdir -p "$TNS_ADMIN"
+          printf '%s' "$WALLET_B64" | base64 -d > wallet.zip
+          unzip -q -o wallet.zip -d "$TNS_ADMIN"
+          python3 repos/tools/valdb_tns.py "$TNS_ADMIN" "$SERVICE"
           sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
           curl -sSL -o sqlcl.rpm https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
           rpm2cpio sqlcl.rpm | cpio -idm --quiet
           chmod +x opt/oracle/sqlcl/bin/sql
 
-      - name: Bootstrap (only while VAL_DB_ADMIN_PASSWORD exists)
-        if: env.ADMIN_PW != ''
-        run: |
-          f="$RUNNER_TEMP/bootstrap.sql"
-          { echo "set define on verify off"
-            echo "define xxcus_pw = \"$KYC_PW\""
-            echo "define xxfusion_pw = \"$FUS_PW\""
-            echo "@$PWD/repos/common/db/admin/validation-db-bootstrap.sql"; } > "$f"
-          $V ADMIN "$ADMIN_PW" "$f" check
-          rm -f "$f"
-          echo "::notice::Bootstrap done - you can delete the secret VAL_DB_ADMIN_PASSWORD"
-
       - name: APEX version (26.1 like dev)
         run: |
           echo "select 'APEX_VERSION=' || version_no from apex_release;" > "$RUNNER_TEMP/v.sql"
-          ver=$($V "$KYC_USER" "$KYC_PW" "$RUNNER_TEMP/v.sql" check | grep -o 'APEX_VERSION=[0-9.]*' | cut -d= -f2)
+          ver=$($V XXCUS "$RUNNER_TEMP/v.sql" check | grep -o 'APEX_VERSION=[0-9.]*' | cut -d= -f2)
           echo "APEX $ver"
           case "$ver" in 26.1.*) ;; *) echo "::warning::Validation DB runs APEX $ver, dev runs 26.1 - results may differ";; esac
 
@@ -107,29 +100,29 @@ jobs:
       - name: Upgrade - clear, install the base branch, upgrade to this branch
         run: |
           B="$RUNNER_TEMP/base/repos"
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/common/db/admin/clear-schema.sql" check
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/admin/clear-schema.sql" check
-          $V XXFUSION "$FUS_PW" "$B/common/db/deploy/install/run-all.sql" check
-          $V "$KYC_USER" "$KYC_PW" "$B/kyc/db/deploy/install/run-all.sql" check
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/deploy/upgrade/run-all.sql" check
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/kyc/db/deploy/upgrade/run-all.sql" check
+          $V XXCUS "$PWD/repos/common/db/admin/clear-schema.sql" check
+          $V XXFUSION "$PWD/repos/common/db/admin/clear-schema.sql" check
+          $V XXFUSION "$B/common/db/deploy/install/run-all.sql" check
+          $V XXCUS "$B/kyc/db/deploy/install/run-all.sql" check
+          $V XXFUSION "$PWD/repos/common/db/deploy/upgrade/run-all.sql" check
+          $V XXCUS "$PWD/repos/kyc/db/deploy/upgrade/run-all.sql" check
 
       - name: Install over the existing objects
         run: |
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/deploy/install/run-all.sql" check
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
+          $V XXFUSION "$PWD/repos/common/db/deploy/install/run-all.sql" check
+          $V XXCUS "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
 
       - name: Fresh install
         run: |
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/common/db/admin/clear-schema.sql" check
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/admin/clear-schema.sql" check
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/deploy/install/run-all.sql" check
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
+          $V XXCUS "$PWD/repos/common/db/admin/clear-schema.sql" check
+          $V XXFUSION "$PWD/repos/common/db/admin/clear-schema.sql" check
+          $V XXFUSION "$PWD/repos/common/db/deploy/install/run-all.sql" check
+          $V XXCUS "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
 
       - name: Re-run (nothing may fail)
         run: |
-          $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/deploy/install/run-all.sql" check
-          $V "$KYC_USER" "$KYC_PW" "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
+          $V XXFUSION "$PWD/repos/common/db/deploy/install/run-all.sql" check
+          $V XXCUS "$PWD/repos/kyc/db/deploy/install/run-all.sql" check
 
       - name: No invalid objects
         run: |
@@ -137,32 +130,32 @@ jobs:
           exec dbms_utility.compile_schema(schema => user, compile_all => false)
           select 'INVALID ' || user || '.' || object_type || ' ' || object_name from user_objects where status = 'INVALID';
           SQL
-          out=$( { $V XXFUSION "$FUS_PW" "$RUNNER_TEMP/inv.sql" check; $V "$KYC_USER" "$KYC_PW" "$RUNNER_TEMP/inv.sql" check; } | grep '^INVALID ' || true)
+          out=$( { $V XXFUSION "$RUNNER_TEMP/inv.sql" check; $V XXCUS "$RUNNER_TEMP/inv.sql" check; } | grep '^INVALID ' || true)
           echo "$out"
           [ -z "$out" ] || { echo "::error::invalid objects after install"; exit 1; }
 
       - name: Import both applications (APEXlang validate + import, one session each)
         run: |
-          for a in "common XXFUSION $FUS_PW" "kyc $KYC_USER $KYC_PW"; do
+          for a in "common XXFUSION" "kyc XXCUS"; do
             set -- $a
             printf 'apex validate -input %s\napex import -input %s\n' "$PWD/repos/$1/dist/app" "$PWD/repos/$1/dist/app" > "$RUNNER_TEMP/imp.sql"
-            out=$($V "$2" "$3" "$RUNNER_TEMP/imp.sql")
+            out=$($V "$2" "$RUNNER_TEMP/imp.sql")
             echo "$out"
             echo "$out" | grep -q "Validation successful" || { echo "::error::$1: APEXlang validation failed on the database"; exit 1; }
             if echo "$out" | grep -qE '^(Error|ERROR|ORA-|SP2-)'; then echo "::error::$1: import reported an error"; exit 1; fi
           done
 
       - name: Test users
-        run: $V XXFUSION "$FUS_PW" "$PWD/repos/common/db/admin/test-users.sql" check
+        run: $V XXFUSION "$PWD/repos/common/db/admin/test-users.sql" check
 
       - name: DB tests (FAIL lines are warnings for now)
         run: |
           : > tests.log
           for t in repos/common/features/*/tests/*.sql repos/common/tests/*.sql; do
-            [ -f "$t" ] && { echo "== $t"; $V XXFUSION "$FUS_PW" "$PWD/$t"; } >> tests.log 2>&1
+            [ -f "$t" ] && { echo "== $t"; $V XXFUSION "$PWD/$t"; } >> tests.log 2>&1
           done
           for t in repos/kyc/features/*/tests/*.sql repos/kyc/tests/*.sql; do
-            [ -f "$t" ] && { echo "== $t"; $V "$KYC_USER" "$KYC_PW" "$PWD/$t"; } >> tests.log 2>&1
+            [ -f "$t" ] && { echo "== $t"; $V XXCUS "$PWD/$t"; } >> tests.log 2>&1
           done
           awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print "::warning::" f ": " $0}' tests.log | head -100
           echo "PASS: $(grep -c '^PASS' tests.log)  FAIL: $(grep -c '^FAIL' tests.log)  errors: $(grep -cE '^(ORA|PLS)-' tests.log)"

@@ -1,73 +1,68 @@
 --------------------------------------------------------------------------------
--- Validation database bootstrap (#192). Run once as ADMIN on the empty validation ADB by
--- .github/workflows/db-validate.yml while the secret VAL_DB_ADMIN_PASSWORD exists (then the user deletes it).
--- Creates only what is missing - an existing user, grant, workspace or APEX user is left as it is - so a re-run
--- does nothing. Substitution variables (defined by the workflow, never echoed): xxcus_pw, xxfusion_pw.
---   1. XXCUS (workspace main schema) and XXFUSION (COMMON objects) users with the privileges 00a checks
---   2. workspace XXCUS: primary schema XXCUS, XXFUSION added
---   3. workspace admin user XXCUS (same password as the schema) for App Builder
---   4. both schemas REST-enabled (App Builder installs APEXlang apps only into a REST-enabled parsing schema)
+-- Validation database, IDCS (IAM) login (#195). Run ONCE as ADMIN in Database Actions > SQL (Run Script, F5),
+-- after the IDCS setup (service user github-ci-svc, group github-ci, policy on autonomous-database-family).
+-- Creates only what is missing; a re-run changes nothing. No password is stored anywhere:
+--   1. IAM login switched on for the database
+--   2. CI_IAM: global user mapped to the IDCS service user github-ci-svc (the GitHub workflow signs in with a token)
+--   3. XXCUS (workspace main schema) and XXFUSION (COMMON objects): schema-only accounts (no password), with the
+--      privileges 00a checks; CI_IAM may connect through them (proxy), so installs run as the schema owner
+--   4. workspace XXCUS (primary XXCUS, XXFUSION added), both schemas REST-enabled
+--   5. workspace admin user XXCUS for App Builder - initial password Change#Me2026, changed at first sign-in
+-- Change the name below when the service user has another name or lives in another identity domain
+-- ('<domain>/<user>').
 --------------------------------------------------------------------------------
-set define on verify off feedback off serveroutput on
+begin
+    dbms_cloud_admin.enable_external_authentication(type => 'OCI_IAM', force => true);
+end;
+/
 declare
-    procedure ensure_user(p_user varchar2, p_pw varchar2) is
+    procedure ensure(p_user varchar2, p_ddl varchar2) is
         l_n pls_integer;
     begin
         select count(*) into l_n from dba_users where username = p_user;
         if l_n = 0 then
-            execute immediate 'create user ' || p_user || ' identified by "' || p_pw
-                || '" default tablespace data quota unlimited on data';
-            dbms_output.put_line('created user ' || p_user);
-        else
-            dbms_output.put_line('user ' || p_user || ' exists - left as it is');
+            execute immediate p_ddl;
         end if;
     end;
 begin
-    ensure_user('XXCUS', q'[&xxcus_pw]');
-    ensure_user('XXFUSION', q'[&xxfusion_pw]');
+    ensure('CI_IAM', q'[create user ci_iam identified globally as 'IAM_PRINCIPAL_NAME=github-ci-svc']');
+    ensure('XXCUS', 'create user xxcus no authentication default tablespace data quota unlimited on data');
+    ensure('XXFUSION', 'create user xxfusion no authentication default tablespace data quota unlimited on data');
 end;
 /
-set define off
+grant create session to ci_iam;
 grant create session, create table, create view, create sequence, create procedure, create trigger, create type,
       create synonym, create job, create materialized view to xxcus, xxfusion;
 grant execute on sys.dbms_rls to xxcus, xxfusion;
 grant execute on sys.dbms_crypto to xxcus, xxfusion;
+alter user xxcus grant connect through ci_iam;
+alter user xxfusion grant connect through ci_iam;
 declare
     l_n pls_integer;
 begin
     select count(*) into l_n from apex_workspaces where workspace = 'XXCUS';
     if l_n = 0 then
         apex_instance_admin.add_workspace(p_workspace => 'XXCUS', p_primary_schema => 'XXCUS');
-        dbms_output.put_line('created workspace XXCUS');
     end if;
     select count(*) into l_n from apex_workspace_schemas where workspace_name = 'XXCUS' and schema = 'XXFUSION';
     if l_n = 0 then
         apex_instance_admin.add_schema(p_workspace => 'XXCUS', p_schema => 'XXFUSION');
-        dbms_output.put_line('added XXFUSION to workspace XXCUS');
     end if;
     commit;
-end;
-/
-set define on
-declare
-    l_n pls_integer;
-begin
     apex_util.set_security_group_id(apex_util.find_security_group_id(p_workspace => 'XXCUS'));
     select count(*) into l_n from apex_workspace_apex_users where workspace_name = 'XXCUS' and user_name = 'XXCUS';
     if l_n = 0 then
         apex_util.create_user(
             p_user_name                    => 'XXCUS',
-            p_web_password                 => q'[&xxcus_pw]',
+            p_web_password                 => 'Change#Me2026',
             p_developer_privs              => 'ADMIN:CREATE:DATA_LOADER:EDIT:HELP:MONITOR:SQL',
             p_default_schema               => 'XXCUS',
             p_allow_access_to_schemas      => 'XXCUS:XXFUSION',
-            p_change_password_on_first_use => 'N');
-        dbms_output.put_line('created workspace admin user XXCUS');
+            p_change_password_on_first_use => 'Y');
     end if;
     commit;
 end;
 /
-set define off
 begin
     ords_admin.enable_schema(p_enabled => true, p_schema => 'XXCUS', p_url_mapping_type => 'BASE_PATH',
                              p_url_mapping_pattern => 'xxcus', p_auto_rest_auth => true);
@@ -76,3 +71,4 @@ begin
     commit;
 end;
 /
+select username, authentication_type from dba_users where username in ('CI_IAM', 'XXCUS', 'XXFUSION');
