@@ -56,6 +56,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
+| I-030 [#177](https://github.com/mazharr-hussain/KycReport/issues/177) | COMMON | Documentation | Requirements, technical docs and training placeholders per component in git; summaries synced to the Project READMEs; PR docs check (warn) | Docs structure (1-Nov-2026) |
 | I-101 | COMMON | Integrations - Server form (121) | ORA-00937 opening the form (server name query) | COMMON 113 |
 | I-102 | COMMON | Users - User form (104) | "More than supported columns" (Account at grid column 13) | COMMON 113 |
 | I-103 | COMMON | Workflow - Process Catalogue (147) | One row per rule and level instead of per process; no place for approval rules and groups | COMMON 113 |

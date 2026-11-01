@@ -50,4 +50,4 @@ The application registers its templates with `XXFND_NOTIFY_PKG.REGISTER_TEMPLATE
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/notifications/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

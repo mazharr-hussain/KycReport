@@ -47,4 +47,4 @@ An application defines build options named "Feature - <name>"; `XXFND_APP_SETTIN
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/optional-features/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

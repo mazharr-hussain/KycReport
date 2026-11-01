@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Technical document of every feature: <repo>/features/<feature>/docs/TECHNICAL.md (both repositories).
+"""Technical document of every feature: <repo>/docs/components/<feature>/technical.md (both repositories; release
+114 docs structure - was features/<feature>/docs/TECHNICAL.md).
 
 Answers how the feature is built (pages, the standard APEX features and shared components it uses, the custom
 database objects), how it is configured (its setup pages, seed / configuration scripts, settings), what it depends on
@@ -138,8 +139,9 @@ def feature_doc(repo, feat, app_dir, defs, dep, tests):
           for app, v in sorted(by_app.items())]
     L += ['', '## Test scripts', '']
     L += [f'- `{t}`' for t in tlist] or ['- none yet']
-    os.makedirs(f'{d}/docs', exist_ok=True)
-    open(f'{d}/docs/TECHNICAL.md', 'w').write('\n'.join(L) + '\n')
+    out = os.path.join(REPOS, repo, 'docs', 'components', feat)
+    os.makedirs(out, exist_ok=True)
+    open(f'{out}/technical.md', 'w').write('\n'.join(L) + '\n')
 
 
 def run(repos=('common', 'kyc')):

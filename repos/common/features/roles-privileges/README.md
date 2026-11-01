@@ -54,4 +54,4 @@ The application registers its features, privileges, pages, roles and SoD rules w
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/roles-privileges/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

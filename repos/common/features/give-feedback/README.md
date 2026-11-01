@@ -46,4 +46,4 @@ Link to COMMON page 173 (`app: COMMON`) passing &APP_ID. and &APP_PAGE_ID. (or t
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/give-feedback/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

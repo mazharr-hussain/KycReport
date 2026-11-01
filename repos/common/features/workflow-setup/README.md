@@ -52,4 +52,4 @@ The application registers its workflows as processes (`XXFND_WORKFLOW_PKG.SYNC_P
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/workflow-setup/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -47,4 +47,4 @@ Link to COMMON page 47 (`app: COMMON`) with P47_APP_ALIAS, the source page, regi
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/documents/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

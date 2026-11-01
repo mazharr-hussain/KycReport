@@ -50,4 +50,4 @@ The application registers its lookup types and values with `XXFND_LOOKUP_PKG.REG
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/lookups/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

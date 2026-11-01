@@ -54,4 +54,4 @@ The application registers its purposes with `XXFND_INTEGRATION_PKG.REGISTER_PURP
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/integrations/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

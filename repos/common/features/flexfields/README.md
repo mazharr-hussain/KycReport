@@ -52,4 +52,4 @@ The application registers its value sets, flexfields and contexts (`XXFND_DFF_PK
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/flexfields/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -1,7 +1,7 @@
 # Handover - current state for a new chat (as of COMMON 113 / KYC 105)
 
-Read this first, then `ISSUES.md` (the complete issue backlog - keep it updated with every release), then `CLAUDE.md` (rules) and the requirements summary
-https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G (functional reference, updated up to COMMON 113).
+Read this first, then `ISSUES.md` (the complete issue backlog - keep it updated with every release), then `CLAUDE.md` (rules) and the requirements in git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md`
+(summaries, also shown as the GitHub Project READMEs) with one folder per component under `docs/components/`.
 
 ## 1. Where things are
 - Work only in `repos/common` (COMMON, app 135, schema XXFUSION) and `repos/kyc` (KYC, app 134, schema XXCUS).

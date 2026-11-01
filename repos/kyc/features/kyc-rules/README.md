@@ -19,4 +19,4 @@ cases, common:attachments, common:audit-log, common:change-approvals, common:dat
 cases, kyc-requests, parties
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/kyc-rules/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

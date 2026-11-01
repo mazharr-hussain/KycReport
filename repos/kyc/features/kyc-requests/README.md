@@ -30,4 +30,4 @@ cases, common:approval-setup, common:attachments, common:data-security, common:i
 cases, dashboard, home, kyc-rules, monitoring, parties
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/kyc-requests/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

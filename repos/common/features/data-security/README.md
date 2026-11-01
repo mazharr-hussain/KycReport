@@ -51,4 +51,4 @@ The application registers its rules with `XXFND_VPD_PKG.REGISTER_DATA_RULE`, app
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/data-security/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

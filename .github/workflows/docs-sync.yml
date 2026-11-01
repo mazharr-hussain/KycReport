@@ -1,0 +1,37 @@
+# Copies each application's requirements summary into the README of its GitHub Project on every merge to main:
+# repos/common/docs/README.md -> COMMON_PROJECT_URL, repos/kyc/docs/README.md -> KYC_PROJECT_URL.
+# Links are made absolute (the Project README is outside the repository). Token: secret ADD_TO_PROJECT_PAT.
+name: Sync requirements to the projects
+on:
+  push:
+    branches: [main]
+    paths: ['repos/common/docs/README.md', 'repos/kyc/docs/README.md']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        env:
+          COMMON_URL: ${{ vars.COMMON_PROJECT_URL }}
+          KYC_URL: ${{ vars.KYC_PROJECT_URL }}
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const fs = require('fs');
+            const base = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/`;
+            for (const [app, url] of [['common', process.env.COMMON_URL], ['kyc', process.env.KYC_URL]]) {
+              const file = `repos/${app}/docs/README.md`;
+              if (!url || !fs.existsSync(file)) continue;
+              let md = fs.readFileSync(file, 'utf8')
+                .replace(/\]\((?!https?:|#)([^)]+)\)/g, (m, p) => `](${base}repos/${app}/docs/${p})`);
+              const [, login, number] = url.match(/users\/([^/]+)\/projects\/(\d+)/);
+              const q = await github.graphql(`query($l:String!,$n:Int!){ user(login:$l){ projectV2(number:$n){ id } } }`,
+                                            { l: login, n: Number(number) });
+              await github.graphql(`mutation($p:ID!,$r:String!){ updateProjectV2(input:{projectId:$p, readme:$r}){ projectV2{ id } } }`,
+                                   { p: q.user.projectV2.id, r: md });
+              core.info(`${app}: README synced (${md.length} characters)`);
+            }
