@@ -1,0 +1,148 @@
+# Validation tenancy (#192, #195): creates the Database Tools connection val-xxcus (user XXCUS) for the validation
+# ADB and validates it, signed in through IDCS (service user github-ci-svc, trust rule for environment Oracle_OCI).
+# Creates only what is missing (a re-run only validates again):
+#   vault validation-vault + key validation-key (compartment APP_Project), wallet secret val-wallet-sso (from the
+#   ADB, generated through the API), password secret val-xxcus-pw (random, set on XXCUS as ADMIN with
+#   VAL_DB_ADMIN_PASSWORD), then the connection.
+name: Validation - OCI setup (Database Tools connection)
+
+on:
+  pull_request:
+    paths: ['.github/workflows/val-oci-setup.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: validation-db
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    environment: Oracle_OCI
+    env:
+      COMPARTMENT: APP_Project
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+    steps:
+      - name: IDCS token exchange (github-ci-svc)
+        id: oci
+        uses: gtrevorrow/oci-token-exchange-action@v1
+        with:
+          oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
+          domain_base_url: ${{ secrets.OCI_DOMAIN_URL }}
+          oci_tenancy: ${{ secrets.OCI_TENANCY }}
+          oci_region: ${{ secrets.OCI_REGION }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: OCI CLI and SQLcl
+        run: |
+          pip install -q oci-cli
+          sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
+          curl -sSL -o sqlcl.rpm https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
+          rpm2cpio sqlcl.rpm | cpio -idm --quiet
+          echo "OCI_CLI_AUTH=security_token" >> "$GITHUB_ENV"
+          echo "OCI_CLI_CONFIG_FILE=${{ steps.oci.outputs.oci_config_path }}" >> "$GITHUB_ENV"
+
+      - name: Compartment, database, vault, key
+        env:
+          TENANCY: ${{ secrets.OCI_TENANCY }}
+        run: |
+          set -euo pipefail
+          C=$(oci iam compartment list --compartment-id "$TENANCY" --compartment-id-in-subtree true --all \
+                --query "data[?name=='$COMPARTMENT' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output)
+          [ -n "$C" ] && [ "$C" != null ] || { echo "::error::compartment $COMPARTMENT not found"; exit 1; }
+          DB=$(oci db autonomous-database list -c "$C" --all --query "data[?\"lifecycle-state\"!='TERMINATED'] | [0].id" --raw-output)
+          [ -n "$DB" ] && [ "$DB" != null ] || { echo "::error::no Autonomous Database in $COMPARTMENT"; exit 1; }
+          state=$(oci db autonomous-database get --autonomous-database-id "$DB" --query 'data."lifecycle-state"' --raw-output)
+          [ "$state" = STOPPED ] && oci db autonomous-database start --autonomous-database-id "$DB" --wait-for-state AVAILABLE > /dev/null
+          DBNAME=$(oci db autonomous-database get --autonomous-database-id "$DB" --query 'data."db-name"' --raw-output)
+          echo "database $DBNAME ($state)"
+          V=$(oci kms management vault list -c "$C" --all --query "data[?\"display-name\"=='validation-vault' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output)
+          if [ -z "$V" ] || [ "$V" = null ]; then
+            V=$(oci kms management vault create -c "$C" --display-name validation-vault --vault-type DEFAULT \
+                  --wait-for-state ACTIVE --query 'data.id' --raw-output)
+            echo "created vault validation-vault"
+          fi
+          ME=$(oci kms management vault get --vault-id "$V" --query 'data."management-endpoint"' --raw-output)
+          K=$(oci kms management key list -c "$C" --endpoint "$ME" --all --query "data[?\"display-name\"=='validation-key' && \"lifecycle-state\"=='ENABLED'].id | [0]" --raw-output)
+          if [ -z "$K" ] || [ "$K" = null ]; then
+            K=$(oci kms management key create -c "$C" --endpoint "$ME" --display-name validation-key \
+                  --key-shape '{"algorithm":"AES","length":32}' --protection-mode SOFTWARE \
+                  --wait-for-state ENABLED --query 'data.id' --raw-output)
+            echo "created key validation-key"
+          fi
+          printf 'C=%s\nDB=%s\nDBNAME=%s\nV=%s\nK=%s\n' "$C" "$DB" "$DBNAME" "$V" "$K" >> "$GITHUB_ENV"
+
+      - name: Wallet (generated through the API)
+        run: |
+          set -euo pipefail
+          WPW="W$(openssl rand -hex 12)#9a"
+          oci db autonomous-database generate-wallet --autonomous-database-id "$DB" --password "$WPW" --file wallet.zip > /dev/null
+          mkdir -p wallet && unzip -q -o wallet.zip -d wallet
+          python3 - "$DBNAME" > connstr.txt <<'PY'
+          import re, sys
+          t = open('wallet/tnsnames.ora').read()
+          m = re.search(r'(?im)^\s*' + sys.argv[1].lower() + r'_low\s*=\s*(\(.*)$', t)
+          print(m.group(1).strip())
+          PY
+          echo "connection string: $(cut -c1-60 connstr.txt)..."
+
+      - name: Secrets (wallet, random XXCUS password set as ADMIN)
+        run: |
+          set -euo pipefail
+          sid() { oci vault secret list -c "$C" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output 2>/dev/null; }
+          put() {  # put NAME BASE64 -> creates the secret or adds a new version
+            s=$(sid "$1")
+            if [ -z "$s" ] || [ "$s" = null ]; then
+              oci vault secret create-base64 -c "$C" --vault-id "$V" --key-id "$K" --secret-name "$1" \
+                --secret-content-content "$2" --wait-for-state ACTIVE > /dev/null; echo "created secret $1"
+            else
+              oci vault secret update-base64 --secret-id "$s" --secret-content-content "$2" > /dev/null; echo "updated secret $1"
+            fi
+          }
+          put val-wallet-sso "$(base64 -w0 wallet/cwallet.sso)"
+          sql=opt/oracle/sqlcl/bin/sql
+          for u in XXCUS; do
+            n=val-$(echo $u | tr A-Z a-z)-pw
+            s=$(sid "$n")
+            if [ -z "$s" ] || [ "$s" = null ]; then
+              pw="Rv$(openssl rand -hex 10)#7k"
+              { echo "whenever sqlerror exit failure"; echo "set cloudconfig $PWD/wallet.zip"
+                printf 'connect ADMIN/"%s"@%s_low\n' "$ADMIN_PW" "$DBNAME"
+                printf 'alter user %s identified by "%s" account unlock;\n' "$u" "$pw"; echo exit; } > p.sql
+              $sql -S /nolog @p.sql > p.log 2>&1 || { grep -E 'ORA-|SP2-' p.log; rm -f p.sql; exit 1; }
+              rm -f p.sql
+              put "$n" "$(printf '%s' "$pw" | base64 -w0)"
+            else
+              echo "secret $n exists - $u password left as it is"
+            fi
+          done
+
+      - name: Database Tools connection val-xxcus, validated
+        run: |
+          set -euo pipefail
+          sid() { oci vault secret list -c "$C" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output; }
+          WS=$(sid val-wallet-sso)
+          for u in XXCUS; do
+            name=val-$(echo $u | tr A-Z a-z)
+            have=$(oci dbtools connection list -c "$C" --all --display-name "$name" --lifecycle-state ACTIVE --query 'data.items[0].id' --raw-output 2>/dev/null || true)
+            if [ -n "$have" ] && [ "$have" != null ]; then echo "connection $name exists"; else
+            have=$(oci dbtools connection create-oracle-database -c "$C" --display-name "$name" \
+              --user-name "$u" --user-password-secret-id "$(sid $name-pw)" \
+              --connection-string "$(cat connstr.txt)" \
+              --related-resource "{\"entityType\":\"AUTONOMOUSDATABASE\",\"identifier\":\"$DB\"}" \
+              --key-stores "[{\"keyStoreType\":\"SSO\",\"keyStoreContent\":{\"valueType\":\"SECRETID\",\"secretId\":\"$WS\"}}]" \
+              --wait-for-state ACTIVE --query 'data.id' --raw-output)
+            echo "created connection $name"; fi
+            res=$(oci dbtools connection validate-oracle-database --connection-id "$have")
+            echo "$res" | jq '.data | {code, message, cause, action}'
+            [ "$(echo "$res" | jq -r '.data.code')" = OK ] || { echo "::error::connection $name did not validate"; exit 1; }
+          done
+          rm -rf wallet wallet.zip
