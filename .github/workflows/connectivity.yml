@@ -1,0 +1,64 @@
+# Quick connectivity check of the validation tenancy (#192, #195): IDCS token exchange (github-ci-svc) and an SQLcl
+# login as ADMIN with the wallet and VAL_DB_ADMIN_PASSWORD. Changes nothing.
+name: Validation connectivity
+
+on:
+  pull_request:
+    paths: ['.github/workflows/connectivity.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    steps:
+      - name: IDCS token exchange (github-ci-svc)
+        id: oci
+        continue-on-error: true
+        uses: gtrevorrow/oci-token-exchange-action@v1
+        with:
+          oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
+          domain_base_url: ${{ secrets.OCI_DOMAIN_URL }}
+          oci_tenancy: ${{ secrets.OCI_TENANCY }}
+          oci_region: ${{ secrets.OCI_REGION }}
+
+      - name: OCI API call with the session token
+        if: steps.oci.outcome == 'success'
+        continue-on-error: true
+        env:
+          DB_OCID: ${{ secrets.VAL_DB_OCID }}
+        run: |
+          pip install -q oci-cli
+          oci db autonomous-database get --auth security_token --config-file "${{ steps.oci.outputs.oci_config_path }}" \
+            --autonomous-database-id "$DB_OCID" --query 'data.{name:"db-name",state:"lifecycle-state"}'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: SQLcl login as ADMIN (wallet + password)
+        env:
+          WALLET_B64: ${{ secrets.VAL_DB_WALLET }}
+          SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+          PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+        run: |
+          printf '%s' "$WALLET_B64" | base64 -d > wallet.zip
+          curl -sSL -o sqlcl.rpm https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
+          sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
+          rpm2cpio sqlcl.rpm | cpio -idm --quiet
+          { echo "whenever sqlerror exit failure"
+            echo "set cloudconfig $PWD/wallet.zip"
+            printf 'connect ADMIN/"%s"@%s\n' "$PW" "$SERVICE"
+            echo "select 'CONNECTED AS ' || user || ' - APEX ' || (select version_no from apex_release) as result from dual;"
+            echo "exit"; } > t.sql
+          out=$(opt/oracle/sqlcl/bin/sql -S /nolog @t.sql 2>&1); echo "$out"; rm -f t.sql
+          echo "$out" | grep -q 'CONNECTED AS ADMIN' || { echo "::error::ADMIN login failed"; exit 1; }
+
+      - name: Result
+        run: |
+          [ "${{ steps.oci.outcome }}" = success ] && echo "IDCS token exchange: OK" || echo "::error::IDCS token exchange failed - see the first step"
