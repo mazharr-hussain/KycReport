@@ -6,7 +6,9 @@ Agreed later (accepted, waits for its own plan and approval) - Parked (the user 
 Rules: issues are collected first, then a plan, then approval (CLAUDE.md). Update this file with every release: add the
 new issues, move fixed ones to Fixed with the release. COMMON gaps keep their detail in
 `repos/common/docs/COMMON-ISSUES.md` (C-numbers); release details are in `repos/<app>/releases/NNN-*/README.md`.
-Releases before COMMON 108 / KYC 101 are not itemised here - see their release READMEs.
+Audit 1-Nov-2026: chat history before 27-Oct-2026 is no longer on disk; this list holds every issue found in the remaining
+history, the UI issues list of 18-Oct (`apex/UI-ISSUES.md`, I-2xx), the COMMON review of 25-Oct (`repos/common/docs/COMMON-REVIEW.md`,
+I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release READMEs and `apex/CHANGELOG.md`.
 
 ## Open and agreed (backlog)
 | # | App | Area / screen | Issue | Status | Source |
@@ -38,6 +40,12 @@ Releases before COMMON 108 / KYC 101 are not itemised here - see their release R
 | I-025 | All | CLAUDE.md | Rules out of date with the user's later instructions: "no push / no merge" (now: push and merge, only no Netlify) and "start the database for changes" (now: no database, offline validation only) | Open | Claude |
 | I-026 | COMMON | Approval groups | A GROUP level keeps the group code in ROLE_CODE (30 characters); a dedicated column would be clearer | Open | Claude (COMMON 113) |
 
+| I-3A3 | COMMON | Review 25-Oct (A3) | `OUTLOOK_MESSAGES`, `SHAREPOINT_DRIVES`, `UCM_CONTENT` - referenced nowhere (prepared, never wired) | Parked (kept: planned integrations) | COMMON-REVIEW |
+| I-3A4 | COMMON | Review 25-Oct (A4) | `xxfnd_retention_pkg` - no caller: no automation, job or page runs it, so retention never happens | Parked (retention placeholder) | COMMON-REVIEW |
+| I-3A5 | COMMON | Review 25-Oct (A5) | `xxfnd_document_versions_v`, `xxfnd_integration_changes_v`, `xxfnd_qa_history_v` - no page or code reads them (only docs / comments) | Closed - kept (application-facing views) | COMMON-REVIEW |
+| I-3A7 | COMMON | Review 25-Oct (A7) | `xxfnd_ui_pkg` - not used by COMMON itself, only by KYC (shared UI helper - keep, listed for information) | Closed - kept (shared UI helper) | COMMON-REVIEW |
+| I-3B2 | COMMON | Review 25-Oct (B2) | Page LOV queries repeated inline instead of a shared LOV: setup columns (xxfnd_setup_columns_v, 3 variants in 2-5 pages), applications (2 variants, 2 pages each), notification templates (2 pages) - sh | Open (only page 116 moved to shared LOVs) | COMMON-REVIEW |
+| I-3C5 | COMMON | Review 25-Oct (C5) | every page 2+ privileges (View/Create/Manage) - 10 pages use only *signed-in user*: 1 Home, 40 My Tasks, 43 Notifications, 45 Communications, 46 E-mail, 47 Attachments, 48 Document, 143 Information Re | Closed - decision: self-service pages stay signed-in user only | COMMON-REVIEW |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
@@ -65,3 +73,42 @@ Releases before COMMON 108 / KYC 101 are not itemised here - see their release R
 | I-122 | KYC | Create Request | Steps: request + party (201), questions on one page without Check button (204), review and submit (203) | KYC 104 |
 | I-123 | KYC | Global page | P0_PARTY_TYPE LOV error (LOV starting with a comment) | KYC 102 |
 | I-124 | KYC | Party details | Access rule moved from COMMON to the KYC party package | KYC 101 |
+| I-201 | COMMON | Home (1) | "Open Tasks" KPI too small | COMMON 91 |
+| I-202 | COMMON | Application Journey (165) | Steps only explain; roles, users, notifications, document storage, integrations should be set up in the wizard | COMMON 95 |
+| I-203 | COMMON | User (104) | Page error on P104_EMPLOYEE_ID (PLS-00428) | COMMON 91 |
+| I-204 | COMMON | Privileges (182), Segregation of Duties (107) | Rows must show / belong to their application | COMMON 91 |
+| I-205 | COMMON | Lookup Type (102) | Customization Level not needed on the screen | COMMON 91 |
+| I-206 | COMMON | Descriptive Flexfield (153) | Fixed columns read-only; context from a rule (global / attribute / function), not a column | COMMON 92 |
+| I-207 | COMMON | Descriptive Flexfield (153), Segments | Column from a list, display name, API name, validation (lookup, value set) | COMMON 92 |
+| I-208 | COMMON | Workflow Setup, Process Catalogue (147) | Process with rules, approvers (user level now; position / hierarchy / AOR / query as placeholders), delegation and deadline per step | COMMON 94 |
+| I-209 | COMMON | Integrations, Server (121) | Fusion server and credential read from the Fusion Integration app, not hardcoded | COMMON 93 |
+| I-210 | KYC | Navigation menu, Administration | Clicking "Administration" (KYC side menu, e.g. on Case 211) does nothing | KYC 95 |
+| I-211 | COMMON | My Tasks (40) opened from an application | Breadcrumb "Home" goes to COMMON Home; it should go back to the application the user came from (e.g. KYC Home), and the app name at the top should be that application, not "Common" | COMMON 97 |
+| I-212 | COMMON | User (104) | Page cluttered: title, direct data rules, roles without their data access | COMMON 96 |
+| I-213 | COMMON | Users, Roles, Privileges, Data Security | Security model: roles combine roles, privileges and data access; data access through roles only, values per dimension with per-object override; no Finance / Procurement roles; users linked to applications; rows owned by an application | COMMON 96 |
+| I-214 | COMMON | User (104), view and create | Poor layout: every field on its own narrow row down the left, the rest of the page empty; the screen should use the width and look better - multi-column layout (several fields per row) | COMMON 98 |
+| I-215 | COMMON | User (104), Applications region | The user's applications (grant / End) are managed in COMMON only: the region must not show when the User page is opened from another application (an application administrator's scope) | COMMON 98 |
+| I-216 | COMMON | User (104), Privileges these roles give | Own tab (Roles / Privileges / Data access); all the user's privileges with the role (and application) that gives each one, filterable by role | COMMON 98 |
+| I-217 | COMMON | Fusion / IDCS connection | COMMON must not manage the Fusion and IDCS URLs or credentials: it uses the workspace server and credential made by the Fusion integration prerequisite (remove COMMON's own FUSION server and Fusion Credentials placeholders) | COMMON 100 |
+| I-3A1 | COMMON | Review 25-Oct (A1) | `lov-dff-columns` (DFF RESERVED COLUMNS) - referenced by no page or code | COMMON 108 |
+| I-3A2 | COMMON | Review 25-Oct (A2) | `admin-app` (Administration - Application in Scope) - referenced by no page or component | COMMON 108 |
+| I-3A6 | COMMON | Review 25-Oct (A6) | `xxfnd_transmissions` - used only by tests; no page or package reads or writes it | COMMON 108 |
+| I-4C1 | COMMON | COMMON gap C1 | Business users of an application cannot open COMMON's shared user pages (blocking) | COMMON 87 |
+| I-4C2 | COMMON | COMMON gap C2 | A cancelled configuration change cannot be submitted again | COMMON 87 |
+| I-4C3 | COMMON | COMMON gap C3 | COMMON's script 17 rewrites KYC's lookups on every COMMON upgrade | COMMON 87 |
+| I-4C4 | COMMON | COMMON gap C4 | DELEGATED_URL points to KYC page 98, which no longer exists | COMMON 87 |
+| I-4C5 | COMMON | COMMON gap C5 | Information Request page 143: no documents, no due dates, no task settings | COMMON 88 |
+| I-4C6 | COMMON | COMMON gap C6 | E-mail page 46 has no list of the party's contacts | COMMON 88 |
+| I-4C8 | COMMON | COMMON gap C8 | A page registration cannot be removed or retired | COMMON 88 |
+| I-4C9 | COMMON | COMMON gap C9 | An application cannot be unregistered, and a registered application cannot be deleted | COMMON 88 |
+| I-4C10 | COMMON | COMMON gap C10 | Applications are granted direct write access on every COMMON table | COMMON 88 |
+| I-4C11 | COMMON | COMMON gap C11 | The grants to applications depend on script order | COMMON 87 |
+| I-4C12 | COMMON | COMMON gap C12 | My Tasks opens another application's task page without a checksum | COMMON 90 |
+| I-3B1 | COMMON | Review 25-Oct (B1) | 8 object files (xxfnd_util_pkg, xxfnd_schema_pkg, xxfnd_audit_pkg, xxfnd_approval_pkg spec/body, xxfnd_user_roles_v) - two identical copies made by the one-object-per-file restructure (install and upg | COMMON 108 |
+| I-3B3 | COMMON | Review 25-Oct (B3) | xxfnd_util_pkg.create_who_trigger / create_all_who_triggers, xxfnd_audit_pkg.create_audit_trigger, xxfnd_vpd_pkg.apply_policies - thin wrappers of the same routines in xxfnd_schema_pkg - two entry poi | COMMON 108 |
+| I-3C1 | COMMON | Review 25-Oct (C1) | COMMON has no KYC dependency - xxfnd_user_pkg.party_details_editable (authorization helper) calls KYC's XXCMP_PARTY_PKG.CAN_EDIT_DETAILS dynamically - KYC logic inside COMMON | COMMON 108 / KYC 101 |
+| I-3C2 | COMMON | Review 25-Oct (C2) | same - xxfnd_attach_pkg (line ~934) falls back to application alias 'KYC' when no application is in session | COMMON 108 |
+| I-3C3 | COMMON | Review 25-Oct (C3) | same; setup data per application - COMMON's seed script 17 creates 13 KYC lookup types (ENTITY_TYPE, PARTY_TYPE, CONTACT_TYPE, RELATIONSHIP_TYPE ...) and checks for XXCMP_PARTIES - KYC setup should be | COMMON 108 |
+| I-3C4 | COMMON | Review 25-Oct (C4) | COMMON tests without KYC - 14 COMMON test scripts use KYC objects (kyc_functions_test, r76_departments_test, r96_security_*, tasks_prep, viewonly_role, common_test_fixture(s), test_users, admin_scope_ | COMMON 108 |
+| I-3C6 | COMMON | Review 25-Oct (C6) | no files cut in parts - lists.apx, lovs.apx, authorizations.apx are still built from pieces at fixed offsets (same risk as the old DB scripts; the build now stops if they drift) | COMMON 108 |
+| I-3C7 | COMMON | Review 25-Oct (C7) | wording - KYC examples in comments (xxfnd_dff_pkg, xxfnd_approval_pkg, xxfnd_config_tables, xxfnd_rfis) | COMMON 108 |
