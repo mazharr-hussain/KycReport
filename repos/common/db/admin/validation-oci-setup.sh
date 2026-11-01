@@ -18,7 +18,7 @@ TRUST=github-kycreport
 COMPARTMENT=APP_Project
 SUB='repo:mazharr-hussain/KycReport:environment:Oracle DB Dev'
 
-D=$(oci iam domain list --all --query "data[?\"display-name\"=='$DOMAIN_NAME'].url | [0]" --raw-output)
+D=$(oci iam domain list --compartment-id "$OCI_TENANCY" --all --query "data[?\"display-name\"=='$DOMAIN_NAME'].url | [0]" --raw-output)
 D=${D%:443}
 echo "Domain URL: $D"
 req() {  # req METHOD PATH [json-body]
