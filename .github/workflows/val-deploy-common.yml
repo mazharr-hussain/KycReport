@@ -1,0 +1,82 @@
+# Deploy COMMON to the validation database (#192) with a direct SQLcl login (passwords) - for now, until the IDCS
+# token login (#195) works. Steps: ADMIN bootstrap (creates only what is missing: users XXCUS / XXFUSION with the
+# secret passwords, grants, workspace XXCUS, REST-enabled schemas), COMMON install as XXFUSION, no invalid objects,
+# COMMON app validated and imported into workspace XXCUS.
+name: Validation - deploy COMMON
+
+on:
+  pull_request:
+    paths: ['repos/common/**', 'repos/tools/valdb.sh', '.github/workflows/val-deploy-common.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-db
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 60
+    env:
+      DB_AUTH: password
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+      XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
+      XXFUSION_PW: ${{ secrets.VAL_DB_XXFUSION_PASS }}
+      SQL: ${{ github.workspace }}/opt/oracle/sqlcl/bin/sql
+      WALLET: ${{ github.workspace }}/wallet.zip
+      V: sh repos/tools/valdb.sh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Wallet and SQLcl 26.1.2
+        env:
+          WALLET_B64: ${{ secrets.VAL_DB_WALLET }}
+        run: |
+          printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
+          sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
+          curl -sSL -o sqlcl.rpm https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
+          rpm2cpio sqlcl.rpm | cpio -idm --quiet
+          chmod +x opt/oracle/sqlcl/bin/sql
+
+      - name: Bootstrap as ADMIN (creates only what is missing)
+        run: |
+          f="$RUNNER_TEMP/bootstrap.sql"
+          { echo "set define on verify off"
+            printf 'define xxcus_pw = "%s"\n' "$XXCUS_PW"
+            printf 'define xxfusion_pw = "%s"\n' "$XXFUSION_PW"
+            echo "@$PWD/repos/common/db/admin/validation-db-bootstrap.sql"; } > "$f"
+          $V ADMIN "$f" check; rc=$?; rm -f "$f"; exit $rc
+
+      - name: Build COMMON
+        run: sh repos/kyc/build.sh > /dev/null && sh repos/common/build.sh
+
+      - name: Install COMMON as XXFUSION
+        run: $V XXFUSION "$PWD/repos/common/db/deploy/install/run-all.sql" check
+
+      - name: No invalid objects
+        run: |
+          cat > "$RUNNER_TEMP/inv.sql" <<'SQL'
+          exec dbms_utility.compile_schema(schema => user, compile_all => false)
+          select 'INVALID ' || object_type || ' ' || object_name from user_objects where status = 'INVALID';
+          SQL
+          out=$($V XXFUSION "$RUNNER_TEMP/inv.sql" check | grep '^INVALID ' || true)
+          echo "$out"
+          [ -z "$out" ] || { echo "::error::invalid objects in XXFUSION"; exit 1; }
+
+      - name: Import the COMMON app (APEXlang validate + import)
+        run: |
+          printf 'apex validate -input %s\napex import -input %s\n' "$PWD/repos/common/dist/app" "$PWD/repos/common/dist/app" > "$RUNNER_TEMP/imp.sql"
+          out=$($V XXFUSION "$RUNNER_TEMP/imp.sql"); echo "$out"
+          echo "$out" | grep -q "Validation successful" || { echo "::error::APEXlang validation failed on the database"; exit 1; }
+          if echo "$out" | grep -qE '^(Error|ERROR|ORA-|SP2-)'; then echo "::error::import reported an error"; exit 1; fi

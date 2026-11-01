@@ -13,9 +13,7 @@
 name: DB validation
 
 on:
-  pull_request:
-    paths: ['repos/**', '.github/workflows/db-validate.yml']
-  workflow_dispatch:
+  workflow_dispatch:   # pull_request trigger comes back once the IDCS token login works (#195)
 
 permissions:
   contents: read
