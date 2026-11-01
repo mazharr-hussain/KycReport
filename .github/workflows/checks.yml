@@ -37,6 +37,9 @@ jobs:
   pmd:
     # PL/SQL analysis of the changed packages (repos/tools/pmd-plsql.xml); violations are annotations, not failures
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read   # the action lists the changed files of the PR
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
