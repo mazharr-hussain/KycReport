@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- PL/SQL rules for the PMD job in .github/workflows/checks.yml (warnings: annotations, the job does not fail) -->
+<ruleset name="KYC / COMMON PL/SQL"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+  <description>Error-prone patterns, complexity and naming in packages.</description>
+  <rule ref="category/plsql/bestpractices.xml/TomKytesDespair"/>
+  <rule ref="category/plsql/errorprone.xml/TO_DATEWithoutDateFormat"/>
+  <rule ref="category/plsql/errorprone.xml/TO_DATE_TO_CHAR"/>
+  <rule ref="category/plsql/errorprone.xml/TO_TIMESTAMPWithoutDateFormat"/>
+  <rule ref="category/plsql/design.xml/CyclomaticComplexity"/>
+  <rule ref="category/plsql/design.xml/NcssMethodCount"/>
+  <rule ref="category/plsql/design.xml/TooManyFields"/>
+  <rule ref="category/plsql/codestyle.xml/MisplacedPragma"/>
+</ruleset>
