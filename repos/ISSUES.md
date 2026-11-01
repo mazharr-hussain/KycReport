@@ -1,5 +1,8 @@
 # Issue backlog (COMMON and KYC)
 
+The live backlog is the GitHub issues of the repository, on the Projects "KYC Application" (label KYC) and "Common
+Application" (label COMMON); release PRs close them with "Fixes #n". This file mirrors them.
+
 The one list of every issue: reported by the user, found in a review, or a COMMON gap found by an application.
 Each issue keeps its number for good. **Status:** Open (reported, no plan yet) - Planned (in an approved plan, being built) -
 Agreed later (accepted, waits for its own plan and approval) - Parked (the user put it on hold) - Fixed (release named).
