@@ -1,0 +1,32 @@
+# Creates the GitHub Release of each application release that lands on main: repos/<app>/releases/<name>_<N>.zip ->
+# release "COMMON N" / "KYC N" (tag common-N / kyc-N) with the zip attached, the release folder's README as notes and
+# the issues the push closed ("Fixes #n" in its commits).
+name: Release
+on:
+  push:
+    branches: [main]
+    paths: ['repos/*/releases/*.zip']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create the releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          fixes=$(git log --format=%B "$BEFORE..$AFTER" 2>/dev/null | grep -oiE '(fixes|closes|resolves) #[0-9]+' | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ')
+          git diff --name-only --diff-filter=A "$BEFORE" "$AFTER" -- 'repos/*/releases/*.zip' | while read -r zip; do
+            app=$(echo "$zip" | cut -d/ -f2); n=$(echo "$zip" | sed -E 's/.*_([0-9]+)\.zip$/\1/')
+            tag="$app-$n"; title="$(echo "$app" | tr a-z A-Z) $n"
+            gh release view "$tag" >/dev/null 2>&1 && { echo "$tag exists"; continue; }
+            readme=$(ls -d repos/$app/releases/$n-*/README.md 2>/dev/null | head -1)
+            { [ -n "$readme" ] && cat "$readme"; echo; [ -n "$fixes" ] && echo "Closed issues: $fixes"; } > notes.md
+            gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
+          done

@@ -46,6 +46,8 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-027 [#169](https://github.com/mazharr-hussain/KycReport/issues/169) | COMMON | Training | Update the 26 videos, the training manual and the user guide for releases 108-113 (servers, purposes, menu groups, processes and approval groups, users; Fusion Objects removed) | task | P2 | Open | User |
 | I-028 [#170](https://github.com/mazharr-hussain/KycReport/issues/170) | KYC | Training | Update the 9 videos, the training manual and the user guide (KYC-GUIDE.md) for KYC 105 (after the KYC changes) | task | P2 | Open | User |
 | I-029 [#173](https://github.com/mazharr-hussain/KycReport/issues/173) | COMMON | In-app help (every screen) | User guide, training manual and video opened from the same screen as a guided journey; one COMMON component, each application registers its pages' material | enhancement | P2 | Open | User |
+| I-038 [#186](https://github.com/mazharr-hussain/KycReport/issues/186) | COMMON | GitHub workflows | W11 training videos as Release assets | task | P2 | Open | User |
+| I-039 [#187](https://github.com/mazharr-hussain/KycReport/issues/187) | COMMON | Flexfields / notifications packages | HTML built in PL/SQL (10 lines found by the PR check) - move to APEX components or comment why | bug | P3 | Open | Claude |
 
 | I-3A3 [#162](https://github.com/mazharr-hussain/KycReport/issues/162) | COMMON | Review 25-Oct (A3) | `OUTLOOK_MESSAGES`, `SHAREPOINT_DRIVES`, `UCM_CONTENT` - referenced nowhere (prepared, never wired) | enhancement | P3 | Parked (kept: planned integrations) | COMMON-REVIEW |
 | I-3A4 [#163](https://github.com/mazharr-hussain/KycReport/issues/163) | COMMON | Review 25-Oct (A4) | `xxfnd_retention_pkg` - no caller: no automation, job or page runs it, so retention never happens | enhancement | P3 | Parked (retention placeholder) | COMMON-REVIEW |
@@ -56,6 +58,13 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
+| I-031 [#179](https://github.com/mazharr-hussain/KycReport/issues/179) | COMMON | GitHub workflows | W1-W3 checks.yml on repos/: build each app and validate APEXlang (SQLcl) on every PR | Workflows (1-Nov-2026) |
+| I-032 [#180](https://github.com/mazharr-hussain/KycReport/issues/180) | COMMON | GitHub workflows | W4 install-safety checks on every PR | Workflows (1-Nov-2026) |
+| I-033 [#181](https://github.com/mazharr-hussain/KycReport/issues/181) | COMMON | GitHub workflows | W5 golden-rule warnings on every PR | Workflows (1-Nov-2026) |
+| I-034 [#182](https://github.com/mazharr-hussain/KycReport/issues/182) | COMMON | GitHub workflows | W6 technical docs up to date | Workflows (1-Nov-2026) |
+| I-035 [#183](https://github.com/mazharr-hussain/KycReport/issues/183) | COMMON | GitHub workflows | W8 GitHub Release on merge of a release | Workflows (1-Nov-2026) |
+| I-036 [#184](https://github.com/mazharr-hussain/KycReport/issues/184) | COMMON | GitHub workflows | W9 ISSUES.md follows closed issues | Workflows (1-Nov-2026) |
+| I-037 [#185](https://github.com/mazharr-hussain/KycReport/issues/185) | COMMON | GitHub workflows | W10 weekly backlog summary | Workflows (1-Nov-2026) |
 | I-030 [#177](https://github.com/mazharr-hussain/KycReport/issues/177) | COMMON | Documentation | Requirements, technical docs and training placeholders per component in git; summaries synced to the Project READMEs; PR docs check (warn) | Docs structure (1-Nov-2026) |
 | I-101 | COMMON | Integrations - Server form (121) | ORA-00937 opening the form (server name query) | COMMON 113 |
 | I-102 | COMMON | Users - User form (104) | "More than supported columns" (Account at grid column 13) | COMMON 113 |

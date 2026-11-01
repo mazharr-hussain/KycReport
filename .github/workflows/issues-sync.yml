@@ -1,0 +1,36 @@
+# When an issue closes, moves its row in repos/ISSUES.md from the open backlog to Fixed (with the date). The commit
+# carries [skip netlify] so it starts no Netlify build.
+name: Issues sync
+on:
+  issues:
+    types: [closed]
+permissions:
+  contents: write
+concurrency: issues-sync
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move the row to Fixed
+        env:
+          NUM: ${{ github.event.issue.number }}
+          REASON: ${{ github.event.issue.state_reason }}
+        run: |
+          python3 - <<'PY'
+          import os, re, datetime
+          n, reason = os.environ['NUM'], os.environ.get('REASON') or 'completed'
+          p = 'repos/ISSUES.md'; s = open(p).read()
+          m = re.search(r'(?m)^\| (I-[0-9A-Z]+) \[#' + n + r'\]\([^)]*\) \|.*$', s)
+          a = s.find('## Open'); b = s.find('## Fixed')
+          if not m or not (a < m.start() < b):
+              raise SystemExit(f'#{n}: no open row - nothing to do')
+          cells = [c.strip() for c in m.group(0).strip('|').split('|')]
+          row = f"| {cells[0]} | {cells[1]} | {cells[2]} | {cells[3]} | Closed {datetime.date.today():%d-%b-%Y}{' (not planned)' if reason == 'not_planned' else ''} |"
+          s = s[:m.start()] + s[m.end() + 1:]
+          b = s.find('## Fixed'); h = s.find('\n|---', b); h = s.find('\n', h + 1) + 1
+          s = s[:h] + row + '\n' + s[h:]
+          open(p, 'w').write(s)
+          PY
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "ISSUES.md: #$NUM closed [skip netlify]" && git push || echo "nothing to commit"

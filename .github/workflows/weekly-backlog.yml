@@ -1,0 +1,30 @@
+# Every Monday: refreshes the issue "Weekly backlog summary" with the open P1 / P2 issues per board (from the
+# "Priority:" line of each issue body). Not labelled, so it stays off the boards.
+name: Weekly backlog summary
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const all = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'open', per_page: 100 });
+            const items = all.filter(i => !i.pull_request && /^Priority:\s*P[12]/m.test(i.body || ''));
+            const pr = i => (i.body.match(/^Priority:\s*(P\d)/m) || [])[1];
+            let md = `Open P1 / P2 issues on ${new Date().toISOString().slice(0, 10)} (refreshed every Monday).\n`;
+            for (const app of ['KYC', 'COMMON']) {
+              for (const p of ['P1', 'P2']) {
+                const l = items.filter(i => i.labels.some(x => x.name === app) && pr(i) === p);
+                md += `\n### ${app} - ${p} (${l.length})\n` + (l.map(i => `- #${i.number} ${i.title}`).join('\n') || '- none') + '\n';
+              }
+            }
+            const title = 'Weekly backlog summary';
+            const ex = all.find(i => i.title === title && !i.pull_request);
+            if (ex) await github.rest.issues.update({ ...context.repo, issue_number: ex.number, body: md });
+            else await github.rest.issues.create({ ...context.repo, title, body: md });
