@@ -19,4 +19,4 @@ common:applications, common:approval-setup, common:attachments, common:communica
 dashboard, home, kyc-requests, kyc-rules, monitoring, parties
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/cases/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

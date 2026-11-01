@@ -48,4 +48,4 @@ The application registers its entries with `XXFND_APPLICATION_PKG.REGISTER_MENU_
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/application-menu/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

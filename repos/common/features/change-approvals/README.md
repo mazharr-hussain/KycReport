@@ -51,4 +51,4 @@ The application registers its controlled setup tables with `XXFND_APPROVAL_PKG.R
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/change-approvals/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

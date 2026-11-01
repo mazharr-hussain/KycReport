@@ -49,4 +49,4 @@ The application reads the policy that applies with `XXFND_RETENTION_PKG.POLICY_F
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/retention/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

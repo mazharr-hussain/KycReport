@@ -56,4 +56,4 @@ Before anything else an application is onboarded: `XXFND_APPLICATION_PKG.ONBOARD
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/applications/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

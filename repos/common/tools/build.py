@@ -143,7 +143,7 @@ def build(repo, release, out):
                         z.write(os.path.join(d, f), os.path.relpath(os.path.join(d, f), dist_app))
         print('wrote', target)
     deploy(repo, app)
-    import feature_docs                     # every feature's docs/TECHNICAL.md, from the same source
+    import feature_docs                     # every feature's docs/components/<feature>/technical.md
     feature_docs.run((repo,))
 
 

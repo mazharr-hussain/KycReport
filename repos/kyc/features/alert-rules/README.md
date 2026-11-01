@@ -19,4 +19,4 @@ common:lookups, common:roles-privileges, monitoring
 dashboard, monitoring
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/alert-rules/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

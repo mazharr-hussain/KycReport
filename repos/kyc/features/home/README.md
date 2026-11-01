@@ -19,4 +19,4 @@ cases, common:information-requests, common:lookups, common:roles-privileges, com
 -
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/home/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

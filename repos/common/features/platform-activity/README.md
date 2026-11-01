@@ -46,4 +46,4 @@ Nothing to do: every registered application appears.
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/platform-activity/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

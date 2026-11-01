@@ -47,4 +47,4 @@ Link to COMMON page 46 (`app: COMMON`) for the record (KYC: page 211); `XXFND_NO
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/communications/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

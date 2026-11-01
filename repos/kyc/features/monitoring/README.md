@@ -19,4 +19,4 @@ alert-rules, cases, common:attachments, common:data-security, common:lookups, co
 alert-rules, dashboard, parties
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/kyc/docs/components/monitoring/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

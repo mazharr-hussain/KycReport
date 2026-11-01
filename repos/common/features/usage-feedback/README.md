@@ -47,4 +47,4 @@ The application links its Feedback entry to COMMON page 173 (Give Feedback).
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/usage-feedback/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

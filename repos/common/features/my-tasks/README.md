@@ -49,4 +49,4 @@ Link to COMMON page 40 (`app: COMMON`, or the entry My Tasks of `XXFND_APP_MENU_
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/my-tasks/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

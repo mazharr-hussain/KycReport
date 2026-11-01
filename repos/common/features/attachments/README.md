@@ -55,4 +55,4 @@ The application registers its entities, categories and attachment pages (`XXFND_
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/attachments/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

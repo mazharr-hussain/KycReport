@@ -50,4 +50,4 @@ Nothing to install in the application. IT may set its object prefix (page 175) a
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/data-model/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

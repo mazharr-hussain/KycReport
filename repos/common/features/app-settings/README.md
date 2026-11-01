@@ -47,4 +47,4 @@ An application declares its settings in its own application.apx (appSetting). CO
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/app-settings/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -52,4 +52,4 @@ The application creates an RFI with `XXFND_RFI_PKG.CREATE_RFI` (entity, key, rec
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/information-requests/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.

@@ -53,4 +53,4 @@ The application's authentication schemes call `XXFND_USER_PKG.POST_AUTH_LOCAL` /
 - in `../../tests/` (whole application)
 
 ## Files
-See `docs/TECHNICAL.md` (generated on every build): pages, database objects, shared components, configuration and tests.
+See `repos/common/docs/components/users-access/technical.md` (generated on every build): pages, database objects, shared components, configuration and tests.
