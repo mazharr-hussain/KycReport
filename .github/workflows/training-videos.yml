@@ -1,0 +1,23 @@
+# Manual run: uploads the training videos (mp4) kept in the repository to the GitHub Release "training-videos", so
+# videos are no longer added to git; each component's docs/components/<x>/video.md links to its asset.
+name: Training videos
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view training-videos >/dev/null 2>&1 || gh release create training-videos --title "Training videos" \
+            --notes "Training videos of COMMON and KYC (assets). Each component's docs/components/<x>/video.md links to its video."
+          for f in $(find . -name '*.mp4' -not -path './.git/*'); do
+            app=$(echo "$f" | grep -q '/kyc/' && echo kyc || echo common)
+            cp "$f" "$app-$(basename "$f")"
+            gh release upload training-videos "$app-$(basename "$f")" --clobber
+          done
