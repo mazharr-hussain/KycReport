@@ -1,7 +1,8 @@
 # Deploy COMMON to the validation database (#192) with a direct SQLcl login (passwords) - for now, until the IDCS
 # token login (#195) works. Steps: ADMIN bootstrap (creates only what is missing: users XXCUS / XXFUSION with random
 # passwords and ADMIN as their proxy, grants, workspace XXCUS, REST-enabled schemas), COMMON install as XXFUSION, no invalid objects,
-# COMMON app validated and imported into workspace XXCUS.
+# COMMON app validated and imported into workspace XXCUS. Every run starts clean: app 135 removed, both schemas
+# emptied (repos/common/db/admin/clear-schema.sql), then a fresh install.
 name: Validation - deploy COMMON
 
 on:
@@ -58,6 +59,25 @@ jobs:
 
       - name: Build COMMON
         run: sh repos/kyc/build.sh > /dev/null && sh repos/common/build.sh
+
+      - name: Drop the COMMON app and every object of XXCUS and XXFUSION (fresh install)
+        run: |
+          cat > "$RUNNER_TEMP/rmapp.sql" <<'SQL'
+          declare
+              l_n pls_integer;
+          begin
+              select count(*) into l_n from apex_applications where application_id = 135;
+              if l_n > 0 then
+                  apex_instance_admin.remove_application(p_application_id => 135);
+                  commit;
+                  dbms_output.put_line('removed application 135');
+              end if;
+          end;
+          /
+          SQL
+          $V ADMIN "$RUNNER_TEMP/rmapp.sql" check
+          $V XXCUS "$PWD/repos/common/db/admin/clear-schema.sql" check
+          $V XXFUSION "$PWD/repos/common/db/admin/clear-schema.sql" check
 
       - name: Install COMMON as XXFUSION
         run: $V XXFUSION "$PWD/repos/common/db/deploy/install/run-all.sql" check

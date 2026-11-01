@@ -350,8 +350,8 @@
    "common/features/data-security/db/triggers/xxfnd_data_rules_assign.sql",
    "common/db/scripts/09b-security-framework-objects/13-xxfnd_util_pkg-create_who_trigger.sql",
    "common/features/roles-privileges/db/package_specs/xxfnd_privilege_pkg.pks",
-   "common/features/roles-privileges/db/package_bodies/xxfnd_privilege_pkg.pkb",
    "common/features/data-security/db/package_specs/xxfnd_vpd_pkg.pks",
+   "common/features/roles-privileges/db/package_bodies/xxfnd_privilege_pkg.pkb",
    "common/features/data-security/db/package_bodies/xxfnd_vpd_pkg.pkb"
   ]
  },

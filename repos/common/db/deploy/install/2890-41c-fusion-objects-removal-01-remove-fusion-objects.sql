@@ -4,7 +4,8 @@
 -- privileges and pages, its menu entry, purpose FUSION_OBJECTS while it has no logged calls, template XXFND_FI_ALERT,
 -- messages XXFND_FI_*), drops the engine packages, then drops each engine table only while it holds no rows (recorded
 -- in XXFND_DROPPED_OBJECTS); a table with rows, and any replica the engine generated, is kept as it is.
--- Re-runnable: nothing happens once everything is gone.
+-- Re-runnable: nothing happens once everything is gone, nor on a fresh install where 40z never ran (I-044: each
+-- unregister call only for what is registered - the unregister routines raise ORA-20187 otherwise).
 --------------------------------------------------------------------------------
 declare
     l_n pls_integer;
@@ -13,12 +14,19 @@ begin
     -- COMMON's own menu entry (made by SYNC_MENU, which only adds)
     delete from xxfnd_app_menu_entries
      where application_code = 'COMMON' and entry_code = 'F_FUSION_OBJECTS' and made_by = 'COMMON';
-    xxfnd_privilege_pkg.unregister_feature('COMMON', 'FUSION_OBJECTS');
-    select count(*) into l_n from xxfnd_integration_calls where purpose_code = 'FUSION_OBJECTS';
-    if l_n = 0 then
+    select count(*) into l_n from xxfnd_features where feature_code = 'FUSION_OBJECTS';
+    if l_n > 0 then
+        xxfnd_privilege_pkg.unregister_feature('COMMON', 'FUSION_OBJECTS');
+    end if;
+    select count(*) into l_n from xxfnd_integration_purposes where purpose_code = 'FUSION_OBJECTS'
+       and not exists (select null from xxfnd_integration_calls where purpose_code = 'FUSION_OBJECTS');
+    if l_n > 0 then
         xxfnd_integration_pkg.unregister_purpose('COMMON', 'FUSION_OBJECTS');
     end if;
-    xxfnd_notify_pkg.unregister_template('COMMON', 'XXFND_FI_ALERT');
+    select count(*) into l_n from xxfnd_notification_templates where template_code = 'XXFND_FI_ALERT';
+    if l_n > 0 then
+        xxfnd_notify_pkg.unregister_template('COMMON', 'XXFND_FI_ALERT');
+    end if;
     delete from xxfnd_messages where message_code like 'XXFND\_FI\_%' escape '\';
     xxfnd_util_pkg.set_install_mode(false);
     commit;

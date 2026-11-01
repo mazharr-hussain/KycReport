@@ -82,8 +82,8 @@ set define off
 @@0800-trigger-xxfnd_data_rules_assign.sql
 @@0810-09b-security-framework-objects-13-xxfnd_util_pkg-create_who_trigger.sql
 @@0820-package-spec-xxfnd_privilege_pkg.pks
-@@0830-package-body-xxfnd_privilege_pkg.pkb
-@@0840-package-spec-xxfnd_vpd_pkg.pks
+@@0830-package-spec-xxfnd_vpd_pkg.pks
+@@0840-package-body-xxfnd_privilege_pkg.pkb
 @@0850-package-body-xxfnd_vpd_pkg.pkb
 @@0860-10a-flexfield-context-rule-01-add_column-xxfnd_df_flexfields.sql
 @@0870-09c-shared-objects-from-kyc-scripts-01-add_column-xxfnd_features.sql

@@ -115,8 +115,8 @@ set define off
 @@1130-trigger-xxfnd_data_rules_assign.sql
 @@1140-09b-security-framework-objects-13-xxfnd_util_pkg-create_who_trigger.sql
 @@1150-package-spec-xxfnd_privilege_pkg.pks
-@@1160-package-body-xxfnd_privilege_pkg.pkb
-@@1170-package-spec-xxfnd_vpd_pkg.pks
+@@1160-package-spec-xxfnd_vpd_pkg.pks
+@@1170-package-body-xxfnd_privilege_pkg.pkb
 @@1180-package-body-xxfnd_vpd_pkg.pkb
 @@1190-10a-flexfield-context-rule-01-add_column-xxfnd_df_flexfields.sql
 @@1200-09c-shared-objects-from-kyc-scripts-01-add_column-xxfnd_features.sql
