@@ -37,8 +37,8 @@
   "KYC Application" (https://github.com/users/mazharr-hussain/projects/3, label `KYC`) and "Common Application"
   (https://github.com/users/mazharr-hussain/projects/4, label `COMMON`); the workflow `add-to-project.yml` puts each
   labelled issue on its board. Every issue reported (or found) becomes a GitHub issue at once, before any plan, with its
-  label (`KYC` / `COMMON`), its type label (`bug` / `enhancement` / `task`), its priority label (`P1` / `P2` / `P3`)
-  and its I-number in the title. A release PR closes its issues with "Fixes #n" in the PR body,
+  one label only (`KYC` / `COMMON`), its I-number in the title, and in its body the lines `Type: Bug|Enhancement|Task`
+  and `Priority: P1|P2|P3` - the workflow copies them into the project fields "Issue Type" and "Priority". A release PR closes its issues with "Fixes #n" in the PR body,
   so they close (Done on the board) when the PR merges. `repos/ISSUES.md` mirrors the list (I-number -> issue number,
   fixed release). Read the open issues at the start of every chat and show the closed / still-open issues after each release.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user

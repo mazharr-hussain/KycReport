@@ -1,28 +1,58 @@
-# Puts each new or labelled issue on its GitHub Project board: label COMMON -> the COMMON project,
-# label KYC -> the KYC project. Project URLs come from the repository variables COMMON_PROJECT_URL and
-# KYC_PROJECT_URL; the token (classic, scopes project + repo) from the secret ADD_TO_PROJECT_PAT.
+# Puts each issue on its GitHub Project board (label COMMON -> COMMON_PROJECT_URL, label KYC -> KYC_PROJECT_URL)
+# and fills the project fields "Issue Type", "Priority" and "Status" from lines in the issue body:
+#   Type: Bug | Enhancement | Task      Priority: P1 | P2 | P3      Status: <an option of the Status field>
+# Works with text or single-select fields (a single-select value must match an option name). Token: secret
+# ADD_TO_PROJECT_PAT (classic, scopes project + repo).
 name: Add issues to projects
 on:
   issues:
-    types: [opened, reopened, labeled, transferred]
+    types: [opened, reopened, edited, labeled, transferred]
 permissions:
   issues: read
 jobs:
-  common:
-    if: contains(github.event.issue.labels.*.name, 'COMMON')
+  board:
+    if: contains(github.event.issue.labels.*.name, 'COMMON') || contains(github.event.issue.labels.*.name, 'KYC')
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [COMMON, KYC]
     steps:
-      - uses: actions/add-to-project@v1.0.2
+      - name: Add to the project
+        id: add
+        if: contains(github.event.issue.labels.*.name, matrix.app)
+        uses: actions/add-to-project@v1.0.2
         with:
-          project-url: ${{ vars.COMMON_PROJECT_URL }}
+          project-url: ${{ matrix.app == 'COMMON' && vars.COMMON_PROJECT_URL || vars.KYC_PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
-          labeled: COMMON
-  kyc:
-    if: contains(github.event.issue.labels.*.name, 'KYC')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/add-to-project@v1.0.2
+          labeled: ${{ matrix.app }}
+      - name: Set Issue Type, Priority and Status from the issue body
+        if: steps.add.outputs.itemId
+        uses: actions/github-script@v7
+        env:
+          PROJECT_URL: ${{ matrix.app == 'COMMON' && vars.COMMON_PROJECT_URL || vars.KYC_PROJECT_URL }}
+          ITEM_ID: ${{ steps.add.outputs.itemId }}
         with:
-          project-url: ${{ vars.KYC_PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
-          labeled: KYC
+          script: |
+            const body = context.payload.issue.body || '';
+            const pick = (k) => { const m = body.match(new RegExp('^\\**' + k + ':\\**\\s*([^\\n*]+)', 'mi')); return m ? m[1].trim() : null; };
+            const wanted = { 'Issue Type': pick('Type'), 'Priority': pick('Priority'), 'Status': pick('Board status') };
+            const [, login, number] = process.env.PROJECT_URL.match(/users\/([^/]+)\/projects\/(\d+)/);
+            const q = await github.graphql(`query($l:String!,$n:Int!){ user(login:$l){ projectV2(number:$n){ id
+              fields(first:50){ nodes{ __typename ... on ProjectV2FieldCommon{ id name }
+                ... on ProjectV2SingleSelectField{ options{ id name } } } } } } }`, { l: login, n: Number(number) });
+            const project = q.user.projectV2;
+            for (const [name, value] of Object.entries(wanted)) {
+              if (!value) continue;
+              const f = project.fields.nodes.find(x => x.name && x.name.toLowerCase() === name.toLowerCase());
+              if (!f) { core.warning(`Project field "${name}" not found`); continue; }
+              let v;
+              if (f.options) {
+                const o = f.options.find(x => x.name.toLowerCase() === value.toLowerCase());
+                if (!o) { core.warning(`No option "${value}" in field "${name}"`); continue; }
+                v = { singleSelectOptionId: o.id };
+              } else { v = { text: value }; }
+              await github.graphql(`mutation($p:ID!,$i:ID!,$f:ID!,$v:ProjectV2FieldValue!){
+                updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:$v}){ projectV2Item{ id } } }`,
+                { p: project.id, i: process.env.ITEM_ID, f: f.id, v });
+            }
