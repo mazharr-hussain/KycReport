@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
     steps:
+      - name: GitHub OIDC claims (what the trust rule must match)
+        run: |
+          t=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://cloud.oracle.com" | jq -r .value)
+          echo "$t" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, aud, environment, repository}' || true
+
       - name: IDCS token exchange (github-ci-svc)
         id: oci
         continue-on-error: true
