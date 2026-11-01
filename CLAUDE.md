@@ -33,6 +33,9 @@
   deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it. The repository is connected
   to Netlify, so every push to a branch with an open PR and every merge to main starts a Netlify build: **no push and
   no merge at all (zero) until the user clearly says to push.** Commit locally only; do not report Netlify comments.
+- **Issue backlog (from the user):** every issue reported (or found) gets an I-number in `repos/ISSUES.md` at once,
+  before any plan; it is marked Fixed only when its release ships, naming the release. Read `repos/ISSUES.md` at the start
+  of every chat and show the closed / still-open issues after each release.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
   confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
 - **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes
