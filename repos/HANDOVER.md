@@ -1,6 +1,6 @@
 # Handover - current state for a new chat (as of COMMON 113 / KYC 105)
 
-Read this first, then `CLAUDE.md` (rules) and the requirements summary
+Read this first, then `ISSUES.md` (the complete issue backlog - keep it updated with every release), then `CLAUDE.md` (rules) and the requirements summary
 https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G (functional reference, updated up to COMMON 113).
 
 ## 1. Where things are
@@ -45,7 +45,7 @@ https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G (functional reference, updated
 - Do not run COMMON 111+ with the current KYC: KYC's `kyc-user` authorization still calls `KYC_USER` (now false) -
   see C18 below.
 
-## 5. Pending - agreed, not started (each needs its plan and approval first)
+## 5. Pending - agreed, not started (each needs its plan and approval first; full list with numbers in `ISSUES.md`)
 ### KYC (the user does KYC "later in one go")
 1. **C18** - KYC `kyc-user` scheme must call `xxfnd_user_pkg.authorized('APP_USER')`; deploy with COMMON 111+.
 2. **One process per component** - KYC to use the COMMON 113 model: one approval process for the KYC case and one for
