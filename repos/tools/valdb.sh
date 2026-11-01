@@ -8,7 +8,7 @@ tmp=$(mktemp); log=$(mktemp)
   echo "whenever sqlerror exit failure"
   echo "whenever oserror exit failure"
   echo "set cloudconfig $WALLET"
-  echo "connect $user/\"$pw\"@$VAL_DB_SERVICE"
+  printf 'connect %s/"%s"@%s\n' "$user" "$pw" "$VAL_DB_SERVICE"  # printf: echo in sh would change a \ in the password
   [ "$mode" = check ] || echo "whenever sqlerror continue"
   echo "set serveroutput on size unlimited"
   echo "@$file"
