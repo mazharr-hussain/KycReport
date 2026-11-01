@@ -51,6 +51,13 @@ jobs:
 
       - name: Bootstrap as ADMIN (creates only what is missing)
         run: |
+          # ADB password rules, checked here so the error names the secret (no password is printed)
+          for x in "XXCUS VAL_DB_PASSWORD $XXCUS_PW" "XXFUSION VAL_DB_XXFUSION_PASS $XXFUSION_PW"; do
+            set -- $x; u=$1; s=$2; p=$3
+            echo "$s: length ${#p}"
+            echo "$p" | grep -qi "$u" && echo "::error::$s contains the user name $u - ADB refuses it"
+            [ ${#p} -ge 12 ] && [ ${#p} -le 30 ] || echo "::error::$s must be 12-30 characters"
+          done
           f="$RUNNER_TEMP/bootstrap.sql"
           { echo "set define on verify off"
             printf 'define xxcus_pw = "%s"\n' "$XXCUS_PW"
