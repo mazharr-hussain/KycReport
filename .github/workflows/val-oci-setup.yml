@@ -32,9 +32,9 @@ jobs:
         uses: gtrevorrow/oci-token-exchange-action@v1
         with:
           oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
-          domain_base_url: ${{ secrets.OCI_DOMAIN_URL }}
+          domain_base_url: ${{ vars.OCI_DOMAIN_URL }}
           oci_tenancy: ${{ secrets.OCI_TENANCY }}
-          oci_region: ${{ secrets.OCI_REGION }}
+          oci_region: ${{ vars.OCI_REGION }}
 
       - uses: actions/setup-java@v4
         with:
