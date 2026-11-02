@@ -27,8 +27,8 @@ jobs:
     timeout-minutes: 90
     env:
       SQL: ${{ github.workspace }}/opt/oracle/sqlcl/bin/sql
-      WALLET: ${{ runner.temp }}/wallet.zip
-      LOG_DIR: ${{ runner.temp }}/common-logs
+      WALLET: /tmp/common-run/wallet.zip
+      LOG_DIR: /tmp/common-run/logs
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
       XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
@@ -75,7 +75,7 @@ jobs:
         env:
           WALLET_B64: ${{ secrets.VAL_DB_WALLET }}
         run: |
-          printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
+          mkdir -p /tmp/common-run && printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
           bash repos/common/deployment/db/run.sh "${{ github.event.pull_request.base.sha || 'origin/main' }}"
 
       - name: Issue on failure
@@ -112,5 +112,5 @@ jobs:
         if: always()
         with:
           name: common-pipeline-logs
-          path: ${{ runner.temp }}/common-logs
+          path: /tmp/common-run/logs
           if-no-files-found: ignore
