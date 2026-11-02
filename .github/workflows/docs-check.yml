@@ -3,7 +3,7 @@
 name: Docs check
 on:
   pull_request:
-    paths: ['repos/*/features/**']
+    paths: ['repos/kyc/features/**']   # COMMON: step in repos/common/deployment/checks/run.sh
 permissions:
   contents: read
   pull-requests: read

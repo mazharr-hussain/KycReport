@@ -7,7 +7,7 @@ The current (As-Is) KYC process as described in [V2 — As-Is Process](../busine
     2. Open via **File → Open from → GitHub**
     3. Navigate to `docs/diagrams/drawio/asis-process.drawio`
     4. Edit visually and save — it commits directly to GitHub
-    5. Netlify rebuilds and this page updates automatically
+    5. The docs workflow rebuilds the site and this page updates automatically
 
 ![System Boundary](drawio/asis-process.drawio)
 

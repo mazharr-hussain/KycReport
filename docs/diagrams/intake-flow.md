@@ -7,7 +7,7 @@ Covers Phase 0 (Request Intake) and Phase 1 (Document Validation) of the KYC pro
     2. Open via **File → Open from → GitHub**
     3. Navigate to `docs/diagrams/drawio/intake-flow.drawio`
     4. Edit visually and save — it commits directly to GitHub
-    5. Netlify rebuilds and this page updates automatically
+    5. The docs workflow rebuilds the site and this page updates automatically
 
 ![Intake and Document Validation](drawio/intake-flow.drawio)
 

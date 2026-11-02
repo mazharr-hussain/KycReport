@@ -10,6 +10,7 @@ name: Checks
 
 on:
   pull_request:
+    paths: ['repos/kyc/**']   # COMMON runs in pipeline.yml (one record per COMMON PR)
   workflow_dispatch:
 
 permissions:

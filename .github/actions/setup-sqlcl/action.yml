@@ -1,0 +1,47 @@
+# SQLcl for the COMMON pipeline jobs: Java 21, SQLcl 26.1.2 (cached, checksum verified) and, when a wallet is given,
+# the validation database wallet. Sets SQL (SQLcl launcher) and WALLET (wallet zip) for the following steps.
+name: Set up SQLcl
+description: Java, checksum-verified SQLcl and the validation database wallet
+inputs:
+  wallet:
+    description: Base64 wallet zip of the validation database (secret VAL_DB_WALLET); empty for offline jobs
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      with:
+        distribution: temurin
+        java-version: '21'
+    - name: SQLcl 26.1.2 (cache)
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/sqlcl
+        key: sqlcl-26.1.2-2-sha256-2a7c98d1
+    - name: Download and verify SQLcl
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        URL: https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
+        SHA256: 2a7c98d1ea618383b2db26cb806c844b4cda34e824235b4085ef8742c0e75d83
+      run: |
+        set -euo pipefail
+        sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
+        cd "$RUNNER_TEMP"
+        curl -fsSL -o sqlcl.rpm "$URL"
+        echo "$SHA256  sqlcl.rpm" | sha256sum -c -
+        mkdir -p sqlcl-rpm && (cd sqlcl-rpm && rpm2cpio ../sqlcl.rpm | cpio -idm --quiet)
+        mv sqlcl-rpm/opt/oracle/sqlcl sqlcl && rm -rf sqlcl-rpm sqlcl.rpm
+    - name: SQLcl and wallet paths
+      shell: bash
+      env:
+        WALLET_B64: ${{ inputs.wallet }}
+      run: |
+        set -euo pipefail
+        echo "SQL=$RUNNER_TEMP/sqlcl/bin/sql" >> "$GITHUB_ENV"
+        if [ -n "$WALLET_B64" ]; then
+          printf '%s' "$WALLET_B64" | base64 -d > "$RUNNER_TEMP/wallet.zip"
+          echo "WALLET=$RUNNER_TEMP/wallet.zip" >> "$GITHUB_ENV"
+        fi

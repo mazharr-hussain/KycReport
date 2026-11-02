@@ -32,10 +32,13 @@
   produced later from browser screen recordings: `user-guide.md`, `training-manual.md`, `setup-manual.md`, `video.md`
   (link to the video, a GitHub Release asset - no mp4 in git), `narration.md` (voice-over script) and `subtitles.vtt`.
   The claude.ai requirements page (https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G) is no longer updated.
-- **Golden rule: no Netlify.** Do not deploy, publish or trigger anything on Netlify (no Netlify builds,
-  deploys or previews, no changes to `netlify.toml`) until the user clearly instructs it. The repository is connected
-  to Netlify, so every push to a branch with an open PR and every merge to main starts a Netlify build: **no push and
-  no merge at all (zero) until the user clearly says to push.** Commit locally only; do not report Netlify comments.
+- **Claude codes and reviews, the git workflow does the rest (from the user, 2 Nov 2026).** Claude only changes the
+  code and reviews it offline, then opens the PR and pushes; deployment, database checks, tests, release zip, merge
+  and error reports are done by the COMMON pipeline (`repos/common/deployment/README.md`). GitHub settings still to do
+  by the user: `repos/common/deployment/GITHUB-SETUP.md`.
+- **Netlify removed (from the user, 2 Nov 2026).** The repository is not published on Netlify; nothing is deployed,
+  published or triggered there. Pushing to the session branch is allowed; a PR merges only through the COMMON pipeline
+  (required check "9 Finalize the PR" + GitHub auto-merge, `repos/common/deployment/README.md`).
 - **Issue backlog (from the user):** the backlog is the GitHub issues of this repository, shown on two GitHub Projects:
   "KYC Application" (https://github.com/users/mazharr-hussain/projects/3, label `KYC`) and "Common Application"
   (https://github.com/users/mazharr-hussain/projects/4, label `COMMON`); the workflow `add-to-project.yml` puts each
@@ -92,8 +95,6 @@
 - **Always use the Oracle skills** for database and APEX work: the Db and Apex skills from
   `mazharr-hussain/OracleskillsMirror` (clone to `/home/user/mazharr-hussain/oracleskillsmirror`, fetch the latest first;
   `db/SKILL.md`, `apex/apexlang/26.1/`). Read the matching skill file before reviewing or changing DB objects or APEXlang.
-- **Reviews use the files, not the database:** do not start or query the local database for a review; validate against
-  the scripts (`apex/db`) and the APEXlang source.
-- **Changes: start the database in the background, change the code meanwhile.** When changes are approved, start the
-  database session (`dbup.sh`) in the background at once and make all code changes while it starts; run the tests
-  when the changes are done and the database is up. Never wait idle for the database.
+- **No database in the chat session (from the user):** reviews and changes are validated offline against the files
+  (`repos/<app>/db`, the APEXlang source, the Oracle skills); the database checks run in the COMMON pipeline on the
+  validation database (fresh install, upgrade with data, online validation, DB tests).

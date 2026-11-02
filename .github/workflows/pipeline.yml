@@ -1,0 +1,396 @@
+# COMMON pipeline (app 135, schema XXFUSION) - one record per pull request run, named after the PR title.
+# Agreed flow (steps 1-2 happen before the pipeline: Claude changes the code, reviews it, opens the PR and pushes):
+#    3 Offline validation (no OCI, no DB)      4 OCI setup (placeholder)        5 DB setup
+#    6 Deploy fresh app                         7 Upgrade app (no data lost)     8 Testing and validation
+#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 merge (GitHub auto-merge on this required check)
+#   10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
+# Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 3 and 9 only.
+# Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
+name: COMMON
+run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}:${{ github.run_number }}"
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# one run at a time on the validation database (jobs 5-9 share its state); a newer push waits, it is not cancelled
+concurrency:
+  group: validation-db
+  cancel-in-progress: false
+
+env:
+  LOG_DIR: /tmp/pipeline-logs   # step logs (lib/step.sh); each job uploads its own as logs-<job>
+
+jobs:
+  offline:
+    name: 3 Offline validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      common: ${{ steps.scope.outputs.common }}
+      release: ${{ steps.scope.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scope - does this PR touch COMMON, does it add a release?
+        id: scope
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BASE" ]; then
+            echo "common=true" >> "$GITHUB_OUTPUT"; echo "release=" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          changed=$(git diff --name-only "$BASE" HEAD)
+          if printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/workflows/pipeline\.yml|\.github/actions/)'; then
+            echo "common=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "common=false" >> "$GITHUB_OUTPUT"
+          fi
+          release=$(git diff --name-only --diff-filter=A "$BASE" HEAD -- 'repos/common/releases/' \
+            | sed -nE 's#^repos/common/releases/([0-9]+)-[^/]+/README\.md$#\1#p' | head -1)
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.scope.outputs.common == 'true'
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/setup-sqlcl
+        if: steps.scope.outputs.common == 'true'
+      - name: Lint tools and PMD 7.29.0 (checksum verified)
+        if: steps.scope.outputs.common == 'true'
+        env:
+          PMD_URL: https://github.com/pmd/pmd/releases/download/pmd_releases/7.29.0/pmd-dist-7.29.0-bin.zip
+          PMD_SHA256: d27177c185b837fa57f097e482d1253468aa035379c5eb2671fa0a279109b179
+        run: |
+          set -euo pipefail
+          pip install -q actionlint-py==1.7.12.25 shellcheck-py==0.11.0.1 pyyaml==6.0.2
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o pmd.zip "$PMD_URL"
+          echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
+          unzip -q pmd.zip && rm pmd.zip
+          echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
+      - name: 3.1-3.6 Offline validation
+        if: steps.scope.outputs.common == 'true'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
+          bash repos/common/deployment/checks/run.sh
+      - name: This version's application (built once, deployed by jobs 6-7)
+        if: steps.scope.outputs.common == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: common-dist
+          path: repos/common/dist/app
+          if-no-files-found: error
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-3-offline
+          path: ${{ env.LOG_DIR }}
+          if-no-files-found: ignore
+
+  oci-setup:
+    name: 4 OCI setup (placeholder)
+    needs: offline
+    if: needs.offline.outputs.common == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Placeholder - OCI infra, vault / secrets, DB Tools connection, IDCS trust
+        run: echo "Job 4 is a placeholder - the pipeline uses SQLcl with the wallet; nothing to set up on OCI."
+
+  db-setup:
+    name: 5 DB setup
+    needs: oci-setup
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+      XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
+      BASE: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 5.1-5.3 DB setup
+        run: bash repos/common/deployment/db/run.sh setup
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-5-db-setup
+          path: ${{ env.LOG_DIR }}
+          if-no-files-found: ignore
+
+  fresh:
+    name: 6 Deploy fresh app
+    needs: db-setup
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-dist
+          path: repos/common/dist/app
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 6.0-6.3 Deploy fresh app
+        run: bash repos/common/deployment/db/run.sh fresh
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-6-fresh
+          path: ${{ env.LOG_DIR }}
+          if-no-files-found: ignore
+
+  upgrade:
+    name: 7 Upgrade app
+    needs: fresh
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-dist
+          path: repos/common/dist/app
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 7.1-7.7 Upgrade app (last release = the PR's base commit)
+        run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-7-upgrade
+          path: ${{ env.LOG_DIR }}
+          if-no-files-found: ignore
+
+  test:
+    name: 8 Testing and validation
+    needs: upgrade
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 8.1-8.2 Test users and DB tests
+        run: bash repos/common/deployment/db/run.sh test
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-8-test
+          path: ${{ env.LOG_DIR }}
+          if-no-files-found: ignore
+
+  finalize:
+    name: 9 Finalize the PR
+    needs: [offline, oci-setup, db-setup, fresh, upgrade, test]
+    # always() so this required check can never be "skipped" (a skipped check counts as passed for auto-merge);
+    # the gate below fails it whenever an earlier job did not pass
+    if: always()
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 15
+    permissions:
+      contents: write        # draft GitHub Release of the tested zip
+      pull-requests: write   # note on the PR when auto-merge is not enabled
+    env:
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+      COMMON: ${{ needs.offline.outputs.common }}
+      RELEASE: ${{ needs.offline.outputs.release }}
+    steps:
+      - name: Gate - every earlier job passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
+          declare -A title=([offline]="3 Offline validation" [oci-setup]="4 OCI setup" [db-setup]="5 DB setup"
+                            [fresh]="6 Deploy fresh app" [upgrade]="7 Upgrade app" [test]="8 Testing and validation")
+          # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
+          bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
+          if [ "$COMMON" = true ]; then allowed='=success$'; else allowed='=(success|skipped)$'; fi
+          if [ -z "$bad" ] && ! grep -q '^offline=success$' results.txt; then bad=$(grep -m1 '^offline=' results.txt); fi
+          if [ -z "$bad" ]; then bad=$(grep -m1 -vE "$allowed" results.txt || true); fi
+          if [ -n "$bad" ]; then
+            job=${bad%%=*}; result=${bad#*=}
+            msg="9 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
+            echo "::error::$msg"; echo "- **$msg**" >> "$GITHUB_STEP_SUMMARY"; exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.COMMON == 'true'
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-sqlcl
+        if: env.COMMON == 'true'
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 9.1 Release zip - APEXlang export of the tested application
+        if: env.COMMON == 'true'
+        run: |
+          set -euo pipefail
+          bash repos/common/deployment/db/run.sh export "$RUNNER_TEMP/export"
+          app=$(dirname "$(find "$RUNNER_TEMP/export" -name application.apx | head -1)")
+          name="COMMON-Application-APEXlang_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
+          (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
+          echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
+          echo "- 9.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: 9.1 Release zip (artifact)
+        if: env.COMMON == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: common-release-zip
+          path: ${{ env.ZIP }}
+          if-no-files-found: error
+      - name: 9.1 Draft GitHub Release (published by release.yml when the PR merges)
+        if: env.COMMON == 'true' && env.RELEASE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="common-$RELEASE"
+          readme=$(find repos/common/releases -maxdepth 2 -path "*/$RELEASE-*/README.md" | head -1)
+          if gh release view "$tag" > /dev/null 2>&1; then
+            if [ "$(gh release view "$tag" --json isDraft -q .isDraft)" != true ]; then
+              echo "::error::Release COMMON $RELEASE is already published - use a new release number"; exit 1
+            fi
+            gh release upload "$tag" "$ZIP" --clobber
+          else
+            gh release create "$tag" "$ZIP" --draft --title "COMMON $RELEASE" --notes-file "${readme:-/dev/null}"
+          fi
+          echo "- 9.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
+      - name: 9.2 Merge - GitHub auto-merge completes it when this check is green
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const pr = context.payload.pull_request;
+            const { data } = await github.rest.pulls.get({ ...context.repo, pull_number: pr.number });
+            if (data.auto_merge) {
+              await core.summary.addRaw('- 9.2 auto-merge is on: GitHub merges the PR now that this check is green\n').write();
+              return;
+            }
+            await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number,
+              body: 'COMMON pipeline passed on ' + pr.head.sha.slice(0, 7) + ', but auto-merge is not enabled on this PR, ' +
+                    'so it was not merged. Enable auto-merge (or merge it) to finish step 9.2.' });
+            await core.summary.addRaw('- 9.2 auto-merge is not enabled - noted on the PR\n').write();
+
+  error:
+    name: 10 Error handling
+    needs: [offline, oci-setup, db-setup, fresh, upgrade, test, finalize]
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write   # the error comment
+    steps:
+      - name: 10.1 Collect the step logs
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: logs-*
+          path: logs
+      - name: 10.1-10.3 Error details - PR comment and run summary, then stop
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        with:
+          retries: 3
+          script: |
+            const fs = require('fs'), path = require('path');
+            const results = JSON.parse(process.env.RESULTS);
+            const title = { offline: '3 Offline validation', 'oci-setup': '4 OCI setup', 'db-setup': '5 DB setup',
+              fresh: '6 Deploy fresh app', upgrade: '7 Upgrade app', test: '8 Testing and validation', finalize: '9 Finalize the PR' };
+            const order = Object.keys(results);   // flow order (the needs list)
+            const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
+            // the job that caused it: the first failed one before job 9 (job 9 only fails because of it)
+            const job = failedJobs.find(k => k !== 'finalize') || failedJobs[0] || 'unknown';
+            const skipped = order.filter(k => results[k].result === 'skipped').map(k => title[k] || k);
+            const name = title[job] || job;
+            const read = f => { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } };
+            let step = '', tail = '';
+            for (const dir of (fs.existsSync('logs') ? fs.readdirSync('logs') : [])) {
+              const failed = read(path.join('logs', dir, 'failed')).trim();
+              if (failed) {
+                step = failed;
+                tail = read(path.join('logs', dir, failed + '.log')).split('\n').slice(-100).join('\n');
+                break;
+              }
+            }
+            const errors = tail.split('\n').filter(l => /ORA-|PLS-|SP2-|ERROR|Error|FAIL/.test(l)).slice(0, 15).join('\n');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const fence = '`'.repeat(3);
+            const body = [
+              `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step \`${step}\`)` : ''}.`,
+              (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
+              (job !== 'finalize' && results.finalize?.result === 'failure' ? `9 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
+              'The PR stays open; push a fix and the pipeline runs again.', '',
+              '| | |', '|---|---|',
+              `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
+              `| Commit | ${(context.payload.pull_request?.head.sha || context.sha).slice(0, 7)} |`, `| Run | ${runUrl} |`, '',
+              '**Errors**', fence, errors || '(see the run log)', fence, '',
+              '<details><summary>Last 100 lines of the step log</summary>', '', fence, tail || '(no step log)', fence, '</details>'
+            ].join('\n');
+            await core.summary.addRaw(body).write();
+            const pr = context.payload.pull_request;
+            if (pr) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
+            }
+            core.setFailed(`Pipeline stopped because of job ${name} failure${step ? ' (step ' + step + ')' : ''}`);
