@@ -53,6 +53,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-043 [#195](https://github.com/mazharr-hussain/KycReport/issues/195) | COMMON | GitHub workflows | OCI and database access through GitHub OIDC token exchange (IDCS service user, database token) - no password or API key | enhancement | P3 | Open | User (IDCS / GitHub setup) + Claude |
 | I-044 [#196](https://github.com/mazharr-hussain/KycReport/issues/196) | COMMON | Install (41c) | Fresh install fails at 41c: ORA-20187 Feature FUSION_OBJECTS is not registered | bug | P1 | Open (fix in #194) | Claude |
 | I-045 [#197](https://github.com/mazharr-hussain/KycReport/issues/197) | COMMON | Install order | XXFND_PRIVILEGE_PKG body compiled before XXFND_VPD_PKG spec (PLS-00201) | bug | P2 | Open (fix in #194) | Claude |
+| I-046 [#198](https://github.com/mazharr-hussain/KycReport/issues/198) | COMMON | OCI infrastructure | Terraform templates (one per resource type) + runner script; first: compartment | task | P2 | Open | Claude |
 
 | I-3A3 [#162](https://github.com/mazharr-hussain/KycReport/issues/162) | COMMON | Review 25-Oct (A3) | `OUTLOOK_MESSAGES`, `SHAREPOINT_DRIVES`, `UCM_CONTENT` - referenced nowhere (prepared, never wired) | enhancement | P3 | Parked (kept: planned integrations) | COMMON-REVIEW |
 | I-3A4 [#163](https://github.com/mazharr-hussain/KycReport/issues/163) | COMMON | Review 25-Oct (A4) | `xxfnd_retention_pkg` - no caller: no automation, job or page runs it, so retention never happens | enhancement | P3 | Parked (retention placeholder) | COMMON-REVIEW |
