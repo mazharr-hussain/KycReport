@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Validation database only (#192): removes every object of the CURRENT user, so the next install is a fresh one.
--- Run by .github/workflows/db-validate.yml as XXCUS first, then as XXFUSION (KYC objects depend on COMMON).
+-- Run by repos/common/deployment/db/run.sh as XXFUSION (and by the KYC pipeline as XXCUS).
 -- Never run it on a dev or production database.
 --------------------------------------------------------------------------------
 declare

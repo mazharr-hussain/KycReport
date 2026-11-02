@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
--- Validation database bootstrap (#192). Run once as ADMIN on the empty validation ADB by
--- .github/workflows/db-validate.yml while the secret VAL_DB_ADMIN_PASSWORD exists (then the user deletes it).
+-- Validation database bootstrap (#192). Run as ADMIN on the validation ADB by repos/common/deployment/db/run.sh
+-- (COMMON pipeline, every run).
 -- Creates only what is missing - an existing user, grant, workspace or APEX user is left as it is - so a re-run
 -- does nothing. Substitution variable (defined by the workflow, never echoed): xxcus_pw (App Builder user only).
 --   1. XXCUS (workspace main schema) and XXFUSION (COMMON objects) users with the privileges 00a checks and a random
