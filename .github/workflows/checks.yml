@@ -9,7 +9,7 @@
 name: Checks
 
 on:
-  pull_request:
+  workflow_call:   # child of the Pipeline wrapper (pipeline.yml)
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   static:
+    name: static checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +36,7 @@ jobs:
           else python3 repos/tools/pr_checks.py; fi
 
   pmd:
+    name: PMD
     # PL/SQL analysis of the changed packages (repos/tools/pmd-plsql.xml); violations are annotations, not failures
     runs-on: ubuntu-latest
     permissions:
@@ -54,6 +56,7 @@ jobs:
           analyzeModifiedFilesOnly: ${{ github.event_name == 'pull_request' }}
 
   build:
+    name: build + APEXlang (${{ matrix.app }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

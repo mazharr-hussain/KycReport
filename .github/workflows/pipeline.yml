@@ -1,0 +1,72 @@
+# Pipeline - the one wrapper a pull request starts (one run in the Actions list). The parent job finds the apps the PR
+# changes and their release numbers; the children run in parallel inside this run:
+#   COMMON <release> Child: common-pipeline.yml   (repos/common changed)  offline checks + database
+#   KYC <release> Child:    checks.yml            (repos/kyc changed)     static checks, PMD, build + APEXlang
+#   REPO Child:             docs-check.yml        (a feature changed)     requirements updated with the code
+# Run name: the PR title (convention "<APP> <release>: <description>") and the run number.
+name: Pipeline
+run-name: "${{ github.event.pull_request.title || format('{0} manual', inputs.app) }} #${{ github.run_number }}"
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Application to run
+        type: choice
+        options: [COMMON, KYC, ALL]
+        default: COMMON
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  detect:
+    name: "Parent: detect changed apps #${{ github.run_number }}"
+    runs-on: ubuntu-latest
+    outputs:
+      common: ${{ steps.d.outputs.common }}
+      kyc: ${{ steps.d.outputs.kyc }}
+      features: ${{ steps.d.outputs.features }}
+      common_release: ${{ steps.d.outputs.common_release }}
+      kyc_release: ${{ steps.d.outputs.kyc_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: d
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          APP: ${{ inputs.app }}
+        run: |
+          if [ -n "$BASE" ]; then changed=$(git diff --name-only "$BASE" HEAD)
+          else changed=$( [ "$APP" = KYC ] && echo repos/kyc/ ; [ "$APP" = COMMON ] && echo repos/common/ ; [ "$APP" = ALL ] && printf 'repos/common/\nrepos/kyc/\n'); fi
+          has() { printf '%s\n' "$changed" | grep -q "$1" && echo true || echo false; }
+          rel() { ls -d repos/$1/releases/[0-9]*/ 2>/dev/null | sed -E 's#.*/([0-9]+)[^/]*/$#\1#' | sort -n | tail -1; }
+          { echo "common=$(has '^repos/common/')"
+            echo "kyc=$(has '^repos/kyc/')"
+            echo "features=$(has '^repos/[a-z]*/features/')"
+            echo "common_release=$(rel common)"
+            echo "kyc_release=$(rel kyc)"; } | tee -a "$GITHUB_OUTPUT"
+
+  common:
+    name: "COMMON ${{ needs.detect.outputs.common_release }} Child: pipeline #${{ github.run_number }}"
+    needs: detect
+    if: needs.detect.outputs.common == 'true'
+    uses: ./.github/workflows/common-pipeline.yml
+    secrets: inherit
+
+  kyc:
+    name: "KYC ${{ needs.detect.outputs.kyc_release }} Child: checks #${{ github.run_number }}"
+    needs: detect
+    if: needs.detect.outputs.kyc == 'true'
+    uses: ./.github/workflows/checks.yml
+    secrets: inherit
+
+  docs:
+    name: "REPO Child: docs check #${{ github.run_number }}"
+    needs: detect
+    if: needs.detect.outputs.features == 'true' && github.event_name == 'pull_request'
+    uses: ./.github/workflows/docs-check.yml
