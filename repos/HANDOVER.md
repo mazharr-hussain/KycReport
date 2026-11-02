@@ -30,7 +30,8 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   setup (placeholder) -> **5** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
   -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
   release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
-  DB tests (failures stop it) -> **9** finalize (gate, APEXlang export zip, draft release; merge by GitHub auto-merge)
+  DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **9** finalize (gate,
+  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; merge by GitHub auto-merge)
   -> **10** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 3 and 9 only.
 - **Merge**: `9 Finalize the PR` is the required check on main; Claude enables auto-merge on its PR (as the user), so
   GitHub merges when the check is green and the workflows on main (`release.yml`, docs) run. `release.yml` publishes the
@@ -40,7 +41,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   ADMIN only for that password, bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
   `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS). The pipeline user gets a new random password
   in every database job (no secret).
-- Netlify is removed (user, 2 Nov 2026). Claude only codes and reviews; the pipeline does everything after the push.
+- Netlify is not used for now (user, 2 Nov 2026) - kept for later; `netlify.toml` keeps builds skipped. Claude only codes and reviews; the pipeline does everything after the push.
   GitHub settings still to do by the user: `repos/common/deployment/GITHUB-SETUP.md`.
 - KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
 

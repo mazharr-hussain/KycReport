@@ -23,7 +23,21 @@ declare
     l_fks      t_list := t_list();
     l_triggers t_list := t_list();
     l_always   t_list := t_list();
+    type t_pol is table of user_policies%rowtype;
+    l_policies t_pol;
+    -- VPD policies off for this step (the DDL above invalidates the policy package: ORA-28112 / ORA-04061);
+    -- always switched back on, also when the step fails
+    procedure policies(p_enable boolean) is
+    begin
+        for i in 1 .. l_policies.count loop
+            dbms_rls.enable_policy(object_schema => user, object_name => l_policies(i).object_name,
+                                   policy_name => l_policies(i).policy_name, enable => p_enable);
+        end loop;
+    end policies;
 begin
+    select * bulk collect into l_policies from user_policies where enable = 'YES';
+    policies(false);
+    begin
     -- foreign keys and triggers off for the load
     for c in (select table_name, constraint_name from user_constraints
                where constraint_type = 'R' and status = 'ENABLED') loop
@@ -103,5 +117,12 @@ begin
 
     dbms_output.put_line('restored ' || l_loaded || ' table(s), ' || l_total || ' row(s) from ' || l_bkp
         || case when l_skipped > 0 then '; ' || l_skipped || ' table(s) kept as installed' end);
+    exception
+        when others then
+            policies(true);
+            raise;
+    end;
+    policies(true);
+    dbms_utility.compile_schema(schema => user, compile_all => false);   -- what the DDL above invalidated
 end;
 /

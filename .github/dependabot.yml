@@ -1,0 +1,16 @@
+# Keeps the pinned GitHub Actions current (issue #211): one weekly pull request per update, which then goes through
+# the COMMON pipeline like any other change. Tool downloads pinned in repos/common/deployment/tools.env are updated
+# by hand (new version -> new checksum).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/setup-sqlcl
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: 'COMMON pipeline'

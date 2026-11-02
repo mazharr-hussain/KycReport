@@ -1,26 +1,38 @@
 #!/bin/bash
 # COMMON pipeline - the database jobs on the validation ADB (environment "Oracle DB Dev"). One call per pipeline job:
 #   run.sh setup               5   DB setup: 5.1 start the DB (placeholder), 5.2 bootstrap only when needed,
-#                                  5.3 backup schema (dropped if it exists, then created)
+#                                  5.3 backup schema (dropped if it exists, then created), 5.4 APEX-SERT installed
+#                                  only when missing or its pinned commit changed
 #   run.sh fresh               6   Deploy fresh app: 6.0 back up the app's data, 6.1 remove app + DB objects,
-#                                  6.2 deploy this version, 6.3 online validation
+#                                  6.2 deploy this version, 6.3 online validation, 6.4 dependency check (report)
 #   run.sh upgrade <base-ref>  7   Upgrade app: 7.1 remove (= 6.1), 7.2 deploy the last release (= 6.2), 7.3 restore
 #                                  the data + snapshot, 7.4 upgrade to this version, 7.5 nothing lost,
 #                                  7.6 online validation (= 6.3), 7.7 drop the backup schema
-#   run.sh test                8   Testing: test users, DB tests (any FAIL or error stops the pipeline)
-#   run.sh export <dir>        9.1 APEXlang export of the tested application into <dir>
+#   run.sh test                8   Testing: 8.1 test users, 8.2 DB tests (any FAIL or error stops the pipeline),
+#                                  8.3 browser smoke test (video, screenshots, trace), 8.4 APEX-SERT, 8.5 DBSAT
+#                                  (8.6 OWASP ZAP runs as a workflow step)
+#   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
+#                                  9.3 readable YAML export (<dir>/apex-docs), 9.4 SchemaSpy (<dir>/db-docs)
 # This version's application must already be built in repos/common/dist/app (pipeline job 3).
 # Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 5.2, 8.1), XXCUS_PW (5.2 only), LOG_DIR,
-#      BASE (pull request base commit, to see whether bootstrap.sql changed).
+#      BASE (pull request base commit, to see whether bootstrap.sql / the SERT pin changed), REPORT_DIR (reports and
+#      recordings, uploaded by the workflow), APP_URL (ORDS base URL, lib/app-url.sh), DBSAT_ZIP_URL / DBSAT_ZIP_SHA256
+#      (optional: the user's DBSAT download).
 # A failing step stops the job (lib/step.sh); the error-handling job reports it on the pull request.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
 # shellcheck source=SCRIPTDIR/../app.env
 . "$HERE/../app.env"
+# shellcheck source=SCRIPTDIR/../tools.env
+. "$HERE/../tools.env"
 # shellcheck source=SCRIPTDIR/../lib/step.sh
 . "$HERE/../lib/step.sh"
 export CI_USER
+REPORT_DIR=${REPORT_DIR:-$LOG_DIR/../reports}
+mkdir -p "$REPORT_DIR"
+TOOLS=${RUNNER_TEMP:-/tmp}/pipeline-tools
+mkdir -p "$TOOLS"
 THIS=$ROOT/repos/common
 LAST=${RUNNER_TEMP:-/tmp}/common-last
 
@@ -45,6 +57,20 @@ bootstrap() {  # 5.2 only when the environment is missing or bootstrap.sql chang
   fi
   echo "bootstrap: $reason"
   S ADMIN "$HERE/bootstrap.sql" check ci_user="$CI_USER" ci_pw="$CI_PW" xxcus_pw="${XXCUS_PW:?XXCUS_PW is not set}"
+}
+low_service() { echo "$VAL_DB_SERVICE" | sed -E 's/_(high|medium|tp|tpurgent)$/_low/'; }
+sert_install() {   # 5.4 APEX-SERT: only when SERT_CORE is missing or the pinned commit changed in this PR
+  local f n dir=$TOOLS/apex-sert
+  f=$(mktemp --suffix .sql)
+  echo "select 'SERT_CORE ' || count(*) from all_users where username = 'SERT_CORE';" > "$f"
+  n=$(S CI "$f" check | grep -o 'SERT_CORE [0-9]*' | cut -d' ' -f2); rm -f "$f"
+  if [ "${n:-0}" -gt 0 ] && { [ -z "${BASE:-}" ] || git -C "$ROOT" diff --quiet "$BASE" HEAD -- repos/common/deployment/tools.env; }; then
+    echo "APEX-SERT is installed - nothing to do"; return 0
+  fi
+  rm -rf "$dir"; git init -q "$dir" && git -C "$dir" fetch -q --depth 1 "$SERT_REPO" "$SERT_COMMIT" &&
+    git -C "$dir" checkout -q FETCH_HEAD || return 1
+  # Liquibase install as ADMIN on the LOW service (the HIGH service runs in parallel: ORA-12838 - SERT install guide)
+  (cd "$dir" && VAL_DB_SERVICE=$(low_service) S ADMIN install.sql check)
 }
 backup_schema() {  # 5.3 (drop_only=N) and 7.7 (drop_only=Y)
   S CI "$HERE/backup-schema.sql" check bkp_schema="$BKP_SCHEMA" ci_user="$CI_USER" drop_only="$1"
@@ -72,6 +98,12 @@ validate_online() {  # 6.3 / 7.6
   local pages
   pages=$(find "$THIS/dist/app/pages" -name '*.apx' | wc -l)
   S "$APP_SCHEMA" "$HERE/validate-online.sql" check app_id="$APP_ID" expected_pages="$pages"
+}
+
+dependency_check() {  # 6.4 the deployed schema's dependencies vs the generated map (report, never fails the run)
+  S "$APP_SCHEMA" "$HERE/dependencies.sql" check out="$REPORT_DIR/dependencies-live.csv" &&
+  python3 "$HERE/compare_dependencies.py" "$THIS/db/deploy/dependencies.json" "$REPORT_DIR/dependencies-live.csv" \
+    "$REPORT_DIR/dependency-check.md"
 }
 
 # ---- 7 only ----------------------------------------------------------------------------------------------------------
@@ -106,6 +138,66 @@ db_tests() {    # every release test; a FAIL line or an ORA- / PLS- error fails 
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
 }
 
+ui_smoke() {    # 8.3 every page as each test user (Playwright: video, screenshots, trace)
+  local pw
+  pw=$(sed -n "s/.*c_password constant varchar2(30) := '\([^']*\)'.*/\1/p" "$THIS/db/admin/test-users.sql")
+  UI_PASSWORD=$pw python3 "$HERE/../ui/smoke_ui.py" --base "${APP_URL:?APP_URL is not set}" --app-id "$APP_ID" \
+    --app-path "$APP_PATH" --pages "$THIS/dist/app/pages" --users "$UI_USERS" --skip "$UI_SKIP_PAGES" \
+    --out "$REPORT_DIR/ui"
+}
+sert_eval() {   # 8.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
+  local out
+  out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
+  echo "$out" | grep '^SERT ' | tee "$REPORT_DIR/apex-sert-summary.txt"
+}
+dbsat() {       # 8.5 Oracle DBSAT (collect + report) - needs the user's DBSAT download (repository variables)
+  if [ -z "${DBSAT_ZIP_URL:-}" ] || [ -z "${DBSAT_ZIP_SHA256:-}" ]; then
+    echo "::notice title=DBSAT::skipped - set the repository variables DBSAT_ZIP_URL and DBSAT_ZIP_SHA256 (issue #209)"
+    return 0
+  fi
+  local ic=$TOOLS/instantclient wdir=$TOOLS/wallet d=$TOOLS/dbsat
+  rm -rf "$ic" "$wdir" "$d"; mkdir -p "$ic" "$wdir" "$d"
+  bash "$HERE/../lib/fetch.sh" "$IC_BASIC_URL" "$IC_BASIC_SHA256" "$ic/basic.zip" &&
+  bash "$HERE/../lib/fetch.sh" "$IC_SQLPLUS_URL" "$IC_SQLPLUS_SHA256" "$ic/sqlplus.zip" &&
+  bash "$HERE/../lib/fetch.sh" "$DBSAT_ZIP_URL" "$DBSAT_ZIP_SHA256" "$d/dbsat.zip" || return 1
+  (cd "$ic" && unzip -qo basic.zip && unzip -qo sqlplus.zip) && (cd "$d" && unzip -qo dbsat.zip) && unzip -qo "${WALLET:?}" -d "$wdir" || return 1
+  sed -i "s#?/network/admin#$wdir#" "$wdir/sqlnet.ora"
+  local home; home=$(dirname "$(find "$ic" -name sqlplus -type f | head -1)")
+  # DBSAT reads the password from the terminal prompt; it is given on stdin and never echoed
+  (cd "$d" && export PATH="$home:$PATH" LD_LIBRARY_PATH="$home" TNS_ADMIN="$wdir" &&
+    printf '%s\n' "$ADMIN_PW" | ./dbsat collect -n "ADMIN@$VAL_DB_SERVICE" "$REPORT_DIR/dbsat" &&
+    ./dbsat report -n "$REPORT_DIR/dbsat")
+}
+
+# ---- 9 ---------------------------------------------------------------------------------------------------------------
+readable_export() {   # 9.3 the tested application as readable YAML (documentation)
+  local out=$1 f
+  rm -rf "$out"; mkdir -p "$out"
+  f=$(mktemp --suffix .sql)
+  printf 'apex export -applicationid %s -exptype READABLE_YAML -split -skipexportdate -dir %s\n' "$APP_ID" "$out" > "$f"
+  S "$APP_SCHEMA" "$f" check; local rc=$?; rm -f "$f"
+  [ "$rc" -eq 0 ] && [ -n "$(find "$out" -type f | head -1)" ]
+}
+schemaspy() {   # 9.4 SchemaSpy HTML documentation of the tested schema (tables, columns, comments, keys, diagrams)
+  local out=$1 lib=$TOOLS/schemaspy wdir=$TOOLS/wallet-jdbc
+  rm -rf "$lib" "$wdir" "$out"; mkdir -p "$lib" "$wdir" "$out"
+  bash "$HERE/../lib/fetch.sh" "$SCHEMASPY_URL" "$SCHEMASPY_SHA256" "$lib/schemaspy.jar" &&
+  bash "$HERE/../lib/fetch.sh" "$OJDBC_URL" "$OJDBC_SHA256" "$lib/ojdbc11.jar" &&
+  bash "$HERE/../lib/fetch.sh" "$ORAPKI_URL" "$ORAPKI_SHA256" "$lib/oraclepki.jar" && unzip -qo "${WALLET:?}" -d "$wdir" || return 1
+  # a SchemaSpy database type for a wallet connection (TNS alias + wallet folder); the proxy user reads XXFUSION
+  cat > "$lib/ora-wallet.properties" <<PROPS
+extends=ora
+description=Oracle (wallet)
+connectionSpec=jdbc:oracle:thin:@<db>?TNS_ADMIN=<host>
+db=TNS alias of the wallet
+host=wallet folder
+driver=oracle.jdbc.OracleDriver
+PROPS
+  java -jar "$lib/schemaspy.jar" -t "$lib/ora-wallet.properties" -dp "$lib/ojdbc11.jar:$lib/oraclepki.jar" \
+    -db "$VAL_DB_SERVICE" -host "$wdir" -u "${CI_USER}[$APP_SCHEMA]" -p "$CI_PW" -s "$APP_SCHEMA" -cat % \
+    -vizjs -noimplied -o "$out" && [ -f "$out/index.html" ]
+}
+
 # ---- 9.1 -------------------------------------------------------------------------------------------------------------
 export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 6-8
   local out=$1 f
@@ -124,16 +216,18 @@ export CI_PW
 ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="$CI_PW"; }
 
 step ci-password ci_password
-case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|export <dir>} in
+case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
   setup)
     step 5.1-start-db start_db
     step 5.2-bootstrap bootstrap
-    step 5.3-backup-schema backup_schema N ;;
+    step 5.3-backup-schema backup_schema N
+    step 5.4-apex-sert sert_install ;;
   fresh)
     step 6.0-backup backup
     step 6.1-remove-app remove_app
     step 6.2-deploy-this deploy "$THIS" install
-    step 6.3-online-validation validate_online ;;
+    step 6.3-online-validation validate_online
+    step 6.4-dependency-check dependency_check ;;
   upgrade)
     step 7.1-remove-app remove_app
     step 7.2-build-last build_last "${2:?base ref}"
@@ -145,9 +239,14 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|export <dir>} in
     step 7.7-drop-backup-schema backup_schema Y ;;
   test)
     step 8.1-test-users test_users
-    step 8.2-db-tests db_tests ;;
-  export)
-    step 9.1-export export_app "${2:?export dir}" ;;
+    step 8.2-db-tests db_tests
+    step 8.3-browser-tests ui_smoke
+    step 8.4-apex-sert sert_eval
+    step 8.5-dbsat dbsat ;;
+  finalize)
+    step 9.1-export export_app "${2:?output dir}/app"
+    step 9.3-apex-docs readable_export "$2/apex-docs"
+    step 9.4-db-docs schemaspy "$2/db-docs" ;;
   *)
     echo "unknown job: $1" >&2; exit 2 ;;
 esac

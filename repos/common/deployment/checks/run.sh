@@ -1,10 +1,12 @@
 #!/bin/bash
 # COMMON pipeline job 3 - offline validation, no OCI and no database:
+#   3.0 secret scan of the PR's commits (gitleaks)
 #   3.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts)
 #   3.2 static checks (pr_checks.py)          3.3 requirements check (warning only)
 #   3.4 build                                  3.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
 #   3.6 PMD (PL/SQL rules, warnings only)
-# Usage: run.sh   (env: SQL = SQLcl binary; PMD = PMD launcher; BASE = base commit and BODY = PR body file, optional)
+# Usage: run.sh   (env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
+#                 BODY = PR body file, optional)
 # A failing step stops the job and is recorded for the error-handling job (lib/step.sh).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -12,6 +14,11 @@ ROOT=$(cd "$HERE/../../../.." && pwd)
 # shellcheck source=SCRIPTDIR/../lib/step.sh
 . "$HERE/../lib/step.sh"
 
+secrets_scan() {   # the pull request's commits (or the last commit of a manual run); a finding fails the job
+  local range=${BASE:+$BASE..HEAD}
+  "${GITLEAKS:?GITLEAKS is not set}" git --no-banner --redact --exit-code 1 --log-opts="${range:--1}" \
+    --report-format json --report-path "$LOG_DIR/gitleaks-report.json" "$ROOT"
+}
 lint() {   # workflows, the pipeline's composite actions (their shell steps) and scripts: no finding of any level
   local f tmp rc=0
   actionlint -no-color "$ROOT"/.github/workflows/pipeline.yml "$ROOT"/.github/workflows/release.yml || rc=1
@@ -56,6 +63,7 @@ apexlang() {
 }
 pmd() { bash "$HERE/pmd.sh"; }
 
+step 3.0-secret-scan secrets_scan
 step 3.1-pipeline-lint lint
 step 3.2-static static
 step 3.3-docs-check docs
