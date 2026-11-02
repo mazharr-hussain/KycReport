@@ -40,7 +40,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   ADMIN only for that password, bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
   `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS). The pipeline user gets a new random password
   in every database job (no secret).
-- Netlify is removed (user, 2 Nov 2026). Claude only codes and reviews; the pipeline does everything after the push.
+- Netlify is not used for now (user, 2 Nov 2026) - kept for later; `netlify.toml` keeps builds skipped. Claude only codes and reviews; the pipeline does everything after the push.
   GitHub settings still to do by the user: `repos/common/deployment/GITHUB-SETUP.md`.
 - KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
 
