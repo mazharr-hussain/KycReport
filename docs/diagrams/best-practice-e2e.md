@@ -7,7 +7,7 @@ The complete redesigned KYC process across all 8 phases, aligned to FATF 40 Reco
     2. Open via **File → Open from → GitHub**
     3. Navigate to `docs/diagrams/drawio/best-practice-e2e.drawio`
     4. Edit visually and save — it commits directly to GitHub
-    5. Netlify rebuilds and this page updates automatically
+    5. The docs workflow rebuilds the site and this page updates automatically
 
 ![Best Practice End-to-End Process](drawio/best-practice-e2e.drawio)
 

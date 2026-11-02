@@ -8,7 +8,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   "yes"**. Answers short, few tokens. Every reported item becomes a GitHub issue (one label `COMMON` / `KYC`, its I-number
   in the title, body lines `Type: Bug|Enhancement|Task` and `Priority: P1|P2|P3`).
 - Work only in `repos/common` (COMMON, app 135, schema XXFUSION) and `repos/kyc` (KYC, app 134, schema XXCUS); `apex/` is
-  frozen; never run `repos/tools/build_repos.py`. Pushing and merging are allowed; never touch Netlify.
+  frozen; never run `repos/tools/build_repos.py`. Pushing is allowed; PRs merge through the pipeline (section 3).
 - One package per component; no HTML in PL/SQL; OOTB APEX (Redwood Light); COMMON data changes only through COMMON
   routines; COMMON is never duplicated; no install error ever (checked step scripts).
 - Current focus: **COMMON only**. KYC, infra and IDCS wait until the user asks.
@@ -24,27 +24,26 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
 - Validate offline with the skills (APEXlang validation, SQLcl 26.1.2 - `sqlcl-latest` applies newer APEX rules); the
   database checks run in the GitHub pipeline (section 3), not in the chat session.
 
-## 3. COMMON CI/CD chain (`repos/common/deployment`, workflows `pipeline.yml` + `common-pipeline.yml`)
-- A PR that changes `repos/common/**` starts **one record** in Actions: `<PR title>:<run number>`. PR title convention:
-  `<APP> <release>: <description>` (e.g. `KYC 102: Party Type LOV on Create Request`). Inside: one Child job
-  `<PR title> - Child pipeline:<n>` - steps in sequence share one job; separate jobs only for parallel work.
-- Steps: **offline** `checks/run.sh` (static `pr_checks.py`, requirements docs check (warning), build, APEXlang validate;
-  PMD warnings) -> **database** `db/run.sh <base>` only when offline passed (bootstrap, uninstall app 135 + XXFUSION
-  objects, deploy this version, uninstall, deploy the last version, upgrade to this version, re-run, invalid objects,
-  test users, tests).
-- **Failure**: a comment on the open PR (step, errors, log tail, run link) - the PR stays open, a pushed fix restarts the
-  chain; an issue (label COMMON) only when there is no PR. **All green**: the PR is merged into main and, when the PR adds
-  `repos/common/releases/*_N.zip`, GitHub Release `COMMON N` with that zip (manual deployment download).
-- Claude does **not** watch runs - GitHub reports. Merges made by the pipeline do not start other workflows on main
-  (e.g. `issues-sync`).
+## 3. COMMON CI/CD pipeline (`.github/workflows/pipeline.yml`, scripts in `repos/common/deployment` - README there)
+- Every PR to main starts one record in Actions: `<PR title>:<run number>` (title convention
+  `<APP> <release>: <description>`). Jobs: **3** offline validation (lint, static, docs, build, APEXlang, PMD) -> **4** OCI
+  setup (placeholder) -> **5** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
+  -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
+  release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
+  DB tests (failures stop it) -> **9** finalize (gate, APEXlang export zip, draft release; merge by GitHub auto-merge)
+  -> **10** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 3 and 9 only.
+- **Merge**: `9 Finalize the PR` is the required check on main; Claude enables auto-merge on its PR (as the user), so
+  GitHub merges when the check is green and the workflows on main (`release.yml`, docs) run. `release.yml` publishes the
+  draft release `common-<N>` (the tested zip) when a PR that adds `repos/common/releases/<N>-*/` merges.
 - Validation database: separate Always Free ADB (Jeddah), APEX 26.1.6, workspace XXCUS (schemas XXCUS + XXFUSION).
-  Login: wallet + ADMIN, then `ADMIN[XXFUSION]` proxy (`lib/sql.sh`). Secrets in environment **Oracle DB Dev**:
-  `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS).
+  Login: wallet + pipeline user `XXCI_DEPLOY` (proxy `XXCI_DEPLOY[XXFUSION]`, `lib/sql.sh`, connect line on stdin);
+  ADMIN only for bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
+  `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_CI_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS).
+- Netlify is removed (user, 2 Nov 2026).
 - KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
 
 ## 4. Open items
-- PR #199 `COMMON 113: Pipeline wrapper - one record per run` - first green run not yet confirmed; merges itself when
-  green. Open question: title `COMMON 114` or no release number for pipeline-only PRs.
+- COMMON pipeline redesign (jobs 3-10) - first green run not yet confirmed; replaces PR #199.
 - Issues #196 / #197 (COMMON install fixes, merged in #194) still open - close them.
 - Later: Claude GitHub app fixes failures automatically (needs secret `CLAUDE_CODE_OAUTH_TOKEN`); KYC pipeline
   (`repos/kyc/deployment/`, same pattern).

@@ -7,7 +7,7 @@ All KYC process flows are maintained as **draw.io files** — one authoritative 
     2. Open via **File → Open from → GitHub**
     3. Navigate to the `.drawio` file listed below (all live under `docs/diagrams/drawio/`)
     4. Edit visually and save — it commits directly to GitHub
-    5. Netlify rebuilds and every page referencing that file updates automatically
+    5. The docs workflow rebuilds the site and every page referencing that file updates automatically
 
 !!! warning "Editing pages inside a multi-page file"
     Several files below have more than one page (visible via the page selector in the diagram toolbar). Pages are matched into documents **by exact name** — if you rename a page in diagrams.net, update the "Used In" links for that page too, or the embed will silently fall back to page 1 instead of erroring. If you only redraw shapes/arrows inside a page without renaming it, nothing else needs to change.

@@ -1,32 +1,51 @@
-# Creates the GitHub Release of each application release that lands on main: repos/<app>/releases/<name>_<N>.zip ->
-# release "COMMON N" / "KYC N" (tag common-N / kyc-N) with the zip attached, the release folder's README as notes and
-# the issues the push closed ("Fixes #n" in its commits).
+# Publishes the GitHub Release of each application release that lands on main (one place publishes releases):
+#   - COMMON: the draft release "COMMON N" (tag common-N) prepared by the pipeline (pipeline.yml step 9.1) with the
+#     APEXlang zip exported from the tested application - published here once the PR merges
+#   - otherwise (KYC today): the zip committed in repos/<app>/releases/<name>_<N>.zip
+# Notes: the release folder's README and the issues the push closed ("Fixes #n" in its commits).
 name: Release
 on:
   push:
     branches: [main]
-    paths: ['repos/*/releases/*.zip']
-permissions:
-  contents: write
+    paths: ['repos/*/releases/**']
+permissions: {}
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Create the releases
+          persist-credentials: false
+      - name: Publish the releases
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
         run: |
-          fixes=$(git log --format=%B "$BEFORE..$AFTER" 2>/dev/null | grep -oiE '(fixes|closes|resolves) #[0-9]+' | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ')
-          git diff --name-only --diff-filter=A "$BEFORE" "$AFTER" -- 'repos/*/releases/*.zip' | while read -r zip; do
-            app=$(echo "$zip" | cut -d/ -f2); n=$(echo "$zip" | sed -E 's/.*_([0-9]+)\.zip$/\1/')
-            tag="$app-$n"; title="$(echo "$app" | tr a-z A-Z) $n"
-            gh release view "$tag" >/dev/null 2>&1 && { echo "$tag exists"; continue; }
-            readme=$(ls -d repos/$app/releases/$n-*/README.md 2>/dev/null | head -1)
-            { [ -n "$readme" ] && cat "$readme"; echo; [ -n "$fixes" ] && echo "Closed issues: $fixes"; } > notes.md
-            gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
+          set -euo pipefail
+          fixes=$(git log --format=%B "$BEFORE..$AFTER" 2>/dev/null | grep -oiE '(fixes|closes|resolves) #[0-9]+' \
+            | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ' || true)
+          git diff --name-only --diff-filter=A "$BEFORE" "$AFTER" -- 'repos/*/releases/*/README.md' \
+            | sed -nE 's#^repos/([a-z]+)/releases/([0-9]+)-[^/]+/README\.md$#\1 \2 &#p' \
+            | while read -r app n readme; do
+            tag="$app-$n"; title="$(echo "$app" | tr '[:lower:]' '[:upper:]') $n"
+            { cat "$readme"; echo; if [ -n "$fixes" ]; then echo "Closed issues: $fixes"; fi; } > notes.md
+            draft=$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null || echo none)
+            case $draft in
+              true)
+                gh release edit "$tag" --draft=false --target "$AFTER" --title "$title" --notes-file notes.md
+                echo "published $title (zip from the pipeline)" ;;
+              false)
+                echo "$title is already published" ;;
+              *)
+                zip=$(find "repos/$app/releases" -maxdepth 1 -name "*_$n.zip" | head -1)
+                if [ -z "$zip" ]; then echo "::warning::$title has no draft release and no zip - nothing published"; continue; fi
+                gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
+                echo "published $title (committed zip)" ;;
+            esac
           done

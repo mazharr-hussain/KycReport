@@ -1,5 +1,4 @@
-# When an issue closes, moves its row in repos/ISSUES.md from the open backlog to Fixed (with the date). The commit
-# carries [skip netlify] so it starts no Netlify build.
+# When an issue closes, moves its row in repos/ISSUES.md from the open backlog to Fixed (with the date).
 name: Issues sync
 on:
   issues:
@@ -33,4 +32,4 @@ jobs:
           open(p, 'w').write(s)
           PY
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "ISSUES.md: #$NUM closed [skip netlify]" && git push || echo "nothing to commit"
+          git commit -am "ISSUES.md: #$NUM closed" && git push || echo "nothing to commit"
