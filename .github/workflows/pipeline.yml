@@ -1,7 +1,7 @@
 # COMMON pipeline wrapper - one record per run in the Actions list, named after the PR title
-# (convention "COMMON <release>: <description>"). Inside: a short prepare job (release number and the run count of this
-# PR) and one Child job that runs everything in sequence (offline checks, then database) - common-pipeline.yml.
-# Steps in sequence share one job; separate jobs only for work that runs in parallel. KYC is not wired in yet.
+# (convention "<APP> <release>: <description>") and the run number. Inside: one Child job, also named after the PR
+# title, that runs everything in sequence (offline checks, then database) - common-pipeline.yml. Steps in sequence
+# share one job; separate jobs only for work that runs in parallel. KYC is not wired in yet.
 name: COMMON
 run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}:${{ github.run_number }}"
 
@@ -12,34 +12,11 @@ on:
 
 permissions:
   contents: read
-  actions: read
   issues: write
   pull-requests: write
 
 jobs:
-  prepare:
-    name: "COMMON: prepare"
-    runs-on: ubuntu-latest
-    outputs:
-      release: ${{ steps.p.outputs.release }}
-      run: ${{ steps.p.outputs.run }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: p
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TITLE: "${{ github.event.pull_request.title || 'COMMON: manual run' }}"
-        run: |
-          release=$(ls -d repos/common/releases/[0-9]*/ | sed -E 's#.*/([0-9]+)[^/]*/$#\1#' | sort -n | tail -1)
-          # runs of this workflow with the same title (this PR / release), this one included
-          run=$(gh api "repos/${{ github.repository }}/actions/workflows/pipeline.yml/runs?per_page=100" \
-                --jq "[.workflow_runs[] | select(.display_title == env.TITLE)] | length")
-          echo "release=$release" >> "$GITHUB_OUTPUT"
-          echo "run=${run:-1}" >> "$GITHUB_OUTPUT"
-          echo "COMMON $release, run ${run:-1}"
-
   pipeline:
-    name: "COMMON ${{ needs.prepare.outputs.release }}: Child - pipeline:${{ needs.prepare.outputs.run }}"
-    needs: prepare
+    name: "${{ github.event.pull_request.title || 'COMMON: manual run' }} - Child pipeline:${{ github.run_number }}"
     uses: ./.github/workflows/common-pipeline.yml
     secrets: inherit
