@@ -116,6 +116,13 @@ export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 6-
   [ "$rc" -eq 0 ] && find "$out" -name application.apx | grep -q .
 }
 
+secrets() {     # every database job: the pipeline user's password must be set (environment "Oracle DB Dev")
+  if [ -z "${CI_PW:-}" ]; then
+    echo "ERROR secret VAL_DB_CI_PASSWORD (password of the pipeline user $CI_USER) is not set"; return 1
+  fi
+}
+
+step secrets secrets
 case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|export <dir>} in
   setup)
     step 5.1-start-db start_db
