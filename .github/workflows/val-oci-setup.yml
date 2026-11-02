@@ -24,7 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: Oracle_OCI
     env:
-      COMPARTMENT: APP_Project
+      COMPARTMENT: APP_Project      # the database and the connection
+      VAULT_COMPARTMENT: Common     # vault, key and secrets (created under the root when missing)
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
     steps:
       - name: IDCS token exchange (github-ci-svc)
@@ -64,21 +65,28 @@ jobs:
           [ "$state" = STOPPED ] && oci db autonomous-database start --autonomous-database-id "$DB" --wait-for-state AVAILABLE > /dev/null
           DBNAME=$(oci db autonomous-database get --autonomous-database-id "$DB" --query 'data."db-name"' --raw-output)
           echo "database $DBNAME ($state)"
-          V=$(oci kms management vault list -c "$C" --all --query "data[?\"display-name\"=='validation-vault' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output)
+          VC=$(oci iam compartment list --compartment-id "$TENANCY" --all \
+                --query "data[?name=='$VAULT_COMPARTMENT' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output)
+          if [ -z "$VC" ] || [ "$VC" = null ]; then
+            VC=$(oci iam compartment create --compartment-id "$TENANCY" --name "$VAULT_COMPARTMENT" \
+                  --description "Shared vault, keys and secrets" --wait-for-state ACTIVE --query 'data.id' --raw-output)
+            echo "created compartment $VAULT_COMPARTMENT"
+          fi
+          V=$(oci kms management vault list -c "$VC" --all --query "data[?\"display-name\"=='validation-vault' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output)
           if [ -z "$V" ] || [ "$V" = null ]; then
-            V=$(oci kms management vault create -c "$C" --display-name validation-vault --vault-type DEFAULT \
+            V=$(oci kms management vault create -c "$VC" --display-name validation-vault --vault-type DEFAULT \
                   --wait-for-state ACTIVE --query 'data.id' --raw-output)
             echo "created vault validation-vault"
           fi
           ME=$(oci kms management vault get --vault-id "$V" --query 'data."management-endpoint"' --raw-output)
-          K=$(oci kms management key list -c "$C" --endpoint "$ME" --all --query "data[?\"display-name\"=='validation-key' && \"lifecycle-state\"=='ENABLED'].id | [0]" --raw-output)
+          K=$(oci kms management key list -c "$VC" --endpoint "$ME" --all --query "data[?\"display-name\"=='validation-key' && \"lifecycle-state\"=='ENABLED'].id | [0]" --raw-output)
           if [ -z "$K" ] || [ "$K" = null ]; then
-            K=$(oci kms management key create -c "$C" --endpoint "$ME" --display-name validation-key \
+            K=$(oci kms management key create -c "$VC" --endpoint "$ME" --display-name validation-key \
                   --key-shape '{"algorithm":"AES","length":32}' --protection-mode SOFTWARE \
                   --wait-for-state ENABLED --query 'data.id' --raw-output)
             echo "created key validation-key"
           fi
-          printf 'C=%s\nDB=%s\nDBNAME=%s\nV=%s\nK=%s\n' "$C" "$DB" "$DBNAME" "$V" "$K" >> "$GITHUB_ENV"
+          printf 'C=%s\nVC=%s\nDB=%s\nDBNAME=%s\nV=%s\nK=%s\n' "$C" "$VC" "$DB" "$DBNAME" "$V" "$K" >> "$GITHUB_ENV"
 
       - name: Wallet (generated through the API)
         run: |
@@ -97,11 +105,11 @@ jobs:
       - name: Secrets (wallet, random XXCUS password set as ADMIN)
         run: |
           set -euo pipefail
-          sid() { oci vault secret list -c "$C" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output 2>/dev/null; }
+          sid() { oci vault secret list -c "$VC" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output 2>/dev/null; }
           put() {  # put NAME BASE64 -> creates the secret or adds a new version
             s=$(sid "$1")
             if [ -z "$s" ] || [ "$s" = null ]; then
-              oci vault secret create-base64 -c "$C" --vault-id "$V" --key-id "$K" --secret-name "$1" \
+              oci vault secret create-base64 -c "$VC" --vault-id "$V" --key-id "$K" --secret-name "$1" \
                 --secret-content-content "$2" --wait-for-state ACTIVE > /dev/null; echo "created secret $1"
             else
               oci vault secret update-base64 --secret-id "$s" --secret-content-content "$2" > /dev/null; echo "updated secret $1"
@@ -128,7 +136,7 @@ jobs:
       - name: Database Tools connection val-xxcus, validated
         run: |
           set -euo pipefail
-          sid() { oci vault secret list -c "$C" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output; }
+          sid() { oci vault secret list -c "$VC" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output; }
           WS=$(sid val-wallet-sso)
           for u in XXCUS; do
             name=val-$(echo $u | tr A-Z a-z)
