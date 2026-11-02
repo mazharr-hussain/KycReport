@@ -16,7 +16,21 @@ declare
     l_changed  number;
     l_tables   pls_integer := 0;
     l_lost     pls_integer := 0;
+    type t_pol is table of user_policies%rowtype;
+    l_policies t_pol;
+    -- VPD policies off for this step (the DDL above invalidates the policy package: ORA-28112 / ORA-04061);
+    -- always switched back on, also when the step fails
+    procedure policies(p_enable boolean) is
+    begin
+        for i in 1 .. l_policies.count loop
+            dbms_rls.enable_policy(object_schema => user, object_name => l_policies(i).object_name,
+                                   policy_name => l_policies(i).policy_name, enable => p_enable);
+        end loop;
+    end policies;
 begin
+    select * bulk collect into l_policies from user_policies where enable = 'YES';
+    policies(false);
+    begin
     for t in (select b.table_name,
                      (select count(*) from user_tables u where u.table_name = b.table_name) as still_there
                 from all_tables b
@@ -56,5 +70,11 @@ begin
     if l_lost > 0 then
         raise_application_error(-20003, 'The upgrade lost data in ' || l_lost || ' table(s) - see the FAIL lines.');
     end if;
+    exception
+        when others then
+            policies(true);
+            raise;
+    end;
+    policies(true);
 end;
 /
