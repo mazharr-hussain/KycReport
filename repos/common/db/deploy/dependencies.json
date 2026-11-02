@@ -1240,6 +1240,7 @@
    "xxfnd_data_security_rules"
   ],
   "xxfnd_privilege_pkg": [],
+  "xxfnd_vpd_pkg": [],
   "xxfnd_privilege_pkg (body)": [
    "xxfnd_application_pkg",
    "xxfnd_applications",
@@ -1256,7 +1257,6 @@
    "xxfnd_util_pkg",
    "xxfnd_vpd_pkg"
   ],
-  "xxfnd_vpd_pkg": [],
   "xxfnd_vpd_pkg (body)": [
    "xxfnd_application_pkg",
    "xxfnd_applications",

@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [common, kyc]
+        app: [kyc]   # COMMON runs in common-pipeline.yml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

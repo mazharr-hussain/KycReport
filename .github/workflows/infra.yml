@@ -1,0 +1,54 @@
+# Infrastructure templates (#198): runs repos/infra/run.sh <template> <env> plan|apply, signed in through IDCS
+# (GitHub OIDC token exchange, environment Oracle_OCI - no API key). Manual run for apply; a pull request that
+# changes repos/infra runs plan only.
+name: Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      template:
+        description: Template (folder under repos/infra/templates)
+        default: compartment
+      env:
+        description: Environment (folder under repos/infra/envs)
+        default: validation
+      action:
+        description: plan or apply
+        type: choice
+        options: [plan, apply]
+        default: plan
+  pull_request:
+    paths: ['repos/infra/**', '.github/workflows/infra.yml']
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: infra-${{ inputs.env || 'validation' }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: Oracle_OCI
+    env:
+      OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+      OCI_REGION: ${{ vars.OCI_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: IDCS token exchange
+        uses: gtrevorrow/oci-token-exchange-action@v2
+        with:
+          oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
+          domain_base_url: ${{ vars.OCI_DOMAIN_URL }}
+          oci_tenancy: ${{ secrets.OCI_TENANCY }}
+          oci_region: ${{ vars.OCI_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+          terraform_wrapper: false
+      - name: OCI CLI
+        run: pip install -q oci-cli
+      - name: Run the template
+        run: bash repos/infra/run.sh "${{ inputs.template || 'compartment' }}" "${{ inputs.env || 'validation' }}" "${{ inputs.action || 'plan' }}"

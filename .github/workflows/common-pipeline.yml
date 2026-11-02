@@ -1,0 +1,116 @@
+# COMMON pipeline - one job, steps in order (repos/common/deployment):
+#   stage 1 (offline): checks/run.sh (static, build, APEXlang validation) + PMD (warnings)
+#   stage 2 (database, only when stage 1 passed): db/run.sh (uninstall, deploy this, uninstall, deploy last, upgrade,
+#            re-run, invalid objects, test users, tests) on the validation ADB (environment "Oracle DB Dev")
+# On failure: a GitHub issue (label COMMON) with the error, run link and the end of the failed step's log - or a
+# comment on the open issue of the same branch and step. On success: a summary comment on the PR. No e-mail.
+name: COMMON pipeline
+
+on:
+  pull_request:
+    paths: ['repos/common/**', '.github/workflows/common-pipeline.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: validation-db
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    timeout-minutes: 90
+    env:
+      SQL: ${{ github.workspace }}/opt/oracle/sqlcl/bin/sql
+      WALLET: ${{ runner.temp }}/wallet.zip
+      LOG_DIR: ${{ runner.temp }}/common-logs
+      VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+      XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: SQLcl 26.1.2 (cached)
+        id: sqlcl
+        uses: actions/cache@v4
+        with:
+          path: opt/oracle/sqlcl
+          key: sqlcl-26.1.2-2
+      - name: Install SQLcl
+        if: steps.sqlcl.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y -qq rpm2cpio cpio > /dev/null
+          curl -sSL -o sqlcl.rpm https://yum.oracle.com/repo/OracleLinux/OL8/oracle/software/x86_64/getPackage/sqlcl-26.1.2-2.el8.noarch.rpm
+          rpm2cpio sqlcl.rpm | cpio -idm --quiet && rm sqlcl.rpm
+
+      - name: Stage 1 - offline validation
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; [ -n "$BASE" ] && export BODY="$RUNNER_TEMP/body.txt"
+          bash repos/common/deployment/checks/run.sh
+      - name: Stage 1 - PMD (PL/SQL rules, warnings only)
+        uses: pmd/pmd-github-action@v2
+        continue-on-error: true
+        with:
+          rulesets: repos/common/deployment/checks/pmd-plsql.xml
+          sourcePath: repos/common
+          analyzeModifiedFilesOnly: ${{ github.event_name == 'pull_request' }}
+
+      - name: Stage 2 - database
+        env:
+          WALLET_B64: ${{ secrets.VAL_DB_WALLET }}
+        run: |
+          printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
+          bash repos/common/deployment/db/run.sh "${{ github.event.pull_request.base.sha || 'origin/main' }}"
+
+      - name: Issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs'), dir = process.env.LOG_DIR;
+            const read = f => { try { return fs.readFileSync(`${dir}/${f}`, 'utf8') } catch { return '' } };
+            const stepName = read('failed').trim() || 'setup';
+            const tail = read(`${stepName}.log`).split('\n').slice(-100).join('\n');
+            const errors = tail.split('\n').filter(l => /ORA-|PLS-|SP2-|ERROR|Error|::error::|FAIL/.test(l)).slice(0, 15).join('\n');
+            const branch = context.payload.pull_request?.head.ref || context.ref.replace('refs/heads/', '');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const pr = context.payload.pull_request ? `#${context.payload.pull_request.number}` : '-';
+            const title = `COMMON pipeline failed: ${stepName} (${branch})`;
+            const body = `Type: Bug\nPriority: P1\n\n| | |\n|---|---|\n| Step | \`${stepName}\` |\n| Branch | \`${branch}\` |\n| Commit | ${context.sha.slice(0, 7)} |\n| PR | ${pr} |\n| Run | ${runUrl} |\n\n**Errors**\n\`\`\`\n${errors || '(see the log)'}\n\`\`\`\n\n<details><summary>Last 100 lines of the step log</summary>\n\n\`\`\`\n${tail}\n\`\`\`\n</details>`;
+            const open = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'open', labels: 'COMMON', per_page: 100 });
+            const same = open.find(i => i.title === title);
+            if (same) await github.rest.issues.createComment({ ...context.repo, issue_number: same.number, body });
+            else await github.rest.issues.create({ ...context.repo, title, body, labels: ['COMMON'] });
+
+      - name: Summary on the PR
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let tests = ''; try { tests = fs.readFileSync(`${process.env.LOG_DIR}/tests-summary`, 'utf8').trim() } catch {}
+            await github.rest.issues.createComment({ ...context.repo, issue_number: context.payload.pull_request.number,
+              body: `COMMON pipeline passed on ${context.sha.slice(0, 7)}: offline checks, APEXlang validation, deploy this version, deploy the last version, upgrade, re-run, no invalid objects, app 135 imported.\nDB tests: ${tests || '-'}` });
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: common-pipeline-logs
+          path: ${{ runner.temp }}/common-logs
+          if-no-files-found: ignore
