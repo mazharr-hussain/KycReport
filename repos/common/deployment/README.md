@@ -14,7 +14,7 @@ in this folder. Steps 1-2 happen before the pipeline: Claude changes the code, r
 | 9 Finalize the PR | gate (every earlier job passed) · 9.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 9.2 merge: GitHub auto-merge completes it when this required check is green | proxy | `db/run.sh export <dir>` |
 | 10 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
 
-Any failing step stops its job; every later job is skipped (job 9 runs only its gate, which fails) and job 10 reports.
+Any failing step stops its job; every later job is skipped. Job 9 always runs its gate, which fails with "9 Finalize the PR stopped because of job <x> failure"; job 10 then reports "COMMON pipeline failed because of job <x> failure" (step, errors, skipped jobs) on the PR and stops the pipeline.
 
 ## Files
 | File | Purpose |

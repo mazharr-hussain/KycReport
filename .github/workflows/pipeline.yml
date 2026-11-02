@@ -263,9 +263,17 @@ jobs:
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
+          declare -A title=([offline]="3 Offline validation" [oci-setup]="4 OCI setup" [db-setup]="5 DB setup"
+                            [fresh]="6 Deploy fresh app" [upgrade]="7 Upgrade app" [test]="8 Testing and validation")
+          # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
+          bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
           if [ "$COMMON" = true ]; then allowed='=success$'; else allowed='=(success|skipped)$'; fi
-          if ! grep -q '^offline=success$' results.txt || grep -qvE "$allowed" results.txt; then
-            echo "::error::An earlier job did not pass - nothing is finalized"; exit 1
+          if [ -z "$bad" ] && ! grep -q '^offline=success$' results.txt; then bad=$(grep -m1 '^offline=' results.txt); fi
+          if [ -z "$bad" ]; then bad=$(grep -m1 -vE "$allowed" results.txt || true); fi
+          if [ -n "$bad" ]; then
+            job=${bad%%=*}; result=${bad#*=}
+            msg="9 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
+            echo "::error::$msg"; echo "- **$msg**" >> "$GITHUB_STEP_SUMMARY"; exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.COMMON == 'true'
@@ -350,7 +358,14 @@ jobs:
           script: |
             const fs = require('fs'), path = require('path');
             const results = JSON.parse(process.env.RESULTS);
-            const job = Object.keys(results).find(k => ['failure', 'cancelled'].includes(results[k].result)) || 'unknown';
+            const title = { offline: '3 Offline validation', 'oci-setup': '4 OCI setup', 'db-setup': '5 DB setup',
+              fresh: '6 Deploy fresh app', upgrade: '7 Upgrade app', test: '8 Testing and validation', finalize: '9 Finalize the PR' };
+            const order = Object.keys(results);   // flow order (the needs list)
+            const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
+            // the job that caused it: the first failed one before job 9 (job 9 only fails because of it)
+            const job = failedJobs.find(k => k !== 'finalize') || failedJobs[0] || 'unknown';
+            const skipped = order.filter(k => results[k].result === 'skipped').map(k => title[k] || k);
+            const name = title[job] || job;
             const read = f => { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } };
             let step = '', tail = '';
             for (const dir of (fs.existsSync('logs') ? fs.readdirSync('logs') : [])) {
@@ -365,10 +380,12 @@ jobs:
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const fence = '`'.repeat(3);
             const body = [
-              `**COMMON pipeline failed** in job \`${job}\`${step ? `, step \`${step}\`` : ''} (${results[job]?.result || 'failed'}).`,
-              'The remaining steps were skipped and the PR stays open; push a fix and the pipeline runs again.', '',
+              `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step \`${step}\`)` : ''}.`,
+              (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
+              (job !== 'finalize' && results.finalize?.result === 'failure' ? `9 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
+              'The PR stays open; push a fix and the pipeline runs again.', '',
               '| | |', '|---|---|',
-              `| Job | \`${job}\` |`, `| Step | \`${step || '(see the run)'}\` |`,
+              `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
               `| Commit | ${(context.payload.pull_request?.head.sha || context.sha).slice(0, 7)} |`, `| Run | ${runUrl} |`, '',
               '**Errors**', fence, errors || '(see the run log)', fence, '',
               '<details><summary>Last 100 lines of the step log</summary>', '', fence, tail || '(no step log)', fence, '</details>'
@@ -378,4 +395,4 @@ jobs:
             if (pr) {
               await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
             }
-            core.setFailed(`Pipeline stopped: ${job}${step ? ' / ' + step : ''} failed`);
+            core.setFailed(`Pipeline stopped because of job ${name} failure${step ? ' (step ' + step + ')' : ''}`);
