@@ -297,17 +297,24 @@ page 120 (
                 ```sql
                 -- release 109: the workspace's APEX Remote Servers (Workspace Utilities), read only: COMMON maps them, it
                 -- does not create them; release 112: the COMMON server linked to each (opens it), else Add (a new server
-                -- for it, filled in from the Remote Server)
+                -- for it, filled in from the Remote Server); I-021: one row per Remote Server - every COMMON server
+                -- linked to it is listed, the link opens the first (each one also opens from the Servers list)
                 select r.remote_server_name, r.remote_server_static_id, r.base_url,
-                       nvl(s.server_name || ' (' || s.server_code || ')', 'Add')       as common_server,
-                       case when s.server_code is null
+                       nvl(s.common_servers, 'Add')                                    as common_server,
+                       case when s.first_server_code is null
                             then apex_page.get_url(p_page => 121, p_items => 'P121_REMOTE_SERVER_CODE,P121_SERVER_CODE',
                                                    p_values => r.remote_server_static_id || ',' || r.remote_server_static_id,
                                                    p_clear_cache => '121')
-                            else apex_page.get_url(p_page => 121, p_items => 'P121_SERVER_CODE', p_values => s.server_code,
-                                                   p_clear_cache => '121') end   as common_url
+                            else apex_page.get_url(p_page => 121, p_items => 'P121_SERVER_CODE',
+                                                   p_values => s.first_server_code, p_clear_cache => '121') end as common_url
                   from apex_workspace_remote_servers r
-                  left join xxfnd_servers_v s on s.remote_server_code = r.remote_server_static_id
+                  left join (select v.remote_server_code,
+                                    listagg(v.server_name || ' (' || v.server_code || ')', ', ')
+                                        within group (order by v.server_code)               as common_servers,
+                                    min(v.server_code)                                       as first_server_code
+                               from xxfnd_servers_v v
+                              group by v.remote_server_code) s
+                    on s.remote_server_code = r.remote_server_static_id
                  order by r.remote_server_name
                 ```
         }
