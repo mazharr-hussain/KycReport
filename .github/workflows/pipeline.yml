@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # the child merges the PR and publishes the release when the chain is green
   issues: write
   pull-requests: write
 

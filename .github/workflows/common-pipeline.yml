@@ -2,8 +2,8 @@
 #   stage 1 (offline): checks/run.sh (static, build, APEXlang validation) + PMD (warnings)
 #   stage 2 (database, only when stage 1 passed): db/run.sh (uninstall, deploy this, uninstall, deploy last, upgrade,
 #            re-run, invalid objects, test users, tests) on the validation ADB (environment "Oracle DB Dev")
-# On failure: a GitHub issue (label COMMON) with the error, run link and the end of the failed step's log - or a
-# comment on the open issue of the same branch and step. On success: a summary comment on the PR. No e-mail.
+# On failure: a comment on the open PR (the PR stays open), or an issue when there is no PR. When the whole chain is
+# green: the PR is merged into main and its release zip is published as GitHub Release COMMON <N>. No e-mail.
 name: COMMON pipeline
 
 on:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # merge the PR and publish the release when the chain is green
   issues: write
   pull-requests: write
 
@@ -78,7 +78,7 @@ jobs:
           mkdir -p /tmp/common-run && printf '%s' "$WALLET_B64" | base64 -d > "$WALLET"
           bash repos/common/deployment/db/run.sh "${{ github.event.pull_request.base.sha || 'origin/main' }}"
 
-      - name: Issue on failure
+      - name: Report the failure (comment on the open PR, or an issue when there is no PR)
         if: failure()
         uses: actions/github-script@v7
         with:
@@ -88,25 +88,58 @@ jobs:
             const stepName = read('failed').trim() || 'setup';
             const tail = read(`${stepName}.log`).split('\n').slice(-100).join('\n');
             const errors = tail.split('\n').filter(l => /ORA-|PLS-|SP2-|ERROR|Error|::error::|FAIL/.test(l)).slice(0, 15).join('\n');
-            const branch = context.payload.pull_request?.head.ref || context.ref.replace('refs/heads/', '');
+            const pr = context.payload.pull_request;
+            const branch = pr?.head.ref || context.ref.replace('refs/heads/', '');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const pr = context.payload.pull_request ? `#${context.payload.pull_request.number}` : '-';
+            const details = `| | |\n|---|---|\n| Step | \`${stepName}\` |\n| Branch | \`${branch}\` |\n| Commit | ${context.sha.slice(0, 7)} |\n| Run | ${runUrl} |\n\n**Errors**\n\`\`\`\n${errors || '(see the log)'}\n\`\`\`\n\n<details><summary>Last 100 lines of the step log</summary>\n\n\`\`\`\n${tail}\n\`\`\`\n</details>`;
+            if (pr) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number,
+                body: `**COMMON pipeline failed at \`${stepName}\`** - the PR stays open; push a fix and the chain runs again.\n\n${details}` });
+              return;
+            }
             const title = `COMMON pipeline failed: ${stepName} (${branch})`;
-            const body = `Type: Bug\nPriority: P1\n\n| | |\n|---|---|\n| Step | \`${stepName}\` |\n| Branch | \`${branch}\` |\n| Commit | ${context.sha.slice(0, 7)} |\n| PR | ${pr} |\n| Run | ${runUrl} |\n\n**Errors**\n\`\`\`\n${errors || '(see the log)'}\n\`\`\`\n\n<details><summary>Last 100 lines of the step log</summary>\n\n\`\`\`\n${tail}\n\`\`\`\n</details>`;
+            const body = `Type: Bug\nPriority: P1\n\n${details}`;
             const open = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'open', labels: 'COMMON', per_page: 100 });
             const same = open.find(i => i.title === title);
             if (same) await github.rest.issues.createComment({ ...context.repo, issue_number: same.number, body });
             else await github.rest.issues.create({ ...context.repo, title, body, labels: ['COMMON'] });
 
-      - name: Summary on the PR
+      - name: Chain green - merge the PR into main
+        id: merge
         if: success() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
+            const pr = context.payload.pull_request;
             const fs = require('fs');
             let tests = ''; try { tests = fs.readFileSync(`${process.env.LOG_DIR}/tests-summary`, 'utf8').trim() } catch {}
-            await github.rest.issues.createComment({ ...context.repo, issue_number: context.payload.pull_request.number,
-              body: `COMMON pipeline passed on ${context.sha.slice(0, 7)}: offline checks, APEXlang validation, deploy this version, deploy the last version, upgrade, re-run, no invalid objects, app 135 imported.\nDB tests: ${tests || '-'}` });
+            if (pr.draft) await github.graphql('mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { clientMutationId } }', { id: pr.node_id });
+            const m = await github.rest.pulls.merge({ ...context.repo, pull_number: pr.number, sha: pr.head.sha, merge_method: 'merge' });
+            await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number,
+              body: `COMMON pipeline passed on ${pr.head.sha.slice(0, 7)} - merged into main (${m.data.sha.slice(0, 7)}).\nOffline checks, APEXlang validation, deploy this version, deploy the last version, upgrade, re-run, no invalid objects, app 135 imported.\nDB tests: ${tests || '-'}` });
+            core.setOutput('sha', m.data.sha);
+
+      - name: Release - downloadable APEX zip (GitHub Release COMMON <N>)
+        if: success() && steps.merge.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          MERGED: ${{ steps.merge.outputs.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # the release zips this PR adds (repos/common/releases/<name>_<N>.zip); a PR without a release zip publishes nothing
+          zips=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" -- 'repos/common/releases/*.zip')
+          [ -n "$zips" ] || { echo "No release zip in this PR - nothing to publish"; exit 0; }
+          fixes=$(printf '%s' "$PR_BODY" | grep -oiE '(fixes|closes|resolves) #[0-9]+' | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ')
+          for zip in $zips; do
+            n=$(echo "$zip" | sed -E 's/.*_([0-9]+)\.zip$/\1/'); tag="common-$n"
+            gh release view "$tag" > /dev/null 2>&1 && { echo "$tag exists"; continue; }
+            readme=$(ls -d repos/common/releases/$n-*/README.md 2>/dev/null | head -1)
+            { [ -n "$readme" ] && cat "$readme"; echo; [ -n "$fixes" ] && echo "Closed issues: $fixes"; } > notes.md
+            gh release create "$tag" "$zip" --title "COMMON $n" --notes-file notes.md --target "$MERGED"
+            echo "published release COMMON $n"
+          done
 
       - uses: actions/upload-artifact@v4
         if: always()
