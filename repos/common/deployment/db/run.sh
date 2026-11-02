@@ -10,7 +10,7 @@
 #   run.sh test                8   Testing: test users, DB tests (any FAIL or error stops the pipeline)
 #   run.sh export <dir>        9.1 APEXlang export of the tested application into <dir>
 # This version's application must already be built in repos/common/dist/app (pipeline job 3).
-# Env: SQL, WALLET, VAL_DB_SERVICE, CI_PW, ADMIN_PW (5.2 / 8 only), XXCUS_PW (5.2 only), LOG_DIR,
+# Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 5.2, 8.1), XXCUS_PW (5.2 only), LOG_DIR,
 #      BASE (pull request base commit, to see whether bootstrap.sql changed).
 # A failing step stops the job (lib/step.sh); the error-handling job reports it on the pull request.
 set -uo pipefail
@@ -116,13 +116,14 @@ export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 6-
   [ "$rc" -eq 0 ] && find "$out" -name application.apx | grep -q .
 }
 
-secrets() {     # every database job: the pipeline user's password must be set (environment "Oracle DB Dev")
-  if [ -z "${CI_PW:-}" ]; then
-    echo "ERROR secret VAL_DB_CI_PASSWORD (password of the pipeline user $CI_USER) is not set"; return 1
-  fi
-}
+# every database job: a new random password for the pipeline user, for this job only (set here, outside a step:
+# a step runs in a subshell); 24 characters - upper, lower, digits (ADB password rules), no quote
+CI_PW="Ci$(openssl rand -hex 10)Z9"
+echo "::add-mask::$CI_PW"
+export CI_PW
+ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="$CI_PW"; }
 
-step secrets secrets
+step ci-password ci_password
 case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|export <dir>} in
   setup)
     step 5.1-start-db start_db

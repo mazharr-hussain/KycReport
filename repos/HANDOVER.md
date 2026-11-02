@@ -37,8 +37,9 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   draft release `common-<N>` (the tested zip) when a PR that adds `repos/common/releases/<N>-*/` merges.
 - Validation database: separate Always Free ADB (Jeddah), APEX 26.1.6, workspace XXCUS (schemas XXCUS + XXFUSION).
   Login: wallet + pipeline user `XXCI_DEPLOY` (proxy `XXCI_DEPLOY[XXFUSION]`, `lib/sql.sh`, connect line on stdin);
-  ADMIN only for bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
-  `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_CI_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS).
+  ADMIN only for that password, bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
+  `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS). The pipeline user gets a new random password
+  in every database job (no secret).
 - Netlify is removed (user, 2 Nov 2026).
 - KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
 

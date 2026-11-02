@@ -1,7 +1,7 @@
 #!/bin/bash
 # Runs one SQL file on the validation database with SQLcl: sql.sh <login> <sql-file> [check] [name=value ...]
 #   <login>  ADMIN       - ADMIN with VAL_DB_ADMIN_PASSWORD (bootstrap and test users only)
-#            CI          - the pipeline user CI_USER with VAL_DB_CI_PASSWORD
+#            CI          - the pipeline user CI_USER with its password for this job (CI_PW, set by db/run.sh)
 #            <SCHEMA>    - proxy CI_USER[<SCHEMA>] (schema passwords are random and unknown)
 #   check    stop at the first SQL error; fail on SP2- errors or code compiled with errors (install steps).
 #            Without it everything runs (tests).
@@ -14,8 +14,8 @@ mode=
 if [ "${1:-}" = check ]; then mode=check; shift; fi
 case $login in
   ADMIN) who=ADMIN; pw=${ADMIN_PW:?ADMIN_PW is not set} ;;
-  CI)    who=$CI_USER; pw=${CI_PW:?CI_PW is not set} ;;
-  *)     who="${CI_USER}[$login]"; pw=${CI_PW:?CI_PW is not set} ;;
+  CI)    who=$CI_USER; pw=${CI_PW:?CI_PW is not set (db/run.sh sets it)} ;;
+  *)     who="${CI_USER}[$login]"; pw=${CI_PW:?CI_PW is not set (db/run.sh sets it)} ;;
 esac
 log=$(mktemp)
 {

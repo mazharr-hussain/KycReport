@@ -120,8 +120,7 @@ jobs:
       contents: read
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      CI_PW: ${{ secrets.VAL_DB_CI_PASSWORD }}
-      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
@@ -152,7 +151,7 @@ jobs:
       contents: read
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      CI_PW: ${{ secrets.VAL_DB_CI_PASSWORD }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -184,7 +183,7 @@ jobs:
       contents: read
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      CI_PW: ${{ secrets.VAL_DB_CI_PASSWORD }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -220,8 +219,7 @@ jobs:
       contents: read
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      CI_PW: ${{ secrets.VAL_DB_CI_PASSWORD }}
-      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -253,7 +251,7 @@ jobs:
       pull-requests: write   # note on the PR when auto-merge is not enabled
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      CI_PW: ${{ secrets.VAL_DB_CI_PASSWORD }}
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       COMMON: ${{ needs.offline.outputs.common }}
       RELEASE: ${{ needs.offline.outputs.release }}
     steps:

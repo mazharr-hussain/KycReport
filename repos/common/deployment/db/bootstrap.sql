@@ -2,8 +2,8 @@
 -- Validation database bootstrap (#192). Run as ADMIN by db/run.sh setup (step 5.2), only when the environment is
 -- missing (needs-bootstrap.sql) or this file changed in the pull request.
 -- Creates only what is missing - an existing user, grant, workspace or APEX user is left as it is - so a re-run
--- changes nothing (the pipeline user's password is set again from the secret).
--- Substitution variables (passed on stdin by lib/sql.sh, never echoed): ci_user, ci_pw (secret VAL_DB_CI_PASSWORD),
+-- changes nothing.
+-- Substitution variables (passed on stdin by lib/sql.sh, never echoed): ci_user, ci_pw (random, this job's - db/run.sh),
 -- xxcus_pw (secret VAL_DB_PASSWORD, App Builder user only).
 --   1. XXCUS (workspace main schema) and XXFUSION (COMMON objects): random passwords nobody knows
 --   2. the pipeline user (ci_user): least privilege for the pipeline -
@@ -31,10 +31,10 @@ declare
             begin
                 execute immediate 'alter user ' || dbms_assert.simple_sql_name(p_user) || ' identified by "'
                     || p_password || '"';
-                dbms_output.put_line('user ' || p_user || ' exists - password set from the secret');
+                dbms_output.put_line('user ' || p_user || ' exists - password set for this job');
             exception
-                when e_password_reused then   -- ORA-28007: it already is the secret's password
-                    dbms_output.put_line('user ' || p_user || ' exists - password already matches the secret');
+                when e_password_reused then   -- ORA-28007: it already has this password
+                    dbms_output.put_line('user ' || p_user || ' exists - password already set');
             end;
         else
             dbms_output.put_line('user ' || p_user || ' exists - left as it is');

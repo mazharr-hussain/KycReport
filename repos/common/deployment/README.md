@@ -23,6 +23,7 @@ Any failing step stops its job; every later job is skipped. Job 9 always runs it
 | `lib/sql.sh` | SQLcl login to the validation ADB: wallet; connect line on stdin (never on the command line or in a file) |
 | `lib/step.sh` | step logging, step summary, failure record for job 10 |
 | `db/bootstrap.sql` | users, pipeline user and its privileges, workspace, App Builder user, REST-enabled schemas (ADMIN) |
+| `db/ci-password.sql` | new random password of the pipeline user for each job (ADMIN) |
 | `db/needs-bootstrap.sql` | is the environment complete? (pipeline user, read only) |
 | `db/backup-schema.sql` | drop / create the backup schema (refuses any name not ending in `_BKP`) |
 | `db/grant-to.sql`, `db/backup.sql`, `db/restore.sql`, `db/compare.sql` | upgrade test: copy the app's data, put it back into the old release, compare after the upgrade |
@@ -30,14 +31,16 @@ Any failing step stops its job; every later job is skipped. Job 9 always runs it
 | `db/validate-online.sql` | no invalid object / compile error; application installed, available, every page present |
 
 ## Users on the validation database
-- **Pipeline user `XXCI_DEPLOY`** (secret `VAL_DB_CI_PASSWORD`): create session / create table (with admin option, for
+- **Pipeline user `XXCI_DEPLOY`** (no stored password: every database job gives it a new random password as ADMIN,
+  masked in the logs - `db/ci-password.sql`): create session / create table (with admin option, for
   the backup schema), create / alter / drop user (backup schema), `APEX_ADMINISTRATOR_ROLE` (remove / export the app);
   connects through XXFUSION and XXCUS as a proxy (`XXCI_DEPLOY[XXFUSION]`).
-- **ADMIN** (secret `VAL_DB_ADMIN_PASSWORD`) only for 5.2 bootstrap and 8.1 test users (creating APEX accounts outside
+- **ADMIN** (secret `VAL_DB_ADMIN_PASSWORD`) only for the pipeline user's password at the start of each database job,
+  5.2 bootstrap and 8.1 test users (creating APEX accounts outside
   an APEX session needs APEX instance rights for the session user).
 
 Secrets (environment "Oracle DB Dev"): `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_DB_ADMIN_PASSWORD`,
-`VAL_DB_CI_PASSWORD`, `VAL_DB_PASSWORD` (App Builder user XXCUS). Passwords must not contain a double quote.
+`VAL_DB_PASSWORD` (App Builder user XXCUS). Passwords must not contain a double quote.
 
 ## Releases
 Job 9.1 builds the zip from the application that passed jobs 6-8 (SQLcl `apex export -exptype APEXLANG`). When the PR
@@ -45,6 +48,6 @@ adds `repos/common/releases/<N>-<name>/README.md`, the zip goes into a draft Git
 `release.yml` publishes it when the PR merges (the only workflow that publishes releases).
 
 ## Run locally
-Set `SQL`, `WALLET`, `VAL_DB_SERVICE`, `CI_PW` (and `ADMIN_PW`, `XXCUS_PW` for setup / test, `PMD` for 3.6), then
+Set `SQL`, `WALLET`, `VAL_DB_SERVICE`, `ADMIN_PW` (and `XXCUS_PW` for setup, `PMD` for 3.6), then
 `bash checks/run.sh`, `bash db/run.sh setup`, `bash db/run.sh fresh`, `bash db/run.sh upgrade origin/main`,
 `bash db/run.sh test`.
