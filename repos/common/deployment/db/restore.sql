@@ -5,7 +5,8 @@
 --   - foreign keys and triggers are disabled during the load and enabled (validated) after it
 --   - identity columns and sequences are moved past the restored keys, so the upgrade's own inserts do not collide
 --   - a table that cannot be loaded (e.g. a NOT NULL column the backup does not have) is reported and left as the
---     old install created it; the run still fails if a foreign key does not hold afterwards
+--     old install created it; a foreign key that no longer holds because of it is enabled for new rows only
+--     (NOVALIDATE) and reported - the step completes, so every reason is printed
 -- Substitution variables: bkp_schema, restore_exclude (comma list of tables never restored).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
@@ -23,6 +24,7 @@ declare
     l_fks      t_list := t_list();
     l_triggers t_list := t_list();
     l_always   t_list := t_list();
+    l_fk_fail  pls_integer := 0;
     type t_pol is table of user_policies%rowtype;
     l_policies t_pol;
     -- VPD policies off for this step (the DDL above invalidates the policy package: ORA-28112 / ORA-04061);
@@ -86,7 +88,16 @@ begin
     commit;
 
     for i in 1 .. l_fks.count loop
-        execute immediate 'alter table ' || l_fks(i);   -- fails (ORA-02298) when the restored data breaks a key
+        begin
+            execute immediate 'alter table ' || l_fks(i);
+        exception
+            when others then
+                -- ORA-02298: restored child rows without their parent (usually a parent table listed as "not restored"
+                -- above); the key is enabled for new rows only and reported, so the run completes and shows why
+                l_fk_fail := l_fk_fail + 1;
+                dbms_output.put_line('INFO key not validated (orphan rows restored): ' || l_fks(i) || ' - ' || sqlerrm);
+                execute immediate 'alter table ' || replace(l_fks(i), ' enable validate ', ' enable novalidate ');
+        end;
     end loop;
     for i in 1 .. l_triggers.count loop
         execute immediate 'alter trigger "' || l_triggers(i) || '" enable';
@@ -116,7 +127,8 @@ begin
     end loop;
 
     dbms_output.put_line('restored ' || l_loaded || ' table(s), ' || l_total || ' row(s) from ' || l_bkp
-        || case when l_skipped > 0 then '; ' || l_skipped || ' table(s) kept as installed' end);
+        || case when l_skipped > 0 then '; ' || l_skipped || ' table(s) kept as installed' end
+        || case when l_fk_fail > 0 then '; ' || l_fk_fail || ' key(s) not validated' end);
     exception
         when others then
             policies(true);

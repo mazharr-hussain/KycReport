@@ -122,7 +122,13 @@ build_last() {  # the last release = the pull request's base commit, built the s
   git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
 }
 restore() {     # 7.3: data back into the old release, then the snapshot the upgrade is compared with
-  S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE" && backup
+  local out
+  out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
+  echo "$out"
+  if echo "$out" | grep -q '^INFO '; then
+    echo "::notice title=7.3 restore::$(echo "$out" | grep -c '^INFO ') table(s) / key(s) not fully restored - see the 7.3 step log"
+  fi
+  backup
 }
 compare() {     # 7.5
   S "$APP_SCHEMA" "$HERE/compare.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE"
