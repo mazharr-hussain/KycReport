@@ -3,7 +3,7 @@
 # PR) and one Child job that runs everything in sequence (offline checks, then database) - common-pipeline.yml.
 # Steps in sequence share one job; separate jobs only for work that runs in parallel. KYC is not wired in yet.
 name: COMMON
-run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}"
+run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}:${{ github.run_number }}"
 
 on:
   pull_request:
