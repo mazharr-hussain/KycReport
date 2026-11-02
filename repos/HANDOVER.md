@@ -30,7 +30,8 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   setup (placeholder) -> **5** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
   -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
   release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
-  DB tests (failures stop it) -> **9** finalize (gate, APEXlang export zip, draft release; merge by GitHub auto-merge)
+  DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **9** finalize (gate,
+  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; merge by GitHub auto-merge)
   -> **10** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 3 and 9 only.
 - **Merge**: `9 Finalize the PR` is the required check on main; Claude enables auto-merge on its PR (as the user), so
   GitHub merges when the check is green and the workflows on main (`release.yml`, docs) run. `release.yml` publishes the

@@ -6,13 +6,13 @@ in this folder. Steps 1-2 happen before the pipeline: Claude changes the code, r
 
 | Job | Steps | Runs as | Script |
 |---|---|---|---|
-| 3 Offline validation | 3.1 pipeline lint (actionlint, shellcheck) · 3.2 static checks · 3.3 requirements check (warning) · 3.4 build · 3.5 APEXlang LF check + validate · 3.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
+| 3 Offline validation | 3.0 secret scan of the PR's commits (gitleaks) · 3.1 pipeline lint (actionlint, shellcheck) · 3.2 static checks · 3.3 requirements check (warning) · 3.4 build · 3.5 APEXlang LF check + validate · 3.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
 | 4 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
-| 5 DB setup | 5.1 start the DB (placeholder) · 5.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 5.3 backup schema `XXFUSION_BKP` (dropped if it exists, created) | pipeline user; ADMIN for 5.2 | `db/run.sh setup` |
-| 6 Deploy fresh app | 6.0 back up the app's data · 6.1 remove app + DB objects · 6.2 deploy this version · 6.3 online validation | pipeline user / proxy | `db/run.sh fresh` |
+| 5 DB setup | 5.1 start the DB (placeholder) · 5.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 5.3 backup schema `XXFUSION_BKP` (dropped if it exists, created) · 5.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 5.2 | `db/run.sh setup` |
+| 6 Deploy fresh app | 6.0 back up the app's data · 6.1 remove app + DB objects · 6.2 deploy this version · 6.3 online validation · 6.4 dependency check: deployed schema vs the generated map (report) | pipeline user / proxy | `db/run.sh fresh` |
 | 7 Upgrade app | 7.1 remove (= 6.1) · 7.2 deploy the last release (= 6.2, the PR's base commit) · 7.3 restore the data + snapshot · 7.4 upgrade to this version (once) · 7.5 nothing lost · 7.6 online validation (= 6.3) · 7.7 drop the backup schema | pipeline user / proxy | `db/run.sh upgrade <base>` |
-| 8 Testing and validation | 8.1 test users · 8.2 DB tests (any FAIL / ORA- / PLS- fails the job) | ADMIN for 8.1, proxy for 8.2 | `db/run.sh test` |
-| 9 Finalize the PR | gate (every earlier job passed) · 9.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 9.2 merge: GitHub auto-merge completes it when this required check is green | proxy | `db/run.sh export <dir>` |
+| 8 Testing and validation | 8.1 test users · 8.2 DB tests (any FAIL / ORA- / PLS- fails the job) · 8.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 8.4 APEX-SERT evaluation (report) · 8.5 DBSAT (report; when its download is set) · 8.6 OWASP ZAP baseline scan (report) | ADMIN for 8.1, 8.4, 8.5; proxy for 8.2 | `db/run.sh test`, `ui/smoke_ui.py`, ZAP action |
+| 9 Finalize the PR | gate (every earlier job passed) · 9.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 9.2 merge: GitHub auto-merge completes it when this required check is green · 9.3 readable APEX docs (`READABLE_YAML` export) · 9.4 database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>` |
 | 10 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
 
 Any failing step stops its job; every later job is skipped. Job 9 always runs its gate, which fails with "9 Finalize the PR stopped because of job <x> failure"; job 10 then reports "COMMON pipeline failed because of job <x> failure" (step, errors, skipped jobs) on the PR and stops the pipeline.
@@ -20,7 +20,12 @@ Any failing step stops its job; every later job is skipped. Job 9 always runs it
 ## Files
 | File | Purpose |
 |---|---|
-| `app.env` | the application: id, schema, backup schema, workspace, pipeline user, tables never restored |
+| `app.env` | the application: id, schema, backup schema, workspace, pipeline user, tables never restored, URL path, browser-test users |
+| `tools.env` | pinned tools with their SHA-256: gitleaks, SchemaSpy, Oracle JDBC, Instant Client (DBSAT), Playwright, APEX-SERT commit |
+| `lib/fetch.sh`, `lib/app-url.sh` | checksum-verified download; the APEX URL read from the wallet (or `VAL_APP_URL`) |
+| `ui/smoke_ui.py` | browser smoke test (8.3) |
+| `db/dependencies.sql`, `db/compare_dependencies.py` | dependency check (6.4) |
+| `db/sert-eval.sql` | APEX-SERT evaluation (8.4) |
 | `lib/sql.sh` | SQLcl login to the validation ADB: wallet; connect line on stdin (never on the command line or in a file) |
 | `lib/step.sh` | step logging, step summary, failure record for job 10 |
 | `db/bootstrap.sql` | users, pipeline user and its privileges, workspace, App Builder user, REST-enabled schemas (ADMIN) |
@@ -42,6 +47,15 @@ Any failing step stops its job; every later job is skipped. Job 9 always runs it
 
 Secrets (environment "Oracle DB Dev"): `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_DB_ADMIN_PASSWORD`,
 `VAL_DB_PASSWORD` (App Builder user XXCUS). Passwords must not contain a double quote.
+
+## Reports (artifacts of each run)
+| Artifact | Contents |
+|---|---|
+| `report-6-dependencies` | live dependencies (CSV) and `dependency-check.md` |
+| `report-8-test` | `ui/<user>/` video, screenshots of every page, `trace.zip` (open with `playwright show-trace`), `results.json`; `apex-sert-findings.csv` + summary; `dbsat/` (when set up) |
+| `report-8-zap` | OWASP ZAP baseline report (HTML, JSON, Markdown) |
+| `common-docs` | `COMMON-apex-docs.zip` (readable YAML of every page) and `COMMON-db-docs.zip` (SchemaSpy HTML) |
+| `common-release-zip` | the importable APEXlang zip of the tested application |
 
 ## Releases
 Job 9.1 builds the zip from the application that passed jobs 6-8 (SQLcl `apex export -exptype APEXLANG`). When the PR

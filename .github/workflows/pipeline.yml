@@ -2,7 +2,8 @@
 # Agreed flow (steps 1-2 happen before the pipeline: Claude changes the code, reviews it, opens the PR and pushes):
 #    3 Offline validation (no OCI, no DB)      4 OCI setup (placeholder)        5 DB setup
 #    6 Deploy fresh app                         7 Upgrade app (no data lost)     8 Testing and validation
-#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 merge (GitHub auto-merge on this required check)
+#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 merge (GitHub auto-merge on this required check),
+#      9.3-9.4 documentation (readable APEX export, SchemaSpy)
 #   10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 3 and 9 only.
 # Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
@@ -23,6 +24,7 @@ concurrency:
 
 env:
   LOG_DIR: /tmp/pipeline-logs   # step logs (lib/step.sh); each job uploads its own as logs-<job>
+  REPORT_DIR: /tmp/pipeline-reports   # reports and recordings; uploaded as report-<job>
 
 jobs:
   offline:
@@ -63,7 +65,7 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         if: steps.scope.outputs.common == 'true'
-      - name: Lint tools and PMD 7.29.0 (checksum verified)
+      - name: Lint tools, gitleaks and PMD 7.29.0 (checksum verified)
         if: steps.scope.outputs.common == 'true'
         env:
           PMD_URL: https://github.com/pmd/pmd/releases/download/pmd_releases/7.29.0/pmd-dist-7.29.0-bin.zip
@@ -71,12 +73,16 @@ jobs:
         run: |
           set -euo pipefail
           pip install -q actionlint-py==1.7.12.25 shellcheck-py==0.11.0.1 pyyaml==6.0.2
+          . repos/common/deployment/tools.env
+          bash repos/common/deployment/lib/fetch.sh "$GITLEAKS_URL" "$GITLEAKS_SHA256" "$RUNNER_TEMP/gitleaks.tgz"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+          echo "GITLEAKS=$RUNNER_TEMP/gitleaks" >> "$GITHUB_ENV"
           cd "$RUNNER_TEMP"
           curl -fsSL -o pmd.zip "$PMD_URL"
           echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
           unzip -q pmd.zip && rm pmd.zip
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
-      - name: 3.1-3.6 Offline validation
+      - name: 3.0-3.6 Offline validation
         if: steps.scope.outputs.common == 'true'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
@@ -131,7 +137,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 5.1-5.3 DB setup
+      - name: 5.1-5.4 DB setup
         run: bash repos/common/deployment/db/run.sh setup
       - name: Step logs
         if: always()
@@ -163,8 +169,15 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 6.0-6.3 Deploy fresh app
+      - name: 6.0-6.4 Deploy fresh app
         run: bash repos/common/deployment/db/run.sh fresh
+      - name: Dependency report (6.4)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: report-6-dependencies
+          path: ${{ env.REPORT_DIR }}
+          if-no-files-found: ignore
       - name: Step logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -214,21 +227,57 @@ jobs:
     needs: upgrade
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
-      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+      ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job, test users, SERT, DBSAT
+      VAL_APP_URL: ${{ vars.VAL_APP_URL }}             # optional: overrides the APEX URL read from the wallet
+      DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 8.5)
+      DBSAT_ZIP_SHA256: ${{ vars.DBSAT_ZIP_SHA256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-dist
+          path: repos/common/dist/app
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 8.1-8.2 Test users and DB tests
+      - name: Browser (Playwright, Chromium) and the application URL
+        id: app
+        run: |
+          set -euo pipefail
+          . repos/common/deployment/tools.env
+          pip install -q "playwright==$PLAYWRIGHT_VERSION"
+          python -m playwright install --with-deps chromium > /dev/null
+          url=$(bash repos/common/deployment/lib/app-url.sh)
+          echo "APP_URL=$url" >> "$GITHUB_ENV"
+          echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
+      - name: 8.1-8.5 Test users, DB tests, browser tests, APEX-SERT, DBSAT
         run: bash repos/common/deployment/db/run.sh test
+      - name: 8.6 OWASP ZAP baseline scan (passive; report only)
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ steps.app.outputs.target }}
+          docker_name: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:030d3df57735dacbb83464854758e674dd9ad01d79d12a129a8e58b1fd384238
+          cmd_options: -a -j
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: report-8-zap
+      - name: Test and security reports, browser recordings (8.3-8.5)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: report-8-test
+          path: ${{ env.REPORT_DIR }}
+          if-no-files-found: ignore
       - name: Step logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -281,12 +330,13 @@ jobs:
         if: env.COMMON == 'true'
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 9.1 Release zip - APEXlang export of the tested application
+      - name: 9.1 Release zip (APEXlang export) and 9.3-9.4 documentation of the tested application
         if: env.COMMON == 'true'
         run: |
           set -euo pipefail
-          bash repos/common/deployment/db/run.sh export "$RUNNER_TEMP/export"
-          app=$(dirname "$(find "$RUNNER_TEMP/export" -name application.apx | head -1)")
+          bash repos/common/deployment/db/run.sh finalize "$RUNNER_TEMP/out"
+          (cd "$RUNNER_TEMP/out" && zip -qr "$RUNNER_TEMP/COMMON-apex-docs.zip" apex-docs && zip -qr "$RUNNER_TEMP/COMMON-db-docs.zip" db-docs)
+          app=$(dirname "$(find "$RUNNER_TEMP/out/app" -name application.apx | head -1)")
           name="COMMON-Application-APEXlang_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
           (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
           echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
@@ -297,6 +347,15 @@ jobs:
         with:
           name: common-release-zip
           path: ${{ env.ZIP }}
+          if-no-files-found: error
+      - name: 9.3-9.4 Documentation (artifact) - readable APEX export and SchemaSpy database docs
+        if: env.COMMON == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: common-docs
+          path: |
+            ${{ runner.temp }}/COMMON-apex-docs.zip
+            ${{ runner.temp }}/COMMON-db-docs.zip
           if-no-files-found: error
       - name: 9.1 Draft GitHub Release (published by release.yml when the PR merges)
         if: env.COMMON == 'true' && env.RELEASE != ''
@@ -311,9 +370,10 @@ jobs:
             if [ "$(gh release view "$tag" --json isDraft -q .isDraft)" != true ]; then
               echo "::error::Release COMMON $RELEASE is already published - use a new release number"; exit 1
             fi
-            gh release upload "$tag" "$ZIP" --clobber
+            gh release upload "$tag" "$ZIP" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
           else
-            gh release create "$tag" "$ZIP" --draft --title "COMMON $RELEASE" --notes-file "${readme:-/dev/null}"
+            gh release create "$tag" "$ZIP" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" \
+              --draft --title "COMMON $RELEASE" --notes-file "${readme:-/dev/null}"
           fi
           echo "- 9.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
       - name: 9.2 Merge - GitHub auto-merge completes it when this check is green
