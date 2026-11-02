@@ -1,0 +1,60 @@
+# IDCS trust for GitHub OIDC (#195).
+#   trust    - environment "Oracle DB Dev" (API key of user github-ci): installs the OCI CLI, re-creates the trust with
+#              repos/tools/idcs-trust.sh and prints it
+#   exchange - environment Oracle_OCI: the token exchange done by hand (curl, no action) and IDCS's full answer
+name: IDCS trust
+
+on:
+  pull_request:
+    paths: ['.github/workflows/idcs-trust.yml', 'repos/tools/idcs-trust.sh']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  trust:
+    runs-on: ubuntu-latest
+    environment: Oracle DB Dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: OCI CLI
+        run: pip install -q oci-cli
+      - name: Re-create the trust
+        env:
+          DOMAIN_URL: https://idcs-17ba683cab5141cabf020a66cb945923.identity.oraclecloud.com
+          OCI_CLI_USER: ${{ secrets.OCI_USER }}
+          OCI_CLI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_CLI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_KEY: ${{ secrets.OCI_KEY }}
+        run: |
+          printf '%s\n' "$OCI_KEY" > "$RUNNER_TEMP/k.pem"; chmod 600 "$RUNNER_TEMP/k.pem"
+          export OCI_CLI_KEY_FILE="$RUNNER_TEMP/k.pem"
+          bash repos/tools/idcs-trust.sh
+
+  exchange:
+    needs: trust
+    runs-on: ubuntu-latest
+    environment: Oracle_OCI
+    steps:
+      - name: Token exchange by hand
+        env:
+          CLIENT: ${{ secrets.OCI_OIDC_CLIENT }}
+          D: ${{ vars.OCI_DOMAIN_URL }}
+        run: |
+          sleep 20   # let IDCS settle after the trust change
+          jwt=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://cloud.oracle.com" | jq -r .value)
+          echo "$jwt" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq -c '{sub, aud, iss}' || true
+          echo "client id used: ${CLIENT%%:*}"
+          openssl genrsa -out k.pem 2048 2>/dev/null
+          pub=$(openssl rsa -in k.pem -pubout -outform DER 2>/dev/null | base64 -w0)
+          code=$(curl -sS -o resp.json -w '%{http_code}' -u "$CLIENT" -X POST "${D%/}/oauth2/v1/token" \
+            --data-urlencode 'grant_type=urn:ietf:params:oauth:grant-type:token-exchange' \
+            --data-urlencode 'requested_token_type=urn:oci:token-type:oci-upst' \
+            --data-urlencode "subject_token=$jwt" \
+            --data-urlencode 'subject_token_type=jwt' \
+            --data-urlencode "public_key=$pub")
+          echo "HTTP $code"
+          if [ "$code" = 200 ]; then echo "UPST received - IDCS login works"; else cat resp.json; echo; exit 1; fi
