@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: IDCS token exchange (github-ci-svc)
         id: oci
-        uses: gtrevorrow/oci-token-exchange-action@v1
+        uses: gtrevorrow/oci-token-exchange-action@v2
         with:
           oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
           domain_base_url: ${{ vars.OCI_DOMAIN_URL }}
