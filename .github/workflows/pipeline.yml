@@ -1,72 +1,45 @@
-# Pipeline - the one wrapper a pull request starts (one run in the Actions list). The parent job finds the apps the PR
-# changes and their release numbers; the children run in parallel inside this run:
-#   COMMON <release> Child: common-pipeline.yml   (repos/common changed)  offline checks + database
-#   KYC <release> Child:    checks.yml            (repos/kyc changed)     static checks, PMD, build + APEXlang
-#   REPO Child:             docs-check.yml        (a feature changed)     requirements updated with the code
-# Run name: the PR title (convention "<APP> <release>: <description>") and the run number.
-name: Pipeline
-run-name: "${{ github.event.pull_request.title || format('{0} manual', inputs.app) }} #${{ github.run_number }}"
+# COMMON pipeline wrapper - one record per run in the Actions list, named after the PR title
+# (convention "COMMON <release>: <description>"). Inside: a short prepare job (release number and the run count of this
+# PR) and one Child job that runs everything in sequence (offline checks, then database) - common-pipeline.yml.
+# Steps in sequence share one job; separate jobs only for work that runs in parallel. KYC is not wired in yet.
+name: COMMON
+run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}"
 
 on:
   pull_request:
+    paths: ['repos/common/**', '.github/workflows/pipeline.yml', '.github/workflows/common-pipeline.yml']
   workflow_dispatch:
-    inputs:
-      app:
-        description: Application to run
-        type: choice
-        options: [COMMON, KYC, ALL]
-        default: COMMON
 
 permissions:
   contents: read
+  actions: read
   issues: write
   pull-requests: write
 
 jobs:
-  detect:
-    name: "Parent: detect changed apps #${{ github.run_number }}"
+  prepare:
+    name: "COMMON: prepare"
     runs-on: ubuntu-latest
     outputs:
-      common: ${{ steps.d.outputs.common }}
-      kyc: ${{ steps.d.outputs.kyc }}
-      features: ${{ steps.d.outputs.features }}
-      common_release: ${{ steps.d.outputs.common_release }}
-      kyc_release: ${{ steps.d.outputs.kyc_release }}
+      release: ${{ steps.p.outputs.release }}
+      run: ${{ steps.p.outputs.run }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - id: d
+      - id: p
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          APP: ${{ inputs.app }}
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "${{ github.event.pull_request.title || 'COMMON: manual run' }}"
         run: |
-          if [ -n "$BASE" ]; then changed=$(git diff --name-only "$BASE" HEAD)
-          else changed=$( [ "$APP" = KYC ] && echo repos/kyc/ ; [ "$APP" = COMMON ] && echo repos/common/ ; [ "$APP" = ALL ] && printf 'repos/common/\nrepos/kyc/\n'); fi
-          has() { printf '%s\n' "$changed" | grep -q "$1" && echo true || echo false; }
-          rel() { ls -d repos/$1/releases/[0-9]*/ 2>/dev/null | sed -E 's#.*/([0-9]+)[^/]*/$#\1#' | sort -n | tail -1; }
-          { echo "common=$(has '^repos/common/')"
-            echo "kyc=$(has '^repos/kyc/')"
-            echo "features=$(has '^repos/[a-z]*/features/')"
-            echo "common_release=$(rel common)"
-            echo "kyc_release=$(rel kyc)"; } | tee -a "$GITHUB_OUTPUT"
+          release=$(ls -d repos/common/releases/[0-9]*/ | sed -E 's#.*/([0-9]+)[^/]*/$#\1#' | sort -n | tail -1)
+          # runs of this workflow with the same title (this PR / release), this one included
+          run=$(gh api "repos/${{ github.repository }}/actions/workflows/pipeline.yml/runs?per_page=100" \
+                --jq "[.workflow_runs[] | select(.display_title == env.TITLE)] | length")
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "run=${run:-1}" >> "$GITHUB_OUTPUT"
+          echo "COMMON $release, run ${run:-1}"
 
-  common:
-    name: "COMMON ${{ needs.detect.outputs.common_release }} Child: pipeline #${{ github.run_number }}"
-    needs: detect
-    if: needs.detect.outputs.common == 'true'
+  pipeline:
+    name: "COMMON ${{ needs.prepare.outputs.release }}: Child - pipeline:${{ needs.prepare.outputs.run }}"
+    needs: prepare
     uses: ./.github/workflows/common-pipeline.yml
     secrets: inherit
-
-  kyc:
-    name: "KYC ${{ needs.detect.outputs.kyc_release }} Child: checks #${{ github.run_number }}"
-    needs: detect
-    if: needs.detect.outputs.kyc == 'true'
-    uses: ./.github/workflows/checks.yml
-    secrets: inherit
-
-  docs:
-    name: "REPO Child: docs check #${{ github.run_number }}"
-    needs: detect
-    if: needs.detect.outputs.features == 'true' && github.event_name == 'pull_request'
-    uses: ./.github/workflows/docs-check.yml

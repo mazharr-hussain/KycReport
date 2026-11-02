@@ -1,15 +1,14 @@
 # Warns (does not fail) when a PR changes a component's code under repos/<app>/features/<x>/ but not its requirements
 # (repos/<app>/docs/components/<x>/requirements.md). A PR body with "no-req-change" skips the warning.
-# Child of the Pipeline wrapper (pipeline.yml).
 name: Docs check
 on:
-  workflow_call:
+  pull_request:
+    paths: ['repos/*/features/**']
 permissions:
   contents: read
   pull-requests: read
 jobs:
   requirements:
-    name: docs check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

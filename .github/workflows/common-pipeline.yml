@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   pipeline:
-    name: offline checks + database
+    name: offline checks, then database
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
     timeout-minutes: 90
