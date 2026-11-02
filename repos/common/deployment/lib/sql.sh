@@ -30,9 +30,8 @@ log=$(mktemp)
   for kv in "$@"; do printf 'define %s = "%s"\n' "${kv%%=*}" "${kv#*=}"; done
   echo "@$file"
   echo "exit"
-} | "$SQL" -S /nolog > "$log" 2>&1
-rc=$?
-cat "$log"
+} | "$SQL" -S /nolog 2>&1 | tee "$log"     # live output (long installs show their progress)
+rc=${PIPESTATUS[1]}
 if [ "$mode" = check ] && grep -qE '^(SP2-|Error starting at)|compilation errors' "$log"; then
   echo "ERROR $(basename "$file") as $login: $(grep -m1 -E '^(SP2-|ORA-|PLS-|Error starting at)|compilation errors' "$log")"
   rc=1

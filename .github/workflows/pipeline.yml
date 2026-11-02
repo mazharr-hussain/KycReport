@@ -121,7 +121,7 @@ jobs:
     needs: oci-setup
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
-    timeout-minutes: 20
+    timeout-minutes: 60   # the first APEX-SERT install (5.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
       contents: read
     env:
