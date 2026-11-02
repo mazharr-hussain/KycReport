@@ -32,6 +32,10 @@
   produced later from browser screen recordings: `user-guide.md`, `training-manual.md`, `setup-manual.md`, `video.md`
   (link to the video, a GitHub Release asset - no mp4 in git), `narration.md` (voice-over script) and `subtitles.vtt`.
   The claude.ai requirements page (https://claude.ai/artifact/AkQYLkw1WPgmCH1d8b8z9G) is no longer updated.
+- **Claude codes and reviews, the git workflow does the rest (from the user, 2 Nov 2026).** Claude only changes the
+  code and reviews it offline, then opens the PR and pushes; deployment, database checks, tests, release zip, merge
+  and error reports are done by the COMMON pipeline (`repos/common/deployment/README.md`). GitHub settings still to do
+  by the user: `repos/common/deployment/GITHUB-SETUP.md`.
 - **Netlify removed (from the user, 2 Nov 2026).** The repository is not published on Netlify; nothing is deployed,
   published or triggered there. Pushing to the session branch is allowed; a PR merges only through the COMMON pipeline
   (required check "9 Finalize the PR" + GitHub auto-merge, `repos/common/deployment/README.md`).

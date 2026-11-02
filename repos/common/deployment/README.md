@@ -1,6 +1,7 @@
 # COMMON deployment pipeline (app 135, schema XXFUSION)
 
-Workflow `.github/workflows/pipeline.yml` (Actions name **COMMON**, one record per PR run). Everything it runs lives
+Workflow `.github/workflows/pipeline.yml` (Actions name **COMMON**, one record per PR run). GitHub settings still to
+do (auto-merge, required check, Netlify): `GITHUB-SETUP.md`. Everything it runs lives
 in this folder. Steps 1-2 happen before the pipeline: Claude changes the code, reviews it, opens the PR and pushes.
 
 | Job | Steps | Runs as | Script |
