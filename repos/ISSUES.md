@@ -41,7 +41,6 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-022 [#157](https://github.com/mazharr-hussain/KycReport/issues/157) | COMMON | Integrations - Purpose (123) | Catalog Service list is empty until the purpose's server has REST Source Catalogs (by design; needs a hint text) | enhancement | P3 | Open | Claude (COMMON 112 review) |
 | I-023 [#158](https://github.com/mazharr-hussain/KycReport/issues/158) | COMMON | Fusion Objects clean-up | Script 41c keeps engine tables that hold rows and any replica tables the engine generated - list and drop by hand if not needed | task | P3 | Open | Claude (COMMON 112) |
 | I-024 [#159](https://github.com/mazharr-hussain/KycReport/issues/159) | COMMON | Feature docs | `TECHNICAL.md` of integrations, notifications, roles-privileges still name the removed 40z Fusion Objects script (regenerate with `repos/common/tools/feature_docs.py`) | task | P3 | Open | Claude |
-| I-025 [#160](https://github.com/mazharr-hussain/KycReport/issues/160) | All | CLAUDE.md | Rules out of date with the user's later instructions: "no push / no merge" (now: push and merge, only no Netlify) and "start the database for changes" (now: no database, offline validation only) | task | P2 | Fixed in the pipeline redesign PR (rules updated) | Claude |
 | I-026 [#161](https://github.com/mazharr-hussain/KycReport/issues/161) | COMMON | Approval groups | A GROUP level keeps the group code in ROLE_CODE (30 characters); a dedicated column would be clearer | enhancement | P3 | Open | Claude (COMMON 113) |
 | I-027 [#169](https://github.com/mazharr-hussain/KycReport/issues/169) | COMMON | Training | Update the 26 videos, the training manual and the user guide for releases 108-113 (servers, purposes, menu groups, processes and approval groups, users; Fusion Objects removed) | task | P2 | Open | User |
 | I-028 [#170](https://github.com/mazharr-hussain/KycReport/issues/170) | KYC | Training | Update the 9 videos, the training manual and the user guide (KYC-GUIDE.md) for KYC 105 (after the KYC changes) | task | P2 | Open | User |
@@ -67,6 +66,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
+| I-025 [#160](https://github.com/mazharr-hussain/KycReport/issues/160) | All | CLAUDE.md | Rules out of date with the user's later instructions: "no push / no merge" (now: push and merge, only no Netlify) and "start the database for changes" (now: no database, offline validation only) | Closed 02-Nov-2026 |
 | I-031 [#179](https://github.com/mazharr-hussain/KycReport/issues/179) | COMMON | GitHub workflows | W1-W3 checks.yml on repos/: build each app and validate APEXlang (SQLcl) on every PR | Workflows (1-Nov-2026) |
 | I-032 [#180](https://github.com/mazharr-hussain/KycReport/issues/180) | COMMON | GitHub workflows | W4 install-safety checks on every PR | Workflows (1-Nov-2026) |
 | I-033 [#181](https://github.com/mazharr-hussain/KycReport/issues/181) | COMMON | GitHub workflows | W5 golden-rule warnings on every PR | Workflows (1-Nov-2026) |
