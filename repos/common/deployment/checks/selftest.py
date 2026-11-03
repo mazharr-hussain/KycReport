@@ -86,11 +86,11 @@ def record(fp, verified='FULL'):
     return '\n'.join(lines) + '\n'
 
 
-def decide(root, rec, fp, refresh='false'):
+def decide(root, rec, fp, start=''):
     open(os.path.join(root, 'rec.txt'), 'w').write(rec)
     open(os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), 'w').write(fp['manifest'])   # this version's
     env = dict(os.environ, FINGERPRINT=fp['fingerprint'], DB_FINGERPRINT=fp['db_fingerprint'],
-               STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'], REFRESH_BASELINE=refresh)
+               STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'], START_FROM=start)
     subprocess.run([sys.executable, DECIDE, os.path.join(root, 'rec.txt'),
                     os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), os.path.join(root, 'out')],
                    env=env, check=True, capture_output=True)
@@ -115,7 +115,13 @@ with tempfile.TemporaryDirectory() as root:
     check('fingerprint: a new package renumbers the later files - same structure', b['struct_fingerprint'], a['struct_fingerprint'])
     check('decide: same version, fully verified -> reuse', decide(root, record(b), b)[0], 'reuse')
     check('decide: same version, quick check only -> patch (never reuse)', decide(root, record(b, 'PATCH'), b)[0], 'patch')
-    check('decide: refresh baseline -> full', decide(root, record(b), b, 'true')[0], 'full')
+    check('decide: start from job 4 -> full', decide(root, record(b), b, '4')[0], 'full')
+    fresh = record(b, 'DIRTY') + f'PASSED fresh {b["fingerprint"]}\n'
+    check('decide: job 4 passed for this version, run did not finish -> upgrade', decide(root, fresh, b)[0], 'upgrade')
+    check('decide: start from job 5, job 4 passed -> upgrade', decide(root, record(a) + f'PASSED fresh {b["fingerprint"]}\n', b, '5')[0], 'upgrade')
+    check('decide: start from job 5, job 4 not passed -> rules (full)', decide(root, record(b, 'DIRTY'), b, '5')[0], 'full')
+    check('decide: start from job 6 but not verified -> rules (full)', decide(root, record(b, 'DIRTY'), b, '6')[0], 'full')
+    check('decide: job 4 passed for another version -> full', decide(root, record(b, 'DIRTY') + 'PASSED fresh other\n', b)[0], 'full')
     check('decide: last deploy did not finish -> full', decide(root, record(b, 'DIRTY'), b)[0], 'full')
     check('decide: nothing recorded -> full', decide(root, '', b)[0], 'full')
     c = build(root, dict(v1, **{'0030-package-body-xxfnd_a_pkg.pkb': 'body 2\n'}))

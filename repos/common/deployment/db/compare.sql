@@ -1,7 +1,9 @@
 --------------------------------------------------------------------------------
--- Step 5.5, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
--- the backup schema's snapshot taken just before the upgrade (5.3). Validation database only.
+-- Step 5.6, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
+-- the backup schema's snapshot taken just before the upgrade (5.4), then checks the keys. Validation database only.
 --   FAIL  a table that still exists has fewer rows than before the upgrade (data lost)
+--   FAIL  a key (primary, unique, foreign, check - a new required column too) that is on but not checked against the
+--         existing rows (ENABLED NOVALIDATE): the upgrade did not prove the old rows meet it
 --   INFO  a table removed by the release; rows whose values the upgrade changed (planned data changes)
 -- Large-object and object-type columns are not compared value by value (row counts still are).
 -- Substitution variables: bkp_schema, restore_exclude.
@@ -66,9 +68,16 @@ begin
             end if;
         end if;
     end loop;
+    for k in (select table_name, constraint_name from user_constraints
+               where status = 'ENABLED' and validated = 'NOT VALIDATED' and table_name not like 'XXCI\_%' escape '\'
+                 and table_name not like 'BIN$%'
+               order by table_name, constraint_name) loop
+        dbms_output.put_line('FAIL key not checked against the existing rows: ' || k.table_name || '.' || k.constraint_name);
+        l_lost := l_lost + 1;
+    end loop;
     dbms_output.put_line('compared ' || l_tables || ' table(s) with the snapshot before the upgrade');
     if l_lost > 0 then
-        raise_application_error(-20003, 'The upgrade lost data in ' || l_lost || ' table(s) - see the FAIL lines.');
+        raise_application_error(-20003, 'The upgrade lost data or left keys unchecked (' || l_lost || ') - see the FAIL lines.');
     end if;
     exception
         when others then

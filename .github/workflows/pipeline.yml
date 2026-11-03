@@ -24,10 +24,11 @@ on:
         description: Record a video and a trace of the browser test (large - only when needed)
         type: boolean
         default: false
-      refresh_baseline:
-        description: Make the upgrade test's baseline data set again from the database's current data (H4)
-        type: boolean
-        default: false
+      start_from:
+        description: Start from job (auto = as late as the records allow; 4 = fresh install and upgrade test again)
+        type: choice
+        options: [auto, '4', '5', '6']
+        default: auto
 
 permissions: {}
 
@@ -48,8 +49,10 @@ jobs:
     permissions:
       contents: read
       issues: read          # 1.0a: the linked issues and their labels
+      pull-requests: read   # the PR's start-from-N label
     outputs:
       common: ${{ steps.scope.outputs.common }}
+      start_from: ${{ steps.start.outputs.start_from }}   # 4 / 5 / 6 asked for, or empty (db/decide.py)
       release: ${{ steps.scope.outputs.release }}
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
       db_fingerprint: ${{ steps.fingerprint.outputs.db_fingerprint }}
@@ -82,6 +85,32 @@ jobs:
           # "COMMON Release <N>: ..." -> N (format checked in 1.0a; a KYC release has no COMMON release number)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
+      - name: Start point - a start-from-N label on the PR, a "Pipeline-Start-From N" line in the pushed commit, or the full run's input
+        id: start
+        if: steps.scope.outputs.common == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          INPUT: ${{ inputs.start_from }}
+        run: |
+          set -euo pipefail
+          start=""; from=""
+          if [ -n "$PR" ]; then
+            start=$(gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | sed -n 's/^start-from-\([456]\)$/\1/p' | head -1)
+            from="label start-from-$start"
+            if [ -z "$start" ]; then
+              start=$(git log -1 --format=%B "$HEAD_SHA" | sed -n 's/^Pipeline-Start-From: *\([456]\) *$/\1/p' | head -1)
+              from="the commit message"
+            fi
+          elif [ -n "$INPUT" ] && [ "$INPUT" != auto ]; then
+            start=$INPUT; from="the Run workflow input"
+          fi
+          echo "start_from=$start" >> "$GITHUB_OUTPUT"
+          if [ -n "$start" ]; then
+            echo "- start from job $start asked ($from) - job 3 follows it only when its records allow" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: steps.scope.outputs.common == 'true'
         with:
@@ -203,7 +232,8 @@ jobs:
     outputs:
       # M2: the one deploy decision (db/decide.py) - reuse (the database holds this version, fully verified: jobs 4-5
       # skipped), app (same database scripts: job 4 replaces the APEX application only, job 5 skipped), patch (same
-      # structure, only code objects changed: job 4 quick check first, then the full deploy) or full (fresh install and
+      # structure, only code objects changed: job 4 quick check first, then the full deploy), upgrade (job 4 passed for
+      # this version on an earlier run that did not finish: job 4 skipped, job 5 runs) or full (fresh install and
       # upgrade test)
       deploy: ${{ steps.setup.outputs.deploy }}
       patch_files: ${{ steps.setup.outputs.patch_files }}           # patch: the changed code object files
@@ -214,6 +244,7 @@ jobs:
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
       APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
+      START_FROM: ${{ needs.offline.outputs.start_from }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -235,7 +266,6 @@ jobs:
           VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
           ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
-          REFRESH_BASELINE: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_baseline }}
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh setup
@@ -247,6 +277,7 @@ jobs:
             echo "app_changed=$(cat "$LOG_DIR/app-changed")"
           } >> "$GITHUB_OUTPUT"
           echo "- deploy: \`$deploy\`" >> "$GITHUB_STEP_SUMMARY"
+          sed 's/^/- /' "$LOG_DIR/start-note" >> "$GITHUB_STEP_SUMMARY"
       - name: Step logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -315,9 +346,11 @@ jobs:
   fresh:
     name: 4 Deploy fresh app
     needs: [offline, db-setup, quick]
-    # every deploy but reuse; after a quick check (patch) only when it passed - then the full fresh install
+    # every deploy but reuse and upgrade (job 4 passed for this version already); after a quick check (patch) only
+    # when it passed - then the full fresh install
     if: >-
       always() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
+      needs.db-setup.outputs.deploy != 'upgrade' &&
       (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
@@ -349,11 +382,10 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 4.0-4.7 Deploy fresh app
+      - name: 4.0-4.7 Deploy fresh app (with this version's test data)
         env:
           VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
           ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
-          REFRESH_BASELINE: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_baseline }}
         run: bash repos/common/deployment/db/run.sh fresh
       - name: Dependency report (4.4)
         if: always()
@@ -377,17 +409,20 @@ jobs:
     needs: [offline, db-setup, fresh]
     # application only: these database scripts passed it already, the schema keeps its data. (F - no upgrade test when
     # the scripts are the base's - is held back: job 6's DB tests still need the data the upgrade test restores.)
-    # full, and patch after its quick check (job 4 ran the full fresh install)
+    # full, and patch after its quick check (job 4 ran the full fresh install); upgrade: job 4 passed for this
+    # version on an earlier run (5.0 checks that it is still recorded)
     if: >-
-      always() && needs.fresh.result == 'success' &&
-      (needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch')
+      always() && needs.db-setup.result == 'success' &&
+      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch') && needs.fresh.result == 'success') ||
+       needs.db-setup.outputs.deploy == 'upgrade')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40
     permissions:
       contents: read
     env:
-      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.8 records it: the database holds this version
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.11 records it: the database holds this version
+      DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 5.0 checks job 4's earlier pass
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
       APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
@@ -412,7 +447,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 5.1-5.8 Upgrade app (last release = the PR's base commit)
+      - name: 5.0-5.11 Upgrade app (last release = the PR's base commit, with its test data from git)
         env:
           VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
           ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
@@ -600,6 +635,7 @@ jobs:
           case $DEPLOY in
             reuse) sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt ;;
             app)   grep -q '^fresh=success$' results.txt && sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt ;;
+            upgrade) grep -q '^upgrade=success$' results.txt && sed -i 's/^fresh=skipped$/fresh=success/' results.txt ;;   # 5.0: job 4 passed earlier
           esac
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
                             [quick]="4 Quick check" [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 DB tests and security"
@@ -761,6 +797,17 @@ jobs:
       - name: 7.3-7.4 Documentation not made
         if: steps.docs.outcome == 'failure'
         run: echo "::warning::7.3-7.4 documentation failed after the merge - see the step log; the release has its zip"
+      - name: A start-from-N label counts for one run (it was read by job 1)
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const issue_number = context.payload.pull_request.number;
+            const labels = (await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number })).data;
+            for (const l of labels.filter(l => /^start-from-/.test(l.name))) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number, name: l.name });
+            }
 
   error:
     name: 8 Error handling
@@ -838,11 +885,24 @@ jobs:
               }
             }
             const why = result === 'cancelled' ? 'was cancelled (its time limit, or stopped by hand)' : 'failed';
+            // what to do next: a temporary failure is re-run as it is; anything else needs a fix, and the jobs that
+            // passed before the failed one may be skipped (restart points 4, 5, 6 - db/decide.py checks the records)
+            const temporary = /ORA-12170|ORA-12541|ORA-12514|ORA-12537|ORA-03113|ORA-03114|ORA-29273|ORA-01013|TNS-|timed? ?out|Connection reset|ECONNRESET|503 Service|502 Bad Gateway|rate limit|Could not resolve host/i;
+            const hit = (errors + '\n' + tail).match(temporary);
+            const restart = { quick: 4, fresh: 4, upgrade: 5, test: 6, ui: 6 }[job];
+            const next = hit
+              ? `**Next:** this looks temporary (\`${hit[0]}\`) - re-run the failed jobs as they are: [run](${runUrl}) > Re-run failed jobs.`
+              : restart && pr
+                ? `**Next:** push a fix. The jobs before job ${restart} passed: to skip them, add the line \`Pipeline-Start-From: ${restart}\` ` +
+                  `to the commit message (or comment \`/pipeline start-from ${restart}\`) - job 3 follows it only when its records allow.`
+                : restart
+                  ? `**Next:** fix it on main, then run the full run again with Start from ${restart} (followed only when the records allow).`
+                  : '**Next:** push a fix - the pipeline runs again from job 1.';
             const body = [
               `**COMMON pipeline stopped: job ${name} ${why}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
               (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because job ${name} ${why} (no zip, no merge). ` : '') +
-              'The PR stays open; push a fix and the pipeline runs again.', '',
+              'The PR stays open.', '', next, '',
               '| | |', '|---|---|',
               `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
               `| Commit | ${(context.payload.pull_request?.head.sha || context.sha).slice(0, 7)} |`, `| Run | ${runUrl} |`, '',

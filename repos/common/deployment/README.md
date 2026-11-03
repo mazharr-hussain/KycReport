@@ -10,8 +10,8 @@ in this folder. Before the pipeline, Claude changes the code, reviews it, opens 
 | 2 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
 | 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2b deploy decision (`db/decide.py`: reuse / app / patch / full) · 3.3 backup schema `XXFUSION_BKP` (dropped if it exists, created; full and patch only) · 3.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
 | 4 Quick check (patch only) | 4.Q1 mark the record · 4.Q2 run the changed code objects alone · 4.Q3 import the app (when it changed) · 4.Q4 online validation · 4.Q5 record (PATCH) · 4.Q6 select the tests of the changed objects and their callers · 4.Q7 those DB tests · 4.Q8 record the failed files; a pass is followed by jobs 4-6 in the same run | proxy | `db/run.sh quick` |
-| 4 Deploy fresh app | 4.0 back up the app's data · 4.1 remove app + DB objects · 4.2 deploy this version · 4.3 online validation · 4.4 dependency check: deployed schema vs the generated map (report) | pipeline user / proxy | `db/run.sh fresh` |
-| 5 Upgrade app | 5.1 remove (= 4.1) · 5.2 deploy the last release (= 4.2, the PR's base commit) · 5.3 restore the data + snapshot · 5.4 upgrade to this version (once) · 5.5 nothing lost · 5.6 online validation (= 4.3) · 5.7 drop the backup schema | pipeline user / proxy | `db/run.sh upgrade <base>` |
+| 4 Deploy fresh app | 4.1 remove app + DB objects · 4.2 deploy this version · 4.2b load this version's test data (`db/admin/test-data.json`) · 4.3 online validation · 4.4 dependency check: deployed schema vs the generated map (report) · 4.5 record the fresh install's structure | pipeline user / proxy | `db/run.sh fresh` |
+| 5 Upgrade app | 5.0 version guard (upgrade only) · 5.1 remove (= 4.1) · 5.2 deploy the last release (the PR's base commit) · 5.3 load the last release's test data (its own file from git) · 5.4 snapshot · 5.5 upgrade to this version (once) · 5.6 nothing lost + every key checked against the old rows · 5.7 load this version's test data again (insert + update: the delta) · 5.8 same structure as the fresh install · 5.9 online validation · 5.10 drop the snapshot · 5.11 record the version | pipeline user / proxy | `db/run.sh upgrade <base>` |
 | 6 Testing and validation | 6.0 select the DB tests (reuse / app: what changed since the last tested commit + last failures) · 6.1 test users · 6.2 DB tests (every expected file must run): `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 6.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 6.4 APEX-SERT evaluation (report) · 6.5 DBSAT (report; when its download is set) · 6.6 OWASP ZAP baseline scan (report) | ADMIN for 6.1, 6.4, 6.5; proxy for 6.2 | `db/run.sh test`, `ui/smoke_ui.py`, ZAP action |
 | 7 Finalize the PR | gate (every earlier job passed) · 7.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 7.2 issues for the existing findings (future releases), then merge (ready for review if draft; label `hold` stops it) and publish the release · 7.3 readable APEX docs (`READABLE_YAML` export) · 7.4 database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
 | 8 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
@@ -24,7 +24,7 @@ Job 1.0a checks the title and the linked issues; the release number comes from t
 
 **Annotations:** only findings in the files a PR changes become GitHub warning annotations (1.2 static checks, 1.6
 PMD); findings in unchanged files are existing code and are listed in the step log as `existing: ...`, with a count.
-Information (PMD files it cannot parse, the dependency report, the restore report, DBSAT not set up) is logged as
+Information (PMD files it cannot parse, the dependency report, test data left out on the old structure, DBSAT not set up) is logged as
 `info: ...`, never annotated. **PR comment:** every run posts one comment on the PR - "passed" (job 7) or the error
 (job 8) - with the warnings in this change, the notices and the existing findings (collapsed), built by
 `checks/report.py` from the step logs. **Issues:** a pipeline failure or a warning in the PR's own files is never an
@@ -106,7 +106,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Q5** a page under `app/pages` tests that page only; the rest of `app/` (shared components, definition) tests everything.
 - **The record never claims what the database may not hold:** a deploy marks it first (DIRTY / app or code objects
   unknown) and records the version only when it passed - a deploy cut short (failure, time limit, cancel) means the
-  full deploy next time. The baseline data set (H4) is marked while it is being made: a copy cut short is made again.
+  full deploy next time.
 - **Every test file must run:** 6.2 / 4.Q7 compare the files expected with the files that ran; one that never ran (a
   session ended early) fails the step and runs again next time.
 - **A newer push replaces the older run (`supersede.yml`)** - only while the old run is in jobs 1, 2 or 6; during
@@ -123,8 +123,31 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   uploads). **H3** every action of every workflow is pinned to a commit. **M6** the Python tools are installed with
   `--require-hashes` (`requirements-lint.txt`, `requirements-ui.txt` - keep Playwright's version equal to
   `PLAYWRIGHT_VERSION` in `tools.env`).
-- **H4** the upgrade test restores a fixed baseline data set (`XXFUSION_BASE_BKP`, made once and kept) instead of
-  whatever earlier runs left; the full run's "refresh baseline" makes it again from the current data.
+- **H4 test data in git, not in the database (agreed 3 Nov 2026):** `repos/common/db/admin/test-data.json` holds rows
+  for every table (keys 900001+, codes `TD_`, test application `TDAPP`; `no_data` lists a table without rows and why).
+  `db/load_data.py` + `db/load-data.sql` merge it on the primary key (insert when missing, update when there; triggers
+  and row policies off during the load, WHO columns filled). It is loaded after the fresh install (4.2b), into the last
+  release (5.3 - that release's own copy from git, so data and structure always match; while the last release has no
+  file yet, this version's file loads tolerantly) and again after the upgrade (5.7). Nothing is kept between runs: the
+  kept baseline schema of run 35 is dropped (3.3b). A release that adds a table or a required column adds its rows in
+  the same PR - 1.6b (`checks/test_data.py`) fails on a table without rows or a column the table does not have. The
+  file is part of the database fingerprint: changing it redeploys.
+- **Upgrade = fresh (5.8):** 4.5 keeps the fresh install's structure (tables, columns, keys and their state, indexes,
+  code objects; `XXCI_FRESH_SCHEMA`); after the upgrade and the delta load the upgraded database must show exactly
+  the same lines (row counts are shown for information).
+- **Restart points (agreed 3 Nov 2026):** a job is the smallest restart point; jobs 1 and 3 always run.
+  - *Upgrade only:* job 4 that passed for this exact version is recorded (`XXCI_PASSED` `fresh`); when the run did not
+    finish (e.g. job 5 failed, then a pipeline-only fix), job 3 decides `upgrade`: job 4 is skipped, job 5 runs.
+  - *Asked for:* `Pipeline-Start-From: N` in the pushed commit's message (Claude, with a fix), `/pipeline start-from N`
+    in a PR comment by the owner (`pipeline-command.yml`: label `start-from-N` + re-run; job 7 removes the label), or
+    the full run's "Start from" input. N = 4 (fresh install and upgrade test again), 5 (skip job 4 when it passed for
+    this version), 6 (skip jobs 4-5 when the database holds this version fully verified). It is never later than the
+    records allow - job 3 says why (`start-note`) and starts earlier.
+  - *Version guard:* jobs 4 (app only, quick check), 5 (upgrade), 6 and 7 first check that the database still holds
+    what job 3 found; after another run changed it, the job stops ("re-run all jobs") instead of testing the wrong
+    version.
+  - *Job 8 says what next:* a temporary failure (connection, time-out) - re-run the failed jobs; otherwise push a fix,
+    with the start point to name.
 - **M2** job 3 makes one deploy decision (`deploy`: reuse / app / patch / full) that every later job reads. **M3** artifact
   names follow the job numbers. **M4** one pipeline comment per PR, updated by every run. **M5** artifacts are kept 7
   (logs), 14 (reports) or 30 days (release zip, docs); the browser test's **video and trace only in the full run and
@@ -143,7 +166,7 @@ a one-line change per workflow, made on purpose and tested by a run.
 ## Files
 | File | Purpose |
 |---|---|
-| `app.env` | the application: id, schema, backup schema, workspace, pipeline user, tables never restored, URL path, browser-test users |
+| `app.env` | the application: id, schema, snapshot schema, workspace, pipeline user, tables never compared, URL path, browser-test users |
 | `tools.env` | pinned tools with their SHA-256: gitleaks, SchemaSpy, Oracle JDBC, Instant Client (DBSAT), Playwright, APEX-SERT commit |
 | `lib/fetch.sh`, `lib/app-url.sh` | checksum-verified download; the APEX URL read from the wallet (or `VAL_APP_URL`) |
 | `ui/smoke_ui.py` | browser smoke test (6.3) |
@@ -158,7 +181,11 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `db/ci-password.sql` | new random password of the pipeline user for each job (ADMIN) |
 | `db/needs-bootstrap.sql` | is the environment complete? (pipeline user, read only) |
 | `db/backup-schema.sql` | drop / create the backup schema (refuses any name not ending in `_BKP`) |
-| `db/grant-to.sql`, `db/backup.sql`, `db/restore.sql`, `db/compare.sql` | upgrade test: copy the app's data, put it back into the old release, compare after the upgrade |
+| `db/grant-to.sql`, `db/backup.sql`, `db/compare.sql` | upgrade test: the snapshot before the upgrade and the nothing-lost check after it |
+| `db/load_data.py`, `db/load-data.sql`, `../db/admin/test-data.json` | the test data: merged into the database in 4.2b, 5.3, 5.7 |
+| `db/schema-summary.sql` | the structure lines of 4.5 / 5.8 (upgrade = fresh) |
+| `checks/test_data.py` | 1.6b: every table has test rows, every column exists |
+| `../../../.github/workflows/pipeline-command.yml` | `/pipeline start-from N` on a PR |
 | `db/remove-app.sql`, `db/clear-schema.sql` | remove the application and every object of the schema (validation DB only) |
 | `db/validate-online.sql` | no invalid object / compile error; application installed, available, every page present |
 

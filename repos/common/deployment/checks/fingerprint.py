@@ -3,8 +3,8 @@
 
 fingerprint.py <repo root>   (after the build) - prints lines for $GITHUB_OUTPUT and writes the code manifest
   fingerprint=<the whole version: application + database scripts>
-  db_fingerprint=<the database scripts (db/deploy install + upgrade)>
-  struct_fingerprint=<the database structure: every install / upgrade step that is not a code object>
+  db_fingerprint=<the database scripts (db/deploy install + upgrade) and the test data (db/admin/test-data.json)>
+  struct_fingerprint=<the database structure: every install / upgrade step that is not a code object, and the test data>
   app_fingerprint=<the application without its supporting objects (pages, shared components ...)>
 and repos/common/db/deploy/code-manifest.txt: one line per code object - "<key> <hash> install/<file>".
 
@@ -45,14 +45,16 @@ def main(root):
     app = os.path.join(common, 'dist', 'app')
     if not os.path.isfile(os.path.join(app, 'application.apx')):
         sys.exit(f'fingerprint.py: no built application in {app} - run the build first')
-    db = sha(b''.join(tree(os.path.join(deploy, d)).encode() for d in ('install', 'upgrade')))[:16]
+    data_file = os.path.join(common, 'db', 'admin', 'test-data.json')   # jobs 4-5 load it: a change redeploys
+    data = sha(open(data_file, 'rb').read()) if os.path.isfile(data_file) else '-'
+    db = sha(b''.join(tree(os.path.join(deploy, d)).encode() for d in ('install', 'upgrade')) + data.encode())[:16]
     files = {}
     for d in ('install', 'upgrade'):
         for f in sorted(os.listdir(os.path.join(deploy, d))):
             if f != 'run-all.sql':
                 files.setdefault(d, []).append((key(f), f, sha(open(os.path.join(deploy, d, f), 'rb').read())))
     up = {k: h for k, _, h in files['upgrade']}
-    struct = hashlib.sha256()
+    struct = hashlib.sha256(f'test-data {data}\n'.encode())
     manifest = []
     for d in ('install', 'upgrade'):
         for k, f, h in files[d]:

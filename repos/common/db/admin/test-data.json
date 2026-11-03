@@ -1,0 +1,336 @@
+{
+  "about": "COMMON test data for the pipeline (jobs 4-5): loaded after the fresh install (4.2b), into the last release before the upgrade (5.3, the last release's own copy of this file from git) and again after the upgrade (5.7, insert + update: the delta). Never kept in the database between runs. A release that adds a table or a required column adds its rows here in the same PR (job 1 checks that every table has rows or a reason). Keys 900001+ and codes TD_ keep the rows apart from the seed data; TD_CASES is an example table name of the test application TDAPP (registries skip tables that do not exist).",
+  "no_data": {
+    "XXFND_SCHEMA_RELEASES": "the release record: written by the install / upgrade itself (XXFND_DDL_PKG.MARK_RELEASE) - test rows would hide a missing release step",
+    "XXFND_DROPPED_OBJECTS": "written only by XXFND_DDL_PKG.DROP_OBJECT; no primary key"
+  },
+  "tables": [
+    {"table": "XXFND_APPLICATIONS", "rows": [
+      {"application_id": 900001, "application_code": "TDAPP", "application_name": "Test data application", "enabled_flag": "Y", "description": "Pipeline test data (db/admin/test-data.json)"}
+    ]},
+    {"table": "XXFND_LOOKUP_TYPES", "rows": [
+      {"lookup_type": "TD_STATUS", "meaning": "Test case status", "application_code": "TDAPP", "customization_level": "U"},
+      {"lookup_type": "TD_COUNTRY", "meaning": "Test countries", "application_code": "TDAPP", "customization_level": "E"},
+      {"lookup_type": "TD_CITY", "meaning": "Test cities", "application_code": "TDAPP", "customization_level": "E"}
+    ]},
+    {"table": "XXFND_LOOKUP_VALUES", "rows": [
+      {"lookup_type": "TD_STATUS", "lookup_code": "OPEN", "meaning": "Open", "display_sequence": 10, "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"lookup_type": "TD_STATUS", "lookup_code": "CLOSED", "meaning": "Closed", "display_sequence": 20, "enabled_flag": "Y", "start_date_active": "2026-01-01", "end_date_active": "2030-12-31"},
+      {"lookup_type": "TD_COUNTRY", "lookup_code": "AE", "meaning": "United Arab Emirates", "tag": "25", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"lookup_type": "TD_COUNTRY", "lookup_code": "PK", "meaning": "Pakistan", "tag": "10", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"lookup_type": "TD_CITY", "lookup_code": "DXB", "meaning": "Dubai", "parent_lookup_type": "TD_COUNTRY", "parent_lookup_code": "AE", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"lookup_type": "TD_CITY", "lookup_code": "KHI", "meaning": "Karachi", "parent_lookup_type": "TD_COUNTRY", "parent_lookup_code": "PK", "enabled_flag": "N", "start_date_active": "2026-01-01"}
+    ]},
+    {"table": "XXFND_LOOKUP_VALUES_TL", "rows": [
+      {"lookup_type": "TD_STATUS", "lookup_code": "OPEN", "language_code": "ar", "meaning": "مفتوح"},
+      {"lookup_type": "TD_COUNTRY", "lookup_code": "AE", "language_code": "ar", "meaning": "الإمارات العربية المتحدة", "description": "Test row with Arabic text"}
+    ]},
+    {"table": "XXHR_EMPLOYEES", "rows": [
+      {"employee_id": 900001, "source_type": "LOCAL", "user_name": "TD_ANNA", "full_name": "Anna Test", "email_address": "td.anna@example.com", "department_name": "Compliance", "job_title": "KYC Reviewer", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"employee_id": 900002, "source_type": "FUSION", "fusion_person_id": 9900002, "fusion_person_number": "TD-2", "fusion_user_id": "TD-USER-2", "user_name": "TD_OMAR", "full_name": "Omar Test", "email_address": "td.omar@example.com", "department_name": "Compliance", "job_title": "KYC Approver", "last_sync_date": "2026-10-01 08:00:00", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"employee_id": 900003, "source_type": "LOCAL", "user_name": "TD_SARA", "full_name": "Sara Test", "email_address": "td.sara@example.com", "department_name": "Operations", "job_title": "Analyst", "enabled_flag": "N", "start_date_active": "2026-01-01", "end_date_active": "2026-09-30"}
+    ]},
+    {"table": "XXFND_USERS", "rows": [
+      {"user_id": 900001, "user_name": "TD_ANNA", "user_type": "SSO", "employee_id": 900001, "full_name": "Anna Test", "email_address": "td.anna@example.com", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"user_id": 900002, "user_name": "TD_OMAR", "user_type": "SSO", "employee_id": 900002, "full_name": "Omar Test", "email_address": "td.omar@example.com", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"user_id": 900003, "user_name": "TD_EXTERNAL", "user_type": "LOCAL", "full_name": "External Auditor Test", "email_address": "td.external@example.com", "enabled_flag": "Y", "start_date_active": "2026-01-01", "end_date_active": "2026-12-31", "description": "Local account with an end date"}
+    ]},
+    {"table": "XXFND_USER_APPLICATIONS", "rows": [
+      {"user_application_id": 900001, "user_id": 900001, "application_code": "TDAPP", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_application_id": 900002, "user_id": 900002, "application_code": "TDAPP", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_application_id": 900003, "user_id": 900003, "application_code": "TDAPP", "start_date_active": "2026-01-01", "end_date_active": "2026-12-31", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_ROLES", "rows": [
+      {"role_code": "TD_REVIEWER", "application_code": "TDAPP", "role_name": "Test reviewer", "view_sensitive_flag": "N", "enabled_flag": "Y"},
+      {"role_code": "TD_APPROVER", "application_code": "TDAPP", "role_name": "Test approver", "view_sensitive_flag": "Y", "enabled_flag": "Y"},
+      {"role_code": "TD_ADMIN", "application_code": "TDAPP", "role_name": "Test administrator", "description": "Holds the reviewer role", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_ROLE_MEMBERS", "rows": [
+      {"role_code": "TD_ADMIN", "member_role_code": "TD_REVIEWER"}
+    ]},
+    {"table": "XXFND_USER_ROLES", "rows": [
+      {"user_role_id": 900001, "employee_id": 900001, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_role_id": 900002, "employee_id": 900002, "role_code": "TD_APPROVER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_role_id": 900003, "employee_id": 900003, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "end_date_active": "2026-06-30", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_SOD_RULES", "rows": [
+      {"sod_rule_id": 900001, "role_code_1": "TD_APPROVER", "role_code_2": "TD_REVIEWER", "conflict_scope": "SAME_RECORD", "description": "Reviewer may not approve the same case", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXHR_ORGANIZATIONS", "rows": [
+      {"organization_id": 900001, "organization_type": "DEPARTMENT", "organization_code": "TD_COMPLIANCE", "organization_name": "Test Compliance", "application_code": "TDAPP", "source_type": "LOCAL", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"organization_id": 900002, "organization_type": "DEPARTMENT", "organization_code": "TD_KYC_OPS", "organization_name": "Test KYC Operations", "parent_organization_id": 900001, "application_code": "TDAPP", "source_type": "HCM", "fusion_organization_id": "TD-ORG-2", "enabled_flag": "Y", "start_date_active": "2026-01-01"}
+    ]},
+    {"table": "XXFND_DATA_DIMENSIONS", "rows": [
+      {"dimension_code": "TD_DEPT", "dimension_name": "Test department", "application_code": "TDAPP", "value_source": "ORGANIZATION", "organization_type": "DEPARTMENT", "enabled_flag": "Y"},
+      {"dimension_code": "TD_COUNTRY_DIM", "dimension_name": "Test country", "application_code": "TDAPP", "value_source": "LOOKUP", "lookup_type": "TD_COUNTRY", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_DATA_OBJECTS", "rows": [
+      {"data_object_code": "TD_CASES", "object_name": "Test cases", "application_code": "TDAPP", "table_name": "TD_CASES", "dimension_code": "TD_DEPT", "dimension_column": "DEPT_CODE", "owner_column": "CREATED_BY", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_ROLE_DATA_ACCESS", "rows": [
+      {"role_data_access_id": 900001, "role_code": "TD_REVIEWER", "data_object_code": "TD_CASES", "access_level": "VALUES"},
+      {"role_data_access_id": 900002, "role_code": "TD_APPROVER", "data_object_code": "TD_CASES", "access_level": "ALL"},
+      {"role_data_access_id": 900003, "role_code": "TD_REVIEWER", "data_object_code": "TD_CASES", "access_level": "OWN"}
+    ]},
+    {"table": "XXFND_ASSIGNMENT_VALUES", "rows": [
+      {"assignment_value_id": 900001, "user_role_id": 900001, "dimension_code": "TD_DEPT", "value_code": "TD_KYC_OPS"},
+      {"assignment_value_id": 900002, "user_role_id": 900001, "dimension_code": "TD_COUNTRY_DIM", "data_object_code": "TD_CASES", "value_code": "AE"}
+    ]},
+    {"table": "XXFND_DATA_SECURITY_RULES", "rows": [
+      {"rule_id": 900001, "role_code": "TD_REVIEWER", "table_name": "TD_CASES", "rule_type": "COLUMN_IN_LIST", "column_name": "DEPT_CODE", "value_list": "TD_KYC_OPS,TD_COMPLIANCE", "enabled_flag": "Y"},
+      {"rule_id": 900002, "role_code": "TD_APPROVER", "table_name": "TD_CASES", "rule_type": "ALL_ROWS", "enabled_flag": "Y"},
+      {"rule_id": 900003, "role_code": "TD_ADMIN", "table_name": "TD_CASES", "rule_type": "OWN_RECORDS", "column_name": "CREATED_BY", "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_DATA_RULE_ASSIGNMENTS", "rows": [
+      {"assignment_id": 900001, "rule_id": 900001, "role_code": "TD_REVIEWER"},
+      {"assignment_id": 900002, "rule_id": 900002, "user_id": 900002}
+    ]},
+    {"table": "XXFND_FEATURES", "rows": [
+      {"feature_code": "TD_CASES", "feature_name": "Test cases", "feature_group": "TD", "display_sequence": 900, "admin_flag": "N", "enabled_flag": "Y"},
+      {"feature_code": "TD_SETUP", "feature_name": "Test setup", "feature_group": "TD", "display_sequence": 910, "admin_flag": "Y", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_PRIVILEGES", "rows": [
+      {"privilege_code": "TD_CASES.VIEW", "feature_code": "TD_CASES", "action_code": "VIEW", "privilege_name": "View test cases"},
+      {"privilege_code": "TD_CASES.CREATE", "feature_code": "TD_CASES", "action_code": "CREATE", "privilege_name": "Create test cases"},
+      {"privilege_code": "TD_CASES.MANAGE", "feature_code": "TD_CASES", "action_code": "MANAGE", "privilege_name": "Manage test cases"},
+      {"privilege_code": "TD_SETUP.MANAGE", "feature_code": "TD_SETUP", "action_code": "MANAGE", "privilege_name": "Manage test setup"}
+    ]},
+    {"table": "XXFND_FEATURE_PAGES", "rows": [
+      {"app_alias": "tdapp", "page_id": 10, "feature_code": "TD_CASES"},
+      {"app_alias": "tdapp", "page_id": 20, "feature_code": "TD_SETUP"}
+    ]},
+    {"table": "XXFND_ROLE_PRIVILEGES", "rows": [
+      {"role_code": "TD_REVIEWER", "privilege_code": "TD_CASES.VIEW"},
+      {"role_code": "TD_REVIEWER", "privilege_code": "TD_CASES.CREATE"},
+      {"role_code": "TD_APPROVER", "privilege_code": "TD_CASES.MANAGE"},
+      {"role_code": "TD_ADMIN", "privilege_code": "TD_SETUP.MANAGE"}
+    ]},
+    {"table": "XXFND_APPLICATION_FUNCTIONS", "rows": [
+      {"application_code": "TDAPP", "feature_code": "TD_SETUP"}
+    ]},
+    {"table": "XXFND_APP_MENU_ENTRIES", "rows": [
+      {"application_code": "TDAPP", "entry_code": "TD_CASES", "label": "Test cases", "display_sequence": 10, "icon_css": "fa-folder", "target_type": "APP_PAGE", "page_id": 10, "feature_code": "TD_CASES", "enabled_flag": "Y", "made_by": "APP"},
+      {"application_code": "TDAPP", "entry_code": "TD_ADMIN", "label": "Administration", "display_sequence": 90, "target_type": "SHARED_SETUP", "enabled_flag": "Y", "made_by": "COMMON"}
+    ]},
+    {"table": "XXFND_SETUP_TYPES", "rows": [
+      {"setup_type_code": "TD_SETUP_TYPE", "setup_type_name": "Test setup type", "feature_code": "TD_SETUP", "table_name": "TD_CASES", "list_page_id": 20, "form_page_id": 21, "allowed_level": "A", "all_applications_flag": "N", "display_sequence": 900}
+    ]},
+    {"table": "XXFND_SETUP_TYPE_APPS", "rows": [
+      {"setup_type_code": "TD_SETUP_TYPE", "application_code": "TDAPP"}
+    ]},
+    {"table": "XXFND_CONFIG_TABLES", "rows": [
+      {"table_name": "TD_CASES", "application_id": 900001, "audit_flag": "Y", "approval_flag": "N", "pk_column": "CASE_ID", "description": "Example configuration table (does not exist: registries skip it)"}
+    ]},
+    {"table": "XXFND_WORKFLOW_PROCESSES", "rows": [
+      {"application_code": "TDAPP", "process_code": "TD_CASE_APPROVAL", "process_name": "Test case approval", "workflow_enabled_flag": "Y", "email_enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_TASK_SETTINGS", "rows": [
+      {"task_definition": "TD_CASE_REVIEW", "due_days": 5, "reminder_days_before": 1, "escalation_role_code": "TD_ADMIN", "notify_on_create_flag": "Y", "description": "Test task definition"}
+    ]},
+    {"table": "XXFND_TASK_ALERTS", "rows": [
+      {"task_id": 900001, "alert_type": "REMINDER", "sent_date": "2026-10-20 09:00:00"},
+      {"task_id": 900001, "alert_type": "ESCALATION", "sent_date": "2026-10-25 09:00:00"}
+    ]},
+    {"table": "XXFND_WF_DELEGATIONS", "rows": [
+      {"delegation_id": 900001, "delegator_user_name": "TD_ANNA", "delegate_user_name": "TD_OMAR", "task_definition": "TD_CASE_REVIEW", "start_date": "2026-07-01", "end_date": "2026-07-15", "reason": "Annual leave"}
+    ]},
+    {"table": "XXFND_MESSAGES", "rows": [
+      {"message_code": "TD_CASE_LOCKED", "language_code": "en", "message_text": "Case {1} is locked by {2}.", "error_number": -20901, "description": "Test message"},
+      {"message_code": "TD_CASE_LOCKED", "language_code": "ar", "message_text": "الحالة {1} مقفلة.", "error_number": -20901}
+    ]},
+    {"table": "XXFND_ERROR_LOG", "rows": [
+      {"error_id": 900001, "error_time": "2026-10-15 11:30:00", "user_name": "TD_ANNA", "application_id": 900001, "page_id": 10, "session_id": 900001, "request": "SAVE", "component": "Test region", "error_code": -20901, "error_message": "Case 1001 is locked by TD_OMAR.", "technical_info": "test row", "backtrace": "ORA-06512: at line 1"}
+    ]},
+    {"table": "XXFND_AUDIT_LOG", "rows": [
+      {"audit_log_id": 900001, "table_name": "XXFND_ROLES", "pk_value": "TD_REVIEWER", "action_code": "U", "column_name": "ROLE_NAME", "old_value": "Reviewer", "new_value": "Test reviewer", "change_reason": "Test data", "changed_by": "TD_ANNA", "changed_date": "2026-10-01 10:00:00"},
+      {"audit_log_id": 900002, "table_name": "XXFND_ROLES", "pk_value": "TD_ADMIN", "action_code": "I", "changed_by": "TD_OMAR", "changed_date": "2026-10-02 10:00:00"}
+    ]},
+    {"table": "XXFND_RETENTION_POLICIES", "rows": [
+      {"retention_policy_id": 900001, "table_name": "TD_CASES", "jurisdiction": "AE", "retention_years": 7, "action_at_expiry": "ARCHIVE", "enabled_flag": "Y"},
+      {"retention_policy_id": 900002, "table_name": "TD_CASES", "retention_years": 10, "action_at_expiry": "FLAG_FOR_REVIEW", "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_NOTIFICATION_TEMPLATES", "rows": [
+      {"template_code": "TD_TASK_ASSIGNED", "application_code": "TDAPP", "subject": "Case #CASE_NO# assigned to you", "body_html": "<p>Hello #NAME#, case #CASE_NO# is waiting for you.</p>", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_NOTIFICATION_TEMPLATES_TL", "rows": [
+      {"template_code": "TD_TASK_ASSIGNED", "language_code": "ar", "subject": "تم إسناد الحالة #CASE_NO# إليك", "body_html": "<p>#NAME#</p>"}
+    ]},
+    {"table": "XXFND_INTEGRATION_ENDPOINTS", "rows": [
+      {"endpoint_code": "TD_SHAREPOINT", "endpoint_name": "Test SharePoint", "endpoint_type": "SHAREPOINT", "base_url": "https://example.sharepoint.com", "web_credential_static_id": "TD_SP_CRED", "oauth_token_url": "https://login.example.com/token", "oauth_scope": "https://graph.example.com/.default", "status_code": "ACTIVE"},
+      {"endpoint_code": "TD_UCM", "endpoint_name": "Test UCM", "endpoint_type": "UCM", "base_url": "https://ucm.example.com", "status_code": "INACTIVE"}
+    ]},
+    {"table": "XXFND_SERVERS", "rows": [
+      {"server_code": "TD_SHAREPOINT_SRV", "server_name": "Test SharePoint server", "server_type": "SHAREPOINT", "base_url": "https://graph.example.com", "credential_static_id": "TD_SP_CRED", "oauth_token_url": "https://login.example.com/token", "enabled_flag": "Y"},
+      {"server_code": "TD_OBJECT_STORE", "server_name": "Test object storage", "server_type": "OBJECT_STORAGE", "oci_region": "eu-frankfurt-1", "oci_namespace": "tdnamespace", "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_INTEGRATION_PURPOSES", "rows": [
+      {"purpose_code": "TD_DOC_STORE", "application_code": "TDAPP", "purpose_name": "Test document store", "endpoint_code": "TD_SHAREPOINT", "capture_method": "API", "approval_status": "APPROVED", "approved_by": "TD_OMAR", "approved_date": "2026-09-01 12:00:00", "server_code": "TD_SHAREPOINT_SRV"},
+      {"purpose_code": "TD_SCREENING", "application_code": "TDAPP", "purpose_name": "Test screening", "capture_method": "MANUAL", "approval_status": "DRAFT"}
+    ]},
+    {"table": "XXFND_SERVER_CATALOGS", "rows": [
+      {"server_code": "TD_SHAREPOINT_SRV", "catalog_id": 900001}
+    ]},
+    {"table": "XXFND_SERVER_TESTS", "rows": [
+      {"server_static_id": "TD_SHAREPOINT_SRV", "tested_date": "2026-10-10 08:00:00", "tested_by": "TD_ANNA", "http_status": 200, "result_code": "REACHABLE"},
+      {"server_static_id": "TD_OBJECT_STORE", "tested_date": "2026-10-10 08:05:00", "tested_by": "TD_ANNA", "http_status": 401, "result_code": "FAILED", "result_message": "Unauthorized"}
+    ]},
+    {"table": "XXFND_INTEGRATION_CALLS", "rows": [
+      {"call_id": 900001, "purpose_code": "TD_DOC_STORE", "server_static_id": "TD_SHAREPOINT_SRV", "http_method": "PUT", "request_url": "https://graph.example.com/drives/td/items/1", "request_path": "/drives/td/items/1", "retryable_flag": "N", "entity_name": "TD_CASE", "pk1_value": "1001", "status_code": "FAILED", "http_status": 503, "error_message": "Service unavailable", "called_by": "TD_ANNA", "called_date": "2026-10-11 09:00:00"},
+      {"call_id": 900002, "purpose_code": "TD_DOC_STORE", "server_static_id": "TD_SHAREPOINT_SRV", "http_method": "PUT", "request_url": "https://graph.example.com/drives/td/items/1", "retryable_flag": "N", "entity_name": "TD_CASE", "pk1_value": "1001", "status_code": "SUCCESS", "http_status": 201, "retry_of_call_id": 900001, "called_by": "TD_ANNA", "called_date": "2026-10-11 09:05:00"}
+    ]},
+    {"table": "XXFND_DOCUMENT_ENTITIES", "rows": [
+      {"entity_name": "TD_CASE", "application_code": "TDAPP", "table_name": "TD_CASES", "pk1_column": "CASE_ID", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_DOCUMENT_ENTITIES_TL", "rows": [
+      {"entity_name": "TD_CASE", "language_code": "en", "user_entity_name": "Test case"},
+      {"entity_name": "TD_CASE", "language_code": "ar", "user_entity_name": "حالة اختبار"}
+    ]},
+    {"table": "XXFND_DOCUMENT_CATEGORIES", "rows": [
+      {"category_code": "TD_PASSPORT", "application_code": "TDAPP", "category_name": "Test passport", "default_datatype_code": "FILE", "has_expiry_flag": "Y", "enabled_flag": "Y", "start_date_active": "2026-01-01"},
+      {"category_code": "TD_NOTE", "application_code": "TDAPP", "category_name": "Test note", "default_datatype_code": "SHORT_TEXT", "has_expiry_flag": "N", "max_age_days": 90, "enabled_flag": "Y", "start_date_active": "2026-01-01"}
+    ]},
+    {"table": "XXFND_DOCUMENT_CATEGORIES_TL", "rows": [
+      {"category_code": "TD_PASSPORT", "language_code": "ar", "category_name": "جواز سفر"}
+    ]},
+    {"table": "XXFND_ATTACHMENT_FUNCTIONS", "rows": [
+      {"function_code": "TD_CASE_PAGE", "application_code": "TDAPP", "function_name": "Test case page", "apex_app_alias": "tdapp", "apex_page_id": 10, "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_ATTACHMENT_BLOCKS", "rows": [
+      {"function_code": "TD_CASE_PAGE", "block_code": "MAIN", "region_static_id": "td_documents", "block_name": "Documents", "display_sequence": 10}
+    ]},
+    {"table": "XXFND_ATTACHMENT_BLK_ENTITIES", "rows": [
+      {"function_code": "TD_CASE_PAGE", "block_code": "MAIN", "entity_name": "TD_CASE", "pk1_page_item": "P10_CASE_ID", "insert_allowed_flag": "Y", "update_allowed_flag": "Y", "delete_allowed_flag": "N", "display_sequence": 10}
+    ]},
+    {"table": "XXFND_DOC_CATEGORY_USAGES", "rows": [
+      {"function_code": "TD_CASE_PAGE", "category_code": "TD_PASSPORT", "enabled_flag": "Y"},
+      {"function_code": "TD_CASE_PAGE", "category_code": "TD_NOTE", "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_STORAGE_CONFIG", "rows": [
+      {"storage_config_id": 900001, "entity_name": "TD_CASE", "storage_type": "SHAREPOINT", "endpoint_code": "TD_SHAREPOINT", "folder_path_template": "/#ENTITY_NAME#/#PK1_VALUE#", "sharepoint_site_id": "td-site", "sharepoint_drive_id": "td-drive", "priority": 10, "enabled_flag": "Y"},
+      {"storage_config_id": 900002, "entity_name": "TD_CASE", "category_code": "TD_PASSPORT", "storage_type": "UCM", "endpoint_code": "TD_UCM", "ucm_security_group": "TDSECURE", "ucm_doc_type": "Document", "priority": 5, "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_DOCUMENTS", "rows": [
+      {"document_id": 900001, "category_code": "TD_PASSPORT", "datatype_code": "FILE", "version_number": 1, "storage_config_id": 900001, "storage_type": "SHAREPOINT", "external_document_id": "td-item-1", "external_version_id": "1.0", "file_name": "passport.pdf", "mime_type": "application/pdf", "file_size_bytes": 2048, "document_date": "2025-05-01", "expiry_date": "2035-05-01", "upload_status": "STORED", "automated_check_status": "PASSED", "start_date_active": "2026-01-01"},
+      {"document_id": 900002, "category_code": "TD_PASSPORT", "datatype_code": "FILE", "base_document_id": 900001, "version_number": 2, "storage_config_id": 900001, "storage_type": "SHAREPOINT", "file_name": "passport-renewed.pdf", "mime_type": "application/pdf", "upload_status": "FAILED", "upload_error": "Test: the store refused the file", "automated_check_status": "NOT_CHECKED", "start_date_active": "2026-02-01"},
+      {"document_id": 900003, "category_code": "TD_NOTE", "datatype_code": "SHORT_TEXT", "text_content": "Customer called about the case.\nSecond line.", "upload_status": "NOT_APPLICABLE", "automated_check_status": "NOT_CHECKED", "start_date_active": "2026-01-01"}
+    ]},
+    {"table": "XXFND_DOCUMENTS_TL", "rows": [
+      {"document_id": 900001, "language_code": "en", "title": "Passport", "description": "Test passport scan"},
+      {"document_id": 900003, "language_code": "en", "title": "Call note"}
+    ]},
+    {"table": "XXFND_ATTACHED_DOCUMENTS", "rows": [
+      {"attached_document_id": 900001, "document_id": 900001, "entity_name": "TD_CASE", "pk1_value": "1001", "category_code": "TD_PASSPORT", "seq_num": 10, "primary_category_flag": "Y", "attribute_category": "AE", "attribute1": "REF-1", "attribute2": "DXB", "attribute_number1": 25, "attribute_date1": "2026-03-01"},
+      {"attached_document_id": 900002, "document_id": 900003, "entity_name": "TD_CASE", "pk1_value": "1001", "category_code": "TD_NOTE", "seq_num": 20, "primary_category_flag": "N", "expiration_date": "2026-10-30 17:00:00"}
+    ]},
+    {"table": "XXFND_ENTITY_CONTAINERS", "rows": [
+      {"entity_container_id": 900001, "entity_name": "TD_CASE", "pk1_value": "1001", "storage_config_id": 900001, "external_folder_id": "td-folder-1001", "external_folder_path": "/TD_CASE/1001"}
+    ]},
+    {"table": "XXFND_DOCUMENT_FILES", "rows": [
+      {"file_id": 900001, "file_content": "hex:255044462D312E340A25E2E3CFD30A"}
+    ]},
+    {"table": "XXFND_VALUE_SETS", "rows": [
+      {"value_set_code": "TD_COUNTRY_VS", "value_set_name": "Test countries", "validation_type": "INDEPENDENT", "format_type": "CHAR", "maximum_size": 30, "uppercase_only_flag": "Y", "lookup_type": "TD_COUNTRY"},
+      {"value_set_code": "TD_CITY_VS", "value_set_name": "Test cities", "validation_type": "DEPENDENT", "format_type": "CHAR", "maximum_size": 30, "uppercase_only_flag": "Y", "lookup_type": "TD_CITY", "parent_value_set_code": "TD_COUNTRY_VS"},
+      {"value_set_code": "TD_REF_VS", "value_set_name": "Test reference", "validation_type": "NONE", "format_type": "CHAR", "maximum_size": 50, "uppercase_only_flag": "N"},
+      {"value_set_code": "TD_SCORE_VS", "value_set_name": "Test score", "validation_type": "NONE", "format_type": "NUMBER", "number_precision": 2, "minimum_value": "0", "maximum_value": "100", "uppercase_only_flag": "N"}
+    ]},
+    {"table": "XXFND_DF_FLEXFIELDS", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "application_code": "TDAPP", "table_name": "TD_CASES", "pk_column_name": "CASE_ID", "context_column_name": "ATTRIBUTE_CATEGORY", "context_reference_column": "COUNTRY_CODE", "context_required_flag": "N", "context_user_selectable_flag": "N", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_DF_FLEXFIELDS_TL", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "language_code": "en", "flexfield_name": "Test case fields"}
+    ]},
+    {"table": "XXFND_DF_CONTEXTS", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "GLOBAL", "context_name": "Global", "global_flag": "Y", "enabled_flag": "Y", "protected_flag": "Y"},
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "AE", "context_name": "United Arab Emirates", "global_flag": "N", "enabled_flag": "Y", "protected_flag": "N"}
+    ]},
+    {"table": "XXFND_DF_CONTEXTS_TL", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "AE", "language_code": "ar", "context_name": "الإمارات"}
+    ]},
+    {"table": "XXFND_DF_SEGMENTS", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "GLOBAL", "segment_code": "REF_NO", "column_name": "ATTRIBUTE1", "sequence_number": 10, "prompt": "Reference", "value_set_code": "TD_REF_VS", "required_flag": "N", "default_type": "NONE", "read_only_flag": "N", "display_flag": "Y", "enabled_flag": "Y"},
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "AE", "segment_code": "CITY", "column_name": "ATTRIBUTE2", "sequence_number": 10, "prompt": "City", "help_text": "City of the customer", "value_set_code": "TD_CITY_VS", "required_flag": "Y", "default_type": "CONSTANT", "default_value": "DXB", "read_only_flag": "N", "display_flag": "Y", "enabled_flag": "Y"},
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "AE", "segment_code": "SCORE", "column_name": "ATTRIBUTE_NUMBER1", "sequence_number": 20, "prompt": "Risk score", "value_set_code": "TD_SCORE_VS", "required_flag": "N", "default_type": "NONE", "read_only_flag": "Y", "display_flag": "Y", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_DF_SEGMENTS_TL", "rows": [
+      {"descriptive_flexfield_code": "TD_CASE_DFF", "context_code": "AE", "segment_code": "CITY", "language_code": "ar", "prompt": "المدينة"}
+    ]},
+    {"table": "XXFND_NOTIFY_CHANNELS", "rows": [
+      {"channel_code": "TD_SMS", "channel_name": "Test SMS", "delivery_procedure": "TD_SMS_PKG.DELIVER", "inbox_flag": "N", "enabled_flag": "N", "display_sequence": 900, "description": "Disabled test channel: never delivers"}
+    ]},
+    {"table": "XXFND_NOTIFY_EVENTS", "rows": [
+      {"event_code": "TD_CASE_ASSIGNED", "event_name": "Test case assigned", "template_code": "TD_TASK_ASSIGNED", "trigger_code": "TASK_CREATED", "link_application_code": "TDAPP", "link_page_alias": "case", "link_items": "P10_CASE_ID", "link_tokens": "CASE_NO", "link_public_flag": "N", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_NOTIFY_RECIPIENT_TYPES", "rows": [
+      {"recipient_type_code": "TD_NAMED_USER", "recipient_type_name": "Test named user", "recipient_query": "select user_name from xxfnd_users where user_name = :VALUE", "value_required_flag": "Y"}
+    ]},
+    {"table": "XXFND_NOTIFY_RULES", "rows": [
+      {"rule_id": 900001, "event_code": "TD_CASE_ASSIGNED", "application_code": "TDAPP", "process_code": "TD_CASE_APPROVAL", "recipient_type_code": "TD_NAMED_USER", "recipient_value": "TD_ANNA", "channel_code": "TD_SMS", "template_code": "TD_TASK_ASSIGNED", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_NOTIFICATIONS", "rows": [
+      {"notification_id": 900001, "event_code": "TD_CASE_ASSIGNED", "channel_code": "TD_SMS", "rule_id": 900001, "application_code": "TDAPP", "process_code": "TD_CASE_APPROVAL", "user_name": "TD_ANNA", "language_code": "en", "subject": "Case 1001 assigned to you", "message_text": "Hello Anna, case 1001 is waiting for you.", "link_url": "https://example.com/case/1001", "link_label": "Open", "task_id": 900001, "detail_pk": "1001", "status_code": "SENT", "read_date": "2026-10-12 10:00:00"},
+      {"notification_id": 900002, "event_code": "TD_CASE_ASSIGNED", "channel_code": "TD_SMS", "email_address": "td.external@example.com", "language_code": "ar", "subject": "Test", "status_code": "SKIPPED", "status_text": "Channel switched off"}
+    ]},
+    {"table": "XXFND_CONTACT_SOURCES", "rows": [
+      {"entity_name": "TD_CASE", "application_code": "TDAPP", "source_view": "TD_CASE_CONTACTS_V", "description": "Example contact source (view does not exist)", "enabled_flag": "N"}
+    ]},
+    {"table": "XXFND_COMMUNICATIONS", "rows": [
+      {"communication_id": 900001, "application_code": "TDAPP", "entity_name": "TD_CASE", "pk1_value": "1001", "rfi_id": 900001, "direction": "OUT", "channel": "EMAIL", "from_address": "kyc@example.com", "to_address": "customer@example.com", "subject": "Documents needed for case 1001", "body": "Please send your passport.", "communication_date": "2026-10-12 09:00:00", "status": "SENT", "source": "APEX_MAIL", "mail_id": 900001, "recorded_by": "TD_ANNA"},
+      {"communication_id": 900002, "application_code": "TDAPP", "entity_name": "TD_CASE", "pk1_value": "1001", "rfi_id": 900001, "direction": "IN", "channel": "EMAIL", "from_address": "customer@example.com", "subject": "RE: Documents needed for case 1001", "body": "Attached.", "communication_date": "2026-10-13 15:00:00", "status": "RECEIVED", "source": "MANUAL", "in_reply_to_id": 900001, "recorded_by": "TD_ANNA"}
+    ]},
+    {"table": "XXFND_APPROVAL_TYPES", "rows": [
+      {"approval_type_code": "TD_CASE_APPROVAL", "application_code": "TDAPP", "approval_type_name": "Test case approval", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_APPROVAL_TYPE_ATTRS", "rows": [
+      {"approval_type_code": "TD_CASE_APPROVAL", "attribute_code": "RISK", "attribute_name": "Risk level", "display_sequence": 10},
+      {"approval_type_code": "TD_CASE_APPROVAL", "attribute_code": "COUNTRY", "attribute_name": "Country", "lookup_type": "TD_COUNTRY", "display_sequence": 20}
+    ]},
+    {"table": "XXFND_APPROVAL_RULES", "rows": [
+      {"rule_id": 900001, "approval_type_code": "TD_CASE_APPROVAL", "rule_name": "High risk", "priority": 10, "enabled_flag": "Y"},
+      {"rule_id": 900002, "approval_type_code": "TD_CASE_APPROVAL", "rule_name": "Default", "priority": 100, "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_APPROVAL_RULE_CONDS", "rows": [
+      {"condition_id": 900001, "rule_id": 900001, "attribute_code": "RISK", "attribute_value": "HIGH"},
+      {"condition_id": 900002, "rule_id": 900001, "attribute_code": "COUNTRY", "attribute_value": "AE"}
+    ]},
+    {"table": "XXFND_APPROVAL_RULE_STEPS", "rows": [
+      {"rule_step_id": 900001, "rule_id": 900001, "step_no": 1, "step_name": "Reviewer", "approver_type": "ROLE", "role_code": "TD_REVIEWER"},
+      {"rule_step_id": 900002, "rule_id": 900001, "step_no": 2, "step_name": "Approver", "approver_type": "USER", "user_name": "TD_OMAR"},
+      {"rule_step_id": 900003, "rule_id": 900002, "step_no": 1, "step_name": "Requester confirms", "approver_type": "REQUESTER"}
+    ]},
+    {"table": "XXFND_APPROVAL_TXNS", "rows": [
+      {"approval_type_code": "TD_CASE_APPROVAL", "txn_id": "1001", "rule_id": 900001, "rule_name": "High risk", "requester": "TD_ANNA", "current_seq": 1, "approval_status": "IN_PROGRESS", "started_date": "2026-10-14 09:00:00"},
+      {"approval_type_code": "TD_CASE_APPROVAL", "txn_id": "1002", "rule_id": 900002, "rule_name": "Default", "requester": "TD_OMAR", "current_seq": 1, "approval_status": "COMPLETED", "started_date": "2026-10-01 09:00:00"}
+    ]},
+    {"table": "XXFND_APPROVAL_TXN_STEPS", "rows": [
+      {"approval_type_code": "TD_CASE_APPROVAL", "txn_id": "1001", "step_seq": 1, "step_name": "Reviewer", "approver_type": "ROLE", "role_code": "TD_REVIEWER", "source": "RULE"},
+      {"approval_type_code": "TD_CASE_APPROVAL", "txn_id": "1001", "step_seq": 2, "step_name": "Extra check", "approver_type": "USER", "user_name": "TD_OMAR", "source": "ADHOC", "added_by": "TD_ANNA", "added_comment": "Needs a second look", "added_date": "2026-10-14 10:00:00"},
+      {"approval_type_code": "TD_CASE_APPROVAL", "txn_id": "1002", "step_seq": 1, "step_name": "Requester confirms", "approver_type": "REQUESTER", "source": "RULE"}
+    ]},
+    {"table": "XXFND_APPROVAL_GROUPS", "rows": [
+      {"group_code": "TD_REVIEWERS", "approval_type_code": "TD_CASE_APPROVAL", "group_name": "Test reviewers", "enabled_flag": "Y"}
+    ]},
+    {"table": "XXFND_APPROVAL_GROUP_MEMBERS", "rows": [
+      {"group_code": "TD_REVIEWERS", "member_type": "ROLE", "member_code": "TD_REVIEWER"},
+      {"group_code": "TD_REVIEWERS", "member_type": "USER", "member_code": "TD_OMAR"}
+    ]},
+    {"table": "XXFND_RFIS", "rows": [
+      {"rfi_id": 900001, "rfi_number": "TD-RFI-0001", "application_code": "TDAPP", "entity_name": "TD_CASE", "pk1_value": "1001", "recipient_type": "EXTERNAL", "recipient_name": "Customer Test", "recipient_email": "customer@example.com", "approval_type_code": "TD_CASE_APPROVAL", "rfi_category": "DOCUMENTS", "description": "Please send a valid passport.", "continue_other_work_flag": "Y", "rfi_status": "WAITING_FOR_INFORMATION", "round_no": 2, "due_date": "2026-11-30", "token_expiry_date": "2026-11-30 23:59:00"},
+      {"rfi_id": 900002, "rfi_number": "TD-RFI-0002", "application_code": "TDAPP", "entity_name": "TD_CASE", "pk1_value": "1002", "recipient_type": "USER", "recipient_user_name": "TD_OMAR", "rfi_category": "CLARIFICATION", "description": "Why was the risk changed?", "continue_other_work_flag": "N", "rfi_status": "RESOLVED", "round_no": 1, "response_text": "Customer moved country.", "responded_date": "2026-10-05 12:00:00", "resolved_date": "2026-10-06 12:00:00", "resolution_notes": "Accepted"}
+    ]},
+    {"table": "XXFND_RFI_ROUNDS", "rows": [
+      {"rfi_id": 900001, "round_no": 1, "question": "Please send your passport.", "asked_by": "TD_ANNA", "asked_date": "2026-10-12 09:00:00", "response_text": "Sent a photo.", "responded_by": "customer@example.com", "responded_date": "2026-10-13 15:00:00", "review_outcome": "ASKED_AGAIN", "review_notes": "The photo is not readable", "reviewed_by": "TD_ANNA", "reviewed_date": "2026-10-14 09:00:00"},
+      {"rfi_id": 900001, "round_no": 2, "question": "Please send a readable scan of your passport.", "asked_by": "TD_ANNA", "asked_date": "2026-10-14 09:05:00"},
+      {"rfi_id": 900002, "round_no": 1, "question": "Why was the risk changed?", "asked_by": "TD_ANNA", "asked_date": "2026-10-04 09:00:00", "response_text": "Customer moved country.", "responded_by": "TD_OMAR", "responded_date": "2026-10-05 12:00:00", "review_outcome": "RESOLVED", "reviewed_by": "TD_ANNA", "reviewed_date": "2026-10-06 12:00:00"}
+    ]},
+    {"table": "XXFND_DM_APP_SCOPES", "rows": [
+      {"application_code": "TDAPP", "object_prefix": "TD_"}
+    ]},
+    {"table": "XXFND_DM_TABLE_GROUPS", "rows": [
+      {"application_code": "TDAPP", "table_name": "TD_CASES", "group_name": "Cases"}
+    ]},
+    {"table": "XXFND_PAGE_OPENS", "rows": [
+      {"from_app_alias": "tdapp", "from_page": "10", "to_application_id": 135, "to_page_id": 100, "open_count": 3, "first_opened_date": "2026-10-01 08:00:00", "last_opened_date": "2026-10-20 16:00:00"}
+    ]}
+  ]
+}

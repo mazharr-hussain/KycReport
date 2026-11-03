@@ -6,7 +6,7 @@
 #       the dry run of every database-job path against a SQLcl stand-in - checks/dryrun.sh)   1.1b SOURCE-MAP in step
 #   1.2 static checks (pr_checks.py)          1.3 requirements check (warning only)
 #   1.4 build                                  1.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
-#   1.6 PMD (PL/SQL rules, warnings only)
+#   1.6 PMD (PL/SQL rules, warnings only)  1.6b the test data file fits this version's tables (test_data.py)
 # Usage: run.sh [lint]   (lint: only 1.1, for pipeline-check.yml; env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
 #                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 1.0a; RELEASE = release number, optional)
 # A failing step stops the job and is recorded for the error-handling job (lib/step.sh).
@@ -28,7 +28,7 @@ secrets_scan() {   # the pull request's commits (or the last commit of a manual 
 lint() {   # workflows, the pipeline's composite actions (their shell steps) and scripts: no finding of any level
   local f tmp rc=0
   local wf
-  for wf in pipeline release generated-files issues-sync cleanup-runs pipeline-check supersede; do
+  for wf in pipeline release generated-files issues-sync cleanup-runs pipeline-check supersede pipeline-command; do
     actionlint -no-color "$ROOT/.github/workflows/$wf.yml" || rc=1
   done
   find "$ROOT/repos/common/deployment" -name '*.py' -print0 | xargs -0 python3 -m py_compile || rc=1
@@ -90,3 +90,4 @@ step 1.3-docs-check docs
 step 1.4-build build
 step 1.5-apexlang-validate apexlang
 step 1.6-pmd pmd
+step 1.6b-test-data python3 "$HERE/test_data.py" "$ROOT"

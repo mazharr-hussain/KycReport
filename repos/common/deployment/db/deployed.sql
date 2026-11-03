@@ -4,8 +4,11 @@
 --                       without supporting objects), how it was verified (FULL = fresh install + upgrade test, PATCH =
 --                       quick check only, DIRTY = a deploy started and did not finish) and the head commit last tested
 --   XXCI_DEPLOYED_CODE  the code objects deployed (manifest key -> hash; APPLYING while a quick check runs them)
---   XXCI_PASSED         a check that passed for a version (ui, sert, dbsat -> its fingerprint): not run again on reuse
+--   XXCI_PASSED         a check that passed for a version (ui, sert, dbsat -> its fingerprint): not run again on reuse;
+--                       fresh -> the fresh install (job 4) passed for that version: a restart may skip job 4
 --   XXCI_FAILED_TESTS   the DB test files that failed in the last test run (run again by the next one)
+--   XXCI_FRESH_SCHEMA   the structure of the last fresh install that passed (4.5; XXCI_PASSED 'fresh' holds its
+--                       fingerprint) - the upgrade test compares the upgraded database with it (5.8)
 -- Written by db/run.sh (record_deployed, mark_dirty, record_tests, record_passed) with small generated statements.
 -- mode=get prints: DEPLOYED <fp> <db> <struct> <app> <verified> <tested head>, CODE <key> <hash>, PASSED <check>
 -- <fingerprint>, FAILED <test file>. mode=init only makes the tables.
@@ -46,6 +49,10 @@ create table if not exists xxci_passed (
 );
 create table if not exists xxci_failed_tests (
     test_file varchar2(400) primary key
+);
+create table if not exists xxci_fresh_schema (
+    line_no number primary key,
+    line    varchar2(4000) not null
 );
 begin
     if '&mode' = 'get' then
