@@ -1,12 +1,13 @@
 # GitHub setup for the COMMON pipeline - steps for later (user)
 
-The pipeline (`.github/workflows/pipeline.yml`) and its scripts are in `main` and run on every pull request. These
-GitHub settings are still to be done by the user; until then the pipeline runs and reports, but a green run does not
-merge the PR by itself (merge it by hand).
+The pipeline (`.github/workflows/pipeline.yml`) and its scripts are in `main` and run on every pull request. A green
+run merges the PR by itself (job 9.2, `release/merge.sh`, with the workflow token - no GitHub auto-merge needed) and
+publishes its release. The settings below are still to be done by the user.
 
 | # | Where (github.com, repository KycReport) | Step | Why |
 |---|---|---|---|
-| 1 | Settings > General > Pull Requests | Tick **Allow auto-merge** | Step 9.2: GitHub merges the PR when the pipeline is green |
+| 1 | Settings > Secrets and variables > Actions > Secrets | Keep **`ADD_TO_PROJECT_PAT`** (classic token, scopes `repo` + `project`) | add-to-project.yml; job 9.2 also creates the issues for the existing findings with it, so they go on the board (with the workflow token the issue is created but no workflow starts) |
+| 1a (optional) | Settings > Secrets and variables > Actions > Secrets | **`PIPELINE_MERGE_TOKEN`**: a fine-grained token on this repository (Contents, Pull requests: read and write; Workflows: read and write) | Only to let job 9.2 merge a PR that changes workflow files - the workflow token cannot; without it such a PR is left open with a note, merge it by hand. A PR that should not be merged yet: add the label **hold** |
 | 2 | Settings > Rules > Rulesets > New branch ruleset, target `main` | Enable **Require status checks to pass**, add the check **`9 Finalize the PR`**; enable **Require a pull request before merging** | Nothing reaches `main` without a green pipeline; job 9 fails whenever an earlier job failed |
 | 3 | Settings > Environments > **Oracle DB Dev** | Keep the secrets `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_DB_ADMIN_PASSWORD`, `VAL_DB_PASSWORD` (no other secret is needed - the pipeline user `XXCI_DEPLOY` gets a new random password in every job) | Jobs 5-9 sign in to the validation database |
 | 4 | Netlify | Later, when the user wants Netlify again (not now): remove the `ignore` line from `netlify.toml` (issue #203) | Netlify stays connected; `netlify.toml` keeps every build skipped until then |
@@ -24,5 +25,6 @@ and the clean-up run itself are never deleted; deleted runs (logs and artifacts)
 - **Claude**: changes the code and reviews it (offline: Oracle skills, APEXlang validation, lint), opens the PR and
   pushes. Nothing else.
 - **The git workflow (pipeline)**: everything after the push - offline validation, database setup, fresh install,
-  upgrade with data, online validation, tests, release zip, merge (GitHub auto-merge on the required check) and the
-  error report on the PR.
+  upgrade with data, online validation, tests, release zip, merge and release (job 9.2), issues for the existing
+  findings (future releases) and the report on the PR. A pipeline failure is never logged as an issue: it is in the PR
+  comment, and Claude's next push fixes it from there.

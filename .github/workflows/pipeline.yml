@@ -2,7 +2,7 @@
 # Agreed flow (steps 1-2 happen before the pipeline: Claude changes the code, reviews it, opens the PR and pushes):
 #    3 Offline validation (no OCI, no DB)      4 OCI setup (placeholder)        5 DB setup
 #    6 Deploy fresh app                         7 Upgrade app (no data lost)     8 Testing and validation
-#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 merge (GitHub auto-merge on this required check),
+#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
 #      9.3-9.4 documentation (readable APEX export, SchemaSpy)
 #   10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 3 and 9 only.
@@ -295,15 +295,16 @@ jobs:
   finalize:
     name: 9 Finalize the PR
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test]
-    # always() so this required check can never be "skipped" (a skipped check counts as passed for auto-merge);
+    # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass
     if: always()
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
     timeout-minutes: 15
     permissions:
-      contents: write        # draft GitHub Release of the tested zip
-      pull-requests: write   # note on the PR when auto-merge is not enabled
+      contents: write        # draft GitHub Release of the tested zip; 9.2 merge and release
+      pull-requests: write   # 9.2 ready for review, merge, PR comment
+      issues: write          # 9.2 issues for the existing findings
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
@@ -397,31 +398,49 @@ jobs:
         with:
           pattern: logs-*
           path: ${{ runner.temp }}/logs
-      - name: Pipeline report - the report script
+      - name: Pipeline report - the scripts (a PR that does not touch COMMON has no full checkout)
         if: github.event_name == 'pull_request' && env.COMMON != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: repos/common/deployment/checks
+          sparse-checkout: |
+            repos/common/deployment
+            repos/kyc/releases
       - name: Pipeline report - warnings and notices of this run
         if: github.event_name == 'pull_request'
         run: python3 repos/common/deployment/checks/report.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2 Merge - GitHub auto-merge completes it when this check is green; report on the PR
+      - name: 9.2 Issues for a future release - the existing findings (files this PR did not change)
         if: github.event_name == 'pull_request'
+        env:
+          # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
+          # workflow token the issue is still created, but no other workflow starts
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT || github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
+      - name: 9.2 Merge the PR and publish its release
+        id: merge
+        if: github.event_name == 'pull_request'
+        env:
+          # PIPELINE_MERGE_TOKEN (optional, a person's token): needed only to merge a PR that changes workflow files
+          GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
+      - name: 9.2 Report on the PR - passed, merge result, warnings, notices, issues logged
+        if: github.event_name == 'pull_request' && (success() || steps.merge.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
           script: |
             const fs = require('fs');
+            const read = f => { try { return fs.readFileSync(f, 'utf8').trim(); } catch { return ''; } };
             const pr = context.payload.pull_request;
-            const { data } = await github.rest.pulls.get({ ...context.repo, pull_number: pr.number });
-            const merge = data.auto_merge
-              ? 'Auto-merge is on: GitHub merges the PR now that this check is green.'
-              : 'Auto-merge is not enabled on this PR, so it was not merged: enable auto-merge (or merge it) to finish step 9.2.';
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const report = fs.readFileSync(`${process.env.RUNNER_TEMP}/report.md`, 'utf8');
             const body = [`**COMMON pipeline passed** - Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}), [run](${runUrl}).`,
-                          merge, '', report].join('\n');
+                          read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 9.2 in the run).', '',
+                          read(`${process.env.RUNNER_TEMP}/report.md`)].join('\n');
             await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
             await core.summary.addRaw(body).write();
 

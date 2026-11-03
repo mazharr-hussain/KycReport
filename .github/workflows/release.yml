@@ -1,4 +1,5 @@
-# Publishes the GitHub Release of each application release that lands on main (the only workflow that publishes):
+# Publishes the GitHub Release of each application release merged by a person (release/publish.sh; the pipeline's own
+# merge in job 9.2 publishes it itself, because a merge made with the workflow token starts no workflow):
 #   - the merged pull request's title gives the release: "<APP> Release <N>: <summary>" -> tag <app>-<N> (issue #218)
 #   - COMMON: the draft release prepared by the pipeline (pipeline.yml 9.1: the APEXlang zip exported from the tested
 #     application, readable APEX docs, SchemaSpy docs) is published, with the PR's linked issues ("Fixes #n") as notes
@@ -29,24 +30,4 @@ jobs:
           set -euo pipefail
           pr=$(printf '%s' "$MESSAGE" | sed -nE '1s/^Merge pull request #([0-9]+).*/\1/p')
           if [ -z "$pr" ]; then echo "not a pull request merge - nothing to publish"; exit 0; fi
-          title=$(gh pr view "$pr" --json title -q .title)
-          app=$(printf '%s' "$title" | sed -nE 's/^(COMMON|KYC) Release [0-9]+: .+$/\1/p')
-          n=$(printf '%s' "$title" | sed -nE 's/^(COMMON|KYC) Release ([0-9]+): .+$/\2/p')
-          if [ -z "$n" ]; then echo "PR #$pr \"$title\" is not a release - nothing to publish"; exit 0; fi
-          lower=$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]'); tag="$lower-$n"
-          { echo "## $title"; echo
-            gh pr view "$pr" --json body -q .body | grep -iE '(fixes|closes|resolves) #[0-9]+' | sed 's/^/- /' || true
-            echo; echo "Pull request: #$pr"; } > notes.md
-          draft=$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null || echo none)
-          case $draft in
-            true)
-              gh release edit "$tag" --draft=false --target "$AFTER" --title "$title" --notes-file notes.md
-              echo "published $title (zip from the pipeline)" ;;
-            false)
-              echo "$title is already published" ;;
-            *)
-              zip=$(find "repos/$lower/releases" -maxdepth 1 -name "*_$n.zip" 2>/dev/null | head -1)
-              if [ -z "$zip" ]; then echo "::notice::$title has no draft release and no committed zip - nothing published"; exit 0; fi
-              gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
-              echo "published $title (committed zip)" ;;
-          esac
+          bash repos/common/deployment/release/publish.sh "$pr" "$AFTER"
