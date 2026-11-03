@@ -39,21 +39,25 @@ LAST=${RUNNER_TEMP:-/tmp}/common-last
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
 
 # ---- reuse: the database already holds this version (B) -------------------------------------------------------------
-reuse_check() {  # 3.2b: same fingerprint as the last passed upgrade test -> jobs 4-5 are skipped (LOG_DIR/reuse)
-  local out fp
-  if [ -z "${FINGERPRINT:-}" ]; then echo "no fingerprint - deploy as usual"; echo false > "$LOG_DIR/reuse"; return 0; fi
-  out=$(S CI "$HERE/deployed.sql" check mode=get fingerprint=-) || { echo "$out"; return 1; }
-  fp=$(echo "$out" | sed -n 's/^DEPLOYED //p')
+reuse_check() {  # 3.2b: what the database holds decides the deploy (LOG_DIR/reuse, LOG_DIR/app_only)
+  local out fp db
+  echo false > "$LOG_DIR/reuse"; echo false > "$LOG_DIR/app_only"
+  if [ -z "${FINGERPRINT:-}" ] || [ -z "${DB_FINGERPRINT:-}" ]; then echo "no fingerprint - full deploy"; return 0; fi
+  out=$(S CI "$HERE/deployed.sql" check mode=get fingerprint=- db_fingerprint=-) || { echo "$out"; return 1; }
+  read -r fp db <<< "$(echo "$out" | sed -n 's/^DEPLOYED //p')"
   if [ "$fp" = "$FINGERPRINT" ]; then
-    echo "info: the validation database already holds this version ($FINGERPRINT, passed its fresh install and upgrade test) - jobs 4-5 skipped"
+    echo "info: the validation database already holds this version ($FINGERPRINT) - jobs 4-5 skipped"
     echo true > "$LOG_DIR/reuse"
+  elif [ "$db" = "$DB_FINGERPRINT" ]; then
+    echo "info: the database scripts are those deployed ($DB_FINGERPRINT) - only the APEX application is replaced (schema and data kept)"
+    echo true > "$LOG_DIR/app_only"
   else
-    echo "this version ($FINGERPRINT) differs from the deployed one (${fp:--}) - fresh install and upgrade test"
-    echo false > "$LOG_DIR/reuse"
+    echo "the database scripts ($DB_FINGERPRINT) differ from the deployed ones (${db:--}) - full fresh install"
   fi
 }
-record_deployed() {  # 5.8: this version passed its fresh install and upgrade test
-  S CI "$HERE/deployed.sql" check mode=set fingerprint="${FINGERPRINT:?FINGERPRINT is not set}"
+record_deployed() {  # 4.7 / 5.8: this version passed its deploy
+  S CI "$HERE/deployed.sql" check mode=set fingerprint="${FINGERPRINT:?FINGERPRINT is not set}" \
+    db_fingerprint="${DB_FINGERPRINT:?DB_FINGERPRINT is not set}"
 }
 
 # ---- 3 DB setup ------------------------------------------------------------------------------------------------------
@@ -113,9 +117,19 @@ backup() {     # 4.0 and the 5.3 snapshot: the app's data into the backup schema
 remove_app() { # 4.1 / 5.1
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID" && S "$APP_SCHEMA" "$HERE/clear-schema.sql" check
 }
-deploy() {     # 4.2 / 5.2 / 5.4: deploy <project dir> install|upgrade - DB scripts, then APEXlang validate + import
+remove_test_accounts() {  # 4.1 (full fresh install): the test users' APEX accounts, which outlive the cleared schema
+  local users
+  users=$(cat "$THIS/db/admin/test-users.sql" "$THIS"/tests/*.sql "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql 2>/dev/null \
+          | grep -oE "(usr|create_local_user)\('[A-Z][A-Z0-9_]*'" | sed -E "s/.*\('//; s/'//" | sort -u | tr '\n' ' ')
+  echo "test users: $users"
+  S ADMIN "$HERE/remove-test-accounts.sql" check workspace="$WORKSPACE" users="$users"
+}
+remove_apex_app() {  # 4.1 (application only): the APEX application; the schema, its objects and data stay
+  S CI "$HERE/remove-app.sql" check app_id="$APP_ID"
+}
+deploy() {     # 4.2 / 5.2 / 5.4: deploy <project dir> install|upgrade|app - DB scripts (not for app), then APEXlang validate + import
   local dir=$1 mode=$2 f out rc
-  S "$APP_SCHEMA" "$dir/db/deploy/$mode/run-all.sql" check || return 1
+  if [ "$mode" != app ]; then S "$APP_SCHEMA" "$dir/db/deploy/$mode/run-all.sql" check || return 1; fi
   f=$(mktemp --suffix .sql)
   # validate and import in the same SQLcl session (APEXlang runtime gate)
   printf 'apex validate -input %s\napex import -input %s\n' "$dir/dist/app" "$dir/dist/app" > "$f"
@@ -257,23 +271,38 @@ echo "::add-mask::$CI_PW"
 export CI_PW
 ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="$CI_PW"; }
 
-step ci-password ci_password
-case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
+# the browser job (ui) runs beside the DB-test job and never signs in as the pipeline user: it leaves the password
+# alone (a new one would lock the other job out)
+if [ "${1:-}" != ui ]; then step ci-password ci_password; fi
+case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|docs <dir>} in
   setup)
     step 3.1-start-db start_db
     step 3.2-bootstrap bootstrap
     step 3.2b-reuse-check reuse_check
-    if [ "$(cat "$LOG_DIR/reuse" 2>/dev/null)" != true ]; then step 3.3-backup-schema backup_schema N; fi
+    # the backup schema serves the full deploy and the upgrade test only
+    if [ "$(cat "$LOG_DIR/reuse")" != true ] && [ "$(cat "$LOG_DIR/app_only")" != true ]; then
+      step 3.3-backup-schema backup_schema N
+    fi
     step 3.4-apex-sert sert_install ;;
   fresh)
-    step 4.0-backup backup
-    step 4.1-remove-app remove_app
-    step 4.2-deploy-this deploy "$THIS" install
+    if [ "${APP_ONLY:-false}" = true ]; then
+      # the database already holds this version's database objects: only the APEX application is replaced
+      step 4.1-remove-apex-app remove_apex_app
+      step 4.2-import-app deploy "$THIS" app
+    else
+      step 4.0-backup backup
+      step 4.1-remove-app remove_app
+      step 4.1b-remove-test-accounts remove_test_accounts
+      step 4.2-deploy-this deploy "$THIS" install
+    fi
     step 4.3-online-validation validate_online
     step 4.4-dependency-check dependency_check
     # C: the DB tests run on the fresh install too, so a test failure stops the run before the upgrade test
     step 4.5-test-users test_users
-    step 4.6-db-tests db_tests ;;
+    step 4.6-db-tests db_tests
+    # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
+    # no upgrade test (job 5) when the database scripts are the base's (F) or already passed it (application only)
+    if [ "${DB_CHANGED:-true}" = false ] || [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed; fi ;;
   upgrade)
     step 5.1-remove-app remove_app
     step 5.2-build-last build_last "${2:?base ref}"
@@ -284,17 +313,21 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
     step 5.6-online-validation validate_online
     step 5.7-drop-backup-schema backup_schema Y
     step 5.8-record-version record_deployed ;;
-  test)   # A: every test step runs; the job fails at the end with all of their failures together
+  test)   # job 6 (database): A - every step runs; the job fails at the end with all of their failures together
     export KEEP_GOING=1
-    step 6.1-test-users test_users
     step 6.2-db-tests db_tests
-    step 6.3-browser-tests ui_smoke
     step 6.4-apex-sert sert_eval
     step 6.5-dbsat dbsat
     finish ;;
+  ui)     # job 6 (browser, in parallel - G): test users, then every page as each of them
+    export KEEP_GOING=1
+    step 6.1-test-users test_users
+    step 6.3-browser-tests ui_smoke
+    finish ;;
   finalize)
-    step 7.1-export export_app "${2:?output dir}/app"
-    step 7.3-apex-docs readable_export "$2/apex-docs"
+    step 7.1-export export_app "${2:?output dir}/app" ;;
+  docs)   # E: after the merge (7.3-7.4 are not needed to merge)
+    step 7.3-apex-docs readable_export "${2:?output dir}/apex-docs"
     step 7.4-db-docs schemaspy "$2/db-docs" ;;
   *)
     echo "unknown job: $1" >&2; exit 2 ;;
