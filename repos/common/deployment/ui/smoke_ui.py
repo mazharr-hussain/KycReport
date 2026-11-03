@@ -84,9 +84,13 @@ def main():
     ap.add_argument('--users', required=True)
     ap.add_argument('--out', required=True)
     ap.add_argument('--skip', default='')
+    ap.add_argument('--only', default='', help='page numbers to open (a pull request\'s pages); empty = every page')
     args = ap.parse_args()
     password = os.environ.get('UI_PASSWORD') or sys.exit('UI_PASSWORD is not set')
     pages = pages_of(args.pages, {int(x) for x in args.skip.split()})
+    if args.only.split():
+        only = {int(x) for x in args.only.split()}
+        pages = [p for p in pages if p[0] in only]
     results = []
     with sync_playwright() as p:
         # CHROMIUM_PATH: an already installed Chromium (local runs); the pipeline uses Playwright's own browser

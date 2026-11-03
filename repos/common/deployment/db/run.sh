@@ -170,32 +170,57 @@ compare() {     # 5.5
 test_users() {  # as ADMIN: creating APEX accounts outside an APEX session needs APEX instance rights (script header)
   S ADMIN "$THIS/db/admin/test-users.sql" check
 }
-db_tests() {    # every release test; a FAIL line or an ORA- / PLS- error fails the step
+db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the step
   # order: tests/setup/*.sql (the test fixtures) first, then the feature tests, then tests/*.sql - each in name order.
-  # A file runs as the application schema, or as the schema named in a "-- Schema: <NAME>" line in its first 10 lines
-  # (e.g. XXCUS for the tests of an application's side); the pipeline user connects through it as a proxy.
-  local t schema
+  # DB_TESTS (job 1, checks/affected.py): ALL, or the tests a pull request affects (the fixtures always run).
+  # A file runs as the application schema, or as the schema named in a "-- Schema: <NAME>" line in its first 10 lines.
+  # I: consecutive files of one schema run in ONE SQLcl session (one start-up and sign-in, not one per file); between
+  # files the session is reset (rollback, no APEX session, package state cleared). A file that ends the session itself
+  # (exit / quit) runs in its own session.
+  local t schema rel wrapper="" group="" n=0
+  flush() {
+    if [ -n "$wrapper" ]; then S "$group" "$wrapper"; rm -f "$wrapper"; wrapper=""; fi
+  }
   for t in "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql "$THIS"/tests/*.sql; do
     [ -f "$t" ] || continue
-    schema=$(sed -n '1,10s/^-- Schema: *\([A-Z][A-Z0-9_]*\).*/\1/p' "$t" | head -1)
-    echo "== ${t#"$ROOT"/} (as ${schema:-$APP_SCHEMA})"
-    S "${schema:-$APP_SCHEMA}" "$t"
+    rel=${t#"$ROOT"/}
+    case $rel in
+      repos/common/tests/setup/*) ;;
+      *) if [ "${DB_TESTS:-ALL}" != ALL ] && ! printf ' %s ' "$DB_TESTS" | grep -qF " $rel "; then continue; fi ;;
+    esac
+    n=$((n + 1))
+    schema=$(sed -n '1,10s/^-- Schema: *\([A-Z][A-Z0-9_]*\).*/\1/p' "$t" | head -1); schema=${schema:-$APP_SCHEMA}
+    if grep -qiE '^[[:space:]]*(exit|quit)\b' "$t"; then
+      flush; echo "== $rel (as $schema)"; S "$schema" "$t"; continue
+    fi
+    if [ "$schema" != "$group" ]; then flush; group=$schema; wrapper=$(mktemp --suffix .sql); fi
+    cat >> "$wrapper" <<SQL
+prompt == $rel (as $schema)
+@"$t"
+rollback;
+begin apex_session.delete_session; exception when others then null; end;
+/
+exec dbms_session.reset_package
+set define on serveroutput on size unlimited
+SQL
   done > "$LOG_DIR/tests-detail.log" 2>&1
+  flush >> "$LOG_DIR/tests-detail.log" 2>&1
   awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f ": " $0}' "$LOG_DIR/tests-detail.log" | head -50
   local pass fail err
   pass=$(grep -c '^PASS' "$LOG_DIR/tests-detail.log")
   fail=$(grep -c '^FAIL' "$LOG_DIR/tests-detail.log")
   err=$(grep -cE '^(ORA|PLS)-' "$LOG_DIR/tests-detail.log")
+  if [ "${DB_TESTS:-ALL}" = ALL ]; then echo "$n test file(s): all"; else echo "$n test file(s): the fixtures and the tests this pull request affects"; fi
   echo "PASS: $pass  FAIL: $fail  errors: $err" | tee "$LOG_DIR/tests-summary"
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
 }
 
-ui_smoke() {    # 6.3 every page as each test user (Playwright: video, screenshots, trace)
+ui_smoke() {    # 6.3 every page (on a pull request: its pages, PAGES from job 1) as each test user (Playwright: video, screenshots, trace)
   local pw
   pw=$(sed -n "s/.*c_password constant varchar2(30) := '\([^']*\)'.*/\1/p" "$THIS/db/admin/test-users.sql")
   UI_PASSWORD=$pw python3 "$HERE/../ui/smoke_ui.py" --base "${APP_URL:?APP_URL is not set}" --app-id "$APP_ID" \
     --app-path "$APP_PATH" --pages "$THIS/dist/app/pages" --users "$UI_USERS" --skip "$UI_SKIP_PAGES" \
-    --out "$REPORT_DIR/ui"
+    --only "$( [ "${PAGES:-ALL}" = ALL ] || echo "$PAGES")" --out "$REPORT_DIR/ui"   # PAGES: a PR's pages (K)
 }
 sert_eval() {   # 6.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
   local out
