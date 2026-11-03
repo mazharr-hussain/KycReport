@@ -24,6 +24,8 @@ validation ("Validation successful"), static checks and PMD (0 findings), pipeli
   database ADMIN in COMMON's schema (`-- Schema: ADMIN`), like the test users of step 6.1.
 - r109 reads and locks the account outside the APEX session (APEX refuses it inside one, outside a browser); r86
   counts the re-run's grants of its administrator only (TALL_ACCESS holds every role of every application).
+- r81 attaches to the test application's own document entity and text category (registered by the fixture), not to
+  whatever setup earlier runs left.
 - r110 saves its purposes for the test application R86TEST (COMMON owns no integration purpose); r87_1 checks the
   menu view of release 105 (`XXFND_NAV_MENU_V`).
 - Stale checks of routines retired in COMMON 106 ("managed in the application": `IS_MANAGED`, `SAVE_FUNCTIONS`,

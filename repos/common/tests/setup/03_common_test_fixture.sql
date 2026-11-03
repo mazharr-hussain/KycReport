@@ -29,11 +29,15 @@ begin
         xxfnd_lookup_pkg.register_lookup_value('R86TEST', 'RFI_CATEGORY', 'CLARIFICATION', 'Clarification', 10);
         xxfnd_lookup_pkg.register_lookup_value('R86TEST', 'RFI_CATEGORY', 'OTHER', 'Other', 20);
     end if;
+    -- a document entity and a text category of the test application for the attachment tests (r81): the tests do not
+    -- depend on whatever setup earlier runs left (I-059)
+    xxfnd_attach_pkg.register_entity('R86TEST', 'R86_DOC_TEST', 'R89_PARENT', 'PARENT_ID', 'R86 test documents');
+    xxfnd_attach_pkg.register_category('R86TEST', 'R86_NOTE', 'R86 test note', p_default_datatype_code => 'SHORT_TEXT');
     -- the tests' administrator
     xxfnd_user_pkg.bootstrap_admin('ADMIN', 'Test Administrator', 'admin@example.com', 'COMMON_ADMIN');
     xxfnd_user_pkg.bootstrap_admin('ADMIN', 'Test Administrator', 'admin@example.com', 'SUPER_ADMIN');
     commit;
     commit;
-    dbms_output.put_line('COMMON test fixture ready: R86TEST, ADMIN');
+    dbms_output.put_line('COMMON test fixture ready: R86TEST (with document entity R86_DOC_TEST, category R86_NOTE), ADMIN');
 end;
 /
