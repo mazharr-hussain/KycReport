@@ -71,12 +71,13 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   (`db/deploy` install / upgrade); when they are the base's, job 5 is skipped and 4.7 records the version.
 - **Browser test beside the DB tests (G):** job 6 is two jobs at the same time - "6 DB tests and security" (6.2, 6.4,
   6.5) and "6 Browser test and ZAP" (6.1, 6.3, 6.6); the browser job never signs in as the pipeline user.
-- **A PR tests what it changes; the night tests everything (K, L):** job 1 (`checks/affected.py`) lists what the PR
+- **A PR tests what it changes; the full run tests everything (K, L):** job 1 (`checks/affected.py`) lists what the PR
   affects - the DB tests of its features, its changed tests and the release tests that name an object it changes; its
   pages plus the home page. Steps 4.6 / 6.2 run only those DB tests (the fixtures in `tests/setup` always), 6.3 opens
   only those pages, and ZAP is left out. A change to the framework, the shared components, the fixtures, the build or
-  the pipeline tests everything. The **nightly run** (schedule, 01:23 UTC) tests all of `main` - every DB test, every
-  page, ZAP - and a failure there becomes a COMMON issue (one per failing step; a repeat is a comment on it).
+  the pipeline tests everything. The **full run** is on demand only (Actions > COMMON > Run workflow): it tests all of
+  `main` - every DB test, every page, ZAP - and a failure there becomes a COMMON issue (one per failing step; a repeat
+  is a comment on it).
 - **One SQLcl session for the DB tests (I):** consecutive test files of one schema run in one SQLcl session, reset
   between files (rollback, no APEX session, `dbms_session.reset_package`); a file that ends with `exit` runs alone.
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.

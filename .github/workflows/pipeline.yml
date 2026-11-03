@@ -10,16 +10,14 @@
 name: COMMON
 # run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
 # the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0a)
-run-name: "${{ github.event.pull_request.title || (github.event_name == 'schedule' && 'COMMON nightly full run') || 'COMMON: manual run' }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
+run-name: "${{ github.event.pull_request.title || 'COMMON full run' }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
 
 on:
   pull_request:
     branches: [main]
+  # K: the full run on demand (Actions > COMMON > Run workflow): all of main - every DB test, every page, ZAP - (a PR
+  # tests only what it changes); what fails is logged as an issue for a future release
   workflow_dispatch:
-  schedule:
-    # K: every night the whole of main - every DB test, every page, ZAP - (a PR tests only what it changes); what
-    # fails is logged as an issue for a future release
-    - cron: '23 1 * * *'
 
 permissions: {}
 
@@ -76,7 +74,7 @@ jobs:
         if: steps.scope.outputs.common == 'true'
         with:
           python-version: '3.11'
-      - name: What this pull request affects - the DB tests and pages to test (all of them at night)
+      - name: What this pull request affects - the DB tests and pages to test (all of them in the full run)
         id: affected
         if: steps.scope.outputs.common == 'true'
         env:
@@ -427,10 +425,10 @@ jobs:
           url=$(bash repos/common/deployment/lib/app-url.sh)
           echo "APP_URL=$url" >> "$GITHUB_ENV"
           echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
-      - name: 6.1, 6.3 Test users, browser test of the pages (a PR's pages; every page at night)
+      - name: 6.1, 6.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
         run: bash repos/common/deployment/db/run.sh ui
       - name: 6.6 OWASP ZAP baseline scan (passive; report only)
-        # the nightly run only (K); also after a failed browser test: every finding in one run (A)
+        # the full run only (K); also after a failed browser test: every finding in one run (A)
         if: always() && steps.app.outcome == 'success' && github.event_name != 'pull_request'
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
@@ -556,13 +554,13 @@ jobs:
           fi
           echo "- 7.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
       - name: Pipeline report - collect the step logs
-        if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: logs-*
           path: ${{ runner.temp }}/logs
       - name: Pipeline report - the scripts (a PR that does not touch COMMON has no full checkout)
-        if: (github.event_name == 'pull_request' || github.event_name == 'schedule') && env.COMMON != 'true'
+        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && env.COMMON != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -570,10 +568,10 @@ jobs:
             repos/common/deployment
             repos/kyc/releases
       - name: Pipeline report - warnings and notices of this run
-        if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: python3 repos/common/deployment/checks/report.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
       - name: 7.2 Issues for a future release - the existing findings (files this PR did not change)
-        if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         env:
           # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
           # workflow token the issue is still created, but no other workflow starts
@@ -646,7 +644,7 @@ jobs:
     permissions:
       contents: read         # the report script
       pull-requests: write   # the error comment
-      issues: write          # the nightly run: its failure becomes an issue (K)
+      issues: write          # the full run: its failure becomes an issue (K)
     steps:
       - name: 8.1 Collect the step logs
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -667,8 +665,8 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
         with:
           retries: 3
-          # the nightly run's issue with a person's token, so add-to-project.yml puts it on the board
-          github-token: ${{ github.event_name == 'schedule' && secrets.ADD_TO_PROJECT_PAT || github.token }}
+          # the full run's issue with a person's token, so add-to-project.yml puts it on the board
+          github-token: ${{ github.event_name == 'workflow_dispatch' && secrets.ADD_TO_PROJECT_PAT || github.token }}
           script: |
             const fs = require('fs'), path = require('path');
             const results = JSON.parse(process.env.RESULTS);
@@ -713,10 +711,10 @@ jobs:
             const pr = context.payload.pull_request;
             if (pr) {
               await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
-            } else if (context.eventName === 'schedule') {
-              // K: the nightly full run tests main - what fails there is for a future release: one COMMON issue per
+            } else if (context.eventName === 'workflow_dispatch') {
+              // K: the full run (on demand) tests main - what fails there is for a future release: one COMMON issue per
               // failing job / step (the marker finds it again: a repeat failure is a comment on the open issue)
-              const mark = `nightly-failure: ${job}/${step || '-'}`;
+              const mark = `full-run-failure: ${job}/${step || '-'}`;
               const all = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'all', per_page: 100 });
               const open = all.find(i => !i.pull_request && i.state === 'open' && (i.body || '').includes(`<!-- ${mark} -->`));
               if (open) {
@@ -725,10 +723,10 @@ jobs:
                 const nums = all.map(i => (i.title.match(/^I-(\d+)\b/) || [])[1]).filter(Boolean).map(Number);
                 const ino = 'I-' + String(Math.max(0, ...nums) + 1).padStart(3, '0');
                 await github.rest.issues.create({ ...context.repo, labels: ['COMMON'],
-                  title: `${ino} COMMON: nightly run fails at ${name}${step ? ' (' + step + ')' : ''}`,
+                  title: `${ino} COMMON: full run fails at ${name}${step ? ' (' + step + ')' : ''}`,
                   body: ['Type: Bug', 'Priority: P2', '', `**Area:** pipeline job ${name}${step ? ', step ' + step : ''}`, '',
-                         '**Found:** the nightly full run of main (every DB test, every page, ZAP).', '', body, '',
-                         `<!-- ${mark} -->`, '', '**Source:** COMMON pipeline (nightly run, job 8)'].join('\n') });
+                         '**Found:** the full run of main (on demand: every DB test, every page, ZAP).', '', body, '',
+                         `<!-- ${mark} -->`, '', '**Source:** COMMON pipeline (full run, job 8)'].join('\n') });
               }
             }
             core.setFailed(`Pipeline stopped because of job ${name} failure${step ? ' (step ' + step + ')' : ''}`);

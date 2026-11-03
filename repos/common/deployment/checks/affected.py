@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """What a pull request affects - the pipeline tests only that on a PR (K, L; CLAUDE.md "test only what the feature
-touches"); the nightly run tests everything.
+touches"); the full run (on demand) tests everything.
 
 affected.py <base sha>   (run from the repository root, after the build) - prints two lines for $GITHUB_OUTPUT:
   db_tests=<ALL | repo paths of the DB test files to run, space separated>
