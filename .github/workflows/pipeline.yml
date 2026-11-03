@@ -8,7 +8,9 @@
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 3 and 9 only.
 # Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
 name: COMMON
-run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}:${{ github.run_number }}"
+# run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
+# the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 3.0a)
+run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
 
 on:
   pull_request:
@@ -33,6 +35,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      issues: read          # 3.0a: the linked issues and their labels
     outputs:
       common: ${{ steps.scope.outputs.common }}
       release: ${{ steps.scope.outputs.release }}
@@ -41,10 +44,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Scope - does this PR touch COMMON, does it add a release?
+      - name: Scope - does this PR touch COMMON; its release number (from the title)
         id: scope
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
           if [ -z "$BASE" ]; then
@@ -56,8 +60,8 @@ jobs:
           else
             echo "common=false" >> "$GITHUB_OUTPUT"
           fi
-          release=$(git diff --name-only --diff-filter=A "$BASE" HEAD -- 'repos/common/releases/' \
-            | sed -nE 's#^repos/common/releases/([0-9]+)-[^/]+/README\.md$#\1#p' | head -1)
+          # "COMMON Release <N>: ..." -> N (format checked in 3.0a; a KYC release has no COMMON release number)
+          release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: steps.scope.outputs.common == 'true'
@@ -82,11 +86,13 @@ jobs:
           echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
           unzip -q pmd.zip && rm pmd.zip
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
-      - name: 3.0-3.6 Offline validation
+      - name: 3.0a-3.6 Offline validation
         if: steps.scope.outputs.common == 'true'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
@@ -362,18 +368,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
           tag="common-$RELEASE"
-          readme=$(find repos/common/releases -maxdepth 2 -path "*/$RELEASE-*/README.md" | head -1)
+          readme=$RUNNER_TEMP/notes.md
+          {
+            echo "## $PR_TITLE"; echo
+            printf '%s\n' "$PR_BODY" | grep -iE '(fixes|closes|resolves) #[0-9]+' | sed 's/^/- /' || true
+            folder=$(find repos/common/releases -maxdepth 2 -path "*/$RELEASE-*/README.md" | head -1)
+            if [ -n "$folder" ]; then echo; cat "$folder"; fi
+          } > "$readme"
           if gh release view "$tag" > /dev/null 2>&1; then
             if [ "$(gh release view "$tag" --json isDraft -q .isDraft)" != true ]; then
               echo "::error::Release COMMON $RELEASE is already published - use a new release number"; exit 1
             fi
             gh release upload "$tag" "$ZIP" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
+            gh release edit "$tag" --title "$PR_TITLE" --notes-file "$readme"
           else
             gh release create "$tag" "$ZIP" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" \
-              --draft --title "COMMON $RELEASE" --notes-file "${readme:-/dev/null}"
+              --draft --title "$PR_TITLE" --notes-file "$readme"
           fi
           echo "- 9.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
       - name: 9.2 Merge - GitHub auto-merge completes it when this check is green

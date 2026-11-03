@@ -1,13 +1,12 @@
-# Publishes the GitHub Release of each application release that lands on main (one place publishes releases):
-#   - COMMON: the draft release "COMMON N" (tag common-N) prepared by the pipeline (pipeline.yml step 9.1) with the
-#     APEXlang zip exported from the tested application - published here once the PR merges
-#   - otherwise (KYC today): the zip committed in repos/<app>/releases/<name>_<N>.zip
-# Notes: the release folder's README and the issues the push closed ("Fixes #n" in its commits).
+# Publishes the GitHub Release of each application release that lands on main (the only workflow that publishes):
+#   - the merged pull request's title gives the release: "<APP> Release <N>: <summary>" -> tag <app>-<N> (issue #218)
+#   - COMMON: the draft release prepared by the pipeline (pipeline.yml 9.1: the APEXlang zip exported from the tested
+#     application, readable APEX docs, SchemaSpy docs) is published, with the PR's linked issues ("Fixes #n") as notes
+#   - no draft (KYC today): the zip committed in repos/<app>/releases/<name>_<N>.zip, if any
 name: Release
 on:
   push:
     branches: [main]
-    paths: ['repos/*/releases/**']
 permissions: {}
 jobs:
   release:
@@ -15,37 +14,39 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
-      - name: Publish the releases
+      - name: Publish the release of the merged pull request
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
+          MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
-          fixes=$(git log --format=%B "$BEFORE..$AFTER" 2>/dev/null | grep -oiE '(fixes|closes|resolves) #[0-9]+' \
-            | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ' || true)
-          git diff --name-only --diff-filter=A "$BEFORE" "$AFTER" -- 'repos/*/releases/*/README.md' \
-            | sed -nE 's#^repos/([a-z]+)/releases/([0-9]+)-[^/]+/README\.md$#\1 \2 &#p' \
-            | while read -r app n readme; do
-            tag="$app-$n"; title="$(echo "$app" | tr '[:lower:]' '[:upper:]') $n"
-            { cat "$readme"; echo; if [ -n "$fixes" ]; then echo "Closed issues: $fixes"; fi; } > notes.md
-            draft=$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null || echo none)
-            case $draft in
-              true)
-                gh release edit "$tag" --draft=false --target "$AFTER" --title "$title" --notes-file notes.md
-                echo "published $title (zip from the pipeline)" ;;
-              false)
-                echo "$title is already published" ;;
-              *)
-                zip=$(find "repos/$app/releases" -maxdepth 1 -name "*_$n.zip" | head -1)
-                if [ -z "$zip" ]; then echo "::warning::$title has no draft release and no zip - nothing published"; continue; fi
-                gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
-                echo "published $title (committed zip)" ;;
-            esac
-          done
+          pr=$(printf '%s' "$MESSAGE" | sed -nE '1s/^Merge pull request #([0-9]+).*/\1/p')
+          if [ -z "$pr" ]; then echo "not a pull request merge - nothing to publish"; exit 0; fi
+          title=$(gh pr view "$pr" --json title -q .title)
+          app=$(printf '%s' "$title" | sed -nE 's/^(COMMON|KYC) Release [0-9]+: .+$/\1/p')
+          n=$(printf '%s' "$title" | sed -nE 's/^(COMMON|KYC) Release ([0-9]+): .+$/\2/p')
+          if [ -z "$n" ]; then echo "PR #$pr \"$title\" is not a release - nothing to publish"; exit 0; fi
+          lower=$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]'); tag="$lower-$n"
+          { echo "## $title"; echo
+            gh pr view "$pr" --json body -q .body | grep -iE '(fixes|closes|resolves) #[0-9]+' | sed 's/^/- /' || true
+            echo; echo "Pull request: #$pr"; } > notes.md
+          draft=$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null || echo none)
+          case $draft in
+            true)
+              gh release edit "$tag" --draft=false --target "$AFTER" --title "$title" --notes-file notes.md
+              echo "published $title (zip from the pipeline)" ;;
+            false)
+              echo "$title is already published" ;;
+            *)
+              zip=$(find "repos/$lower/releases" -maxdepth 1 -name "*_$n.zip" 2>/dev/null | head -1)
+              if [ -z "$zip" ]; then echo "::notice::$title has no draft release and no committed zip - nothing published"; exit 0; fi
+              gh release create "$tag" "$zip" --title "$title" --notes-file notes.md --target "$AFTER"
+              echo "published $title (committed zip)" ;;
+          esac
