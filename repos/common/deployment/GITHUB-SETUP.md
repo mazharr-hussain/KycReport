@@ -14,6 +14,12 @@ merge the PR by itself (merge it by hand).
 | 6 (optional) | Settings > Secrets and variables > Actions > Variables | `DBSAT_ZIP_URL` and `DBSAT_ZIP_SHA256`: where the pipeline downloads DBSAT (Oracle download after accepting its licence, e.g. a private release asset) and its SHA-256 | Step 8.5 runs DBSAT; skipped with a notice until set (issue #209) |
 | 7 (optional) | Settings > Secrets and variables > Actions > Variables | `VAL_APP_URL`: the validation APEX URL (`https://.../ords`) - only if the one read from the wallet is wrong | Browser tests (8.3) and ZAP (8.6) |
 
+## Clean up the run history (issue #219)
+Actions -> **Clean up workflow runs** -> **Run workflow**: choose the workflow (`pipeline.yml`, ... or `all`), the minimum
+age in days (0 = any) and the result (all / failure / cancelled / success / skipped). Run it first with **Dry run**
+ticked (the default) - the run's summary lists what would be deleted - then again without it to delete. Running runs
+and the clean-up run itself are never deleted; deleted runs (logs and artifacts) cannot be restored.
+
 ## Who does what (agreed with the user)
 - **Claude**: changes the code and reviews it (offline: Oracle skills, APEXlang validation, lint), opens the PR and
   pushes. Nothing else.
