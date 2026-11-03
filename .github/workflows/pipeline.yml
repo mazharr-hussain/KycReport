@@ -358,7 +358,7 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
-    timeout-minutes: 15
+    timeout-minutes: 60   # 7.1 APEXlang export + 7.3 readable export + 7.4 SchemaSpy took more than 15 minutes
     permissions:
       contents: write        # draft GitHub Release of the tested zip; 7.2 merge and release
       pull-requests: write   # 7.2 ready for review, merge, PR comment
@@ -508,7 +508,8 @@ jobs:
   error:
     name: 8 Error handling
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test, finalize]
-    if: failure() || cancelled()
+    # a job stopped by its time limit is "cancelled", which failure() does not see: every failed or cancelled job counts
+    if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
