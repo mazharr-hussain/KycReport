@@ -21,6 +21,12 @@ the PR's Development and closes them on merge). Each push starts one run named `
 PR's commit count - Claude pushes one commit per push); a retry of the same push stays in that run (attempt 2, 3, ...).
 Job 3.0a checks the title and the linked issues; the release number comes from the title.
 
+**Annotations:** only findings in the files a PR changes become GitHub warning annotations (3.2 static checks, 3.6
+PMD); findings in unchanged files are existing code and are listed in the step log as `existing: ...`, with a count.
+Information (PMD files it cannot parse, the dependency report, the restore report, DBSAT not set up) is logged as
+`info: ...`, never annotated. A change to the pipeline itself (this folder or the workflow files) goes straight to
+`main` without a PR (CLAUDE.md).
+
 Any failing step stops its job; every later job is skipped. Job 9 always runs its gate, which fails with "9 Finalize the PR stopped because of job <x> failure"; job 10 then reports "COMMON pipeline failed because of job <x> failure" (step, errors, skipped jobs) on the PR and stops the pipeline.
 
 ## Files

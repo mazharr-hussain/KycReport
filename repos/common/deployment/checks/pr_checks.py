@@ -82,7 +82,8 @@ def apex_security():
         public = re.search(r'authentication:\s*public', sec) or re.match(r'page 0+ ', txt) or 'login' in rel
         if not public and 'authorizationScheme' not in sec:
             warnings.append(f'{rel}: page has no authorization scheme (View / Create / Manage privilege)')
-        if re.search(r'pageAccessProtection:\s*unrestricted', sec):
+        # a public page (login) is opened without arguments from outside: unrestricted access is intended there
+        if not public and re.search(r'pageAccessProtection:\s*unrestricted', sec):
             warnings.append(f'{rel}: page access protection is unrestricted (use argumentsMustHaveChecksum unless intended)')
         if re.search(r'\n\s+inline:', txt):
             warnings.append(f'{rel}: inline CSS / JavaScript on the page (use the theme / a static file)')
@@ -177,9 +178,20 @@ if __name__ == '__main__':
     if a.base:
         changes(a.base, open(a.body_file).read() if a.body_file else None)
     gh = os.environ.get('GITHUB_ACTIONS')
-    for w in warnings:
+    # only findings in files this PR changes become GitHub annotations; findings in files it does not touch are
+    # existing code (fixed in their own release) and are listed in the step log only
+    changed = set()
+    if a.base:
+        changed = set(subprocess.run(['git', 'diff', '--name-only', a.base, 'HEAD'], cwd=ROOT, capture_output=True,
+                                     text=True).stdout.split())
+    new = [w for w in warnings if not a.base or w.split(':')[0] in changed or not w.startswith('repos/')]
+    old = [w for w in warnings if w not in new]
+    for w in old:
+        print(f'existing: {w}')
+    for w in new:
         print(f'::warning::{w}' if gh else f'WARNING {w}')
     for e in errors:
         print(f'::error::{e}' if gh else f'ERROR {e}')
-    print(f'{len(errors)} error(s), {len(warnings)} warning(s)')
+    print(f'{len(errors)} error(s), {len(new)} warning(s) in this change, {len(old)} existing finding(s) in unchanged '
+          'files (listed above, not annotated)')
     sys.exit(1 if errors else 0)

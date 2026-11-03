@@ -125,8 +125,8 @@ restore() {     # 7.3: data back into the old release, then the snapshot the upg
   local out
   out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
   echo "$out"
-  if echo "$out" | grep -q '^INFO '; then
-    echo "::notice title=7.3 restore::$(echo "$out" | grep -c '^INFO ') table(s) / key(s) not fully restored - see the 7.3 step log"
+  if echo "$out" | grep -q '^INFO '; then   # information about the test data (step log only, no annotation)
+    echo "info: $(echo "$out" | grep -c '^INFO ') table(s) / key(s) not fully restored - see the INFO lines above"
   fi
   backup
 }
@@ -168,7 +168,7 @@ sert_eval() {   # 8.4 APEX-SERT evaluation (report; findings are listed, the ste
 }
 dbsat() {       # 8.5 Oracle DBSAT (collect + report) - needs the user's DBSAT download (repository variables)
   if [ -z "${DBSAT_ZIP_URL:-}" ] || [ -z "${DBSAT_ZIP_SHA256:-}" ]; then
-    echo "::notice title=DBSAT::skipped - set the repository variables DBSAT_ZIP_URL and DBSAT_ZIP_SHA256 (issue #209)"
+    echo "info: DBSAT skipped - set the repository variables DBSAT_ZIP_URL and DBSAT_ZIP_SHA256 (issue #209)"
     return 0
   fi
   local ic=$TOOLS/instantclient wdir=$TOOLS/wallet d=$TOOLS/dbsat

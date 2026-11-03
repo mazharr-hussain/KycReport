@@ -36,6 +36,10 @@
   code and reviews it offline, then opens the PR and pushes; deployment, database checks, tests, release zip, merge
   and error reports are done by the COMMON pipeline (`repos/common/deployment/README.md`). GitHub settings still to do
   by the user: `repos/common/deployment/GITHUB-SETUP.md`.
+- **Pipeline fixes go straight to main (from the user, 3 Nov 2026).** A change only to the pipeline's own files - the
+  scripts under `repos/common/deployment/` and the GitHub workflow files (`.github/workflows/`, `.github/actions/`) -
+  is not an application release: no issue, no release plan, no PR. It is checked locally (job 3: lint, static checks,
+  APEXlang validation) and pushed directly to `main`. Everything else follows the issue -> plan -> PR rules.
 - **PR and run naming (from the user, 3 Nov 2026, issue #218).** PR title `<APP> Release <Number>: <short summary>`
   (summary at most 60 characters); every issue of the release is linked in the PR body with `Fixes #n` (never listed in
   the title). Claude squashes its local work into one commit per push; each push is one pipeline run named
