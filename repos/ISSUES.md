@@ -80,6 +80,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-071 [#231](https://github.com/mazharr-hussain/KycReport/issues/231) | COMMON | pipeline job 4 Deploy fresh app, step 4.0-install-guard | full run fails at 4 Deploy fresh app (4.0-install-guard) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 | I-072 [#232](https://github.com/mazharr-hussain/KycReport/issues/232) | COMMON | pipeline job 5 Upgrade app, step 5.6-nothing-lost | full run fails at 5 Upgrade app (5.6-nothing-lost) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 | I-073 [#233](https://github.com/mazharr-hussain/KycReport/issues/233) | COMMON | pipeline job 5 Upgrade app, step 5.0-version-guard | full run fails at 5 Upgrade app (5.0-version-guard) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
+| I-074 [#234](https://github.com/mazharr-hussain/KycReport/issues/234) | COMMON | pipeline job 6 DB tests and security, step 6.2-db-tests | full run fails at 6 DB tests and security (6.2-db-tests) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
