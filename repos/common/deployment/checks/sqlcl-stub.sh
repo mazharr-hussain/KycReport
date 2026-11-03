@@ -1,6 +1,7 @@
 #!/bin/bash
 # A stand-in for SQLcl for the dry run (checks/dryrun.sh): no database. It reads the script lib/sql.sh sends on stdin,
 # logs "<script> <login>" to STUB_LOG and answers the pipeline's questions from STUB_DIR:
+#   (the answers end in blanks, as SQLcl pads its lines: read values as words, never with grep -x)
 #   STUB_DIR/record   the deployed.sql "get" output (no file: nothing recorded)
 #   STUB_PASSED=1     a check passed before (PASSED-BEFORE)         STUB_DROP=1   a test session ends early
 #   STUB_DIFF=1       the upgraded schema has one structure line the fresh install did not have
@@ -21,8 +22,8 @@ case $(basename "$file") in
     case $body in *"apex validate"*) echo "Validation successful"; echo "Import successful" ;; esac
     rec=$(cat "$STUB_DIR/record" 2>/dev/null)
     case $body in *"'GUARD '"*) printf '%s\n' "$rec" | awk '$1 == "DEPLOYED" {print "GUARD", $2, $3, $4, $6} $1 == "PASSED" && $2 == "fresh" {print "GUARD-FRESH", $3}' ;; esac
-    case $body in *"'INSTALL-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "install" {print "INSTALL-OF", $3}' ;; esac
-    case $body in *"'FRESH-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "fresh" {print "FRESH-OF", $3}'
+    case $body in *"'INSTALL-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "install" {print "INSTALL-OF", $3 "          "}' ;; esac
+    case $body in *"'FRESH-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "fresh" {print "FRESH-OF", $3 "          "}'
                                      printf 'FRESH %s\n' 'T XXFND_A' 'C XXFND_A.X NUMBER(,,) Y' 'K XXFND_A XXFND_A_PK P ENABLED VALIDATED' 'R XXFND_A 2' ;; esac
     case $body in *PASSED-BEFORE*) [ "${STUB_PASSED:-0}" = 1 ] && echo "PASSED-BEFORE" ;; esac
     case $body in *"'DEP '"*) echo "DEP XXFND_CALLER_PKG" ;; esac

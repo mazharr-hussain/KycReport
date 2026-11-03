@@ -269,8 +269,9 @@ install_guard() {   # 4.0 (deploy=data): the database still holds the install jo
   safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
     "select 'INSTALL-OF ' || fingerprint from xxci_passed where check_name = 'install';") || { echo "$out"; return 1; }
-  echo "$out" | grep -qx "INSTALL-OF $INSTALL_FINGERPRINT" \
-    || { echo "FAIL the database no longer holds the install of this version ($INSTALL_FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
+  # SQLcl pads a line with blanks: the value is read as a word (like guard), not as the whole line
+  [ "$(echo "$out" | sed -n 's/^INSTALL-OF *//p' | awk 'NR == 1 {print $1}')" = "$INSTALL_FINGERPRINT" ] \
+    || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds the install of this version ($INSTALL_FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
   echo "the database holds the install of this version ($INSTALL_FINGERPRINT) - test data only"
 }
 record_fresh() {   # 4.5: the fresh install's structure (compared with the upgraded database in 5.8) and its pass
@@ -293,7 +294,7 @@ same_as_fresh() {   # 5.8: the upgraded database has the structure of the fresh 
   out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 4000 trimspool on" \
     "select 'FRESH-OF ' || fingerprint from xxci_passed where check_name = 'fresh';" \
     "select 'FRESH ' || line from xxci_fresh_schema order by line_no;") || { echo "$out"; return 1; }
-  if ! echo "$out" | grep -qx "FRESH-OF $FINGERPRINT"; then
+  if [ "$(echo "$out" | sed -n 's/^FRESH-OF *//p' | awk 'NR == 1 {print $1}')" != "$FINGERPRINT" ]; then
     echo "FAIL no fresh install of this version ($FINGERPRINT) is recorded - job 4 must pass first"; return 1
   fi
   echo "$out" | sed -n 's/^FRESH //p' > "$fresh"
