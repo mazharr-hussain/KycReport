@@ -77,6 +77,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-068 [#228](https://github.com/mazharr-hussain/KycReport/issues/228) | COMMON | COMMON DB tests (`repos/common/tests`), COMMON install | DB tests fail on a freshly installed database (they need data an upgraded one has) | bug | P2 | Open | Claude (pipeline run) |
 | I-069 [#229](https://github.com/mazharr-hussain/KycReport/issues/229) | COMMON | pipeline job 5 Upgrade app, step 5.3-restore-data | full run fails at 5 Upgrade app (5.3-restore-data) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 | I-070 [#230](https://github.com/mazharr-hussain/KycReport/issues/230) | COMMON | pipeline job 4 Deploy fresh app, step 4.2b-load-test-data | full run fails at 4 Deploy fresh app (4.2b-load-test-data) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
+| I-071 [#231](https://github.com/mazharr-hussain/KycReport/issues/231) | COMMON | pipeline job 4 Deploy fresh app, step 4.0-install-guard | full run fails at 4 Deploy fresh app (4.0-install-guard) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
