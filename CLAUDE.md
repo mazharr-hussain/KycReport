@@ -36,6 +36,10 @@
   code and reviews it offline, then opens the PR and pushes; deployment, database checks, tests, release zip, merge
   and error reports are done by the COMMON pipeline (`repos/common/deployment/README.md`). GitHub settings still to do
   by the user: `repos/common/deployment/GITHUB-SETUP.md`.
+- **PR and run naming (from the user, 3 Nov 2026, issue #218).** PR title `<APP> Release <Number>: <short summary>`
+  (summary at most 60 characters); every issue of the release is linked in the PR body with `Fixes #n` (never listed in
+  the title). Claude squashes its local work into one commit per push; each push is one pipeline run named
+  `<PR title>: Push Number <N>`, with all its jobs inside. Fix and review locally, then push once.
 - **Netlify not used for now (from the user, 2 Nov 2026).** Netlify stays connected for later use, but nothing is
   deployed, published or triggered there now; `netlify.toml` keeps every build skipped (`ignore = "exit 0"`) - do not
   change it until the user asks. Pushing to the session branch is allowed; a PR merges only through the COMMON pipeline

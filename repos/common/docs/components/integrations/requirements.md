@@ -33,6 +33,7 @@ application summary is `repos/common/docs/README.md`.
 
 - A server is linked to its APEX Remote Server; its name and URL are always read from it (a change in Workspace Utilities shows at once). The Web Credential is picked from the workspace's credentials. Type, description and enabled are set when the server is added; state, last call, last test and last error are shown as before.
 - The APEX Remote Servers list shows the COMMON server linked to each remote server, or Add (opens the Server form filled in).
+- I-021: each APEX Remote Server is listed once; when several COMMON servers are linked to it, all of them are shown in that row (the link opens the first; each one also opens from the Servers list).
 - A server has many REST Source Catalogs; a purpose picks its endpoint from the services of its server's catalogs.
 - The Server form lists the REST Data Sources of every application in the workspace that use its remote server.
 - The Fusion Integration Application route is removed (column dropped).

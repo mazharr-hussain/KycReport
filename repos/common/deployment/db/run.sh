@@ -59,18 +59,28 @@ bootstrap() {  # 5.2 only when the environment is missing or bootstrap.sql chang
   S ADMIN "$HERE/bootstrap.sql" check ci_user="$CI_USER" ci_pw="$CI_PW" xxcus_pw="${XXCUS_PW:?XXCUS_PW is not set}"
 }
 low_service() { echo "$VAL_DB_SERVICE" | sed -E 's/_(high|medium|tp|tpurgent)$/_low/'; }
-sert_install() {   # 5.4 APEX-SERT: only when SERT_CORE is missing or the pinned commit changed in this PR
-  local f n dir=$TOOLS/apex-sert
+sert_install() {   # 5.4 APEX-SERT: only when it is not installed (no SERT_CORE.EVAL_PKG) or its pin changed in this PR
+  local f n dir=$TOOLS/apex-sert rc
   f=$(mktemp --suffix .sql)
-  echo "select 'SERT_CORE ' || count(*) from all_users where username = 'SERT_CORE';" > "$f"
-  n=$(S CI "$f" check | grep -o 'SERT_CORE [0-9]*' | cut -d' ' -f2); rm -f "$f"
+  echo "select 'SERT_EVAL ' || count(*) from dba_objects where owner = 'SERT_CORE' and object_name = 'EVAL_PKG' and object_type = 'PACKAGE BODY' and status = 'VALID';" > "$f"
+  n=$(S ADMIN "$f" check | grep -o 'SERT_EVAL [0-9]*' | cut -d' ' -f2); rm -f "$f"
   if [ "${n:-0}" -gt 0 ] && { [ -z "${BASE:-}" ] || git -C "$ROOT" diff --quiet "$BASE" HEAD -- repos/common/deployment/tools.env; }; then
     echo "APEX-SERT is installed - nothing to do"; return 0
   fi
   rm -rf "$dir"; git init -q "$dir" && git -C "$dir" fetch -q --depth 1 "$SERT_REPO" "$SERT_COMMIT" &&
     git -C "$dir" checkout -q FETCH_HEAD || return 1
-  # Liquibase install as ADMIN on the LOW service (the HIGH service runs in parallel: ORA-12838 - SERT install guide)
-  (cd "$dir" && VAL_DB_SERVICE=$(low_service) S ADMIN install.sql check)
+  # SERT installs only as its installer schema ACDC (Liquibase precondition "RunningAs ACDC"), created by its own
+  # script as ADMIN; ACDC gets a random password for this install and is locked again afterwards (SERT install guide)
+  ACDC_PW="Ac$(openssl rand -hex 10)Z9"; echo "::add-mask::$ACDC_PW"; export ACDC_PW
+  f=$(mktemp --suffix .sql)
+  # the script's own password argument is a throw-away value; the real one is set next (never written to a file)
+  printf '@%s/product/sert/pre-install/acdc/create_acdc_schema.sql ACDC "Tmp%sZ9" DATA\n' "$dir" "$(openssl rand -hex 10)" > "$f"
+  S ADMIN "$f" check; rc=$?; rm -f "$f"; [ "$rc" -eq 0 ] || return 1
+  S ADMIN "$HERE/ci-password.sql" check ci_user=ACDC ci_pw="$ACDC_PW" || return 1
+  # Liquibase on the LOW service (the HIGH service runs in parallel: ORA-12838 - SERT install guide)
+  (cd "$dir" && VAL_DB_SERVICE=$(low_service) S ACDC install.sql check); rc=$?
+  f=$(mktemp --suffix .sql); echo "alter user acdc account lock;" > "$f"; S ADMIN "$f" check; rm -f "$f"
+  return "$rc"
 }
 backup_schema() {  # 5.3 (drop_only=N) and 7.7 (drop_only=Y)
   S CI "$HERE/backup-schema.sql" check bkp_schema="$BKP_SCHEMA" ci_user="$CI_USER" drop_only="$1"
@@ -112,7 +122,13 @@ build_last() {  # the last release = the pull request's base commit, built the s
   git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
 }
 restore() {     # 7.3: data back into the old release, then the snapshot the upgrade is compared with
-  S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE" && backup
+  local out
+  out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
+  echo "$out"
+  if echo "$out" | grep -q '^INFO '; then
+    echo "::notice title=7.3 restore::$(echo "$out" | grep -c '^INFO ') table(s) / key(s) not fully restored - see the 7.3 step log"
+  fi
+  backup
 }
 compare() {     # 7.5
   S "$APP_SCHEMA" "$HERE/compare.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE"

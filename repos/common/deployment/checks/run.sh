@@ -1,12 +1,13 @@
 #!/bin/bash
 # COMMON pipeline job 3 - offline validation, no OCI and no database:
+#   3.0a PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
 #   3.0 secret scan of the PR's commits (gitleaks)
 #   3.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts)
 #   3.2 static checks (pr_checks.py)          3.3 requirements check (warning only)
 #   3.4 build                                  3.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
 #   3.6 PMD (PL/SQL rules, warnings only)
 # Usage: run.sh   (env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
-#                 BODY = PR body file, optional)
+#                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 3.0a)
 # A failing step stops the job and is recorded for the error-handling job (lib/step.sh).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -14,6 +15,10 @@ ROOT=$(cd "$HERE/../../../.." && pwd)
 # shellcheck source=SCRIPTDIR/../lib/step.sh
 . "$HERE/../lib/step.sh"
 
+pr_meta() {        # pull requests only: title format, linked issues exist and carry the app's label
+  if [ -z "${PR_TITLE:-}" ]; then echo "not a pull request - nothing to check"; return 0; fi
+  python3 "$HERE/pr_meta.py"
+}
 secrets_scan() {   # the pull request's commits (or the last commit of a manual run); a finding fails the job
   local range=${BASE:+$BASE..HEAD}
   "${GITLEAKS:?GITLEAKS is not set}" git --no-banner --redact --exit-code 1 --log-opts="${range:--1}" \
@@ -63,6 +68,7 @@ apexlang() {
 }
 pmd() { bash "$HERE/pmd.sh"; }
 
+step 3.0a-pr-title-and-issues pr_meta
 step 3.0-secret-scan secrets_scan
 step 3.1-pipeline-lint lint
 step 3.2-static static

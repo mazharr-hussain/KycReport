@@ -6,7 +6,7 @@ in this folder. Steps 1-2 happen before the pipeline: Claude changes the code, r
 
 | Job | Steps | Runs as | Script |
 |---|---|---|---|
-| 3 Offline validation | 3.0 secret scan of the PR's commits (gitleaks) · 3.1 pipeline lint (actionlint, shellcheck) · 3.2 static checks · 3.3 requirements check (warning) · 3.4 build · 3.5 APEXlang LF check + validate · 3.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
+| 3 Offline validation | 3.0a PR title and linked issues · 3.0 secret scan of the PR's commits (gitleaks) · 3.1 pipeline lint (actionlint, shellcheck) · 3.2 static checks · 3.3 requirements check (warning) · 3.4 build · 3.5 APEXlang LF check + validate · 3.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
 | 4 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
 | 5 DB setup | 5.1 start the DB (placeholder) · 5.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 5.3 backup schema `XXFUSION_BKP` (dropped if it exists, created) · 5.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 5.2 | `db/run.sh setup` |
 | 6 Deploy fresh app | 6.0 back up the app's data · 6.1 remove app + DB objects · 6.2 deploy this version · 6.3 online validation · 6.4 dependency check: deployed schema vs the generated map (report) | pipeline user / proxy | `db/run.sh fresh` |
@@ -14,6 +14,12 @@ in this folder. Steps 1-2 happen before the pipeline: Claude changes the code, r
 | 8 Testing and validation | 8.1 test users · 8.2 DB tests (any FAIL / ORA- / PLS- fails the job) · 8.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 8.4 APEX-SERT evaluation (report) · 8.5 DBSAT (report; when its download is set) · 8.6 OWASP ZAP baseline scan (report) | ADMIN for 8.1, 8.4, 8.5; proxy for 8.2 | `db/run.sh test`, `ui/smoke_ui.py`, ZAP action |
 | 9 Finalize the PR | gate (every earlier job passed) · 9.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 9.2 merge: GitHub auto-merge completes it when this required check is green · 9.3 readable APEX docs (`READABLE_YAML` export) · 9.4 database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>` |
 | 10 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
+
+**Naming (issue #218):** PR title `<APP> Release <Number>: <short summary>` (APP = COMMON / KYC, summary at most 60
+characters); the issues of the release are linked in the PR body with one `Fixes #n` line each (GitHub lists them under
+the PR's Development and closes them on merge). Each push starts one run named `<PR title>: Push Number <N>` (N = the
+PR's commit count - Claude pushes one commit per push); a retry of the same push stays in that run (attempt 2, 3, ...).
+Job 3.0a checks the title and the linked issues; the release number comes from the title.
 
 Any failing step stops its job; every later job is skipped. Job 9 always runs its gate, which fails with "9 Finalize the PR stopped because of job <x> failure"; job 10 then reports "COMMON pipeline failed because of job <x> failure" (step, errors, skipped jobs) on the PR and stops the pipeline.
 
@@ -58,9 +64,10 @@ Secrets (environment "Oracle DB Dev"): `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_D
 | `common-release-zip` | the importable APEXlang zip of the tested application |
 
 ## Releases
-Job 9.1 builds the zip from the application that passed jobs 6-8 (SQLcl `apex export -exptype APEXLANG`). When the PR
-adds `repos/common/releases/<N>-<name>/README.md`, the zip goes into a draft GitHub Release `common-<N>`;
-`release.yml` publishes it when the PR merges (the only workflow that publishes releases).
+Job 9.1 builds the zip from the application that passed jobs 6-8 (SQLcl `apex export -exptype APEXLANG`) and puts it,
+with the docs, into the draft GitHub Release `common-<N>` (N from the PR title; notes: the title and the linked
+issues, plus `repos/common/releases/<N>-*/README.md` when the PR has one). `release.yml` publishes it when the PR merges
+(the only workflow that publishes releases).
 
 ## Run locally
 Set `SQL`, `WALLET`, `VAL_DB_SERVICE`, `ADMIN_PW` (and `XXCUS_PW` for setup, `PMD` for 3.6), then

@@ -25,8 +25,8 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   database checks run in the GitHub pipeline (section 3), not in the chat session.
 
 ## 3. COMMON CI/CD pipeline (`.github/workflows/pipeline.yml`, scripts in `repos/common/deployment` - README there)
-- Every PR to main starts one record in Actions: `<PR title>:<run number>` (title convention
-  `<APP> <release>: <description>`). Jobs: **3** offline validation (lint, static, docs, build, APEXlang, PMD) -> **4** OCI
+- Every push to a PR starts one record in Actions: `<PR title>: Push Number <N>` (PR title
+  `<APP> Release <Number>: <short summary>`, issues linked in the body with `Fixes #n`; one commit per push). Jobs: **3** offline validation (lint, static, docs, build, APEXlang, PMD) -> **4** OCI
   setup (placeholder) -> **5** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
   -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
   release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
