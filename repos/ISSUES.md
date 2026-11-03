@@ -78,6 +78,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-064 [#223](https://github.com/mazharr-hussain/KycReport/issues/223) | COMMON | Approval Setup | Two `SELECT *` in `XXFND_APPROVAL_RULE_PKG.STEPS` - list the columns | enhancement | P3 | Planned (COMMON Release 115) | Claude (pipeline report) |
 | I-065 [#224](https://github.com/mazharr-hussain/KycReport/issues/224) | COMMON | Page 177 Data Model Diagram | Inline CSS - move to a static application file | enhancement | P3 | Planned (COMMON Release 115) | Claude (pipeline report) |
 | I-066 [#225](https://github.com/mazharr-hussain/KycReport/issues/225) | COMMON | Change approvals / RFI / Integrations | PMD cyclomatic complexity: `APPLY_RULES` (14), `CREATE_RFI` (11), `DO_CALL` (10) - split into smaller routines | enhancement | P3 | Planned (COMMON Release 115) | Claude (pipeline report) |
+| I-067 [#227](https://github.com/mazharr-hussain/KycReport/issues/227) | COMMON | Page 137 Application Storage, page 108 Segregation of Duties Rule | Pages 137 Application Storage and 108 Segregation of Duties Rule log an error when opened | bug | P2 | Open | Claude (pipeline browser test report) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
