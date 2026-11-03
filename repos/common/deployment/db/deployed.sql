@@ -14,6 +14,16 @@ create table if not exists xxci_deployed (
     db_fingerprint varchar2(64),
     deployed_on    timestamp default systimestamp not null
 );
+-- the column came after the table (a table made before it has no DB_FINGERPRINT): added only when missing
+declare
+    l_n pls_integer;
+begin
+    select count(*) into l_n from user_tab_columns where table_name = 'XXCI_DEPLOYED' and column_name = 'DB_FINGERPRINT';
+    if l_n = 0 then
+        execute immediate 'alter table xxci_deployed add (db_fingerprint varchar2(64))';
+    end if;
+end;
+/
 declare
     l_fp  xxci_deployed.fingerprint%type;
     l_db  xxci_deployed.db_fingerprint%type;
