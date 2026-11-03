@@ -3,7 +3,7 @@
 
 Each test user signs in, then opens every page of the application (one page file per page in the built app, except
 the global page 0 and the login page). Every page gets a screenshot; each user gets a video and a Playwright trace
-(open it with `playwright show-trace trace.zip`). A page that shows an Oracle / APEX error fails the step; a page the
+(open it with `playwright show-trace trace.zip`). A page that shows an Oracle / APEX error (outside its report cells) fails the step; a page the
 user is not allowed to open is recorded as "no access" (expected for some users).
 
 Usage: smoke_ui.py --base <ords url> --app-id 135 --app-path xxcus/common --pages <dist/app/pages> \
@@ -59,7 +59,11 @@ def run_user(browser, args, user, pages, password):
                 page.wait_for_load_state('networkidle', timeout=30000)
             except Exception:
                 pass                                  # long polling regions: the screenshot is still taken
-            text = page.inner_text('body')
+            # the page's own text, without the cells of its reports: a report may show error messages as data (e.g.
+            # Platform Activity lists earlier page errors) - an error page or a failed region is never inside a cell
+            text = page.evaluate("""() => { const c = document.body.cloneNode(true);
+                                             c.querySelectorAll('td').forEach(e => e.remove());
+                                             return c.textContent; }""")
             hit = ERROR.search(text)
             status = 'error' if hit else 'no access' if NO_ACCESS.search(text) else 'ok'
             page.screenshot(path=os.path.join(folder, 'screens', f'p{number:05d}-{name}.png'), full_page=True)
