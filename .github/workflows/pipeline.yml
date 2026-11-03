@@ -276,8 +276,9 @@ jobs:
   upgrade:
     name: 5 Upgrade app
     needs: [offline, db-setup, fresh]
-    # F: the base's database scripts - nothing new to upgrade; application only: these scripts passed it already
-    if: needs.offline.outputs.db_changed != 'false' && needs.db-setup.outputs.app_only != 'true'
+    # application only: these database scripts passed it already, the schema keeps its data. (F - no upgrade test when
+    # the scripts are the base's - is held back: job 6's DB tests still need the data the upgrade test restores.)
+    if: needs.db-setup.outputs.app_only != 'true'
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40

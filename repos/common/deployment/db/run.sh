@@ -178,8 +178,9 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
   # files the session is reset (rollback, no APEX session, package state cleared). A file that ends the session itself
   # (exit / quit) runs in its own session.
   local t schema rel wrapper="" group="" n=0
-  flush() {
-    if [ -n "$wrapper" ]; then S "$group" "$wrapper"; rm -f "$wrapper"; wrapper=""; fi
+  flush() {   # the open session's files; the next file starts a new session (also after a file run on its own)
+    if [ -n "$wrapper" ]; then S "$group" "$wrapper"; rm -f "$wrapper"; fi
+    wrapper=""; group=""
   }
   for t in "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql "$THIS"/tests/*.sql; do
     [ -f "$t" ] || continue
@@ -190,10 +191,12 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
     esac
     n=$((n + 1))
     schema=$(sed -n '1,10s/^-- Schema: *\([A-Z][A-Z0-9_]*\).*/\1/p' "$t" | head -1); schema=${schema:-$APP_SCHEMA}
-    if grep -qiE '^[[:space:]]*(exit|quit)\b' "$t"; then
+    # a file that ends the session (exit / quit) or runs other scripts (@ / @@ - their settings would carry over)
+    # runs in its own session
+    if grep -qiE '^[[:space:]]*(exit|quit\b|@)' "$t"; then
       flush; echo "== $rel (as $schema)"; S "$schema" "$t"; continue
     fi
-    if [ "$schema" != "$group" ]; then flush; group=$schema; wrapper=$(mktemp --suffix .sql); fi
+    if [ -z "$wrapper" ] || [ "$schema" != "$group" ]; then flush; group=$schema; wrapper=$(mktemp --suffix .sql); fi
     cat >> "$wrapper" <<SQL
 prompt == $rel (as $schema)
 @"$t"
@@ -322,12 +325,10 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
     fi
     step 4.3-online-validation validate_online
     step 4.4-dependency-check dependency_check
-    # C: the DB tests run on the fresh install too, so a test failure stops the run before the upgrade test
-    step 4.5-test-users test_users
-    step 4.6-db-tests db_tests
+    # (C - the DB tests on the fresh install - is held back: the tests still need the data an upgraded database has)
     # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
-    # no upgrade test (job 5) when the database scripts are the base's (F) or already passed it (application only)
-    if [ "${DB_CHANGED:-true}" = false ] || [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed; fi ;;
+    # application only: no upgrade test (job 5) - this version is deployed now
+    if [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed; fi ;;
   upgrade)
     step 5.1-remove-app remove_app
     step 5.2-build-last build_last "${2:?base ref}"
