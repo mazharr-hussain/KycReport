@@ -60,6 +60,12 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   only tests, docs or the pipeline), 3.2b says so and jobs 4-5 are skipped - job 6 tests straight away.
 - **DB tests on the fresh install (C):** 4.5 test users and 4.6 DB tests run right after the fresh install, so a test
   failure stops the run before the upgrade test; job 6 runs them again on the upgraded data.
+- **Docs after the merge (E):** 7.1 exports only the release zip; the PR is merged and released, then 7.3-7.4 (readable
+  export, SchemaSpy) are made and added to the release (a docs problem is a warning, not a failure).
+- **No upgrade test without database changes (F):** job 1 builds the base too and compares the database scripts
+  (`db/deploy` install / upgrade); when they are the base's, job 5 is skipped and 4.7 records the version.
+- **Browser test beside the DB tests (G):** job 6 is two jobs at the same time - "6 DB tests and security" (6.2, 6.4,
+  6.5) and "6 Browser test and ZAP" (6.1, 6.3, 6.6); the browser job never signs in as the pipeline user.
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.
 
 **Runner image:** every workflow runs on `ubuntu-24.04` (pinned, not `ubuntu-latest`, which GitHub moves to Ubuntu 26

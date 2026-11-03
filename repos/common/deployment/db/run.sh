@@ -257,8 +257,10 @@ echo "::add-mask::$CI_PW"
 export CI_PW
 ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="$CI_PW"; }
 
-step ci-password ci_password
-case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
+# the browser job (ui) runs beside the DB-test job and never signs in as the pipeline user: it leaves the password
+# alone (a new one would lock the other job out)
+if [ "${1:-}" != ui ]; then step ci-password ci_password; fi
+case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|docs <dir>} in
   setup)
     step 3.1-start-db start_db
     step 3.2-bootstrap bootstrap
@@ -273,7 +275,9 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
     step 4.4-dependency-check dependency_check
     # C: the DB tests run on the fresh install too, so a test failure stops the run before the upgrade test
     step 4.5-test-users test_users
-    step 4.6-db-tests db_tests ;;
+    step 4.6-db-tests db_tests
+    # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
+    if [ "${DB_CHANGED:-true}" = false ]; then step 4.7-record-version record_deployed; fi ;;
   upgrade)
     step 5.1-remove-app remove_app
     step 5.2-build-last build_last "${2:?base ref}"
@@ -284,17 +288,21 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
     step 5.6-online-validation validate_online
     step 5.7-drop-backup-schema backup_schema Y
     step 5.8-record-version record_deployed ;;
-  test)   # A: every test step runs; the job fails at the end with all of their failures together
+  test)   # job 6 (database): A - every step runs; the job fails at the end with all of their failures together
     export KEEP_GOING=1
-    step 6.1-test-users test_users
     step 6.2-db-tests db_tests
-    step 6.3-browser-tests ui_smoke
     step 6.4-apex-sert sert_eval
     step 6.5-dbsat dbsat
     finish ;;
+  ui)     # job 6 (browser, in parallel - G): test users, then every page as each of them
+    export KEEP_GOING=1
+    step 6.1-test-users test_users
+    step 6.3-browser-tests ui_smoke
+    finish ;;
   finalize)
-    step 7.1-export export_app "${2:?output dir}/app"
-    step 7.3-apex-docs readable_export "$2/apex-docs"
+    step 7.1-export export_app "${2:?output dir}/app" ;;
+  docs)   # E: after the merge (7.3-7.4 are not needed to merge)
+    step 7.3-apex-docs readable_export "${2:?output dir}/apex-docs"
     step 7.4-db-docs schemaspy "$2/db-docs" ;;
   *)
     echo "unknown job: $1" >&2; exit 2 ;;
