@@ -168,6 +168,10 @@ ui_smoke() {    # 6.3 every page as each test user (Playwright: video, screensho
 sert_eval() {   # 6.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
   local out
   out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
+  if echo "$out" | grep -q '^SERT-SKIP'; then   # no rules for this APEX version yet: a notice, not a failure
+    echo "info: $(echo "$out" | sed -n 's/^SERT-SKIP //p')" | tee "$REPORT_DIR/apex-sert-summary.txt"
+    return 0
+  fi
   echo "$out" | grep '^SERT ' | tee "$REPORT_DIR/apex-sert-summary.txt"
 }
 dbsat() {       # 6.5 Oracle DBSAT (collect + report) - needs the user's DBSAT download (repository variables)
