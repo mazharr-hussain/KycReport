@@ -20,10 +20,10 @@ jobs:
   static:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
       - name: Install safety and golden rules
@@ -42,12 +42,12 @@ jobs:
       contents: read
       pull-requests: read   # the action lists the changed files of the PR
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
-      - uses: pmd/pmd-github-action@v2
+      - uses: pmd/pmd-github-action@d9c1f3c5940cbf5923f1354e83fa858b4496ebaa # v2
         continue-on-error: true   # warning mode first
         with:
           rulesets: repos/tools/pmd-plsql.xml
@@ -61,8 +61,8 @@ jobs:
       matrix:
         app: [kyc]   # COMMON runs in common-pipeline.yml
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
       - name: Build
@@ -77,7 +77,7 @@ jobs:
             echo "::warning::The generated technical docs differ from the committed ones - run repos/${{ matrix.app }}/build.sh and commit repos/${{ matrix.app }}/docs/components"
             git diff --stat -- repos/${{ matrix.app }}/docs/components | tail -5
           fi
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'

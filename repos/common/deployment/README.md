@@ -82,6 +82,27 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   between files (rollback, no APEX session, `dbms_session.reset_package`); a file that ends with `exit` runs alone.
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.
 
+**Hardening (review of 3 Nov 2026):**
+- **H1** the test users get a random password in every run (6.1b, masked; `db/test-passwords.sql`) - the fixed one in
+  `db/admin/test-users.sql` never stays on the internet-facing validation app. For live tests by a person, run
+  `db/admin/test-users.sql` again (it sets the fixed password).
+- **H2** the database secrets are given only to the steps that sign in, never to third-party actions (ZAP, caches,
+  uploads). **H3** every action of every workflow is pinned to a commit. **M6** the Python tools are installed with
+  `--require-hashes` (`requirements-lint.txt`, `requirements-ui.txt` - keep Playwright's version equal to
+  `PLAYWRIGHT_VERSION` in `tools.env`).
+- **H4** the upgrade test restores a fixed baseline data set (`XXFUSION_BASE_BKP`, made once and kept) instead of
+  whatever earlier runs left; the full run's "refresh baseline" makes it again from the current data.
+- **M2** job 3 makes one deploy decision (`deploy`: reuse / app / full) that every later job reads. **M3** artifact
+  names follow the job numbers. **M4** one pipeline comment per PR, updated by every run. **M5** artifacts are kept 7
+  (logs), 14 (reports) or 30 days (release zip, docs); the browser test's **video and trace only in the full run and
+  only when asked for** ("record video"). **L2** job 3 fetches only the merge commit and its base. **L3** a run that
+  does not pass removes its draft release. **L4** the DB-test summary lists up to 200 lines. A self-test of the test
+  selection (`checks/selftest.py`) runs in step 1.1.
+- Not changed: M1 (lock only the database jobs - GitHub cannot hold one lock across several jobs, so another run could
+  change the database between them), L1 (job 2 stays, for the agreed numbering), L5 (latency: needs the runner in
+  OCI, J). **M7:** `main` has no enforced protection on a private Free repository - a person can still merge a red
+  PR by hand; only the pipeline's own merge (7.2) checks the run.
+
 **Runner image:** every workflow runs on `ubuntu-24.04` (pinned, not `ubuntu-latest`, which GitHub moves to Ubuntu 26
 from 19 Oct 2026): the tools (SQLcl, Playwright, Instant Client) are set up on that image. Moving to a newer image is
 a one-line change per workflow, made on purpose and tested by a run.

@@ -43,6 +43,7 @@ reuse_check() {  # 3.2b: what the database holds decides the deploy (LOG_DIR/reu
   local out fp db
   echo false > "$LOG_DIR/reuse"; echo false > "$LOG_DIR/app_only"
   if [ -z "${FINGERPRINT:-}" ] || [ -z "${DB_FINGERPRINT:-}" ]; then echo "no fingerprint - full deploy"; return 0; fi
+  if [ "${REFRESH_BASELINE:-false}" = true ]; then echo "refresh baseline asked for - full deploy"; return 0; fi
   out=$(S CI "$HERE/deployed.sql" check mode=get fingerprint=- db_fingerprint=-) || { echo "$out"; return 1; }
   read -r fp db <<< "$(echo "$out" | sed -n 's/^DEPLOYED //p')"
   if [ "$fp" = "$FINGERPRINT" ]; then
@@ -108,6 +109,27 @@ backup_schema() {  # 3.3 (drop_only=N) and 5.7 (drop_only=Y)
   S CI "$HERE/backup-schema.sql" check bkp_schema="$BKP_SCHEMA" ci_user="$CI_USER" drop_only="$1"
 }
 
+# ---- H4: the upgrade test's fixed data set ---------------------------------------------------------------------------
+# The upgrade test restores the BASELINE schema (BASE_SCHEMA): a copy of the application's data made once and kept, so
+# every run restores the same rows - not whatever earlier runs left. It is made when missing, or again when the full
+# run is started with "refresh baseline" (REFRESH_BASELINE=true). The per-run backup schema (BKP_SCHEMA) only holds
+# the snapshot the upgrade is compared with.
+baseline() {     # 4.0
+  local f out
+  f=$(mktemp --suffix .sql)
+  printf "set heading off feedback off\nselect 'BASELINE ' || count(*) from all_users where username = upper('%s');\n" "$BASE_SCHEMA" > "$f"
+  out=$(S CI "$f" check); rm -f "$f"
+  if echo "$out" | grep -q '^BASELINE 1' && [ "${REFRESH_BASELINE:-false}" != true ]; then
+    echo "info: the upgrade test restores the kept baseline data set ($BASE_SCHEMA)"
+    return 0
+  fi
+  echo "making the baseline data set $BASE_SCHEMA from the application's data"
+  S CI "$HERE/backup-schema.sql" check bkp_schema="$BASE_SCHEMA" ci_user="$CI_USER" drop_only=N &&
+  S "$APP_SCHEMA" "$HERE/grant-to.sql" check grantee="$BASE_SCHEMA" &&
+  S "$BASE_SCHEMA" "$HERE/backup.sql" check app_schema="$APP_SCHEMA" &&
+  S "$BASE_SCHEMA" "$HERE/grant-to.sql" check grantee="$APP_SCHEMA"
+}
+
 # ---- shared by 4 and 5 -----------------------------------------------------------------------------------------------
 backup() {     # 4.0 and the 5.3 snapshot: the app's data into the backup schema
   S "$APP_SCHEMA" "$HERE/grant-to.sql" check grantee="$BKP_SCHEMA" &&
@@ -117,10 +139,13 @@ backup() {     # 4.0 and the 5.3 snapshot: the app's data into the backup schema
 remove_app() { # 4.1 / 5.1
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID" && S "$APP_SCHEMA" "$HERE/clear-schema.sql" check
 }
+test_user_names() {  # every test user: db/admin/test-users.sql and the users the tests make
+  cat "$THIS/db/admin/test-users.sql" "$THIS"/tests/*.sql "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql 2>/dev/null \
+    | grep -oE "(usr|create_local_user)\('[A-Z][A-Z0-9_]*'" | sed -E "s/.*\('//; s/'//" | sort -u | tr '\n' ' '
+}
 remove_test_accounts() {  # 4.1 (full fresh install): the test users' APEX accounts, which outlive the cleared schema
   local users
-  users=$(cat "$THIS/db/admin/test-users.sql" "$THIS"/tests/*.sql "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql 2>/dev/null \
-          | grep -oE "(usr|create_local_user)\('[A-Z][A-Z0-9_]*'" | sed -E "s/.*\('//; s/'//" | sort -u | tr '\n' ' ')
+  users=$(test_user_names)
   echo "test users: $users"
   S ADMIN "$HERE/remove-test-accounts.sql" check workspace="$WORKSPACE" users="$users"
 }
@@ -153,9 +178,9 @@ build_last() {  # the last release = the pull request's base commit, built the s
   rm -rf "$LAST"; git -C "$ROOT" worktree prune
   git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
 }
-restore() {     # 5.3: data back into the old release, then the snapshot the upgrade is compared with
+restore() {     # 5.3: the baseline data set into the old release, then the snapshot the upgrade is compared with
   local out
-  out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
+  out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BASE_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
   echo "$out"
   if echo "$out" | grep -q '^INFO '; then   # information about the test data (step log only, no annotation)
     echo "info: $(echo "$out" | grep -c '^INFO ') table(s) / key(s) not fully restored - see the INFO lines above"
@@ -208,7 +233,7 @@ set define on serveroutput on size unlimited
 SQL
   done > "$LOG_DIR/tests-detail.log" 2>&1
   flush >> "$LOG_DIR/tests-detail.log" 2>&1
-  awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f ": " $0}' "$LOG_DIR/tests-detail.log" | head -50
+  awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f ": " $0}' "$LOG_DIR/tests-detail.log" | head -200   # L4
   local pass fail err
   pass=$(grep -c '^PASS' "$LOG_DIR/tests-detail.log")
   fail=$(grep -c '^FAIL' "$LOG_DIR/tests-detail.log")
@@ -218,10 +243,11 @@ SQL
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
 }
 
+test_passwords() {  # 6.1b (H1): this run's random password for every test user
+  S ADMIN "$HERE/test-passwords.sql" check workspace="$WORKSPACE" users="$(test_user_names)" pw="$UI_PW"
+}
 ui_smoke() {    # 6.3 every page (on a pull request: its pages, PAGES from job 1) as each test user (Playwright: video, screenshots, trace)
-  local pw
-  pw=$(sed -n "s/.*c_password constant varchar2(30) := '\([^']*\)'.*/\1/p" "$THIS/db/admin/test-users.sql")
-  UI_PASSWORD=$pw python3 "$HERE/../ui/smoke_ui.py" --base "${APP_URL:?APP_URL is not set}" --app-id "$APP_ID" \
+  UI_PASSWORD=$UI_PW python3 "$HERE/../ui/smoke_ui.py" --base "${APP_URL:?APP_URL is not set}" --app-id "$APP_ID" \
     --app-path "$APP_PATH" --pages "$THIS/dist/app/pages" --users "$UI_USERS" --skip "$UI_SKIP_PAGES" \
     --only "$( [ "${PAGES:-ALL}" = ALL ] || echo "$PAGES")" --out "$REPORT_DIR/ui"   # PAGES: a PR's pages (K)
 }
@@ -302,6 +328,11 @@ ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="
 # the browser job (ui) runs beside the DB-test job and never signs in as the pipeline user: it leaves the password
 # alone (a new one would lock the other job out)
 if [ "${1:-}" != ui ]; then step ci-password ci_password; fi
+if [ "${1:-}" = ui ]; then   # H1: the test users' password of this run (random, masked, never in git or a file)
+  UI_PW="Ui$(openssl rand -hex 10)Z9"
+  echo "::add-mask::$UI_PW"
+  export UI_PW
+fi
 case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|docs <dir>} in
   setup)
     step 3.1-start-db start_db
@@ -318,7 +349,7 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
       step 4.1-remove-apex-app remove_apex_app
       step 4.2-import-app deploy "$THIS" app
     else
-      step 4.0-backup backup
+      step 4.0-baseline baseline
       step 4.1-remove-app remove_app
       step 4.1b-remove-test-accounts remove_test_accounts
       step 4.2-deploy-this deploy "$THIS" install
@@ -348,6 +379,7 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
   ui)     # job 6 (browser, in parallel - G): test users, then every page as each of them
     export KEEP_GOING=1
     step 6.1-test-users test_users
+    step 6.1b-test-passwords test_passwords
     step 6.3-browser-tests ui_smoke
     finish ;;
   finalize)

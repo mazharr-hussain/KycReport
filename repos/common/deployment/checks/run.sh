@@ -31,6 +31,7 @@ lint() {   # workflows, the pipeline's composite actions (their shell steps) and
     actionlint -no-color "$ROOT/.github/workflows/$wf.yml" || rc=1
   done
   find "$ROOT/repos/common/deployment" -name '*.py' -print0 | xargs -0 python3 -m py_compile || rc=1
+  python3 "$HERE/selftest.py" || rc=1   # the pipeline's decision logic (checks/affected.py)
   for f in "$ROOT"/.github/actions/*/action.yml; do
     tmp=$(mktemp --suffix .sh)
     python3 -c 'import sys, yaml
