@@ -279,9 +279,21 @@ record_fresh() {   # 4.5: the fresh install's structure (compared with the upgra
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   f=$LOG_DIR/fresh-schema.txt
   schema_summary "$f" || return 1
+  # PL/SQL blocks of 200 lines (FORALL), not one INSERT statement per line: 854s -> seconds (run 40)
+  local block=() start=1
+  flush() {
+    [ ${#block[@]} -gt 0 ] || return 0
+    lines+=("declare" "  type t_lines is table of varchar2(4000);" "  l t_lines := t_lines(" "${block[@]}"
+            "  );" "begin" "  forall i in 1 .. l.count insert into xxci_fresh_schema (line_no, line) values ($start - 1 + i, l(i));"
+            "end;" "/")
+    start=$((n + 1)); block=()
+  }
   while IFS= read -r line; do
-    n=$((n + 1)); lines+=("insert into xxci_fresh_schema (line_no, line) values ($n, '${line//$q/$q$q}');")
+    n=$((n + 1))
+    block+=("    $([ ${#block[@]} -gt 0 ] && echo ,)'${line//$q/$q$q}'")
+    [ ${#block[@]} -lt 200 ] || flush
   done < "$f"
+  flush
   lines+=("merge into xxci_passed t using (select 'fresh' check_name from dual) s on (t.check_name = s.check_name)"
           " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp"
           " when not matched then insert (check_name, fingerprint) values ('fresh', '$FINGERPRINT');" "commit;")
