@@ -74,6 +74,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-3B2 [#166](https://github.com/mazharr-hussain/KycReport/issues/166) | COMMON | Review 25-Oct (B2) | Page LOV queries repeated inline instead of a shared LOV: setup columns (xxfnd_setup_columns_v, 3 variants in 2-5 pages), applications (2 variants, 2 pages each), notification templates (2 pages) - sh | enhancement | P3 | Open (only page 116 moved to shared LOVs) | COMMON-REVIEW |
 | I-3C5 [#167](https://github.com/mazharr-hussain/KycReport/issues/167) | COMMON | Review 25-Oct (C5) | every page 2+ privileges (View/Create/Manage) - 10 pages use only *signed-in user*: 1 Home, 40 My Tasks, 43 Notifications, 45 Communications, 46 E-mail, 47 Attachments, 48 Document, 143 Information Re | - | - | Closed - decision: self-service pages stay signed-in user only | COMMON-REVIEW |
 | I-067 [#227](https://github.com/mazharr-hussain/KycReport/issues/227) | COMMON | Page 137 Application Storage, page 108 Segregation of Duties Rule | Pages 137 Application Storage and 108 Segregation of Duties Rule log an error when opened | bug | P2 | Open | Claude (pipeline browser test report) |
+| I-068 [#228](https://github.com/mazharr-hussain/KycReport/issues/228) | COMMON | COMMON DB tests (`repos/common/tests`), COMMON install | DB tests fail on a freshly installed database (they need data an upgraded one has) | bug | P2 | Open | Claude (pipeline run) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
