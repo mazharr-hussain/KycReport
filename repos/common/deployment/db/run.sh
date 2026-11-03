@@ -139,11 +139,15 @@ test_users() {  # as ADMIN: creating APEX accounts outside an APEX session needs
   S ADMIN "$THIS/db/admin/test-users.sql" check
 }
 db_tests() {    # every release test; a FAIL line or an ORA- / PLS- error fails the step
-  local t
-  for t in "$THIS"/features/*/tests/*.sql "$THIS"/tests/*.sql; do
+  # order: tests/setup/*.sql (the test fixtures) first, then the feature tests, then tests/*.sql - each in name order.
+  # A file runs as the application schema, or as the schema named in a "-- Schema: <NAME>" line in its first 10 lines
+  # (e.g. XXCUS for the tests of an application's side); the pipeline user connects through it as a proxy.
+  local t schema
+  for t in "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql "$THIS"/tests/*.sql; do
     [ -f "$t" ] || continue
-    echo "== ${t#"$ROOT"/}"
-    S "$APP_SCHEMA" "$t"
+    schema=$(sed -n '1,10s/^-- Schema: *\([A-Z][A-Z0-9_]*\).*/\1/p' "$t" | head -1)
+    echo "== ${t#"$ROOT"/} (as ${schema:-$APP_SCHEMA})"
+    S "${schema:-$APP_SCHEMA}" "$t"
   done > "$LOG_DIR/tests-detail.log" 2>&1
   awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f ": " $0}' "$LOG_DIR/tests-detail.log" | head -50
   local pass fail err
