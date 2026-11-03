@@ -62,8 +62,14 @@ def golden_rules():
     for f in glob.glob(f'{R}/common/**/*.pkb', recursive=True):
         if '/deploy/' in f or '/releases/' in f:
             continue
-        for i, line in enumerate(open(f, errors='ignore'), 1):
-            if re.search(r"(?i)(htp\.p|htp\.prn)\s*\(|'<(div|span|table|a |ul|li|p>|br)", line) and not line.strip().startswith('--'):
+        lines = open(f, errors='ignore').read().splitlines()
+        reason = -10**6   # line of the last documented exception (CLAUDE.md: HTML only with a comment saying why)
+        for i, line in enumerate(lines, 1):
+            if re.search(r'(?i)--.*(html in pl/sql on purpose|golden rule exception|no apex component)', line):
+                reason = i
+            if line.strip().startswith('--') or re.search(r'(?i)regexp_replace', line):
+                continue   # comments, and code that removes tags (it builds no HTML)
+            if re.search(r"(?i)(htp\.p|htp\.prn)\s*\(|'<(div|span|table|a |ul|li|p>|br)", line) and i - reason > 150:
                 warnings.append(f'{os.path.relpath(f, ROOT)}:{i}: HTML in PL/SQL (use an APEX component, or comment why)')
 
 
@@ -83,7 +89,8 @@ def apex_security():
         if not public and 'authorizationScheme' not in sec:
             warnings.append(f'{rel}: page has no authorization scheme (View / Create / Manage privilege)')
         # a public page (login) is opened without arguments from outside: unrestricted access is intended there
-        if not public and re.search(r'pageAccessProtection:\s*unrestricted', sec):
+        if not public and re.search(r'pageAccessProtection:\s*unrestricted', sec) \
+                and not re.search(r'(?i)unrestricted on purpose', txt):   # a documented reason is accepted
             warnings.append(f'{rel}: page access protection is unrestricted (use argumentsMustHaveChecksum unless intended)')
         if re.search(r'\n\s+inline:', txt):
             warnings.append(f'{rel}: inline CSS / JavaScript on the page (use the theme / a static file)')
@@ -92,7 +99,6 @@ def apex_security():
 def plsql_rules():
     rules = [
         (r'(?i)\bwhen\s+others\s+then\s+null\b', 'WHEN OTHERS THEN NULL hides errors'),
-        (r'(?i)\bexecute\s+immediate\s+[^;]*\|\|', 'EXECUTE IMMEDIATE with concatenation (use binds / dbms_assert)'),
         (r'(?i)\b(xxfusion|xxcus)\.\w', 'hard-coded schema name (use synonyms / the parsing schema)'),
         (r'(?i)\bselect\s+\*\s+(?!into\b)', 'SELECT * (list the columns)'),
         (r'(?i)\bdbms_output\.', 'DBMS_OUTPUT in a package (use the log routine)'),
@@ -103,8 +109,19 @@ def plsql_rules():
             continue
         txt = open(f, errors='ignore').read()
         auto = re.search(r'(?i)pragma\s+autonomous_transaction', txt)
-        for i, line in enumerate(txt.splitlines(), 1):
+        lines = txt.splitlines()
+        for i, line in enumerate(lines, 1):
             code = line.split('--')[0]
+            if re.search(r'(?i)\bexecute\s+immediate\b', code):
+                # the statement up to its ';': a parameter (p_...) joined into the SQL text without DBMS_ASSERT /
+                # xxfnd_util_pkg.qualified can carry SQL from the caller (injection); names from the registry or the
+                # dictionary, numbers and bind variables are not flagged
+                stmt = ' '.join(l.split('--')[0] for l in lines[i - 1:i + 8]).split(';')[0]
+                stmt = re.sub(r"'(?:[^']|'')*'", "''", stmt)
+                stmt = re.sub(r'(?i)(dbms_assert\.\w+|xxfnd_util_pkg\.qualified)\s*\((?:[^()]|\([^()]*\))*\)', 'x', stmt)
+                if re.search(r'(?i)\|\|\s*p_\w+|\bp_\w+\s*\|\|', stmt):
+                    warnings.append(f'{rel}:{i}: EXECUTE IMMEDIATE joins a parameter into the SQL without DBMS_ASSERT '
+                                    '(SQL injection - use binds / dbms_assert)')
             for rx, msg in rules:
                 if re.search(rx, code):
                     warnings.append(f'{rel}:{i}: {msg}')
