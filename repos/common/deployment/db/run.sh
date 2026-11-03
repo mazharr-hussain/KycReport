@@ -38,6 +38,24 @@ LAST=${RUNNER_TEMP:-/tmp}/common-last
 
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
 
+# ---- reuse: the database already holds this version (B) -------------------------------------------------------------
+reuse_check() {  # 3.2b: same fingerprint as the last passed upgrade test -> jobs 4-5 are skipped (LOG_DIR/reuse)
+  local out fp
+  if [ -z "${FINGERPRINT:-}" ]; then echo "no fingerprint - deploy as usual"; echo false > "$LOG_DIR/reuse"; return 0; fi
+  out=$(S CI "$HERE/deployed.sql" check mode=get fingerprint=-) || { echo "$out"; return 1; }
+  fp=$(echo "$out" | sed -n 's/^DEPLOYED //p')
+  if [ "$fp" = "$FINGERPRINT" ]; then
+    echo "info: the validation database already holds this version ($FINGERPRINT, passed its fresh install and upgrade test) - jobs 4-5 skipped"
+    echo true > "$LOG_DIR/reuse"
+  else
+    echo "this version ($FINGERPRINT) differs from the deployed one (${fp:--}) - fresh install and upgrade test"
+    echo false > "$LOG_DIR/reuse"
+  fi
+}
+record_deployed() {  # 5.8: this version passed its fresh install and upgrade test
+  S CI "$HERE/deployed.sql" check mode=set fingerprint="${FINGERPRINT:?FINGERPRINT is not set}"
+}
+
 # ---- 3 DB setup ------------------------------------------------------------------------------------------------------
 start_db() {   # 3.1 placeholder: the OCI start call comes with job 2 (OCI setup); the validation ADB must be up
   echo "3.1 placeholder - the validation database is expected to be running"
@@ -244,14 +262,18 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
   setup)
     step 3.1-start-db start_db
     step 3.2-bootstrap bootstrap
-    step 3.3-backup-schema backup_schema N
+    step 3.2b-reuse-check reuse_check
+    if [ "$(cat "$LOG_DIR/reuse" 2>/dev/null)" != true ]; then step 3.3-backup-schema backup_schema N; fi
     step 3.4-apex-sert sert_install ;;
   fresh)
     step 4.0-backup backup
     step 4.1-remove-app remove_app
     step 4.2-deploy-this deploy "$THIS" install
     step 4.3-online-validation validate_online
-    step 4.4-dependency-check dependency_check ;;
+    step 4.4-dependency-check dependency_check
+    # C: the DB tests run on the fresh install too, so a test failure stops the run before the upgrade test
+    step 4.5-test-users test_users
+    step 4.6-db-tests db_tests ;;
   upgrade)
     step 5.1-remove-app remove_app
     step 5.2-build-last build_last "${2:?base ref}"
@@ -260,13 +282,16 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
     step 5.4-upgrade-this deploy "$THIS" upgrade
     step 5.5-nothing-lost compare
     step 5.6-online-validation validate_online
-    step 5.7-drop-backup-schema backup_schema Y ;;
-  test)
+    step 5.7-drop-backup-schema backup_schema Y
+    step 5.8-record-version record_deployed ;;
+  test)   # A: every test step runs; the job fails at the end with all of their failures together
+    export KEEP_GOING=1
     step 6.1-test-users test_users
     step 6.2-db-tests db_tests
     step 6.3-browser-tests ui_smoke
     step 6.4-apex-sert sert_eval
-    step 6.5-dbsat dbsat ;;
+    step 6.5-dbsat dbsat
+    finish ;;
   finalize)
     step 7.1-export export_app "${2:?output dir}/app"
     step 7.3-apex-docs readable_export "$2/apex-docs"

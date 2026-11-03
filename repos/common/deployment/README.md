@@ -51,6 +51,17 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Pipeline-only pushes to `main`** (`pipeline-check.yml`): step 1.1 (actionlint, shellcheck, Python compile) checks
   them on `main`; a failure shows on the commit and is fixed by the next push.
 
+**Faster re-pushes (agreed 3 Nov 2026):**
+- **All test failures at once (A):** job 6 runs every test step even after one fails (`KEEP_GOING`), and ZAP still
+  runs; the job fails at the end and job 8 reports every failed step in one PR comment.
+- **Skip the deploy when nothing to deploy changed (B):** job 1 fingerprints the built application and database
+  scripts; 5.8 records the fingerprint of a version that passed its fresh install and upgrade test (`db/deployed.sql`,
+  table `XXCI_DEPLOYED` of the pipeline user). When the database already holds this fingerprint (a push that changes
+  only tests, docs or the pipeline), 3.2b says so and jobs 4-5 are skipped - job 6 tests straight away.
+- **DB tests on the fresh install (C):** 4.5 test users and 4.6 DB tests run right after the fresh install, so a test
+  failure stops the run before the upgrade test; job 6 runs them again on the upgraded data.
+- **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.
+
 **Runner image:** every workflow runs on `ubuntu-24.04` (pinned, not `ubuntu-latest`, which GitHub moves to Ubuntu 26
 from 19 Oct 2026): the tools (SQLcl, Playwright, Instant Client) are set up on that image. Moving to a newer image is
 a one-line change per workflow, made on purpose and tested by a run.
