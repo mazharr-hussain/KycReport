@@ -3,6 +3,10 @@
 #   run.sh setup               3   DB setup: 3.1 start the DB (placeholder), 3.2 bootstrap only when needed,
 #                                  3.3 backup schema (dropped if it exists, then created), 3.4 APEX-SERT installed
 #                                  only when missing or its pinned commit changed
+#   run.sh quick               4   Quick check (deploy=patch: only code objects changed): 4.Q1 mark the record,
+#                                  4.Q2 run the changed code objects alone, 4.Q3 import the app (when it changed),
+#                                  4.Q4 online validation, 4.Q5 record, 4.Q6-4.Q8 the tests of what changed; the
+#                                  full deploy (jobs 4-6) follows in the same run - a quick check never merges
 #   run.sh fresh               4   Deploy fresh app: 4.0 back up the app's data, 4.1 remove app + DB objects,
 #                                  4.2 deploy this version, 4.3 online validation, 4.4 dependency check (report)
 #   run.sh upgrade <base-ref>  5   Upgrade app: 5.1 remove (= 4.1), 5.2 deploy the last release (= 4.2), 5.3 restore
@@ -38,27 +42,89 @@ LAST=${RUNNER_TEMP:-/tmp}/common-last
 
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
 
-# ---- reuse: the database already holds this version (B) -------------------------------------------------------------
-reuse_check() {  # 3.2b: what the database holds decides the deploy (LOG_DIR/reuse, LOG_DIR/app_only)
-  local out fp db
-  echo false > "$LOG_DIR/reuse"; echo false > "$LOG_DIR/app_only"
-  if [ -z "${FINGERPRINT:-}" ] || [ -z "${DB_FINGERPRINT:-}" ]; then echo "no fingerprint - full deploy"; return 0; fi
-  if [ "${REFRESH_BASELINE:-false}" = true ]; then echo "refresh baseline asked for - full deploy"; return 0; fi
-  out=$(S CI "$HERE/deployed.sql" check mode=get fingerprint=- db_fingerprint=-) || { echo "$out"; return 1; }
-  read -r fp db <<< "$(echo "$out" | sed -n 's/^DEPLOYED //p')"
-  if [ "$fp" = "$FINGERPRINT" ]; then
-    echo "info: the validation database already holds this version ($FINGERPRINT) - jobs 4-5 skipped"
-    echo true > "$LOG_DIR/reuse"
-  elif [ "$db" = "$DB_FINGERPRINT" ]; then
-    echo "info: the database scripts are those deployed ($DB_FINGERPRINT) - only the APEX application is replaced (schema and data kept)"
-    echo true > "$LOG_DIR/app_only"
-  else
-    echo "the database scripts ($DB_FINGERPRINT) differ from the deployed ones (${db:--}) - full fresh install"
-  fi
+# ---- the version record: what the validation database holds (db/deployed.sql, db/decide.py) -----------------------
+# Small statements are generated here; every value put in them is checked first (safe): fingerprints, commit ids and
+# repository paths only.
+safe() { local v; for v in "$@"; do [[ $v =~ ^[A-Za-z0-9_./:-]*$ ]] || { echo "unsafe value: $v" >&2; return 1; }; done; }
+ci_exec() {   # ci_exec <login> <statement line>...
+  local login=$1 f rc; shift
+  f=$(mktemp --suffix .sql); printf '%s\n' "$@" > "$f"; S "$login" "$f" check; rc=$?; rm -f "$f"; return "$rc"
 }
-record_deployed() {  # 4.7 / 5.8: this version passed its deploy
-  S CI "$HERE/deployed.sql" check mode=set fingerprint="${FINGERPRINT:?FINGERPRINT is not set}" \
-    db_fingerprint="${DB_FINGERPRINT:?DB_FINGERPRINT is not set}"
+read_record() {   # the record into LOG_DIR/record.txt (DEPLOYED / CODE / PASSED / FAILED lines)
+  S CI "$HERE/deployed.sql" check mode=get > "$LOG_DIR/record.txt" || { cat "$LOG_DIR/record.txt"; return 1; }
+}
+decide() {   # 3.2b: reuse | app | patch | full (LOG_DIR/deploy, patch-files, changed-objects, app-changed)
+  read_record && python3 "$HERE/decide.py" "$LOG_DIR/record.txt" "$THIS/db/deploy/code-manifest.txt" "$LOG_DIR"
+}
+key_of() { basename "$1" | sed -E 's/^[0-9]+-//'; }   # install/0050-package-spec-x.pks -> package-spec-x.pks
+mark_dirty() {   # before a deploy changes the database: the record no longer claims a version it may not hold
+  local what=$1 f keys=""
+  case $what in
+    all)  ci_exec CI "merge into xxci_deployed t using (select 'COMMON' app_code from dual) s on (t.app_code = s.app_code)" \
+            " when matched then update set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY'" \
+            " when not matched then insert (app_code, fingerprint, verified) values ('COMMON', '-', 'DIRTY');" \
+            "delete from xxci_deployed_code;" "delete from xxci_passed where check_name not like 'baseline%';" "commit;" ;;
+    app)  ci_exec CI "update xxci_deployed set fingerprint = '-', app_fingerprint = '-' where app_code = 'COMMON';" \
+            "delete from xxci_passed where check_name in ('ui', 'sert');" "commit;" ;;
+    code) while read -r f; do [ -n "$f" ] || continue; safe "$f" || return 1; keys="$keys,'$(key_of "$f")'"; done < "$LOG_DIR/patch-files"
+          ci_exec CI "update xxci_deployed set fingerprint = '-', db_fingerprint = '-' where app_code = 'COMMON';" \
+            "update xxci_deployed_code set code_hash = 'APPLYING' where code_key in ('-'$keys);" \
+            "delete from xxci_passed where check_name not like 'baseline%';" "commit;" ;;
+  esac
+}
+record_deployed() {  # 4.7 / 5.8 (FULL) and 4.Q5 (PATCH): this version passed its deploy
+  local verified=$1 k h f lines=()
+  safe "${FINGERPRINT:?FINGERPRINT is not set}" "${DB_FINGERPRINT:?DB_FINGERPRINT is not set}" \
+       "${STRUCT_FINGERPRINT:?STRUCT_FINGERPRINT is not set}" "${APP_FINGERPRINT:?APP_FINGERPRINT is not set}" || return 1
+  lines+=("merge into xxci_deployed t using (select 'COMMON' app_code from dual) s on (t.app_code = s.app_code)"
+          " when matched then update set fingerprint = '$FINGERPRINT', db_fingerprint = '$DB_FINGERPRINT', struct_fingerprint = '$STRUCT_FINGERPRINT',"
+          "   app_fingerprint = '$APP_FINGERPRINT', verified = '$verified', deployed_on = systimestamp"
+          " when not matched then insert (app_code, fingerprint, db_fingerprint, struct_fingerprint, app_fingerprint, verified)"
+          "   values ('COMMON', '$FINGERPRINT', '$DB_FINGERPRINT', '$STRUCT_FINGERPRINT', '$APP_FINGERPRINT', '$verified');"
+          "delete from xxci_deployed_code;")
+  while read -r k h f; do
+    [ -n "$k" ] || continue; safe "$k" "$h" || return 1
+    lines+=("insert into xxci_deployed_code (code_key, code_hash) values ('$k', '$h');")
+  done < "$THIS/db/deploy/code-manifest.txt"
+  lines+=("commit;" "prompt DEPLOYED $FINGERPRINT $verified")
+  ci_exec CI "${lines[@]}"
+}
+record_tests() {   # 6.2b: the head commit tested and the test files that failed (run again next time)
+  # 4.Q8 (only=failed): the failed files only - the quick check runs a subset, so it never counts as this commit tested
+  local f lines=()
+  safe "${HEAD_SHA:-}" || return 1
+  [ "${1:-}" = failed ] || lines+=("update xxci_deployed set tested_head = '${HEAD_SHA:--}' where app_code = 'COMMON';")
+  lines+=("delete from xxci_failed_tests;")
+  while read -r f; do
+    [ -n "$f" ] || continue; safe "$f" || return 1
+    lines+=("insert into xxci_failed_tests (test_file) values ('$f');")
+  done < <(cat "$LOG_DIR/failed-tests" 2>/dev/null)
+  lines+=("commit;")
+  ci_exec CI "${lines[@]}"
+  echo "recorded: ${1:+the failed files only (not as tested), }head ${HEAD_SHA:--}, $(grep -c . "$LOG_DIR/failed-tests" 2>/dev/null || echo 0) failed test file(s)"
+}
+passed_key() {   # what a passed check is valid for: ui -> version + the pages tested; sert / dbsat -> version
+  case $1 in
+    ui) echo "$FINGERPRINT:$(printf '%s' "${PAGES:-ALL}" | sha256sum | cut -c1-8)" ;;
+    *)  echo "$FINGERPRINT" ;;
+  esac
+}
+passed_before() {   # passed_before <check> <login>: the check passed for this version on an earlier run (reuse only)
+  local check=$1 login=$2 owner="" k
+  [ "${DEPLOY:-full}" = reuse ] && [ -n "${FINGERPRINT:-}" ] || return 1
+  [ "$login" = ADMIN ] && owner="$CI_USER."
+  k=$(passed_key "$check"); safe "$k" || return 1
+  ci_exec "$login" "set heading off feedback off pagesize 0" \
+    "select 'PASSED-BEFORE' from ${owner}xxci_passed where check_name = '$check' and fingerprint = '$k';" 2>/dev/null \
+    | grep -q '^PASSED-BEFORE'
+}
+record_passed() {   # record_passed <check> <login>
+  local check=$1 login=$2 owner="" k
+  [ "$login" = ADMIN ] && owner="$CI_USER."
+  k=$(passed_key "$check"); safe "$k" || return 1
+  ci_exec "$login" "merge into ${owner}xxci_passed t using (select '$check' check_name from dual) s on (t.check_name = s.check_name)" \
+    " when matched then update set fingerprint = '$k', passed_on = systimestamp" \
+    " when not matched then insert (check_name, fingerprint) values ('$check', '$k');" "commit;"
 }
 
 # ---- 3 DB setup ------------------------------------------------------------------------------------------------------
@@ -114,20 +180,23 @@ backup_schema() {  # 3.3 (drop_only=N) and 5.7 (drop_only=Y)
 # every run restores the same rows - not whatever earlier runs left. It is made when missing, or again when the full
 # run is started with "refresh baseline" (REFRESH_BASELINE=true). The per-run backup schema (BKP_SCHEMA) only holds
 # the snapshot the upgrade is compared with.
-baseline() {     # 4.0
-  local f out
-  f=$(mktemp --suffix .sql)
-  printf "set heading off feedback off\nselect 'BASELINE ' || count(*) from all_users where username = upper('%s');\n" "$BASE_SCHEMA" > "$f"
-  out=$(S CI "$f" check); rm -f "$f"
+baseline() {     # 4.0 - a copy cut short (XXCI_PASSED 'baseline-making' left behind) is made again
+  local out
+  out=$(ci_exec CI "set heading off feedback off pagesize 0" \
+    "select 'BASELINE ' || count(*) from all_users u where username = upper('$BASE_SCHEMA')" \
+    " and not exists (select 1 from xxci_passed where check_name = 'baseline-making');")
   if echo "$out" | grep -q '^BASELINE 1' && [ "${REFRESH_BASELINE:-false}" != true ]; then
     echo "info: the upgrade test restores the kept baseline data set ($BASE_SCHEMA)"
     return 0
   fi
   echo "making the baseline data set $BASE_SCHEMA from the application's data"
+  ci_exec CI "delete from xxci_passed where check_name = 'baseline-making';" \
+    "insert into xxci_passed (check_name, fingerprint) values ('baseline-making', upper('$BASE_SCHEMA'));" "commit;" &&
   S CI "$HERE/backup-schema.sql" check bkp_schema="$BASE_SCHEMA" ci_user="$CI_USER" drop_only=N &&
   S "$APP_SCHEMA" "$HERE/grant-to.sql" check grantee="$BASE_SCHEMA" &&
   S "$BASE_SCHEMA" "$HERE/backup.sql" check app_schema="$APP_SCHEMA" &&
-  S "$BASE_SCHEMA" "$HERE/grant-to.sql" check grantee="$APP_SCHEMA"
+  S "$BASE_SCHEMA" "$HERE/grant-to.sql" check grantee="$APP_SCHEMA" &&
+  ci_exec CI "delete from xxci_passed where check_name = 'baseline-making';" "commit;"
 }
 
 # ---- shared by 4 and 5 -----------------------------------------------------------------------------------------------
@@ -203,6 +272,7 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
   # files the session is reset (rollback, no APEX session, package state cleared). A file that ends the session itself
   # (exit / quit) runs in its own session.
   local t schema rel wrapper="" group="" n=0
+  : > "$LOG_DIR/tests-expected"
   flush() {   # the open session's files; the next file starts a new session (also after a file run on its own)
     if [ -n "$wrapper" ]; then S "$group" "$wrapper"; rm -f "$wrapper"; fi
     wrapper=""; group=""
@@ -214,7 +284,7 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
       repos/common/tests/setup/*) ;;
       *) if [ "${DB_TESTS:-ALL}" != ALL ] && ! printf ' %s ' "$DB_TESTS" | grep -qF " $rel "; then continue; fi ;;
     esac
-    n=$((n + 1))
+    n=$((n + 1)); echo "$rel" >> "$LOG_DIR/tests-expected"
     schema=$(sed -n '1,10s/^-- Schema: *\([A-Z][A-Z0-9_]*\).*/\1/p' "$t" | head -1); schema=${schema:-$APP_SCHEMA}
     # a file that ends the session (exit / quit) or runs other scripts (@ / @@ - their settings would carry over)
     # runs in its own session
@@ -234,13 +304,77 @@ SQL
   done > "$LOG_DIR/tests-detail.log" 2>&1
   flush >> "$LOG_DIR/tests-detail.log" 2>&1
   awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f ": " $0}' "$LOG_DIR/tests-detail.log" | head -200   # L4
+  # the test files that failed, and those that never ran (a session ended early): run again by the next run (Q2)
+  awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f}' "$LOG_DIR/tests-detail.log" | sort -u > "$LOG_DIR/failed-tests"
+  grep -oE '^== [^ ]+' "$LOG_DIR/tests-detail.log" | cut -c4- | sort -u > "$LOG_DIR/tests-ran"
+  local missing
+  missing=$(sort -u "$LOG_DIR/tests-expected" | comm -23 - "$LOG_DIR/tests-ran")
+  if [ -n "$missing" ]; then printf '%s\n' "$missing" >> "$LOG_DIR/failed-tests"; sort -u -o "$LOG_DIR/failed-tests" "$LOG_DIR/failed-tests"; fi
   local pass fail err
   pass=$(grep -c '^PASS' "$LOG_DIR/tests-detail.log")
   fail=$(grep -c '^FAIL' "$LOG_DIR/tests-detail.log")
   err=$(grep -cE '^(ORA|PLS)-' "$LOG_DIR/tests-detail.log")
   if [ "${DB_TESTS:-ALL}" = ALL ]; then echo "$n test file(s): all"; else echo "$n test file(s): the fixtures and the tests this pull request affects"; fi
   echo "PASS: $pass  FAIL: $fail  errors: $err" | tee "$LOG_DIR/tests-summary"
+  # every file that should run must have run: a file that ends its session early would otherwise pass unseen
+  if [ -n "$missing" ]; then
+    echo "FAIL test files expected: $n, ran: $(grep -c . "$LOG_DIR/tests-ran") - did not run: $(echo "$missing" | tr '\n' ' ')"
+    return 1
+  fi
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
+}
+
+select_tests() {   # 6.0 / 4.Q6: which DB tests run (LOG_DIR/db-tests; the fixtures always run)
+  # full (a fresh install and upgrade test ran): the tests of the pull request (DB_TESTS, job 1 - ALL in the full run).
+  # delta (reuse / app: the database held a fully verified version): only what changed since the head commit last
+  #   tested, and the test files that failed then (Q2) - everything else passed against the same code.
+  # quick (job 4 quick check): the tests of the changed code objects and of every object that calls them (the live
+  #   database's dependencies), the delta, and the files that failed last time - never ALL (the full deploy follows).
+  local kind=$1 prev delta="" sel="" names
+  if [ "$kind" = full ]; then
+    echo "${DB_TESTS:-ALL}" > "$LOG_DIR/db-tests"; echo "the tests of this pull request: ${DB_TESTS:-ALL}"; return 0
+  fi
+  read_record || return 1
+  prev=$(awk '$1 == "DEPLOYED" {print $7}' "$LOG_DIR/record.txt")
+  if [ -n "$prev" ] && [ "$prev" != - ] && git -C "$ROOT" cat-file -e "$prev^{commit}" 2>/dev/null; then
+    delta=$(cd "$ROOT" && python3 "$HERE/../checks/affected.py" "$prev" | sed -n 's/^db_tests=//p')
+    echo "changed since the last tested commit ${prev:0:7}: $delta"
+  else
+    delta=ALL; echo "no tested commit recorded (or not in this checkout) - the tests of this pull request"
+  fi
+  if [ "$kind" = quick ]; then
+    names=$(tr '\n' ' ' < "$LOG_DIR/changed-objects")
+    if [ -n "${names// /}" ]; then
+      callers "$names" > "$LOG_DIR/callers" || return 1
+      echo "changed code objects: $names; their callers: $(tr '\n' ' ' < "$LOG_DIR/callers")"
+      sel=$(cd "$ROOT" && python3 "$HERE/../checks/affected.py" --objects "$names $(tr '\n' ' ' < "$LOG_DIR/callers")" | sed -n 's/^db_tests=//p')
+    fi
+    [ "$delta" = ALL ] && delta=""   # the full deploy runs everything after the quick check
+  elif [ "$delta" = ALL ]; then
+    echo "${DB_TESTS:-ALL}" > "$LOG_DIR/db-tests"; echo "the tests of this pull request: ${DB_TESTS:-ALL}"; return 0
+  fi
+  sel=$({ tr ' ' '\n' <<< "$sel $delta"; awk '$1 == "FAILED" {print $2}' "$LOG_DIR/record.txt"; } | grep -vE '^(NONE)?$' \
+        | while read -r f; do [ -f "$ROOT/$f" ] && echo "$f"; done | sort -u | tr '\n' ' ')
+  echo "${sel:-NONE}" > "$LOG_DIR/db-tests"
+  echo "DB tests this run (with the fixtures): ${sel:-none besides the fixtures}"
+}
+callers() {   # the objects that use the given ones (all levels), from the live database
+  local n list=""
+  for n in $1; do safe "$n" || return 1; list="$list,'$n'"; done
+  ci_exec "$APP_SCHEMA" "set heading off feedback off pagesize 0" \
+    "select distinct 'DEP ' || name from user_dependencies start with referenced_owner = user and referenced_name in ('-'$list)" \
+    " connect by nocycle prior name = referenced_name and referenced_owner = user;" | sed -n 's/^DEP //p' | sort -u
+}
+apply_code() {   # 4.Q2 the changed code objects alone, in install order, in one session (each file: one CREATE OR REPLACE)
+  local f w n=0
+  w=$(mktemp --suffix .sql); echo "set define off" > "$w"
+  while read -r f; do
+    [ -n "$f" ] || continue; safe "$f" || return 1
+    printf 'prompt == %s\n@"%s"\n' "$f" "$THIS/db/deploy/$f" >> "$w"; n=$((n + 1))
+  done < "$LOG_DIR/patch-files"
+  if [ "$n" -eq 0 ]; then rm -f "$w"; echo "no code object changed since the deployed version"; return 0; fi
+  S "$APP_SCHEMA" "$w" check; local rc=$?; rm -f "$w"
+  [ "$rc" -eq 0 ] && echo "$n code object file(s) applied"
 }
 
 test_passwords() {  # 6.1b (H1): this run's random password for every test user
@@ -335,23 +469,43 @@ if [ "${1:-}" = ui ]; then   # H1: the test users' password of this run (random,
   echo "::add-mask::$UI_PW"
   export UI_PW
 fi
-case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|docs <dir>} in
+case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <dir>|docs <dir>} in
   setup)
     step 3.1-start-db start_db
     step 3.2-bootstrap bootstrap
-    step 3.2b-reuse-check reuse_check
-    # the backup schema serves the full deploy and the upgrade test only
-    if [ "$(cat "$LOG_DIR/reuse")" != true ] && [ "$(cat "$LOG_DIR/app_only")" != true ]; then
+    step 3.2b-deploy-decision decide
+    # the backup schema serves the full deploy and the upgrade test only (a quick check is followed by both)
+    if grep -qE '^(full|patch)$' "$LOG_DIR/deploy"; then
       step 3.3-backup-schema backup_schema N
     fi
     step 3.4-apex-sert sert_install ;;
+  quick)   # job 4 quick check (deploy=patch): the changed code alone, then its tests; the full deploy follows
+    tr ' ' '\n' <<< "${PATCH_FILES:-}" | grep . > "$LOG_DIR/patch-files"
+    tr ' ' '\n' <<< "${CHANGED_OBJECTS:-}" | grep . > "$LOG_DIR/changed-objects"
+    step 4.Q1-mark-record mark_dirty code
+    step 4.Q2-apply-code apply_code
+    if [ "${APP_CHANGED:-true}" = true ]; then
+      step 4.Q3-import-app deploy "$THIS" app
+    else
+      step 4.Q3-import-app echo "info: the application (without its supporting objects) is the deployed one - not imported for the quick check"
+    fi
+    step 4.Q4-online-validation validate_online
+    step 4.Q5-record-version record_deployed PATCH
+    step 4.Q6-select-tests select_tests quick
+    DB_TESTS=$(cat "$LOG_DIR/db-tests"); export DB_TESTS
+    export KEEP_GOING=1
+    step 4.Q7-db-tests db_tests
+    step 4.Q8-record-tests record_tests failed
+    finish ;;
   fresh)
     if [ "${APP_ONLY:-false}" = true ]; then
       # the database already holds this version's database objects: only the APEX application is replaced
+      step 4.1a-mark-record mark_dirty app
       step 4.1-remove-apex-app remove_apex_app
       step 4.2-import-app deploy "$THIS" app
     else
       step 4.0-baseline baseline
+      step 4.1a-mark-record mark_dirty all
       step 4.1-remove-app remove_app
       step 4.1b-remove-test-accounts remove_test_accounts
       step 4.2-deploy-this deploy "$THIS" install
@@ -361,7 +515,7 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
     # (C - the DB tests on the fresh install - is held back: the tests still need the data an upgraded database has)
     # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
     # application only: no upgrade test (job 5) - this version is deployed now
-    if [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed; fi ;;
+    if [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed FULL; fi ;;
   upgrade)
     step 5.1-remove-app remove_app
     step 5.2-build-last build_last "${2:?base ref}"
@@ -371,18 +525,37 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
     step 5.5-nothing-lost compare
     step 5.6-online-validation validate_online
     step 5.7-drop-backup-schema backup_schema Y
-    step 5.8-record-version record_deployed ;;
+    step 5.8-record-version record_deployed FULL ;;
   test)   # job 6 (database): A - every step runs; the job fails at the end with all of their failures together
     export KEEP_GOING=1
+    # reuse / app: the database held a fully verified version - only what changed since the last tested commit (Q2)
+    case ${DEPLOY:-full} in reuse|app) kind="delta" ;; *) kind="full" ;; esac
+    step 6.0-select-tests select_tests "$kind"
+    DB_TESTS=$(cat "$LOG_DIR/db-tests" 2>/dev/null || echo "${DB_TESTS:-ALL}"); export DB_TESTS
     step 6.2-db-tests db_tests
-    step 6.4-apex-sert sert_eval
-    step 6.5-dbsat dbsat
+    step 6.2b-record-tests record_tests
+    # reuse: the application and database are the ones scanned - a scan that passed for this version is not run again (Q3)
+    for c in sert:6.4-apex-sert:sert_eval dbsat:6.5-dbsat:dbsat; do
+      IFS=: read -r check name fn <<< "$c"
+      if passed_before "$check" CI; then
+        step "$name" echo "info: $check passed for this version on an earlier run (database not redeployed) - not run again"
+      elif step "$name" "$fn"; then
+        record_passed "$check" CI > /dev/null || true
+      fi
+    done
     finish ;;
   ui)     # job 6 (browser, in parallel - G): test users, then every page as each of them
     export KEEP_GOING=1
+    # reuse: the application is the one tested - a browser test that passed for this version and these pages is not
+    # run again (Q4)
+    if passed_before ui ADMIN; then
+      step 6.3-browser-tests echo "info: the browser test passed for this version on an earlier run (application not redeployed) - not run again"
+      finish; exit 0
+    fi
     step 6.1-test-users test_users
     step 6.1b-test-passwords test_passwords
     step 6.3-browser-tests ui_smoke
+    if [ ! -s "$LOG_DIR/failed" ]; then record_passed ui ADMIN > /dev/null || true; fi
     finish ;;
   finalize)
     step 7.1-export export_app "${2:?output dir}/app" ;;

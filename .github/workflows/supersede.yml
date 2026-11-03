@@ -1,0 +1,45 @@
+# A newer push to a pull request replaces its older COMMON pipeline run - but only where stopping it is safe.
+# The pipeline holds the validation database one run at a time (concurrency group validation-db): without this, a fix
+# pushed while an old run is busy waits for that whole run. A waiting (queued) run is replaced by GitHub itself.
+# A running one is cancelled only while no database-changing job is running: never during job 3 (DB setup, e.g. an
+# APEX-SERT install), 4 (deploy / quick check), 5 (upgrade) or 7 (release zip, merge) - then it finishes and the new
+# run waits. Jobs 1, 2 and 6 (tests: their sessions roll back) can stop at any point. Job 8 of the stopped run sees
+# the newer push and only notes it (no error comment).
+name: COMMON supersede
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+permissions: {}
+concurrency:
+  group: supersede-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  supersede:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write   # cancel the older run
+    steps:
+      - name: Cancel the older run of this PR where it is safe
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const pr = context.payload.pull_request;
+            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+              ...context.repo, workflow_id: 'pipeline.yml', event: 'pull_request', branch: pr.head.ref,
+              status: 'in_progress', per_page: 50 });
+            const unsafe = /^(3|4|5|7) /;   // jobs that change the database or merge
+            for (const run of runs.filter(r => r.head_sha !== pr.head.sha &&
+                                               (r.pull_requests || []).some(p => p.number === pr.number))) {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
+                                                 { ...context.repo, run_id: run.id, filter: 'latest', per_page: 50 });
+              const busy = jobs.filter(j => j.status === 'in_progress' && unsafe.test(j.name)).map(j => j.name);
+              if (busy.length) {
+                core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) is in ${busy.join(', ')} - it finishes, then the new push runs.`);
+                continue;
+              }
+              await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id });
+              core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) cancelled - replaced by ${pr.head.sha.slice(0, 7)}.`);
+            }

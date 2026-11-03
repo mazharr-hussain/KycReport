@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Self-test of the pipeline's decision logic (step 1.1, also pipeline-check.yml): checks/affected.py chooses the DB
-tests and pages a pull request affects. A throwaway git repository holds a small COMMON layout; each case commits a
-change and compares the choice. Exit 1 on the first wrong choice."""
-import os, subprocess, sys, tempfile
+"""Self-test of the pipeline's decision logic (step 1.1, also pipeline-check.yml):
+  - checks/affected.py chooses the DB tests and pages a pull request affects (and the tests of given objects)
+  - checks/fingerprint.py: renumbering keeps the structure; a code change changes only the code manifest
+  - db/decide.py: reuse / app / patch / full from what the database holds
+A throwaway git repository holds a small COMMON layout; each case compares the choice. Exit 1 when any is wrong."""
+import os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -46,5 +48,88 @@ with tempfile.TemporaryDirectory() as root:
              'repos/common/tests/r79_other_test.sql', '1'),
         case(root, 'the framework: everything', {'repos/common/db/framework/x.sql': 'y\n'}, 'ALL', 'ALL'),
         case(root, 'a KYC-only change: nothing of COMMON', {'repos/kyc/x.sql': 'y\n'}, 'NONE', '1'),
+        case(root, 'a page under app/pages: that page (Q5)', {'repos/common/app/pages/p00100-administration.apx': 'y\n'},
+             'NONE', '1 100'),
+        case(root, 'an application shared component: everything', {'repos/common/app/shared-components/lov.apx': 'y\n'},
+             'ALL', 'ALL'),
     ]
+    out = subprocess.run([sys.executable, os.path.join(HERE, 'affected.py'), '--objects', 'XXFND_LOOKUP_PKG'], cwd=root,
+                         capture_output=True, text=True, check=True).stdout.strip()
+    want = 'db_tests=repos/common/features/lookups/tests/r90_lookup_test.sql repos/common/tests/r78_common_test.sql'
+    print(('PASS ' if out == want else 'FAIL ') + f'objects mode: {out}')
+    results.append(out == want)
+
+# ---- fingerprint.py and decide.py ----------------------------------------------------------------------------------
+DECIDE = os.path.join(HERE, '..', 'db', 'decide.py')
+
+
+def build(root, install, upgrade=None):
+    """a built version: db/deploy/install + upgrade (upgrade = install unless given) and dist/app"""
+    d = os.path.join(root, 'repos/common/db/deploy')
+    shutil.rmtree(d, ignore_errors=True)
+    for sub, files in (('install', install), ('upgrade', upgrade or install)):
+        for f, t in files.items():
+            write(root, f'repos/common/db/deploy/{sub}/{f}', t)
+        write(root, f'repos/common/db/deploy/{sub}/run-all.sql', ''.join(f'@@{f}\n' for f in sorted(files)))
+    write(root, 'repos/common/dist/app/application.apx', 'app\n')
+    write(root, 'repos/common/dist/app/supporting-objects/install.sql', ''.join(sorted(install.values())))
+    out = subprocess.run([sys.executable, os.path.join(HERE, 'fingerprint.py'), root], capture_output=True, text=True,
+                         check=True).stdout
+    fp = dict(l.split('=', 1) for l in out.split('\n') if '=' in l)
+    fp['manifest'] = open(os.path.join(d, 'code-manifest.txt')).read()
+    return fp
+
+
+def record(fp, verified='FULL'):
+    lines = [f'DEPLOYED {fp["fingerprint"]} {fp["db_fingerprint"]} {fp["struct_fingerprint"]} {fp["app_fingerprint"]} {verified} abc']
+    lines += [f'CODE {l.split()[0]} {l.split()[1]}' for l in fp['manifest'].split('\n') if l.strip()]
+    return '\n'.join(lines) + '\n'
+
+
+def decide(root, rec, fp, refresh='false'):
+    open(os.path.join(root, 'rec.txt'), 'w').write(rec)
+    open(os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), 'w').write(fp['manifest'])   # this version's
+    env = dict(os.environ, FINGERPRINT=fp['fingerprint'], DB_FINGERPRINT=fp['db_fingerprint'],
+               STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'], REFRESH_BASELINE=refresh)
+    subprocess.run([sys.executable, DECIDE, os.path.join(root, 'rec.txt'),
+                    os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), os.path.join(root, 'out')],
+                   env=env, check=True, capture_output=True)
+    r = lambda f: open(os.path.join(root, 'out', f)).read().split()
+    return r('deploy')[0], r('patch-files'), r('changed-objects')
+
+
+def check(name, got, want):
+    ok = got == want
+    print(('PASS ' if ok else 'FAIL ') + f'{name}: {got}' + ('' if ok else f' (expected {want})'))
+    results.append(ok)
+
+
+with tempfile.TemporaryDirectory() as root:
+    v1 = {'0010-table-xxfnd_a.sql': 'create table a\n', '0020-package-spec-xxfnd_a_pkg.pks': 'spec 1\n',
+          '0030-package-body-xxfnd_a_pkg.pkb': 'body 1\n', '0040-view-xxfnd_a_v.sql': 'view 1\n'}
+    a = build(root, v1)
+    renum = {'0010-table-xxfnd_a.sql': 'create table a\n', '0015-package-spec-xxfnd_b_pkg.pks': 'spec b\n',
+             '0025-package-spec-xxfnd_a_pkg.pks': 'spec 1\n', '0035-package-body-xxfnd_a_pkg.pkb': 'body 1\n',
+             '0045-view-xxfnd_a_v.sql': 'view 1\n'}
+    b = build(root, renum)
+    check('fingerprint: a new package renumbers the later files - same structure', b['struct_fingerprint'], a['struct_fingerprint'])
+    check('decide: same version, fully verified -> reuse', decide(root, record(b), b)[0], 'reuse')
+    check('decide: same version, quick check only -> patch (never reuse)', decide(root, record(b, 'PATCH'), b)[0], 'patch')
+    check('decide: refresh baseline -> full', decide(root, record(b), b, 'true')[0], 'full')
+    check('decide: last deploy did not finish -> full', decide(root, record(b, 'DIRTY'), b)[0], 'full')
+    check('decide: nothing recorded -> full', decide(root, '', b)[0], 'full')
+    c = build(root, dict(v1, **{'0030-package-body-xxfnd_a_pkg.pkb': 'body 2\n'}))
+    check('fingerprint: a package body change keeps the structure', c['struct_fingerprint'], a['struct_fingerprint'])
+    check('decide: a package body changed -> patch with that file and object',
+          decide(root, record(a), c), ('patch', ['install/0030-package-body-xxfnd_a_pkg.pkb'], ['XXFND_A_PKG']))
+    check('decide: a new package -> patch with its files', decide(root, record(a), b),
+          ('patch', ['install/0015-package-spec-xxfnd_b_pkg.pks'], ['XXFND_B_PKG']))
+    check('decide: a package removed -> full', decide(root, record(b), a)[0], 'full')
+    d = build(root, dict(v1, **{'0010-table-xxfnd_a.sql': 'create table a (x number)\n'}))
+    check('fingerprint: a table change changes the structure', d['struct_fingerprint'] != a['struct_fingerprint'], True)
+    check('decide: a table changed -> full', decide(root, record(a), d)[0], 'full')
+    e = build(root, v1, dict(v1, **{'0030-package-body-xxfnd_a_pkg.pkb': 'body other\n'}))
+    check('fingerprint: install and upgrade copies differ - structure', e['struct_fingerprint'] != a['struct_fingerprint'], True)
+    f = build(root, dict(v1, **{'0050-01-step-xxfnd_a-add-column.sql': 'exec add_column\n'}))
+    check('decide: a numbered step added -> full', decide(root, record(a), f)[0], 'full')
 sys.exit(0 if all(results) else 1)

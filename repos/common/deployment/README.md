@@ -6,12 +6,13 @@ in this folder. Before the pipeline, Claude changes the code, reviews it, opens 
 
 | Job | Steps | Runs as | Script |
 |---|---|---|---|
-| 1 Offline validation | 1.0a PR title and linked issues · 1.0 secret scan of the PR's commits (gitleaks) · 1.1 pipeline lint (actionlint, shellcheck) · 1.2 static checks · 1.3 requirements check (warning) · 1.4 build · 1.5 APEXlang LF check + validate · 1.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
+| 1 Offline validation | 1.0a PR title and linked issues · 1.0 secret scan of the PR's commits (gitleaks) · 1.1 pipeline lint (actionlint, shellcheck, decision self-test, dry run of every database-job path - `checks/dryrun.sh`) · 1.2 static checks · 1.3 requirements check (warning) · 1.4 build · 1.5 APEXlang LF check + validate · 1.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
 | 2 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
-| 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.3 backup schema `XXFUSION_BKP` (dropped if it exists, created) · 3.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
+| 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2b deploy decision (`db/decide.py`: reuse / app / patch / full) · 3.3 backup schema `XXFUSION_BKP` (dropped if it exists, created; full and patch only) · 3.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
+| 4 Quick check (patch only) | 4.Q1 mark the record · 4.Q2 run the changed code objects alone · 4.Q3 import the app (when it changed) · 4.Q4 online validation · 4.Q5 record (PATCH) · 4.Q6 select the tests of the changed objects and their callers · 4.Q7 those DB tests · 4.Q8 record the failed files; a pass is followed by jobs 4-6 in the same run | proxy | `db/run.sh quick` |
 | 4 Deploy fresh app | 4.0 back up the app's data · 4.1 remove app + DB objects · 4.2 deploy this version · 4.3 online validation · 4.4 dependency check: deployed schema vs the generated map (report) | pipeline user / proxy | `db/run.sh fresh` |
 | 5 Upgrade app | 5.1 remove (= 4.1) · 5.2 deploy the last release (= 4.2, the PR's base commit) · 5.3 restore the data + snapshot · 5.4 upgrade to this version (once) · 5.5 nothing lost · 5.6 online validation (= 4.3) · 5.7 drop the backup schema | pipeline user / proxy | `db/run.sh upgrade <base>` |
-| 6 Testing and validation | 6.1 test users · 6.2 DB tests: `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 6.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 6.4 APEX-SERT evaluation (report) · 6.5 DBSAT (report; when its download is set) · 6.6 OWASP ZAP baseline scan (report) | ADMIN for 6.1, 6.4, 6.5; proxy for 6.2 | `db/run.sh test`, `ui/smoke_ui.py`, ZAP action |
+| 6 Testing and validation | 6.0 select the DB tests (reuse / app: what changed since the last tested commit + last failures) · 6.1 test users · 6.2 DB tests (every expected file must run): `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 6.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 6.4 APEX-SERT evaluation (report) · 6.5 DBSAT (report; when its download is set) · 6.6 OWASP ZAP baseline scan (report) | ADMIN for 6.1, 6.4, 6.5; proxy for 6.2 | `db/run.sh test`, `ui/smoke_ui.py`, ZAP action |
 | 7 Finalize the PR | gate (every earlier job passed) · 7.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 7.2 issues for the existing findings (future releases), then merge (ready for review if draft; label `hold` stops it) and publish the release · 7.3 readable APEX docs (`READABLE_YAML` export) · 7.4 database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
 | 8 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
 
@@ -33,7 +34,7 @@ change) belong to a future release: on a green run, job 7.2 (`checks/issues.py`)
 the comment lists the issues created. A change to the pipeline itself (this folder or the workflow files) goes straight to
 `main` without a PR (CLAUDE.md).
 
-Any failing step stops its job; every later job is skipped. Job 7 always runs its gate, which fails with "7 Finalize the PR stopped because of job <x> failure"; job 8 then reports "COMMON pipeline failed because of job <x> failure" (step, errors, skipped jobs) on the PR and stops the pipeline.
+Any failing step stops its job; every later job is skipped. Job 7 always runs its gate, which fails with "7 Finalize the PR stopped because of job <x> failure" (or "cancelled"); job 8 then reports "COMMON pipeline stopped: job <x> failed" - or "was cancelled (its time limit, or stopped by hand)" - with the step, errors and skipped jobs on the PR, and stops the pipeline. A run stopped because a newer push replaced it (`supersede.yml`) only gets a note in its run summary, no PR comment. The PR comment also holds a collapsed **step-time table** (each scripted step's time, slowest first, and each job's total - `lib/step.sh` writes `timings`, `checks/report.py` builds the table).
 
 ## What the pipeline does so nobody repeats it by hand (agreed 3 Nov 2026)
 Claude changes the code and reviews it; every fixed, repeated step is here:
@@ -82,6 +83,38 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   between files (rollback, no APEX session, `dbms_session.reset_package`); a file that ends with `exit` runs alone.
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.
 
+**Quick fixes (agreed 3 Nov 2026 - one small fix should not cost a full run to find out it fails):**
+- **The deploy decision (3.2b, `db/decide.py`)** compares this version (job 1, `checks/fingerprint.py`) with what the
+  database holds (`db/deployed.sql`: `XXCI_DEPLOYED`, `XXCI_DEPLOYED_CODE`). Four fingerprints: the whole version, the
+  database scripts, the **structure** (every install / upgrade step that is not a code object), the application without
+  its supporting objects; plus a **code manifest** - one hash per package spec / body, view and trigger, keyed by its
+  name without the file number (adding a file renumbers the later ones and changes neither). reuse and app need a
+  version that passed the full install and upgrade test (`VERIFIED = FULL`).
+- **Q1 quick check (deploy = patch):** same structure, only code objects changed (none removed or renamed). Job 4 Quick
+  check runs just the changed files in one session (each holds one CREATE OR REPLACE, the same in install and upgrade),
+  imports the app only when it changed, validates, and runs the tests of the changed objects and of every object that
+  calls them (the live `USER_DEPENDENCIES`, `checks/affected.py --objects`). A failure is reported in minutes. A pass
+  is followed by the full fresh install, upgrade test and job 6 in the same run - the rule "every release: fresh
+  install and upgrade" stays; a quick check never merges. Any structure change, removed code object or unfinished
+  deploy means the full deploy.
+- **Q2 tests of what changed since the last tested commit:** on reuse / app, 6.0 runs only the tests affected by the
+  changes since the head commit job 6 last tested (`TESTED_HEAD`), plus the files that failed or never ran then
+  (`XXCI_FAILED_TESTS`); everything else passed against the same code. The quick check records only its failed files,
+  never "tested". A full deploy runs the PR's tests (job 1).
+- **Q3 / Q4 no repeated scans:** on reuse, APEX-SERT, DBSAT and the browser test are not run again when they passed for
+  this version (and, for the browser, these pages) on an earlier run (`XXCI_PASSED`).
+- **Q5** a page under `app/pages` tests that page only; the rest of `app/` (shared components, definition) tests everything.
+- **The record never claims what the database may not hold:** a deploy marks it first (DIRTY / app or code objects
+  unknown) and records the version only when it passed - a deploy cut short (failure, time limit, cancel) means the
+  full deploy next time. The baseline data set (H4) is marked while it is being made: a copy cut short is made again.
+- **Every test file must run:** 6.2 / 4.Q7 compare the files expected with the files that ran; one that never ran (a
+  session ended early) fails the step and runs again next time.
+- **A newer push replaces the older run (`supersede.yml`)** - only while the old run is in jobs 1, 2 or 6; during
+  jobs 3, 4, 5 or 7 (database changes, merge) it finishes and the new push waits. A queued run is replaced by GitHub.
+- **Dry run (1.1, `checks/dryrun.sh`):** every path of `db/run.sh` (setup decisions, quick check, fresh, app only,
+  upgrade, tests, a session ended early, reuse skips, browser, export) runs against a SQLcl stand-in
+  (`checks/sqlcl-stub.sh`) on a built copy - a broken path fails before any run on GitHub.
+
 **Hardening (review of 3 Nov 2026):**
 - **H1** the test users get a random password in every run (6.1b, masked; `db/test-passwords.sql`) - the fixed one in
   `db/admin/test-users.sql` never stays on the internet-facing validation app. For live tests by a person, run
@@ -92,7 +125,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   `PLAYWRIGHT_VERSION` in `tools.env`).
 - **H4** the upgrade test restores a fixed baseline data set (`XXFUSION_BASE_BKP`, made once and kept) instead of
   whatever earlier runs left; the full run's "refresh baseline" makes it again from the current data.
-- **M2** job 3 makes one deploy decision (`deploy`: reuse / app / full) that every later job reads. **M3** artifact
+- **M2** job 3 makes one deploy decision (`deploy`: reuse / app / patch / full) that every later job reads. **M3** artifact
   names follow the job numbers. **M4** one pipeline comment per PR, updated by every run. **M5** artifacts are kept 7
   (logs), 14 (reports) or 30 days (release zip, docs); the browser test's **video and trace only in the full run and
   only when asked for** ("record video"). **L2** job 3 fetches only the merge commit and its base. **L3** a run that

@@ -2,7 +2,8 @@
 # COMMON pipeline job 1 - offline validation, no OCI and no database:
 #   1.0a PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
 #   1.0 secret scan of the PR's commits (gitleaks)
-#   1.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts)   1.1b SOURCE-MAP in step
+#   1.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts, the decision self-test and
+#       the dry run of every database-job path against a SQLcl stand-in - checks/dryrun.sh)   1.1b SOURCE-MAP in step
 #   1.2 static checks (pr_checks.py)          1.3 requirements check (warning only)
 #   1.4 build                                  1.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
 #   1.6 PMD (PL/SQL rules, warnings only)
@@ -27,11 +28,12 @@ secrets_scan() {   # the pull request's commits (or the last commit of a manual 
 lint() {   # workflows, the pipeline's composite actions (their shell steps) and scripts: no finding of any level
   local f tmp rc=0
   local wf
-  for wf in pipeline release generated-files issues-sync cleanup-runs pipeline-check; do
+  for wf in pipeline release generated-files issues-sync cleanup-runs pipeline-check supersede; do
     actionlint -no-color "$ROOT/.github/workflows/$wf.yml" || rc=1
   done
   find "$ROOT/repos/common/deployment" -name '*.py' -print0 | xargs -0 python3 -m py_compile || rc=1
-  python3 "$HERE/selftest.py" || rc=1   # the pipeline's decision logic (checks/affected.py)
+  python3 "$HERE/selftest.py" || rc=1   # the pipeline's decision logic (affected.py, fingerprint.py, db/decide.py)
+  bash "$HERE/dryrun.sh" || rc=1        # every path of the database jobs, without a database
   for f in "$ROOT"/.github/actions/*/action.yml; do
     tmp=$(mktemp --suffix .sh)
     python3 -c 'import sys, yaml

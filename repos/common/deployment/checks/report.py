@@ -8,12 +8,22 @@ report.py <logs dir> <out.md>
                               reports, DBSAT not set up, ...)
   - existing findings         lines "existing: ..." (findings in files the PR does not touch - existing code)
 Each line is reported once, with the step it came from.
+Also the step times (logs-<job>/timings, written by lib/step.sh): one collapsed table, slowest first, with each job's
+total - where the run's time went.
 """
 import os, re, sys
 
 logs, out = sys.argv[1], sys.argv[2]
 warn, info, existing = {}, {}, {}
+times, totals = [], {}
 for root, _, files in os.walk(logs):
+    if 'timings' in files:
+        job = os.path.basename(root).replace('logs-', '')
+        for line in open(os.path.join(root, 'timings'), errors='ignore'):
+            p = line.split()
+            if len(p) == 3 and p[1].isdigit():
+                times.append((int(p[1]), job, p[0], p[2]))
+                totals[job] = totals.get(job, 0) + int(p[1])
     for name in sorted(files):
         if not name.endswith('.log'):
             continue
@@ -45,4 +55,10 @@ with open(out, 'w') as fh:
     fh.write(section('Notices', info, 'none') + '\n')
     fh.write(section('Existing findings in unchanged files (fixed in their own release)', existing, 'none',
                      collapsed=True))
-print(f'report: {len(warn)} warning(s), {len(info)} notice(s), {len(existing)} existing finding(s)')
+    if times:
+        mmss = lambda x: f'{x // 60}:{x % 60:02d}'
+        rows = '\n'.join(f'| {job} | `{step}` | {mmss(t)} | {res} |' for t, job, step, res in sorted(times, reverse=True))
+        tot = ', '.join(f'{job} {mmss(t)}' for job, t in sorted(totals.items()))
+        fh.write(f'\n<details><summary><b>Step times</b> (scripted steps: {tot})</summary>\n\n'
+                 f'| Job | Step | Time | Result |\n|---|---|---|---|\n{rows}\n</details>\n')
+print(f'report: {len(warn)} warning(s), {len(info)} notice(s), {len(existing)} existing finding(s), {len(times)} step time(s)')

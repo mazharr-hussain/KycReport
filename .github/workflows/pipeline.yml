@@ -1,7 +1,8 @@
 # COMMON pipeline (app 135, schema XXFUSION) - one record per pull request run, named after the PR title.
 # Agreed flow (before the pipeline, Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-8):
 #    1 Offline validation (no OCI, no DB)      2 OCI setup (placeholder)        3 DB setup
-#    4 Deploy fresh app                         5 Upgrade app (no data lost)     6 Testing and validation
+#    4 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
+#    5 Upgrade app (no data lost)               6 Testing and validation
 #    7 Finalize the PR: 7.1 release zip (APEXlang export), 7.2 issues for a future release + merge + release,
 #      7.3-7.4 documentation (readable APEX export, SchemaSpy)
 #    8 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
@@ -52,6 +53,8 @@ jobs:
       release: ${{ steps.scope.outputs.release }}
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
       db_fingerprint: ${{ steps.fingerprint.outputs.db_fingerprint }}
+      struct_fingerprint: ${{ steps.fingerprint.outputs.struct_fingerprint }}   # the database structure (Q1)
+      app_fingerprint: ${{ steps.fingerprint.outputs.app_fingerprint }}         # the app without supporting objects
       db_changed: ${{ steps.dbdiff.outputs.db_changed }}
       db_tests: ${{ steps.affected.outputs.db_tests }}   # ALL, or the DB tests a PR affects (K, L)
       pages: ${{ steps.affected.outputs.pages }}         # ALL, or the pages a PR changes
@@ -130,17 +133,12 @@ jobs:
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
-      - name: Fingerprint of this version (the built application and database scripts; jobs 4-5 are skipped when the database holds it)
+      - name: Fingerprints of this version and its code manifest (job 3 compares them with what the database holds)
         id: fingerprint
         if: steps.scope.outputs.common == 'true'
         run: |
           set -euo pipefail
-          h() { (cd "$1" && shift && find "$@" -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -c1-16; }
-          db=$(h repos/common/db/deploy install upgrade)          # the database scripts alone
-          fp=$(printf '%s %s' "$(h repos/common/dist/app .)" "$db" | sha256sum | cut -c1-16)   # the whole version
-          echo "fingerprint=$fp" >> "$GITHUB_OUTPUT"
-          echo "db_fingerprint=$db" >> "$GITHUB_OUTPUT"
-          echo "- version fingerprint \`$fp\`" >> "$GITHUB_STEP_SUMMARY"
+          python3 repos/common/deployment/checks/fingerprint.py . | tee -a "$GITHUB_OUTPUT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
       - name: Do the database scripts differ from the base? (no - job 5's upgrade test is skipped, F)
         id: dbdiff
         if: steps.scope.outputs.common == 'true'
@@ -203,18 +201,31 @@ jobs:
     permissions:
       contents: read
     outputs:
-      # M2: the one deploy decision - reuse (the database holds this version: jobs 4-5 skipped), app (same database
-      # scripts: job 4 replaces the APEX application only, job 5 skipped) or full (fresh install and upgrade test)
+      # M2: the one deploy decision (db/decide.py) - reuse (the database holds this version, fully verified: jobs 4-5
+      # skipped), app (same database scripts: job 4 replaces the APEX application only, job 5 skipped), patch (same
+      # structure, only code objects changed: job 4 quick check first, then the full deploy) or full (fresh install and
+      # upgrade test)
       deploy: ${{ steps.setup.outputs.deploy }}
+      patch_files: ${{ steps.setup.outputs.patch_files }}           # patch: the changed code object files
+      changed_objects: ${{ steps.setup.outputs.changed_objects }}   # patch: their object names
+      app_changed: ${{ steps.setup.outputs.app_changed }}           # patch: the application differs from the deployed one
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
+      STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
+      APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2   # L2: the merge commit and its base (bootstrap.sql changed?)
           persist-credentials: false
+      - name: This version's database scripts and code manifest - the ones job 1 built (not the committed copies)
+        run: rm -rf repos/common/db/deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-deploy
+          path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
@@ -226,11 +237,15 @@ jobs:
           XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
           REFRESH_BASELINE: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_baseline }}
         run: |
+          set -euo pipefail
           bash repos/common/deployment/db/run.sh setup
-          if [ "$(cat "$LOG_DIR/reuse" 2>/dev/null)" = true ]; then deploy=reuse
-          elif [ "$(cat "$LOG_DIR/app_only" 2>/dev/null)" = true ]; then deploy=app
-          else deploy=full; fi
-          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          deploy=$(cat "$LOG_DIR/deploy")
+          {
+            echo "deploy=$deploy"
+            echo "patch_files=$(tr '\n' ' ' < "$LOG_DIR/patch-files")"
+            echo "changed_objects=$(tr '\n' ' ' < "$LOG_DIR/changed-objects")"
+            echo "app_changed=$(cat "$LOG_DIR/app-changed")"
+          } >> "$GITHUB_OUTPUT"
           echo "- deploy: \`$deploy\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Step logs
         if: always()
@@ -241,10 +256,69 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  quick:
+    name: 4 Quick check (code objects only)
+    # Q1: only code objects (packages, views, triggers) changed since the deployed version - run them alone, then the
+    # tests of what they touch: a failure is reported within minutes. A pass is followed by the full deploy (jobs 4-6)
+    # in this same run; only that merges.
+    needs: [offline, db-setup]
+    if: needs.db-setup.outputs.deploy == 'patch'
+    runs-on: ubuntu-24.04
+    environment: Oracle DB Dev
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
+      DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
+      STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
+      APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
+      PATCH_FILES: ${{ needs.db-setup.outputs.patch_files }}
+      CHANGED_OBJECTS: ${{ needs.db-setup.outputs.changed_objects }}
+      APP_CHANGED: ${{ needs.db-setup.outputs.app_changed }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # Q2: the changes since the commit last tested
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-dist
+          path: repos/common/dist/app
+      - name: This version's database scripts - the ones job 1 built (not the committed copies)
+        run: rm -rf repos/common/db/deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-deploy
+          path: repos/common/db/deploy
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: 4.Q1-4.Q8 Quick check - the changed code objects and their tests
+        env:
+          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
+          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+        run: bash repos/common/deployment/db/run.sh quick
+      - name: Step logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-4-quick
+          path: ${{ env.LOG_DIR }}
+          retention-days: 7
+          if-no-files-found: ignore
+
   fresh:
     name: 4 Deploy fresh app
-    needs: [offline, db-setup]
-    if: needs.db-setup.outputs.deploy != 'reuse'
+    needs: [offline, db-setup, quick]
+    # every deploy but reuse; after a quick check (patch) only when it passed - then the full fresh install
+    if: >-
+      always() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
+      (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 30
@@ -256,6 +330,8 @@ jobs:
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 4.6: the DB tests this PR affects (or ALL)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
+      STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
+      APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -301,7 +377,10 @@ jobs:
     needs: [offline, db-setup, fresh]
     # application only: these database scripts passed it already, the schema keeps its data. (F - no upgrade test when
     # the scripts are the base's - is held back: job 6's DB tests still need the data the upgrade test restores.)
-    if: needs.db-setup.outputs.deploy == 'full'
+    # full, and patch after its quick check (job 4 ran the full fresh install)
+    if: >-
+      always() && needs.fresh.result == 'success' &&
+      (needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40
@@ -310,6 +389,8 @@ jobs:
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.8 records it: the database holds this version
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
+      STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
+      APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -362,11 +443,15 @@ jobs:
       contents: read
     env:
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}  # the DB tests this PR affects (or ALL)
+      DEPLOY: ${{ needs.db-setup.outputs.deploy }}     # reuse / app: only what changed since the last tested commit (Q2, Q3)
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 6.5)
       DBSAT_ZIP_SHA256: ${{ vars.DBSAT_ZIP_SHA256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0   # Q2: the changes since the commit last tested
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -378,7 +463,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 6.2, 6.4, 6.5 DB tests, APEX-SERT, DBSAT
+      - name: 6.0-6.5 DB tests, APEX-SERT, DBSAT
         env:
           VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
           ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
@@ -418,6 +503,8 @@ jobs:
       contents: read
     env:
       PAGES: ${{ needs.offline.outputs.pages }}        # the pages this PR changes (or ALL)
+      DEPLOY: ${{ needs.db-setup.outputs.deploy }}     # reuse: a browser test that passed for this version is not repeated (Q4)
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       VAL_APP_URL: ${{ vars.VAL_APP_URL }}             # optional: overrides the APEX URL read from the wallet
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -485,7 +572,7 @@ jobs:
 
   finalize:
     name: 7 Finalize the PR
-    needs: [offline, oci-setup, db-setup, fresh, upgrade, test, ui]
+    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui]
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass
     if: always()
@@ -508,12 +595,14 @@ jobs:
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
           # jobs skipped on purpose by the deploy decision (M2) count as passed
+          # (the quick check runs only for patch, and is then followed by the full deploy - it never replaces it)
+          [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt
           case $DEPLOY in
             reuse) sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt ;;
             app)   grep -q '^fresh=success$' results.txt && sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt ;;
           esac
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
-                            [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 DB tests and security"
+                            [quick]="4 Quick check" [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 DB tests and security"
                             [ui]="6 Browser test and ZAP")
           # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
           bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
@@ -675,7 +764,7 @@ jobs:
 
   error:
     name: 8 Error handling
-    needs: [offline, oci-setup, db-setup, fresh, upgrade, test, ui, finalize]
+    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui, finalize]
     # a job stopped by its time limit is "cancelled", which failure() does not see: every failed or cancelled job counts
     if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
     runs-on: ubuntu-24.04
@@ -711,7 +800,7 @@ jobs:
             const fs = require('fs'), path = require('path');
             const results = JSON.parse(process.env.RESULTS);
             const title = { offline: '1 Offline validation', 'oci-setup': '2 OCI setup', 'db-setup': '3 DB setup',
-              fresh: '4 Deploy fresh app', upgrade: '5 Upgrade app', test: '6 DB tests and security', ui: '6 Browser test and ZAP',
+              quick: '4 Quick check', fresh: '4 Deploy fresh app', upgrade: '5 Upgrade app', test: '6 DB tests and security', ui: '6 Browser test and ZAP',
               finalize: '7 Finalize the PR' };
             const order = Object.keys(results);   // flow order (the needs list)
             const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
@@ -735,10 +824,24 @@ jobs:
             const errors = errorLines.slice(0, 40).join('\n');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const fence = '`'.repeat(3);
+            const result = results[job]?.result || 'failure';   // failure, or cancelled (time limit, or stopped)
+            const pr = context.payload.pull_request;
+            // a run stopped because a newer push replaced it (supersede.yml) is not an error: say so, nothing else
+            if (pr && result === 'cancelled') {
+              const now = (await github.rest.pulls.get({ ...context.repo, pull_number: pr.number })).data;
+              if (now.head.sha !== pr.head.sha) {
+                const text = `Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}) was stopped in job ${name}: a newer push ` +
+                             `(${now.head.sha.slice(0, 7)}) replaced it. Its own run reports here.`;
+                await core.summary.addRaw(text).write();
+                core.notice(text);
+                return;
+              }
+            }
+            const why = result === 'cancelled' ? 'was cancelled (its time limit, or stopped by hand)' : 'failed';
             const body = [
-              `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
+              `**COMMON pipeline stopped: job ${name} ${why}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
-              (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
+              (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because job ${name} ${why} (no zip, no merge). ` : '') +
               'The PR stays open; push a fix and the pipeline runs again.', '',
               '| | |', '|---|---|',
               `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
@@ -748,7 +851,6 @@ jobs:
               '', read(`${process.env.RUNNER_TEMP}/report.md`)
             ].join('\n');
             await core.summary.addRaw(body).write();
-            const pr = context.payload.pull_request;
             if (pr) {
               // M4: one pipeline comment per PR, updated by every run (not a new comment each push)
               const mark = '<!-- common-pipeline -->';
@@ -778,10 +880,10 @@ jobs:
                 const nums = all.map(i => (i.title.match(/^I-(\d+)\b/) || [])[1]).filter(Boolean).map(Number);
                 const ino = 'I-' + String(Math.max(0, ...nums) + 1).padStart(3, '0');
                 await github.rest.issues.create({ ...context.repo, labels: ['COMMON'],
-                  title: `${ino} COMMON: full run fails at ${name}${step ? ' (' + step + ')' : ''}`,
+                  title: `${ino} COMMON: full run ${result === 'cancelled' ? 'cancelled' : 'fails'} at ${name}${step ? ' (' + step + ')' : ''}`,
                   body: ['Type: Bug', 'Priority: P2', '', `**Area:** pipeline job ${name}${step ? ', step ' + step : ''}`, '',
                          '**Found:** the full run of main (on demand: every DB test, every page, ZAP).', '', body, '',
                          `<!-- ${mark} -->`, '', '**Source:** COMMON pipeline (full run, job 8)'].join('\n') });
               }
             }
-            core.setFailed(`Pipeline stopped because of job ${name} failure${step ? ' (step ' + step + ')' : ''}`);
+            core.setFailed(`Pipeline stopped: job ${name} ${why}${step ? ' (step ' + step + ')' : ''}`);
