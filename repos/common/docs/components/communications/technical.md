@@ -49,7 +49,6 @@ One e-mail history for every record, with its files, without e-mail screens in t
 - Uses: XXFND_DDL_PKG, XXFND_NOTIFY_PKG
 - Used by objects: XXFND_NOTIFY_PKG, XXFND_SHARE_PKG
 - Used by COMMON pages / components: 45, 46
-- Used by KYC pages / components: 211
 
 ## Test scripts
 
