@@ -251,7 +251,7 @@ load_last_data() {   # 5.3: the last release's test data, from git (the release 
   fi
 }
 schema_summary() {   # the structure lines (schema-summary.sql) into <file>
-  S "$APP_SCHEMA" "$HERE/schema-summary.sql" check | sed -n 's/^SCHEMA //p' > "$1"
+  S "$APP_SCHEMA" "$HERE/schema-summary.sql" check | sed -n 's/^SCHEMA //p' | sed 's/[[:space:]]*$//' > "$1"
   [ -s "$1" ] || { echo "no structure read from $APP_SCHEMA"; return 1; }
 }
 record_install() {   # 4.2a: the install of this version (no data yet) - a data-only fix reloads the data on it (deploy=data)
@@ -309,7 +309,7 @@ same_as_fresh() {   # 5.8: the upgraded database has the structure of the fresh 
   if [ "$(echo "$out" | sed -n 's/^FRESH-OF *//p' | awk 'NR == 1 {print $1}')" != "$FINGERPRINT" ]; then
     echo "FAIL no fresh install of this version ($FINGERPRINT) is recorded - job 4 must pass first"; return 1
   fi
-  echo "$out" | sed -n 's/^FRESH //p' > "$fresh"
+  echo "$out" | sed -n 's/^FRESH //p' | sed 's/[[:space:]]*$//' > "$fresh"
   schema_summary "$up" || return 1
   only_up=$(grep -v '^R ' "$up" | sort | comm -23 - <(grep -v '^R ' "$fresh" | sort))
   only_fresh=$(grep -v '^R ' "$fresh" | sort | comm -23 - <(grep -v '^R ' "$up" | sort))
@@ -332,7 +332,7 @@ guard() {   # guard version|app|patch|upgrade <login>: the database still holds 
     "select 'GUARD-FRESH ' || fingerprint from ${owner}xxci_passed where check_name = 'fresh';") || { echo "$out"; return 1; }
   dep=$(echo "$out" | grep -m1 '^GUARD ' || true)
   read -r _ fp db struct verified <<< "${dep:-GUARD - - - DIRTY}"
-  fresh=$(echo "$out" | sed -n 's/^GUARD-FRESH //p' | head -1)
+  fresh=$(echo "$out" | sed -n 's/^GUARD-FRESH *//p' | awk 'NR == 1 {print $1}')   # SQLcl pads lines: read a word
   case $what in
     version) [ "$fp" = "${FINGERPRINT:-}" ] && [ "$verified" = FULL ] || ok=0 ;;
     app)     [ "$db" = "${DB_FINGERPRINT:-}" ] && [ "$verified" = FULL ] || ok=0 ;;
