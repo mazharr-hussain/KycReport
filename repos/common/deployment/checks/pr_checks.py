@@ -9,7 +9,7 @@ in the PR body (with --body);
 APEX page security (no authorization scheme, unrestricted access, inline CSS/JS); PL/SQL risks (WHEN OTHERS THEN NULL,
 EXECUTE IMMEDIATE with ||, hard-coded schema, SELECT *, DBMS_OUTPUT, TO_DATE without format, COMMIT without autonomous
 transaction); COMMON referring to XXCMP_; install safety (step script not in the manifest, bare CREATE/ALTER TABLE or
-DROP in a step script, base table script edited); release folder incomplete (README, run-release.sql, its files).
+DROP in a step script, base table script edited); release folder without its README or with more than it (the pipeline makes the zip).
 Usage: python3 repos/common/deployment/checks/pr_checks.py [--base <sha>] [--body-file <file>]
 """
 import argparse, glob, json, os, re, subprocess, sys
@@ -158,18 +158,17 @@ def install_safety(names):
 
 
 def releases(names):
+    """A release folder holds only its README (the release notes): the pipeline makes the release zip (7.1) and the
+    scripts are the application's supporting objects - copies of scripts or app files are not kept (CLAUDE.md)."""
     dirs = {m.group(0) for n, _ in names if (m := re.match(r'repos/[^/]+/releases/[^/]+', n)) and os.path.isdir(os.path.join(ROOT, m.group(0)))}
     for d in sorted(dirs):
         full = os.path.join(ROOT, d)
-        for need in ('README.md', 'run-release.sql'):
-            if not os.path.exists(os.path.join(full, need)):
-                warnings.append(f'{d}: release folder has no {need}')
-        rr = os.path.join(full, 'run-release.sql')
-        if os.path.exists(rr):
-            for i, line in enumerate(open(rr, errors='ignore'), 1):
-                m = re.match(r'\s*@@?(\S+)', line)
-                if m and not os.path.exists(os.path.join(full, m.group(1))):
-                    warnings.append(f'{d}/run-release.sql:{i}: file not in the release folder: {m.group(1)}')
+        if not os.path.exists(os.path.join(full, 'README.md')):
+            warnings.append(f'{d}: release folder has no README.md (the release notes)')
+        extra = sorted(x for x in os.listdir(full) if x != 'README.md')
+        if extra:
+            warnings.append(f'{d}: release folder holds more than its README ({", ".join(extra)}) - '
+                            'the pipeline makes the release zip')
 
 
 def changes(base, body):

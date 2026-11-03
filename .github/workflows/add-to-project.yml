@@ -12,7 +12,7 @@ permissions:
 jobs:
   board:
     if: contains(github.event.issue.labels.*.name, 'COMMON') || contains(github.event.issue.labels.*.name, 'KYC')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         app: [COMMON, KYC]

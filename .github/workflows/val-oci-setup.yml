@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle_OCI
     env:
       COMPARTMENT: APP_Project      # the database and the connection

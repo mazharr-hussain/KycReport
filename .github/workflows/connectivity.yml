@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     steps:
       - name: GitHub OIDC claims (what the trust rule must match)

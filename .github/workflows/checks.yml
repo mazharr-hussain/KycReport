@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   static:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,7 +37,7 @@ jobs:
 
   pmd:
     # PL/SQL analysis of the changed packages (repos/tools/pmd-plsql.xml); violations are annotations, not failures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read   # the action lists the changed files of the PR
@@ -55,7 +55,7 @@ jobs:
           analyzeModifiedFilesOnly: ${{ github.event_name == 'pull_request' }}
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
