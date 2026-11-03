@@ -4,7 +4,7 @@
 --   - the tests' administrator ADMIN: the APEX session user of the tests that need one (users, data security, menu,
 --     workflow); Common Administrator and Super Administrator, given through COMMON's routine (BOOTSTRAP_ADMIN) like
 --     the test user TALL_ACCESS of db/admin/test-users.sql
---   - the local user TEST1 for the security screens' tests
+--   - (the local user TEST1: 04_test1_user.sql, as ADMIN - APEX accounts outside a browser need APEX admin rights)
 --   - tables R89_* left in XXFUSION by an earlier run of the R89 setup as the wrong schema are dropped (they belong
 --     to the test application's schema XXCUS, 02_r89_data_model_apps.sql)
 -- Re-runnable (only what is missing is added); its rows stay.
@@ -33,22 +33,7 @@ begin
     xxfnd_user_pkg.bootstrap_admin('ADMIN', 'Test Administrator', 'admin@example.com', 'COMMON_ADMIN');
     xxfnd_user_pkg.bootstrap_admin('ADMIN', 'Test Administrator', 'admin@example.com', 'SUPER_ADMIN');
     commit;
-    -- a plain local user for the security screens' tests (TEST1), made by the administrator; its APEX account may
-    -- exist from an earlier database
-    select count(*) into l_app from xxfnd_users where user_name = 'TEST1';
-    if l_app = 0 then
-        apex_util.set_workspace('XXCUS');
-        apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
-        select count(*) into l_app from apex_workspace_apex_users where user_name = 'TEST1';
-        if l_app = 0 then
-            l_app := xxfnd_user_pkg.create_local_user('TEST1', 'Test User 1', 'test1@example.com', 'KycTest#2026');
-        else
-            insert into xxfnd_users (user_name, user_type, full_name, email_address)
-            values ('TEST1', 'LOCAL', 'Test User 1', 'test1@example.com');
-        end if;
-        apex_session.delete_session;
-    end if;
     commit;
-    dbms_output.put_line('COMMON test fixture ready: R86TEST, ADMIN, TEST1');
+    dbms_output.put_line('COMMON test fixture ready: R86TEST, ADMIN');
 end;
 /

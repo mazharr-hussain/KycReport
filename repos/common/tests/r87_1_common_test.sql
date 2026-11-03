@@ -52,7 +52,8 @@ begin
     l_txt := xxfnd_application_pkg.menu_url('R86TEST', 'COMMON_PAGE', 40, null);
     check_(lower(l_txt) like '%common%' and (l_txt like '%40%' or lower(l_txt) like '%my-tasks%'), 'a COMMON page entry links to COMMON (' || l_txt || ')');
     -- release 106: the MANAGED menu type and page 99 are retired (I-059)
-    select count(*) into l_n from user_views where view_name = 'XXFND_APP_MENU_V';
+    -- release 105: XXFND_APP_MENU_V replaced by XXFND_NAV_MENU_V (I-059)
+    select count(*) into l_n from user_views where view_name = 'XXFND_NAV_MENU_V';
     check_(l_n = 1, 'the menu view exists');
 
     -- 87 C4 (delegated links to page 99) retired in release 106 with DELEGATED_URL (I-059)

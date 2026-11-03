@@ -1,4 +1,4 @@
--- COMMON 110: a purpose takes its endpoint from an APEX REST Source Catalog service. Run as XXFUSION in an APEX
+-- COMMON 110 (purposes of the test application R86TEST: COMMON owns none): a purpose takes its endpoint from an APEX REST Source Catalog service. Run as XXFUSION in an APEX
 -- session of an administrator with Integrations - Manage. Everything is rolled back.
 set serveroutput on size unlimited feedback off
 declare
@@ -20,7 +20,7 @@ begin
     if l_svc is null then
         dbms_output.put_line('SKIP no REST Source Catalog service in the workspace');
     else
-        xxfnd_integration_pkg.save_purpose('R110_TEST', 'R110 test', 'COMMON', 'API', null, null, 'Y', l_svc);
+        xxfnd_integration_pkg.save_purpose('R110_TEST', 'R110 test', 'R86TEST', 'API', null, null, 'Y', l_svc);
         select catalog_service_id into l_val from xxfnd_integration_purposes where purpose_code = 'R110_TEST';
         ok('catalog service saved', l_val = l_svc);
         begin
@@ -32,7 +32,7 @@ begin
         end;
     end if;
     begin
-        xxfnd_integration_pkg.save_purpose('R110_NONE', 'R110 none', 'COMMON', 'API', null, null, 'Y');
+        xxfnd_integration_pkg.save_purpose('R110_NONE', 'R110 none', 'R86TEST', 'API', null, null, 'Y');
         l_resp := xxfnd_integration_pkg.call('R110_NONE');
         ok('purpose without endpoint refused', false);
     exception

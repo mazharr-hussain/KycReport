@@ -19,7 +19,11 @@ validation ("Validation successful"), static checks and PMD (0 findings), pipeli
   XXCUS, `-- Schema: XXCUS`), then `03_common_test_fixture.sql`: R86TEST onboarded, the tests' administrator ADMIN
   (Common Administrator and Super Administrator through `BOOTSTRAP_ADMIN`), TEST1; R89 tables left in XXFUSION by an
   earlier run as the wrong schema are dropped.
-- Tests that need an administrator's APEX session open one as ADMIN (r109, r110, r111).
+- Tests that need an administrator's APEX session open one as ADMIN (r109, r110, r111). Creating, reading or locking
+  an APEX account outside a browser needs APEX admin rights, so `04_test1_user.sql` (TEST1) and r109 run as the
+  database ADMIN in COMMON's schema (`-- Schema: ADMIN`), like the test users of step 6.1.
+- r110 saves its purposes for the test application R86TEST (COMMON owns no integration purpose); r87_1 checks the
+  menu view of release 105 (`XXFND_NAV_MENU_V`).
 - Stale checks of routines retired in COMMON 106 ("managed in the application": `IS_MANAGED`, `SAVE_FUNCTIONS`,
   `DELEGATED_URL`, MANAGED menu entries, page 99) are removed; r88 counts seven routines; r89 expects the prefixes
   `XXFND_,XXHR_` (release 102).

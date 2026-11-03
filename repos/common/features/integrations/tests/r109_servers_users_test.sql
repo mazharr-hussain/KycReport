@@ -1,6 +1,9 @@
 -- COMMON 109: servers read the OCI region / namespace from the Remote Server URL and the OAuth token URL from an
 -- Authentication Remote Server; the user account status and lock / unlock. Run as XXFUSION in an APEX session of
 -- an administrator with Integrations - Manage and Users & Access - Manage. Everything is rolled back.
+-- Schema: ADMIN
+-- (as ADMIN in COMMON's schema: reading and locking an APEX account outside a browser needs APEX admin rights)
+alter session set current_schema = XXFUSION;
 set serveroutput on size unlimited feedback off
 declare
     l_srv xxfnd_integration_pkg.t_server;
