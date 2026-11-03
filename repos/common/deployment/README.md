@@ -51,6 +51,10 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Pipeline-only pushes to `main`** (`pipeline-check.yml`): step 1.1 (actionlint, shellcheck, Python compile) checks
   them on `main`; a failure shows on the commit and is fixed by the next push.
 
+**Runner image:** every workflow runs on `ubuntu-24.04` (pinned, not `ubuntu-latest`, which GitHub moves to Ubuntu 26
+from 19 Oct 2026): the tools (SQLcl, Playwright, Instant Client) are set up on that image. Moving to a newer image is
+a one-line change per workflow, made on purpose and tested by a run.
+
 ## Files
 | File | Purpose |
 |---|---|

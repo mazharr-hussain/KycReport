@@ -31,7 +31,7 @@ env:
 jobs:
   offline:
     name: 1 Offline validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -123,7 +123,7 @@ jobs:
     name: 2 OCI setup (placeholder)
     needs: offline
     if: needs.offline.outputs.common == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -133,7 +133,7 @@ jobs:
   db-setup:
     name: 3 DB setup
     needs: oci-setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60   # the first APEX-SERT install (3.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
@@ -164,7 +164,7 @@ jobs:
   fresh:
     name: 4 Deploy fresh app
     needs: db-setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 30
     permissions:
@@ -209,7 +209,7 @@ jobs:
   upgrade:
     name: 5 Upgrade app
     needs: fresh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40
     permissions:
@@ -251,7 +251,7 @@ jobs:
   test:
     name: 6 Testing and validation
     needs: upgrade
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60
     permissions:
@@ -318,7 +318,7 @@ jobs:
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 15
     permissions:
@@ -468,7 +468,7 @@ jobs:
     name: 8 Error handling
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test, finalize]
     if: failure() || cancelled()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read         # the report script
