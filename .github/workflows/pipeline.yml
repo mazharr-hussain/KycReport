@@ -39,6 +39,7 @@ jobs:
     outputs:
       common: ${{ steps.scope.outputs.common }}
       release: ${{ steps.scope.outputs.release }}
+      fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,6 +70,13 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         if: steps.scope.outputs.common == 'true'
+      - name: PMD 7.29.0 (cached between runs)
+        if: steps.scope.outputs.common == 'true'
+        id: pmd-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/pmd-bin-7.29.0
+          key: pmd-7.29.0-d27177c1
       - name: Lint tools, gitleaks and PMD 7.29.0 (checksum verified)
         if: steps.scope.outputs.common == 'true'
         env:
@@ -82,9 +90,11 @@ jobs:
           tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
           echo "GITLEAKS=$RUNNER_TEMP/gitleaks" >> "$GITHUB_ENV"
           cd "$RUNNER_TEMP"
-          curl -fsSL -o pmd.zip "$PMD_URL"
-          echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
-          unzip -q pmd.zip && rm pmd.zip
+          if [ ! -x pmd-bin-7.29.0/bin/pmd ]; then
+            curl -fsSL -o pmd.zip "$PMD_URL"
+            echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
+            unzip -q pmd.zip && rm pmd.zip
+          fi
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
       - name: 1.0a-1.6 Offline validation
         if: steps.scope.outputs.common == 'true'
@@ -97,6 +107,16 @@ jobs:
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
+      - name: Fingerprint of this version (the built application and database scripts; jobs 4-5 are skipped when the database holds it)
+        id: fingerprint
+        if: steps.scope.outputs.common == 'true'
+        run: |
+          set -euo pipefail
+          fp=$(for d in repos/common/dist/app repos/common/db/deploy; do
+                 (cd "$d" && find . -type f -print0 | sort -z | xargs -0 sha256sum)
+               done | sha256sum | cut -c1-16)
+          echo "fingerprint=$fp" >> "$GITHUB_OUTPUT"
+          echo "- version fingerprint \`$fp\`" >> "$GITHUB_STEP_SUMMARY"
       - name: This version's application (built once, deployed by jobs 4-5)
         if: steps.scope.outputs.common == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -132,16 +152,19 @@ jobs:
 
   db-setup:
     name: 3 DB setup
-    needs: oci-setup
+    needs: [offline, oci-setup]
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60   # the first APEX-SERT install (3.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
       contents: read
+    outputs:
+      reuse: ${{ steps.setup.outputs.reuse }}   # true: the database holds this version - jobs 4-5 are skipped
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -152,7 +175,10 @@ jobs:
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
       - name: 3.1-3.4 DB setup
-        run: bash repos/common/deployment/db/run.sh setup
+        id: setup
+        run: |
+          bash repos/common/deployment/db/run.sh setup
+          echo "reuse=$(cat "$LOG_DIR/reuse" 2>/dev/null || echo false)" >> "$GITHUB_OUTPUT"
       - name: Step logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -164,6 +190,7 @@ jobs:
   fresh:
     name: 4 Deploy fresh app
     needs: db-setup
+    if: needs.db-setup.outputs.reuse != 'true'
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 30
@@ -189,7 +216,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 4.0-4.4 Deploy fresh app
+      - name: 4.0-4.6 Deploy fresh app, its DB tests
         run: bash repos/common/deployment/db/run.sh fresh
       - name: Dependency report (4.4)
         if: always()
@@ -208,7 +235,7 @@ jobs:
 
   upgrade:
     name: 5 Upgrade app
-    needs: fresh
+    needs: [offline, fresh]
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40
@@ -217,6 +244,7 @@ jobs:
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.8 records it: the database holds this version
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -238,7 +266,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 5.1-5.7 Upgrade app (last release = the PR's base commit)
+      - name: 5.1-5.8 Upgrade app (last release = the PR's base commit)
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
@@ -250,7 +278,11 @@ jobs:
 
   test:
     name: 6 Testing and validation
-    needs: upgrade
+    needs: [db-setup, upgrade]
+    # after the upgrade test, or straight after job 3 when the database already holds this version (B)
+    if: >-
+      always() && needs.db-setup.result == 'success' &&
+      (needs.upgrade.result == 'success' || (needs.upgrade.result == 'skipped' && needs.db-setup.outputs.reuse == 'true'))
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60
@@ -276,6 +308,11 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
+      - name: Playwright's Chromium (cached between runs)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ hashFiles('repos/common/deployment/tools.env') }}
       - name: Browser (Playwright, Chromium) and the application URL
         id: app
         run: |
@@ -289,6 +326,7 @@ jobs:
       - name: 6.1-6.5 Test users, DB tests, browser tests, APEX-SERT, DBSAT
         run: bash repos/common/deployment/db/run.sh test
       - name: 6.6 OWASP ZAP baseline scan (passive; report only)
+        if: always() && steps.app.outcome == 'success'   # also after a failed test step: every finding in one run (A)
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: ${{ steps.app.outputs.target }}
@@ -320,7 +358,7 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
-    timeout-minutes: 15
+    timeout-minutes: 60   # 7.1 APEXlang export + 7.3 readable export + 7.4 SchemaSpy took more than 15 minutes
     permissions:
       contents: write        # draft GitHub Release of the tested zip; 7.2 merge and release
       pull-requests: write   # 7.2 ready for review, merge, PR comment
@@ -334,9 +372,12 @@ jobs:
       - name: Gate - every earlier job passed
         env:
           RESULTS: ${{ toJSON(needs) }}
+          REUSE: ${{ needs.db-setup.outputs.reuse }}
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
+          # the database already held this version (it passed jobs 4-5 before): jobs 4-5 were skipped on purpose
+          if [ "$REUSE" = true ]; then sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt; fi
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
                             [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 Testing and validation")
           # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
@@ -467,7 +508,8 @@ jobs:
   error:
     name: 8 Error handling
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test, finalize]
-    if: failure() || cancelled()
+    # a job stopped by its time limit is "cancelled", which failure() does not see: every failed or cancelled job counts
+    if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -505,20 +547,23 @@ jobs:
             const skipped = order.filter(k => results[k].result === 'skipped').map(k => title[k] || k);
             const name = title[job] || job;
             const read = f => { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } };
-            let step = '', tail = '';
+            // every failed step of the job (a test job reports all of its failures together)
+            let steps = [], tails = [], errorLines = [];
             for (const dir of (fs.existsSync('logs') ? fs.readdirSync('logs') : [])) {
-              const failed = read(path.join('logs', dir, 'failed')).trim();
-              if (failed) {
-                step = failed;
-                tail = read(path.join('logs', dir, failed + '.log')).split('\n').slice(-100).join('\n');
-                break;
+              for (const failed of read(path.join('logs', dir, 'failed')).split('\n').map(x => x.trim()).filter(Boolean)) {
+                const log = read(path.join('logs', dir, failed + '.log')).split('\n');
+                steps.push(failed);
+                tails.push(`== ${failed}\n` + log.slice(-60).join('\n'));
+                errorLines.push(...log.filter(l => /ORA-|PLS-|SP2-|ERROR|Error|FAIL/.test(l)).slice(0, 15).map(l => `${failed}: ${l}`));
               }
             }
-            const errors = tail.split('\n').filter(l => /ORA-|PLS-|SP2-|ERROR|Error|FAIL/.test(l)).slice(0, 15).join('\n');
+            const step = steps.join(', ');
+            const tail = tails.join('\n\n');
+            const errors = errorLines.slice(0, 40).join('\n');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const fence = '`'.repeat(3);
             const body = [
-              `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step \`${step}\`)` : ''}.`,
+              `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
               (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
               'The PR stays open; push a fix and the pipeline runs again.', '',
@@ -526,7 +571,7 @@ jobs:
               `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
               `| Commit | ${(context.payload.pull_request?.head.sha || context.sha).slice(0, 7)} |`, `| Run | ${runUrl} |`, '',
               '**Errors**', fence, errors || '(see the run log)', fence, '',
-              '<details><summary>Last 100 lines of the step log</summary>', '', fence, tail || '(no step log)', fence, '</details>',
+              '<details><summary>Last lines of each failed step log</summary>', '', fence, tail || '(no step log)', fence, '</details>',
               '', read(`${process.env.RUNNER_TEMP}/report.md`)
             ].join('\n');
             await core.summary.addRaw(body).write();
