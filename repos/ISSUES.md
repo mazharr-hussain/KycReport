@@ -65,6 +65,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-056 [#212](https://github.com/mazharr-hussain/KycReport/issues/212) | COMMON | Pipeline 6.4 | Dependency check: deployed schema vs the generated map | enhancement | P3 | Planned (tools PR) | User |
 | I-057 [#213](https://github.com/mazharr-hussain/KycReport/issues/213) | COMMON | Pipeline 9.4 | Database documentation from the schema (SchemaSpy) | enhancement | P3 | Planned (tools PR) | User |
 | I-058 [#214](https://github.com/mazharr-hussain/KycReport/issues/214) | COMMON | Pipeline 9.3 | Readable APEX documentation (READABLE_YAML export) | enhancement | P3 | Planned (tools PR) | User |
+| I-059 [#217](https://github.com/mazharr-hussain/KycReport/issues/217) | COMMON | DB tests | First full pipeline run: 19 FAIL / 37 errors - stale tests (removed routines), KYC/XXCUS fixtures, missing session context | bug | P1 | Open (needs a plan) | Claude (pipeline run, PR #215) |
 
 | I-3A3 [#162](https://github.com/mazharr-hussain/KycReport/issues/162) | COMMON | Review 25-Oct (A3) | `OUTLOOK_MESSAGES`, `SHAREPOINT_DRIVES`, `UCM_CONTENT` - referenced nowhere (prepared, never wired) | enhancement | P3 | Parked (kept: planned integrations) | COMMON-REVIEW |
 | I-3A4 [#163](https://github.com/mazharr-hussain/KycReport/issues/163) | COMMON | Review 25-Oct (A4) | `xxfnd_retention_pkg` - no caller: no automation, job or page runs it, so retention never happens | enhancement | P3 | Parked (retention placeholder) | COMMON-REVIEW |
