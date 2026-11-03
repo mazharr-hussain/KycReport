@@ -49,9 +49,9 @@
       {"role_code": "TD_ADMIN", "member_role_code": "TD_REVIEWER"}
     ]},
     {"table": "XXFND_USER_ROLES", "rows": [
-      {"user_role_id": 900001, "employee_id": 900001, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
-      {"user_role_id": 900002, "employee_id": 900002, "role_code": "TD_APPROVER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
-      {"user_role_id": 900003, "employee_id": 900003, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "end_date_active": "2026-06-30", "enabled_flag": "Y"}
+      {"user_role_id": 900001, "user_id": 900001, "employee_id": 900001, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_role_id": 900002, "user_id": 900002, "employee_id": 900002, "role_code": "TD_APPROVER", "start_date_active": "2026-01-01", "enabled_flag": "Y"},
+      {"user_role_id": 900003, "user_id": 900003, "role_code": "TD_REVIEWER", "start_date_active": "2026-01-01", "end_date_active": "2026-06-30", "enabled_flag": "Y"}
     ]},
     {"table": "XXFND_SOD_RULES", "rows": [
       {"sod_rule_id": 900001, "role_code_1": "TD_APPROVER", "role_code_2": "TD_REVIEWER", "conflict_scope": "SAME_RECORD", "description": "Reviewer may not approve the same case", "enabled_flag": "Y"}
@@ -154,10 +154,6 @@
     ]},
     {"table": "XXFND_NOTIFICATION_TEMPLATES_TL", "rows": [
       {"template_code": "TD_TASK_ASSIGNED", "language_code": "ar", "subject": "تم إسناد الحالة #CASE_NO# إليك", "body_html": "<p>#NAME#</p>"}
-    ]},
-    {"table": "XXFND_INTEGRATION_ENDPOINTS", "rows": [
-      {"endpoint_code": "TD_SHAREPOINT", "endpoint_name": "Test SharePoint", "endpoint_type": "SHAREPOINT", "base_url": "https://example.sharepoint.com", "web_credential_static_id": "TD_SP_CRED", "oauth_token_url": "https://login.example.com/token", "oauth_scope": "https://graph.example.com/.default", "status_code": "ACTIVE"},
-      {"endpoint_code": "TD_UCM", "endpoint_name": "Test UCM", "endpoint_type": "UCM", "base_url": "https://ucm.example.com", "status_code": "INACTIVE"}
     ]},
     {"table": "XXFND_SERVERS", "rows": [
       {"server_code": "TD_SHAREPOINT_SRV", "server_name": "Test SharePoint server", "server_type": "SHAREPOINT", "base_url": "https://graph.example.com", "credential_static_id": "TD_SP_CRED", "oauth_token_url": "https://login.example.com/token", "enabled_flag": "Y"},

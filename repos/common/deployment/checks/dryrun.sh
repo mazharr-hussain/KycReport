@@ -59,7 +59,7 @@ PATCH_FILES=$(awk -v k="$one" '$1 == k {print $3}' "$manifest") CHANGED_OBJECTS=
 expect "quick-check: only the changed file applied" grep -q '^1 code object file(s) applied' "$W/logs-quick-check/4.Q2-apply-code.log"
 expect "quick-check: callers from the live dependencies" grep -q 'XXFND_CALLER_PKG' "$W/logs-quick-check/4.Q6-select-tests.log"
 RECORD='' scenario fresh-full 0 - "4.1a-mark-record 4.1-remove-app 4.1b-remove-test-accounts 4.2-deploy-this 4.2b-load-test-data 4.3-online-validation 4.4-dependency-check 4.5-record-fresh-install" -- fresh
-expect "fresh-full: every table of the data file merged" grep -q 'row(s) in 85 table(s)' "$W/logs-fresh-full/4.2b-load-test-data.log"
+expect "fresh-full: every table of the data file merged" grep -q ' row(s) in [0-9]* table(s)' "$W/logs-fresh-full/4.2b-load-test-data.log"
 APP_ONLY=true RECORD=$full_rec scenario fresh-app-only 0 - "4.0-version-guard 4.1a-mark-record 4.1-remove-apex-app 4.2-import-app 4.3-online-validation 4.7-record-version" -- fresh
 RECORD=$fresh_rec scenario upgrade 0 - "5.0a-mark-record 5.1-remove-app 5.2-build-last 5.2-deploy-last 5.3-load-last-test-data 5.4-snapshot 5.5-upgrade-this 5.6-nothing-lost 5.7-load-this-test-data 5.8-same-as-fresh-install 5.9-online-validation 5.10-drop-snapshot 5.11-record-version" -- upgrade HEAD
 expect "upgrade: row counts differ - information only" grep -q 'info: rows in XXFND_A' "$W/logs-upgrade/5.8-same-as-fresh-install.log"

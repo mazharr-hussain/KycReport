@@ -4,7 +4,7 @@
 test_data.py <repo root>   (after the build: reads repos/common/db/deploy/install)
   FAIL  the file is not valid JSON, or a row is not an object of column -> string / number
   FAIL  a table the install creates has no rows in the file and no reason ("no_data")  - a new table needs test rows
-  FAIL  the file names a table the install does not create, or a column the table does not have (after every
+  FAIL  the file names a table the install does not create (or drops: XXFND_DDL_PKG.DROP_OBJECT ... 'TABLE'), or a column the table does not have (after every
         ADD_COLUMN / DROP_COLUMN of the install), or a column twice in a table's key data
 Tables: the install's table-<name>.sql and ensure_table-<name>.sql files; columns: their CREATE TABLE plus the install's
 XXFND_DDL_PKG.ADD_COLUMN / DROP_COLUMN calls. Prints PASS / FAIL lines; exit 1 on a FAIL.
@@ -36,6 +36,8 @@ for f in sorted(os.listdir(install)):   # drops last: a column added and later d
     text = open(os.path.join(install, f), errors='ignore').read()
     for t, c in re.findall(r"drop_column\(\s*'([A-Z0-9_$#]+)'\s*,\s*'([A-Z0-9_$#]+)'", text, re.I):
         cols.get(t.upper(), set()).discard(c.upper())
+    for t in re.findall(r"drop_object\(\s*'([A-Z0-9_$#]+)'\s*,\s*'TABLE'", text, re.I):   # a retired table is gone
+        tables.discard(t.upper())
 
 try:
     data = json.load(open(path, encoding='utf-8'))
