@@ -1,9 +1,9 @@
 #!/bin/bash
-# Job 3.6 - PMD (PL/SQL rules in pmd-plsql.xml) on every COMMON package (features/*/db/package_specs|package_bodies;
+# Job 1.6 - PMD (PL/SQL rules in pmd-plsql.xml) on every COMMON package (features/*/db/package_specs|package_bodies;
 # db/deploy is generated from them). Warnings only: a finding in a file the PR changes becomes a GitHub warning
 # annotation; findings in unchanged files are listed in the step log only. PMD's PL/SQL grammar does not know every
 # Oracle 23ai construct (e.g. BOOLEAN expressions in SQL): a package it cannot parse is listed in the log (info) - the
-# database compile in jobs 6-7 is the real syntax check.
+# database compile in jobs 4-5 is the real syntax check.
 # The step fails only when PMD itself cannot run. Env: PMD = PMD launcher (pmd-bin-<version>/bin/pmd).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)

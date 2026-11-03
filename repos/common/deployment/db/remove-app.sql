@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Steps 6.1 / 7.1 (part 1), run as the pipeline user: removes the APEX application when it is installed.
+-- Steps 4.1 / 5.1 (part 1), run as the pipeline user: removes the APEX application when it is installed.
 -- Substitution variable: app_id.
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on

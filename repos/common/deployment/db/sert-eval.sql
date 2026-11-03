@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Step 8.4, run as ADMIN: APEX-SERT security evaluation of the application (installed by step 5.4), in the
+-- Step 6.4, run as ADMIN: APEX-SERT security evaluation of the application (installed by step 3.4), in the
 -- foreground; writes every rule that did not pass (CSV) and prints the counts by severity.
 -- Substitution variables: app_id, out (CSV file).
 --------------------------------------------------------------------------------

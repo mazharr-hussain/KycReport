@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Step 6.4, run as the application schema (proxy) after the fresh deploy: writes the schema's own object
+-- Step 4.4, run as the application schema (proxy) after the fresh deploy: writes the schema's own object
 -- dependencies (USER_DEPENDENCIES, objects of this schema only) as CSV, for db/compare_dependencies.py.
 -- Substitution variable: out (CSV file).
 --------------------------------------------------------------------------------

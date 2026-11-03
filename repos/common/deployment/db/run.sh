@@ -1,20 +1,20 @@
 #!/bin/bash
 # COMMON pipeline - the database jobs on the validation ADB (environment "Oracle DB Dev"). One call per pipeline job:
-#   run.sh setup               5   DB setup: 5.1 start the DB (placeholder), 5.2 bootstrap only when needed,
-#                                  5.3 backup schema (dropped if it exists, then created), 5.4 APEX-SERT installed
+#   run.sh setup               3   DB setup: 3.1 start the DB (placeholder), 3.2 bootstrap only when needed,
+#                                  3.3 backup schema (dropped if it exists, then created), 3.4 APEX-SERT installed
 #                                  only when missing or its pinned commit changed
-#   run.sh fresh               6   Deploy fresh app: 6.0 back up the app's data, 6.1 remove app + DB objects,
-#                                  6.2 deploy this version, 6.3 online validation, 6.4 dependency check (report)
-#   run.sh upgrade <base-ref>  7   Upgrade app: 7.1 remove (= 6.1), 7.2 deploy the last release (= 6.2), 7.3 restore
-#                                  the data + snapshot, 7.4 upgrade to this version, 7.5 nothing lost,
-#                                  7.6 online validation (= 6.3), 7.7 drop the backup schema
-#   run.sh test                8   Testing: 8.1 test users, 8.2 DB tests (any FAIL or error stops the pipeline),
-#                                  8.3 browser smoke test (video, screenshots, trace), 8.4 APEX-SERT, 8.5 DBSAT
-#                                  (8.6 OWASP ZAP runs as a workflow step)
-#   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
-#                                  9.3 readable YAML export (<dir>/apex-docs), 9.4 SchemaSpy (<dir>/db-docs)
-# This version's application must already be built in repos/common/dist/app (pipeline job 3).
-# Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 5.2, 8.1), XXCUS_PW (5.2 only), LOG_DIR,
+#   run.sh fresh               4   Deploy fresh app: 4.0 back up the app's data, 4.1 remove app + DB objects,
+#                                  4.2 deploy this version, 4.3 online validation, 4.4 dependency check (report)
+#   run.sh upgrade <base-ref>  5   Upgrade app: 5.1 remove (= 4.1), 5.2 deploy the last release (= 4.2), 5.3 restore
+#                                  the data + snapshot, 5.4 upgrade to this version, 5.5 nothing lost,
+#                                  5.6 online validation (= 4.3), 5.7 drop the backup schema
+#   run.sh test                6   Testing: 6.1 test users, 6.2 DB tests (any FAIL or error stops the pipeline),
+#                                  6.3 browser smoke test (video, screenshots, trace), 6.4 APEX-SERT, 6.5 DBSAT
+#                                  (6.6 OWASP ZAP runs as a workflow step)
+#   run.sh finalize <dir>      7   7.1 APEXlang export of the tested application into <dir>/app,
+#                                  7.3 readable YAML export (<dir>/apex-docs), 7.4 SchemaSpy (<dir>/db-docs)
+# This version's application must already be built in repos/common/dist/app (pipeline job 1).
+# Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 3.2, 6.1), XXCUS_PW (3.2 only), LOG_DIR,
 #      BASE (pull request base commit, to see whether bootstrap.sql / the SERT pin changed), REPORT_DIR (reports and
 #      recordings, uploaded by the workflow), APP_URL (ORDS base URL, lib/app-url.sh), DBSAT_ZIP_URL / DBSAT_ZIP_SHA256
 #      (optional: the user's DBSAT download).
@@ -38,11 +38,11 @@ LAST=${RUNNER_TEMP:-/tmp}/common-last
 
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
 
-# ---- 5 DB setup ------------------------------------------------------------------------------------------------------
-start_db() {   # 5.1 placeholder: the OCI start call comes with job 4 (OCI setup); the validation ADB must be up
-  echo "5.1 placeholder - the validation database is expected to be running"
+# ---- 3 DB setup ------------------------------------------------------------------------------------------------------
+start_db() {   # 3.1 placeholder: the OCI start call comes with job 2 (OCI setup); the validation ADB must be up
+  echo "3.1 placeholder - the validation database is expected to be running"
 }
-bootstrap() {  # 5.2 only when the environment is missing or bootstrap.sql changed in this pull request
+bootstrap() {  # 3.2 only when the environment is missing or bootstrap.sql changed in this pull request
   local out reason=""
   if [ -n "${BASE:-}" ] && ! git -C "$ROOT" diff --quiet "$BASE" HEAD -- repos/common/deployment/db/bootstrap.sql; then
     reason="bootstrap.sql changed in this pull request"
@@ -59,7 +59,7 @@ bootstrap() {  # 5.2 only when the environment is missing or bootstrap.sql chang
   S ADMIN "$HERE/bootstrap.sql" check ci_user="$CI_USER" ci_pw="$CI_PW" xxcus_pw="${XXCUS_PW:?XXCUS_PW is not set}"
 }
 low_service() { echo "$VAL_DB_SERVICE" | sed -E 's/_(high|medium|tp|tpurgent)$/_low/'; }
-sert_install() {   # 5.4 APEX-SERT: only when it is not installed (no SERT_CORE.EVAL_PKG) or its pin changed in this PR
+sert_install() {   # 3.4 APEX-SERT: only when it is not installed (no SERT_CORE.EVAL_PKG) or its pin changed in this PR
   local f n dir=$TOOLS/apex-sert rc
   f=$(mktemp --suffix .sql)
   echo "select 'SERT_EVAL ' || count(*) from dba_objects where owner = 'SERT_CORE' and object_name = 'EVAL_PKG' and object_type = 'PACKAGE BODY' and status = 'VALID';" > "$f"
@@ -82,20 +82,20 @@ sert_install() {   # 5.4 APEX-SERT: only when it is not installed (no SERT_CORE.
   f=$(mktemp --suffix .sql); echo "alter user acdc account lock;" > "$f"; S ADMIN "$f" check; rm -f "$f"
   return "$rc"
 }
-backup_schema() {  # 5.3 (drop_only=N) and 7.7 (drop_only=Y)
+backup_schema() {  # 3.3 (drop_only=N) and 5.7 (drop_only=Y)
   S CI "$HERE/backup-schema.sql" check bkp_schema="$BKP_SCHEMA" ci_user="$CI_USER" drop_only="$1"
 }
 
-# ---- shared by 6 and 7 -----------------------------------------------------------------------------------------------
-backup() {     # 6.0 and the 7.3 snapshot: the app's data into the backup schema
+# ---- shared by 4 and 5 -----------------------------------------------------------------------------------------------
+backup() {     # 4.0 and the 5.3 snapshot: the app's data into the backup schema
   S "$APP_SCHEMA" "$HERE/grant-to.sql" check grantee="$BKP_SCHEMA" &&
   S "$BKP_SCHEMA" "$HERE/backup.sql" check app_schema="$APP_SCHEMA" &&
   S "$BKP_SCHEMA" "$HERE/grant-to.sql" check grantee="$APP_SCHEMA"
 }
-remove_app() { # 6.1 / 7.1
+remove_app() { # 4.1 / 5.1
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID" && S "$APP_SCHEMA" "$HERE/clear-schema.sql" check
 }
-deploy() {     # 6.2 / 7.2 / 7.4: deploy <project dir> install|upgrade - DB scripts, then APEXlang validate + import
+deploy() {     # 4.2 / 5.2 / 5.4: deploy <project dir> install|upgrade - DB scripts, then APEXlang validate + import
   local dir=$1 mode=$2 f out rc
   S "$APP_SCHEMA" "$dir/db/deploy/$mode/run-all.sql" check || return 1
   f=$(mktemp --suffix .sql)
@@ -104,24 +104,24 @@ deploy() {     # 6.2 / 7.2 / 7.4: deploy <project dir> install|upgrade - DB scri
   out=$(S "$APP_SCHEMA" "$f"); rc=$?; rm -f "$f"; echo "$out"
   [ "$rc" -eq 0 ] && echo "$out" | grep -q "Validation successful" && echo "$out" | grep -q "Import successful"
 }
-validate_online() {  # 6.3 / 7.6
+validate_online() {  # 4.3 / 5.6
   local pages
   pages=$(find "$THIS/dist/app/pages" -name '*.apx' | wc -l)
   S "$APP_SCHEMA" "$HERE/validate-online.sql" check app_id="$APP_ID" expected_pages="$pages"
 }
 
-dependency_check() {  # 6.4 the deployed schema's dependencies vs the generated map (report, never fails the run)
+dependency_check() {  # 4.4 the deployed schema's dependencies vs the generated map (report, never fails the run)
   S "$APP_SCHEMA" "$HERE/dependencies.sql" check out="$REPORT_DIR/dependencies-live.csv" &&
   python3 "$HERE/compare_dependencies.py" "$THIS/db/deploy/dependencies.json" "$REPORT_DIR/dependencies-live.csv" \
     "$REPORT_DIR/dependency-check.md"
 }
 
-# ---- 7 only ----------------------------------------------------------------------------------------------------------
+# ---- 5 only ----------------------------------------------------------------------------------------------------------
 build_last() {  # the last release = the pull request's base commit, built the same way
   rm -rf "$LAST"; git -C "$ROOT" worktree prune
   git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
 }
-restore() {     # 7.3: data back into the old release, then the snapshot the upgrade is compared with
+restore() {     # 5.3: data back into the old release, then the snapshot the upgrade is compared with
   local out
   out=$(S "$APP_SCHEMA" "$HERE/restore.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE") || { echo "$out"; return 1; }
   echo "$out"
@@ -130,11 +130,11 @@ restore() {     # 7.3: data back into the old release, then the snapshot the upg
   fi
   backup
 }
-compare() {     # 7.5
+compare() {     # 5.5
   S "$APP_SCHEMA" "$HERE/compare.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE"
 }
 
-# ---- 8 ---------------------------------------------------------------------------------------------------------------
+# ---- 6 ---------------------------------------------------------------------------------------------------------------
 test_users() {  # as ADMIN: creating APEX accounts outside an APEX session needs APEX instance rights (script header)
   S ADMIN "$THIS/db/admin/test-users.sql" check
 }
@@ -158,19 +158,19 @@ db_tests() {    # every release test; a FAIL line or an ORA- / PLS- error fails 
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
 }
 
-ui_smoke() {    # 8.3 every page as each test user (Playwright: video, screenshots, trace)
+ui_smoke() {    # 6.3 every page as each test user (Playwright: video, screenshots, trace)
   local pw
   pw=$(sed -n "s/.*c_password constant varchar2(30) := '\([^']*\)'.*/\1/p" "$THIS/db/admin/test-users.sql")
   UI_PASSWORD=$pw python3 "$HERE/../ui/smoke_ui.py" --base "${APP_URL:?APP_URL is not set}" --app-id "$APP_ID" \
     --app-path "$APP_PATH" --pages "$THIS/dist/app/pages" --users "$UI_USERS" --skip "$UI_SKIP_PAGES" \
     --out "$REPORT_DIR/ui"
 }
-sert_eval() {   # 8.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
+sert_eval() {   # 6.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
   local out
   out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
   echo "$out" | grep '^SERT ' | tee "$REPORT_DIR/apex-sert-summary.txt"
 }
-dbsat() {       # 8.5 Oracle DBSAT (collect + report) - needs the user's DBSAT download (repository variables)
+dbsat() {       # 6.5 Oracle DBSAT (collect + report) - needs the user's DBSAT download (repository variables)
   if [ -z "${DBSAT_ZIP_URL:-}" ] || [ -z "${DBSAT_ZIP_SHA256:-}" ]; then
     echo "info: DBSAT skipped - set the repository variables DBSAT_ZIP_URL and DBSAT_ZIP_SHA256 (issue #209)"
     return 0
@@ -189,8 +189,8 @@ dbsat() {       # 8.5 Oracle DBSAT (collect + report) - needs the user's DBSAT d
     ./dbsat report -n "$REPORT_DIR/dbsat")
 }
 
-# ---- 9 ---------------------------------------------------------------------------------------------------------------
-readable_export() {   # 9.3 the tested application as readable YAML (documentation)
+# ---- 7 ---------------------------------------------------------------------------------------------------------------
+readable_export() {   # 7.3 the tested application as readable YAML (documentation)
   local out=$1 f
   rm -rf "$out"; mkdir -p "$out"
   f=$(mktemp --suffix .sql)
@@ -198,7 +198,7 @@ readable_export() {   # 9.3 the tested application as readable YAML (documentati
   S "$APP_SCHEMA" "$f" check; local rc=$?; rm -f "$f"
   [ "$rc" -eq 0 ] && [ -n "$(find "$out" -type f | head -1)" ]
 }
-schemaspy() {   # 9.4 SchemaSpy HTML documentation of the tested schema (tables, columns, comments, keys, diagrams)
+schemaspy() {   # 7.4 SchemaSpy HTML documentation of the tested schema (tables, columns, comments, keys, diagrams)
   local out=$1 lib=$TOOLS/schemaspy wdir=$TOOLS/wallet-jdbc
   rm -rf "$lib" "$wdir" "$out"; mkdir -p "$lib" "$wdir" "$out"
   bash "$HERE/../lib/fetch.sh" "$SCHEMASPY_URL" "$SCHEMASPY_SHA256" "$lib/schemaspy.jar" &&
@@ -218,8 +218,8 @@ PROPS
     -vizjs -noimplied -o "$out" && [ -f "$out/index.html" ]
 }
 
-# ---- 9.1 -------------------------------------------------------------------------------------------------------------
-export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 6-8
+# ---- 7.1 -------------------------------------------------------------------------------------------------------------
+export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 4-6
   local out=$1 f
   rm -rf "$out"; mkdir -p "$out"
   f=$(mktemp --suffix .sql)
@@ -238,35 +238,35 @@ ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="
 step ci-password ci_password
 case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|finalize <dir>} in
   setup)
-    step 5.1-start-db start_db
-    step 5.2-bootstrap bootstrap
-    step 5.3-backup-schema backup_schema N
-    step 5.4-apex-sert sert_install ;;
+    step 3.1-start-db start_db
+    step 3.2-bootstrap bootstrap
+    step 3.3-backup-schema backup_schema N
+    step 3.4-apex-sert sert_install ;;
   fresh)
-    step 6.0-backup backup
-    step 6.1-remove-app remove_app
-    step 6.2-deploy-this deploy "$THIS" install
-    step 6.3-online-validation validate_online
-    step 6.4-dependency-check dependency_check ;;
+    step 4.0-backup backup
+    step 4.1-remove-app remove_app
+    step 4.2-deploy-this deploy "$THIS" install
+    step 4.3-online-validation validate_online
+    step 4.4-dependency-check dependency_check ;;
   upgrade)
-    step 7.1-remove-app remove_app
-    step 7.2-build-last build_last "${2:?base ref}"
-    step 7.2-deploy-last deploy "$LAST/repos/common" install
-    step 7.3-restore-data restore
-    step 7.4-upgrade-this deploy "$THIS" upgrade
-    step 7.5-nothing-lost compare
-    step 7.6-online-validation validate_online
-    step 7.7-drop-backup-schema backup_schema Y ;;
+    step 5.1-remove-app remove_app
+    step 5.2-build-last build_last "${2:?base ref}"
+    step 5.2-deploy-last deploy "$LAST/repos/common" install
+    step 5.3-restore-data restore
+    step 5.4-upgrade-this deploy "$THIS" upgrade
+    step 5.5-nothing-lost compare
+    step 5.6-online-validation validate_online
+    step 5.7-drop-backup-schema backup_schema Y ;;
   test)
-    step 8.1-test-users test_users
-    step 8.2-db-tests db_tests
-    step 8.3-browser-tests ui_smoke
-    step 8.4-apex-sert sert_eval
-    step 8.5-dbsat dbsat ;;
+    step 6.1-test-users test_users
+    step 6.2-db-tests db_tests
+    step 6.3-browser-tests ui_smoke
+    step 6.4-apex-sert sert_eval
+    step 6.5-dbsat dbsat ;;
   finalize)
-    step 9.1-export export_app "${2:?output dir}/app"
-    step 9.3-apex-docs readable_export "$2/apex-docs"
-    step 9.4-db-docs schemaspy "$2/db-docs" ;;
+    step 7.1-export export_app "${2:?output dir}/app"
+    step 7.3-apex-docs readable_export "$2/apex-docs"
+    step 7.4-db-docs schemaspy "$2/db-docs" ;;
   *)
     echo "unknown job: $1" >&2; exit 2 ;;
 esac

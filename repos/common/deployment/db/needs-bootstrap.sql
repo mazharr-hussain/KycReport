@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Step 5.2 check, run as the pipeline user: is the validation environment complete?
+-- Step 3.2 check, run as the pipeline user: is the validation environment complete?
 -- Prints "BOOTSTRAP OK" or one "BOOTSTRAP NEEDED: <reason>" line per missing piece; changes nothing.
 -- (A failed login as the pipeline user also means bootstrap is needed - db/run.sh handles that.)
 -- Substitution variables: app_schema, workspace.

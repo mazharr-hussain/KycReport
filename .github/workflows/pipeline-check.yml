@@ -1,0 +1,29 @@
+# A pipeline-only change goes straight to main without a PR (CLAUDE.md); this checks it there: step 1.1 of the
+# pipeline (actionlint on the pipeline's workflows, shellcheck on its scripts, Python compile). A failure shows on the
+# commit and is fixed by the next push.
+name: Pipeline check
+on:
+  push:
+    branches: [main]
+    paths: ['repos/common/deployment/**', '.github/workflows/**', '.github/actions/**']
+  workflow_dispatch:
+permissions: {}
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - name: 1.1 Pipeline lint
+        env:
+          LOG_DIR: /tmp/pipeline-logs
+        run: |
+          pip install -q actionlint-py==1.7.12.25 shellcheck-py==0.11.0.1 pyyaml==6.0.2
+          bash repos/common/deployment/checks/run.sh lint

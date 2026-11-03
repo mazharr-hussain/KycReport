@@ -1,0 +1,31 @@
+# Commits COMMON's generated files (SOURCE-MAP.json, db/deploy, docs/components/*/technical.md) to main after a push
+# made by a person (a merge by hand, a pipeline fix). The pipeline's own merge does it in job 7.2 (its push starts no
+# workflow). Nobody commits these files by hand (repos/common/deployment/release/regenerate.sh).
+name: Generated files
+on:
+  push:
+    branches: [main]
+    paths: ['repos/common/**']
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: generated-files
+  cancel-in-progress: false
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - name: Build and commit the generated files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash repos/common/deployment/release/regenerate.sh origin/main

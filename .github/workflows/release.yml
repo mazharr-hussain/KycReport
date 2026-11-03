@@ -1,7 +1,7 @@
 # Publishes the GitHub Release of each application release merged by a person (release/publish.sh; the pipeline's own
-# merge in job 9.2 publishes it itself, because a merge made with the workflow token starts no workflow):
+# merge in job 7.2 publishes it itself, because a merge made with the workflow token starts no workflow):
 #   - the merged pull request's title gives the release: "<APP> Release <N>: <summary>" -> tag <app>-<N> (issue #218)
-#   - COMMON: the draft release prepared by the pipeline (pipeline.yml 9.1: the APEXlang zip exported from the tested
+#   - COMMON: the draft release prepared by the pipeline (pipeline.yml 7.1: the APEXlang zip exported from the tested
 #     application, readable APEX docs, SchemaSpy docs) is published, with the PR's linked issues ("Fixes #n") as notes
 #   - no draft (KYC today): the zip committed in repos/<app>/releases/<name>_<N>.zip, if any
 name: Release

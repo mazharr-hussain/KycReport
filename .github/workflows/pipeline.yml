@@ -1,15 +1,15 @@
 # COMMON pipeline (app 135, schema XXFUSION) - one record per pull request run, named after the PR title.
-# Agreed flow (steps 1-2 happen before the pipeline: Claude changes the code, reviews it, opens the PR and pushes):
-#    3 Offline validation (no OCI, no DB)      4 OCI setup (placeholder)        5 DB setup
-#    6 Deploy fresh app                         7 Upgrade app (no data lost)     8 Testing and validation
-#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
-#      9.3-9.4 documentation (readable APEX export, SchemaSpy)
-#   10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
-# Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 3 and 9 only.
-# Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
+# Agreed flow (before the pipeline, Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-8):
+#    1 Offline validation (no OCI, no DB)      2 OCI setup (placeholder)        3 DB setup
+#    4 Deploy fresh app                         5 Upgrade app (no data lost)     6 Testing and validation
+#    7 Finalize the PR: 7.1 release zip (APEXlang export), 7.2 issues for a future release + merge + release,
+#      7.3-7.4 documentation (readable APEX export, SchemaSpy)
+#    8 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
+# Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 7 only.
+# Required check on main: "7 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
 name: COMMON
 # run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
-# the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 3.0a)
+# the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0a)
 run-name: "${{ github.event.pull_request.title || 'COMMON: manual run' }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
 
 on:
@@ -19,7 +19,7 @@ on:
 
 permissions: {}
 
-# one run at a time on the validation database (jobs 5-9 share its state); a newer push waits, it is not cancelled
+# one run at a time on the validation database (jobs 3-7 share its state); a newer push waits, it is not cancelled
 concurrency:
   group: validation-db
   cancel-in-progress: false
@@ -30,12 +30,12 @@ env:
 
 jobs:
   offline:
-    name: 3 Offline validation
+    name: 1 Offline validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
-      issues: read          # 3.0a: the linked issues and their labels
+      issues: read          # 1.0a: the linked issues and their labels
     outputs:
       common: ${{ steps.scope.outputs.common }}
       release: ${{ steps.scope.outputs.release }}
@@ -60,7 +60,7 @@ jobs:
           else
             echo "common=false" >> "$GITHUB_OUTPUT"
           fi
-          # "COMMON Release <N>: ..." -> N (format checked in 3.0a; a KYC release has no COMMON release number)
+          # "COMMON Release <N>: ..." -> N (format checked in 1.0a; a KYC release has no COMMON release number)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -86,22 +86,30 @@ jobs:
           echo "$PMD_SHA256  pmd.zip" | sha256sum -c -
           unzip -q pmd.zip && rm pmd.zip
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
-      - name: 3.0a-3.6 Offline validation
+      - name: 1.0a-1.6 Offline validation
         if: steps.scope.outputs.common == 'true'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           GITHUB_TOKEN: ${{ github.token }}
+          RELEASE: ${{ steps.scope.outputs.release }}   # stamped into the application by the build (1.4)
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
-      - name: This version's application (built once, deployed by jobs 6-7)
+      - name: This version's application (built once, deployed by jobs 4-5)
         if: steps.scope.outputs.common == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: common-dist
           path: repos/common/dist/app
+          if-no-files-found: error
+      - name: This version's database scripts (generated by the build, deployed by jobs 4-5)
+        if: steps.scope.outputs.common == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: common-deploy
+          path: repos/common/db/deploy
           if-no-files-found: error
       - name: Step logs
         if: always()
@@ -112,7 +120,7 @@ jobs:
           if-no-files-found: ignore
 
   oci-setup:
-    name: 4 OCI setup (placeholder)
+    name: 2 OCI setup (placeholder)
     needs: offline
     if: needs.offline.outputs.common == 'true'
     runs-on: ubuntu-latest
@@ -120,14 +128,14 @@ jobs:
     permissions: {}
     steps:
       - name: Placeholder - OCI infra, vault / secrets, DB Tools connection, IDCS trust
-        run: echo "Job 4 is a placeholder - the pipeline uses SQLcl with the wallet; nothing to set up on OCI."
+        run: echo "Job 2 is a placeholder - the pipeline uses SQLcl with the wallet; nothing to set up on OCI."
 
   db-setup:
-    name: 5 DB setup
+    name: 3 DB setup
     needs: oci-setup
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
-    timeout-minutes: 60   # the first APEX-SERT install (5.4, Liquibase) takes more than 20 minutes; later runs skip it
+    timeout-minutes: 60   # the first APEX-SERT install (3.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
       contents: read
     env:
@@ -143,7 +151,7 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 5.1-5.4 DB setup
+      - name: 3.1-3.4 DB setup
         run: bash repos/common/deployment/db/run.sh setup
       - name: Step logs
         if: always()
@@ -154,7 +162,7 @@ jobs:
           if-no-files-found: ignore
 
   fresh:
-    name: 6 Deploy fresh app
+    name: 4 Deploy fresh app
     needs: db-setup
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
@@ -172,12 +180,18 @@ jobs:
         with:
           name: common-dist
           path: repos/common/dist/app
+      - name: This version's database scripts - the ones job 1 built (not the committed copies)
+        run: rm -rf repos/common/db/deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-deploy
+          path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 6.0-6.4 Deploy fresh app
+      - name: 4.0-4.4 Deploy fresh app
         run: bash repos/common/deployment/db/run.sh fresh
-      - name: Dependency report (6.4)
+      - name: Dependency report (4.4)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -193,7 +207,7 @@ jobs:
           if-no-files-found: ignore
 
   upgrade:
-    name: 7 Upgrade app
+    name: 5 Upgrade app
     needs: fresh
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
@@ -212,13 +226,19 @@ jobs:
         with:
           name: common-dist
           path: repos/common/dist/app
+      - name: This version's database scripts - the ones job 1 built (not the committed copies)
+        run: rm -rf repos/common/db/deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: common-deploy
+          path: repos/common/db/deploy
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 7.1-7.7 Upgrade app (last release = the PR's base commit)
+      - name: 5.1-5.7 Upgrade app (last release = the PR's base commit)
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
@@ -229,7 +249,7 @@ jobs:
           if-no-files-found: ignore
 
   test:
-    name: 8 Testing and validation
+    name: 6 Testing and validation
     needs: upgrade
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
@@ -240,7 +260,7 @@ jobs:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job, test users, SERT, DBSAT
       VAL_APP_URL: ${{ vars.VAL_APP_URL }}             # optional: overrides the APEX URL read from the wallet
-      DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 8.5)
+      DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 6.5)
       DBSAT_ZIP_SHA256: ${{ vars.DBSAT_ZIP_SHA256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -266,9 +286,9 @@ jobs:
           url=$(bash repos/common/deployment/lib/app-url.sh)
           echo "APP_URL=$url" >> "$GITHUB_ENV"
           echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
-      - name: 8.1-8.5 Test users, DB tests, browser tests, APEX-SERT, DBSAT
+      - name: 6.1-6.5 Test users, DB tests, browser tests, APEX-SERT, DBSAT
         run: bash repos/common/deployment/db/run.sh test
-      - name: 8.6 OWASP ZAP baseline scan (passive; report only)
+      - name: 6.6 OWASP ZAP baseline scan (passive; report only)
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: ${{ steps.app.outputs.target }}
@@ -277,7 +297,7 @@ jobs:
           allow_issue_writing: false
           fail_action: false
           artifact_name: report-8-zap
-      - name: Test and security reports, browser recordings (8.3-8.5)
+      - name: Test and security reports, browser recordings (6.3-6.5)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -293,7 +313,7 @@ jobs:
           if-no-files-found: ignore
 
   finalize:
-    name: 9 Finalize the PR
+    name: 7 Finalize the PR
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test]
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass
@@ -302,9 +322,9 @@ jobs:
     environment: Oracle DB Dev
     timeout-minutes: 15
     permissions:
-      contents: write        # draft GitHub Release of the tested zip; 9.2 merge and release
-      pull-requests: write   # 9.2 ready for review, merge, PR comment
-      issues: write          # 9.2 issues for the existing findings
+      contents: write        # draft GitHub Release of the tested zip; 7.2 merge and release
+      pull-requests: write   # 7.2 ready for review, merge, PR comment
+      issues: write          # 7.2 issues for the existing findings
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
@@ -317,8 +337,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
-          declare -A title=([offline]="3 Offline validation" [oci-setup]="4 OCI setup" [db-setup]="5 DB setup"
-                            [fresh]="6 Deploy fresh app" [upgrade]="7 Upgrade app" [test]="8 Testing and validation")
+          declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
+                            [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 Testing and validation")
           # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
           bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
           if [ "$COMMON" = true ]; then allowed='=success$'; else allowed='=(success|skipped)$'; fi
@@ -326,7 +346,7 @@ jobs:
           if [ -z "$bad" ]; then bad=$(grep -m1 -vE "$allowed" results.txt || true); fi
           if [ -n "$bad" ]; then
             job=${bad%%=*}; result=${bad#*=}
-            msg="9 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
+            msg="7 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
             echo "::error::$msg"; echo "- **$msg**" >> "$GITHUB_STEP_SUMMARY"; exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -337,7 +357,7 @@ jobs:
         if: env.COMMON == 'true'
         with:
           wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 9.1 Release zip (APEXlang export) and 9.3-9.4 documentation of the tested application
+      - name: 7.1 Release zip (APEXlang export) and 7.3-7.4 documentation of the tested application
         if: env.COMMON == 'true'
         run: |
           set -euo pipefail
@@ -347,15 +367,15 @@ jobs:
           name="COMMON-Application-APEXlang_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
           (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
           echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
-          echo "- 9.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
-      - name: 9.1 Release zip (artifact)
+          echo "- 7.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: 7.1 Release zip (artifact)
         if: env.COMMON == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: common-release-zip
           path: ${{ env.ZIP }}
           if-no-files-found: error
-      - name: 9.3-9.4 Documentation (artifact) - readable APEX export and SchemaSpy database docs
+      - name: 7.3-7.4 Documentation (artifact) - readable APEX export and SchemaSpy database docs
         if: env.COMMON == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -364,7 +384,7 @@ jobs:
             ${{ runner.temp }}/COMMON-apex-docs.zip
             ${{ runner.temp }}/COMMON-db-docs.zip
           if-no-files-found: error
-      - name: 9.1 Draft GitHub Release (published by release.yml when the PR merges)
+      - name: 7.1 Draft GitHub Release (published by release.yml when the PR merges)
         if: env.COMMON == 'true' && env.RELEASE != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -391,7 +411,7 @@ jobs:
             gh release create "$tag" "$ZIP" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" \
               --draft --title "$PR_TITLE" --notes-file "$readme"
           fi
-          echo "- 9.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 7.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
       - name: Pipeline report - collect the step logs
         if: github.event_name == 'pull_request'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -409,7 +429,7 @@ jobs:
       - name: Pipeline report - warnings and notices of this run
         if: github.event_name == 'pull_request'
         run: python3 repos/common/deployment/checks/report.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2 Issues for a future release - the existing findings (files this PR did not change)
+      - name: 7.2 Issues for a future release - the existing findings (files this PR did not change)
         if: github.event_name == 'pull_request'
         env:
           # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
@@ -418,7 +438,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2 Merge the PR and publish its release
+      - name: 7.2 Merge the PR and publish its release
         id: merge
         if: github.event_name == 'pull_request'
         env:
@@ -428,7 +448,7 @@ jobs:
         run: |
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
             "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
-      - name: 9.2 Report on the PR - passed, merge result, warnings, notices, issues logged
+      - name: 7.2 Report on the PR - passed, merge result, warnings, notices, issues logged
         if: github.event_name == 'pull_request' && (success() || steps.merge.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -439,13 +459,13 @@ jobs:
             const pr = context.payload.pull_request;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [`**COMMON pipeline passed** - Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}), [run](${runUrl}).`,
-                          read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 9.2 in the run).', '',
+                          read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 7.2 in the run).', '',
                           read(`${process.env.RUNNER_TEMP}/report.md`)].join('\n');
             await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
             await core.summary.addRaw(body).write();
 
   error:
-    name: 10 Error handling
+    name: 8 Error handling
     needs: [offline, oci-setup, db-setup, fresh, upgrade, test, finalize]
     if: failure() || cancelled()
     runs-on: ubuntu-latest
@@ -454,20 +474,20 @@ jobs:
       contents: read         # the report script
       pull-requests: write   # the error comment
     steps:
-      - name: 10.1 Collect the step logs
+      - name: 8.1 Collect the step logs
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: logs-*
           path: logs
-      - name: 10.1 The report script
+      - name: 8.1 The report script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: repos/common/deployment/checks
           path: src
-      - name: 10.1 Warnings and notices of this run
+      - name: 8.1 Warnings and notices of this run
         run: python3 src/repos/common/deployment/checks/report.py logs "$RUNNER_TEMP/report.md"
-      - name: 10.1-10.3 Error details - PR comment and run summary, then stop
+      - name: 8.1-8.3 Error details - PR comment and run summary, then stop
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RESULTS: ${{ toJSON(needs) }}
@@ -476,11 +496,11 @@ jobs:
           script: |
             const fs = require('fs'), path = require('path');
             const results = JSON.parse(process.env.RESULTS);
-            const title = { offline: '3 Offline validation', 'oci-setup': '4 OCI setup', 'db-setup': '5 DB setup',
-              fresh: '6 Deploy fresh app', upgrade: '7 Upgrade app', test: '8 Testing and validation', finalize: '9 Finalize the PR' };
+            const title = { offline: '1 Offline validation', 'oci-setup': '2 OCI setup', 'db-setup': '3 DB setup',
+              fresh: '4 Deploy fresh app', upgrade: '5 Upgrade app', test: '6 Testing and validation', finalize: '7 Finalize the PR' };
             const order = Object.keys(results);   // flow order (the needs list)
             const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
-            // the job that caused it: the first failed one before job 9 (job 9 only fails because of it)
+            // the job that caused it: the first failed one before job 7 (job 7 only fails because of it)
             const job = failedJobs.find(k => k !== 'finalize') || failedJobs[0] || 'unknown';
             const skipped = order.filter(k => results[k].result === 'skipped').map(k => title[k] || k);
             const name = title[job] || job;
@@ -500,7 +520,7 @@ jobs:
             const body = [
               `**COMMON pipeline failed because of job ${name} ${results[job]?.result || 'failure'}**${step ? ` (step \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
-              (job !== 'finalize' && results.finalize?.result === 'failure' ? `9 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
+              (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because of job ${name} failure (no zip, no merge). ` : '') +
               'The PR stays open; push a fix and the pipeline runs again.', '',
               '| | |', '|---|---|',
               `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,

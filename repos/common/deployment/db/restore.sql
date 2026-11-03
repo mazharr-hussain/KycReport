@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
--- Step 7.3, run as the application schema (proxy) after the LAST release is installed: puts the backed-up data back
--- into the old release's tables, so the upgrade (7.4) runs over real data. Validation database only.
+-- Step 5.3, run as the application schema (proxy) after the LAST release is installed: puts the backed-up data back
+-- into the old release's tables, so the upgrade (5.4) runs over real data. Validation database only.
 --   - only tables that exist in both; only columns that exist in both (virtual / hidden columns left out)
 --   - foreign keys and triggers are disabled during the load and enabled (validated) after it
 --   - identity columns and sequences are moved past the restored keys, so the upgrade's own inserts do not collide

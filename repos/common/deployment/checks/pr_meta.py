@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Job 3, step 3.0a - the pull request's title and linked issues (issue #218).
+"""Job 1, step 1.0a - the pull request's title and linked issues (issue #218).
 
   Title:  <APP> Release <Number>: <short summary>   APP = COMMON | KYC, summary at most 60 characters
   Body:   one "Fixes #n" line (or Closes / Resolves) per issue of the release - GitHub links them to the PR
