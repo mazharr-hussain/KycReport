@@ -3,15 +3,17 @@
 -- the backup schema's snapshot taken just before the upgrade (5.4), then checks the keys. Validation database only.
 --   FAIL  a table that still exists has fewer rows than before the upgrade (data lost)
 --   FAIL  a key (primary, unique, foreign, check - a new required column too) that is on but not checked against the
---         existing rows (ENABLED NOVALIDATE): the upgrade did not prove the old rows meet it
+--         existing rows (ENABLED NOVALIDATE): the upgrade did not prove the old rows meet it - unless the fresh install
+--         of this version leaves it so too (novalidate_ok: its install script says "enable novalidate"): INFO
 --   INFO  a table removed by the release; rows whose values the upgrade changed (planned data changes)
 -- Large-object and object-type columns are not compared value by value (row counts still are).
--- Substitution variables: bkp_schema, restore_exclude.
+-- Substitution variables: bkp_schema, restore_exclude, novalidate_ok (TABLE.CONSTRAINT,... - from 4.5's record).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
 declare
     l_bkp      constant varchar2(128) := dbms_assert.simple_sql_name(upper('&bkp_schema'));
     l_exclude  constant varchar2(4000) := ',' || upper(replace('&restore_exclude', ' ')) || ',';
+    l_nv_ok    constant varchar2(32767) := ',' || upper(replace('&novalidate_ok', ' ')) || ',';
     l_cols     varchar2(32767);
     l_before   number;
     l_after    number;
@@ -72,8 +74,13 @@ begin
                where status = 'ENABLED' and validated = 'NOT VALIDATED' and table_name not like 'XXCI\_%' escape '\'
                  and table_name not like 'BIN$%'
                order by table_name, constraint_name) loop
-        dbms_output.put_line('FAIL key not checked against the existing rows: ' || k.table_name || '.' || k.constraint_name);
-        l_lost := l_lost + 1;
+        if instr(l_nv_ok, ',' || k.table_name || '.' || k.constraint_name || ',') > 0 then
+            dbms_output.put_line('INFO key not checked against the existing rows, as in the fresh install (enable novalidate by design): '
+                || k.table_name || '.' || k.constraint_name);
+        else
+            dbms_output.put_line('FAIL key not checked against the existing rows: ' || k.table_name || '.' || k.constraint_name);
+            l_lost := l_lost + 1;
+        end if;
     end loop;
     dbms_output.put_line('compared ' || l_tables || ' table(s) with the snapshot before the upgrade');
     if l_lost > 0 then

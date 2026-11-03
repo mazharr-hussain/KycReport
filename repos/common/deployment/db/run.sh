@@ -344,7 +344,14 @@ guard() {   # guard version|app|patch|upgrade <login>: the database still holds 
   return 1
 }
 compare() {     # 5.6
-  S "$APP_SCHEMA" "$HERE/compare.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE"
+  # keys the fresh install of this version also leaves ENABLED NOT VALIDATED (4.5) are that way by design (the install
+  # script says "enable novalidate"): INFO, not FAIL - 5.8 still checks the upgrade leaves them in the same state
+  local out ok
+  out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 4000 trimspool on" \
+    "select 'NV ' || line from xxci_fresh_schema where line like 'K % ENABLED NOT VALIDATED';") || { echo "$out"; return 1; }
+  ok=$(echo "$out" | awk '$1 == "NV" && $2 == "K" {printf "%s%s.%s", (n++ ? "," : ""), $3, $4}')
+  safe "${ok//,/}" || return 1
+  S "$APP_SCHEMA" "$HERE/compare.sql" check bkp_schema="$BKP_SCHEMA" restore_exclude="$RESTORE_EXCLUDE" novalidate_ok="$ok"
 }
 
 # ---- 6 ---------------------------------------------------------------------------------------------------------------
