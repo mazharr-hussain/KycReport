@@ -130,8 +130,12 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   release (5.3 - that release's own copy from git, so data and structure always match; while the last release has no
   file yet, this version's file loads tolerantly) and again after the upgrade (5.7). Nothing is kept between runs: the
   kept baseline schema of run 35 is dropped (3.3b). A release that adds a table or a required column adds its rows in
-  the same PR - 1.6b (`checks/test_data.py`) fails on a table without rows or a column the table does not have. The
-  file is part of the database fingerprint: changing it redeploys.
+  the same PR - 1.6b (`checks/test_data.py`) checks every row offline against the install's own definitions (CREATE
+  TABLE and every later column / constraint change): the table and columns exist, NOT NULL, CHECK constraints, primary
+  / unique keys and foreign keys (the parent row earlier in the file or seeded) - a bad row fails job 1, not job 4.
+  One row per component (its main table); every other table is in "no_data". A change of the test data alone keeps
+  the install fingerprint: after a failed 4.2b, the next run decides deploy=data (4.0 install guard, 4.2b, 4.3-4.5 -
+  no redeploy).
 - **Upgrade = fresh (5.8):** 4.5 keeps the fresh install's structure (tables, columns, keys and their state, indexes,
   code objects; `XXCI_FRESH_SCHEMA`); after the upgrade and the delta load the upgraded database must show exactly
   the same lines (row counts are shown for information).
@@ -184,7 +188,7 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `db/grant-to.sql`, `db/backup.sql`, `db/compare.sql` | upgrade test: the snapshot before the upgrade and the nothing-lost check after it |
 | `db/load_data.py`, `db/load-data.sql`, `../db/admin/test-data.json` | the test data: merged into the database in 4.2b, 5.3, 5.7 |
 | `db/schema-summary.sql` | the structure lines of 4.5 / 5.8 (upgrade = fresh) |
-| `checks/test_data.py` | 1.6b: every table has test rows, every column exists |
+| `checks/test_data.py` | 1.6b: every test row fits the install - columns, NOT NULL, checks, keys, foreign keys |
 | `../../../.github/workflows/pipeline-command.yml` | `/pipeline start-from N` on a PR |
 | `db/remove-app.sql`, `db/clear-schema.sql` | remove the application and every object of the schema (validation DB only) |
 | `db/validate-online.sql` | no invalid object / compile error; application installed, available, every page present |
