@@ -254,6 +254,25 @@ schema_summary() {   # the structure lines (schema-summary.sql) into <file>
   S "$APP_SCHEMA" "$HERE/schema-summary.sql" check | sed -n 's/^SCHEMA //p' > "$1"
   [ -s "$1" ] || { echo "no structure read from $APP_SCHEMA"; return 1; }
 }
+record_install() {   # 4.2a: the install of this version (no data yet) - a data-only fix reloads the data on it (deploy=data)
+  safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
+  ci_exec CI "merge into xxci_passed t using (select 'install' check_name from dual) s on (t.check_name = s.check_name)" \
+    " when matched then update set fingerprint = '$INSTALL_FINGERPRINT', passed_on = systimestamp" \
+    " when not matched then insert (check_name, fingerprint) values ('install', '$INSTALL_FINGERPRINT');" "commit;" > /dev/null || return 1
+  echo "install recorded for $INSTALL_FINGERPRINT (test data not loaded yet)"
+}
+forget_install() {   # 4.2c: the test data is in - the install record no longer allows a data-only reload
+  ci_exec CI "delete from xxci_passed where check_name = 'install';" "commit;" > /dev/null
+}
+install_guard() {   # 4.0 (deploy=data): the database still holds the install job 3 found
+  local out
+  safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
+  out=$(ci_exec CI "set heading off feedback off pagesize 0" \
+    "select 'INSTALL-OF ' || fingerprint from xxci_passed where check_name = 'install';") || { echo "$out"; return 1; }
+  echo "$out" | grep -qx "INSTALL-OF $INSTALL_FINGERPRINT" \
+    || { echo "FAIL the database no longer holds the install of this version ($INSTALL_FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
+  echo "the database holds the install of this version ($INSTALL_FINGERPRINT) - test data only"
+}
 record_fresh() {   # 4.5: the fresh install's structure (compared with the upgraded database in 5.8) and its pass
   local f n=0 line q="'" lines=("delete from xxci_fresh_schema;")
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
@@ -530,7 +549,7 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     step 3.2-bootstrap bootstrap
     step 3.2b-deploy-decision decide
     # the snapshot schema serves the upgrade test only (a quick check is followed by the full deploy)
-    if grep -qE '^(full|patch|upgrade)$' "$LOG_DIR/deploy"; then
+    if grep -qE '^(full|patch|upgrade|data)$' "$LOG_DIR/deploy"; then
       step 3.3-backup-schema backup_schema N
     fi
     step 3.3b-drop-old-baseline drop_old_baseline
@@ -562,11 +581,17 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
       step 4.1-remove-apex-app remove_apex_app
       step 4.2-import-app deploy "$THIS" app
     else
-      step 4.1a-mark-record mark_dirty all
-      step 4.1-remove-app remove_app
-      step 4.1b-remove-test-accounts remove_test_accounts
-      step 4.2-deploy-this deploy "$THIS" install
+      if [ "${DEPLOY:-full}" = data ]; then
+        step 4.0-install-guard install_guard
+      else
+        step 4.1a-mark-record mark_dirty all
+        step 4.1-remove-app remove_app
+        step 4.1b-remove-test-accounts remove_test_accounts
+        step 4.2-deploy-this deploy "$THIS" install
+        step 4.2a-record-install record_install
+      fi
       step 4.2b-load-test-data load_data "$THIS" strict
+      step 4.2c-data-loaded forget_install
     fi
     step 4.3-online-validation validate_online
     step 4.4-dependency-check dependency_check

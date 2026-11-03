@@ -6,6 +6,8 @@ fingerprint.py <repo root>   (after the build) - prints lines for $GITHUB_OUTPUT
   db_fingerprint=<the database scripts (db/deploy install + upgrade) and the test data (db/admin/test-data.json)>
   struct_fingerprint=<the database structure: every install / upgrade step that is not a code object, and the test data>
   app_fingerprint=<the application without its supporting objects (pages, shared components ...)>
+  install_fingerprint=<the application + database scripts without the test data: what step 4.2 deploys - a change of
+                      the test data alone keeps it, so a run whose data load failed reloads the data only (deploy=data)>
 and repos/common/db/deploy/code-manifest.txt: one line per code object - "<key> <hash> install/<file>".
 
 Code objects are the files the build names package-spec-*, package-body-*, view-* and trigger-*: each holds one
@@ -47,7 +49,8 @@ def main(root):
         sys.exit(f'fingerprint.py: no built application in {app} - run the build first')
     data_file = os.path.join(common, 'db', 'admin', 'test-data.json')   # jobs 4-5 load it: a change redeploys
     data = sha(open(data_file, 'rb').read()) if os.path.isfile(data_file) else '-'
-    db = sha(b''.join(tree(os.path.join(deploy, d)).encode() for d in ('install', 'upgrade')) + data.encode())[:16]
+    scripts = b''.join(tree(os.path.join(deploy, d)).encode() for d in ('install', 'upgrade'))
+    db = sha(scripts + data.encode())[:16]
     files = {}
     for d in ('install', 'upgrade'):
         for f in sorted(os.listdir(os.path.join(deploy, d))):
@@ -70,6 +73,7 @@ def main(root):
     print(f'db_fingerprint={db}')
     print(f'struct_fingerprint={struct.hexdigest()[:16]}')
     print(f'app_fingerprint={appfp}')
+    print(f'install_fingerprint={sha(tree(app)[:16].encode() + scripts)[:16]}')
 
 
 if __name__ == '__main__':

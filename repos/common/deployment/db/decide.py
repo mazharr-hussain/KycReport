@@ -5,8 +5,8 @@ decide.py <record> <code-manifest> <out dir>
   <record>         the output of deployed.sql mode=get: "DEPLOYED <fp> <db> <struct> <app> <verified> <tested head>",
                    "CODE <key> <hash>" (the code objects the database holds), "PASSED ...", "FAILED ..."
   <code-manifest>  this version's code-manifest.txt (checks/fingerprint.py)
-Env: FINGERPRINT, DB_FINGERPRINT, STRUCT_FINGERPRINT, APP_FINGERPRINT, START_FROM (4, 5, 6 or empty - see below).
-Writes <out dir>/deploy (reuse | app | patch | upgrade | full), <out dir>/patch-files (install/<file> per line, install order)
+Env: FINGERPRINT, DB_FINGERPRINT, STRUCT_FINGERPRINT, APP_FINGERPRINT, INSTALL_FINGERPRINT, START_FROM (4, 5, 6 or empty - see below).
+Writes <out dir>/deploy (reuse | app | patch | upgrade | data | full), <out dir>/patch-files (install/<file> per line, install order)
 <out dir>/changed-objects (object names, one per line) and <out dir>/app-changed (true: the application without its
 supporting objects differs from the one deployed - the quick check imports it); prints the reason.
 
@@ -16,6 +16,8 @@ supporting objects differs from the one deployed - the quick check imports it); 
          first (the changed code alone, then its tests: a few minutes), then the full deploy - a quick check never merges
   upgrade  job 4 (fresh install) passed for exactly this version on an earlier run and the run did not finish (e.g.
          job 5 failed, then a pipeline-only fix): job 4 skipped, job 5 (upgrade test) runs again    job 4 skipped
+  data   step 4.2 (deploy) passed for exactly this application and these database scripts and the test data never
+         loaded since (4.2b failed): only the test data changed - job 4 loads the data (4.2b) and goes on, no redeploy
   full   anything else: no record, a deploy that did not finish (DIRTY), a structure change, a code object removed
          or renamed (it would stay in the database and hide a broken caller)
 
@@ -48,6 +50,8 @@ for line in open(manifest_file):
 
 start = os.environ.get('START_FROM', '').strip()
 fresh_ok = bool(fp) and passed.get('fresh') == fp
+inst = os.environ.get('INSTALL_FINGERPRINT', '')
+install_ok = bool(inst) and passed.get('install') == inst   # 4.2 passed, 4.2b never loaded since
 note = []
 
 
@@ -77,6 +81,9 @@ def done(deploy, reason, files=()):
 
 if not (fp and db and struct):
     done('full', 'no fingerprint')
+if install_ok and not fresh_ok and start in ('', '4'):
+    done('data', f'info: this version is installed ({inst}, step 4.2 passed) and its test data never loaded - '
+                 'job 4 loads the test data only (4.2b), no redeploy')
 if start == '4':
     done('full', 'start from job 4 as asked: fresh install and upgrade test')
 if start not in ('', '4', '5', '6'):

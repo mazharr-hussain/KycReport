@@ -58,6 +58,7 @@ jobs:
       db_fingerprint: ${{ steps.fingerprint.outputs.db_fingerprint }}
       struct_fingerprint: ${{ steps.fingerprint.outputs.struct_fingerprint }}   # the database structure (Q1)
       app_fingerprint: ${{ steps.fingerprint.outputs.app_fingerprint }}         # the app without supporting objects
+      install_fingerprint: ${{ steps.fingerprint.outputs.install_fingerprint }} # app + scripts without the test data (deploy=data)
       db_changed: ${{ steps.dbdiff.outputs.db_changed }}
       db_tests: ${{ steps.affected.outputs.db_tests }}   # ALL, or the DB tests a PR affects (K, L)
       pages: ${{ steps.affected.outputs.pages }}         # ALL, or the pages a PR changes
@@ -244,6 +245,7 @@ jobs:
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
       APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
+      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}
       START_FROM: ${{ needs.offline.outputs.start_from }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
@@ -360,6 +362,8 @@ jobs:
     env:
       DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 4.7 records the version (no upgrade test)
       APP_ONLY: ${{ needs.db-setup.outputs.deploy == 'app' }}   # true: only the APEX application is replaced
+      DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # data: the install is kept, only the test data loads
+      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 4.2a records it, 4.0 (data) checks it
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 4.6: the DB tests this PR affects (or ALL)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
@@ -413,7 +417,8 @@ jobs:
     # version on an earlier run (5.0 checks that it is still recorded)
     if: >-
       always() && needs.db-setup.result == 'success' &&
-      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch') && needs.fresh.result == 'success') ||
+      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data') &&
+        needs.fresh.result == 'success') ||
        needs.db-setup.outputs.deploy == 'upgrade')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev

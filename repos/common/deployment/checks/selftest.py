@@ -90,7 +90,8 @@ def decide(root, rec, fp, start=''):
     open(os.path.join(root, 'rec.txt'), 'w').write(rec)
     open(os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), 'w').write(fp['manifest'])   # this version's
     env = dict(os.environ, FINGERPRINT=fp['fingerprint'], DB_FINGERPRINT=fp['db_fingerprint'],
-               STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'], START_FROM=start)
+               STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'],
+               INSTALL_FINGERPRINT=fp['install_fingerprint'], START_FROM=start)
     subprocess.run([sys.executable, DECIDE, os.path.join(root, 'rec.txt'),
                     os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), os.path.join(root, 'out')],
                    env=env, check=True, capture_output=True)
@@ -137,5 +138,15 @@ with tempfile.TemporaryDirectory() as root:
     e = build(root, v1, dict(v1, **{'0030-package-body-xxfnd_a_pkg.pkb': 'body other\n'}))
     check('fingerprint: install and upgrade copies differ - structure', e['struct_fingerprint'] != a['struct_fingerprint'], True)
     f = build(root, dict(v1, **{'0050-01-step-xxfnd_a-add-column.sql': 'exec add_column\n'}))
+    data = os.path.join(root, 'repos/common/db/admin/test-data.json')
+    write(root, 'repos/common/db/admin/test-data.json', '{"tables": []}\n'); g1 = build(root, v1)
+    write(root, 'repos/common/db/admin/test-data.json', '{"tables": [], "no_data": {}}\n'); g2 = build(root, v1)
+    os.remove(data)
+    check('fingerprint: a test data change keeps the install fingerprint', g2['install_fingerprint'], g1['install_fingerprint'])
+    check('fingerprint: a test data change changes the version fingerprint', g2['fingerprint'] != g1['fingerprint'], True)
+    inst = record(g1, 'DIRTY') + f'PASSED install {g1["install_fingerprint"]}\n'
+    check('decide: installed, data load failed, only the data changed -> data', decide(root, inst, g2)[0], 'data')
+    check('decide: same, start from job 4 -> data (no redeploy)', decide(root, inst, g2, '4')[0], 'data')
+    check('decide: installed, then the scripts changed -> full', decide(root, inst, f)[0], 'full')
     check('decide: a numbered step added -> full', decide(root, record(a), f)[0], 'full')
 sys.exit(0 if all(results) else 1)
