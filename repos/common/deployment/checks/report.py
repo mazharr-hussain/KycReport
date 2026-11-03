@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pipeline report for the PR comment (jobs 9 and 10): the warnings and notices of this run, from the step logs.
+"""Pipeline report for the PR comment (jobs 7 and 8): the warnings and notices of this run, from the step logs.
 
 report.py <logs dir> <out.md>
 <logs dir> holds the downloaded step-log artifacts (logs-<job>/<step>.log, written by lib/step.sh). Collected:

@@ -1047,14 +1047,6 @@
    "whole": true
   }
  ],
- "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/css/data-model-diagram.css": [
-  {
-   "from": 0,
-   "target": "common/app/shared-components/static-files/css/data-model-diagram.css",
-   "to": 215,
-   "whole": true
-  }
- ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/static-files/icons/app-icon-144-rounded.png": [
   {
    "from": 0,
@@ -1258,7 +1250,7 @@
  "apex/tests/common_test_fixture.sql": [
   {
    "from": 0,
-   "target": "common/tests/setup/03_common_test_fixture.sql",
+   "target": "common/tests/common_test_fixture.sql",
    "to": 2458,
    "whole": true
   }
@@ -1410,7 +1402,7 @@
  "apex/tests/r86_test_apps.sql": [
   {
    "from": 0,
-   "target": "common/tests/setup/01_r86_test_apps.sql",
+   "target": "common/tests/r86_test_apps.sql",
    "to": 2792,
    "whole": true
   }
@@ -1418,7 +1410,7 @@
  "apex/tests/r87_app_test.sql": [
   {
    "from": 0,
-   "target": "common/tests/r87_2_app_test.sql",
+   "target": "common/tests/r87_app_test.sql",
    "to": 5026,
    "whole": true
   }
@@ -1426,7 +1418,7 @@
  "apex/tests/r87_common_test.sql": [
   {
    "from": 0,
-   "target": "common/tests/r87_1_common_test.sql",
+   "target": "common/tests/r87_common_test.sql",
    "to": 9646,
    "whole": true
   }
@@ -1434,7 +1426,7 @@
  "apex/tests/r87_delete_test.sql": [
   {
    "from": 0,
-   "target": "common/tests/r87_3_delete_test.sql",
+   "target": "common/tests/r87_delete_test.sql",
    "to": 1588,
    "whole": true
   }
@@ -1474,7 +1466,7 @@
  "apex/tests/r89_data_model_apps.sql": [
   {
    "from": 0,
-   "target": "common/tests/setup/02_r89_data_model_apps.sql",
+   "target": "common/tests/r89_data_model_apps.sql",
    "to": 947,
    "whole": true
   }
@@ -1559,6 +1551,14 @@
    "whole": true
   }
  ],
+ "apex/tests/test_users.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/test_users.sql",
+   "to": 1191,
+   "whole": true
+  }
+ ],
  "apex/tools/check_session_state.py": [
   {
    "from": 0,
@@ -1596,6 +1596,14 @@
    "from": 0,
    "target": "common/features/approval-setup/pages/p00155-approval-group.apx",
    "to": 12737,
+   "whole": true
+  }
+ ],
+ "apex/tests/r111_common_pending_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r111_common_pending_test.sql",
+   "to": 2353,
    "whole": true
   }
  ]

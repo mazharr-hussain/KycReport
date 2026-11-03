@@ -470,25 +470,6 @@ create or replace package body xxfnd_application_pkg as
         end if;
     end assert_same_application;
 
-    -- I-062 (#221): the owner expression is joined into dynamic SQL, so only the expressions COMMON's own packages use
-    -- are accepted (explicit allow-list; compared without case and extra spaces). A new caller adds its expression
-    -- here. Anything else is refused before any SQL runs (a programming error, not a user message).
-    function owner_expression(p_owner_sql in varchar2) return varchar2 is
-        l_sql varchar2(4000) := lower(regexp_replace(trim(p_owner_sql), '\s+', ' '));
-    begin
-        if l_sql in (
-            't.application_code',
-            '(select a.application_code from xxfnd_applications a where a.application_id = t.application_id)',
-            '(select a.application_code from xxfnd_features f join xxfnd_applications a on a.application_id = f.application_id where f.feature_code = t.feature_code)',
-            '(select f.application_code from xxfnd_df_flexfields f where f.descriptive_flexfield_code = t.descriptive_flexfield_code)',
-            '(select max(a.application_code) from xxfnd_applications a where upper(nvl(a.apex_app_alias, a.application_code)) = upper(t.app_alias))',
-            '(select y.application_code from xxfnd_approval_types y where y.approval_type_code = t.approval_type_code)',
-            '(select y.application_code from xxfnd_lookup_types y where y.lookup_type = t.lookup_type)') then
-            return l_sql;
-        end if;
-        raise_application_error(-20189, 'Owner expression not allowed: ' || substr(p_owner_sql, 1, 200));
-    end owner_expression;
-
     procedure remove_registered(p_application_code in varchar2,
                                 p_what             in varchar2,
                                 p_table            in varchar2,
@@ -502,7 +483,6 @@ create or replace package body xxfnd_application_pkg as
         l_key   varchar2(4000) := apex_string.join(p_keys, ' / ');
         l_n     pls_integer;
         l_owner varchar2(255);
-        l_owner_sql varchar2(4000) := owner_expression(p_owner_sql);
         procedure run(p_sql in varchar2, p_into in boolean) is
         begin
             case p_keys.count
@@ -525,7 +505,7 @@ create or replace package body xxfnd_application_pkg as
         -- every row is seen, whoever asks: the ownership check below decides
         xxfnd_vpd_pkg.begin_trusted;
         begin
-            run('select count(*), max(nvl(' || l_owner_sql || ', ''COMMON'')) from '
+            run('select count(*), max(nvl(' || p_owner_sql || ', ''COMMON'')) from '
                 || dbms_assert.simple_sql_name(p_table) || ' t where ' || l_where, true);
             if l_n = 0 then
                 xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2(p_what, l_key));
@@ -550,15 +530,14 @@ create or replace package body xxfnd_application_pkg as
                                     p_owner_sql        in varchar2 default 't.application_code') is
         e_in_use exception;
         pragma exception_init(e_in_use, -2292);
-        l_code      xxfnd_applications.application_code%type := registered_code(p_application_code);
-        l_owner_sql varchar2(4000) := owner_expression(p_owner_sql);
+        l_code xxfnd_applications.application_code%type := registered_code(p_application_code);
     begin
         if l_code = 'COMMON' then
             xxfnd_error_pkg.raise_error('XXFND_APP_DELETE_COMMON');
         end if;
         xxfnd_vpd_pkg.begin_trusted;
         begin
-            execute immediate 'delete from ' || dbms_assert.simple_sql_name(p_table) || ' t where ' || l_owner_sql || ' = :c'
+            execute immediate 'delete from ' || dbms_assert.simple_sql_name(p_table) || ' t where ' || p_owner_sql || ' = :c'
                 using l_code;
         exception
             when e_in_use then

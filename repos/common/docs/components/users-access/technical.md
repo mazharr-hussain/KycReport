@@ -70,6 +70,7 @@ One user record and one role assignment for all applications; sign-in and author
 - `features/approval-setup/tests/r113_approval_groups_test.sql`
 - `features/integrations/tests/r109_servers_users_test.sql`
 - `tests/common_apps_ui.py`
+- `tests/common_test_fixture.sql`
 - `tests/r111_common_pending_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r79_security_ui.py`
@@ -77,3 +78,4 @@ One user record and one role assignment for all applications; sign-in and author
 - `tests/r86_registration_test.sql`
 - `tests/r91_common_ui.py`
 - `tests/r94_approval_test.sql`
+- `tests/test_users.sql`

@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Validation database bootstrap (#192). Run as ADMIN by db/run.sh setup (step 5.2), only when the environment is
+-- Validation database bootstrap (#192). Run as ADMIN by db/run.sh setup (step 3.2), only when the environment is
 -- missing (needs-bootstrap.sql) or this file changed in the pull request.
 -- Creates only what is missing - an existing user, grant, workspace or APEX user is left as it is - so a re-run
 -- changes nothing.

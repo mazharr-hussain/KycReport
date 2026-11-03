@@ -53,52 +53,43 @@ create or replace package body xxfnd_approval_pkg as
         xxfnd_audit_pkg.clear_change_reason;
     end reject;
 
-    -- I-066 (#225): APPLY_RULES split into one routine per case (same rules, smaller routines)
-    -- a new row: install scripts (no APEX session) may seed rows as APPROVED; in APEX a new row waits for approval
-    procedure apply_insert_rules(p_user          in varchar2,
-                                 p_new_status    in out varchar2,
-                                 p_approved_by   in out varchar2,
-                                 p_approved_date in out timestamp) is
+    procedure apply_rules(p_inserting        in boolean,
+                          p_old_status       in varchar2,
+                          p_new_status       in out varchar2,
+                          p_old_last_updated in varchar2,
+                          p_approved_by      in out varchar2,
+                          p_approved_date    in out timestamp) is
+        l_user varchar2(255) := xxfnd_util_pkg.current_user;
     begin
-        if p_new_status = 'APPROVED' and xxfnd_util_pkg.in_apex_session then
-            p_new_status := 'PENDING_APPROVAL';
+        if p_inserting then
+            -- Install scripts (no APEX session) may seed rows as APPROVED.
+            if p_new_status = 'APPROVED' and xxfnd_util_pkg.in_apex_session then
+                p_new_status := 'PENDING_APPROVAL';
+            end if;
+            if p_new_status = 'APPROVED' then
+                p_approved_by   := l_user;
+                p_approved_date := systimestamp;
+            else
+                p_approved_by   := null;
+                p_approved_date := null;
+            end if;
+            return;
         end if;
-        if p_new_status = 'APPROVED' then
-            p_approved_by   := p_user;
-            p_approved_date := systimestamp;
-        else
-            p_approved_by   := null;
-            p_approved_date := null;
-        end if;
-    end apply_insert_rules;
 
-    -- a change being approved: only a pending change, and never by the person who made it
-    procedure check_approver(p_user in varchar2, p_old_status in varchar2, p_old_last_updated in varchar2) is
-    begin
-        if p_old_status <> 'PENDING_APPROVAL' then
-            raise_application_error(-20123, 'Only a change that is pending approval can be approved.');
-        end if;
-        if upper(p_user) = upper(p_old_last_updated) then
-            raise_application_error(-20124, 'You made this change, so someone else must approve it.');
-        end if;
-    end check_approver;
-
-    procedure apply_update_rules(p_user             in varchar2,
-                                 p_old_status       in varchar2,
-                                 p_new_status       in out varchar2,
-                                 p_old_last_updated in varchar2,
-                                 p_approved_by      in out varchar2,
-                                 p_approved_date    in out timestamp) is
-    begin
         -- release 74: install and upgrade scripts (no APEX session) may also set a row back to approved (a seed fix)
         if p_new_status = 'APPROVED' and not xxfnd_util_pkg.in_apex_session then
-            p_approved_by   := nvl(p_approved_by, p_user);
+            p_approved_by   := nvl(p_approved_by, l_user);
             p_approved_date := nvl(p_approved_date, systimestamp);
             return;
         end if;
         if p_new_status = 'APPROVED' and nvl(p_old_status, '#') <> 'APPROVED' then
-            check_approver(p_user, p_old_status, p_old_last_updated);
-            p_approved_by   := p_user;
+            if p_old_status <> 'PENDING_APPROVAL' then
+                raise_application_error(-20123, 'Only a change that is pending approval can be approved.');
+            end if;
+            if upper(l_user) = upper(p_old_last_updated) then
+                raise_application_error(-20124, 'You made this change, so someone else must approve it.');
+            end if;
+            p_approved_by   := l_user;
             p_approved_date := systimestamp;
         elsif p_new_status = nvl(p_old_status, '#') then
             -- A content edit (status untouched): approved rows go back for approval.
@@ -110,21 +101,6 @@ create or replace package body xxfnd_approval_pkg as
         elsif p_new_status in ('PENDING_APPROVAL','REJECTED','DRAFT') then
             p_approved_by   := null;
             p_approved_date := null;
-        end if;
-    end apply_update_rules;
-
-    procedure apply_rules(p_inserting        in boolean,
-                          p_old_status       in varchar2,
-                          p_new_status       in out varchar2,
-                          p_old_last_updated in varchar2,
-                          p_approved_by      in out varchar2,
-                          p_approved_date    in out timestamp) is
-        l_user varchar2(255) := xxfnd_util_pkg.current_user;
-    begin
-        if p_inserting then
-            apply_insert_rules(l_user, p_new_status, p_approved_by, p_approved_date);
-        else
-            apply_update_rules(l_user, p_old_status, p_new_status, p_old_last_updated, p_approved_by, p_approved_date);
         end if;
     end apply_rules;
 

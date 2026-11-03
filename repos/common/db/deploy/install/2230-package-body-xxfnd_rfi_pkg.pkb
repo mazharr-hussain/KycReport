@@ -81,57 +81,6 @@ create or replace package body xxfnd_rfi_pkg as
         end if;
     end continue_wait;
 
-    -- I-066 (#225): CREATE_RFI split into its checks, its approval start and its workflow start (same rules)
-    -- the new request's checks; returns whether its approval type is enabled (Y / N / null)
-    function check_new_rfi(p_rfi_category   in varchar2,
-                           p_recipient_type in varchar2,
-                           p_recipient      in varchar2,
-                           p_approval_type  in varchar2,
-                           p_due_date       in date) return varchar2 is
-        l_type_on varchar2(1);
-    begin
-        xxfnd_lookup_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
-        select max(enabled_flag) into l_type_on from xxfnd_approval_types where approval_type_code = upper(p_approval_type);
-        if p_recipient_type = 'USER' and p_recipient is null and nvl(l_type_on, 'N') = 'N' then
-            raise_application_error(-20509, 'Choose who provides the information.');
-        end if;
-        if p_due_date is not null and p_due_date < trunc(sysdate) then
-            raise_application_error(-20501, 'The due date cannot be in the past.');
-        end if;
-        return l_type_on;
-    end check_new_rfi;
-
-    -- providers from the Approval Setup: the approval starts; a single provider becomes the recipient
-    procedure start_rfi_approval(p_rfi_id        in number,
-                                 p_approval_type in varchar2,
-                                 p_attributes    in apex_t_varchar2,
-                                 p_requester     in varchar2) is
-        l_rule  varchar2(100);
-        l_users varchar2(4000);
-    begin
-        l_rule  := xxfnd_approval_rule_pkg.start_approval(p_approval_type, to_char(p_rfi_id), p_attributes, p_requester);
-        l_users := xxfnd_approval_rule_pkg.current_approvers(p_approval_type, to_char(p_rfi_id));
-        update xxfnd_rfis
-           set approval_type_code = upper(p_approval_type),
-               recipient_user_name = case when instr(l_users, ',') = 0 then l_users else recipient_user_name end
-         where rfi_id = p_rfi_id;
-    end start_rfi_approval;
-
-    -- release 84: the COMMON workflow process RFI asks, waits and has the answer reviewed (workflow switch of the
-    -- application's RFI process; p_with_tasks N = the application collects the answer itself)
-    procedure start_rfi_workflow(p_rfi_id in number, p_with_tasks in varchar2, p_app in varchar2) is
-        l_wf number;
-    begin
-        if nvl(p_with_tasks, 'Y') = 'Y'
-           and xxfnd_workflow_pkg.workflow_enabled(xxfnd_workflow_pkg.c_rfi_process, p_app) = 'Y' then
-            l_wf := xxfnd_workflow_pkg.start_process(p_static_id        => xxfnd_workflow_pkg.c_rfi_process,
-                                                     p_detail_pk        => to_char(p_rfi_id),
-                                                     p_application_id   => xxfnd_workflow_pkg.common_application_id,
-                                                     p_application_code => p_app);
-            update xxfnd_rfis set workflow_id = l_wf where rfi_id = p_rfi_id;
-        end if;
-    end start_rfi_workflow;
-
     procedure create_rfi(p_entity_name         in varchar2,
                          p_pk1_value           in varchar2,
                          p_recipient_type      in varchar2,
@@ -151,13 +100,23 @@ create or replace package body xxfnd_rfi_pkg as
                          p_language            in varchar2 default null,
                          p_rfi_id              out number,
                          p_token               out varchar2) is
+        l_rule  varchar2(100);
+        l_users varchar2(4000);
         l_type_on varchar2(1);
+        l_wf    number;
         l_app xxfnd_applications.application_code%type := app_code(p_application_code);
         -- release 82: the requester is the default recipient
         l_recipient varchar2(255) := case when p_recipient_type = 'USER'
                                           then upper(coalesce(p_recipient_user_name, p_requester)) end;
     begin
-        l_type_on := check_new_rfi(p_rfi_category, p_recipient_type, l_recipient, p_approval_type, p_due_date);
+        xxfnd_lookup_pkg.assert_lookup('RFI_CATEGORY', p_rfi_category, 'RFI category');
+        select max(enabled_flag) into l_type_on from xxfnd_approval_types where approval_type_code = upper(p_approval_type);
+        if p_recipient_type = 'USER' and l_recipient is null and nvl(l_type_on, 'N') = 'N' then
+            raise_application_error(-20509, 'Choose who provides the information.');
+        end if;
+        if p_due_date is not null and p_due_date < trunc(sysdate) then
+            raise_application_error(-20501, 'The due date cannot be in the past.');
+        end if;
         insert into xxfnd_rfis (application_code, entity_name, pk1_value, recipient_type, recipient_user_name,
                                 recipient_name, recipient_email, recipient_reference, rfi_category, description,
                                 continue_other_work_flag, rfi_status, due_date, language_code)
@@ -170,13 +129,27 @@ create or replace package body xxfnd_rfi_pkg as
         insert into xxfnd_rfi_rounds (rfi_id, round_no, question, asked_by)
         values (p_rfi_id, 1, p_description, xxfnd_util_pkg.current_user);
         if p_approval_type is not null and l_type_on = 'Y' then
-            start_rfi_approval(p_rfi_id, p_approval_type, p_attributes, p_requester);
+            l_rule  := xxfnd_approval_rule_pkg.start_approval(p_approval_type, to_char(p_rfi_id), p_attributes, p_requester);
+            l_users := xxfnd_approval_rule_pkg.current_approvers(p_approval_type, to_char(p_rfi_id));
+            update xxfnd_rfis
+               set approval_type_code = upper(p_approval_type),
+                   recipient_user_name = case when instr(l_users, ',') = 0 then l_users else recipient_user_name end
+             where rfi_id = p_rfi_id;
         end if;
         -- an outside person answers through the e-mailed one-time link (no account)
         if p_recipient_type <> 'USER' then
             p_token := new_token(p_rfi_id, p_due_date);
         end if;
-        start_rfi_workflow(p_rfi_id, p_with_tasks, l_app);
+        -- release 84: the COMMON workflow process RFI asks, waits and has the answer reviewed (workflow switch of the
+        -- application's RFI process; p_with_tasks N = the application collects the answer itself)
+        if nvl(p_with_tasks, 'Y') = 'Y'
+           and xxfnd_workflow_pkg.workflow_enabled(xxfnd_workflow_pkg.c_rfi_process, l_app) = 'Y' then
+            l_wf := xxfnd_workflow_pkg.start_process(p_static_id        => xxfnd_workflow_pkg.c_rfi_process,
+                                                     p_detail_pk        => to_char(p_rfi_id),
+                                                     p_application_id   => xxfnd_workflow_pkg.common_application_id,
+                                                     p_application_code => l_app);
+            update xxfnd_rfis set workflow_id = l_wf where rfi_id = p_rfi_id;
+        end if;
     end create_rfi;
 
     function recipient(p_rfi_id in number) return varchar2 is

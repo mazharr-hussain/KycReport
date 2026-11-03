@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- Upgrade test helper, run as a table owner (the application schema or its backup schema, by proxy): grants SELECT
--- on the owner's data tables to another schema, so the backup can copy them (6.0) and the restore / compare can read
--- the backup (7.3, 7.5). Validation database only. Substitution variable: grantee.
+-- on the owner's data tables to another schema, so the backup can copy them (4.0) and the restore / compare can read
+-- the backup (5.3, 5.5). Validation database only. Substitution variable: grantee.
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
 declare

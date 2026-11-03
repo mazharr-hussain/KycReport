@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Steps 6.0 and 7.3 (snapshot), run as the backup schema (proxy): copies the application's DATA (its tables, no code)
+-- Steps 4.0 and 5.3 (snapshot), run as the backup schema (proxy): copies the application's DATA (its tables, no code)
 -- from the application schema. The previous copy is dropped first. Validation database only.
 -- Not copied (reported): tables with LONG columns or columns of the application's own object types, queue tables,
 -- materialized views and Oracle-internal tables. VPD adds no predicate outside an APEX session, so every row is read.

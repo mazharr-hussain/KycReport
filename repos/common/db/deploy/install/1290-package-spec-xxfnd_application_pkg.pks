@@ -95,8 +95,7 @@ create or replace package xxfnd_application_pkg authid definer as
                                       p_application_code in varchar2);
     -- Release 88 (C8, C9): removes one registered setup row of P_APPLICATION_CODE (the UNREGISTER_* routine of the
     -- component that owns P_TABLE calls it; nothing else does). P_KEY_COLUMNS / P_KEYS: the row's key (1 to 3
-    -- columns); P_OWNER_SQL: the expression on the row (alias T) that gives its application code (null = COMMON) -
-    -- only an expression on the body's allow-list is accepted (I-062), anything else ORA-20189.
+    -- columns); P_OWNER_SQL: the expression on the row (alias T) that gives its application code (null = COMMON).
     -- ORA-20187 when the row is not registered, ORA-20186 when it belongs to another application (or to COMMON),
     -- ORA-20196 when business data still uses it (nothing is removed then).
     procedure remove_registered(p_application_code in varchar2,

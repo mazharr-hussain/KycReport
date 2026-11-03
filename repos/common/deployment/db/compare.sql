@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
--- Step 7.5, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
--- the backup schema's snapshot taken just before the upgrade (7.3). Validation database only.
+-- Step 5.5, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
+-- the backup schema's snapshot taken just before the upgrade (5.3). Validation database only.
 --   FAIL  a table that still exists has fewer rows than before the upgrade (data lost)
 --   INFO  a table removed by the release; rows whose values the upgrade changed (planned data changes)
 -- Large-object and object-type columns are not compared value by value (row counts still are).

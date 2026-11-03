@@ -1,13 +1,13 @@
 #!/bin/bash
-# COMMON pipeline job 3 - offline validation, no OCI and no database:
-#   3.0a PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
-#   3.0 secret scan of the PR's commits (gitleaks)
-#   3.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts)
-#   3.2 static checks (pr_checks.py)          3.3 requirements check (warning only)
-#   3.4 build                                  3.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
-#   3.6 PMD (PL/SQL rules, warnings only)
-# Usage: run.sh   (env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
-#                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 3.0a)
+# COMMON pipeline job 1 - offline validation, no OCI and no database:
+#   1.0a PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
+#   1.0 secret scan of the PR's commits (gitleaks)
+#   1.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts)   1.1b SOURCE-MAP in step
+#   1.2 static checks (pr_checks.py)          1.3 requirements check (warning only)
+#   1.4 build                                  1.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
+#   1.6 PMD (PL/SQL rules, warnings only)
+# Usage: run.sh [lint]   (lint: only 1.1, for pipeline-check.yml; env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
+#                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 1.0a; RELEASE = release number, optional)
 # A failing step stops the job and is recorded for the error-handling job (lib/step.sh).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -26,7 +26,11 @@ secrets_scan() {   # the pull request's commits (or the last commit of a manual 
 }
 lint() {   # workflows, the pipeline's composite actions (their shell steps) and scripts: no finding of any level
   local f tmp rc=0
-  actionlint -no-color "$ROOT"/.github/workflows/pipeline.yml "$ROOT"/.github/workflows/release.yml || rc=1
+  local wf
+  for wf in pipeline release generated-files issues-sync cleanup-runs pipeline-check; do
+    actionlint -no-color "$ROOT/.github/workflows/$wf.yml" || rc=1
+  done
+  find "$ROOT/repos/common/deployment" -name '*.py' -print0 | xargs -0 python3 -m py_compile || rc=1
   for f in "$ROOT"/.github/actions/*/action.yml; do
     tmp=$(mktemp --suffix .sh)
     python3 -c 'import sys, yaml
@@ -55,7 +59,10 @@ docs() {   # warning only: a COMMON feature changed without its requirements.md 
       || echo "::warning::common/$f changed but repos/common/docs/components/$f/requirements.md did not"
   done
 }
-build() { bash "$ROOT/repos/common/build.sh"; }
+source_map() { python3 "$HERE/source_map.py"; }   # new / removed application files registered for the build
+# the release number (from the PR title) is stamped into the application ("Release N"); the generated files (db/deploy,
+# dependency map, technical docs) of this build are what jobs 4-5 deploy, and are committed to main after the merge
+build() { bash "$ROOT/repos/common/build.sh" ${RELEASE:+--release "$RELEASE"}; }
 apexlang() {
   local crlf out
   # APEXlang runtime gate: every .apx file must use LF line endings before validate / import
@@ -68,11 +75,15 @@ apexlang() {
 }
 pmd() { bash "$HERE/pmd.sh"; }
 
-step 3.0a-pr-title-and-issues pr_meta
-step 3.0-secret-scan secrets_scan
-step 3.1-pipeline-lint lint
-step 3.2-static static
-step 3.3-docs-check docs
-step 3.4-build build
-step 3.5-apexlang-validate apexlang
-step 3.6-pmd pmd
+if [ "${1:-}" = lint ]; then   # pipeline-check.yml: a pipeline-only push to main
+  step 1.1-pipeline-lint lint; exit $?
+fi
+step 1.0a-pr-title-and-issues pr_meta
+step 1.0-secret-scan secrets_scan
+step 1.1-pipeline-lint lint
+step 1.1b-source-map source_map
+step 1.2-static static
+step 1.3-docs-check docs
+step 1.4-build build
+step 1.5-apexlang-validate apexlang
+step 1.6-pmd pmd

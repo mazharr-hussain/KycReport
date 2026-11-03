@@ -80,7 +80,7 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 - `tests/r83_integrations_test.sql`
 - `tests/r85_shared_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_1_common_test.sql`
+- `tests/r87_common_test.sql`
 - `tests/r87_servers_test.sql`
 - `tests/r87_servers_ui.py`
 - `tests/r88_journey_test.sql`

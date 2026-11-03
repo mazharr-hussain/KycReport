@@ -86,8 +86,8 @@ Page access is data driven: every page is mapped to a feature and opened with th
 - `tests/r84_notifications_test.sql`
 - `tests/r85_shared_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_1_common_test.sql`
-- `tests/r87_3_delete_test.sql`
+- `tests/r87_common_test.sql`
+- `tests/r87_delete_test.sql`
 - `tests/r88_journey_test.sql`
 - `tests/r89_data_model_test.sql`
 - `tests/r89_data_model_ui.py`

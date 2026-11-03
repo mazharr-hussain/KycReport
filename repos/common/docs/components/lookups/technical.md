@@ -63,12 +63,13 @@ Lists of values are data, maintained from the console, with translations and lev
 
 ## Test scripts
 
+- `tests/common_test_fixture.sql`
 - `tests/r111_common_pending_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r80_platform_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_1_common_test.sql`
-- `tests/r87_2_app_test.sql`
-- `tests/r87_3_delete_test.sql`
+- `tests/r87_app_test.sql`
+- `tests/r87_common_test.sql`
+- `tests/r87_delete_test.sql`

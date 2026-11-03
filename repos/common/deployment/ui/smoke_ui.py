@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""COMMON pipeline step 8.3 - browser smoke test of the deployed application (Playwright, headless Chromium).
+"""COMMON pipeline step 6.3 - browser smoke test of the deployed application (Playwright, headless Chromium).
 
 Each test user signs in, then opens every page of the application (one page file per page in the built app, except
 the global page 0 and the login page). Every page gets a screenshot; each user gets a video and a Playwright trace

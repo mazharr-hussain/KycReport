@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- PL/SQL rules for PMD (COMMON pipeline step 3.6, checks/pmd.sh; KYC checks.yml): warnings only, never fails -->
+<!-- PL/SQL rules for PMD (COMMON pipeline step 1.6, checks/pmd.sh; KYC checks.yml): warnings only, never fails -->
 <ruleset name="KYC / COMMON PL/SQL"
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

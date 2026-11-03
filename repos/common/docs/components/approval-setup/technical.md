@@ -68,6 +68,6 @@ Approval chains are data (AME style), not code.
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_1_common_test.sql`
+- `tests/r87_common_test.sql`
 - `tests/r89_data_model_test.sql`
 - `tests/r94_approval_test.sql`

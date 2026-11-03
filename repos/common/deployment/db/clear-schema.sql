@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Steps 6.1 / 7.1 (part 2), validation database only (#192): removes every object of the CURRENT user, so the next
+-- Steps 4.1 / 5.1 (part 2), validation database only (#192): removes every object of the CURRENT user, so the next
 -- install is a fresh one. Run by db/run.sh as the application schema (proxy). Never run it on dev or production.
 -- An object already dropped through a cascade is reported and skipped; the run fails if anything is left.
 --------------------------------------------------------------------------------

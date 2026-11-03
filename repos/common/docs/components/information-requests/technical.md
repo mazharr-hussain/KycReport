@@ -60,5 +60,5 @@ One RFI process, with e-mail and an answer page, for every application.
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r84_notifications_ui.py`
-- `tests/r87_1_common_test.sql`
+- `tests/r87_common_test.sql`
 - `tests/r89_data_model_test.sql`
