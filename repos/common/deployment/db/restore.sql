@@ -7,8 +7,10 @@
 --   - a table that cannot be loaded (e.g. a NOT NULL column the backup does not have) is reported and left as the
 --     old install created it
 --   - every foreign key is validated again; child rows without their parent (a production database never has them -
---     they come from earlier test runs or a table kept as installed) are deleted and reported. A key still invalid
---     after 5 passes is enabled for new rows only (NOVALIDATE) and reported - the step completes, every reason printed
+--     they come from earlier test runs or a table kept as installed) are deleted and reported. When such a row is itself
+--     the parent of rows whose key is already back on (ORA-02292), those keys are switched off again and checked in the
+--     next pass, so their rows go too. A key still invalid after 10 passes is enabled for new rows only (NOVALIDATE)
+--     and reported - the step completes, every reason printed
 -- Substitution variables: bkp_schema, restore_exclude (comma list of tables never restored).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
@@ -25,6 +27,7 @@ declare
     type t_list is table of varchar2(1000);
     l_fks      t_list := t_list();
     l_fk_names t_list := t_list();                      -- constraint names, same order as l_fks
+    l_fk_sql   t_list := t_list();                      -- the enable statements (l_fks: null once validated)
     l_pending  pls_integer;
     l_orphans  number;
     l_deleted  number := 0;
@@ -67,6 +70,35 @@ declare
         p_count := sql%rowcount;
         commit;
     end delete_orphans;
+    -- delete_orphans for key i; rows that are parents of rows under a key already back on (ORA-02292): that key is
+    -- switched off again and marked to be checked in the next pass, then the delete is retried
+    procedure clear_orphans(i pls_integer, p_count out number) is
+        e_child exception;
+        pragma exception_init(e_child, -2292);
+        l_table varchar2(128);
+    begin
+        select table_name into l_table from user_constraints where constraint_name = l_fk_names(i);
+        for attempt in 1 .. 20 loop
+            begin
+                delete_orphans(l_fk_names(i), p_count);
+                return;
+            exception
+                when e_child then
+                    rollback;
+                    if attempt = 20 then raise; end if;
+                    for k in (select ch.table_name, ch.constraint_name from user_constraints ch
+                                join user_constraints pa on pa.constraint_name = ch.r_constraint_name
+                               where ch.constraint_type = 'R' and ch.status = 'ENABLED' and pa.table_name = l_table) loop
+                        execute immediate 'alter table "' || k.table_name || '" disable constraint "' || k.constraint_name || '"';
+                        for j in 1 .. l_fk_names.count loop
+                            if l_fk_names(j) = k.constraint_name then l_fks(j) := l_fk_sql(j); end if;
+                        end loop;
+                        dbms_output.put_line('INFO ' || k.constraint_name || ' off again: its parent rows in ' || l_table
+                            || ' have no parent themselves');
+                    end loop;
+            end;
+        end loop;
+    end clear_orphans;
 begin
     select * bulk collect into l_policies from user_policies where enable = 'YES';
     policies(false);
@@ -76,6 +108,7 @@ begin
                where constraint_type = 'R' and status = 'ENABLED') loop
         execute immediate 'alter table "' || c.table_name || '" disable constraint "' || c.constraint_name || '"';
         l_fks.extend; l_fks(l_fks.count) := '"' || c.table_name || '" enable validate constraint "' || c.constraint_name || '"';
+        l_fk_sql.extend; l_fk_sql(l_fk_sql.count) := l_fks(l_fks.count);
         l_fk_names.extend; l_fk_names(l_fk_names.count) := c.constraint_name;
     end loop;
     for g in (select trigger_name from user_triggers where status = 'ENABLED' and base_object_type = 'TABLE') loop
@@ -122,7 +155,7 @@ begin
     -- foreign keys back on, validated. A production database never holds child rows without their parent, so rows
     -- the backup holds without one (left by earlier test runs, or a parent table kept as installed) are deleted and
     -- reported; several passes, because deleting orphans can orphan their own children.
-    for pass in 1 .. 5 loop
+    for pass in 1 .. 10 loop
         l_pending := 0;
         for i in 1 .. l_fks.count loop
             if l_fks(i) is not null then
@@ -132,7 +165,7 @@ begin
                 exception
                     when others then
                         l_pending := l_pending + 1;
-                        delete_orphans(l_fk_names(i), l_orphans);
+                        clear_orphans(i, l_orphans);
                         l_deleted := l_deleted + l_orphans;
                         dbms_output.put_line('INFO orphan rows deleted for ' || l_fk_names(i) || ': ' || l_orphans
                             || ' (' || sqlerrm || ')');
@@ -141,7 +174,7 @@ begin
         end loop;
         exit when l_pending = 0;
     end loop;
-    for i in 1 .. l_fks.count loop                                      -- still not valid after 5 passes
+    for i in 1 .. l_fks.count loop                                      -- still not valid after 10 passes
         if l_fks(i) is not null then
             l_fk_fail := l_fk_fail + 1;
             dbms_output.put_line('INFO key not validated: ' || l_fk_names(i));
