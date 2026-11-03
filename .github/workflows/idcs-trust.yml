@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Oracle DB Dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: OCI CLI
         run: pip install -q oci-cli
       - name: Re-create the trust

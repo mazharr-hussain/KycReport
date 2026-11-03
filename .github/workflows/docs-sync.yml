@@ -13,8 +13,8 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/github-script@v7
+      - uses: actions/checkout@v7
+      - uses: actions/github-script@v9
         env:
           COMMON_URL: ${{ vars.COMMON_PROJECT_URL }}
           KYC_URL: ${{ vars.KYC_PROJECT_URL }}
