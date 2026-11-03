@@ -1,7 +1,7 @@
 # COMMON 115 - Code findings R1-R5 and the DB tests for COMMON alone
 
-On top of COMMON 114. The pipeline builds and tests it (jobs 3-8) and job 9.1 exports the tested application as the
-release zip (draft release `common-115`, published when job 9.2 merges the PR). Checked offline: build, APEXlang
+On top of COMMON 114. The pipeline builds and tests it (jobs 1-6) and job 7.1 exports the tested application as the
+release zip (draft release `common-115`, published when job 7.2 merges the PR). Checked offline: build, APEXlang
 validation ("Validation successful"), static checks and PMD (0 findings), pipeline lint.
 
 ## What changes
@@ -15,7 +15,7 @@ validation ("Validation successful"), static checks and PMD (0 findings), pipeli
 | I-059 (#217) | DB tests | Option (a): the tests run for COMMON alone - see below. |
 
 ## DB tests (I-059, option a)
-- `tests/setup/` holds the fixtures, run first by step 8.2: the test applications 860 / 861 and the R89 tables (as
+- `tests/setup/` holds the fixtures, run first by step 6.2: the test applications 860 / 861 and the R89 tables (as
   XXCUS, `-- Schema: XXCUS`), then `03_common_test_fixture.sql`: R86TEST onboarded, the tests' administrator ADMIN
   (Common Administrator and Super Administrator through `BOOTSTRAP_ADMIN`), TEST1; R89 tables left in XXFUSION by an
   earlier run as the wrong schema are dropped.
@@ -27,8 +27,9 @@ validation ("Validation successful"), static checks and PMD (0 findings), pipeli
   credentials are a workspace prerequisite - skipped where missing. r94: makes a test approval type when none is
   enabled (rolled back); its error line is fixed. r110: an endpoint-less purpose may be refused when saved (CK5).
 - r87 parts are numbered in their run order (`r87_1_common`, `r87_2_app` as XXCUS, `r87_3_delete`); the old
-  KYC test-user script `tests/test_users.sql` is removed (test users: `db/admin/test-users.sql`, step 8.1).
+  KYC test-user script `tests/test_users.sql` is removed (test users: `db/admin/test-users.sql`, step 6.1).
 
 ## Deploy
-App Builder > Import the release zip over COMMON (135), Install Supporting Objects = Yes; or run `run-release.sql` as
-XXFUSION, then import the application. A re-run changes nothing (no table change in this release).
+App Builder > Import the release zip of GitHub Release `common-115` (made by pipeline job 7.1 from the tested
+application) over COMMON (135), Install Supporting Objects = Yes. A re-run changes nothing (no table change in this
+release). This folder holds only the release notes; the scripts are the application's supporting objects.

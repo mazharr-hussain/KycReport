@@ -1,4 +1,4 @@
--- COMMON test fixture (pipeline 8.2 runs it first, as XXFUSION, after 01_r86_test_apps.sql made the empty APEX test
+-- COMMON test fixture (pipeline 6.2 runs it first, as XXFUSION, after 01_r86_test_apps.sql made the empty APEX test
 -- applications). COMMON is tested on its own, without any business application (I-059, #217):
 --   - the test application R86TEST (APEX application 860), registered through the onboarding routine
 --   - the tests' administrator ADMIN: the APEX session user of the tests that need one (users, data security, menu,

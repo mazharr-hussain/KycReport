@@ -1,4 +1,4 @@
--- Release 86 test setup (pipeline 8.2 runs it first, as XXCUS, the workspace owner): two empty APEX applications the onboarding test
+-- Release 86 test setup (pipeline 6.2 runs it first, as XXCUS, the workspace owner): two empty APEX applications the onboarding test
 -- Schema: XXCUS
 -- (r86_registration_test.sql) registers - 860 "R86 Onboarding Test" (alias R86TEST) and 861 "R86 Delete Test" (alias
 -- R86DEL), parsing schema XXCUS. Nothing happens for an application that exists already. They are kept.

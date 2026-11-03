@@ -19,9 +19,10 @@
 - **Golden rule: work only in `repos/` (from the user, release 106 onwards).** Every change from now on is made in
   the relevant folder of `repos/` only - `repos/common/` (COMMON, app 135) or `repos/kyc/` (KYC, app 134) - never in
   `apex/`, which is frozen as history. Do not run `repos/tools/build_repos.py` again (it would overwrite `repos/` from
-  `apex/`). The uploadable version of each release (the importable APEXlang zip and its patch) is kept in git in that
-  application's own folder (`repos/<app>/releases/`). No database is started or run: changes are validated offline
-  with the Oracle skills (Db and Apex skills, APEXlang validation). Live validation is done by the user's server
+  `apex/`). The uploadable version of each release (the importable APEXlang zip) is made by the pipeline (job 7.1,
+  GitHub Release `<app>-<N>`); a release folder `repos/<app>/releases/<N>-*/` holds only its README (release notes) -
+  no copies of scripts or app files. No database is started or run: changes are reviewed offline with the Oracle
+  skills (Db and Apex skills). Live validation is done by the user's server
   through the web (browser) tool when the user gives access, signed in as a set of test users (one per role and
   privilege level, per application), kept as a script in `repos/<app>/db/admin/` - prepare that set before live tests.
 - **Reference documents (from the user):** each application's documentation lives in git under `repos/<app>/docs/`:
@@ -39,12 +40,19 @@
 - **Pipeline results: PR comments, not issues (from the user, 3 Nov 2026).** A pipeline failure (or a warning in the
   PR's own files) is never logged as an issue: it is in the pipeline's comment on the PR, and Claude's next push works
   from that comment only. What the pipeline reports for a future release (findings in files the PR did not change) is
-  logged as a COMMON issue by the pipeline itself (job 9.2, `checks/issues.py`) and goes on the project board. A green
-  run is merged by the pipeline (job 9.2, `release/merge.sh`), which also publishes the release; label `hold` stops it.
+  logged as a COMMON issue by the pipeline itself (job 7.2, `checks/issues.py`) and goes on the project board. A green
+  run is merged by the pipeline (job 7.2, `release/merge.sh`), which also publishes the release; label `hold` stops it.
+- **Claude thinks, the pipeline repeats (from the user, 3 Nov 2026).** Any task that is fixed steps or a script runs in
+  the pipeline, never by hand: running the checks (job 1), the build and its generated files (SOURCE-MAP.json,
+  `db/deploy`, `technical.md` - committed to `main` by `release/regenerate.sh`), the release zip, ISSUES.md rows,
+  issues for findings in unchanged code, the merge and the release. Claude does only what needs thinking: the code
+  change, an offline review with the Oracle skills, issues from the user's reports, the plan, the PR text, fixes from
+  the pipeline's PR comment, and the written docs (requirements, release README, handover). The pipeline jobs are
+  numbered 1-8 (1 Offline validation ... 7 Finalize the PR, 8 Error handling).
 - **Pipeline fixes go straight to main (from the user, 3 Nov 2026).** A change only to the pipeline's own files - the
   scripts under `repos/common/deployment/` and the GitHub workflow files (`.github/workflows/`, `.github/actions/`) -
-  is not an application release: no issue, no release plan, no PR. It is checked locally (job 3: lint, static checks,
-  APEXlang validation) and pushed directly to `main`. Everything else follows the issue -> plan -> PR rules.
+  is not an application release: no issue, no release plan, no PR. It is pushed directly to `main`, where
+  `pipeline-check.yml` checks it (step 1.1: lint); a failure is fixed by the next push. Everything else follows the issue -> plan -> PR rules.
 - **PR and run naming (from the user, 3 Nov 2026, issue #218).** PR title `<APP> Release <Number>: <short summary>`
   (summary at most 60 characters); every issue of the release is linked in the PR body with `Fixes #n` (never listed in
   the title). Claude squashes its local work into one commit per push; each push is one pipeline run named
@@ -52,7 +60,7 @@
 - **Netlify not used for now (from the user, 2 Nov 2026).** Netlify stays connected for later use, but nothing is
   deployed, published or triggered there now; `netlify.toml` keeps every build skipped (`ignore = "exit 0"`) - do not
   change it until the user asks. Pushing to the session branch is allowed; a PR merges only through the COMMON pipeline
-  (job 9.2 merges a green PR, `repos/common/deployment/README.md`).
+  (job 7.2 merges a green PR, `repos/common/deployment/README.md`).
 - **Issue backlog (from the user):** the backlog is the GitHub issues of this repository, shown on two GitHub Projects:
   "KYC Application" (https://github.com/users/mazharr-hussain/projects/3, label `KYC`) and "Common Application"
   (https://github.com/users/mazharr-hussain/projects/4, label `COMMON`); the workflow `add-to-project.yml` puts each
@@ -60,7 +68,7 @@
   one label only (`KYC` / `COMMON`), its I-number in the title, and in its body the lines `Type: Bug|Enhancement|Task`
   and `Priority: P1|P2|P3` - the workflow copies them into the project fields "Issue Type" and "Priority". A release PR closes its issues with "Fixes #n" in the PR body,
   so they close (Done on the board) when the PR merges. `repos/ISSUES.md` mirrors the list (I-number -> issue number,
-  fixed release). Read the open issues at the start of every chat and show the closed / still-open issues after each release.
+  fixed release); its rows are written by `issues-sync.yml` when an issue is opened or closed, never by hand. Read the open issues at the start of every chat and show the closed / still-open issues after each release.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
   confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
 - **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes
