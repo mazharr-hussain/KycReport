@@ -66,7 +66,6 @@ One workflow engine around APEX workflows and tasks: start / end / state, deadli
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_APPROVAL_GROUPS, XXFND_APPROVAL_RULES, XXFND_APPROVAL_RULE_STEPS, XXFND_APPROVAL_TYPES, XXFND_CONFIG_TABLES, XXFND_DDL_PKG, XXFND_ERROR_PKG, XXFND_NOTIFY_PKG, XXFND_PRIVILEGE_PKG, XXFND_QA_ROW, XXFND_QA_TAB, XXFND_ROLES, XXFND_ROLE_PRIVILEGES, XXFND_USER_ROLES_V, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PROCESSES
 - Used by objects: XXCMP_CASE_PKG, XXCMP_MONITOR_PKG, XXCMP_REQUEST_PKG, XXFND_APPLICATION_PKG, XXFND_APPROVAL_PKG, XXFND_APPROVAL_RULE_PKG, XXFND_NOTIFY_PKG, XXFND_QA_HISTORY_V, XXFND_RFI_PKG, XXFND_VPD_PKG
 - Used by COMMON pages / components: 0, 1, 114, 115, 142, 143, 144, 145, 146, 147, 165, RFI, CONFIG-CHANGE, RFI-RESPONSE, RFI-REVIEW, app-processes, task-deadlines
-- Used by KYC pages / components: 1, 206, 211, CASE-APPROVAL, CASE-INVESTIGATION, COUNTERPARTY-MATCH, DOC-CHECKLIST-REVIEW, KYC-CASE, KYC-REQUEST
 
 ## Test scripts
 
@@ -74,5 +73,5 @@ One workflow engine around APEX workflows and tasks: start / end / state, deadli
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_common_test.sql`
+- `tests/r87_1_common_test.sql`
 - `tests/r88_journey_test.sql`

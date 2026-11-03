@@ -60,7 +60,6 @@ Approval chains are data (AME style), not code.
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_DDL_PKG, XXFND_ERROR_PKG, XXFND_LOOKUP_VALUES_VL, XXFND_ROLES, XXFND_USER_ROLES_V, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG, XXHR_EMPLOYEES
 - Used by objects: XXCMP_CASE_PKG, XXCMP_REQUEST_PKG, XXFND_APPLICATION_PKG, XXFND_RFI_PKG
 - Used by COMMON pages / components: 144, 147, 148, 149, 154, 155
-- Used by KYC pages / components: 206, 211, DOC-CHECKLIST-REVIEW
 
 ## Test scripts
 
@@ -69,6 +68,6 @@ Approval chains are data (AME style), not code.
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_common_test.sql`
+- `tests/r87_1_common_test.sql`
 - `tests/r89_data_model_test.sql`
 - `tests/r94_approval_test.sql`

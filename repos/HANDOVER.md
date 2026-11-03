@@ -31,11 +31,12 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
   release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
   DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **9** finalize (gate,
-  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; merge by GitHub auto-merge)
+  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; issues for the existing findings, merge and release by the pipeline)
   -> **10** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 3 and 9 only.
-- **Merge**: `9 Finalize the PR` is the required check on main; Claude enables auto-merge on its PR (as the user), so
-  GitHub merges when the check is green and the workflows on main (`release.yml`, docs) run. `release.yml` publishes the
-  draft release `common-<N>` (the tested zip) when a PR that adds `repos/common/releases/<N>-*/` merges.
+- **Merge**: job 9.2 merges a green PR itself (`release/merge.sh`: a draft is marked ready, label `hold` stops it,
+  merged only if the head is the tested commit) and publishes the release `common-<N>` (`release/publish.sh`; a merge
+  made with the workflow token starts no other workflow, so `release.yml` only handles a merge made by a person).
+  Pipeline failures stay PR comments (the next push fixes them); findings for a future release become issues (9.2).
 - Validation database: separate Always Free ADB (Jeddah), APEX 26.1.6, workspace XXCUS (schemas XXCUS + XXFUSION).
   Login: wallet + pipeline user `XXCI_DEPLOY` (proxy `XXCI_DEPLOY[XXFUSION]`, `lib/sql.sh`, connect line on stdin);
   ADMIN only for that password, bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,

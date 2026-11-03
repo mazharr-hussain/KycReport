@@ -96,10 +96,11 @@ begin
     ---------------------------------------------------------------- the routines the pages call (parts A and B)
     select count(*) into l_n from user_procedures
      where (object_name = 'XXFND_APPLICATION_PKG'
-            and procedure_name in ('SAVE_APPLICATION', 'ONBOARD', 'SET_ENABLED', 'DELETE_BLOCKER', 'DELETE_APPLICATION', 'SAVE_FUNCTIONS'))
+            and procedure_name in ('SAVE_APPLICATION', 'ONBOARD', 'SET_ENABLED', 'DELETE_BLOCKER', 'DELETE_APPLICATION'))
         or (object_name = 'XXFND_WORKFLOW_PKG' and procedure_name = 'SET_PROCESS_ENABLED')
         or (object_name = 'XXFND_NOTIFY_PKG' and procedure_name = 'SET_RULE_ENABLED');
-    check_(l_n = 8, 'the eight routines of part A exist (' || l_n || ')');
+    -- release 106: SAVE_FUNCTIONS retired with "managed in the application" (I-059)
+    check_(l_n = 7, 'the seven routines of part A exist (' || l_n || ')');
     select count(*) into l_n from user_views where view_name in ('XXFND_SERVERS_V', 'XXFND_APP_STORAGE_V');
     check_(l_n = 2, 'the views of part B exist (' || l_n || ')');
     begin

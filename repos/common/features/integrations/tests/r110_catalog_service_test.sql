@@ -10,6 +10,9 @@ declare
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
     end;
 begin
+    -- I-059: the APEX session of the tests' administrator ADMIN (tests/setup/03_common_test_fixture.sql)
+    apex_util.set_workspace('XXCUS');
+    apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
     select count(*) into l_val from user_tab_columns
      where table_name = 'XXFND_INTEGRATION_PURPOSES' and column_name = 'CATALOG_SERVICE_ID';
     ok('column CATALOG_SERVICE_ID exists', l_val = 1);
@@ -33,7 +36,8 @@ begin
         l_resp := xxfnd_integration_pkg.call('R110_NONE');
         ok('purpose without endpoint refused', false);
     exception
-        when others then ok('purpose without endpoint refused (ORA-20312)', sqlcode = -20312);
+        -- release 86 (CK5): such a purpose is already refused when it is saved; else the call refuses it (ORA-20312)
+        when others then ok('purpose without endpoint refused (' || sqlerrm || ')', sqlcode in (-20312, -2290));
     end;
     rollback;
 end;

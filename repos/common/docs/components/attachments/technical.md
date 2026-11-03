@@ -72,7 +72,6 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_DDL_PKG, XXFND_ERROR_PKG, XXFND_INTEGRATION_ENDPOINTS, XXFND_INTEGRATION_PKG, XXFND_LOOKUP_PKG, XXFND_LOOKUP_VALUES_VL, XXFND_SERVERS, XXFND_SERVERS_V, XXFND_SETUP_COLUMNS_V, XXFND_SETUP_TABLES_V, XXFND_UTIL_PKG, XXFND_VPD_PKG
 - Used by objects: XXCMP_ATTACHMENT_RULES, XXCMP_CASE_PKG, XXCMP_DOC_RULE_PKG, XXCMP_DOC_VERIFICATIONS, XXCMP_MONITOR_PKG, XXCMP_PARTY_PKG, XXCMP_REQUEST_PKG, XXCMP_RFIS, XXFND_APPLICATION_PKG, XXFND_NOTIFY_PKG, XXFND_SETUP_ROWS_V, XXFND_SHARE_PKG
 - Used by COMMON pages / components: 0, 47, 48, 130, 131, 132, 133, 134, 135, 136, 137, 143, 153, lovs, lists
-- Used by KYC pages / components: 0, 21, 26, 27, 138, 206, 211, 218, 219, lovs, app-processes
 
 ## Test scripts
 
@@ -81,7 +80,7 @@ One document store and one set of rules (types, sizes, permissions) for every ap
 - `tests/r83_integrations_test.sql`
 - `tests/r85_shared_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_common_test.sql`
+- `tests/r87_1_common_test.sql`
 - `tests/r87_servers_test.sql`
 - `tests/r87_servers_ui.py`
 - `tests/r88_journey_test.sql`

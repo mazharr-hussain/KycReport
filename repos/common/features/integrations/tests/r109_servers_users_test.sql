@@ -11,6 +11,9 @@ declare
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
     end;
 begin
+    -- I-059: the APEX session of the tests' administrator ADMIN (tests/setup/03_common_test_fixture.sql)
+    apex_util.set_workspace('XXCUS');
+    apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
     -- an Object Storage server on an existing Remote Server whose URL ends with /n/<namespace>, if the workspace has one
     select max(remote_server_static_id) into l_rs from apex_workspace_remote_servers
      where base_url like 'https://objectstorage.%/n/%';

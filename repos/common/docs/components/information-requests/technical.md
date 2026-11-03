@@ -52,7 +52,6 @@ One RFI process, with e-mail and an answer page, for every application.
 - Uses: XXFND_APPLICATIONS, XXFND_APPLICATION_PKG, XXFND_APPROVAL_RULE_PKG, XXFND_APPROVAL_TXNS, XXFND_APPROVAL_TXN_STEPS, XXFND_APPROVAL_TYPES, XXFND_DDL_PKG, XXFND_LOOKUP_PKG, XXFND_LOOKUP_VALUES, XXFND_NOTIFICATIONS, XXFND_NOTIFY_PKG, XXFND_PRIVILEGE_PKG, XXFND_UTIL_PKG, XXFND_VPD_PKG, XXFND_WORKFLOW_PKG
 - Used by objects: XXCMP_CASE_PKG, XXCMP_REQUEST_PKG, XXFND_SHARE_PKG, XXFND_WORKFLOW_PKG
 - Used by COMMON pages / components: 50, 143, RFI, RFI-RESPONSE, RFI-REVIEW
-- Used by KYC pages / components: 1, 211, app-processes
 
 ## Test scripts
 
@@ -61,5 +60,5 @@ One RFI process, with e-mail and an answer page, for every application.
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`
 - `tests/r84_notifications_ui.py`
-- `tests/r87_common_test.sql`
+- `tests/r87_1_common_test.sql`
 - `tests/r89_data_model_test.sql`

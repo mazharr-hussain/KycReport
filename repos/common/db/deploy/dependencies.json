@@ -2301,6 +2301,7 @@
    "xxfnd_roles"
   ],
   "apex:COMMON:pages/p00100-administration.apx": [
+   "xxfnd_application_pkg",
    "xxfnd_nav_menu_v"
   ],
   "apex:COMMON:pages/p00169-all-pages.apx": [
@@ -2468,7 +2469,6 @@
    "apex:COMMON:pages/p00102-lookup-type.apx",
    "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
    "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:shared-components/lovs.apx",
    "xxcmp_questions",
    "xxfnd_application_pkg",
    "xxfnd_dff_pkg",
@@ -2483,18 +2483,6 @@
    "apex:COMMON:pages/p00102-lookup-type.apx",
    "apex:COMMON:pages/p00103-users.apx",
    "apex:COMMON:pages/p00104-user.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00023-party-relationship.apx",
-   "apex:KYC:pages/p00026-id-verification.apx",
-   "apex:KYC:pages/p00027-registry-check.apx",
-   "apex:KYC:pages/p00167-risk-model.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:pages/p00213-screening.apx",
-   "apex:KYC:pages/p00215-document-verification.apx",
-   "apex:KYC:pages/p00218-source-of-funds.apx",
-   "apex:KYC:pages/p00219-fiu-report.apx",
-   "apex:KYC:pages/p00226-alert-rule.apx",
    "xxcmp_answer_options",
    "xxcmp_case_pkg",
    "xxcmp_risk_pkg",
@@ -2523,10 +2511,6 @@
    "apex:COMMON:pages/p00183-assign.apx",
    "apex:COMMON:shared-components/lists.apx",
    "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:pages/p00217-compliance-report.apx",
-   "apex:KYC:pages/p00225-alert-rules.apx",
-   "apex:KYC:pages/p00226-alert-rule.apx",
    "xxcmp_approval_matrix",
    "xxfnd_application_pkg",
    "xxfnd_approval_rule_pkg",
@@ -2551,7 +2535,6 @@
   "xxfnd_document_categories": [
    "apex:COMMON:pages/p00000-global-page.apx",
    "apex:COMMON:pages/p00133-document-category.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
    "xxcmp_attachment_rules",
    "xxcmp_request_pkg",
    "xxfnd_app_storage_v",
@@ -2583,8 +2566,6 @@
    "apex:COMMON:pages/p00144-configuration-change.apx",
    "apex:COMMON:shared-components/task-definitions/CONFIG-CHANGE.apx",
    "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
-   "apex:KYC:pages/p00139-mandatory-document-rule.apx",
-   "apex:KYC:pages/p00162-question.apx",
    "xxcmp_answer_options_mc",
    "xxcmp_attachment_rules_mc",
    "xxcmp_risk_countries_mc",
@@ -2597,8 +2578,6 @@
   "xxfnd_attached_documents_v": [
    "apex:COMMON:pages/p00047-attachments.apx",
    "apex:COMMON:pages/p00048-document.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00211-case.apx",
    "xxcmp_doc_rule_pkg",
    "xxcmp_monitor_pkg",
    "xxcmp_party_pkg",
@@ -2607,7 +2586,6 @@
   "xxfnd_attached_documents": [
    "apex:COMMON:pages/p00143-information-request.apx",
    "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
-   "apex:KYC:shared-components/app-processes.apx",
    "xxcmp_case_pkg",
    "xxcmp_doc_verifications",
    "xxfnd_application_pkg",
@@ -2624,8 +2602,6 @@
    "apex:COMMON:shared-components/app-processes.apx",
    "apex:COMMON:shared-components/authentications.apx",
    "apex:COMMON:shared-components/authorizations.apx",
-   "apex:KYC:shared-components/authentications.apx",
-   "apex:KYC:shared-components/authorizations.apx",
    "xxcmp_cases_lock",
    "xxcmp_party_pkg",
    "xxfnd_application_pkg",
@@ -2639,9 +2615,6 @@
    "apex:COMMON:pages/p00149-approval-rule.apx",
    "apex:COMMON:pages/p00154-process.apx",
    "apex:COMMON:pages/p00155-approval-group.apx",
-   "apex:KYC:pages/p00206-kyc-request-approval.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg",
    "xxfnd_application_pkg",
@@ -2664,9 +2637,6 @@
   ],
   "xxfnd_error_pkg": [
    "apex:COMMON:application.apx",
-   "apex:KYC:application.apx",
-   "apex:KYC:pages/p00206-kyc-request-approval.apx",
-   "apex:KYC:pages/p00211-case.apx",
    "xxcmp_case_pkg",
    "xxcmp_party_pkg",
    "xxcmp_request_pkg",
@@ -2689,25 +2659,6 @@
    "apex:COMMON:pages/p00122-integration-purposes.apx",
    "apex:COMMON:pages/p00132-document-categories.apx",
    "apex:COMMON:pages/p00150-value-sets.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00001-home.apx",
-   "apex:KYC:pages/p00020-parties.apx",
-   "apex:KYC:pages/p00021-party.apx",
-   "apex:KYC:pages/p00138-mandatory-document-rules.apx",
-   "apex:KYC:pages/p00160-questionnaires.apx",
-   "apex:KYC:pages/p00161-questionnaire.apx",
-   "apex:KYC:pages/p00163-conclusion-templates.apx",
-   "apex:KYC:pages/p00200-kyc-requests.apx",
-   "apex:KYC:pages/p00203-create-request-submit.apx",
-   "apex:KYC:pages/p00210-cases.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:pages/p00217-compliance-report.apx",
-   "apex:KYC:pages/p00220-monitoring-watchlist.apx",
-   "apex:KYC:pages/p00221-alerts.apx",
-   "apex:KYC:pages/p00222-reassessment.apx",
-   "apex:KYC:pages/p00225-alert-rules.apx",
-   "apex:KYC:pages/p00230-executive-dashboard.apx",
-   "apex:KYC:shared-components/lists.apx",
    "xxcmp_case_pkg",
    "xxcmp_monitor_pkg",
    "xxcmp_party_pkg",
@@ -2727,16 +2678,6 @@
    "apex:COMMON:pages/p00184-data-access-values.apx",
    "apex:COMMON:pages/p00186-organizations.apx",
    "apex:COMMON:shared-components/app-processes.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00001-home.apx",
-   "apex:KYC:pages/p00020-parties.apx",
-   "apex:KYC:pages/p00021-party.apx",
-   "apex:KYC:pages/p00205-kyc-request.apx",
-   "apex:KYC:pages/p00206-kyc-request-approval.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:pages/p00220-monitoring-watchlist.apx",
-   "apex:KYC:pages/p00221-alerts.apx",
-   "apex:KYC:shared-components/app-processes.apx",
    "xxcmp_case_pkg",
    "xxcmp_party_pkg",
    "xxcmp_request_pkg",
@@ -2759,7 +2700,6 @@
    "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx",
    "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
    "apex:COMMON:shared-components/workflows/RFI.apx",
-   "apex:KYC:pages/p00211-case.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg"
   ],
@@ -2768,9 +2708,6 @@
    "apex:COMMON:shared-components/task-definitions/RFI-RESPONSE.apx",
    "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
    "apex:COMMON:shared-components/workflows/RFI.apx",
-   "apex:KYC:pages/p00001-home.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:shared-components/app-processes.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg",
    "xxfnd_qa_history_v",
@@ -2781,10 +2718,6 @@
   ],
   "xxfnd_util_pkg": [
    "apex:COMMON:shared-components/app-computations.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00202-create-request-questionnaire.apx",
-   "apex:KYC:pages/p00204-create-request-party-details.apx",
-   "apex:KYC:pages/p00217-compliance-report.apx",
    "xxcmp_case_pkg",
    "xxcmp_monitor_pkg",
    "xxcmp_party_pkg",
@@ -2858,15 +2791,6 @@
    "apex:COMMON:shared-components/task-definitions/RFI-REVIEW.apx",
    "apex:COMMON:shared-components/workflows/CONFIG-CHANGE.apx",
    "apex:COMMON:shared-components/workflows/RFI.apx",
-   "apex:KYC:pages/p00001-home.apx",
-   "apex:KYC:pages/p00206-kyc-request-approval.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:shared-components/task-definitions/CASE-APPROVAL.apx",
-   "apex:KYC:shared-components/task-definitions/CASE-INVESTIGATION.apx",
-   "apex:KYC:shared-components/task-definitions/COUNTERPARTY-MATCH.apx",
-   "apex:KYC:shared-components/task-definitions/DOC-CHECKLIST-REVIEW.apx",
-   "apex:KYC:shared-components/workflows/KYC-CASE.apx",
-   "apex:KYC:shared-components/workflows/KYC-REQUEST.apx",
    "xxcmp_case_pkg",
    "xxcmp_monitor_pkg",
    "xxcmp_request_pkg",
@@ -2884,8 +2808,6 @@
    "apex:COMMON:pages/p00149-approval-rule.apx",
    "apex:COMMON:pages/p00155-approval-group.apx",
    "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:shared-components/lovs.apx",
    "xxcmp_case_pkg",
    "xxcmp_request_pkg",
    "xxfnd_approval_rule_pkg",
@@ -2906,7 +2828,6 @@
    "apex:COMMON:pages/p00180-data-security.apx",
    "apex:COMMON:pages/p00184-data-access-values.apx",
    "apex:COMMON:pages/p00186-organizations.apx",
-   "apex:KYC:pages/p00201-create-request.apx",
    "xxcmp_request_pkg",
    "xxfnd_application_pkg",
    "xxfnd_data_dimensions",
@@ -2915,6 +2836,7 @@
   ],
   "xxfnd_application_pkg": [
    "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00100-administration.apx",
    "apex:COMMON:pages/p00163-setup-type.apx",
    "apex:COMMON:pages/p00165-application-journey.apx",
    "apex:COMMON:pages/p00166-application.apx",
@@ -2927,7 +2849,6 @@
    "apex:COMMON:shared-components/app-processes.apx",
    "apex:COMMON:shared-components/lists.apx",
    "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:shared-components/lists.apx",
    "xxcmp_case_pkg",
    "xxfnd_app_menu_entries",
    "xxfnd_app_setting_pkg",
@@ -2954,12 +2875,6 @@
    "xxfnd_approval_step_tab"
   ],
   "xxfnd_ui_pkg": [
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00020-parties.apx",
-   "apex:KYC:pages/p00200-kyc-requests.apx",
-   "apex:KYC:pages/p00210-cases.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:shared-components/app-processes.apx",
    "xxcmp_case_pkg",
    "xxcmp_party_pkg",
    "xxcmp_request_ui_pkg"
@@ -2974,7 +2889,6 @@
    "apex:COMMON:pages/p00184-data-access-values.apx",
    "apex:COMMON:shared-components/app-processes.apx",
    "apex:COMMON:shared-components/lists.apx",
-   "apex:KYC:pages/p00211-case.apx",
    "xxcmp_case_pkg",
    "xxfnd_application_pkg",
    "xxfnd_approval_rule_pkg",
@@ -3009,14 +2923,6 @@
    "apex:COMMON:pages/p00048-document.apx",
    "apex:COMMON:pages/p00131-document-entity.apx",
    "apex:COMMON:pages/p00137-storage-rule.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:pages/p00026-id-verification.apx",
-   "apex:KYC:pages/p00027-registry-check.apx",
-   "apex:KYC:pages/p00206-kyc-request-approval.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "apex:KYC:pages/p00218-source-of-funds.apx",
-   "apex:KYC:pages/p00219-fiu-report.apx",
-   "apex:KYC:shared-components/app-processes.apx",
    "xxcmp_party_pkg",
    "xxfnd_application_pkg",
    "xxfnd_notify_pkg"
@@ -3024,94 +2930,11 @@
   "xxfnd_dff_pkg": [
    "apex:COMMON:pages/p00151-value-set.apx",
    "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
-   "apex:KYC:pages/p00022-party-contact.apx",
-   "apex:KYC:pages/p00023-party-relationship.apx",
    "xxcmp_party_pkg",
    "xxfnd_application_pkg",
    "xxfnd_df_flexfields_chk",
    "xxfnd_df_segments",
    "xxfnd_df_segments_chk"
-  ],
-  "xxfnd_document_categories_vl": [
-   "apex:COMMON:pages/p00048-document.apx",
-   "apex:COMMON:pages/p00132-document-categories.apx",
-   "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:pages/p00021-party.apx",
-   "apex:KYC:pages/p00138-mandatory-document-rules.apx",
-   "apex:KYC:shared-components/lovs.apx",
-   "xxfnd_attached_documents_v"
-  ],
-  "xxfnd_document_entities_vl": [
-   "apex:COMMON:pages/p00130-document-entities.apx",
-   "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:shared-components/lovs.apx"
-  ],
-  "xxfnd_lookup_values_vl": [
-   "apex:COMMON:pages/p00121-server.apx",
-   "apex:COMMON:pages/p00136-document-storage.apx",
-   "apex:COMMON:pages/p00149-approval-rule.apx",
-   "apex:COMMON:pages/p00184-data-access-values.apx",
-   "apex:COMMON:shared-components/lovs.apx",
-   "apex:KYC:pages/p00162-question.apx",
-   "apex:KYC:shared-components/lovs.apx",
-   "xxfnd_dff_pkg"
-  ],
-  "xxfnd_admin_menu_v": [
-   "apex:COMMON:shared-components/lists.apx",
-   "apex:KYC:shared-components/lists.apx",
-   "xxfnd_modules_v"
-  ],
-  "xxfnd_feature_pages": [
-   "apex:COMMON:pages/p00000-global-page.apx",
-   "apex:COMMON:pages/p00167-application-menu.apx",
-   "apex:COMMON:pages/p00168-menu-entry.apx",
-   "apex:COMMON:shared-components/lists.apx",
-   "apex:KYC:pages/p00000-global-page.apx",
-   "apex:KYC:shared-components/lists.apx",
-   "xxfnd_application_pkg",
-   "xxfnd_modules_v",
-   "xxfnd_nav_menu_v",
-   "xxfnd_page_catalogue_v",
-   "xxfnd_privilege_pkg",
-   "xxfnd_share_pkg"
-  ],
-  "xxfnd_nav_menu_v": [
-   "apex:COMMON:pages/p00100-administration.apx",
-   "apex:COMMON:shared-components/app-items.apx",
-   "apex:COMMON:shared-components/app-processes.apx",
-   "apex:COMMON:shared-components/lists.apx",
-   "apex:KYC:shared-components/lists.apx",
-   "xxfnd_nav_pkg",
-   "xxfnd_share_pkg"
-  ],
-  "xxfnd_nav_pkg": [
-   "apex:COMMON:shared-components/app-processes.apx",
-   "apex:COMMON:shared-components/lists.apx",
-   "apex:KYC:shared-components/lists.apx",
-   "xxfnd_page_opens"
-  ],
-  "xxfnd_documents": [
-   "apex:KYC:shared-components/app-processes.apx",
-   "xxfnd_attach_pkg",
-   "xxfnd_attached_documents",
-   "xxfnd_attached_documents_v",
-   "xxfnd_document_files",
-   "xxfnd_document_versions_v"
-  ],
-  "xxfnd_audit_pkg": [
-   "apex:COMMON:pages/p00123-integration-purpose.apx",
-   "apex:KYC:pages/p00139-mandatory-document-rule.apx",
-   "apex:KYC:pages/p00162-question.apx",
-   "xxfnd_approval_pkg",
-   "xxfnd_audit_log",
-   "xxfnd_schema_pkg"
-  ],
-  "xxfnd_communications": [
-   "apex:COMMON:pages/p00045-communications.apx",
-   "apex:COMMON:pages/p00046-e-mail.apx",
-   "apex:KYC:pages/p00211-case.apx",
-   "xxfnd_notify_pkg",
-   "xxfnd_share_pkg"
   ],
   "xxfnd_dropped_objects": [
    "xxfnd_ddl_pkg"
@@ -3119,6 +2942,12 @@
   "xxfnd_schema_releases": [
    "xxfnd_ddl_pkg",
    "xxfnd_share_pkg"
+  ],
+  "xxfnd_audit_pkg": [
+   "apex:COMMON:pages/p00123-integration-purpose.apx",
+   "xxfnd_approval_pkg",
+   "xxfnd_audit_log",
+   "xxfnd_schema_pkg"
   ],
   "xxfnd_attachment_functions": [
    "apex:COMMON:pages/p00134-attachment-pages.apx",
@@ -3142,6 +2971,13 @@
    "xxfnd_documents",
    "xxfnd_entity_containers",
    "xxfnd_setup_rows_v"
+  ],
+  "xxfnd_documents": [
+   "xxfnd_attach_pkg",
+   "xxfnd_attached_documents",
+   "xxfnd_attached_documents_v",
+   "xxfnd_document_files",
+   "xxfnd_document_versions_v"
   ],
   "xxfnd_df_flexfields": [
    "apex:COMMON:pages/p00152-descriptive-flexfields.apx",
@@ -3362,6 +3198,12 @@
    "xxfnd_setup_rows_v",
    "xxfnd_sod_rules_order"
   ],
+  "xxfnd_document_categories_vl": [
+   "apex:COMMON:pages/p00048-document.apx",
+   "apex:COMMON:pages/p00132-document-categories.apx",
+   "apex:COMMON:shared-components/lovs.apx",
+   "xxfnd_attached_documents_v"
+  ],
   "xxfnd_data_dimensions": [
    "apex:COMMON:pages/p00106-role.apx",
    "apex:COMMON:pages/p00180-data-security.apx",
@@ -3446,6 +3288,18 @@
    "xxfnd_effective_access_v",
    "xxfnd_vpd_pkg"
   ],
+  "xxfnd_feature_pages": [
+   "apex:COMMON:pages/p00000-global-page.apx",
+   "apex:COMMON:pages/p00167-application-menu.apx",
+   "apex:COMMON:pages/p00168-menu-entry.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_application_pkg",
+   "xxfnd_modules_v",
+   "xxfnd_nav_menu_v",
+   "xxfnd_page_catalogue_v",
+   "xxfnd_privilege_pkg",
+   "xxfnd_share_pkg"
+  ],
   "xxfnd_role_privileges": [
    "apex:COMMON:pages/p00000-global-page.apx",
    "apex:COMMON:pages/p00104-user.apx",
@@ -3474,6 +3328,14 @@
    "apex:COMMON:pages/p00152-descriptive-flexfields.apx",
    "apex:COMMON:pages/p00153-descriptive-flexfield.apx",
    "xxfnd_df_segments_chk",
+   "xxfnd_dff_pkg"
+  ],
+  "xxfnd_lookup_values_vl": [
+   "apex:COMMON:pages/p00121-server.apx",
+   "apex:COMMON:pages/p00136-document-storage.apx",
+   "apex:COMMON:pages/p00149-approval-rule.apx",
+   "apex:COMMON:pages/p00184-data-access-values.apx",
+   "apex:COMMON:shared-components/lovs.apx",
    "xxfnd_dff_pkg"
   ],
   "xxfnd_app_storage_v": [
@@ -3554,6 +3416,12 @@
   ],
   "xxfnd_contact_tab": [
    "xxfnd_notify_pkg"
+  ],
+  "xxfnd_communications": [
+   "apex:COMMON:pages/p00045-communications.apx",
+   "apex:COMMON:pages/p00046-e-mail.apx",
+   "xxfnd_notify_pkg",
+   "xxfnd_share_pkg"
   ],
   "xxfnd_contact_sources": [
    "xxfnd_application_pkg",
@@ -3726,6 +3594,14 @@
   "xxfnd_messages": [
    "xxfnd_error_pkg"
   ],
+  "xxfnd_nav_menu_v": [
+   "apex:COMMON:pages/p00100-administration.apx",
+   "apex:COMMON:shared-components/app-items.apx",
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_nav_pkg",
+   "xxfnd_share_pkg"
+  ],
   "xxfnd_onboard_pkg": [
    "apex:COMMON:application.apx",
    "xxfnd_share_pkg"
@@ -3736,9 +3612,22 @@
    "apex:COMMON:pages/p00181-data-security-rule.apx",
    "xxfnd_share_pkg"
   ],
+  "xxfnd_admin_menu_v": [
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_modules_v"
+  ],
+  "xxfnd_nav_pkg": [
+   "apex:COMMON:shared-components/app-processes.apx",
+   "apex:COMMON:shared-components/lists.apx",
+   "xxfnd_page_opens"
+  ],
   "xxfnd_page_opens": [
    "xxfnd_nav_pkg",
    "xxfnd_page_catalogue_v"
+  ],
+  "xxfnd_document_entities_vl": [
+   "apex:COMMON:pages/p00130-document-entities.apx",
+   "apex:COMMON:shared-components/lovs.apx"
   ],
   "xxfnd_modules_v": [
    "apex:COMMON:shared-components/lists.apx"

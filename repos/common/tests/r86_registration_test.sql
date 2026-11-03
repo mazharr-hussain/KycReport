@@ -103,7 +103,6 @@ begin
         q'~begin xxfnd_integration_pkg.register_purpose('R86NOPE', 'R86_NOPE', 'x'); end;~',
         q'~begin xxfnd_workflow_pkg.set_process_enabled('R86NOPE', 'RFI', 'Y'); end;~',
         q'~begin xxfnd_application_pkg.set_enabled('R86NOPE', 'Y'); end;~',
-        q'~begin xxfnd_application_pkg.save_functions('R86NOPE', null); end;~',
         q'~begin dbms_output.put_line(xxfnd_application_pkg.delete_blocker('R86NOPE')); end;~'))) loop
         expect_error(-20180, 'refused for an unregistered application: ' || regexp_substr(t.blk, 'xxfnd_\w+\.\w+'), t.blk);
     end loop;
@@ -345,18 +344,8 @@ begin
     expect_error(-20186, 'a configuration table of another application is refused',
                  q'~begin xxfnd_approval_pkg.register_config_table('R86TEST', 'XXFND_LOOKUP_TYPES'); end;~');
 
-    ---------------------------------------------------------------- switches: functions, processes, rules, the application
-    select min(feature_code) into l_txt from xxfnd_application_functions where application_code = 'R86TEST';
-    xxfnd_application_pkg.save_functions('R86TEST', l_txt);
-    commit;
-    check_(cnt(q'~select count(*) from xxfnd_application_functions where application_code = 'R86TEST' and managed_in_app_flag = 'Y'~') = 1
-           and cnt(q'~select count(*) from xxfnd_application_functions where application_code = 'R86TEST' and managed_in_app_flag = 'Y'
-                     and feature_code = '~' || l_txt || q'~'~') = 1,
-           'SAVE_FUNCTIONS: the named function is managed in the application, the others not');
-    xxfnd_application_pkg.save_functions('R86TEST', null);
-    commit;
-    check_(cnt(q'~select count(*) from xxfnd_application_functions where application_code = 'R86TEST' and managed_in_app_flag = 'Y'~') = 0,
-           'SAVE_FUNCTIONS with none: no function is managed in the application');
+    ---------------------------------------------------------------- switches: processes, rules, the application
+    -- release 106: "managed in the application" is retired (SAVE_FUNCTIONS removed, I-059): no switch to test here
     xxfnd_workflow_pkg.set_process_enabled('R86TEST', 'rfi', 'N');
     commit;
     select max(workflow_enabled_flag) into l_flag from xxfnd_workflow_processes where application_code = 'R86TEST' and process_code = 'RFI';

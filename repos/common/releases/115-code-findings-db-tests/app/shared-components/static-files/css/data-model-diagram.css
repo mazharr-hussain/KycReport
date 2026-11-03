@@ -1,0 +1,3 @@
+/* Data Model Diagram (page 177, release 89; moved from the page in I-065): the diagram scrolls inside its region */
+#dm-erd { overflow: auto; max-height: 75vh; min-height: 200px; }
+#dm-erd svg { max-width: none; }

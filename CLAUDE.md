@@ -36,6 +36,11 @@
   code and reviews it offline, then opens the PR and pushes; deployment, database checks, tests, release zip, merge
   and error reports are done by the COMMON pipeline (`repos/common/deployment/README.md`). GitHub settings still to do
   by the user: `repos/common/deployment/GITHUB-SETUP.md`.
+- **Pipeline results: PR comments, not issues (from the user, 3 Nov 2026).** A pipeline failure (or a warning in the
+  PR's own files) is never logged as an issue: it is in the pipeline's comment on the PR, and Claude's next push works
+  from that comment only. What the pipeline reports for a future release (findings in files the PR did not change) is
+  logged as a COMMON issue by the pipeline itself (job 9.2, `checks/issues.py`) and goes on the project board. A green
+  run is merged by the pipeline (job 9.2, `release/merge.sh`), which also publishes the release; label `hold` stops it.
 - **Pipeline fixes go straight to main (from the user, 3 Nov 2026).** A change only to the pipeline's own files - the
   scripts under `repos/common/deployment/` and the GitHub workflow files (`.github/workflows/`, `.github/actions/`) -
   is not an application release: no issue, no release plan, no PR. It is checked locally (job 3: lint, static checks,
@@ -47,7 +52,7 @@
 - **Netlify not used for now (from the user, 2 Nov 2026).** Netlify stays connected for later use, but nothing is
   deployed, published or triggered there now; `netlify.toml` keeps every build skipped (`ignore = "exit 0"`) - do not
   change it until the user asks. Pushing to the session branch is allowed; a PR merges only through the COMMON pipeline
-  (required check "9 Finalize the PR" + GitHub auto-merge, `repos/common/deployment/README.md`).
+  (job 9.2 merges a green PR, `repos/common/deployment/README.md`).
 - **Issue backlog (from the user):** the backlog is the GitHub issues of this repository, shown on two GitHub Projects:
   "KYC Application" (https://github.com/users/mazharr-hussain/projects/3, label `KYC`) and "Common Application"
   (https://github.com/users/mazharr-hussain/projects/4, label `COMMON`); the workflow `add-to-project.yml` puts each

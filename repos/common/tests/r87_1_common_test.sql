@@ -1,7 +1,7 @@
--- Releases 87 / 88 checks, part 1 of 3 (run as XXFUSION): the application menu, delegated links, REGISTER_RULE,
+-- Releases 87 / 88 checks, part 1 of 3 (run as XXFUSION): the application menu, REGISTER_RULE,
 -- the UNREGISTER_* routines, the grants (no write access), RFI documents and deadlines, the self-onboarding switch.
--- Needs the APEX applications 860 (R86TEST) and 861 (R86DEL) of apex/tests/r86_test_apps.sql (run once as XXCUS).
--- Part 2 (r87_app_test.sql, as XXCUS) is the application's side; part 3 (r87_delete_test.sql, as XXFUSION) deletes
+-- Needs the APEX applications 860 (R86TEST) and 861 (R86DEL) of tests/setup/01_r86_test_apps.sql.
+-- Part 2 (r87_2_app_test.sql, as XXCUS) is the application's side; part 3 (r87_3_delete_test.sql, as XXFUSION) deletes
 -- R86DEL with the setup it registered. Its rows stay (the user keeps test data): R86TEST and its R87_* rows.
 set serveroutput on feedback off
 declare
@@ -33,10 +33,10 @@ begin
      where application_code = 'R86TEST' and entry_code in ('MY_TASKS', 'NOTIFICATIONS', 'SHARED_SETUP', 'GIVE_FEEDBACK')
        and made_by = 'COMMON';
     check_(l_n = 4, 'onboarding makes the default menu entries (' || l_n || ')');
+    -- I-059: release 105 keeps COMMON's own menu in the registry too and release 106 retired the MANAGED entries:
+    -- onboarding makes only the default entries (checked above)
     select count(*) into l_n from xxfnd_app_menu_entries where application_code = 'R86TEST' and target_type = 'MANAGED';
-    check_(l_n > 0, 'one entry per common function (' || l_n || ')');
-    select count(*) into l_n from xxfnd_app_menu_entries where application_code = 'COMMON';
-    check_(l_n = 0, 'COMMON itself gets no menu entries');
+    check_(l_n = 0, 'no MANAGED entry any more (' || l_n || ')');
     xxfnd_application_pkg.save_menu_entry('R86TEST', 'MY_TASKS', 'My Work', 5, 'fa-inbox', 'Y');
     xxfnd_application_pkg.ensure_menu('R86TEST');
     commit;
@@ -51,14 +51,11 @@ begin
     check_(l_n = 1, 'the application adds its own entry');
     l_txt := xxfnd_application_pkg.menu_url('R86TEST', 'COMMON_PAGE', 40, null);
     check_(lower(l_txt) like '%common%' and (l_txt like '%40%' or lower(l_txt) like '%my-tasks%'), 'a COMMON page entry links to COMMON (' || l_txt || ')');
-    l_txt := xxfnd_application_pkg.menu_url('R86TEST', 'MANAGED', null, 'LOOKUPS');
-    check_(l_txt like '%99%' and l_txt like '%R86TEST%', 'a managed function links to COMMON page 99 for the application (' || l_txt || ')');
+    -- release 106: the MANAGED menu type and page 99 are retired (I-059)
     select count(*) into l_n from user_views where view_name = 'XXFND_APP_MENU_V';
     check_(l_n = 1, 'the menu view exists');
 
-    ---------------------------------------------------------------- 87 C4: delegated links go to page 99
-    l_txt := xxfnd_application_pkg.delegated_url('LOOKUPS');
-    check_(l_txt is null or l_txt like '%99%', 'DELEGATED_URL points to COMMON page 99 (' || nvl(l_txt, 'null') || ')');
+    -- 87 C4 (delegated links to page 99) retired in release 106 with DELEGATED_URL (I-059)
 
     ---------------------------------------------------------------- 87 C11 / 88 C10: grants
     select count(*) into l_n from user_tab_privs_made where grantee = 'XXCUS' and privilege in ('INSERT', 'UPDATE', 'DELETE');

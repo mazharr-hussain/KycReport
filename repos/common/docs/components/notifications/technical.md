@@ -72,5 +72,5 @@ Notifications are templates and rules (data), sent the same way for every applic
 - `tests/r84_notifications_test.sql`
 - `tests/r85_shared_test.sql`
 - `tests/r86_registration_test.sql`
-- `tests/r87_app_test.sql`
+- `tests/r87_2_app_test.sql`
 - `tests/r88_journey_test.sql`

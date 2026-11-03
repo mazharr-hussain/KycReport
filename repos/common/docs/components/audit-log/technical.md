@@ -44,7 +44,6 @@ One audit trail for every application.
 - Uses: XXFND_DDL_PKG, XXFND_UTIL_PKG
 - Used by objects: XXFND_APPROVAL_PKG, XXFND_SCHEMA_PKG, XXFND_USER_PKG
 - Used by COMMON pages / components: 111, 123
-- Used by KYC pages / components: 139, 162
 
 ## Test scripts
 

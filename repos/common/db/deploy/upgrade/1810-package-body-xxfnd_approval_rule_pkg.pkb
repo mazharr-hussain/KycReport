@@ -275,7 +275,8 @@ create or replace package body xxfnd_approval_rule_pkg as
         l_pos  number := 0;
     begin
         if l_txn.approval_type_code is not null then
-            for s in (select * from xxfnd_approval_txn_steps
+            for s in (select step_seq, step_name, approver_type, role_code, user_name, source, added_by, added_comment
+                        from xxfnd_approval_txn_steps
                        where approval_type_code = upper(p_type) and txn_id = p_txn_id order by step_seq) loop
                 l_pos := l_pos + 1;
                 pipe row (xxfnd_approval_step_row(l_pos, s.step_name, s.approver_type, s.role_code, s.user_name, s.source,
@@ -287,7 +288,8 @@ create or replace package body xxfnd_approval_rule_pkg as
             end loop;
         elsif p_attributes is not null then
             l_rule := matching_rule(p_type, p_attributes);
-            for s in (select * from xxfnd_approval_rule_steps where rule_id = l_rule order by step_no) loop
+            for s in (select step_name, approver_type, role_code, user_name
+                        from xxfnd_approval_rule_steps where rule_id = l_rule order by step_no) loop
                 l_pos := l_pos + 1;
                 pipe row (xxfnd_approval_step_row(l_pos, s.step_name, s.approver_type, s.role_code, s.user_name, 'RULE',
                               null, null, 'EXPECTED'));
