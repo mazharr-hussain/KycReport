@@ -1,0 +1,73 @@
+# Deletes the history of workflow runs (issue #219). Run it by hand: Actions -> "Clean up workflow runs" ->
+# Run workflow. Start with "dry run" ticked (the default): it only lists what would be deleted. Runs still in progress
+# and this clean-up run itself are never deleted. A deleted run (with its logs and artifacts) cannot be restored.
+name: Clean up workflow runs
+on:
+  workflow_dispatch:
+    inputs:
+      workflow:
+        description: 'Workflow file name (e.g. pipeline.yml), or "all"'
+        default: all
+      older_than_days:
+        description: Only runs created more than this many days ago (0 = any age)
+        default: '0'
+      status:
+        description: Only runs with this result
+        type: choice
+        options: [all, failure, cancelled, success, skipped]
+        default: all
+      dry_run:
+        description: Dry run - only list the runs, delete nothing
+        type: boolean
+        default: true
+permissions: {}
+concurrency:
+  group: cleanup-runs
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    name: Delete workflow runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: write   # list and delete workflow runs
+    steps:
+      - name: Delete the matching runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ inputs.workflow }}
+          DAYS: ${{ inputs.older_than_days }}
+          STATUS: ${{ inputs.status }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          SELF: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "::error::older_than_days must be a whole number"; exit 1; }
+          if [ "$WORKFLOW" = all ]; then path="repos/$REPO/actions/runs"; else path="repos/$REPO/actions/workflows/$WORKFLOW/runs"; fi
+          args=(-f per_page=100)
+          if [ "$STATUS" != all ]; then args+=(-f "status=$STATUS"); fi
+          if [ "$DAYS" -gt 0 ]; then args+=(-f "created=<$(date -u -d "-$DAYS days" +%Y-%m-%d)"); fi
+          gh api --paginate -X GET "$path" "${args[@]}" \
+            -q '.workflow_runs[] | select(.status == "completed") | "\(.id)\t\(.name)\t\(.conclusion)\t\(.created_at)"' \
+            | awk -F'\t' -v self="$SELF" '$1 != self' > runs.tsv
+          total=$(wc -l < runs.tsv)
+          {
+            echo "### Workflow runs: workflow \`$WORKFLOW\`, status \`$STATUS\`, older than $DAYS day(s)"
+            echo; echo "$total completed run(s) match."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DRY_RUN" = true ]; then
+            echo "Dry run - nothing deleted. Matching runs:"; cut -f2- runs.tsv | head -200
+            echo "Dry run: nothing deleted (run again without dry run to delete them)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          deleted=0; failed=0
+          while IFS=$'\t' read -r id name conclusion created; do
+            if gh api -X DELETE "repos/$REPO/actions/runs/$id" > /dev/null 2>&1; then
+              deleted=$((deleted + 1))
+            else
+              failed=$((failed + 1)); echo "::warning::could not delete run $id ($name, $conclusion, $created)"
+            fi
+          done < runs.tsv
+          echo "deleted $deleted run(s), $failed could not be deleted"
+          echo "Deleted $deleted run(s); $failed could not be deleted." >> "$GITHUB_STEP_SUMMARY"

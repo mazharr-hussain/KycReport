@@ -77,6 +77,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
 | I-060 [#218](https://github.com/mazharr-hussain/KycReport/issues/218) | All | PR / run naming | PR title `<APP> Release <N>: <summary>`, issues linked with Fixes #n, run `<PR title>: Push Number <N>`, checked in job 3 | Closed 03-Nov-2026 |
+| I-061 [#219](https://github.com/mazharr-hussain/KycReport/issues/219) | All | GitHub workflows | Manual workflow to delete the history of workflow runs (filters, dry run) | enhancement | P3 | Planned (COMMON Release 115) | User |
 | I-025 [#160](https://github.com/mazharr-hussain/KycReport/issues/160) | All | CLAUDE.md | Rules out of date with the user's later instructions: "no push / no merge" (now: push and merge, only no Netlify) and "start the database for changes" (now: no database, offline validation only) | Closed 02-Nov-2026 |
 | I-031 [#179](https://github.com/mazharr-hussain/KycReport/issues/179) | COMMON | GitHub workflows | W1-W3 checks.yml on repos/: build each app and validate APEXlang (SQLcl) on every PR | Workflows (1-Nov-2026) |
 | I-032 [#180](https://github.com/mazharr-hussain/KycReport/issues/180) | COMMON | GitHub workflows | W4 install-safety checks on every PR | Workflows (1-Nov-2026) |
