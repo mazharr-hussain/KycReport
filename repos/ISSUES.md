@@ -75,6 +75,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-3C5 [#167](https://github.com/mazharr-hussain/KycReport/issues/167) | COMMON | Review 25-Oct (C5) | every page 2+ privileges (View/Create/Manage) - 10 pages use only *signed-in user*: 1 Home, 40 My Tasks, 43 Notifications, 45 Communications, 46 E-mail, 47 Attachments, 48 Document, 143 Information Re | - | - | Closed - decision: self-service pages stay signed-in user only | COMMON-REVIEW |
 | I-067 [#227](https://github.com/mazharr-hussain/KycReport/issues/227) | COMMON | Page 137 Application Storage, page 108 Segregation of Duties Rule | Pages 137 Application Storage and 108 Segregation of Duties Rule log an error when opened | bug | P2 | Open | Claude (pipeline browser test report) |
 | I-068 [#228](https://github.com/mazharr-hussain/KycReport/issues/228) | COMMON | COMMON DB tests (`repos/common/tests`), COMMON install | DB tests fail on a freshly installed database (they need data an upgraded one has) | bug | P2 | Open | Claude (pipeline run) |
+| I-069 [#229](https://github.com/mazharr-hussain/KycReport/issues/229) | COMMON | pipeline job 5 Upgrade app, step 5.3-restore-data | full run fails at 5 Upgrade app (5.3-restore-data) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
