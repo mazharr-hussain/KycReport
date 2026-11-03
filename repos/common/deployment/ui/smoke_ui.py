@@ -48,11 +48,14 @@ def run_user(browser, args, user, pages, password):
     page = ctx.new_page()
     results = []
     try:
-        page.goto(f'{args.base}/r/{args.app_path}/login', wait_until='domcontentloaded')
-        page.fill('#P9999_USERNAME', user)
-        page.fill('#P9999_PASSWORD', password)
-        page.click('#LOGIN, button:has-text("Sign In")')
-        page.wait_for_load_state('networkidle', timeout=60000)
+        try:   # the application not reachable or no sign-in page: one clear result, not a traceback
+            page.goto(f'{args.base}/r/{args.app_path}/login', wait_until='domcontentloaded')
+            page.fill('#P9999_USERNAME', user)
+            page.fill('#P9999_PASSWORD', password)
+            page.click('#LOGIN, button:has-text("Sign In")')
+            page.wait_for_load_state('networkidle', timeout=60000)
+        except Exception as e:
+            return [{'user': user, 'page': 'login', 'status': 'error', 'detail': f'sign-in failed: {e}'.splitlines()[0]}]
         session = session_of(page.url)
         page.screenshot(path=os.path.join(folder, 'screens', 'home.png'), full_page=True)
         if '/login' in page.url or not session:

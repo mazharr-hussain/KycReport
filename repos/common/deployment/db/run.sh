@@ -320,9 +320,11 @@ export_app() {  # APEXlang export (SQLcl) of the application that passed jobs 4-
 
 # every database job: a new random password for the pipeline user, for this job only (set here, outside a step:
 # a step runs in a subshell); 24 characters - upper, lower, digits (ADB password rules), no quote
-CI_PW="Ci$(openssl rand -hex 10)Z9"
-echo "::add-mask::$CI_PW"
-export CI_PW
+if [ "${1:-}" != ui ]; then   # the browser job never signs in as the pipeline user
+  CI_PW="Ci$(openssl rand -hex 10)Z9"
+  echo "::add-mask::$CI_PW"
+  export CI_PW
+fi
 ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="$CI_PW"; }
 
 # the browser job (ui) runs beside the DB-test job and never signs in as the pipeline user: it leaves the password

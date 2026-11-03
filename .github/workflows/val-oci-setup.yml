@@ -118,7 +118,7 @@ jobs:
           put val-wallet-sso "$(base64 -w0 wallet/cwallet.sso)"
           sql=opt/oracle/sqlcl/bin/sql
           for u in XXCUS; do
-            n=val-$(echo $u | tr A-Z a-z)-pw
+            n=val-$(echo "$u" | tr '[:upper:]' '[:lower:]')-pw
             s=$(sid "$n")
             if [ -z "$s" ] || [ "$s" = null ]; then
               pw="Rv$(openssl rand -hex 10)#7k"
@@ -139,11 +139,11 @@ jobs:
           sid() { oci vault secret list -c "$VC" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output; }
           WS=$(sid val-wallet-sso)
           for u in XXCUS; do
-            name=val-$(echo $u | tr A-Z a-z)
+            name=val-$(echo "$u" | tr '[:upper:]' '[:lower:]')
             have=$(oci dbtools connection list -c "$C" --all --display-name "$name" --lifecycle-state ACTIVE --query 'data.items[0].id' --raw-output 2>/dev/null || true)
             if [ -n "$have" ] && [ "$have" != null ]; then echo "connection $name exists"; else
             have=$(oci dbtools connection create-oracle-database -c "$C" --display-name "$name" \
-              --user-name "$u" --user-password-secret-id "$(sid $name-pw)" \
+              --user-name "$u" --user-password-secret-id "$(sid "$name-pw")" \
               --connection-string "$(cat connstr.txt)" \
               --related-resource "{\"entityType\":\"AUTONOMOUSDATABASE\",\"identifier\":\"$DB\"}" \
               --key-stores "[{\"keyStoreType\":\"SSO\",\"keyStoreContent\":{\"valueType\":\"SECRETID\",\"secretId\":\"$WS\"}}]" \

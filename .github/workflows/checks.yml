@@ -69,7 +69,7 @@ jobs:
         # the other application first: the dependency map and technical docs list its pages too
         run: |
           other=$([ "${{ matrix.app }}" = common ] && echo kyc || echo common)
-          sh repos/$other/build.sh > /dev/null
+          sh "repos/$other/build.sh" > /dev/null
           sh repos/${{ matrix.app }}/build.sh
       - name: Technical docs are up to date
         run: |
