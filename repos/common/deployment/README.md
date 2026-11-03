@@ -58,8 +58,8 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   scripts; 5.8 records the fingerprint of a version that passed its fresh install and upgrade test (`db/deployed.sql`,
   table `XXCI_DEPLOYED` of the pipeline user). When the database already holds this fingerprint (a push that changes
   only tests, docs or the pipeline), 3.2b says so and jobs 4-5 are skipped - job 6 tests straight away.
-- **DB tests on the fresh install (C):** 4.5 test users and 4.6 DB tests run right after the fresh install, so a test
-  failure stops the run before the upgrade test; job 6 runs them again on the upgraded data.
+- **DB tests on the fresh install (C) - held back:** the DB tests still need data an upgraded database has (11 fail on
+  a fresh install, run 41664366800); they run in job 6 only until the tests stand on their own fixtures.
 - **The database is reinstalled only when its scripts change:** 4.7 / 5.8 record two fingerprints of the deployed
   version - the whole version and its database scripts alone (`XXCI_DEPLOYED`). 3.2b compares: the same version skips
   jobs 4-5 (B); the same database scripts make job 4 replace **only the APEX application** (4.1 remove the
@@ -67,16 +67,17 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   scripts get the full fresh install (and the upgrade test when they differ from the base, F).
 - **Docs after the merge (E):** 7.1 exports only the release zip; the PR is merged and released, then 7.3-7.4 (readable
   export, SchemaSpy) are made and added to the release (a docs problem is a warning, not a failure).
-- **No upgrade test without database changes (F):** job 1 builds the base too and compares the database scripts
-  (`db/deploy` install / upgrade); when they are the base's, job 5 is skipped and 4.7 records the version.
+- **No upgrade test without database changes (F) - held back:** job 1 still compares the database scripts with the
+  base, but job 5 runs after every full reinstall: job 6's DB tests need the data it restores (as C above).
 - **Browser test beside the DB tests (G):** job 6 is two jobs at the same time - "6 DB tests and security" (6.2, 6.4,
   6.5) and "6 Browser test and ZAP" (6.1, 6.3, 6.6); the browser job never signs in as the pipeline user.
-- **A PR tests what it changes; the night tests everything (K, L):** job 1 (`checks/affected.py`) lists what the PR
+- **A PR tests what it changes; the full run tests everything (K, L):** job 1 (`checks/affected.py`) lists what the PR
   affects - the DB tests of its features, its changed tests and the release tests that name an object it changes; its
   pages plus the home page. Steps 4.6 / 6.2 run only those DB tests (the fixtures in `tests/setup` always), 6.3 opens
   only those pages, and ZAP is left out. A change to the framework, the shared components, the fixtures, the build or
-  the pipeline tests everything. The **nightly run** (schedule, 01:23 UTC) tests all of `main` - every DB test, every
-  page, ZAP - and a failure there becomes a COMMON issue (one per failing step; a repeat is a comment on it).
+  the pipeline tests everything. The **full run** is on demand only (Actions > COMMON > Run workflow): it tests all of
+  `main` - every DB test, every page, ZAP - and a failure there becomes a COMMON issue (one per failing step; a repeat
+  is a comment on it).
 - **One SQLcl session for the DB tests (I):** consecutive test files of one schema run in one SQLcl session, reset
   between files (rollback, no APEX session, `dbms_session.reset_package`); a file that ends with `exit` runs alone.
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 6) are cached between runs.
