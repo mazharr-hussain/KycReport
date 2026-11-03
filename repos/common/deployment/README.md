@@ -60,6 +60,11 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   only tests, docs or the pipeline), 3.2b says so and jobs 4-5 are skipped - job 6 tests straight away.
 - **DB tests on the fresh install (C):** 4.5 test users and 4.6 DB tests run right after the fresh install, so a test
   failure stops the run before the upgrade test; job 6 runs them again on the upgraded data.
+- **The database is reinstalled only when its scripts change:** 4.7 / 5.8 record two fingerprints of the deployed
+  version - the whole version and its database scripts alone (`XXCI_DEPLOYED`). 3.2b compares: the same version skips
+  jobs 4-5 (B); the same database scripts make job 4 replace **only the APEX application** (4.1 remove the
+  application, 4.2 import it - the schema, its objects and data stay; no backup schema) and skip job 5; other database
+  scripts get the full fresh install (and the upgrade test when they differ from the base, F).
 - **Docs after the merge (E):** 7.1 exports only the release zip; the PR is merged and released, then 7.3-7.4 (readable
   export, SchemaSpy) are made and added to the release (a docs problem is a warning, not a failure).
 - **No upgrade test without database changes (F):** job 1 builds the base too and compares the database scripts

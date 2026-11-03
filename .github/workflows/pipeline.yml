@@ -40,6 +40,7 @@ jobs:
       common: ${{ steps.scope.outputs.common }}
       release: ${{ steps.scope.outputs.release }}
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
+      db_fingerprint: ${{ steps.fingerprint.outputs.db_fingerprint }}
       db_changed: ${{ steps.dbdiff.outputs.db_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,10 +114,11 @@ jobs:
         if: steps.scope.outputs.common == 'true'
         run: |
           set -euo pipefail
-          fp=$(for d in repos/common/dist/app repos/common/db/deploy; do
-                 (cd "$d" && find . -type f -print0 | sort -z | xargs -0 sha256sum)
-               done | sha256sum | cut -c1-16)
+          h() { (cd "$1" && shift && find "$@" -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -c1-16; }
+          db=$(h repos/common/db/deploy install upgrade)          # the database scripts alone
+          fp=$(printf '%s %s' "$(h repos/common/dist/app .)" "$db" | sha256sum | cut -c1-16)   # the whole version
           echo "fingerprint=$fp" >> "$GITHUB_OUTPUT"
+          echo "db_fingerprint=$db" >> "$GITHUB_OUTPUT"
           echo "- version fingerprint \`$fp\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Do the database scripts differ from the base? (no - job 5's upgrade test is skipped, F)
         id: dbdiff
@@ -177,12 +179,14 @@ jobs:
     permissions:
       contents: read
     outputs:
-      reuse: ${{ steps.setup.outputs.reuse }}   # true: the database holds this version - jobs 4-5 are skipped
+      reuse: ${{ steps.setup.outputs.reuse }}         # true: the database holds this version - jobs 4-5 are skipped
+      app_only: ${{ steps.setup.outputs.app_only }}   # true: same database scripts - job 4 replaces the APEX application only
     env:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
+      DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -197,6 +201,7 @@ jobs:
         run: |
           bash repos/common/deployment/db/run.sh setup
           echo "reuse=$(cat "$LOG_DIR/reuse" 2>/dev/null || echo false)" >> "$GITHUB_OUTPUT"
+          echo "app_only=$(cat "$LOG_DIR/app_only" 2>/dev/null || echo false)" >> "$GITHUB_OUTPUT"
       - name: Step logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -218,7 +223,9 @@ jobs:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 4.7 records the version (no upgrade test)
+      APP_ONLY: ${{ needs.db-setup.outputs.app_only }}        # true: only the APEX application is replaced
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
+      DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -255,8 +262,9 @@ jobs:
 
   upgrade:
     name: 5 Upgrade app
-    needs: [offline, fresh]
-    if: needs.offline.outputs.db_changed != 'false'   # F: the base's database scripts - nothing new to upgrade
+    needs: [offline, db-setup, fresh]
+    # F: the base's database scripts - nothing new to upgrade; application only: these scripts passed it already
+    if: needs.offline.outputs.db_changed != 'false' && needs.db-setup.outputs.app_only != 'true'
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 40
@@ -266,6 +274,7 @@ jobs:
       VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}
       ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}   # pipeline user password per job (db/run.sh)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.8 records it: the database holds this version
+      DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -307,7 +316,8 @@ jobs:
       (needs.upgrade.result == 'success' ||
        (needs.upgrade.result == 'skipped' &&
         (needs.db-setup.outputs.reuse == 'true' ||
-         (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success'))))
+         (needs.fresh.result == 'success' &&
+          (needs.offline.outputs.db_changed == 'false' || needs.db-setup.outputs.app_only == 'true')))))
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60
@@ -360,7 +370,8 @@ jobs:
       (needs.upgrade.result == 'success' ||
        (needs.upgrade.result == 'skipped' &&
         (needs.db-setup.outputs.reuse == 'true' ||
-         (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success'))))
+         (needs.fresh.result == 'success' &&
+          (needs.offline.outputs.db_changed == 'false' || needs.db-setup.outputs.app_only == 'true')))))
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
     timeout-minutes: 60
@@ -450,13 +461,17 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
           REUSE: ${{ needs.db-setup.outputs.reuse }}
           DB_CHANGED: ${{ needs.offline.outputs.db_changed }}
+          APP_ONLY: ${{ needs.db-setup.outputs.app_only }}
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
           # the database already held this version (it passed jobs 4-5 before): jobs 4-5 were skipped on purpose
           if [ "$REUSE" = true ]; then sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt; fi
           # F: the base's database scripts - the upgrade test was not needed
-          if [ "$DB_CHANGED" = false ] && grep -q '^fresh=success$' results.txt; then sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt; fi
+          # F / application only: the upgrade test was not needed
+          if { [ "$DB_CHANGED" = false ] || [ "$APP_ONLY" = true ]; } && grep -q '^fresh=success$' results.txt; then
+            sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt
+          fi
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
                             [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 DB tests and security"
                             [ui]="6 Browser test and ZAP")
