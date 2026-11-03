@@ -28,7 +28,10 @@ begin
         ok('region read from the Remote Server URL: ' || l_srv.oci_region, l_srv.oci_region is not null);
         ok('namespace read from the Remote Server URL: ' || l_srv.oci_namespace, l_srv.oci_namespace is not null);
     end if;
-    -- the account status of a local user
+    -- the account status of a local user - outside the APEX session (APEX refuses reading an account inside one, outside
+    -- a browser); the database user ADMIN is the tests' administrator ADMIN (Users & Access - Manage) there (I-059)
+    apex_session.delete_session;
+    apex_util.set_workspace('XXCUS');
     select min(user_id) into l_usr from xxfnd_users where user_type = 'LOCAL' and enabled_flag = 'Y';
     if l_usr is not null then
         for u in (select user_name from xxfnd_users where user_id = l_usr) loop

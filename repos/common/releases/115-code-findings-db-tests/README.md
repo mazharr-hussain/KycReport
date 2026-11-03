@@ -22,6 +22,8 @@ validation ("Validation successful"), static checks and PMD (0 findings), pipeli
 - Tests that need an administrator's APEX session open one as ADMIN (r109, r110, r111). Creating, reading or locking
   an APEX account outside a browser needs APEX admin rights, so `04_test1_user.sql` (TEST1) and r109 run as the
   database ADMIN in COMMON's schema (`-- Schema: ADMIN`), like the test users of step 6.1.
+- r109 reads and locks the account outside the APEX session (APEX refuses it inside one, outside a browser); r86
+  counts the re-run's grants of its administrator only (TALL_ACCESS holds every role of every application).
 - r110 saves its purposes for the test application R86TEST (COMMON owns no integration purpose); r87_1 checks the
   menu view of release 105 (`XXFND_NAV_MENU_V`).
 - Stale checks of routines retired in COMMON 106 ("managed in the application": `IS_MANAGED`, `SAVE_FUNCTIONS`,

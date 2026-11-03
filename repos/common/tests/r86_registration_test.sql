@@ -76,7 +76,10 @@ begin
     select max(workflow_enabled_flag) into l_flag from xxfnd_workflow_processes where application_code = 'R86TEST' and process_code = 'RFI';
     check_(l_flag = 'Y', 'a re-run keeps the process switch');
     select count(*) into l_n from xxfnd_roles where role_code = 'R86TEST_ADMIN';
-    select count(*) into l_n2 from xxfnd_user_roles where role_code = 'R86TEST_ADMIN' and end_date_active is null;
+    -- the grants of the onboarding's administrator only (I-059: the test user TALL_ACCESS of step 6.1 holds every role
+    -- of every registered application, R86TEST_ADMIN too)
+    select count(*) into l_n2 from xxfnd_user_roles_v
+     where user_name = 'ADMIN' and role_code = 'R86TEST_ADMIN' and end_date_active is null;
     check_(l_n = 1 and l_n2 = 1, 'a re-run adds no second role or grant');
 
     ---------------------------------------------------------------- an application that is not registered is refused
