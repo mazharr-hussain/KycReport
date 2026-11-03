@@ -117,6 +117,13 @@ backup() {     # 4.0 and the 5.3 snapshot: the app's data into the backup schema
 remove_app() { # 4.1 / 5.1
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID" && S "$APP_SCHEMA" "$HERE/clear-schema.sql" check
 }
+remove_test_accounts() {  # 4.1 (full fresh install): the test users' APEX accounts, which outlive the cleared schema
+  local users
+  users=$(cat "$THIS/db/admin/test-users.sql" "$THIS"/tests/*.sql "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql 2>/dev/null \
+          | grep -oE "(usr|create_local_user)\('[A-Z][A-Z0-9_]*'" | sed -E "s/.*\('//; s/'//" | sort -u | tr '\n' ' ')
+  echo "test users: $users"
+  S ADMIN "$HERE/remove-test-accounts.sql" check workspace="$WORKSPACE" users="$users"
+}
 remove_apex_app() {  # 4.1 (application only): the APEX application; the schema, its objects and data stay
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID"
 }
@@ -285,6 +292,7 @@ case ${1:?usage: run.sh setup|fresh|upgrade <base-ref>|test|ui|finalize <dir>|do
     else
       step 4.0-backup backup
       step 4.1-remove-app remove_app
+      step 4.1b-remove-test-accounts remove_test_accounts
       step 4.2-deploy-this deploy "$THIS" install
     fi
     step 4.3-online-validation validate_online
