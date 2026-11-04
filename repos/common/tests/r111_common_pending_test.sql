@@ -9,6 +9,9 @@ declare
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
     end;
 begin
+    -- I-059: the APEX session of the tests' administrator ADMIN (tests/setup/03_common_test_fixture.sql)
+    apex_util.set_workspace('XXCUS');
+    apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
     -- a menu group opens page 100 for its group; without a code it only expands
     l_url := xxfnd_application_pkg.menu_url('COMMON', 'FOLDER', null, null, 'M_PLATFORM');
     ok('group link opens page 100: ' || l_url, l_url like '%100%' and upper(l_url) like '%M_PLATFORM%');

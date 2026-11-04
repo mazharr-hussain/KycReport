@@ -33,12 +33,7 @@ page 177 (
             ```
     }
     css {
-        inline:
-            ```css
-            /* release 89: the diagram scrolls inside its region */
-            #dm-erd { overflow: auto; max-height: 75vh; min-height: 200px; }
-            #dm-erd svg { max-width: none; }
-            ```
+        fileUrls: #APP_FILES#css/data-model-diagram.css
     }
     help {
         helpText:
