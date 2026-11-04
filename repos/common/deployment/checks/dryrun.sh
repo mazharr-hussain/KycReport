@@ -84,6 +84,10 @@ expect "test-full: every test file ran, none dropped" \
   test "$(grep -c . "$W/logs-test-full/tests-expected")" -gt 10 -a "$(grep -c . "$W/logs-test-full/tests-ran")" = "$(grep -c . "$W/logs-test-full/tests-expected")"
 DEPLOY=reuse STUB_PASSED=1 RECORD=$full_rec scenario ui-reuse-passed 0 - "6.3-browser-tests" -- ui
 RECORD=$full_rec scenario finalize 0 - "7.0-version-guard 7.1-export" -- finalize "$W/out"
+DEPLOY=retest RECORD="${full_rec/$FINGERPRINT/oldversion}
+FAILED repos/common/tests/r79_security_test.sql" scenario test-retest 0 - "6.0a-version-guard 6.1-load-test-data 6.1b-test-prerequisites 6.0-select-tests 6.2-db-tests 6.2b-record-tests 6.3-record-version" -- test
+expect "test-retest: only the failed file" grep -qx "repos/common/tests/r79_security_test.sql " "$W/logs-test-retest/db-tests"
+DEPLOY=retest RECORD="${full_rec/ FULL / DIRTY }" scenario test-retest-not-verified 1 - "" -- test
 DEPLOY=full RECORD="${full_rec/$FINGERPRINT/otherversion}" scenario test-another-version-deployed 1 - "" -- test
 expect "test-another-version-deployed: stops before the tests" test ! -f "$W/logs-test-another-version-deployed/6.2-db-tests.log"
 exit "$rc"

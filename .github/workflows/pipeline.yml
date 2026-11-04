@@ -265,6 +265,7 @@ jobs:
       - name: 3.1-3.4 DB setup
         id: setup
         env:
+          GH_TOKEN: ${{ github.token }}                       # 3.2b: what changed since the version the database passed with
           VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
           ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
@@ -352,7 +353,7 @@ jobs:
     # when it passed - then the full fresh install
     if: >-
       always() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
-      needs.db-setup.outputs.deploy != 'upgrade' &&
+      needs.db-setup.outputs.deploy != 'upgrade' && needs.db-setup.outputs.deploy != 'retest' &&
       (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
     environment: Oracle DB Dev
@@ -473,7 +474,7 @@ jobs:
     # after job 3 when the database already holds this version (B)
     if: >-
       always() && needs.db-setup.result == 'success' &&
-      (needs.db-setup.outputs.deploy == 'reuse' ||
+      (needs.db-setup.outputs.deploy == 'reuse' || needs.db-setup.outputs.deploy == 'retest' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
@@ -639,6 +640,7 @@ jobs:
           [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt
           case $DEPLOY in
             reuse) sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt ;;
+            retest) grep -q '^test=success$' results.txt && sed -i -E 's/^(fresh|upgrade|ui)=skipped$/\1=success/' results.txt ;;   # the browser test passed for these pages
             app)   grep -q '^fresh=success$' results.txt && sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt ;;
             upgrade) grep -q '^upgrade=success$' results.txt && sed -i 's/^fresh=skipped$/fresh=success/' results.txt ;;   # 5.0: job 4 passed earlier
           esac

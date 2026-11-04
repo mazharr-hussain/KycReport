@@ -60,8 +60,25 @@ ci_exec() {   # ci_exec <login> <statement line>...
 read_record() {   # the record into LOG_DIR/record.txt (DEPLOYED / CODE / PASSED / FAILED lines)
   S CI "$HERE/deployed.sql" check mode=get > "$LOG_DIR/record.txt" || { cat "$LOG_DIR/record.txt"; return 1; }
 }
-decide() {   # 3.2b: reuse | app | patch | full (LOG_DIR/deploy, patch-files, changed-objects, app-changed)
-  read_record && python3 "$HERE/decide.py" "$LOG_DIR/record.txt" "$THIS/db/deploy/code-manifest.txt" "$LOG_DIR"
+decide() {   # 3.2b: reuse | app | patch | data | retest | upgrade | full (LOG_DIR/deploy, patch-files, ...)
+  read_record || return 1
+  # retest: only the test data (and the pipeline's own files) changed since the commit the database last passed with
+  local head changed
+  head=$(awk '$1 == "DEPLOYED" && $6 == "FULL" {print $7}' "$LOG_DIR/record.txt")
+  DATA_ONLY=0
+  if [ -n "$head" ] && [ "$head" != - ] && safe "$head"; then
+    if git -C "$ROOT" cat-file -e "$head^{commit}" 2>/dev/null; then
+      changed=$(git -C "$ROOT" diff --name-only "$head" HEAD 2>/dev/null) || changed=""
+    else   # a shallow checkout without credentials: GitHub's compare (job 3 has GH_TOKEN, contents: read)
+      changed=$(gh api "repos/${GITHUB_REPOSITORY:-}/compare/$head...$(git -C "$ROOT" rev-parse HEAD)" --paginate \
+                  --jq '.files[].filename' 2>/dev/null) || changed=""
+    fi
+    if echo "$changed" | grep -qx 'repos/common/db/admin/test-data.json' \
+       && ! echo "$changed" | grep -vE '^(repos/common/db/admin/test-data\.json|repos/common/deployment/.*|\.github/.*|repos/ISSUES\.md|repos/common/docs/.*)$' | grep -q .; then
+      DATA_ONLY=1; echo "since ${head:0:7} (the version the database passed with): only the test data and pipeline files changed"
+    fi
+  fi
+  DATA_ONLY=$DATA_ONLY python3 "$HERE/decide.py" "$LOG_DIR/record.txt" "$THIS/db/deploy/code-manifest.txt" "$LOG_DIR"
 }
 key_of() { basename "$1" | sed -E 's/^[0-9]+-//'; }   # install/0050-package-spec-x.pks -> package-spec-x.pks
 mark_dirty() {   # before a deploy changes the database: the record no longer claims a version it may not hold
@@ -338,10 +355,18 @@ guard() {   # guard version|app|patch|upgrade <login>: the database still holds 
     app)     [ "$db" = "${DB_FINGERPRINT:-}" ] && [ "$verified" = FULL ] || ok=0 ;;
     patch)   [ "$struct" = "${STRUCT_FINGERPRINT:-}" ] && [ "$verified" != DIRTY ] || ok=0 ;;
     upgrade) [ "$fresh" = "${FINGERPRINT:-}" ] || ok=0 ;;
+    retest)  [ "$verified" = FULL ] || ok=0 ;;
   esac
   if [ "$ok" = 1 ]; then echo "the database holds what job 3 found ($what: ${fp:0:16} $verified)"; return 0; fi
   echo "FAIL the database no longer holds what job 3 found for this run ($what check: version ${fp:0:16}, $verified, fresh install of ${fresh:--}) - another run changed it in between: re-run all jobs (from job 1)"
   return 1
+}
+test_prerequisites() {   # 6.1b (retest): what the tests rely on, for the step log - information only
+  ci_exec "$APP_SCHEMA" "set heading off feedback off pagesize 0 linesize 400" \
+    "select 'INFO workspace administrator: ' || user_name from apex_workspace_apex_users where workspace_name = '$WORKSPACE' and is_admin = 'Yes';" \
+    "select 'INFO ' || role_code || ' holder: ' || user_name || ' (' || active_flag || ')' from xxfnd_user_roles_v where role_code in ('COMMON_ADMIN', 'SUPER_ADMIN');" \
+    "select 'INFO roles: ' || count(*) || ', users: ' || (select count(*) from xxfnd_users) || ', applications: ' || (select listagg(application_code, ',') within group (order by application_code) from xxfnd_applications) from xxfnd_roles;" \
+    || true
 }
 compare() {     # 5.6
   # keys the fresh install of this version also leaves ENABLED NOT VALIDATED (4.5) are that way by design (the install
@@ -429,6 +454,10 @@ select_tests() {   # 6.0 / 4.Q6: which DB tests run (LOG_DIR/db-tests; the fixtu
     echo "${DB_TESTS:-ALL}" > "$LOG_DIR/db-tests"; echo "the tests of this pull request: ${DB_TESTS:-ALL}"; return 0
   fi
   read_record || return 1
+  if [ "$kind" = failed ]; then   # retest: the files that failed last time only
+    sel=$(awk '$1 == "FAILED" {print $2}' "$LOG_DIR/record.txt" | while read -r f; do [ -f "$ROOT/$f" ] && echo "$f"; done | sort -u | tr '\n' ' ')
+    echo "${sel:-NONE}" > "$LOG_DIR/db-tests"; echo "the test files that failed last time: ${sel:-none}"; return 0
+  fi
   prev=$(awk '$1 == "DEPLOYED" {print $7}' "$LOG_DIR/record.txt")
   if [ -n "$prev" ] && [ "$prev" != - ] && git -C "$ROOT" cat-file -e "$prev^{commit}" 2>/dev/null; then
     delta=$(cd "$ROOT" && python3 "$HERE/../checks/affected.py" "$prev" | sed -n 's/^db_tests=//p')
@@ -639,6 +668,19 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
   test)   # job 6 (database): A - every step runs; the job fails at the end with all of their failures together
     export KEEP_GOING=1
     # reuse / app: the database held a fully verified version - only what changed since the last tested commit (Q2)
+    if [ "${DEPLOY:-full}" = retest ]; then
+      # retest: the database holds the version it passed with; only the test data changed - load it, run the test
+      # files that failed last time (and the fixtures), record the version when they pass. No scans, no browser test.
+      step 6.0a-version-guard guard retest CI || finish
+      step 6.1-load-test-data load_data "$THIS" strict || finish
+      step 6.1b-test-prerequisites test_prerequisites
+      step 6.0-select-tests select_tests failed
+      DB_TESTS=$(cat "$LOG_DIR/db-tests" 2>/dev/null || echo NONE); export DB_TESTS
+      step 6.2-db-tests db_tests
+      step 6.2b-record-tests record_tests failed
+      if [ ! -s "$LOG_DIR/failed" ]; then step 6.3-record-version record_deployed FULL; fi
+      finish; exit 0
+    fi
     case ${DEPLOY:-full} in reuse|app) kind="delta" ;; *) kind="full" ;; esac
     step 6.0a-version-guard guard version CI || finish
     step 6.0-select-tests select_tests "$kind"

@@ -86,12 +86,12 @@ def record(fp, verified='FULL'):
     return '\n'.join(lines) + '\n'
 
 
-def decide(root, rec, fp, start=''):
+def decide(root, rec, fp, start='', data_only='0'):
     open(os.path.join(root, 'rec.txt'), 'w').write(rec)
     open(os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), 'w').write(fp['manifest'])   # this version's
     env = dict(os.environ, FINGERPRINT=fp['fingerprint'], DB_FINGERPRINT=fp['db_fingerprint'],
                STRUCT_FINGERPRINT=fp['struct_fingerprint'], APP_FINGERPRINT=fp['app_fingerprint'],
-               INSTALL_FINGERPRINT=fp['install_fingerprint'], START_FROM=start)
+               INSTALL_FINGERPRINT=fp['install_fingerprint'], START_FROM=start, DATA_ONLY=data_only)
     subprocess.run([sys.executable, DECIDE, os.path.join(root, 'rec.txt'),
                     os.path.join(root, 'repos/common/db/deploy/code-manifest.txt'), os.path.join(root, 'out')],
                    env=env, check=True, capture_output=True)
@@ -148,5 +148,8 @@ with tempfile.TemporaryDirectory() as root:
     check('decide: installed, data load failed, only the data changed -> data', decide(root, inst, g2)[0], 'data')
     check('decide: same, start from job 4 -> data (no redeploy)', decide(root, inst, g2, '4')[0], 'data')
     check('decide: installed, then the scripts changed -> full', decide(root, inst, f)[0], 'full')
+    check('decide: verified version, only the test data changed since -> retest', decide(root, record(g1), g2, data_only='1')[0], 'retest')
+    check('decide: verified version, data changed, start from job 4 -> full', decide(root, record(g1), g2, '4', '1')[0], 'full')
+    check('decide: verified version, more than the data changed -> not retest', decide(root, record(g1), g2)[0] != 'retest', True)
     check('decide: a numbered step added -> full', decide(root, record(a), f)[0], 'full')
 sys.exit(0 if all(results) else 1)
