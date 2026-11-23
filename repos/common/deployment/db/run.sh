@@ -298,8 +298,22 @@ record_install() {   # 4.2a: the install of this version (no data yet) - a data-
     " when not matched then insert (check_name, fingerprint) values ('install', '$INSTALL_FINGERPRINT');" "commit;" > /dev/null || return 1
   echo "install recorded for $INSTALL_FINGERPRINT (test data not loaded yet)"
 }
-forget_install() {   # 4.2c: the test data is in - the install record no longer allows a data-only reload
-  ci_exec CI "delete from xxci_passed where check_name = 'install';" "commit;" > /dev/null
+forget_install() {   # 4.2c: the test data is in - the install record no longer allows a data-only reload; instead
+  # 'loaded' records this version installed with its data, so a later failure in job 4 resumes at 4.3 (deploy=loaded)
+  safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
+  ci_exec CI "delete from xxci_passed where check_name = 'install';" \
+    "merge into xxci_passed t using (select 'loaded' check_name from dual) s on (t.check_name = s.check_name)" \
+    " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp" \
+    " when not matched then insert (check_name, fingerprint) values ('loaded', '$FINGERPRINT');" "commit;" > /dev/null
+}
+loaded_guard() {   # 4.0 (deploy=loaded): the database still holds this version installed with its test data
+  local out
+  safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
+  out=$(ci_exec CI "set heading off feedback off pagesize 0" \
+    "select 'LOADED-OF ' || fingerprint from xxci_passed where check_name = 'loaded';") || { echo "$out"; return 1; }
+  [ "$(echo "$out" | sed -n 's/^LOADED-OF *//p' | awk 'NR == 1 {print $1}')" = "$FINGERPRINT" ] \
+    || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds this version with its test data ($FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
+  echo "the database holds this version with its test data ($FINGERPRINT) - job 4 resumes at 4.3"
 }
 install_guard() {   # 4.0 (deploy=data): the database still holds the install job 3 found
   local out
@@ -623,7 +637,7 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     step 3.2-bootstrap bootstrap
     step 3.2b-deploy-decision decide
     # the snapshot schema serves the upgrade test only (a quick check is followed by the full deploy)
-    if grep -qE '^(full|patch|upgrade|data)$' "$LOG_DIR/deploy"; then
+    if grep -qE '^(full|patch|upgrade|data|loaded)$' "$LOG_DIR/deploy"; then
       step 3.3-backup-schema backup_schema N
     fi
     step 3.3b-drop-old-baseline drop_old_baseline
@@ -655,7 +669,9 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
       step 4.1-remove-apex-app remove_apex_app
       step 4.2-import-app deploy "$THIS" app
     else
-      if [ "${DEPLOY:-full}" = data ]; then
+      if [ "${DEPLOY:-full}" = loaded ]; then
+        step 4.0-loaded-guard loaded_guard
+      elif [ "${DEPLOY:-full}" = data ]; then
         step 4.0-install-guard install_guard
       else
         step 4.1a-mark-record mark_dirty all
@@ -664,8 +680,10 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
         step 4.2-deploy-this deploy "$THIS" install
         step 4.2a-record-install record_install
       fi
-      step 4.2b-load-test-data load_data "$THIS" strict
-      step 4.2c-data-loaded forget_install
+      if [ "${DEPLOY:-full}" != loaded ]; then
+        step 4.2b-load-test-data load_data "$THIS" strict
+        step 4.2c-data-loaded forget_install
+      fi
     fi
     step 4.3-online-validation validate_online
     step 4.4-dependency-check dependency_check

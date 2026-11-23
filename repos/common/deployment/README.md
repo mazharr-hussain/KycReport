@@ -8,7 +8,7 @@ in this folder. Before the pipeline, Claude changes the code, reviews it, opens 
 |---|---|---|---|
 | 1 Offline validation | 1.0a PR title and linked issues · 1.0 secret scan of the PR's commits (gitleaks) · 1.1 pipeline lint (actionlint, shellcheck, decision self-test, dry run of every database-job path - `checks/dryrun.sh`) · 1.2 static checks · 1.3 requirements check (warning) · 1.4 build · 1.5 APEXlang LF check + validate · 1.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
 | 2 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
-| 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2b deploy decision (`db/decide.py`: reuse / app / patch / full) · 3.3 backup schema `XXFUSION_BKP` (dropped if it exists, created; full and patch only) · 3.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
+| 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2b deploy decision (`db/decide.py`: reuse / app / patch / upgrade / loaded / data / retest / full) · 3.3 backup schema `XXFUSION_BKP` (dropped if it exists, created; full and patch only) · 3.4 APEX-SERT installed only when missing or its pinned commit changed | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
 | 4 Quick check (patch only) | 4.Q1 mark the record · 4.Q2 run the changed code objects alone · 4.Q3 import the app (when it changed) · 4.Q4 online validation · 4.Q5 record (PATCH) · 4.Q6 select the tests of the changed objects and their callers · 4.Q7 those DB tests · 4.Q8 record the failed files; a pass is followed by jobs 4-6 in the same run | proxy | `db/run.sh quick` |
 | 4 Deploy fresh app | 4.1 remove app + DB objects · 4.2 deploy this version · 4.2b load this version's test data (`db/admin/test-data.json`) · 4.3 online validation · 4.4 dependency check: deployed schema vs the generated map (report) · 4.5 record the fresh install's structure | pipeline user / proxy | `db/run.sh fresh` |
 | 5 Upgrade app | 5.0 version guard (upgrade only) · 5.1 remove (= 4.1) · 5.2 deploy the last release (the PR's base commit) · 5.3 load the last release's test data (its own file from git) · 5.4 snapshot · 5.5 upgrade to this version (once) · 5.6 nothing lost + every key checked against the old rows · 5.7 load this version's test data again (insert + update: the delta) · 5.8 same structure as the fresh install · 5.9 online validation · 5.10 drop the snapshot · 5.11 record the version | pipeline user / proxy | `db/run.sh upgrade <base>` |
@@ -136,6 +136,9 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   One row per component (its main table); every other table is in "no_data". A change of the test data alone keeps
   the install fingerprint: after a failed 4.2b, the next run decides deploy=data (4.0 install guard, 4.2b, 4.3-4.5 -
   no redeploy).
+- **Resume inside job 4 (deploy=loaded):** 4.2c records this version installed with its test data; when job 4 then
+  stops later (4.3-4.5) and the fix changes only the pipeline's own files, the next run resumes at 4.3 (4.0 loaded
+  guard) - no remove, no redeploy, no data reload. Any change to the DB scripts, app or test data deploys in full.
 - **Upgrade = fresh (5.8):** 4.5 keeps the fresh install's structure (tables, columns, keys and their state, indexes,
   code objects; `XXCI_FRESH_SCHEMA`); after the upgrade and the delta load the upgraded database must show exactly
   the same lines (row counts are shown for information).

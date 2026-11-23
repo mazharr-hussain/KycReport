@@ -6,7 +6,7 @@ decide.py <record> <code-manifest> <out dir>
                    "CODE <key> <hash>" (the code objects the database holds), "PASSED ...", "FAILED ..."
   <code-manifest>  this version's code-manifest.txt (checks/fingerprint.py)
 Env: FINGERPRINT, DB_FINGERPRINT, STRUCT_FINGERPRINT, APP_FINGERPRINT, INSTALL_FINGERPRINT, START_FROM (4, 5, 6 or empty - see below).
-Writes <out dir>/deploy (reuse | app | patch | upgrade | data | retest | full), <out dir>/patch-files (install/<file> per line, install order)
+Writes <out dir>/deploy (reuse | app | patch | upgrade | loaded | data | retest | full), <out dir>/patch-files (install/<file> per line, install order)
 <out dir>/changed-objects (object names, one per line) and <out dir>/app-changed (true: the application without its
 supporting objects differs from the one deployed - the quick check imports it); prints the reason.
 
@@ -18,6 +18,8 @@ supporting objects differs from the one deployed - the quick check imports it); 
          job 5 failed, then a pipeline-only fix): job 4 skipped, job 5 (upgrade test) runs again    job 4 skipped
   retest the database holds a fully verified version and only the test data (and the pipeline's own files) changed
          since that commit (DATA_ONLY=1, from git in run.sh): job 6 loads the data, runs the failed test files only
+  loaded steps 4.2-4.2c passed for exactly this version (installed, its test data loaded) and job 4 stopped later
+         (e.g. 4.5 failed, then a pipeline-only fix): job 4 resumes at 4.3 - no remove, no redeploy, no data reload
   data   step 4.2 (deploy) passed for exactly this application and these database scripts and the test data never
          loaded since (4.2b failed): only the test data changed - job 4 loads the data (4.2b) and goes on, no redeploy
   full   anything else: no record, a deploy that did not finish (DIRTY), a structure change, a code object removed
@@ -54,6 +56,7 @@ start = os.environ.get('START_FROM', '').strip()
 fresh_ok = bool(fp) and passed.get('fresh') == fp
 inst = os.environ.get('INSTALL_FINGERPRINT', '')
 install_ok = bool(inst) and passed.get('install') == inst   # 4.2 passed, 4.2b never loaded since
+loaded_ok = bool(fp) and passed.get('loaded') == fp          # 4.2-4.2c passed for this version, job 4 stopped later
 note = []
 
 
@@ -90,6 +93,9 @@ if not (fp and db and struct):
 if full_rec_ok(rec) and rec['fp'] != fp and os.environ.get('DATA_ONLY') == '1' and start in ('', '6'):
     done('retest', 'info: only the test data changed since the version the database passed with - job 6 loads it and '
                    'runs the test files that failed last time (jobs 4-5 skipped)')
+if loaded_ok and not fresh_ok and start == '':
+    done('loaded', f'info: this version ({fp}) is installed with its test data (4.2-4.2c passed) and job 4 stopped '
+                   'later - job 4 resumes at 4.3, no redeploy')
 if install_ok and not fresh_ok and start in ('', '4'):
     done('data', f'info: this version is installed ({inst}, step 4.2 passed) and its test data never loaded - '
                  'job 4 loads the test data only (4.2b), no redeploy')

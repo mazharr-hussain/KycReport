@@ -148,6 +148,10 @@ with tempfile.TemporaryDirectory() as root:
     check('decide: installed, data load failed, only the data changed -> data', decide(root, inst, g2)[0], 'data')
     check('decide: same, start from job 4 -> data (no redeploy)', decide(root, inst, g2, '4')[0], 'data')
     check('decide: installed, then the scripts changed -> full', decide(root, inst, f)[0], 'full')
+    loaded = record(g1, 'DIRTY') + f'PASSED loaded {g1["fingerprint"]}\n'
+    check('decide: installed with its data, job 4 stopped later -> loaded (resume at 4.3)', decide(root, loaded, g1)[0], 'loaded')
+    check('decide: same, start from job 4 asked -> full', decide(root, loaded, g1, '4')[0], 'full')
+    check('decide: loaded, then the test data changed -> not loaded', decide(root, loaded, g2)[0] != 'loaded', True)
     check('decide: verified version, only the test data changed since -> retest', decide(root, record(g1), g2, data_only='1')[0], 'retest')
     check('decide: verified version, data changed, start from job 4 -> full', decide(root, record(g1), g2, '4', '1')[0], 'full')
     check('decide: verified version, more than the data changed -> not retest', decide(root, record(g1), g2)[0] != 'retest', True)

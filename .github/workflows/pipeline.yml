@@ -453,7 +453,8 @@ jobs:
     # version on an earlier run (5.0 checks that it is still recorded)
     if: >-
       always() && needs.db-setup.result == 'success' &&
-      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data') &&
+      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data' ||
+         needs.db-setup.outputs.deploy == 'loaded') &&
         needs.fresh.result == 'success') ||
        needs.db-setup.outputs.deploy == 'upgrade')
     runs-on: ubuntu-24.04

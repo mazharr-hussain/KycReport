@@ -66,6 +66,12 @@ RECORD=$inst_rec scenario setup-data-only 0 data "3.2b-deploy-decision 3.3-backu
 DEPLOY=data RECORD=$inst_rec scenario fresh-data-only 0 - "4.0-install-guard 4.2b-load-test-data 4.2c-data-loaded 4.3-online-validation 4.4-dependency-check 4.5-record-fresh-install" -- fresh
 expect "fresh-data-only: no redeploy" bash -c "! grep -q '4.2-deploy-this\\|4.1-remove-app' '$W/logs-fresh-data-only/steps' 2>/dev/null && ! ls '$W/logs-fresh-data-only' | grep -q '4.2-deploy-this'"
 DEPLOY=data RECORD="${full_rec/ FULL / DIRTY }" scenario fresh-data-only-not-installed 1 - "" -- fresh
+loaded_rec="${full_rec/ FULL / DIRTY }
+PASSED loaded $FINGERPRINT"
+RECORD=$loaded_rec scenario setup-loaded 0 loaded "3.2b-deploy-decision 3.3-backup-schema" -- setup
+DEPLOY=loaded RECORD=$loaded_rec scenario fresh-loaded 0 - "4.0-loaded-guard 4.3-online-validation 4.4-dependency-check 4.5-record-fresh-install" -- fresh
+expect "fresh-loaded: no remove, redeploy or data reload" bash -c "! ls '$W/logs-fresh-loaded' | grep -qE '4.1-remove-app|4.2-deploy-this|4.2b-load-test-data'"
+DEPLOY=loaded RECORD="${full_rec/ FULL / DIRTY }" scenario fresh-loaded-not-held 1 - "" -- fresh
 APP_ONLY=true RECORD=$full_rec scenario fresh-app-only 0 - "4.0-version-guard 4.1a-mark-record 4.1-remove-apex-app 4.2-import-app 4.3-online-validation 4.7-record-version" -- fresh
 RECORD=$fresh_rec scenario upgrade 0 - "5.0a-mark-record 5.1-remove-app 5.2-build-last 5.2-deploy-last 5.3-load-last-test-data 5.4-snapshot 5.5-upgrade-this 5.6-nothing-lost 5.7-load-this-test-data 5.8-same-as-fresh-install 5.9-online-validation 5.10-drop-snapshot 5.11-record-version" -- upgrade HEAD
 expect "upgrade: row counts differ - information only" grep -q 'info: rows in XXFND_A' "$W/logs-upgrade/5.8-same-as-fresh-install.log"
