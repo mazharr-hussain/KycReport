@@ -81,11 +81,17 @@ runs:
           echo "WALLET=$RUNNER_TEMP/wallet.zip" >> "$GITHUB_ENV"
         fi
     - name: OCI sign-in values present
-      if: inputs.db-ocid != '' && (inputs.oci-client == '' || inputs.oci-tenancy == '' || inputs.oci-domain == '' || inputs.oci-region == '')
+      if: inputs.db-ocid != ''
       shell: bash
+      env:
+        C: ${{ inputs.oci-client }}
+        T: ${{ inputs.oci-tenancy }}
+        D: ${{ inputs.oci-domain }}
+        R: ${{ inputs.oci-region }}
       run: |
-        echo "::error::OCI sign-in values missing: repository secrets OCI_OIDC_CLIENT, OCI_TENANCY and repository variables OCI_DOMAIN_URL, OCI_REGION are needed (Settings > Secrets and variables > Actions, repository level)"
-        exit 1
+        [ -n "$C" ] && [ -n "$T" ] && [ -n "$D" ] && [ -n "$R" ] || {
+          echo "::error::OCI sign-in values missing: repository secrets OCI_OIDC_CLIENT, OCI_TENANCY and repository variables OCI_DOMAIN_URL, OCI_REGION are needed (Settings > Secrets and variables > Actions, repository level)"
+          exit 1; }
     - name: OCI session token (GitHub OIDC token exchange, no API key)
       if: inputs.oci-client != ''
       uses: gtrevorrow/oci-token-exchange-action@e8b0200e63131e48bc425ea4abf99135201b1e40 # v2
