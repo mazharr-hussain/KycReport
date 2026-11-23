@@ -57,7 +57,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
 - IDCS / OCI (#195, #198): the old OCI workflows (`idcs-trust`, `val-oci-setup`, `connectivity`, `infra`) were deleted
   on 23 Nov 2026 (#247, owner's decision). The pipeline signs in to the new tenancy itself (#240: GitHub OIDC token
   exchange with the impersonation rule for `github-actions-svc`, environment `Oracle_Dev_DB`, OCI values at
-  repository level). `repos/tools/idcs-trust.sh` and the Terraform templates in `repos/infra/` are kept, unused.
+  repository level). `repos/tools/idcs-trust.sh` and the Terraform templates (`repos/infra/`) were deleted too.
 - Retention two-stage review design - placeholder only.
 
 ## 6. How the latest COMMON pieces work (quick reference)
