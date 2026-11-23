@@ -1,6 +1,6 @@
-# COMMON 115 - Code findings R1-R5 and the DB tests for COMMON alone
+# COMMON 116 - Code findings R1-R5 and the DB tests for COMMON alone
 
-On top of COMMON 114. The pipeline builds and tests it (jobs 1-6) and job 7.1 exports the tested application as the
+On top of COMMON 114. The pipeline builds and tests it (jobs 1-8) and job 9.1 exports the tested application as the
 release zip (draft release `common-115`, published when job 7.2 merges the PR). Checked offline: build, APEXlang
 validation ("Validation successful"), static checks and PMD (0 findings), pipeline lint.
 

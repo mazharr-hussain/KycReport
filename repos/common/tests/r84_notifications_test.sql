@@ -67,6 +67,11 @@ declare
     end open_task;
 begin
     apex_util.set_workspace('XXCUS');
+    -- the new dev database: the test data's data-security rules put the row policy on XXFND_RFIS and
+    -- XXFND_COMMUNICATIONS, and the tests' administrator ADMIN has no rule of its own (deny by default: ORA-28115).
+    -- This test checks notifications and the RFI flow, not data security (r79 does): trusted, as the workflow's
+    -- background jobs are - always ended at the end of the block
+    xxfnd_vpd_pkg.begin_trusted;
     select max(apex_application_id) into l_app from xxfnd_applications where application_code = 'COMMON';
 
     ---------------------------------------------------------------- objects and data
@@ -301,5 +306,6 @@ begin
     select workflow_id into l_wf from xxfnd_rfis where rfi_id = l_rfi;
     settle;
     check_(open_task('RFI_RESPONSE') is not null, 'an RFI is left open for the browser test');
+    xxfnd_vpd_pkg.end_trusted;
 end;
 /

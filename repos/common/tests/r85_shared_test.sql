@@ -27,6 +27,11 @@ declare
     end session_as;
 begin
     apex_util.set_workspace('XXCUS');
+    -- the new dev database: the test data's data-security rules put the row policy on XXFND_RFIS and
+    -- XXFND_COMMUNICATIONS, and the tests' administrator ADMIN has no rule of its own (deny by default: ORA-28115).
+    -- This test checks notifications and the RFI flow, not data security (r79 does): trusted, as the workflow's
+    -- background jobs are - always ended at the end of the block
+    xxfnd_vpd_pkg.begin_trusted;
     select max(apex_application_id) into l_app from xxfnd_applications where application_code = 'COMMON';
 
     ---------------------------------------------------------------- screens, features and privileges
@@ -101,5 +106,6 @@ begin
       join xxfnd_applications a on a.apex_application_id = l.application_id
      where l.view_date > sysdate - 30;
     check_(l_n >= 0, 'the activity of the registered applications is read from the APEX activity log (' || l_n || ' views)');
+    xxfnd_vpd_pkg.end_trusted;
 end;
 /
