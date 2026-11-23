@@ -54,11 +54,10 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   gaps; screening questions; question display types; old KYC tests; C17 badge tones; COMMON-ISSUES C13-C16.
 
 ## 5. Parked (do not touch until the user asks)
-- IDCS / OCI (#195, #198): GitHub OIDC token exchange works with a trust **without impersonation** - IDCS maps the token's
-  `sub` to the service user `repo:mazharr-hussain/KycReport:environment:Oracle_OCI` (group `github-ci`, policy
-  `manage all-resources in tenancy`); environment `Oracle_OCI` (secrets `OCI_OIDC_CLIENT`, `OCI_TENANCY`, variables
-  `OCI_DOMAIN_URL`, `OCI_REGION`). Terraform templates in `repos/infra/` (compartment `Common`: plan OK, apply not run).
-  Workflows `idcs-trust`, `val-oci-setup`, `connectivity`, `infra` - manual / parked.
+- IDCS / OCI (#195, #198): the old OCI workflows (`idcs-trust`, `val-oci-setup`, `connectivity`, `infra`) were deleted
+  on 23 Nov 2026 (#247, owner's decision). The pipeline signs in to the new tenancy itself (#240: GitHub OIDC token
+  exchange with the impersonation rule for `github-actions-svc`, environment `Oracle_Dev_DB`, OCI values at
+  repository level). `repos/tools/idcs-trust.sh` and the Terraform templates in `repos/infra/` are kept, unused.
 - Retention two-stage review design - placeholder only.
 
 ## 6. How the latest COMMON pieces work (quick reference)
