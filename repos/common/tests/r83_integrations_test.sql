@@ -5,6 +5,7 @@
 set serveroutput on feedback off
 declare
     l_n     number;
+    l_n2    number;
     l_v     varchar2(4000);
     l_srv   xxfnd_integration_pkg.t_server;
     l_resp  clob;
@@ -35,18 +36,24 @@ begin
     select count(*) into l_n from user_triggers where trigger_name = 'XXHR_EMPLOYEES_SRC' and status = 'ENABLED';
     check_(l_n = 1, 'the Fusion-owned rows trigger is in place (created by 05b)');
 
-    -- servers: APEX Remote Servers of the workspace, the retiring endpoint only as a fallback
+    -- servers: APEX Remote Servers of the workspace, the retiring endpoint only as a fallback. The servers and their
+    -- Web Credentials are the workspace's Fusion integration prerequisite, not COMMON objects: a database without them
+    -- (the validation database) skips these checks (I-059)
     select count(*) into l_n from apex_workspace_remote_servers
      where remote_server_static_id in ('FUSION', 'UCM_MAIN', 'SHAREPOINT_MAIN', 'OUTLOOK_GRAPH');
-    check_(l_n = 4, 'the four servers are APEX Remote Servers (' || l_n || ')');
-    select count(*) into l_n from apex_workspace_credentials
+    select count(*) into l_n2 from apex_workspace_credentials
      where static_id in ('FUSION_CREDENTIALS', 'XXFND_UCM_CRED', 'XXFND_GRAPH_CRED');
-    check_(l_n = 3, 'their Web Credentials exist (' || l_n || ')');
-    l_srv := xxfnd_integration_pkg.server('FUSION');
-    check_(l_srv.base_url is not null and l_srv.credential_static_id = 'FUSION_CREDENTIALS',
-           'server FUSION: URL from the Remote Server, credential from its REST Data Source');
-    l_srv := xxfnd_integration_pkg.server('UCM_MAIN');
-    check_(l_srv.credential_static_id = 'XXFND_UCM_CRED', 'server UCM_MAIN keeps the credential its endpoint named');
+    if l_n < 4 or l_n2 < 3 then
+        dbms_output.put_line('SKIP the workspace has ' || l_n || ' of the 4 Remote Servers and ' || l_n2
+                             || ' of the 3 Web Credentials of the Fusion integration prerequisite');
+    else
+        check_(true, 'the four servers are APEX Remote Servers and their Web Credentials exist');
+        l_srv := xxfnd_integration_pkg.server('FUSION');
+        check_(l_srv.base_url is not null and l_srv.credential_static_id = 'FUSION_CREDENTIALS',
+               'server FUSION: URL from the Remote Server, credential from its REST Data Source');
+        l_srv := xxfnd_integration_pkg.server('UCM_MAIN');
+        check_(l_srv.credential_static_id = 'XXFND_UCM_CRED', 'server UCM_MAIN keeps the credential its endpoint named');
+    end if;
     expect_error(-20301, 'an unknown server is refused', q'~declare s xxfnd_integration_pkg.t_server; begin s := xxfnd_integration_pkg.server('NO_SUCH_SERVER'); end;~');
 
     -- purposes on REST Data Sources; HCM_SYNC
@@ -54,7 +61,12 @@ begin
     check_(l_v = 'FUSION_HCM_WORKERS', 'purpose HCM_SYNC uses REST Data Source FUSION_HCM_WORKERS');
     select count(*) into l_n from apex_appl_web_src_modules
      where module_static_id = 'FUSION_HCM_WORKERS' and remote_server_static_id = 'FUSION';
-    check_(l_n = 1, 'REST Data Source FUSION_HCM_WORKERS is in COMMON, on server FUSION');
+    select count(*) into l_n2 from apex_workspace_remote_servers where remote_server_static_id = 'FUSION';
+    if l_n2 = 0 then
+        dbms_output.put_line('SKIP no Remote Server FUSION in the workspace (Fusion integration prerequisite)');
+    else
+        check_(l_n = 1, 'REST Data Source FUSION_HCM_WORKERS is in COMMON, on server FUSION');
+    end if;
     expect_error(-20312, 'a purpose without REST Data Source cannot be called',
                  q'~declare r clob; begin r := xxfnd_integration_pkg.call('NO_SUCH_PURPOSE'); end;~');
 

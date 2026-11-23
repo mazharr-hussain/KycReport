@@ -33,15 +33,16 @@ begin
     check_(l_n = 3, 'pages 175, 176 and 177 belong to it');
     select count(*) into l_n from xxfnd_role_privileges where role_code = 'COMMON_ADMIN' and privilege_code in ('DATA_MODEL.VIEW', 'DATA_MODEL.MANAGE');
     check_(l_n = 2, 'Common Administrator has View and Manage');
-    select count(*) into l_n from xxfnd_app_menu_entries where application_code = 'R86TEST' and entry_code = 'FN_DATA_MODEL';
-    check_(l_n = 1, 'every application gets its (managed) menu entry');
+    -- release 106: no managed menu entry per application any more (FN_DATA_MODEL, I-059)
 
     ---------------------------------------------------------------- COMMON's own objects
-    select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON' and object_prefix = 'XXFND_';
-    check_(l_n = 1, 'COMMON''s object prefix is XXFND_');
+    -- release 102: the HR tables (XXHR_) are COMMON's too (I-059)
+    select count(*) into l_n from xxfnd_dm_app_scopes where application_code = 'COMMON' and object_prefix = 'XXFND_,XXHR_';
+    check_(l_n = 1, 'COMMON''s object prefixes are XXFND_ and XXHR_');
     select count(*) into l_n from xxfnd_dm_objects_v where application_code = 'COMMON' and object_type = 'TABLE';
     check_(l_n >= 76, 'COMMON''s tables are listed (' || l_n || ')');
-    select count(*) into l_n from xxfnd_dm_objects_v where application_code = 'COMMON' and object_name not like 'XXFND\_%' escape '\';
+    select count(*) into l_n from xxfnd_dm_objects_v where application_code = 'COMMON'
+       and object_name not like 'XXFND\_%' escape '\' and object_name not like 'XXHR\_%' escape '\';
     check_(l_n = 0, 'only the objects with the prefix');
     select count(*) into l_n from xxfnd_dm_table_groups where application_code = 'COMMON';
     check_(l_n >= 74, 'COMMON''s tables are grouped by module (' || l_n || ')');

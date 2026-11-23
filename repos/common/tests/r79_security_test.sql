@@ -53,6 +53,9 @@ begin
     values ('XXFND_RFIS', 'COLUMN_IN_LIST', 'RFI_STATUS', 'OPEN', 'r79 user rule') returning rule_id into l_rule1;
     insert into xxfnd_data_security_rules (table_name, rule_type, column_name, value_list, description)
     values ('XXFND_RFIS', 'COLUMN_IN_LIST', 'RFI_STATUS', 'ANSWERED', 'r79 role rule') returning rule_id into l_rule2;
+    -- an access object (release 96) takes over a table's data security; the release-79 rule model is tested without
+    -- one (restored data can hold one for XXFND_RFIS) - rolled back with the rest of the test
+    update xxfnd_data_objects set enabled_flag = 'N' where table_name = 'XXFND_RFIS' and enabled_flag = 'Y';
     xxfnd_vpd_pkg.end_trusted;
 
     -- nothing assigned: no rows, no values
@@ -107,8 +110,12 @@ begin
     check_(l_v = 'en', 'a new user''s language is English');
     select count(*) into l_n from xxfnd_role_privileges where role_code = 'SUPER_ADMIN' and privilege_code = 'WORKFLOW_MONITOR.MANAGE';
     check_(l_n = 1, 'Super Administrator holds WORKFLOW_MONITOR.MANAGE (business administrator of every task)');
-    select count(*) into l_n from xxfnd_user_roles where role_code = 'SUPER_ADMIN' and enabled_flag = 'Y';   -- a removed grant stays, disabled
-    check_(l_n = 0, 'nobody holds Super Administrator after the install (granted from the console only)');
+    -- I-059: the test users hold it on the validation database (ADMIN of tests/setup, TALL_ACCESS of db/admin/test-users.sql)
+    select count(*) into l_n from xxfnd_user_roles ur          -- a removed grant stays, disabled
+     where ur.role_code = 'SUPER_ADMIN' and ur.enabled_flag = 'Y'
+       and nvl((select u.user_name from xxfnd_users u where u.user_id = ur.user_id),
+               (select e.user_name from xxhr_employees e where e.employee_id = ur.employee_id)) not in ('ADMIN', 'TALL_ACCESS');
+    check_(l_n = 0, 'nobody but the test users holds Super Administrator after the install (granted from the console only)');
 
     rollback;
     apex_session.delete_session;

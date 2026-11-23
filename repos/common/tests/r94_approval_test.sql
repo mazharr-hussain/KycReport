@@ -13,6 +13,12 @@ declare
 begin
     xxfnd_util_pkg.set_install_mode(true);
     select min(approval_type_code) into l_type from xxfnd_approval_types where enabled_flag = 'Y';
+    if l_type is null then
+        -- I-059: a database without an enabled approval type (COMMON alone): a test type, rolled back below
+        xxfnd_approval_rule_pkg.register_type('R94_TEST', 'R86TEST', 'R94 test type');
+        update xxfnd_approval_types set enabled_flag = 'Y' where approval_type_code = 'R94_TEST';
+        l_type := 'R94_TEST';
+    end if;
     select min(user_name) into l_user from xxfnd_users where enabled_flag = 'Y';
     ok('placeholder types are not available, user is',
        xxfnd_approval_rule_pkg.approver_type_available('MANAGER') = 'N'
@@ -39,7 +45,8 @@ begin
 exception when others then
     rollback; xxfnd_util_pkg.set_install_mode(false);
     dbms_output.put_line('ERROR ' || sqlerrm || ' ' || dbms_utility.format_error_backtrace);
-    dbms_output.put_line(l_pass || ' pass, ' || l_fail + 1 || ' fail');
+    dbms_output.put_line('FAIL unexpected error (see the line above)');
+    dbms_output.put_line(l_pass || ' pass, ' || (l_fail + 1) || ' fail');
 end;
 /
 exit

@@ -43,7 +43,7 @@ begin
     check_(xxfnd_application_pkg.app_allowed('VALUE_SETS', 'R86TEST') = 'N', 'setup types: instance-only type refused for an application');
     check_(xxfnd_application_pkg.page_type(102) = 'LOOKUPS', 'setup types: the page knows its setup type');
     check_(xxfnd_application_pkg.default_application(null) = 'ALL', 'scope: default application is ALL');
-    check_(xxfnd_application_pkg.is_managed('R86TEST', 'LOOKUPS') in ('Y', 'N'), 'functions: managed switch read');
+    -- release 106: the managed switch (IS_MANAGED) is retired (I-059)
     select count(*) into l_n from table(xxfnd_application_pkg.common_functions);
     check_(l_n > 5, 'functions: the common functions (' || l_n || ')');
 

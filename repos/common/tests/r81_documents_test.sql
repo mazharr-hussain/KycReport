@@ -31,10 +31,11 @@ begin
     -- the attachment package works after the merge
     l_cfg := xxfnd_attach_pkg.resolve_storage('XXFND_R81_NO_ENTITY', null);
     check_(l_cfg.storage_type = 'DATABASE', 'no storage row: files are kept in the database');
-    select min(entity_name) into l_ent from xxfnd_document_entities;
-    -- a category that needs no issue or expiry date (a text attachment has no dates)
-    select min(category_code) into l_cat from xxfnd_document_categories
-     where max_age_days is null and nvl(has_expiry_flag, 'N') = 'N';
+    -- the test application's entity and text category (tests/setup/03_common_test_fixture.sql, I-059); a category that
+    -- needs no issue or expiry date (a text attachment has no dates)
+    select max(entity_name) into l_ent from xxfnd_document_entities where entity_name = 'R86_DOC_TEST';
+    select max(category_code) into l_cat from xxfnd_document_categories
+     where category_code = 'R86_NOTE' and max_age_days is null and nvl(has_expiry_flag, 'N') = 'N';
     if l_ent is not null and l_cat is not null then
         l_id := xxfnd_attach_pkg.add_text(l_ent, 'R81-TEST', l_cat, 'SHORT_TEXT', 'R81 note', 'release 81 test');
         select count(*) into l_n from xxfnd_attached_documents where attached_document_id = l_id;
