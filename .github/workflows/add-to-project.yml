@@ -20,7 +20,7 @@ jobs:
       - name: Add to the project
         id: add
         if: contains(github.event.issue.labels.*.name, matrix.app)
-        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+        uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
         with:
           project-url: ${{ matrix.app == 'COMMON' && vars.COMMON_PROJECT_URL || vars.KYC_PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
