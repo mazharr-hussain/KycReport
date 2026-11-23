@@ -1,4 +1,3 @@
--- Schema: XXCUS
 -- Release 89 test setup (run as XXCUS, once; kept): two small tables of the test application R86TEST (schema XXCUS)
 -- for the Data Model test (r89_data_model_test.sql): R89_PARENT and R89_CHILD with a foreign key and an index.
 set serveroutput on feedback off

@@ -1,4 +1,3 @@
--- Schema: XXCUS
 -- Release 86 test setup (run as XXCUS, the workspace owner, once): two empty APEX applications the onboarding test
 -- (r86_registration_test.sql) registers - 860 "R86 Onboarding Test" (alias R86TEST) and 861 "R86 Delete Test" (alias
 -- R86DEL), parsing schema XXCUS. Nothing happens for an application that exists already. They are kept.
