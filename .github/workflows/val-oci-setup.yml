@@ -30,14 +30,14 @@ jobs:
     steps:
       - name: IDCS token exchange (github-ci-svc)
         id: oci
-        uses: gtrevorrow/oci-token-exchange-action@v2
+        uses: gtrevorrow/oci-token-exchange-action@e8b0200e63131e48bc425ea4abf99135201b1e40 # v2
         with:
           oidc_client_identifier: ${{ secrets.OCI_OIDC_CLIENT }}
           domain_base_url: ${{ vars.OCI_DOMAIN_URL }}
           oci_tenancy: ${{ secrets.OCI_TENANCY }}
           oci_region: ${{ vars.OCI_REGION }}
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
@@ -118,7 +118,7 @@ jobs:
           put val-wallet-sso "$(base64 -w0 wallet/cwallet.sso)"
           sql=opt/oracle/sqlcl/bin/sql
           for u in XXCUS; do
-            n=val-$(echo $u | tr A-Z a-z)-pw
+            n=val-$(echo "$u" | tr '[:upper:]' '[:lower:]')-pw
             s=$(sid "$n")
             if [ -z "$s" ] || [ "$s" = null ]; then
               pw="Rv$(openssl rand -hex 10)#7k"
@@ -139,11 +139,11 @@ jobs:
           sid() { oci vault secret list -c "$VC" --vault-id "$V" --all --name "$1" --lifecycle-state ACTIVE --query 'data[0].id' --raw-output; }
           WS=$(sid val-wallet-sso)
           for u in XXCUS; do
-            name=val-$(echo $u | tr A-Z a-z)
+            name=val-$(echo "$u" | tr '[:upper:]' '[:lower:]')
             have=$(oci dbtools connection list -c "$C" --all --display-name "$name" --lifecycle-state ACTIVE --query 'data.items[0].id' --raw-output 2>/dev/null || true)
             if [ -n "$have" ] && [ "$have" != null ]; then echo "connection $name exists"; else
             have=$(oci dbtools connection create-oracle-database -c "$C" --display-name "$name" \
-              --user-name "$u" --user-password-secret-id "$(sid $name-pw)" \
+              --user-name "$u" --user-password-secret-id "$(sid "$name-pw")" \
               --connection-string "$(cat connstr.txt)" \
               --related-resource "{\"entityType\":\"AUTONOMOUSDATABASE\",\"identifier\":\"$DB\"}" \
               --key-stores "[{\"keyStoreType\":\"SSO\",\"keyStoreContent\":{\"valueType\":\"SECRETID\",\"secretId\":\"$WS\"}}]" \

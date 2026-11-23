@@ -28,3 +28,14 @@ and the clean-up run itself are never deleted; deleted runs (logs and artifacts)
   upgrade with data, online validation, tests, release zip, merge and release (job 7.2), issues for the existing
   findings (future releases) and the report on the PR. A pipeline failure is never logged as an issue: it is in the PR
   comment, and Claude's next push fixes it from there.
+
+## Full run (on demand)
+Actions -> **COMMON** -> **Run workflow** tests all of `main` (every DB test, every page, ZAP). Options: **Record a
+video** of the browser test (large; only when needed) and **Refresh baseline** (makes the upgrade test's fixed data
+set again from the database's current data). A failure becomes a COMMON issue.
+
+## Branch protection (M7)
+A private repository on GitHub Free does not enforce rulesets or branch protection: a person can merge a PR whose
+pipeline failed. Only the pipeline's own merge (job 7.2) checks the run. GitHub Pro / Team enforces the required check
+"7 Finalize the PR".
+

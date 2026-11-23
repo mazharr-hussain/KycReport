@@ -25,5 +25,5 @@ jobs:
         env:
           LOG_DIR: /tmp/pipeline-logs
         run: |
-          pip install -q actionlint-py==1.7.12.25 shellcheck-py==0.11.0.1 pyyaml==6.0.2
+          pip install -q --require-hashes -r repos/common/deployment/requirements-lint.txt
           bash repos/common/deployment/checks/run.sh lint

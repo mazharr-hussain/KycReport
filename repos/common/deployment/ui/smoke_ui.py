@@ -2,8 +2,8 @@
 """COMMON pipeline step 6.3 - browser smoke test of the deployed application (Playwright, headless Chromium).
 
 Each test user signs in, then opens every page of the application (one page file per page in the built app, except
-the global page 0 and the login page). Every page gets a screenshot; each user gets a video and a Playwright trace
-(open it with `playwright show-trace trace.zip`). A page that shows an Oracle / APEX error (outside its report cells) fails the step; a page the
+the global page 0 and the login page). Every page gets a screenshot; with UI_RECORD=1 (the full run, when asked for)
+each user also gets a video and a Playwright trace (open it with `playwright show-trace trace.zip`). A page that shows an Oracle / APEX error (outside its report cells) fails the step; a page the
 user is not allowed to open is recorded as "no access" (expected for some users).
 
 Usage: smoke_ui.py --base <ords url> --app-id 135 --app-path xxcus/common --pages <dist/app/pages> \
@@ -39,16 +39,23 @@ def session_of(url):
 def run_user(browser, args, user, pages, password):
     folder = os.path.join(args.out, user)
     os.makedirs(os.path.join(folder, 'screens'), exist_ok=True)
-    ctx = browser.new_context(record_video_dir=os.path.join(folder, 'video'), viewport={'width': 1440, 'height': 900})
-    ctx.tracing.start(screenshots=True, snapshots=True)
+    # video and trace only when asked for (UI_RECORD=1: the full run started with "record video") - they are large
+    record = os.environ.get('UI_RECORD') == '1'
+    ctx = browser.new_context(record_video_dir=os.path.join(folder, 'video') if record else None,
+                              viewport={'width': 1440, 'height': 900})
+    if record:
+        ctx.tracing.start(screenshots=True, snapshots=True)
     page = ctx.new_page()
     results = []
     try:
-        page.goto(f'{args.base}/r/{args.app_path}/login', wait_until='domcontentloaded')
-        page.fill('#P9999_USERNAME', user)
-        page.fill('#P9999_PASSWORD', password)
-        page.click('#LOGIN, button:has-text("Sign In")')
-        page.wait_for_load_state('networkidle', timeout=60000)
+        try:   # the application not reachable or no sign-in page: one clear result, not a traceback
+            page.goto(f'{args.base}/r/{args.app_path}/login', wait_until='domcontentloaded')
+            page.fill('#P9999_USERNAME', user)
+            page.fill('#P9999_PASSWORD', password)
+            page.click('#LOGIN, button:has-text("Sign In")')
+            page.wait_for_load_state('networkidle', timeout=60000)
+        except Exception as e:
+            return [{'user': user, 'page': 'login', 'status': 'error', 'detail': f'sign-in failed: {e}'.splitlines()[0]}]
         session = session_of(page.url)
         page.screenshot(path=os.path.join(folder, 'screens', 'home.png'), full_page=True)
         if '/login' in page.url or not session:
@@ -70,7 +77,8 @@ def run_user(browser, args, user, pages, password):
             results.append({'user': user, 'page': number, 'name': name, 'status': status,
                             'detail': text[max(hit.start() - 80, 0):hit.end() + 160].strip() if hit else ''})
     finally:
-        ctx.tracing.stop(path=os.path.join(folder, 'trace.zip'))
+        if record:
+            ctx.tracing.stop(path=os.path.join(folder, 'trace.zip'))
         ctx.close()
     return results
 

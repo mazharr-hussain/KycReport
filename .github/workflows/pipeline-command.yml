@@ -1,0 +1,45 @@
+# "/pipeline start-from N" in a comment on a pull request (N = 4, 5 or 6; "auto" clears it), written by the repository
+# owner: sets the label start-from-N on the PR and re-runs the PR's last COMMON pipeline run (a run still going: the
+# label waits for the next one). Job 1 reads the label, job 3 (db/decide.py) follows it only when its records allow,
+# and job 7 removes it again - it counts for one run. Anyone else's comment is ignored.
+name: COMMON pipeline command
+on:
+  issue_comment:
+    types: [created]
+permissions: {}
+jobs:
+  start-from:
+    if: >-
+      github.event.issue.pull_request && github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, '/pipeline start-from')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write         # re-run the pipeline run
+      issues: write          # the label and the reaction
+      pull-requests: read
+    steps:
+      - name: Set the start point and re-run the PR's last pipeline run
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const issue_number = context.payload.issue.number;
+            const m = context.payload.comment.body.trim().match(/^\/pipeline start-from (4|5|6|auto)\s*$/);
+            const react = content => github.rest.reactions.createForIssueComment({ ...context.repo, comment_id: context.payload.comment.id, content });
+            if (!m) { await react('confused'); core.setFailed('Use: /pipeline start-from 4|5|6|auto'); return; }
+            const labels = (await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number })).data;
+            for (const l of labels.filter(l => /^start-from-/.test(l.name))) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number, name: l.name });
+            }
+            if (m[1] !== 'auto') await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [`start-from-${m[1]}`] });
+            const pr = (await github.rest.pulls.get({ ...context.repo, pull_number: issue_number })).data;
+            const runs = (await github.rest.actions.listWorkflowRuns({ ...context.repo, workflow_id: 'pipeline.yml',
+              event: 'pull_request', head_sha: pr.head.sha, per_page: 1 })).data.workflow_runs;
+            if (!runs.length || runs[0].status !== 'completed') {
+              core.notice(`start-from ${m[1]} set - it applies to the next run of PR #${issue_number}`);
+            } else {
+              await github.rest.actions.reRunWorkflow({ ...context.repo, run_id: runs[0].id });
+              core.notice(`start-from ${m[1]} set - run ${runs[0].id} re-run`);
+            }
+            await react('+1');
