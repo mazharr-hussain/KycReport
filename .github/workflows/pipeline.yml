@@ -683,6 +683,7 @@ jobs:
       COMMON: ${{ needs.offline.outputs.common }}
       RELEASE: ${{ needs.offline.outputs.release }}
       DEPENDABOT: ${{ needs.offline.outputs.dependabot }}   # read-only token: no issues, no merge, no PR comment
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 9.0: the database still holds this version
     steps:
       - name: Gate - every earlier job passed
         env:
