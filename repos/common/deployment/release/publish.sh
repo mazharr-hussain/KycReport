@@ -1,6 +1,5 @@
 #!/bin/bash
-# Publishes the GitHub Release of a merged application PR (used by release.yml on a merge to main, and by pipeline job 9.2
-# right after it merges the PR - a merge made with the workflow token starts no other workflow).
+# Publishes the GitHub Release of a merged application PR (after-merge.yml, once per merge - I-084).
 #   - the PR title gives the release: "<APP> Release <N>: <summary>" -> tag <app>-<N> (issue #218)
 #   - the draft release prepared by job 9.1 (APEXlang zip of the tested application + docs) is published, with the PR's
 #     linked issues ("Fixes #n") as notes; no draft (KYC today): the zip committed in repos/<app>/releases/*_<N>.zip

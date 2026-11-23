@@ -8,7 +8,7 @@ the PR's own files are never logged as issues - they are fixed in the PR from th
   - one issue per finding key: file + rule (PMD) or file + message (static checks), line numbers left out, so a finding
     that only moves is the same finding; the key's hash is kept in the issue body (marker) to find it again
   - no new issue when an open issue, or one closed as "not planned", already has the marker
-  - title "I-<next number> COMMON: <finding>", label COMMON, body lines "Type:" and "Priority:" (add-to-project.yml puts
+  - title "I-<next number> COMMON: <finding>", label COMMON, body lines "Type:" and "Priority:" (issues.yml puts
     the issue on the board and fills those fields - only when the token is a person's token, see GITHUB-SETUP.md)
 The issues created are appended to <report.md> for the PR comment. Env: GH_TOKEN, GITHUB_REPOSITORY, RUN_URL, PR.
 Never fails the job: a GitHub error is reported as a notice.

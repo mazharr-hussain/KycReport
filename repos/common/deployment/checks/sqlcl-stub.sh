@@ -11,10 +11,12 @@ login=$(printf '%s\n' "$in" | sed -n 's#^connect \([^/]*\)/.*#\1#p')
 def() { printf '%s\n' "$in" | sed -n "s/^define $1 = \"\\(.*\\)\"$/\\1/p"; }
 echo "$(basename "$file") $login" >> "${STUB_LOG:?}"
 body=$(cat "$file" 2>/dev/null)
+printf "%s\n" "$body" >> "$STUB_DIR/sql-bodies"   # every statement sent, for the dry run's checks
 case $(basename "$file") in
   deployed.sql)  [ "$(def mode)" = get ] && [ -f "$STUB_DIR/record" ] && cat "$STUB_DIR/record" ;;
   dependencies.sql) echo 'NAME,TYPE,REFERENCED_NAME,REFERENCED_TYPE' > "$(def out)" ;;
   sert-eval.sql) echo "SERT 0 findings" ;;
+  snapshot.sql)  printf 'T\tXXFND_A\t3\nR\tXXFND_A\t1\t99\n' ;;   # the same before and after: nothing lost
   schema-summary.sql) printf 'SCHEMA %s    \n' 'T XXFND_A' 'C XXFND_A.X NUMBER(,,) Y' 'K XXFND_A XXFND_A_PK P ENABLED VALIDATED' 'R XXFND_A 3'
                       [ "${STUB_DIFF:-0}" = 1 ] && [ -n "${STUB_UPGRADED:-}" ] && echo 'SCHEMA C XXFND_A.Y VARCHAR2(10,,) Y' ;;
   *)
@@ -25,6 +27,7 @@ case $(basename "$file") in
     case $body in *"'UPGRADED-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "upgraded" {print "UPGRADED-OF", $3 "          "}' ;; esac
     case $body in *"'LOADED-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "loaded" {print "LOADED-OF", $3 "          "}' ;; esac
     case $body in *"'INSTALL-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "install" {print "INSTALL-OF", $3 "          "}' ;; esac
+    case $body in *"'SNAP '"*) printf 'SNAP T\tXXFND_A\t3      \nSNAP R\tXXFND_A\t1\t99      \n' ;; esac   # 6.4 kept (I-076)
     case $body in *"'NV '"*) echo 'NV K XXFND_A XXFND_A_CK1 C ENABLED NOT VALIDATED          ' ;; esac
     case $body in *"'FRESH-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "fresh" {print "FRESH-OF", $3 "          "}'
                                      printf 'FRESH %s   \n' 'T XXFND_A' 'C XXFND_A.X NUMBER(,,) Y' 'K XXFND_A XXFND_A_PK P ENABLED VALIDATED' 'R XXFND_A 2' ;; esac

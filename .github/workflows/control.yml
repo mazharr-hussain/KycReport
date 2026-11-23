@@ -1,0 +1,93 @@
+# Control of the pipeline's runs (I-084 - before: supersede.yml, pipeline-command.yml). It is its own file because the
+# pipeline runs one at a time (concurrency group validation-db): a job inside it would wait behind the run it stops.
+#   1 Supersede   a newer push to a PR replaces the PR's older pipeline run - only where stopping it is safe: never
+#                 while a database-changing or merging job runs (3 DB setup, 4 Quick check, 5 Deploy fresh app,
+#                 6 Upgrade app, 9 Finalize the PR); jobs 1, 2, 7 and 8 (tests roll back) can stop at any point.
+#                 A waiting (queued) run is replaced by GitHub itself. Job 10 of the stopped run only notes it.
+#   2 Start-from  "/pipeline start-from N" (N = 5, 6 or 7, or a step of job 5 / 6 such as 5.5 - I-078; "auto" clears
+#                 it) in a PR comment by the repository owner:
+#                 sets the label start-from-N and re-runs the PR's last pipeline run (a run still going: the label
+#                 waits for the next one). Job 1 reads the label, job 3 (db/decide.py) follows it only when its
+#                 records allow, and job 9 removes it - it counts for one run. Anyone else's comment is ignored.
+name: Pipeline control
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+  issue_comment:   # zizmor: ignore[dangerous-triggers] - only the repository OWNER's "/pipeline start-from" comments act (job if)
+    types: [created]
+permissions: {}
+concurrency:
+  # one supersede per PR (a newer push replaces it); every comment on its own
+  group: ${{ github.event_name == 'pull_request' && format('supersede-{0}', github.event.pull_request.number) || format('command-{0}', github.run_id) }}
+  cancel-in-progress: true
+
+jobs:
+  supersede:
+    name: 1 Supersede
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write   # cancel the older run
+    steps:
+      - name: Cancel the older run of this PR where it is safe
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const pr = context.payload.pull_request;
+            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+              ...context.repo, workflow_id: 'pipeline.yml', event: 'pull_request', branch: pr.head.ref,
+              status: 'in_progress', per_page: 50 });
+            const unsafe = /^(3|4|5|6|9) /;   // jobs that change the database or merge
+            for (const run of runs.filter(r => r.head_sha !== pr.head.sha &&
+                                               (r.pull_requests || []).some(p => p.number === pr.number))) {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
+                                                 { ...context.repo, run_id: run.id, filter: 'latest', per_page: 50 });
+              const busy = jobs.filter(j => j.status === 'in_progress' && unsafe.test(j.name)).map(j => j.name);
+              if (busy.length) {
+                core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) is in ${busy.join(', ')} - it finishes, then the new push runs.`);
+                continue;
+              }
+              await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id });
+              core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) cancelled - replaced by ${pr.head.sha.slice(0, 7)}.`);
+            }
+
+  start-from:
+    name: 2 Start-from
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request && github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, '/pipeline start-from')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write         # re-run the pipeline run
+      issues: write          # the label and the reaction
+      pull-requests: read
+    steps:
+      - name: Set the start point and re-run the PR's last pipeline run
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          retries: 3
+          script: |
+            const issue_number = context.payload.issue.number;
+            const m = context.payload.comment.body.trim().match(/^\/pipeline start-from ([567]|[56]\.[0-9]+[a-z]?|auto)\s*$/);
+            const react = content => github.rest.reactions.createForIssueComment({ ...context.repo, comment_id: context.payload.comment.id, content });
+            if (!m) { await react('confused'); core.setFailed('Use: /pipeline start-from 5|6|7|<step of job 5 or 6, e.g. 5.5>|auto'); return; }
+            const labels = (await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number })).data;
+            for (const l of labels.filter(l => /^start-from-/.test(l.name))) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number, name: l.name });
+            }
+            if (m[1] !== 'auto') await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [`start-from-${m[1]}`] });
+            const pr = (await github.rest.pulls.get({ ...context.repo, pull_number: issue_number })).data;
+            const runs = (await github.rest.actions.listWorkflowRuns({ ...context.repo, workflow_id: 'pipeline.yml',
+              event: 'pull_request', head_sha: pr.head.sha, per_page: 1 })).data.workflow_runs;
+            if (!runs.length || runs[0].status !== 'completed') {
+              core.notice(`start-from ${m[1]} set - it applies to the next run of PR #${issue_number}`);
+            } else {
+              await github.rest.actions.reRunWorkflow({ ...context.repo, run_id: runs[0].id });
+              core.notice(`start-from ${m[1]} set - run ${runs[0].id} re-run`);
+            }
+            await react('+1');

@@ -33,9 +33,9 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **7** finalize (gate,
   APEXlang export zip, readable APEX docs, SchemaSpy, draft release; issues for the existing findings, merge and release by the pipeline)
   -> **8** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 1 and 7 only.
-- **Merge**: job 7.2 merges a green PR itself (`release/merge.sh`: a draft is marked ready, label `hold` stops it,
-  merged only if the head is the tested commit) and publishes the release `common-<N>` (`release/publish.sh`; a merge
-  made with the workflow token starts no other workflow, so `release.yml` only handles a merge made by a person).
+- **Merge**: job 9.2 turns on auto-merge for a green PR (`release/merge.sh`: a draft is marked ready, label `hold`
+  stops it, merged only if the head is the tested commit); `after-merge.yml` then publishes the release `common-<N>`
+  (`release/publish.sh`) for every merge (I-084).
   Pipeline failures stay PR comments (the next push fixes them); findings for a future release become issues (7.2).
 - Validation database: separate Always Free ADB (Jeddah), APEX 26.1.6, workspace XXCUS (schemas XXCUS + XXFUSION).
   Login: wallet + pipeline user `XXCI_DEPLOY` (proxy `XXCI_DEPLOY[XXFUSION]`, `lib/sql.sh`, connect line on stdin);
@@ -44,9 +44,14 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   in every database job (no secret).
 - Netlify is not used for now (user, 2 Nov 2026) - kept for later; `netlify.toml` keeps builds skipped. Claude only codes and reviews; the pipeline does everything after the push.
   GitHub settings still to do by the user: `repos/common/deployment/GITHUB-SETUP.md`.
-- KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
+- KYC runs in the same `pipeline.yml` (I-084): its offline checks 1.7-1.10 when a PR touches `repos/kyc/`; its database
+  jobs come with its own `repos/kyc/deployment/app.env` later.
 
 ## 4. Open items
+- COMMON Release 117 (pipeline): 5 workflow files, the app a parameter (I-084); no push to `main` - the release PR
+  carries its generated files and ISSUES.md (9.2a); SERT / DBSAT / ZAP in the full validation only (I-075); no backup
+  schema (I-076); only the app's own objects removed (I-077); resume at the failed step (I-078). Notes:
+  `repos/common/releases/117-pipeline-workflows-resume/README.md`.
 - COMMON pipeline redesign (jobs 1-8) merged in #204 (user); first full green run to be confirmed on the next PR.
 - Issues #196 / #197 (COMMON install fixes, merged in #194) still open - close them.
 - Later: Claude GitHub app fixes failures automatically (needs secret `CLAUDE_CODE_OAUTH_TOKEN`); KYC pipeline

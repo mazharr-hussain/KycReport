@@ -1,0 +1,18 @@
+# Uploads a pipeline job's step logs (LOG_DIR, written by lib/step.sh) as artifact "logs-<job>" - job 9 and job 10
+# collect them with the pattern logs-* (I-084: one shared step instead of a copy in every job).
+# Call it with `if: always()` so a failed job still leaves its logs.
+name: Job logs
+description: Upload the step logs of a pipeline job
+inputs:
+  job:
+    description: Job number and short name, e.g. 5-fresh (the artifact is logs-<job>)
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: logs-${{ inputs.job }}
+        path: ${{ env.LOG_DIR }}
+        retention-days: 7
+        if-no-files-found: ignore

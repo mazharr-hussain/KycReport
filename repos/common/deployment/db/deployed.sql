@@ -7,6 +7,10 @@
 --   XXCI_PASSED         a check that passed for a version (ui, sert, dbsat -> its fingerprint): not run again on reuse;
 --                       fresh -> the fresh install (job 5) passed for that version: a restart may skip job 5
 --   XXCI_FAILED_TESTS   the DB test files that failed in the last test run (run again by the next one)
+--   XXCI_APP_OBJECTS    the application's own objects (db/app_objects.py) every deploy since the last remove made:
+--                       5.1 / 6.1 remove only these and this version's (I-077 - never other objects of the schema)
+--   XXCI_UPGRADE_SNAPSHOT the application's tables before the upgrade (6.4): a run that resumes after the upgrade
+--                       compares with it (6.6) - no backup schema (I-076)
 --   XXCI_FRESH_SCHEMA   the structure of the last fresh install that passed (5.5; XXCI_PASSED 'fresh' holds its
 --                       fingerprint) - the upgrade test compares the upgraded database with it (6.8)
 -- Written by db/run.sh (record_deployed, mark_dirty, record_tests, record_passed) with small generated statements.
@@ -49,6 +53,15 @@ create table if not exists xxci_passed (
 );
 create table if not exists xxci_failed_tests (
     test_file varchar2(400) primary key
+);
+create table if not exists xxci_app_objects (
+    obj_type varchar2(30),
+    obj_name varchar2(128),
+    constraint xxci_app_objects_pk primary key (obj_type, obj_name)
+);
+create table if not exists xxci_upgrade_snapshot (
+    line_no number primary key,
+    line    varchar2(4000) not null
 );
 create table if not exists xxci_fresh_schema (
     line_no number primary key,

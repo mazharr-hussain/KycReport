@@ -32,4 +32,4 @@ print(f'dependency check: {len(live)} live, {len(known)} in the map; {len(only_l
       f'{len(only_map)} not in the database')
 if only_live or only_map:   # information for the map generator (issue #212) - step log and report, no annotation
     print(f'info: {len(only_live)} live dependencies are not in the generated map and {len(only_map)} map entries '
-          'are not in the database - see dependency-check.md in the report-6-dependencies artifact')
+          'are not in the database - see dependency-check.md in the report-5-dependencies artifact')
