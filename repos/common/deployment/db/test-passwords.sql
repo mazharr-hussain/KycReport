@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Step 6.1b, run as ADMIN, validation database only (H1): gives the test users' APEX accounts this run's random
+-- Step 7.1b, run as ADMIN, validation database only (H1): gives the test users' APEX accounts this run's random
 -- password, not changed at first sign-in and unlocked. db/admin/test-users.sql gives them a fixed password that is
 -- in git; the validation application is reachable from the internet, so the pipeline never leaves that one in place.
 -- (For live tests by a person: run db/admin/test-users.sql again - it sets the fixed password.)

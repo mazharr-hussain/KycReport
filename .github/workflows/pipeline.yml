@@ -1,13 +1,13 @@
 # COMMON pipeline (app 135, schema XXFUSION) - one record per pull request run, named after the PR title.
 # Agreed flow (before the pipeline, Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-8):
 #    1 Offline validation (no OCI, no DB)      2 OCI setup (placeholder)        3 DB setup
-#    4 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
-#    5 Upgrade app (no data lost)               6 Testing and validation
-#    7 Finalize the PR: 7.1 release zip (APEXlang export), 7.2 issues for a future release + merge + release,
-#      7.3-7.4 documentation (readable APEX export, SchemaSpy)
-#    8 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
+#    5 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
+#    6 Upgrade app (no data lost)               7 Testing and validation
+#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
+#      9.3-9.4 documentation (readable APEX export, SchemaSpy)
+#    10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 7 only.
-# Required check on main: "7 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
+# Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
 name: COMMON
 # run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
 # the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0a)
@@ -27,12 +27,12 @@ on:
       start_from:
         description: Start from job (auto = as late as the records allow; 4 = fresh install and upgrade test again)
         type: choice
-        options: [auto, '4', '5', '6']
+        options: [auto, '5', '6', '7']
         default: auto
 
 permissions: {}
 
-# one run at a time on the validation database (jobs 3-7 share its state); a newer push waits, it is not cancelled
+# one run at a time on the validation database (jobs 3-9 share its state); a newer push waits, it is not cancelled
 concurrency:
   group: validation-db
   cancel-in-progress: false
@@ -52,6 +52,7 @@ jobs:
       pull-requests: read   # the PR's start-from-N label
     outputs:
       common: ${{ steps.scope.outputs.common }}
+      dependabot: ${{ steps.scope.outputs.dependabot }}   # a Dependabot PR: action bumps only (issue #238)
       start_from: ${{ steps.start.outputs.start_from }}   # 4 / 5 / 6 asked for, or empty (db/decide.py)
       release: ${{ steps.scope.outputs.release }}
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
@@ -72,8 +73,15 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
+          # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
+          # title / Fixes rule; job 1 checks the changed workflow files, job 9 passes, the PR is merged by hand
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            { echo "common=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
             echo "common=true" >> "$GITHUB_OUTPUT"; echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
@@ -86,6 +94,18 @@ jobs:
           # "COMMON Release <N>: ..." -> N (format checked in 1.0a; a KYC release has no COMMON release number)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
+      - name: 1.0d Dependabot PR - the changed workflow and action files are valid YAML
+        if: steps.scope.outputs.dependabot == 'true'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          n=0
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$f" && echo "ok $f"; n=$((n + 1))
+          done < <(git diff --name-only "$BASE" HEAD -- '.github/*.yml' '.github/*.yaml')
+          echo "- Dependabot PR: $n workflow / action file(s) checked; merge it by hand when this run is green" >> "$GITHUB_STEP_SUMMARY"
       - name: Start point - a start-from-N label on the PR, a "Pipeline-Start-From N" line in the pushed commit, or the full run's input
         id: start
         if: steps.scope.outputs.common == 'true'
@@ -99,10 +119,10 @@ jobs:
           set -euo pipefail
           start=""; from=""
           if [ -n "$PR" ]; then
-            start=$(gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | sed -n 's/^start-from-\([456]\)$/\1/p' | head -1)
+            start=$(gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | sed -n 's/^start-from-\([567]\)$/\1/p' | head -1)
             from="label start-from-$start"
             if [ -z "$start" ]; then
-              start=$(git log -1 --format=%B "$HEAD_SHA" | sed -n 's/^Pipeline-Start-From: *\([456]\) *$/\1/p' | head -1)
+              start=$(git log -1 --format=%B "$HEAD_SHA" | sed -n 's/^Pipeline-Start-From: *\([567]\) *$/\1/p' | head -1)
               from="the commit message"
             fi
           elif [ -n "$INPUT" ] && [ "$INPUT" != auto ]; then
@@ -169,7 +189,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 repos/common/deployment/checks/fingerprint.py . | tee -a "$GITHUB_OUTPUT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
-      - name: Do the database scripts differ from the base? (no - job 5's upgrade test is skipped, F)
+      - name: Do the database scripts differ from the base? (no - job 6's upgrade test is skipped, F)
         id: dbdiff
         if: steps.scope.outputs.common == 'true'
         env:
@@ -182,11 +202,11 @@ jobs:
           h() { (cd "$1" && find install upgrade -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -c1-16; }
           if [ "$(h repos/common/db/deploy)" = "$(h "$RUNNER_TEMP/base/repos/common/db/deploy")" ]; then
             echo "db_changed=false" >> "$GITHUB_OUTPUT"
-            echo "- database scripts as on the base: no upgrade test (job 5)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- database scripts as on the base: no upgrade test (job 6)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "db_changed=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: This version's application (built once, deployed by jobs 4-5)
+      - name: This version's application (built once, deployed by jobs 5-6)
         if: steps.scope.outputs.common == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -194,7 +214,7 @@ jobs:
           path: repos/common/dist/app
           retention-days: 3
           if-no-files-found: error
-      - name: This version's database scripts (generated by the build, deployed by jobs 4-5)
+      - name: This version's database scripts (generated by the build, deployed by jobs 5-6)
         if: steps.scope.outputs.common == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -226,15 +246,16 @@ jobs:
     name: 3 DB setup
     needs: [offline, oci-setup]
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60   # the first APEX-SERT install (3.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     outputs:
-      # M2: the one deploy decision (db/decide.py) - reuse (the database holds this version, fully verified: jobs 4-5
-      # skipped), app (same database scripts: job 4 replaces the APEX application only, job 5 skipped), patch (same
-      # structure, only code objects changed: job 4 quick check first, then the full deploy), upgrade (job 4 passed for
-      # this version on an earlier run that did not finish: job 4 skipped, job 5 runs) or full (fresh install and
+      # M2: the one deploy decision (db/decide.py) - reuse (the database holds this version, fully verified: jobs 5-6
+      # skipped), app (same database scripts: job 5 replaces the APEX application only, job 6 skipped), patch (same
+      # structure, only code objects changed: job 4 quick check first, then the full deploy), upgrade (job 5 passed for
+      # this version on an earlier run that did not finish: job 5 skipped, job 6 runs) or full (fresh install and
       # upgrade test)
       deploy: ${{ steps.setup.outputs.deploy }}
       patch_files: ${{ steps.setup.outputs.patch_files }}           # patch: the changed code object files
@@ -261,14 +282,18 @@ jobs:
           path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 3.1-3.4 DB setup
         id: setup
         env:
           GH_TOKEN: ${{ github.token }}                       # 3.2b: what changed since the version the database passed with
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
-          XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh setup
@@ -293,14 +318,15 @@ jobs:
   quick:
     name: 4 Quick check (code objects only)
     # Q1: only code objects (packages, views, triggers) changed since the deployed version - run them alone, then the
-    # tests of what they touch: a failure is reported within minutes. A pass is followed by the full deploy (jobs 4-6)
+    # tests of what they touch: a failure is reported within minutes. A pass is followed by the full deploy (jobs 5-8)
     # in this same run; only that merges.
     needs: [offline, db-setup]
     if: needs.db-setup.outputs.deploy == 'patch'
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 30
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
@@ -331,11 +357,15 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 4.Q1-4.Q8 Quick check - the changed code objects and their tests
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: bash repos/common/deployment/db/run.sh quick
       - name: Step logs
         if: always()
@@ -347,25 +377,26 @@ jobs:
           if-no-files-found: ignore
 
   fresh:
-    name: 4 Deploy fresh app
+    name: 5 Deploy fresh app
     needs: [offline, db-setup, quick]
-    # every deploy but reuse and upgrade (job 4 passed for this version already); after a quick check (patch) only
+    # every deploy but reuse and upgrade (job 5 passed for this version already); after a quick check (patch) only
     # when it passed - then the full fresh install
     if: >-
       always() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
-      needs.db-setup.outputs.deploy != 'upgrade' && needs.db-setup.outputs.deploy != 'retest' &&
+      needs.db-setup.outputs.deploy != 'upgrade' && needs.db-setup.outputs.deploy != 'upgraded' && needs.db-setup.outputs.deploy != 'retest' &&
       (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 30
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
-      DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 4.7 records the version (no upgrade test)
+      DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 5.7 records the version (no upgrade test)
       APP_ONLY: ${{ needs.db-setup.outputs.deploy == 'app' }}   # true: only the APEX application is replaced
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # data: the install is kept, only the test data loads
-      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 4.2a records it, 4.0 (data) checks it
-      DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 4.6: the DB tests this PR affects (or ALL)
+      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 5.2a records it, 5.0 (data) checks it
+      DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 5.6: the DB tests this PR affects (or ALL)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
@@ -386,13 +417,17 @@ jobs:
           path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 4.0-4.7 Deploy fresh app (with this version's test data)
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
+      - name: 5.0-5.7 Deploy fresh app (with this version's test data)
         run: bash repos/common/deployment/db/run.sh fresh
-      - name: Dependency report (4.4)
+      - name: Dependency report (5.4)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -410,25 +445,27 @@ jobs:
           if-no-files-found: ignore
 
   upgrade:
-    name: 5 Upgrade app
+    name: 6 Upgrade app
     needs: [offline, db-setup, fresh]
     # application only: these database scripts passed it already, the schema keeps its data. (F - no upgrade test when
-    # the scripts are the base's - is held back: job 6's DB tests still need the data the upgrade test restores.)
-    # full, and patch after its quick check (job 4 ran the full fresh install); upgrade: job 4 passed for this
-    # version on an earlier run (5.0 checks that it is still recorded)
+    # the scripts are the base's - is held back: job 7's DB tests still need the data the upgrade test restores.)
+    # full, and patch after its quick check (job 5 ran the full fresh install); upgrade: job 5 passed for this
+    # version on an earlier run (6.0 checks that it is still recorded)
     if: >-
       always() && needs.db-setup.result == 'success' &&
-      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data') &&
-        needs.fresh.result == 'success') ||
-       needs.db-setup.outputs.deploy == 'upgrade')
+      (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data' ||
+         needs.db-setup.outputs.deploy == 'loaded') &&
+        needs.fresh.result == 'success' && needs.offline.outputs.db_changed != 'false') ||
+       needs.db-setup.outputs.deploy == 'upgrade' || needs.db-setup.outputs.deploy == 'upgraded')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 40
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
-      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.11 records it: the database holds this version
-      DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 5.0 checks job 4's earlier pass
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 6.11 records it: the database holds this version
+      DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 6.0 checks job 5's earlier pass
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
       APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
@@ -452,11 +489,15 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 5.0-5.11 Upgrade app (last release = the PR's base commit, with its test data from git)
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
+      - name: 6.0-6.11 Upgrade app (last release = the PR's base commit, with its test data from git)
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
@@ -468,7 +509,7 @@ jobs:
           if-no-files-found: ignore
 
   test:
-    name: 6 DB tests and security
+    name: 7 DB tests and security
     needs: [offline, db-setup, fresh, upgrade]
     # after the upgrade test; or after the fresh install when the database scripts are the base's (F); or straight
     # after job 3 when the database already holds this version (B)
@@ -476,18 +517,20 @@ jobs:
       always() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' || needs.db-setup.outputs.deploy == 'retest' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
+       (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}  # the DB tests this PR affects (or ALL)
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}     # reuse / app: only what changed since the last tested commit (Q2, Q3)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 6.5)
+      DBSAT_ZIP_URL: ${{ vars.DBSAT_ZIP_URL }}         # optional: the user's DBSAT download (step 7.5)
       DBSAT_ZIP_SHA256: ${{ vars.DBSAT_ZIP_SHA256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -503,13 +546,17 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 6.0-6.5 DB tests, APEX-SERT, DBSAT
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
+      - name: 7.0-7.5 DB tests, APEX-SERT, DBSAT
         run: bash repos/common/deployment/db/run.sh test
-      - name: Test and security reports (6.4-6.5)
+      - name: Test and security reports (7.4-7.5)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -527,7 +574,7 @@ jobs:
           if-no-files-found: ignore
 
   ui:
-    name: 6 Browser test and ZAP
+    name: 8 Browser test and ZAP
     # G: in parallel with the DB tests - the browser and ZAP only read the application
     needs: [offline, db-setup, fresh, upgrade]
     # after the upgrade test; or after the fresh install when the database scripts are the base's (F); or straight
@@ -536,11 +583,13 @@ jobs:
       always() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
+       (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       PAGES: ${{ needs.offline.outputs.pages }}        # the pages this PR changes (or ALL)
@@ -560,7 +609,14 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: Playwright's Chromium (cached between runs)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -576,14 +632,12 @@ jobs:
           url=$(bash repos/common/deployment/lib/app-url.sh)
           echo "APP_URL=$url" >> "$GITHUB_ENV"
           echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
-      - name: 6.1, 6.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
+      - name: 8.1, 8.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
         env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           # video and trace only in the full run and only when asked for
           UI_RECORD: ${{ github.event_name == 'workflow_dispatch' && inputs.record_video && '1' || '0' }}
         run: bash repos/common/deployment/db/run.sh ui
-      - name: 6.6 OWASP ZAP baseline scan (passive; report only)
+      - name: 8.6 OWASP ZAP baseline scan (passive; report only)
         # the full run only (K); also after a failed browser test: every finding in one run (A)
         if: always() && steps.app.outcome == 'success' && github.event_name != 'pull_request'
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
@@ -594,7 +648,7 @@ jobs:
           allow_issue_writing: false
           fail_action: false
           artifact_name: report-6-zap
-      - name: Browser recordings (6.3)
+      - name: Browser recordings (8.3)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -612,41 +666,47 @@ jobs:
           if-no-files-found: ignore
 
   finalize:
-    name: 7 Finalize the PR
+    name: 9 Finalize the PR
     needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui]
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass
     if: always()
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
-    timeout-minutes: 60   # 7.1 APEXlang export + 7.3 readable export + 7.4 SchemaSpy took more than 15 minutes
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
+    timeout-minutes: 60   # 9.1 APEXlang export + 9.3 readable export + 9.4 SchemaSpy took more than 15 minutes
     permissions:
-      contents: write        # draft GitHub Release of the tested zip; 7.2 merge and release
-      pull-requests: write   # 7.2 ready for review, merge, PR comment
-      issues: write          # 7.2 issues for the existing findings
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
+      contents: write        # draft GitHub Release of the tested zip; 9.2 merge and release
+      pull-requests: write   # 9.2 ready for review, merge, PR comment
+      issues: write          # 9.2 issues for the existing findings
     env:
       COMMON: ${{ needs.offline.outputs.common }}
       RELEASE: ${{ needs.offline.outputs.release }}
+      DEPENDABOT: ${{ needs.offline.outputs.dependabot }}   # read-only token: no issues, no merge, no PR comment
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 9.0: the database still holds this version
     steps:
       - name: Gate - every earlier job passed
         env:
           RESULTS: ${{ toJSON(needs) }}
           DEPLOY: ${{ needs.db-setup.outputs.deploy }}
+          DB_CHANGED: ${{ needs.offline.outputs.db_changed }}   # false: no upgrade test (F) - job 5 recorded the version
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
           # jobs skipped on purpose by the deploy decision (M2) count as passed
           # (the quick check runs only for patch, and is then followed by the full deploy - it never replaces it)
           [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt
+          # F: the database scripts are the base's - job 6 is skipped on purpose after a passed fresh install
+          if [ "$DB_CHANGED" = false ] && grep -q '^fresh=success$' results.txt; then sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt; fi
           case $DEPLOY in
             reuse) sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt ;;
             retest) grep -q '^test=success$' results.txt && sed -i -E 's/^(fresh|upgrade|ui)=skipped$/\1=success/' results.txt ;;   # the browser test passed for these pages
             app)   grep -q '^fresh=success$' results.txt && sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt ;;
-            upgrade) grep -q '^upgrade=success$' results.txt && sed -i 's/^fresh=skipped$/fresh=success/' results.txt ;;   # 5.0: job 4 passed earlier
+            upgrade|upgraded) grep -q '^upgrade=success$' results.txt && sed -i 's/^fresh=skipped$/fresh=success/' results.txt ;;   # 6.0: job 5 passed earlier
           esac
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
-                            [quick]="4 Quick check" [fresh]="4 Deploy fresh app" [upgrade]="5 Upgrade app" [test]="6 DB tests and security"
-                            [ui]="6 Browser test and ZAP")
+                            [quick]="4 Quick check" [fresh]="5 Deploy fresh app" [upgrade]="6 Upgrade app" [test]="7 DB tests and security"
+                            [ui]="8 Browser test and ZAP")
           # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
           bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
           if [ "$COMMON" = true ]; then allowed='=success$'; else allowed='=(success|skipped)$'; fi
@@ -654,7 +714,7 @@ jobs:
           if [ -z "$bad" ]; then bad=$(grep -m1 -vE "$allowed" results.txt || true); fi
           if [ -n "$bad" ]; then
             job=${bad%%=*}; result=${bad#*=}
-            msg="7 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
+            msg="9 Finalize the PR stopped because of job '${title[$job]:-$job}' $result - nothing is finalized (no zip, no merge)"
             echo "::error::$msg"; echo "- **$msg**" >> "$GITHUB_STEP_SUMMARY"; exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -664,12 +724,16 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         if: env.COMMON == 'true'
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
-      - name: 7.1 Release zip (APEXlang export of the tested application)
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
+      - name: 9.1 Release zip (APEXlang export of the tested application)
         if: env.COMMON == 'true'
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh finalize "$RUNNER_TEMP/out"
@@ -677,8 +741,8 @@ jobs:
           name="COMMON-Application-APEXlang_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
           (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
           echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
-          echo "- 7.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
-      - name: 7.1 Release zip (artifact)
+          echo "- 9.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: 9.1 Release zip (artifact)
         if: env.COMMON == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -686,7 +750,7 @@ jobs:
           path: ${{ env.ZIP }}
           retention-days: 30
           if-no-files-found: error
-      - name: 7.1 Draft GitHub Release (published by release.yml when the PR merges)
+      - name: 9.1 Draft GitHub Release (published by release.yml when the PR merges)
         if: env.COMMON == 'true' && env.RELEASE != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -712,7 +776,7 @@ jobs:
           else
             gh release create "$tag" "$ZIP" --draft --title "$PR_TITLE" --notes-file "$readme"
           fi
-          echo "- 7.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 9.1 draft release \`$tag\` holds the tested zip" >> "$GITHUB_STEP_SUMMARY"
       - name: Pipeline report - collect the step logs
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -730,8 +794,8 @@ jobs:
       - name: Pipeline report - warnings and notices of this run
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: python3 repos/common/deployment/checks/report.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 7.2 Issues for a future release - the existing findings (files this PR did not change)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: 9.2 Issues for a future release - the existing findings (files this PR did not change)
+        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && env.DEPENDABOT != 'true'
         env:
           # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
           # workflow token the issue is still created, but no other workflow starts
@@ -739,9 +803,9 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 7.2 Merge the PR and publish its release
+      - name: 9.2 Merge the PR and publish its release
         id: merge
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true'
         env:
           # PIPELINE_MERGE_TOKEN (optional, a person's token): needed only to merge a PR that changes workflow files
           GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || github.token }}
@@ -749,8 +813,8 @@ jobs:
         run: |
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
             "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
-      - name: 7.2 Report on the PR - passed, merge result, warnings, notices, issues logged
-        if: github.event_name == 'pull_request' && (success() || steps.merge.outcome == 'failure')
+      - name: 9.2 Report on the PR - passed, merge result, warnings, notices, issues logged
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && (success() || steps.merge.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
@@ -760,7 +824,7 @@ jobs:
             const pr = context.payload.pull_request;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [`**COMMON pipeline passed** - Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}), [run](${runUrl}).`,
-                          read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 7.2 in the run).', '',
+                          read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 9.2 in the run).', '',
                           read(`${process.env.RUNNER_TEMP}/report.md`)].join('\n');
             // M4: one pipeline comment per PR, updated by every run (not a new comment each push)
             const mark = '<!-- common-pipeline -->';
@@ -774,13 +838,14 @@ jobs:
             await core.summary.addRaw(body).write();
 
       # E: the documentation is not needed to merge - it is made after the merge and added to the release
-      - name: 7.3-7.4 Documentation of the tested application (readable APEX export, SchemaSpy) - after the merge
+      - name: 9.2 Dependabot PR - passed; merge it by hand (its token cannot merge or comment)
+        if: env.DEPENDABOT == 'true'
+        run: echo "- **Dependabot PR passed** - merge it by hand (GitHub gives Dependabot PRs a read-only token)" >> "$GITHUB_STEP_SUMMARY"
+      - name: 9.3-9.4 Documentation of the tested application (readable APEX export, SchemaSpy) - after the merge
         id: docs
         if: env.COMMON == 'true' && github.event_name == 'pull_request' && success()
         continue-on-error: true   # the PR is merged and released already; a docs problem is reported, not a failure
         env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
@@ -789,9 +854,9 @@ jobs:
           (cd "$RUNNER_TEMP/out" && zip -qr "$RUNNER_TEMP/COMMON-apex-docs.zip" apex-docs && zip -qr "$RUNNER_TEMP/COMMON-db-docs.zip" db-docs)
           if [ -n "$RELEASE" ] && gh release view "common-$RELEASE" > /dev/null 2>&1; then
             gh release upload "common-$RELEASE" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
-            echo "- 7.3-7.4 documentation added to release \`common-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- 9.3-9.4 documentation added to release \`common-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: 7.3-7.4 Documentation (artifact)
+      - name: 9.3-9.4 Documentation (artifact)
         if: steps.docs.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -801,9 +866,9 @@ jobs:
             ${{ runner.temp }}/COMMON-db-docs.zip
           retention-days: 30
           if-no-files-found: ignore
-      - name: 7.3-7.4 Documentation not made
+      - name: 9.3-9.4 Documentation not made
         if: steps.docs.outcome == 'failure'
-        run: echo "::warning::7.3-7.4 documentation failed after the merge - see the step log; the release has its zip"
+        run: echo "::warning::9.3-9.4 documentation failed after the merge - see the step log; the release has its zip"
       - name: A start-from-N label counts for one run (it was read by job 1)
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -817,7 +882,7 @@ jobs:
             }
 
   error:
-    name: 8 Error handling
+    name: 10 Error handling
     needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui, finalize]
     # a job stopped by its time limit is "cancelled", which failure() does not see: every failed or cancelled job counts
     if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
@@ -828,20 +893,20 @@ jobs:
       pull-requests: write   # the error comment
       issues: write          # the full run: its failure becomes an issue (K)
     steps:
-      - name: 8.1 Collect the step logs
+      - name: 10.1 Collect the step logs
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: logs-*
           path: logs
-      - name: 8.1 The report script
+      - name: 10.1 The report script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: repos/common/deployment/checks
           path: src
-      - name: 8.1 Warnings and notices of this run
+      - name: 10.1 Warnings and notices of this run
         run: python3 src/repos/common/deployment/checks/report.py logs "$RUNNER_TEMP/report.md"
-      - name: 8.1-8.3 Error details - PR comment and run summary, then stop
+      - name: 10.1-10.3 Error details - PR comment and run summary, then stop
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RESULTS: ${{ toJSON(needs) }}
@@ -854,11 +919,11 @@ jobs:
             const fs = require('fs'), path = require('path');
             const results = JSON.parse(process.env.RESULTS);
             const title = { offline: '1 Offline validation', 'oci-setup': '2 OCI setup', 'db-setup': '3 DB setup',
-              quick: '4 Quick check', fresh: '4 Deploy fresh app', upgrade: '5 Upgrade app', test: '6 DB tests and security', ui: '6 Browser test and ZAP',
-              finalize: '7 Finalize the PR' };
+              quick: '4 Quick check', fresh: '5 Deploy fresh app', upgrade: '6 Upgrade app', test: '7 DB tests and security', ui: '8 Browser test and ZAP',
+              finalize: '9 Finalize the PR' };
             const order = Object.keys(results);   // flow order (the needs list)
             const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
-            // the job that caused it: the first failed one before job 7 (job 7 only fails because of it)
+            // the job that caused it: the first failed one before job 9 (job 9 only fails because of it)
             const job = failedJobs.find(k => k !== 'finalize') || failedJobs[0] || 'unknown';
             const skipped = order.filter(k => results[k].result === 'skipped').map(k => title[k] || k);
             const name = title[job] || job;
@@ -896,7 +961,7 @@ jobs:
             // passed before the failed one may be skipped (restart points 4, 5, 6 - db/decide.py checks the records)
             const temporary = /ORA-12170|ORA-12541|ORA-12514|ORA-12537|ORA-03113|ORA-03114|ORA-29273|ORA-01013|TNS-|timed? ?out|Connection reset|ECONNRESET|503 Service|502 Bad Gateway|rate limit|Could not resolve host/i;
             const hit = (errors + '\n' + tail).match(temporary);
-            const restart = { quick: 4, fresh: 4, upgrade: 5, test: 6, ui: 6 }[job];
+            const restart = { quick: 5, fresh: 5, upgrade: 6, test: 7, ui: 7 }[job];
             const next = hit
               ? `**Next:** this looks temporary (\`${hit[0]}\`) - re-run the failed jobs as they are: [run](${runUrl}) > Re-run failed jobs.`
               : restart && pr
@@ -908,7 +973,7 @@ jobs:
             const body = [
               `**COMMON pipeline stopped: job ${name} ${why}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
-              (job !== 'finalize' && results.finalize?.result === 'failure' ? `7 Finalize the PR stopped because job ${name} ${why} (no zip, no merge). ` : '') +
+              (job !== 'finalize' && results.finalize?.result === 'failure' ? `9 Finalize the PR stopped because job ${name} ${why} (no zip, no merge). ` : '') +
               'The PR stays open.', '', next, '',
               '| | |', '|---|---|',
               `| Job | ${name} |`, `| Step | \`${step || '(see the run)'}\` |`,
@@ -950,7 +1015,7 @@ jobs:
                   title: `${ino} COMMON: full run ${result === 'cancelled' ? 'cancelled' : 'fails'} at ${name}${step ? ' (' + step + ')' : ''}`,
                   body: ['Type: Bug', 'Priority: P2', '', `**Area:** pipeline job ${name}${step ? ', step ' + step : ''}`, '',
                          '**Found:** the full run of main (on demand: every DB test, every page, ZAP).', '', body, '',
-                         `<!-- ${mark} -->`, '', '**Source:** COMMON pipeline (full run, job 8)'].join('\n') });
+                         `<!-- ${mark} -->`, '', '**Source:** COMMON pipeline (full run, job 10)'].join('\n') });
               }
             }
             core.setFailed(`Pipeline stopped: job ${name} ${why}${step ? ' (step ' + step + ')' : ''}`);

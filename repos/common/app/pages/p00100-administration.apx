@@ -135,6 +135,12 @@ page 100 (
         security {
             sessionStateProtection: unrestricted
         }
+        comments {
+            comments:
+                ```
+                Unrestricted on purpose (page and item, I-063): every application's menu opens this group page with the group code (XXFND_APPLICATION_PKG.MENU_URL builds the link in the calling application's session, so it cannot carry a COMMON checksum). The group code only chooses which entries are shown, and each entry is shown only when the user may open it (its own authorization), so no data is exposed.
+                ```
+        }
     )
 
     pageItem P100_GROUP_NAME (

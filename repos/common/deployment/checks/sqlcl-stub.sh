@@ -22,6 +22,8 @@ case $(basename "$file") in
     case $body in *"apex validate"*) echo "Validation successful"; echo "Import successful" ;; esac
     rec=$(cat "$STUB_DIR/record" 2>/dev/null)
     case $body in *"'GUARD '"*) printf '%s\n' "$rec" | awk '$1 == "DEPLOYED" {print "GUARD", $2, $3, $4, $6 "     "} $1 == "PASSED" && $2 == "fresh" {print "GUARD-FRESH", $3 "     "}' ;; esac
+    case $body in *"'UPGRADED-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "upgraded" {print "UPGRADED-OF", $3 "          "}' ;; esac
+    case $body in *"'LOADED-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "loaded" {print "LOADED-OF", $3 "          "}' ;; esac
     case $body in *"'INSTALL-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "install" {print "INSTALL-OF", $3 "          "}' ;; esac
     case $body in *"'NV '"*) echo 'NV K XXFND_A XXFND_A_CK1 C ENABLED NOT VALIDATED          ' ;; esac
     case $body in *"'FRESH-OF '"*) printf '%s\n' "$rec" | awk '$1 == "PASSED" && $2 == "fresh" {print "FRESH-OF", $3 "          "}'

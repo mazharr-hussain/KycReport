@@ -64,7 +64,7 @@ docs() {   # warning only: a COMMON feature changed without its requirements.md 
 }
 source_map() { python3 "$HERE/source_map.py"; }   # new / removed application files registered for the build
 # the release number (from the PR title) is stamped into the application ("Release N"); the generated files (db/deploy,
-# dependency map, technical docs) of this build are what jobs 4-5 deploy, and are committed to main after the merge
+# dependency map, technical docs) of this build are what jobs 5-6 deploy, and are committed to main after the merge
 build() { bash "$ROOT/repos/common/build.sh" ${RELEASE:+--release "$RELEASE"}; }
 apexlang() {
   local crlf out

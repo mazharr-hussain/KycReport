@@ -1,13 +1,13 @@
 --------------------------------------------------------------------------------
--- Step 5.6, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
--- the backup schema's snapshot taken just before the upgrade (5.4), then checks the keys. Validation database only.
+-- Step 6.6, run as the application schema (proxy) after the upgrade: nothing may be lost. Compares every table with
+-- the backup schema's snapshot taken just before the upgrade (6.4), then checks the keys. Validation database only.
 --   FAIL  a table that still exists has fewer rows than before the upgrade (data lost)
 --   FAIL  a key (primary, unique, foreign, check - a new required column too) that is on but not checked against the
 --         existing rows (ENABLED NOVALIDATE): the upgrade did not prove the old rows meet it - unless the fresh install
 --         of this version leaves it so too (novalidate_ok: its install script says "enable novalidate"): INFO
 --   INFO  a table removed by the release; rows whose values the upgrade changed (planned data changes)
 -- Large-object and object-type columns are not compared value by value (row counts still are).
--- Substitution variables: bkp_schema, restore_exclude, novalidate_ok (TABLE.CONSTRAINT,... - from 4.5's record).
+-- Substitution variables: bkp_schema, restore_exclude, novalidate_ok (TABLE.CONSTRAINT,... - from 5.5's record).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
 declare

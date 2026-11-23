@@ -1,10 +1,10 @@
-# "/pipeline start-from N" in a comment on a pull request (N = 4, 5 or 6; "auto" clears it), written by the repository
+# "/pipeline start-from N" in a comment on a pull request (N = 5, 6 or 7; "auto" clears it), written by the repository
 # owner: sets the label start-from-N on the PR and re-runs the PR's last COMMON pipeline run (a run still going: the
 # label waits for the next one). Job 1 reads the label, job 3 (db/decide.py) follows it only when its records allow,
-# and job 7 removes it again - it counts for one run. Anyone else's comment is ignored.
+# and job 9 removes it again - it counts for one run. Anyone else's comment is ignored.
 name: COMMON pipeline command
 on:
-  issue_comment:
+  issue_comment:   # zizmor: ignore[dangerous-triggers] - only the repository OWNER's "/pipeline start-from" comments act (job if)
     types: [created]
 permissions: {}
 jobs:
@@ -25,9 +25,9 @@ jobs:
           retries: 3
           script: |
             const issue_number = context.payload.issue.number;
-            const m = context.payload.comment.body.trim().match(/^\/pipeline start-from (4|5|6|auto)\s*$/);
+            const m = context.payload.comment.body.trim().match(/^\/pipeline start-from (5|6|7|auto)\s*$/);
             const react = content => github.rest.reactions.createForIssueComment({ ...context.repo, comment_id: context.payload.comment.id, content });
-            if (!m) { await react('confused'); core.setFailed('Use: /pipeline start-from 4|5|6|auto'); return; }
+            if (!m) { await react('confused'); core.setFailed('Use: /pipeline start-from 5|6|7|auto'); return; }
             const labels = (await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number })).data;
             for (const l of labels.filter(l => /^start-from-/.test(l.name))) {
               await github.rest.issues.removeLabel({ ...context.repo, issue_number, name: l.name });

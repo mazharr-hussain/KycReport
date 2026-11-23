@@ -1,5 +1,5 @@
 #!/bin/bash
-# Commits the generated files of COMMON to main after a merge (job 7.2, and generated-files.yml for a push to main made
+# Commits the generated files of COMMON to main after a merge (job 9.2, and generated-files.yml for a push to main made
 # by a person): SOURCE-MAP.json in step with the files (checks/source_map.py), then the build's generated files -
 # db/deploy (install / upgrade scripts, dependency map) and docs/components/*/technical.md. Nobody commits them by hand;
 # a PR's own run deploys what job 1 built from its source (the db/deploy artifact).

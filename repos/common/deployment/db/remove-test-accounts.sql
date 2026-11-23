@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Step 4.1 (full fresh install), run as ADMIN, validation database only: removes the APEX accounts of the test users.
+-- Step 5.1 (full fresh install), run as ADMIN, validation database only: removes the APEX accounts of the test users.
 -- Clearing the schema removes COMMON's user rows, but an APEX account lives in the workspace and survives it - the
 -- test users would then be made again over an existing account (ORA-00001 on WWV_FLOW_FND_USER_UQ1). The names come
 -- from db/admin/test-users.sql and the tests (db/run.sh). Substitution variables: workspace, users (space separated).

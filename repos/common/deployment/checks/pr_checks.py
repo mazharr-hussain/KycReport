@@ -158,7 +158,7 @@ def install_safety(names):
 
 
 def releases(names):
-    """A release folder holds only its README (the release notes): the pipeline makes the release zip (7.1) and the
+    """A release folder holds only its README (the release notes): the pipeline makes the release zip (9.1) and the
     scripts are the application's supporting objects - copies of scripts or app files are not kept (CLAUDE.md)."""
     dirs = {m.group(0) for n, _ in names if (m := re.match(r'repos/[^/]+/releases/[^/]+', n)) and os.path.isdir(os.path.join(ROOT, m.group(0)))}
     for d in sorted(dirs):

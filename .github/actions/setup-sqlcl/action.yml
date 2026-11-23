@@ -1,16 +1,47 @@
-# SQLcl for the COMMON pipeline jobs: Java 21, SQLcl 26.1.2 (cached, checksum verified) and, when a wallet is given,
-# the validation database wallet. Sets SQL (SQLcl launcher) and WALLET (wallet zip) for the following steps.
+# SQLcl for the COMMON pipeline jobs: Java 21, SQLcl 26.1.2 (cached, checksum verified) and the validation database.
+# Sets SQL (SQLcl launcher) and, for the database jobs, WALLET, VAL_DB_SERVICE, ADMIN_PW and XXCUS_PW.
+# OCI mode (oci-client given, issue #240): the GitHub OIDC token is exchanged at the identity domain for an OCI session
+# token (no API key), the Always Free ADB is started when it stopped, its wallet and the passwords are read from
+# OCI Vault (the wallet is generated when no wallet secret is given) - nothing of the database is kept in GitHub.
 name: Set up SQLcl
 description: Java, checksum-verified SQLcl and the validation database wallet
 inputs:
-  wallet:
-    description: Base64 wallet zip of the validation database (secret VAL_DB_WALLET); empty for offline jobs
+  oci-client:
+    description: OCI mode - client_id:client_secret of the token exchange app (secret OCI_OIDC_CLIENT)
+    required: false
+    default: ''
+  oci-tenancy:
+    description: Tenancy OCID (secret OCI_TENANCY)
+    required: false
+    default: ''
+  oci-domain:
+    description: Identity domain URL (variable OCI_DOMAIN_URL)
+    required: false
+    default: ''
+  oci-region:
+    description: OCI region (variable OCI_REGION)
+    required: false
+    default: ''
+  db-ocid:
+    description: OCID of the validation Autonomous Database (variable VAL_DB_OCID)
+    required: false
+    default: ''
+  admin-secret:
+    description: OCID of the Vault secret with the ADMIN password (variable VAL_ADMIN_SECRET_OCID)
+    required: false
+    default: ''
+  xxcus-secret:
+    description: OCID of the Vault secret with the App Builder password of XXCUS (optional; random when empty)
+    required: false
+    default: ''
+  wallet-secret:
+    description: OCID of the Vault secret with the database wallet zip (base64); empty - the wallet is generated
     required: false
     default: ''
 runs:
   using: composite
   steps:
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
       with:
         distribution: temurin
         java-version: '21'
@@ -34,14 +65,68 @@ runs:
         echo "$SHA256  sqlcl.rpm" | sha256sum -c -
         mkdir -p sqlcl-rpm && (cd sqlcl-rpm && rpm2cpio ../sqlcl.rpm | cpio -idm --quiet)
         mv sqlcl-rpm/opt/oracle/sqlcl sqlcl && rm -rf sqlcl-rpm sqlcl.rpm
-    - name: SQLcl and wallet paths
+    - name: SQLcl path
+      shell: bash
+      # a fixed name and a path under RUNNER_TEMP - nothing from the pull request reaches GITHUB_ENV here
+      run: echo "SQL=$RUNNER_TEMP/sqlcl/bin/sql" >> "$GITHUB_ENV"  # zizmor: ignore[github-env]
+    - name: OCI sign-in values present
+      if: inputs.db-ocid != ''
       shell: bash
       env:
-        WALLET_B64: ${{ inputs.wallet }}
+        C: ${{ inputs.oci-client }}
+        T: ${{ inputs.oci-tenancy }}
+        D: ${{ inputs.oci-domain }}
+        R: ${{ inputs.oci-region }}
+      run: |
+        [ -n "$C" ] && [ -n "$T" ] && [ -n "$D" ] && [ -n "$R" ] || {
+          echo "::error::OCI sign-in values missing: repository secrets OCI_OIDC_CLIENT, OCI_TENANCY and repository variables OCI_DOMAIN_URL, OCI_REGION are needed (Settings > Secrets and variables > Actions, repository level)"
+          exit 1; }
+    - name: OCI session token (GitHub OIDC token exchange, no API key)
+      if: inputs.oci-client != ''
+      uses: gtrevorrow/oci-token-exchange-action@e8b0200e63131e48bc425ea4abf99135201b1e40 # v2
+      with:
+        oidc_client_identifier: ${{ inputs.oci-client }}
+        domain_base_url: ${{ inputs.oci-domain }}
+        oci_tenancy: ${{ inputs.oci-tenancy }}
+        oci_region: ${{ inputs.oci-region }}
+    - name: Validation database - started, wallet, passwords from OCI Vault
+      if: inputs.oci-client != ''
+      shell: bash
+      env:
+        DB_OCID: ${{ inputs.db-ocid }}
+        ADMIN_SECRET: ${{ inputs.admin-secret }}
+        XXCUS_SECRET: ${{ inputs.xxcus-secret }}
+        WALLET_SECRET: ${{ inputs.wallet-secret }}
       run: |
         set -euo pipefail
-        echo "SQL=$RUNNER_TEMP/sqlcl/bin/sql" >> "$GITHUB_ENV"
-        if [ -n "$WALLET_B64" ]; then
-          printf '%s' "$WALLET_B64" | base64 -d > "$RUNNER_TEMP/wallet.zip"
-          echo "WALLET=$RUNNER_TEMP/wallet.zip" >> "$GITHUB_ENV"
+        [ -n "$DB_OCID" ] && [ -n "$ADMIN_SECRET" ] || { echo "::error::variables VAL_DB_OCID and VAL_ADMIN_SECRET_OCID are needed"; exit 1; }
+        pip install -q oci-cli
+        O=(--auth security_token)
+        state=$(oci db autonomous-database get "${O[@]}" --autonomous-database-id "$DB_OCID" --query 'data."lifecycle-state"' --raw-output)
+        if [ "$state" = STOPPED ]; then
+          echo "the validation database was stopped - starting it"
+          oci db autonomous-database start "${O[@]}" --autonomous-database-id "$DB_OCID" --wait-for-state AVAILABLE > /dev/null
         fi
+        name=$(oci db autonomous-database get "${O[@]}" --autonomous-database-id "$DB_OCID" --query 'data."db-name"' --raw-output)
+        bundle() { oci secrets secret-bundle get "${O[@]}" --secret-id "$1" --query 'data."secret-bundle-content".content' --raw-output; }
+        if [ -n "$WALLET_SECRET" ]; then
+          # the wallet kept in OCI Vault: the zip itself, or the zip as base64 text (base64 -w0 Wallet_*.zip)
+          bundle "$WALLET_SECRET" | base64 -d > "$RUNNER_TEMP/wallet.raw"
+          if [ "$(head -c 2 "$RUNNER_TEMP/wallet.raw")" = PK ]; then mv "$RUNNER_TEMP/wallet.raw" "$RUNNER_TEMP/wallet.zip"
+          else base64 -d "$RUNNER_TEMP/wallet.raw" > "$RUNNER_TEMP/wallet.zip"; rm -f "$RUNNER_TEMP/wallet.raw"; fi
+          [ "$(head -c 2 "$RUNNER_TEMP/wallet.zip")" = PK ] || { echo "::error::the Vault secret of the wallet is not a wallet zip"; exit 1; }
+        else
+          oci db autonomous-database generate-wallet "${O[@]}" --autonomous-database-id "$DB_OCID" \
+            --password "W$(openssl rand -hex 12)#9a" --file "$RUNNER_TEMP/wallet.zip" > /dev/null
+        fi
+        secret() { bundle "$1" | base64 -d; }
+        admin=$(secret "$ADMIN_SECRET"); echo "::add-mask::$admin"
+        if [ -n "$XXCUS_SECRET" ]; then xxcus=$(secret "$XXCUS_SECRET"); else xxcus="Xc$(openssl rand -hex 10)#9"; fi
+        echo "::add-mask::$xxcus"
+        {
+          echo "WALLET=$RUNNER_TEMP/wallet.zip"
+          echo "VAL_DB_SERVICE=$(echo "$name" | tr '[:upper:]' '[:lower:]')_low"
+          echo "ADMIN_PW=$admin"
+          echo "XXCUS_PW=$xxcus"
+        } >> "$GITHUB_ENV"
+        echo "validation database $name ($state) - wallet and passwords ready"

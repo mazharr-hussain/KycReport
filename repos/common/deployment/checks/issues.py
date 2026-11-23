@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pipeline job 7 - log the findings that belong to a future release as GitHub issues (they go on the project board).
+"""Pipeline job 9 - log the findings that belong to a future release as GitHub issues (they go on the project board).
 
 issues.py <logs dir> <report.md>
 The "existing:" lines of the step logs are findings in files the PR did not change (1.2 static checks, 1.6 PMD): they
@@ -96,7 +96,7 @@ def main():
             'to be fixed in a future release.', '',
             '**Findings:**', *[f'- `{x}`' for x in lines], '',
             f'**Finding key:** `{key}`', f'<!-- pipeline-finding: {mark} -->', '',
-            '**Source:** COMMON pipeline (job 7, checks/issues.py)'])
+            '**Source:** COMMON pipeline (job 9, checks/issues.py)'])
         issue = gh('POST', f'/repos/{repo}/issues', {'title': title, 'body': body, 'labels': ['COMMON']})
         created.append(f'- #{issue["number"]} {title}')
         print(f'created #{issue["number"]}: {title}')

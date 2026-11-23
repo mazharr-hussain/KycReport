@@ -26,16 +26,17 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
 
 ## 3. COMMON CI/CD pipeline (`.github/workflows/pipeline.yml`, scripts in `repos/common/deployment` - README there)
 - Every push to a PR starts one record in Actions: `<PR title>: Push Number <N>` (PR title
-  `<APP> Release <Number>: <short summary>`, issues linked in the body with `Fixes #n`; one commit per push). Jobs: **3** offline validation (lint, static, docs, build, APEXlang, PMD) -> **4** OCI
-  setup (placeholder) -> **5** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
-  -> **6** deploy fresh (backup the data, remove, deploy, online validation) -> **7** upgrade (remove, deploy the last
-  release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **8** test users +
-  DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **9** finalize (gate,
-  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; merge by GitHub auto-merge)
-  -> **10** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 3 and 9 only.
-- **Merge**: `9 Finalize the PR` is the required check on main; Claude enables auto-merge on its PR (as the user), so
-  GitHub merges when the check is green and the workflows on main (`release.yml`, docs) run. `release.yml` publishes the
-  draft release `common-<N>` (the tested zip) when a PR that adds `repos/common/releases/<N>-*/` merges.
+  `<APP> Release <Number>: <short summary>`, issues linked in the body with `Fixes #n`; one commit per push). Jobs: **1** offline validation (lint, static, docs, build, APEXlang, PMD) -> **2** OCI
+  setup (placeholder) -> **3** DB setup (start DB placeholder, bootstrap only when needed, backup schema `XXFUSION_BKP`)
+  -> **4** deploy fresh (backup the data, remove, deploy, online validation) -> **5** upgrade (remove, deploy the last
+  release, restore the data, upgrade once, nothing lost, online validation, drop the backup schema) -> **6** test users +
+  DB tests (failures stop it), browser smoke test (Playwright), APEX-SERT, DBSAT, OWASP ZAP -> **7** finalize (gate,
+  APEXlang export zip, readable APEX docs, SchemaSpy, draft release; issues for the existing findings, merge and release by the pipeline)
+  -> **8** error handling (PR comment + run summary, stop). A PR that does not touch COMMON runs jobs 1 and 7 only.
+- **Merge**: job 7.2 merges a green PR itself (`release/merge.sh`: a draft is marked ready, label `hold` stops it,
+  merged only if the head is the tested commit) and publishes the release `common-<N>` (`release/publish.sh`; a merge
+  made with the workflow token starts no other workflow, so `release.yml` only handles a merge made by a person).
+  Pipeline failures stay PR comments (the next push fixes them); findings for a future release become issues (7.2).
 - Validation database: separate Always Free ADB (Jeddah), APEX 26.1.6, workspace XXCUS (schemas XXCUS + XXFUSION).
   Login: wallet + pipeline user `XXCI_DEPLOY` (proxy `XXCI_DEPLOY[XXFUSION]`, `lib/sql.sh`, connect line on stdin);
   ADMIN only for that password, bootstrap and test users. Secrets in environment **Oracle DB Dev**: `VAL_DB_WALLET`, `VAL_DB_SERVICE`,
@@ -46,7 +47,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
 - KYC still uses `checks.yml` / `docs-check.yml` (only for `repos/kyc/**`); its own pipeline comes later.
 
 ## 4. Open items
-- COMMON pipeline redesign (jobs 3-10) merged in #204 (user); first full green run to be confirmed on the next PR.
+- COMMON pipeline redesign (jobs 1-8) merged in #204 (user); first full green run to be confirmed on the next PR.
 - Issues #196 / #197 (COMMON install fixes, merged in #194) still open - close them.
 - Later: Claude GitHub app fixes failures automatically (needs secret `CLAUDE_CODE_OAUTH_TOKEN`); KYC pipeline
   (`repos/kyc/deployment/`, same pattern).
@@ -54,11 +55,10 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
   gaps; screening questions; question display types; old KYC tests; C17 badge tones; COMMON-ISSUES C13-C16.
 
 ## 5. Parked (do not touch until the user asks)
-- IDCS / OCI (#195, #198): GitHub OIDC token exchange works with a trust **without impersonation** - IDCS maps the token's
-  `sub` to the service user `repo:mazharr-hussain/KycReport:environment:Oracle_OCI` (group `github-ci`, policy
-  `manage all-resources in tenancy`); environment `Oracle_OCI` (secrets `OCI_OIDC_CLIENT`, `OCI_TENANCY`, variables
-  `OCI_DOMAIN_URL`, `OCI_REGION`). Terraform templates in `repos/infra/` (compartment `Common`: plan OK, apply not run).
-  Workflows `idcs-trust`, `val-oci-setup`, `connectivity`, `infra` - manual / parked.
+- IDCS / OCI (#195, #198): the old OCI workflows (`idcs-trust`, `val-oci-setup`, `connectivity`, `infra`) were deleted
+  on 23 Nov 2026 (#247, owner's decision). The pipeline signs in to the new tenancy itself (#240: GitHub OIDC token
+  exchange with the impersonation rule for `github-actions-svc`, environment `Oracle_Dev_DB`, OCI values at
+  repository level). `repos/tools/idcs-trust.sh` and the Terraform templates (`repos/infra/`) were deleted too.
 - Retention two-stage review design - placeholder only.
 
 ## 6. How the latest COMMON pieces work (quick reference)

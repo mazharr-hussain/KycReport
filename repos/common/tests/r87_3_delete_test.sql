@@ -1,4 +1,4 @@
--- Releases 87 / 88 checks, part 3 of 3 (run as XXFUSION, after r87_app_test.sql): C9 - an application that registered
+-- Releases 87 / 88 checks, part 3 of 3 (run as XXFUSION, after r87_2_app_test.sql): C9 - an application that registered
 -- its setup is deleted with it (only business data blocks the delete). R86DEL is registered again by the next run.
 set serveroutput on feedback off
 declare

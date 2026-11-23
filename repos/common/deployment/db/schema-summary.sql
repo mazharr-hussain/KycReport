@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
--- Steps 4.5 and 5.8, run as the application schema (proxy): the schema's structure, one line per item, so the fresh
--- install (4.5, kept in XXCI_FRESH_SCHEMA) and the upgraded database (5.8) can be compared line by line:
+-- Steps 5.5 and 6.8, run as the application schema (proxy): the schema's structure, one line per item, so the fresh
+-- install (5.5, kept in XXCI_FRESH_SCHEMA) and the upgraded database (6.8) can be compared line by line:
 --   T <table> | C <table>.<column> <type>(<length>,<precision>,<scale>) <nullable> | K <table> <constraint> <type>
 --   <status> <validated> | I <table> <index> <uniqueness> | O <type> <name> <status>   (sorted)
 -- and R <table> <rows> (row counts: compared for information only). System-named constraints and indexes (SYS_...),
