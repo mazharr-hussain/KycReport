@@ -61,4 +61,6 @@ Row-level security (VPD) for every application from one set of rules.
 ## Test scripts
 
 - `tests/r79_security_test.sql`
+- `tests/r84_notifications_test.sql`
+- `tests/r85_shared_test.sql`
 - `tests/r86_registration_test.sql`

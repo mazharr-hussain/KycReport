@@ -53,5 +53,6 @@ One e-mail history for every record, with its files, without e-mail screens in t
 ## Test scripts
 
 - `tests/r79_security_test.sql`
+- `tests/r84_notifications_test.sql`
 - `tests/r85_shared_test.sql`
 - `tests/r85_shared_ui.py`
