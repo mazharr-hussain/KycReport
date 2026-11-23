@@ -316,12 +316,13 @@ record_fresh() {   # 4.5: the fresh install's structure (compared with the upgra
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   f=$LOG_DIR/fresh-schema.txt
   schema_summary "$f" || return 1
-  # PL/SQL blocks of 200 lines (FORALL), not one INSERT statement per line: 854s -> seconds (run 40)
+  # PL/SQL blocks of 200 lines, not one INSERT statement per line: 854s -> seconds (run 40); a loop, not FORALL
+  # (the line number is computed from the index: PLS-00430 in FORALL, run 7)
   local block=() start=1
   flush() {
     [ ${#block[@]} -gt 0 ] || return 0
     lines+=("declare" "  type t_lines is table of varchar2(4000);" "  l t_lines := t_lines(" "${block[@]}"
-            "  );" "begin" "  forall i in 1 .. l.count insert into xxci_fresh_schema (line_no, line) values ($start - 1 + i, l(i));"
+            "  );" "begin" "  for i in 1 .. l.count loop insert into xxci_fresh_schema (line_no, line) values ($start - 1 + i, l(i)); end loop;"
             "end;" "/")
     start=$((n + 1)); block=()
   }
