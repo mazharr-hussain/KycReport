@@ -181,7 +181,7 @@ sert_install() {   # 3.4 APEX-SERT: only when it is not installed (no SERT_CORE.
   echo "select 'SERT_EVAL ' || count(*) from dba_objects where owner = 'SERT_CORE' and object_name = 'EVAL_PKG' and object_type = 'PACKAGE BODY' and status = 'VALID';" > "$f"
   n=$(S ADMIN "$f" check | grep -o 'SERT_EVAL [0-9]*' | cut -d' ' -f2); rm -f "$f"
   if [ "${n:-0}" -gt 0 ] && { [ -z "${BASE:-}" ] || git -C "$ROOT" diff --quiet "$BASE" HEAD -- repos/common/deployment/tools.env; }; then
-    echo "APEX-SERT is installed - nothing to do"; return 0
+    echo "APEX-SERT is installed - nothing to do"; sert_valid; return
   fi
   rm -rf "$dir"; git init -q "$dir" && git -C "$dir" fetch -q --depth 1 "$SERT_REPO" "$SERT_COMMIT" &&
     git -C "$dir" checkout -q FETCH_HEAD || return 1
@@ -194,9 +194,29 @@ sert_install() {   # 3.4 APEX-SERT: only when it is not installed (no SERT_CORE.
   S ADMIN "$f" check; rc=$?; rm -f "$f"; [ "$rc" -eq 0 ] || return 1
   S ADMIN "$HERE/ci-password.sql" check ci_user=ACDC ci_pw="$ACDC_PW" || return 1
   # Liquibase on the LOW service (the HIGH service runs in parallel: ORA-12838 - SERT install guide)
+  # its Liquibase changesets create some objects before the ones they use (SCHEDULE_JOB_NT before SCHEDULE_JOB_OT,
+  # EXCEPTIONS_API): "compilation errors" here are expected - sert_valid recompiles and decides
   (cd "$dir" && VAL_DB_SERVICE=$(low_service) S ACDC install.sql check); rc=$?
   f=$(mktemp --suffix .sql); echo "alter user acdc account lock;" > "$f"; S ADMIN "$f" check; rm -f "$f"
-  return "$rc"
+  [ "$rc" -eq 0 ] || echo "install.sql reported errors - recompiling SERT_CORE to see whether any remain"
+  sert_valid
+}
+sert_valid() {   # 3.4: SERT_CORE recompiled; passes only when EVAL_PKG is valid and no SERT_CORE object is invalid
+  local f out n
+  f=$(mktemp --suffix .sql)
+  cat > "$f" <<'SQL'
+exec dbms_utility.compile_schema(schema => 'SERT_CORE', compile_all => false)
+select 'SERT_INVALID ' || object_type || ' ' || object_name from dba_objects where owner = 'SERT_CORE' and status <> 'VALID' order by 1;
+select 'SERT_EVAL ' || count(*) from dba_objects where owner = 'SERT_CORE' and object_name = 'EVAL_PKG' and object_type = 'PACKAGE BODY' and status = 'VALID';
+SQL
+  out=$(S ADMIN "$f" check) || { rm -f "$f"; printf '%s\n' "$out"; echo "::error::recompiling SERT_CORE failed"; return 1; }
+  rm -f "$f"
+  n=$(printf '%s\n' "$out" | grep -o 'SERT_EVAL [0-9]*' | cut -d' ' -f2)
+  if printf '%s\n' "$out" | grep -q '^SERT_INVALID '; then
+    echo "::error::APEX-SERT objects still invalid after recompiling:"; printf '%s\n' "$out" | grep '^SERT_INVALID '; return 1
+  fi
+  [ "${n:-0}" -gt 0 ] || { echo "::error::APEX-SERT is not installed (SERT_CORE.EVAL_PKG missing or invalid)"; return 1; }
+  echo "APEX-SERT installed and valid"
 }
 drop_old_baseline() {   # 3.3b: the kept baseline schema (run 35) is gone - the test data lives in git (db/admin/test-data.json)
   S CI "$HERE/backup-schema.sql" check bkp_schema=XXFUSION_BASE_BKP ci_user="$CI_USER" drop_only=Y
