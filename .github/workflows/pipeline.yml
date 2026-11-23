@@ -100,9 +100,12 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          files=$(git diff --name-only "$BASE" HEAD -- '.github/*.yml' '.github/*.yaml')
-          for f in $files; do python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$f" && echo "ok $f"; done
-          echo "- Dependabot PR: $(echo $files | wc -w) workflow / action file(s) checked; merge it by hand when this run is green" >> "$GITHUB_STEP_SUMMARY"
+          n=0
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$f" && echo "ok $f"; n=$((n + 1))
+          done < <(git diff --name-only "$BASE" HEAD -- '.github/*.yml' '.github/*.yaml')
+          echo "- Dependabot PR: $n workflow / action file(s) checked; merge it by hand when this run is green" >> "$GITHUB_STEP_SUMMARY"
       - name: Start point - a start-from-N label on the PR, a "Pipeline-Start-From N" line in the pushed commit, or the full run's input
         id: start
         if: steps.scope.outputs.common == 'true'
