@@ -32,8 +32,14 @@ begin
     -- a browser); the database user ADMIN is the tests' administrator ADMIN (Users & Access - Manage) there (I-059)
     apex_session.delete_session;
     apex_util.set_workspace('XXCUS');
-    select min(user_id) into l_usr from xxfnd_users where user_type = 'LOCAL' and enabled_flag = 'Y';
-    if l_usr is not null then
+    -- a local user that has an APEX account (restored data can hold local users whose APEX account is not restored)
+    select min(u.user_id) into l_usr from xxfnd_users u
+     where u.user_type = 'LOCAL' and u.enabled_flag = 'Y'
+       and exists (select null from apex_workspace_apex_users a
+                    where a.workspace_name = 'XXCUS' and a.user_name = upper(u.user_name));
+    if l_usr is null then
+        dbms_output.put_line('SKIP no enabled local user with an APEX account');
+    else
         for u in (select user_name from xxfnd_users where user_id = l_usr) loop
             ok('account status of ' || u.user_name || ': ' || xxfnd_user_pkg.account_status(u.user_name),
                xxfnd_user_pkg.account_status(u.user_name) in ('Active', 'Locked'));

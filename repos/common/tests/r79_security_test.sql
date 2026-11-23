@@ -53,6 +53,9 @@ begin
     values ('XXFND_RFIS', 'COLUMN_IN_LIST', 'RFI_STATUS', 'OPEN', 'r79 user rule') returning rule_id into l_rule1;
     insert into xxfnd_data_security_rules (table_name, rule_type, column_name, value_list, description)
     values ('XXFND_RFIS', 'COLUMN_IN_LIST', 'RFI_STATUS', 'ANSWERED', 'r79 role rule') returning rule_id into l_rule2;
+    -- an access object (release 96) takes over a table's data security; the release-79 rule model is tested without
+    -- one (restored data can hold one for XXFND_RFIS) - rolled back with the rest of the test
+    update xxfnd_data_objects set enabled_flag = 'N' where table_name = 'XXFND_RFIS' and enabled_flag = 'Y';
     xxfnd_vpd_pkg.end_trusted;
 
     -- nothing assigned: no rows, no values

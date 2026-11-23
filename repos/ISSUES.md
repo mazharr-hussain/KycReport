@@ -79,6 +79,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-065 [#224](https://github.com/mazharr-hussain/KycReport/issues/224) | COMMON | Page 177 Data Model Diagram | Inline CSS - move to a static application file | enhancement | P3 | Planned (COMMON Release 115) | Claude (pipeline report) |
 | I-066 [#225](https://github.com/mazharr-hussain/KycReport/issues/225) | COMMON | Change approvals / RFI / Integrations | PMD cyclomatic complexity: `APPLY_RULES` (14), `CREATE_RFI` (11), `DO_CALL` (10) - split into smaller routines | enhancement | P3 | Planned (COMMON Release 115) | Claude (pipeline report) |
 | I-067 [#227](https://github.com/mazharr-hussain/KycReport/issues/227) | COMMON | Page 137 Application Storage, page 108 Segregation of Duties Rule | Pages 137 Application Storage and 108 Segregation of Duties Rule log an error when opened | bug | P2 | Open | Claude (pipeline browser test report) |
+| I-068 [#237](https://github.com/mazharr-hussain/KycReport/issues/237) | COMMON | DB tests r109, r79 | Fail on restored data in job 6: r109 picks a local user without an APEX account (TD_ANNA); r79 tests the release-79 rules on XXFND_RFIS while restored data holds an access object for it | bug | P2 | Fix in #226 | Claude (pipeline run) |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
