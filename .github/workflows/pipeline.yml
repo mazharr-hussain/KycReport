@@ -52,6 +52,7 @@ jobs:
       pull-requests: read   # the PR's start-from-N label
     outputs:
       common: ${{ steps.scope.outputs.common }}
+      dependabot: ${{ steps.scope.outputs.dependabot }}   # a Dependabot PR: action bumps only (issue #238)
       start_from: ${{ steps.start.outputs.start_from }}   # 4 / 5 / 6 asked for, or empty (db/decide.py)
       release: ${{ steps.scope.outputs.release }}
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
@@ -72,8 +73,15 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
+          # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
+          # title / Fixes rule; job 1 checks the changed workflow files, job 7 passes, the PR is merged by hand
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            { echo "common=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
             echo "common=true" >> "$GITHUB_OUTPUT"; echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
@@ -86,6 +94,15 @@ jobs:
           # "COMMON Release <N>: ..." -> N (format checked in 1.0a; a KYC release has no COMMON release number)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
+      - name: 1.0d Dependabot PR - the changed workflow and action files are valid YAML
+        if: steps.scope.outputs.dependabot == 'true'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          files=$(git diff --name-only "$BASE" HEAD -- '.github/*.yml' '.github/*.yaml')
+          for f in $files; do python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$f" && echo "ok $f"; done
+          echo "- Dependabot PR: $(echo $files | wc -w) workflow / action file(s) checked; merge it by hand when this run is green" >> "$GITHUB_STEP_SUMMARY"
       - name: Start point - a start-from-N label on the PR, a "Pipeline-Start-From N" line in the pushed commit, or the full run's input
         id: start
         if: steps.scope.outputs.common == 'true'
@@ -627,6 +644,7 @@ jobs:
     env:
       COMMON: ${{ needs.offline.outputs.common }}
       RELEASE: ${{ needs.offline.outputs.release }}
+      DEPENDABOT: ${{ needs.offline.outputs.dependabot }}   # read-only token: no issues, no merge, no PR comment
     steps:
       - name: Gate - every earlier job passed
         env:
@@ -731,7 +749,7 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: python3 repos/common/deployment/checks/report.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
       - name: 7.2 Issues for a future release - the existing findings (files this PR did not change)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && env.DEPENDABOT != 'true'
         env:
           # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
           # workflow token the issue is still created, but no other workflow starts
@@ -741,7 +759,7 @@ jobs:
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
       - name: 7.2 Merge the PR and publish its release
         id: merge
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true'
         env:
           # PIPELINE_MERGE_TOKEN (optional, a person's token): needed only to merge a PR that changes workflow files
           GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || github.token }}
@@ -750,7 +768,7 @@ jobs:
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
             "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
       - name: 7.2 Report on the PR - passed, merge result, warnings, notices, issues logged
-        if: github.event_name == 'pull_request' && (success() || steps.merge.outcome == 'failure')
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && (success() || steps.merge.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
@@ -774,6 +792,9 @@ jobs:
             await core.summary.addRaw(body).write();
 
       # E: the documentation is not needed to merge - it is made after the merge and added to the release
+      - name: 7.2 Dependabot PR - passed; merge it by hand (its token cannot merge or comment)
+        if: env.DEPENDABOT == 'true'
+        run: echo "- **Dependabot PR passed** - merge it by hand (GitHub gives Dependabot PRs a read-only token)" >> "$GITHUB_STEP_SUMMARY"
       - name: 7.3-7.4 Documentation of the tested application (readable APEX export, SchemaSpy) - after the merge
         id: docs
         if: env.COMMON == 'true' && github.event_name == 'pull_request' && success()
