@@ -29,7 +29,7 @@ begin
     apex_util.set_workspace('XXCUS');
     -- the new dev database: the test data's data-security rules put the row policy on XXFND_RFIS and
     -- XXFND_COMMUNICATIONS, and the tests' administrator ADMIN has no rule of its own (deny by default: ORA-28115).
-    -- This test checks notifications and the RFI flow, not data security (r79 does): trusted, as the workflow's
+    -- It checks notifications and shared screens; only its "someone without access" part checks data security (untrusted there): trusted, as the workflow's
     -- background jobs are - always ended at the end of the block
     xxfnd_vpd_pkg.begin_trusted;
     select max(apex_application_id) into l_app from xxfnd_applications where application_code = 'COMMON';
@@ -75,10 +75,12 @@ begin
     expect_error(-20332, 'a document of another record may not be changed through this record',
                  q'~begin xxfnd_attach_pkg.assert_change('COMMON', 47, 'documents', 'XXFND_COMMUNICATIONS', '-1', 'UPDATE', ~'
                  || l_att || q'~); end;~');
+    xxfnd_vpd_pkg.end_trusted;   -- this part checks data security itself: not trusted
     session_as('R85_NOBODY');
     check_(xxfnd_attach_pkg.record_visible('XXFND_COMMUNICATIONS', to_char(l_comm)) = 'N',
            'someone without access to the record does not see it');
     expect_error(-20331, 'nor open its document', 'begin xxfnd_attach_pkg.download_checked(' || l_doc || '); end;');
+    xxfnd_vpd_pkg.begin_trusted;
 
     ---------------------------------------------------------------- feedback of every application
     session_as('ADMIN');
