@@ -246,9 +246,10 @@ jobs:
     name: 3 DB setup
     needs: [offline, oci-setup]
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60   # the first APEX-SERT install (3.4, Liquibase) takes more than 20 minutes; later runs skip it
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     outputs:
       # M2: the one deploy decision (db/decide.py) - reuse (the database holds this version, fully verified: jobs 4-5
@@ -281,14 +282,18 @@ jobs:
           path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 3.1-3.4 DB setup
         id: setup
         env:
           GH_TOKEN: ${{ github.token }}                       # 3.2b: what changed since the version the database passed with
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
-          XXCUS_PW: ${{ secrets.VAL_DB_PASSWORD }}
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh setup
@@ -318,9 +323,10 @@ jobs:
     needs: [offline, db-setup]
     if: needs.db-setup.outputs.deploy == 'patch'
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 30
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
@@ -351,11 +357,15 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 4.Q1-4.Q8 Quick check - the changed code objects and their tests
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: bash repos/common/deployment/db/run.sh quick
       - name: Step logs
         if: always()
@@ -376,9 +386,10 @@ jobs:
       needs.db-setup.outputs.deploy != 'upgrade' && needs.db-setup.outputs.deploy != 'retest' &&
       (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 30
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 4.7 records the version (no upgrade test)
@@ -406,11 +417,15 @@ jobs:
           path: repos/common/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 4.0-4.7 Deploy fresh app (with this version's test data)
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: bash repos/common/deployment/db/run.sh fresh
       - name: Dependency report (4.4)
         if: always()
@@ -442,9 +457,10 @@ jobs:
         needs.fresh.result == 'success') ||
        needs.db-setup.outputs.deploy == 'upgrade')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 40
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 5.11 records it: the database holds this version
@@ -472,11 +488,15 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 5.0-5.11 Upgrade app (last release = the PR's base commit, with its test data from git)
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
@@ -498,9 +518,10 @@ jobs:
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}  # the DB tests this PR affects (or ALL)
@@ -523,11 +544,15 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 6.0-6.5 DB tests, APEX-SERT, DBSAT
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: bash repos/common/deployment/db/run.sh test
       - name: Test and security reports (6.4-6.5)
         if: always()
@@ -558,9 +583,10 @@ jobs:
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
       PAGES: ${{ needs.offline.outputs.pages }}        # the pages this PR changes (or ALL)
@@ -580,7 +606,14 @@ jobs:
           python-version: '3.11'
       - uses: ./.github/actions/setup-sqlcl
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: Playwright's Chromium (cached between runs)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -598,8 +631,6 @@ jobs:
           echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
       - name: 6.1, 6.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
         env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           # video and trace only in the full run and only when asked for
           UI_RECORD: ${{ github.event_name == 'workflow_dispatch' && inputs.record_video && '1' || '0' }}
         run: bash repos/common/deployment/db/run.sh ui
@@ -638,9 +669,10 @@ jobs:
     # the gate below fails it whenever an earlier job did not pass
     if: always()
     runs-on: ubuntu-24.04
-    environment: Oracle DB Dev
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60   # 7.1 APEXlang export + 7.3 readable export + 7.4 SchemaSpy took more than 15 minutes
     permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: write        # draft GitHub Release of the tested zip; 7.2 merge and release
       pull-requests: write   # 7.2 ready for review, merge, PR comment
       issues: write          # 7.2 issues for the existing findings
@@ -685,12 +717,16 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         if: env.COMMON == 'true'
         with:
-          wallet: ${{ secrets.VAL_DB_WALLET }}
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
       - name: 7.1 Release zip (APEXlang export of the tested application)
         if: env.COMMON == 'true'
-        env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh finalize "$RUNNER_TEMP/out"
@@ -803,8 +839,6 @@ jobs:
         if: env.COMMON == 'true' && github.event_name == 'pull_request' && success()
         continue-on-error: true   # the PR is merged and released already; a docs problem is reported, not a failure
         env:
-          VAL_DB_SERVICE: ${{ secrets.VAL_DB_SERVICE }}       # H2: the database secrets only in the steps that sign in
-          ADMIN_PW: ${{ secrets.VAL_DB_ADMIN_PASSWORD }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
