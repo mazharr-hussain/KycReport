@@ -312,7 +312,7 @@ install_guard() {   # 4.0 (deploy=data): the database still holds the install jo
   echo "the database holds the install of this version ($INSTALL_FINGERPRINT) - test data only"
 }
 record_fresh() {   # 4.5: the fresh install's structure (compared with the upgraded database in 5.8) and its pass
-  local f n=0 line q="'" lines=("delete from xxci_fresh_schema;")
+  local f n=0 line out q="'" lines=("set define off" "delete from xxci_fresh_schema;")
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   f=$LOG_DIR/fresh-schema.txt
   schema_summary "$f" || return 1
@@ -334,7 +334,11 @@ record_fresh() {   # 4.5: the fresh install's structure (compared with the upgra
   lines+=("merge into xxci_passed t using (select 'fresh' check_name from dual) s on (t.check_name = s.check_name)"
           " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp"
           " when not matched then insert (check_name, fingerprint) values ('fresh', '$FINGERPRINT');" "commit;")
-  ci_exec CI "${lines[@]}" > /dev/null || return 1
+  # on a failure the SQLcl answer is shown (it was hidden: run 6 failed here with no message)
+  if ! out=$(ci_exec CI "${lines[@]}"); then
+    printf '%s\n' "$out" | grep -E 'ORA-|PLS-|SP2-|ERROR|Error' | head -20 | grep . || printf '%s\n' "$out" | tail -20
+    return 1
+  fi
   echo "fresh install recorded for $FINGERPRINT: $(grep -vc '^R ' "$f") structure line(s), $(grep -c '^R ' "$f") table row count(s)"
 }
 same_as_fresh() {   # 5.8: the upgraded database has the structure of the fresh install of this version
