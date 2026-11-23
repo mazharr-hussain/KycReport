@@ -1,7 +1,10 @@
+-- Schema: ADMIN
 -- Release 76 (T-01): the test users of every database and browser test, in one place (idempotent). Run it once on a new
 -- database before any test; security_test.sql and workflow_test.sql call it too.
 --   REQ1, REQ2 Requester · OFFICER1 Compliance Officer · MGR1 Compliance Manager · HOC1 Head of Compliance
 --   (employees + role grants + APEX accounts, password KycTest#2026)
+-- as ADMIN (APEX accounts need instance rights - ORA-20987 as XXFUSION); COMMON's routines by their schema
+alter session set current_schema = XXFUSION;
 declare
     procedure u(p_user varchar2, p_role varchar2) is
     begin

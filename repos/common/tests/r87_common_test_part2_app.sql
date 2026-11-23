@@ -1,3 +1,4 @@
+-- Schema: XXCUS
 -- Releases 87 / 88 checks, part 2 of 3 (run as XXCUS, an application's schema, after r87_common_test.sql): the
 -- application registers itself (ONBOARD_SELF), changes COMMON data only through the routines and only for its own
 -- applications, sees only its own setup and the shared rows, and gives COMMON the contacts of its records.

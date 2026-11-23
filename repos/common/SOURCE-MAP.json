@@ -1250,7 +1250,7 @@
  "apex/tests/common_test_fixture.sql": [
   {
    "from": 0,
-   "target": "common/tests/common_test_fixture.sql",
+   "target": "common/tests/setup/03-common-test-fixture.sql",
    "to": 2458,
    "whole": true
   }
@@ -1402,7 +1402,7 @@
  "apex/tests/r86_test_apps.sql": [
   {
    "from": 0,
-   "target": "common/tests/r86_test_apps.sql",
+   "target": "common/tests/setup/01-r86-test-apps.sql",
    "to": 2792,
    "whole": true
   }
@@ -1410,7 +1410,7 @@
  "apex/tests/r87_app_test.sql": [
   {
    "from": 0,
-   "target": "common/tests/r87_app_test.sql",
+   "target": "common/tests/r87_common_test_part2_app.sql",
    "to": 5026,
    "whole": true
   }
@@ -1466,7 +1466,7 @@
  "apex/tests/r89_data_model_apps.sql": [
   {
    "from": 0,
-   "target": "common/tests/r89_data_model_apps.sql",
+   "target": "common/tests/setup/04-r89-data-model-apps.sql",
    "to": 947,
    "whole": true
   }
@@ -1554,7 +1554,7 @@
  "apex/tests/test_users.sql": [
   {
    "from": 0,
-   "target": "common/tests/test_users.sql",
+   "target": "common/tests/setup/02-test-users.sql",
    "to": 1191,
    "whole": true
   }
