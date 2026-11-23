@@ -82,6 +82,12 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-072 [#232](https://github.com/mazharr-hussain/KycReport/issues/232) | COMMON | pipeline job 5 Upgrade app, step 5.6-nothing-lost | full run fails at 5 Upgrade app (5.6-nothing-lost) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 | I-073 [#233](https://github.com/mazharr-hussain/KycReport/issues/233) | COMMON | pipeline job 5 Upgrade app, step 5.0-version-guard | full run fails at 5 Upgrade app (5.0-version-guard) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
 | I-074 [#234](https://github.com/mazharr-hussain/KycReport/issues/234) | COMMON | pipeline job 6 DB tests and security, step 6.2-db-tests | full run fails at 6 DB tests and security (6.2-db-tests) | bug | P2 | Open | COMMON pipeline (full run, job 8) |
+| I-070 [#240](https://github.com/mazharr-hussain/KycReport/issues/240) | COMMON | Pipeline (validation DB) | Validation DB in the new OCI tenancy: GitHub OIDC token exchange, ADB auto-start, wallet and passwords from OCI Vault | enhancement | P2 | Fix in COMMON Release 116 | user |
+| I-075 [#241](https://github.com/mazharr-hussain/KycReport/issues/241) | COMMON | Pipeline (job 3 / 6) | APEX-SERT and DBSAT only in full validation (Ready for review); SERT installed once, never removed | enhancement | P2 | Open (plan: Release 117) | user |
+| I-076 [#242](https://github.com/mazharr-hussain/KycReport/issues/242) | COMMON | Pipeline (job 5) | No backup schema: upgrade check against git; job 5 skipped for an app never released; test data only in dev | enhancement | P2 | Open (plan: Release 117) | user |
+| I-077 [#243](https://github.com/mazharr-hussain/KycReport/issues/243) | COMMON | Pipeline (4.1 / 5.1) | Remove only the app's own DB objects, never schemas (a schema can serve several apps) | enhancement | P1 | Open (plan: Release 117) | user |
+| I-078 [#244](https://github.com/mazharr-hussain/KycReport/issues/244) | COMMON | Pipeline (restart) | After a fix, resume from the failed step automatically (job 4 part done in Release 116: deploy=loaded) | enhancement | P2 | Open | user |
+| I-079 [#245](https://github.com/mazharr-hussain/KycReport/issues/245) | COMMON | Pipeline (runner) | Self-hosted GitHub runner on a small OCI VM | enhancement | P2 | Parked - Always Free quota is E2.1.Micro only (1 GB) | user |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|
