@@ -16,7 +16,7 @@ manifest=$W/repo/repos/common/db/deploy/code-manifest.txt
 export SQL=$HERE/sqlcl-stub.sh WALLET=/dev/null VAL_DB_SERVICE=svc_high ADMIN_PW=x XXCUS_PW=x GITHUB_STEP_SUMMARY=
 HEAD_SHA=$(git -C "$W/repo" rev-parse HEAD)
 export RUNNER_TEMP=$W/runner HEAD_SHA; mkdir -p "$RUNNER_TEMP"
-unset BASE DB_TESTS PAGES DEPLOY APP_ONLY PATCH_FILES CHANGED_OBJECTS APP_CHANGED STUB_PASSED STUB_DROP STUB_DIFF STUB_UPGRADED START_FROM
+unset DB_CHANGED BASE DB_TESTS PAGES DEPLOY APP_ONLY PATCH_FILES CHANGED_OBJECTS APP_CHANGED STUB_PASSED STUB_DROP STUB_DIFF STUB_UPGRADED START_FROM
 code() { awk '{print "CODE " $1 " " $2}' "$manifest"; }
 rc=0
 expect() { local name=$1; shift; if "$@"; then echo "PASS $name"; else echo "FAIL $name"; rc=1; fi; }
@@ -66,6 +66,8 @@ RECORD=$inst_rec scenario setup-data-only 0 data "3.2b-deploy-decision 3.3-backu
 DEPLOY=data RECORD=$inst_rec scenario fresh-data-only 0 - "4.0-install-guard 4.2b-load-test-data 4.2c-data-loaded 4.3-online-validation 4.4-dependency-check 4.5-record-fresh-install" -- fresh
 expect "fresh-data-only: no redeploy" bash -c "! grep -q '4.2-deploy-this\\|4.1-remove-app' '$W/logs-fresh-data-only/steps' 2>/dev/null && ! ls '$W/logs-fresh-data-only' | grep -q '4.2-deploy-this'"
 DEPLOY=data RECORD="${full_rec/ FULL / DIRTY }" scenario fresh-data-only-not-installed 1 - "" -- fresh
+DB_CHANGED=false RECORD='' scenario fresh-db-unchanged 0 - "4.1a-mark-record 4.1-remove-app 4.1b-remove-test-accounts 4.2-deploy-this 4.2a-record-install 4.2b-load-test-data 4.2c-data-loaded 4.3-online-validation 4.4-dependency-check 4.5-record-fresh-install 4.7-record-version" -- fresh
+expect "fresh-full: changed DB scripts - no 4.7 (job 5 records the version)" bash -c "! ls '$W/logs-fresh-full' | grep -q '4.7-record-version'"
 loaded_rec="${full_rec/ FULL / DIRTY }
 PASSED loaded $FINGERPRINT"
 RECORD=$loaded_rec scenario setup-loaded 0 loaded "3.2b-deploy-decision 3.3-backup-schema" -- setup

@@ -88,6 +88,7 @@ I-3xx) and the COMMON gaps (C-numbers). Older releases: see their release README
 | I-077 [#243](https://github.com/mazharr-hussain/KycReport/issues/243) | COMMON | Pipeline (4.1 / 5.1) | Remove only the app's own DB objects, never schemas (a schema can serve several apps) | enhancement | P1 | Open (plan: Release 117) | user |
 | I-078 [#244](https://github.com/mazharr-hussain/KycReport/issues/244) | COMMON | Pipeline (restart) | After a fix, resume from the failed step automatically (job 4 part done in Release 116: deploy=loaded) | enhancement | P2 | Open | user |
 | I-079 [#245](https://github.com/mazharr-hussain/KycReport/issues/245) | COMMON | Pipeline (runner) | Self-hosted GitHub runner on a small OCI VM | enhancement | P2 | Parked - Always Free quota is E2.1.Micro only (1 GB) | user |
+| I-080 [#246](https://github.com/mazharr-hussain/KycReport/issues/246) | COMMON | Pipeline (job 5) | Rule F was never applied: job 5 (upgrade) ran even when the DB scripts equal the base | bug | P2 | Fix in COMMON Release 116 | user |
 ## Fixed
 | # | App | Area / screen | Issue | Fixed in |
 |---|---|---|---|---|

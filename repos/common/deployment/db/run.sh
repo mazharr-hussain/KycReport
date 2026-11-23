@@ -690,8 +690,8 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     if [ "${APP_ONLY:-false}" != true ]; then step 4.5-record-fresh-install record_fresh; fi
     # (C - the DB tests on the fresh install - is held back: the tests still need the data an upgraded database has)
     # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
-    # application only: no upgrade test (job 5) - this version is deployed now
-    if [ "${APP_ONLY:-false}" = true ]; then step 4.7-record-version record_deployed FULL; fi ;;
+    # application only, or F (the database scripts are the base's): no upgrade test (job 5) - this version is deployed now
+    if [ "${APP_ONLY:-false}" = true ] || [ "${DB_CHANGED:-true}" = false ]; then step 4.7-record-version record_deployed FULL; fi ;;
   upgrade)
     # deploy=upgrade (job 4 skipped: it passed for this version on an earlier run) - that pass must still be recorded
     if [ "${DEPLOY:-full}" = upgrade ]; then step 5.0-version-guard guard upgrade CI; fi

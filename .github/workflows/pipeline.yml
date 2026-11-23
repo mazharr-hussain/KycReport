@@ -455,7 +455,7 @@ jobs:
       always() && needs.db-setup.result == 'success' &&
       (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data' ||
          needs.db-setup.outputs.deploy == 'loaded') &&
-        needs.fresh.result == 'success') ||
+        needs.fresh.result == 'success' && needs.offline.outputs.db_changed != 'false') ||
        needs.db-setup.outputs.deploy == 'upgrade')
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
@@ -517,6 +517,7 @@ jobs:
       always() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' || needs.db-setup.outputs.deploy == 'retest' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
+       (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
@@ -582,6 +583,7 @@ jobs:
       always() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
+       (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
        needs.upgrade.result == 'success')
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
@@ -686,12 +688,15 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
           DEPLOY: ${{ needs.db-setup.outputs.deploy }}
+          DB_CHANGED: ${{ needs.offline.outputs.db_changed }}   # false: no upgrade test (F) - job 4 recorded the version
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
           # jobs skipped on purpose by the deploy decision (M2) count as passed
           # (the quick check runs only for patch, and is then followed by the full deploy - it never replaces it)
           [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt
+          # F: the database scripts are the base's - job 5 is skipped on purpose after a passed fresh install
+          if [ "$DB_CHANGED" = false ] && grep -q '^fresh=success$' results.txt; then sed -i 's/^upgrade=skipped$/upgrade=success/' results.txt; fi
           case $DEPLOY in
             reuse) sed -i -E 's/^(fresh|upgrade)=skipped$/\1=success/' results.txt ;;
             retest) grep -q '^test=success$' results.txt && sed -i -E 's/^(fresh|upgrade|ui)=skipped$/\1=success/' results.txt ;;   # the browser test passed for these pages
