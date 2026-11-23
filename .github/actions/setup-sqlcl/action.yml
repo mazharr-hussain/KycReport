@@ -2,14 +2,10 @@
 # Sets SQL (SQLcl launcher) and, for the database jobs, WALLET, VAL_DB_SERVICE, ADMIN_PW and XXCUS_PW.
 # OCI mode (oci-client given, issue #240): the GitHub OIDC token is exchanged at the identity domain for an OCI session
 # token (no API key), the Always Free ADB is started when it stopped, its wallet and the passwords are read from
-# OCI Vault (the wallet is generated when no wallet secret is given) - nothing of the database is kept in GitHub. Wallet mode (wallet given): the old GitHub secrets.
+# OCI Vault (the wallet is generated when no wallet secret is given) - nothing of the database is kept in GitHub.
 name: Set up SQLcl
 description: Java, checksum-verified SQLcl and the validation database wallet
 inputs:
-  wallet:
-    description: Base64 wallet zip of the validation database (secret VAL_DB_WALLET); empty for offline jobs
-    required: false
-    default: ''
   oci-client:
     description: OCI mode - client_id:client_secret of the token exchange app (secret OCI_OIDC_CLIENT)
     required: false
@@ -69,17 +65,10 @@ runs:
         echo "$SHA256  sqlcl.rpm" | sha256sum -c -
         mkdir -p sqlcl-rpm && (cd sqlcl-rpm && rpm2cpio ../sqlcl.rpm | cpio -idm --quiet)
         mv sqlcl-rpm/opt/oracle/sqlcl sqlcl && rm -rf sqlcl-rpm sqlcl.rpm
-    - name: SQLcl and wallet paths
+    - name: SQLcl path
       shell: bash
-      env:
-        WALLET_B64: ${{ inputs.wallet }}
-      run: |
-        set -euo pipefail
-        echo "SQL=$RUNNER_TEMP/sqlcl/bin/sql" >> "$GITHUB_ENV"
-        if [ -n "$WALLET_B64" ]; then
-          printf '%s' "$WALLET_B64" | base64 -d > "$RUNNER_TEMP/wallet.zip"
-          echo "WALLET=$RUNNER_TEMP/wallet.zip" >> "$GITHUB_ENV"
-        fi
+      # a fixed name and a path under RUNNER_TEMP - nothing from the pull request reaches GITHUB_ENV here
+      run: echo "SQL=$RUNNER_TEMP/sqlcl/bin/sql" >> "$GITHUB_ENV"  # zizmor: ignore[github-env]
     - name: OCI sign-in values present
       if: inputs.db-ocid != ''
       shell: bash
