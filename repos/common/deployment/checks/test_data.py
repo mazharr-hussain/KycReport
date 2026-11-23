@@ -5,7 +5,7 @@ offline, before any database job, against the install's own definitions.
 test_data.py <repo root>   (after the build: reads repos/common/db/deploy/install in install order)
 The tables as the install leaves them: CREATE TABLE (XXFND_DDL_PKG.CREATE_TABLE / ensure_table files), then every
 later ADD_COLUMN, DROP_COLUMN, ADD_CONSTRAINT, DROP_CONSTRAINT, SET_NULLABLE, DROP_OBJECT ... 'TABLE' and every
-"alter table ... add constraint / modify" the scripts run. Each row is checked as steps 4.2b / 5.7 insert it
+"alter table ... add constraint / modify" the scripts run. Each row is checked as steps 5.2b / 6.7 insert it
 (db/load-data.sql: MERGE on the primary key, WHO columns filled, a column the row does not give takes its default):
   FAIL  the file is not valid JSON, or a row is not an object of column -> string / number
   FAIL  a table the install creates has no rows and no reason in "no_data"; a table or column the install does not

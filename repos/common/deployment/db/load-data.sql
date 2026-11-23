@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Steps 4.2b, 5.3 and 5.7, run as the application schema (proxy): the test data file (db/load_data.py puts the rows
+-- Steps 5.2b, 6.3 and 6.7, run as the application schema (proxy): the test data file (db/load_data.py puts the rows
 -- in at --DATA--). Every row: MERGE on the table's primary key - inserted when missing, updated when there. The
 -- validation database only. Mode strict: a missing table / column or a row that does not load fails the step (all
 -- reasons printed first); tolerant: they are reported (INFO) and left out.

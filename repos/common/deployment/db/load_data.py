@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Steps 4.2b, 5.3 and 5.7: the test data file into the database - insert the rows that are missing, update the rows
+"""Steps 5.2b, 6.3 and 6.7: the test data file into the database - insert the rows that are missing, update the rows
 that are there (MERGE on the primary key). Writes the SQL that db/run.sh runs as the application schema.
 
 load_data.py <test-data.json> <strict|tolerant> <out.sql>
-  strict    (4.2b, 5.7, and 5.3 with the last release's own file) a table or column the database does not have, or a
+  strict    (5.2b, 6.7, and 6.3 with the last release's own file) a table or column the database does not have, or a
             row that does not load, fails the step
-  tolerant  (5.3 only, when the last release has no data file yet: this version's file on the old structure) a table
+  tolerant  (6.3 only, when the last release has no data file yet: this version's file on the old structure) a table
             or column the old release does not have is left out and reported (INFO); a row that does not load too
 
 The data file (repos/common/db/admin/test-data.json, checked in job 1 by checks/test_data.py):

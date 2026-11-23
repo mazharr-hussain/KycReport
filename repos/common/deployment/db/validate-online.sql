@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Steps 4.3 / 5.6, run as the application schema (proxy) after a deploy: online validation.
+-- Steps 5.3 / 6.6, run as the application schema (proxy) after a deploy: online validation.
 --   - every object compiles: no invalid object, no compile error (USER_ERRORS)
 --   - the APEX application is installed in this schema, available, with every page of the source
 -- Substitution variables: app_id, expected_pages (page files in the built application).

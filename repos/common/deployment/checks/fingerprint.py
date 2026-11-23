@@ -6,13 +6,13 @@ fingerprint.py <repo root>   (after the build) - prints lines for $GITHUB_OUTPUT
   db_fingerprint=<the database scripts (db/deploy install + upgrade) and the test data (db/admin/test-data.json)>
   struct_fingerprint=<the database structure: every install / upgrade step that is not a code object, and the test data>
   app_fingerprint=<the application without its supporting objects (pages, shared components ...)>
-  install_fingerprint=<the application + database scripts without the test data: what step 4.2 deploys - a change of
+  install_fingerprint=<the application + database scripts without the test data: what step 5.2 deploys - a change of
                       the test data alone keeps it, so a run whose data load failed reloads the data only (deploy=data)>
 and repos/common/db/deploy/code-manifest.txt: one line per code object - "<key> <hash> install/<file>".
 
 Code objects are the files the build names package-spec-*, package-body-*, view-* and trigger-*: each holds one
 CREATE OR REPLACE statement, the same in install and upgrade, so a changed one can be run again on its own (quick
-check, job 4). Everything else - tables, types, sequences, numbered steps (columns, constraints, indexes, seed data) -
+check, job 5). Everything else - tables, types, sequences, numbered steps (columns, constraints, indexes, seed data) -
 is structure. A key is the file name without its number, so inserting a file (which renumbers the later ones) changes
 neither the manifest keys nor the structure fingerprint. A code key whose install and upgrade copies differ counts as
 structure (it cannot be patched on its own). run-all.sql is left out: it only lists the files in order.
@@ -47,7 +47,7 @@ def main(root):
     app = os.path.join(common, 'dist', 'app')
     if not os.path.isfile(os.path.join(app, 'application.apx')):
         sys.exit(f'fingerprint.py: no built application in {app} - run the build first')
-    data_file = os.path.join(common, 'db', 'admin', 'test-data.json')   # jobs 4-5 load it: a change redeploys
+    data_file = os.path.join(common, 'db', 'admin', 'test-data.json')   # jobs 5-6 load it: a change redeploys
     data = sha(open(data_file, 'rb').read()) if os.path.isfile(data_file) else '-'
     scripts = b''.join(tree(os.path.join(deploy, d)).encode() for d in ('install', 'upgrade'))
     db = sha(scripts + data.encode())[:16]
