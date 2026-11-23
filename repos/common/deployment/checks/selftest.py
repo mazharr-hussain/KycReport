@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test of the pipeline's decision logic (step 1.1, also pipeline-check.yml):
+"""Self-test of the pipeline's decision logic (step 1.1):
   - checks/affected.py chooses the DB tests and pages a pull request affects (and the tests of given objects)
   - checks/fingerprint.py: renumbering keeps the structure; a code change changes only the code manifest
   - db/decide.py: reuse / app / patch / full from what the database holds
@@ -155,8 +155,49 @@ with tempfile.TemporaryDirectory() as root:
     check('decide: installed with its data, job 5 stopped later -> loaded (resume at 5.3)', decide(root, loaded, g1)[0], 'loaded')
     check('decide: same, start from job 5 asked -> full', decide(root, loaded, g1, '5')[0], 'full')
     check('decide: loaded, then the test data changed -> not loaded', decide(root, loaded, g2)[0] != 'loaded', True)
+    # I-078: resume at the failed step
+    res = lambda: open(os.path.join(root, 'out', 'resume-at')).read().strip()
+    note = lambda: open(os.path.join(root, 'out', 'start-note')).read()
+    f1 = g1['fingerprint']
+    decide(root, loaded, g1)
+    check('resume: loaded, no step kept -> 5.3', res(), '5.3-online-validation')
+    kept = loaded + f'PASSED step:5.3-online-validation {f1}\nPASSED step:5.4-dependency-check {f1}\n'
+    decide(root, kept, g1)
+    check('resume: 5.3 and 5.4 kept -> resumes at 5.5', res(), '5.5-record-fresh-install')
+    decide(root, loaded + f'PASSED step:5.3-online-validation other\n', g1)
+    check('resume: a step kept for another version does not count -> 5.3', res(), '5.3-online-validation')
+    decide(root, kept, g1, '5.3')
+    check('resume: start from step 5.3 asked -> 5.3 (earlier is always allowed)', res(), '5.3-online-validation')
+    decide(root, loaded, g1, '5.5')
+    check('resume: start from step 5.5 asked, 5.3 not kept -> 5.3 and a note', (res(), 'not possible' in note()), ('5.3-online-validation', True))
+    check('resume: a step asked for, nothing to resume -> the usual decision', decide(root, record(g1, 'DIRTY'), g1, '5.5')[0], 'full')
+    check('resume: ... and a note', 'cannot resume' in note(), True)
     check('decide: verified version, only the test data changed since -> retest', decide(root, record(g1), g2, data_only='1')[0], 'retest')
     check('decide: verified version, data changed, start from job 5 -> full', decide(root, record(g1), g2, '5', '1')[0], 'full')
     check('decide: verified version, more than the data changed -> not retest', decide(root, record(g1), g2)[0] != 'retest', True)
     check('decide: a numbered step added -> full', decide(root, record(a), f)[0], 'full')
+# I-077: the application's own objects (db/app_objects.py); I-076: nothing lost without a backup schema
+HERE_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'db')
+with tempfile.TemporaryDirectory() as t:
+    os.makedirs(os.path.join(t, 'install')); os.makedirs(os.path.join(t, 'upgrade'))
+    open(os.path.join(t, 'install', '0010-x.sql'), 'w').write(
+        "create table if not exists xxfnd_a (id number);\n-- create table xxfnd_commented (id number)\n"
+        "begin xxfnd_ddl_pkg.create_table('XXHR_B', q'~create table xxhr_b (id number)~'); end;\n/\n"
+        "create or replace editionable package body xxfnd_p as end;\n/\ncreate or replace force view xxfnd_v as select 1 x from dual;\n"
+        "begin dbms_scheduler.create_job(job_name => 'XXFND_JOB', job_type => 'PLSQL_BLOCK'); end;\n/\n")
+    open(os.path.join(t, 'upgrade', '0010-y.sql'), 'w').write("begin xxfnd_ddl_pkg.rename_table('XXFND_OLD', 'XXFND_NEW'); end;\n/\n")
+    out = subprocess.run([sys.executable, os.path.join(HERE_DB, 'app_objects.py'), t], capture_output=True, text=True).stdout.split('\n')
+    check('app objects: tables, DDL strings, package bodies, forced views, jobs, renamed tables; comments left out',
+          [l for l in out if l], ['JOB XXFND_JOB', 'PACKAGE XXFND_P', 'TABLE XXFND_A', 'TABLE XXFND_NEW', 'TABLE XXHR_B', 'VIEW XXFND_V'])
+    def snap(name, lines):
+        f = os.path.join(t, name); open(f, 'w').write(''.join('\t'.join(l) + '\n' for l in lines)); return f
+    before = snap('b', [('T', 'A', '2'), ('R', 'A', '1', '10'), ('R', 'A', '2', '20'), ('T', 'GONE', '1')])
+    cmp = lambda after: subprocess.run([sys.executable, os.path.join(HERE_DB, 'snapshot_compare.py'), before, after],
+                                       capture_output=True, text=True)
+    r = cmp(snap('a1', [('T', 'A', '3'), ('R', 'A', '1', '10'), ('R', 'A', '2', '21'), ('R', 'A', '3', '30')]))
+    check('nothing lost: a changed row and a new row are fine, a removed table is INFO', (r.returncode, 'INFO changed' in r.stdout, 'INFO removed' in r.stdout), (0, True, True))
+    r = cmp(snap('a2', [('T', 'A', '2'), ('R', 'A', '1', '10'), ('R', 'A', '3', '30')]))
+    check('nothing lost: a row gone (same count) fails', (r.returncode, 'FAIL rows lost' in r.stdout), (1, True))
+    r = cmp(snap('a3', [('T', 'A', '1'), ('R', 'A', '1', '10')]))
+    check('nothing lost: fewer rows fails', (r.returncode, 'FAIL data lost' in r.stdout), (1, True))
 sys.exit(0 if all(results) else 1)

@@ -32,7 +32,13 @@ the pushed commit's message, or the full run's "Start from" input; empty = as la
   5  run job 5 again: full (fresh install and upgrade test), whatever the record says
   6  skip job 5 when it passed for this version (upgrade), else the rules above (job 5 runs)
   7  skip jobs 5-6 when the database holds this version fully verified (reuse), else the rules above
+  5.N / 6.N  (a step, I-078) resume job 5 / 6 at that step - when the job may resume (loaded / upgraded below)
 A start is never later than the records allow: the reason is printed and written to <out dir>/start-note.
+
+Resume at the failed step (I-078): after 5.2c (loaded) and 6.5a (upgraded) each step that passed in a job that then
+failed is kept as "PASSED step:<name> <fingerprint>" (db/run.sh). For deploy=loaded / upgraded, <out dir>/resume-at
+holds the first step of RESUME_STEPS of that job not passed for this version: the job skips the steps before it. A fix
+that changes the application, the DB scripts or the test data changes the fingerprint, so nothing is skipped then.
 """
 import os, re, sys
 
@@ -55,6 +61,12 @@ for line in open(manifest_file):
 
 
 start = os.environ.get('START_FROM', '').strip()
+# the steps a job can resume at after its checkpoint (5.2c loaded / 6.5a upgraded), in run order (db/run.sh)
+RESUME_STEPS = {'5': ['5.3-online-validation', '5.4-dependency-check', '5.5-record-fresh-install'],
+                '6': ['6.6-nothing-lost', '6.7-load-this-test-data', '6.8-same-as-fresh-install', '6.9-online-validation']}
+step_start = start if re.fullmatch(r'[56]\.\d+[a-z]?', start) else ''
+if step_start:
+    start = ''   # the job rules below decide as late as is safe; the step only moves the resume point earlier
 fresh_ok = bool(fp) and passed.get('fresh') == fp
 inst = os.environ.get('INSTALL_FINGERPRINT', '')
 install_ok = bool(inst) and passed.get('install') == inst   # 5.2 passed, 5.2b never loaded since
@@ -77,6 +89,25 @@ def done(deploy, reason, files=()):
         note.append('start from job 7 not possible: the database does not hold this version fully verified - '
                     + ('job 6 runs' if deploy == 'upgrade' else 'jobs 5-6 run'))
     os.makedirs(out, exist_ok=True)
+    resume = ''
+    job = {'loaded': '5', 'upgraded': '6'}.get(deploy)
+    if job:
+        steps = RESUME_STEPS[job]
+        first = next((i for i, n in enumerate(steps) if passed.get('step:' + n) != fp), len(steps) - 1)
+        if step_start and step_start.split('.')[0] == job:
+            asked = next((i for i, n in enumerate(steps) if n.split('-')[0] == step_start), None)
+            if asked is None:
+                note.append(f'start from step {step_start} is not a resume step of job {job} ({", ".join(n.split("-")[0] for n in steps)}) - ignored')
+            elif asked < first:
+                first = asked
+            elif asked > first:
+                note.append(f'start from step {step_start} not possible: step {steps[first].split("-")[0]} has not passed for this version - the job resumes there')
+        resume = steps[first]
+        if first:
+            reason += f'; resumes at {resume.split("-")[0]} (the steps before it passed for this version)'
+    elif step_start:
+        note.append(f'start from step {step_start} not possible: job {step_start.split(".")[0]} cannot resume for this version - ' + deploy)
+    open(os.path.join(out, 'resume-at'), 'w').write(resume + '\n')
     open(os.path.join(out, 'start-note'), 'w').write(''.join(f'{n}\n' for n in note))
     for n in note:
         print(f'info: {n}')

@@ -1,7 +1,8 @@
 --------------------------------------------------------------------------------
--- Step 3.3, run as the pipeline user: the backup schema of the upgrade test (validation database only).
+-- Step 3.3b, run as the pipeline user (drop_only = Y only since I-076): drops a backup schema an earlier pipeline
+-- made for its upgrade test (validation database only). The create part is kept for the old releases' pipelines.
 --   5.3.1 drop it if it exists   5.3.2 create it (no password: reachable only by proxy)   5.3.3 grant what it needs
--- Step 6.7 runs the same script with drop_only = Y: the backup schema is dropped and not created again.
+-- (Until I-076 the upgrade test also ran it with drop_only = Y at its end.)
 -- Substitution variables: bkp_schema, ci_user, drop_only (Y/N).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on

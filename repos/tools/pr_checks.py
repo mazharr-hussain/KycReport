@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks run on every pull request by .github/workflows/checks.yml (also runnable locally).
+"""Checks run on every pull request by .github/workflows/pipeline.yml (job 1, 1.7) (also runnable locally).
 
 Errors (exit 1): a manifest script or unit that does not exist; a page not listed in SOURCE-MAP.json (the build would
 leave it out); a SQL comment line ending with ';' inside a plain SQL statement (SQL Developer ends the statement there);

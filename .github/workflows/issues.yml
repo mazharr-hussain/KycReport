@@ -1,0 +1,95 @@
+# Issues (I-084 - before: add-to-project.yml, weekly-backlog.yml): one run per issue event. repos/ISSUES.md is brought
+# up to date in each release PR (pipeline step 9.2a, release/issues_md.py sync) - main accepts pull requests only.
+#   1 Board    each issue on its GitHub Project (label COMMON -> COMMON_PROJECT_URL, KYC -> KYC_PROJECT_URL), with the
+#              fields "Issue Type", "Priority" and "Status" from the body lines Type: / Priority: / Board status:
+#              (text or single-select fields; token: secret ADD_TO_PROJECT_PAT, classic, scopes project + repo)
+#   2 Weekly   every Monday: the issue "Weekly backlog summary" lists the open P1 / P2 issues per board (not
+#              labelled, so it stays off the boards). By hand: Run workflow.
+name: Issues
+on:
+  issues:
+    types: [opened, reopened, edited, labeled, transferred]
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+permissions: {}
+
+jobs:
+  board:
+    name: 1 Board
+    if: >-
+      github.event_name == 'issues' &&
+      (contains(github.event.issue.labels.*.name, 'COMMON') || contains(github.event.issue.labels.*.name, 'KYC'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: read
+    strategy:
+      matrix:
+        app: [COMMON, KYC]
+    steps:
+      - name: Add to the project
+        id: add
+        if: contains(github.event.issue.labels.*.name, matrix.app)
+        uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
+        with:
+          project-url: ${{ matrix.app == 'COMMON' && vars.COMMON_PROJECT_URL || vars.KYC_PROJECT_URL }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          labeled: ${{ matrix.app }}
+      - name: Set Issue Type, Priority and Status from the issue body
+        if: steps.add.outputs.itemId
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PROJECT_URL: ${{ matrix.app == 'COMMON' && vars.COMMON_PROJECT_URL || vars.KYC_PROJECT_URL }}
+          ITEM_ID: ${{ steps.add.outputs.itemId }}
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const body = context.payload.issue.body || '';
+            const pick = (k) => { const m = body.match(new RegExp('^\\**' + k + ':\\**\\s*([^\\n*]+)', 'mi')); return m ? m[1].trim() : null; };
+            const wanted = { 'Issue Type': pick('Type'), 'Priority': pick('Priority'), 'Status': pick('Board status') };
+            const [, login, number] = process.env.PROJECT_URL.match(/users\/([^/]+)\/projects\/(\d+)/);
+            const q = await github.graphql(`query($l:String!,$n:Int!){ user(login:$l){ projectV2(number:$n){ id
+              fields(first:50){ nodes{ __typename ... on ProjectV2FieldCommon{ id name }
+                ... on ProjectV2SingleSelectField{ options{ id name } } } } } } }`, { l: login, n: Number(number) });
+            const project = q.user.projectV2;
+            for (const [name, value] of Object.entries(wanted)) {
+              if (!value) continue;
+              const f = project.fields.nodes.find(x => x.name && x.name.toLowerCase() === name.toLowerCase());
+              if (!f) { core.warning(`Project field "${name}" not found`); continue; }
+              let v;
+              if (f.options) {
+                const o = f.options.find(x => x.name.toLowerCase() === value.toLowerCase());
+                if (!o) { core.warning(`No option "${value}" in field "${name}"`); continue; }
+                v = { singleSelectOptionId: o.id };
+              } else { v = { text: value }; }
+              await github.graphql(`mutation($p:ID!,$i:ID!,$f:ID!,$v:ProjectV2FieldValue!){
+                updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:$v}){ projectV2Item{ id } } }`,
+                { p: project.id, i: process.env.ITEM_ID, f: f.id, v });
+            }
+
+  weekly:
+    name: 2 Weekly backlog summary
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const all = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'open', per_page: 100 });
+            const items = all.filter(i => !i.pull_request && /^Priority:\s*P[12]/m.test(i.body || ''));
+            const pr = i => (i.body.match(/^Priority:\s*(P\d)/m) || [])[1];
+            let md = `Open P1 / P2 issues on ${new Date().toISOString().slice(0, 10)} (refreshed every Monday).\n`;
+            for (const app of ['KYC', 'COMMON']) {
+              for (const p of ['P1', 'P2']) {
+                const l = items.filter(i => i.labels.some(x => x.name === app) && pr(i) === p);
+                md += `\n### ${app} - ${p} (${l.length})\n` + (l.map(i => `- #${i.number} ${i.title}`).join('\n') || '- none') + '\n';
+              }
+            }
+            const title = 'Weekly backlog summary';
+            const ex = all.find(i => i.title === title && !i.pull_request);
+            if (ex) await github.rest.issues.update({ ...context.repo, issue_number: ex.number, body: md });
+            else await github.rest.issues.create({ ...context.repo, title, body: md });

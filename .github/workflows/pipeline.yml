@@ -1,25 +1,37 @@
-# COMMON pipeline (app 135, schema XXFUSION) - one record per pull request run, named after the PR title.
-# Agreed flow (before the pipeline, Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-8):
+# The pipeline of every application (I-084) - one record per pull request run, named after the PR title.
+# The application is a parameter: the PR title ("<APP> Release <N>: ...") or the full run's input "app". An application
+# with a settings file repos/<app>/deployment/app.env (COMMON, app 135, schema XXFUSION) gets every job; one without it
+# (KYC today - COMMON is finished first) gets the offline checks of job 1 only (1.7-1.10).
+# A newer push replacing an older run and the "/pipeline start-from N" comment are in control.yml: they must run
+# outside this workflow's one-run-at-a-time group (validation-db), which would make them wait behind the run they stop.
+# Agreed flow (Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-10):
 #    1 Offline validation (no OCI, no DB)      2 OCI setup (placeholder)        3 DB setup
 #    5 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
 #    6 Upgrade app (no data lost)               7 Testing and validation
 #    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
 #      9.3-9.4 documentation (readable APEX export, SchemaSpy)
 #    10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
-# Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 7 only.
+# Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 9 only.
 # Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
-name: COMMON
+name: Pipeline
 # run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
 # the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0a)
-run-name: "${{ github.event.pull_request.title || 'COMMON full run' }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
+run-name: "${{ github.event.pull_request.title || format('{0} full run', inputs.app || 'COMMON') }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
 
 on:
   pull_request:
     branches: [main]
+    # I-075: a push to a draft PR runs the quick validation; "Ready for review" runs the full one (and merges)
+    types: [opened, synchronize, reopened, ready_for_review]
   # K: the full run on demand (Actions > COMMON > Run workflow): all of main - every DB test, every page, ZAP - (a PR
   # tests only what it changes); what fails is logged as an issue for a future release
   workflow_dispatch:
     inputs:
+      app:
+        description: Application (KYC has no app.env yet - its offline checks only)
+        type: choice
+        options: [COMMON, KYC]
+        default: COMMON
       record_video:
         description: Record a video and a trace of the browser test (large - only when needed)
         type: boolean
@@ -40,6 +52,10 @@ concurrency:
 env:
   LOG_DIR: /tmp/pipeline-logs   # step logs (lib/step.sh); each job uploads its own as logs-<job>
   REPORT_DIR: /tmp/pipeline-reports   # reports and recordings; uploaded as report-<job>
+  DB_TARGET: dev   # the database jobs run on Oracle_Dev_DB: test data loads only here (I-076)
+  # I-075: full validation (APEX-SERT 3.4 / 7.4, DBSAT 7.5, OWASP ZAP 8.6, merge) for a PR that is ready for review
+  # and for the full run; a draft PR gets the quick validation (no scans, no merge)
+  FULL_VALIDATION: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
 
 jobs:
   offline:
@@ -51,7 +67,11 @@ jobs:
       issues: read          # 1.0a: the linked issues and their labels
       pull-requests: read   # the PR's start-from-N label
     outputs:
-      common: ${{ steps.scope.outputs.common }}
+      app: ${{ steps.scope.outputs.app }}         # COMMON / KYC: the PR title, or the full run's input
+      common: ${{ steps.scope.outputs.common }}   # the full pipeline (jobs 2-9) runs: the PR touches COMMON
+      kyc: ${{ steps.scope.outputs.kyc }}         # the KYC offline checks (1.7-1.10) run: the PR touches KYC
+      tag_prefix: ${{ steps.scope.outputs.tag_prefix }}   # COMMON app.env APP_CODE, lower case (release tag <prefix>-<N>)
+      zip_prefix: ${{ steps.scope.outputs.zip_prefix }}   # COMMON app.env ZIP_NAME (release zip <prefix>_<N>.zip)
       dependabot: ${{ steps.scope.outputs.dependabot }}   # a Dependabot PR: action bumps only (issue #238)
       start_from: ${{ steps.start.outputs.start_from }}   # 4 / 5 / 6 asked for, or empty (db/decide.py)
       release: ${{ steps.scope.outputs.release }}
@@ -68,30 +88,44 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Scope - does this PR touch COMMON; its release number (from the title)
+      - name: Scope - the application (PR title or input), what the PR touches, its release number
         id: scope
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          INPUT_APP: ${{ inputs.app }}
         run: |
           set -euo pipefail
+          # the application parameter: "<APP> Release <N>: ..." in the PR title (format checked in 1.0a), or the input
+          if [ -n "$BASE" ]; then app=$(printf '%s' "$PR_TITLE" | sed -nE 's/^([A-Z]+) Release [0-9]+: .+$/\1/p'); else app=${INPUT_APP:-COMMON}; fi
+          app=${app:-COMMON}
+          lower=$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')
+          # the database jobs deploy the application that has a settings file - COMMON only today; its release tag and
+          # zip name come from that file (a KYC PR that also changes COMMON still deploys and names COMMON)
+          # shellcheck disable=SC1091   # COMMON's settings file (repos/common/deployment/app.env, also read by db/run.sh)
+          . repos/common/deployment/app.env
+          { echo "app=$app"; echo "tag_prefix=$(printf '%s' "$APP_CODE" | tr '[:upper:]' '[:lower:]')"; echo "zip_prefix=$ZIP_NAME"; } >> "$GITHUB_OUTPUT"
           # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
           # title / Fixes rule; job 1 checks the changed workflow files, job 9 passes, the PR is merged by hand
           if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
-            { echo "common=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
+            { echo "common=false"; echo "kyc=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
-            echo "common=true" >> "$GITHUB_OUTPUT"; echo "release=" >> "$GITHUB_OUTPUT"; exit 0
+            # the full run: the chosen application (an app without app.env - its offline checks only)
+            if [ "$lower" = common ]; then echo "common=true"; echo "kyc=false"; else echo "common=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
+            echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           changed=$(git diff --name-only "$BASE" HEAD)
-          if printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/workflows/pipeline\.yml|\.github/actions/)'; then
+          # COMMON and every workflow / shared action: the full pipeline (it is the pipeline's own code)
+          if printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
           else
             echo "common=false" >> "$GITHUB_OUTPUT"
           fi
-          # "COMMON Release <N>: ..." -> N (format checked in 1.0a; a KYC release has no COMMON release number)
+          if printf '%s\n' "$changed" | grep -qE '^repos/kyc/'; then echo "kyc=true"; else echo "kyc=false"; fi >> "$GITHUB_OUTPUT"
+          # "COMMON Release <N>: ..." -> N (a KYC release has no COMMON release number: no COMMON zip / release)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
       - name: 1.0d Dependabot PR - the changed workflow and action files are valid YAML
@@ -119,10 +153,10 @@ jobs:
           set -euo pipefail
           start=""; from=""
           if [ -n "$PR" ]; then
-            start=$(gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | sed -n 's/^start-from-\([567]\)$/\1/p' | head -1)
+            start=$(gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | sed -nE 's/^start-from-([567]|[56]\.[0-9]+[a-z]?)$/\1/p' | head -1)
             from="label start-from-$start"
             if [ -z "$start" ]; then
-              start=$(git log -1 --format=%B "$HEAD_SHA" | sed -n 's/^Pipeline-Start-From: *\([567]\) *$/\1/p' | head -1)
+              start=$(git log -1 --format=%B "$HEAD_SHA" | sed -nE 's/^Pipeline-Start-From: *([567]|[56]\.[0-9]+[a-z]?) *$/\1/p' | head -1)
               from="the commit message"
             fi
           elif [ -n "$INPUT" ] && [ "$INPUT" != auto ]; then
@@ -133,7 +167,7 @@ jobs:
             echo "- start from job $start asked ($from) - job 3 follows it only when its records allow" >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: steps.scope.outputs.common == 'true'
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
         with:
           python-version: '3.11'
       - name: What this pull request affects - the DB tests and pages to test (all of them in the full run)
@@ -145,7 +179,7 @@ jobs:
           set -euo pipefail
           python3 repos/common/deployment/checks/affected.py "$BASE" | tee -a "$GITHUB_OUTPUT"
       - uses: ./.github/actions/setup-sqlcl
-        if: steps.scope.outputs.common == 'true'
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
       - name: PMD 7.29.0 (cached between runs)
         if: steps.scope.outputs.common == 'true'
         id: pmd-cache
@@ -198,6 +232,11 @@ jobs:
           set -euo pipefail
           if [ -z "$BASE" ]; then echo "db_changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           git worktree add -q "$RUNNER_TEMP/base" "$BASE"
+          # I-076: an application never released has nothing to upgrade from - no upgrade test (as F)
+          if ! ls -d "$RUNNER_TEMP"/base/repos/common/releases/*/ > /dev/null 2>&1; then
+            echo "db_changed=false" >> "$GITHUB_OUTPUT"
+            echo "- the application has no release yet: no upgrade test (job 6)" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
           bash "$RUNNER_TEMP/base/repos/common/build.sh" > /dev/null
           h() { (cd "$1" && find install upgrade -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -c1-16; }
           if [ "$(h repos/common/db/deploy)" = "$(h "$RUNNER_TEMP/base/repos/common/db/deploy")" ]; then
@@ -222,14 +261,56 @@ jobs:
           path: repos/common/db/deploy
           retention-days: 3
           if-no-files-found: error
+      # 1.7-1.10 KYC (no app.env yet): the offline checks only - before I-084 checks.yml and docs-check.yml
+      - name: 1.7 KYC install safety and golden rules (repos/tools/pr_checks.py)
+        if: steps.scope.outputs.kyc == 'true'
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          printf '%s' "$BODY" > "$RUNNER_TEMP/kyc-body.txt"
+          if [ -n "$BASE" ]; then python3 repos/tools/pr_checks.py --base "$BASE" --body-file "$RUNNER_TEMP/kyc-body.txt"
+          else python3 repos/tools/pr_checks.py; fi
+      - name: 1.8 KYC PL/SQL analysis (PMD, the changed packages; findings are annotations, not failures)
+        if: steps.scope.outputs.kyc == 'true'
+        continue-on-error: true   # warning mode
+        uses: pmd/pmd-github-action@d9c1f3c5940cbf5923f1354e83fa858b4496ebaa # v2
+        with:
+          rulesets: repos/tools/pmd-plsql.xml
+          sourcePath: repos/kyc
+          analyzeModifiedFilesOnly: ${{ github.event_name == 'pull_request' }}
+      - name: 1.9 KYC build, technical docs up to date, APEXlang validation
+        if: steps.scope.outputs.kyc == 'true'
+        run: |
+          set -euo pipefail
+          # COMMON first: the dependency map and technical docs list its pages too (the build of a copy, not committed)
+          sh repos/common/build.sh > /dev/null
+          sh repos/kyc/build.sh
+          if ! git diff --quiet -- repos/kyc/docs/components; then
+            echo "::warning::The generated technical docs differ from the committed ones - run repos/kyc/build.sh and commit repos/kyc/docs/components"
+            git diff --stat -- repos/kyc/docs/components | tail -5
+          fi
+          out=$(printf "apex validate -input %s\nexit\n" "$PWD/repos/kyc/dist/app" | "$SQL" -S /nolog 2>&1)
+          echo "$out"
+          echo "$out" | grep -q "Validation successful" || { echo "::error::KYC APEXlang validation failed"; exit 1; }
+      - name: 1.10 KYC components changed without their requirements (warning; "no-req-change" in the PR body skips it)
+        if: steps.scope.outputs.kyc == 'true' && github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s' "$BODY" | grep -qi 'no-req-change'; then echo "Skipped (no-req-change)"; exit 0; fi
+          changed=$(git diff --name-only "$BASE" "$HEAD")
+          for c in $(printf '%s\n' "$changed" | sed -n 's#^repos/kyc/features/\([^/]*\)/.*#\1#p' | sort -u); do
+            printf '%s\n' "$changed" | grep -q "^repos/kyc/docs/components/$c/requirements.md$" \
+              || echo "::warning::kyc/$c changed but repos/kyc/docs/components/$c/requirements.md did not (add no-req-change to the PR body if none is needed)"
+          done
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-1-offline
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 1-offline
 
   oci-setup:
     name: 2 OCI setup (placeholder)
@@ -261,6 +342,7 @@ jobs:
       patch_files: ${{ steps.setup.outputs.patch_files }}           # patch: the changed code object files
       changed_objects: ${{ steps.setup.outputs.changed_objects }}   # patch: their object names
       app_changed: ${{ steps.setup.outputs.app_changed }}           # patch: the application differs from the deployed one
+      resume_at: ${{ steps.setup.outputs.resume_at }}               # loaded / upgraded: the step job 5 / 6 resumes at (I-078)
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
@@ -303,17 +385,15 @@ jobs:
             echo "patch_files=$(tr '\n' ' ' < "$LOG_DIR/patch-files")"
             echo "changed_objects=$(tr '\n' ' ' < "$LOG_DIR/changed-objects")"
             echo "app_changed=$(cat "$LOG_DIR/app-changed")"
+            echo "resume_at=$(cat "$LOG_DIR/resume-at" 2>/dev/null)"
           } >> "$GITHUB_OUTPUT"
           echo "- deploy: \`$deploy\`" >> "$GITHUB_STEP_SUMMARY"
           sed 's/^/- /' "$LOG_DIR/start-note" >> "$GITHUB_STEP_SUMMARY"
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-3-db-setup
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 3-db-setup
 
   quick:
     name: 4 Quick check (code objects only)
@@ -369,12 +449,9 @@ jobs:
         run: bash repos/common/deployment/db/run.sh quick
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-4-quick
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 4-quick
 
   fresh:
     name: 5 Deploy fresh app
@@ -395,6 +472,7 @@ jobs:
       DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 5.7 records the version (no upgrade test)
       APP_ONLY: ${{ needs.db-setup.outputs.deploy == 'app' }}   # true: only the APEX application is replaced
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # data: the install is kept, only the test data loads
+      RESUME_AT: ${{ needs.db-setup.outputs.resume_at }}       # I-078: loaded - the steps before it passed for this version
       INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 5.2a records it, 5.0 (data) checks it
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 5.6: the DB tests this PR affects (or ALL)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
@@ -431,18 +509,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: report-4-dependencies
+          name: report-5-dependencies
           path: ${{ env.REPORT_DIR }}
           retention-days: 14
           if-no-files-found: ignore
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-4-fresh
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 5-fresh
 
   upgrade:
     name: 6 Upgrade app
@@ -466,6 +541,7 @@ jobs:
     env:
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 6.11 records it: the database holds this version
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 6.0 checks job 5's earlier pass
+      RESUME_AT: ${{ needs.db-setup.outputs.resume_at }}       # I-078: upgraded - the steps before it passed for this version
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
       APP_FINGERPRINT: ${{ needs.offline.outputs.app_fingerprint }}
@@ -501,12 +577,9 @@ jobs:
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-5-upgrade
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 6-upgrade
 
   test:
     name: 7 DB tests and security
@@ -560,18 +633,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: report-6-test
+          name: report-7-test
           path: ${{ env.REPORT_DIR }}
           retention-days: 14
           if-no-files-found: ignore
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-6-test
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 7-test
 
   ui:
     name: 8 Browser test and ZAP
@@ -639,7 +709,7 @@ jobs:
         run: bash repos/common/deployment/db/run.sh ui
       - name: 8.6 OWASP ZAP baseline scan (passive; report only)
         # the full run only (K); also after a failed browser test: every finding in one run (A)
-        if: always() && steps.app.outcome == 'success' && github.event_name != 'pull_request'
+        if: always() && steps.app.outcome == 'success' && env.FULL_VALIDATION == 'true'
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: ${{ steps.app.outputs.target }}
@@ -647,23 +717,20 @@ jobs:
           cmd_options: -a -j
           allow_issue_writing: false
           fail_action: false
-          artifact_name: report-6-zap
+          artifact_name: report-8-zap
       - name: Browser recordings (8.3)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: report-6-browser
+          name: report-8-browser
           path: ${{ env.REPORT_DIR }}
           retention-days: 14
           if-no-files-found: ignore
       - name: Step logs
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: ./.github/actions/job-logs
         with:
-          name: logs-6-ui
-          path: ${{ env.LOG_DIR }}
-          retention-days: 7
-          if-no-files-found: ignore
+          job: 8-ui
 
   finalize:
     name: 9 Finalize the PR
@@ -682,6 +749,8 @@ jobs:
     env:
       COMMON: ${{ needs.offline.outputs.common }}
       RELEASE: ${{ needs.offline.outputs.release }}
+      TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}   # app.env APP_CODE: release tag <prefix>-<N>
+      ZIP_PREFIX: ${{ needs.offline.outputs.zip_prefix }}   # app.env ZIP_NAME: release zip <prefix>_<N>.zip
       DEPENDABOT: ${{ needs.offline.outputs.dependabot }}   # read-only token: no issues, no merge, no PR comment
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 9.0: the database still holds this version
     steps:
@@ -738,7 +807,7 @@ jobs:
           set -euo pipefail
           bash repos/common/deployment/db/run.sh finalize "$RUNNER_TEMP/out"
           app=$(dirname "$(find "$RUNNER_TEMP/out/app" -name application.apx | head -1)")
-          name="COMMON-Application-APEXlang_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
+          name="${ZIP_PREFIX}_${RELEASE:-pr${{ github.event.pull_request.number || 'manual' }}}.zip"
           (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
           echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
           echo "- 9.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
@@ -750,7 +819,7 @@ jobs:
           path: ${{ env.ZIP }}
           retention-days: 30
           if-no-files-found: error
-      - name: 9.1 Draft GitHub Release (published by release.yml when the PR merges)
+      - name: 9.1 Draft GitHub Release (published by after-merge.yml when the PR merges)
         if: env.COMMON == 'true' && env.RELEASE != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -759,7 +828,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
-          tag="common-$RELEASE"
+          tag="$TAG_PREFIX-$RELEASE"
           readme=$RUNNER_TEMP/notes.md
           {
             echo "## $PR_TITLE"; echo
@@ -797,15 +866,44 @@ jobs:
       - name: 9.2 Issues for a future release - the existing findings (files this PR did not change)
         if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && env.DEPENDABOT != 'true'
         env:
-          # a person's token (ADD_TO_PROJECT_PAT) so that add-to-project.yml puts each new issue on the board; with the
+          # a person's token (ADD_TO_PROJECT_PAT) so that issues.yml puts each new issue on the board; with the
           # workflow token the issue is still created, but no other workflow starts
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT || github.token }}
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2 Merge the PR and publish its release
+      - name: 9.2 Draft PR - quick validation passed, not merged
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
+        run: |
+          echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: 9.2a The PR carries its generated files and ISSUES.md (main takes PRs only - nothing is pushed to main)
+        id: carry
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true'
+        env:
+          # a person's token: its push starts the pipeline again on the new head (the workflow token's would not, and
+          # the required check would never report); the next run reuses the deployed database and merges
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          GH_REPO: ${{ github.repository }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::secret ADD_TO_PROJECT_PAT is missing - the generated files and ISSUES.md are not carried (merged without them)"
+            echo "result=nothing" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          bash repos/common/deployment/release/carry.sh "$BRANCH" "$HEAD_SHA" "$RUNNER_TEMP/carry.txt"
+          echo "result=$(cat "$RUNNER_TEMP/carry.txt")" >> "$GITHUB_OUTPUT"
+          if [ "$(cat "$RUNNER_TEMP/carry.txt")" = carried ]; then
+            echo "Passed. The generated files and ISSUES.md were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: 9.2 Merge the PR (auto-merge; after-merge.yml publishes the release)
         id: merge
-        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true'
+        if: >-
+          github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true' &&
+          steps.carry.outputs.result != 'carried'
         env:
           # PIPELINE_MERGE_TOKEN (optional, a person's token): needed only to merge a PR that changes workflow files
           GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || github.token }}
@@ -814,8 +912,10 @@ jobs:
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
             "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
       - name: 9.2 Report on the PR - passed, merge result, warnings, notices, issues logged
-        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && (success() || steps.merge.outcome == 'failure')
+        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && (success() || steps.merge.outcome == 'failure' || steps.carry.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          APP: ${{ needs.offline.outputs.app }}
         with:
           retries: 3
           script: |
@@ -823,7 +923,7 @@ jobs:
             const read = f => { try { return fs.readFileSync(f, 'utf8').trim(); } catch { return ''; } };
             const pr = context.payload.pull_request;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = [`**COMMON pipeline passed** - Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}), [run](${runUrl}).`,
+            const body = [`**${process.env.APP || 'COMMON'} pipeline passed** - Push Number ${pr.commits} (${pr.head.sha.slice(0, 7)}), [run](${runUrl}).`,
                           read(`${process.env.RUNNER_TEMP}/merge.txt`) || 'Not merged (see step 9.2 in the run).', '',
                           read(`${process.env.RUNNER_TEMP}/report.md`)].join('\n');
             // M4: one pipeline comment per PR, updated by every run (not a new comment each push)
@@ -852,9 +952,9 @@ jobs:
           set -euo pipefail
           bash repos/common/deployment/db/run.sh docs "$RUNNER_TEMP/out"
           (cd "$RUNNER_TEMP/out" && zip -qr "$RUNNER_TEMP/COMMON-apex-docs.zip" apex-docs && zip -qr "$RUNNER_TEMP/COMMON-db-docs.zip" db-docs)
-          if [ -n "$RELEASE" ] && gh release view "common-$RELEASE" > /dev/null 2>&1; then
-            gh release upload "common-$RELEASE" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
-            echo "- 9.3-9.4 documentation added to release \`common-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$RELEASE" ] && gh release view "$TAG_PREFIX-$RELEASE" > /dev/null 2>&1; then
+            gh release upload "$TAG_PREFIX-$RELEASE" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
+            echo "- 9.3-9.4 documentation added to release \`$TAG_PREFIX-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: 9.3-9.4 Documentation (artifact)
         if: steps.docs.outcome == 'success'
@@ -911,9 +1011,11 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
           RELEASE: ${{ needs.offline.outputs.release }}
+          TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}
+          APP: ${{ needs.offline.outputs.app }}
         with:
           retries: 3
-          # the full run's issue with a person's token, so add-to-project.yml puts it on the board
+          # the full run's issue with a person's token, so issues.yml puts it on the board
           github-token: ${{ github.event_name == 'workflow_dispatch' && secrets.ADD_TO_PROJECT_PAT || github.token }}
           script: |
             const fs = require('fs'), path = require('path');
@@ -945,7 +1047,7 @@ jobs:
             const fence = '`'.repeat(3);
             const result = results[job]?.result || 'failure';   // failure, or cancelled (time limit, or stopped)
             const pr = context.payload.pull_request;
-            // a run stopped because a newer push replaced it (supersede.yml) is not an error: say so, nothing else
+            // a run stopped because a newer push replaced it (control.yml) is not an error: say so, nothing else
             if (pr && result === 'cancelled') {
               const now = (await github.rest.pulls.get({ ...context.repo, pull_number: pr.number })).data;
               if (now.head.sha !== pr.head.sha) {
@@ -965,13 +1067,14 @@ jobs:
             const next = hit
               ? `**Next:** this looks temporary (\`${hit[0]}\`) - re-run the failed jobs as they are: [run](${runUrl}) > Re-run failed jobs.`
               : restart && pr
-                ? `**Next:** push a fix. The jobs before job ${restart} passed: to skip them, add the line \`Pipeline-Start-From: ${restart}\` ` +
-                  `to the commit message (or comment \`/pipeline start-from ${restart}\`) - job 3 follows it only when its records allow.`
+                ? `**Next:** push a fix. A fix to the pipeline's own files resumes at the failed step by itself (I-078); ` +
+                  `to skip the jobs before job ${restart}, add the line \`Pipeline-Start-From: ${restart}\` to the commit message ` +
+                  `(or comment \`/pipeline start-from ${restart}\`, or a step such as 5.5) - job 3 follows it only when its records allow.`
                 : restart
                   ? `**Next:** fix it on main, then run the full run again with Start from ${restart} (followed only when the records allow).`
                   : '**Next:** push a fix - the pipeline runs again from job 1.';
             const body = [
-              `**COMMON pipeline stopped: job ${name} ${why}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
+              `**${process.env.APP || 'COMMON'} pipeline stopped: job ${name} ${why}**${step ? ` (step${steps.length > 1 ? 's' : ''} \`${step}\`)` : ''}.`,
               (skipped.length ? `Skipped because of it: ${skipped.join(', ')}. ` : '') +
               (job !== 'finalize' && results.finalize?.result === 'failure' ? `9 Finalize the PR stopped because job ${name} ${why} (no zip, no merge). ` : '') +
               'The PR stays open.', '', next, '',
@@ -997,7 +1100,7 @@ jobs:
               const rel = process.env.RELEASE;
               if (rel) {
                 const drafts = (await github.rest.repos.listReleases({ ...context.repo, per_page: 30 })).data
-                  .filter(r => r.draft && r.tag_name === `common-${rel}`);
+                  .filter(r => r.draft && r.tag_name === `${process.env.TAG_PREFIX || 'common'}-${rel}`);
                 for (const d of drafts) await github.rest.repos.deleteRelease({ ...context.repo, release_id: d.id });
               }
             } else if (context.eventName === 'workflow_dispatch') {
