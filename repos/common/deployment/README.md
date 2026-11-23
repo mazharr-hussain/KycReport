@@ -56,6 +56,10 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   only a pipeline fix resumes at the failed step (`RESUME_AT`, db/decide.py); a change to the app, DB scripts or test
   data changes the fingerprint and runs the job in full. `/pipeline start-from 5.5` (or `Pipeline-Start-From: 6.8`)
   asks for a step; it is followed only when the steps before it passed for this version.
+- **What runs (I-085):** the database jobs (2-8) run only when the PR changes the COMMON application (`repos/common/`
+  apart from `repos/common/deployment/`). A PR that changes only workflows, actions or these scripts runs job 1 (lint,
+  security scan, self-test, dry run - no database) and job 9. A pipeline mistake that only shows on the real database
+  surfaces in the next application release's run.
 - **Pipeline changes** (workflows, actions, these scripts): `main` takes pull requests only, so step 1.1 (actionlint on
   every workflow, shellcheck, Python compile, self-test, dry run) checks them in their PR.
 - **Workflow files (I-084, `WORKFLOWS-PLAN.md`)**: `pipeline.yml` (every app; the app is the PR title's `<APP>` or the

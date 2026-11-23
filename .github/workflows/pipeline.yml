@@ -68,7 +68,8 @@ jobs:
       pull-requests: read   # the PR's start-from-N label
     outputs:
       app: ${{ steps.scope.outputs.app }}         # COMMON / KYC: the PR title, or the full run's input
-      common: ${{ steps.scope.outputs.common }}   # the full pipeline (jobs 2-9) runs: the PR touches COMMON
+      common: ${{ steps.scope.outputs.common }}   # COMMON's offline checks (job 1) run: the PR touches COMMON or the pipeline
+      db: ${{ steps.scope.outputs.db }}           # the database jobs (2-8) run: the PR changes the COMMON application
       kyc: ${{ steps.scope.outputs.kyc }}         # the KYC offline checks (1.7-1.10) run: the PR touches KYC
       tag_prefix: ${{ steps.scope.outputs.tag_prefix }}   # COMMON app.env APP_CODE, lower case (release tag <prefix>-<N>)
       zip_prefix: ${{ steps.scope.outputs.zip_prefix }}   # COMMON app.env ZIP_NAME (release zip <prefix>_<N>.zip)
@@ -109,18 +110,22 @@ jobs:
           # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
           # title / Fixes rule; job 1 checks the changed workflow files, job 9 passes, the PR is merged by hand
           if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
-            { echo "common=false"; echo "kyc=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
+            { echo "common=false"; echo "db=false"; echo "kyc=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
             # the full run: the chosen application (an app without app.env - its offline checks only)
-            if [ "$lower" = common ]; then echo "common=true"; echo "kyc=false"; else echo "common=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
+            if [ "$lower" = common ]; then echo "common=true"; echo "db=true"; echo "kyc=false"; else echo "common=false"; echo "db=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
             echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           changed=$(git diff --name-only "$BASE" HEAD)
-          # COMMON and every workflow / shared action: the full pipeline (it is the pipeline's own code)
-          if printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
+          # the COMMON application: the full pipeline (deploy, upgrade, tests, scans); the pipeline's own code alone
+          # (workflows, actions, repos/common/deployment): job 1 only - its lint, self-test and dry run, no database
+          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/deployment/' || true)
+          if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/deployment/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
+            [ -n "$app" ] || echo "- pipeline-only change: job 1 checks it, no database jobs" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "common=false" >> "$GITHUB_OUTPUT"
           fi
@@ -315,7 +320,7 @@ jobs:
   oci-setup:
     name: 2 OCI setup (placeholder)
     needs: offline
-    if: needs.offline.outputs.common == 'true'
+    if: needs.offline.outputs.db == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
@@ -747,7 +752,7 @@ jobs:
       pull-requests: write   # 9.2 ready for review, merge, PR comment
       issues: write          # 9.2 issues for the existing findings
     env:
-      COMMON: ${{ needs.offline.outputs.common }}
+      COMMON: ${{ needs.offline.outputs.db }}   # the database jobs ran: their results gate, and 9.1 / 9.3-9.4 export the app
       RELEASE: ${{ needs.offline.outputs.release }}
       TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}   # app.env APP_CODE: release tag <prefix>-<N>
       ZIP_PREFIX: ${{ needs.offline.outputs.zip_prefix }}   # app.env ZIP_NAME: release zip <prefix>_<N>.zip
