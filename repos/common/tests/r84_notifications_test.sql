@@ -163,7 +163,7 @@ begin
     check_(l_n = 1, 'the user is told in the application (TASK_ASSIGNED, raised in the background)');
     select count(*) into l_n from xxfnd_notifications
      where task_id = l_task and event_code = 'TASK_ASSIGNED' and channel_code in ('EMAIL', 'PUSH') and status_code = 'SKIPPED'
-       and status_text is not null;
+       and status_text is not null and user_name = 'ADMIN';
     check_(l_n = 2, 'e-mail and push say why they were skipped (no sender, no device)');
     select count(*) into l_n from xxfnd_notifications
      where task_id = l_task and channel_code = 'FUSION';

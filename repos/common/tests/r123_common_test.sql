@@ -23,6 +23,10 @@ declare
 begin
     apex_util.set_workspace('XXCUS');
     apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
+    -- what an earlier run left (release 126, first push: ending the APEX session committed it); undone by the rollback
+    delete from xxfnd_wf_delegations where delegate_user_name = 'R123_DELEGATE';
+    delete from xxfnd_approval_rules where rule_name = 'R123 rule';   -- its levels and conditions cascade
+    delete from xxfnd_approval_groups where group_code = 'R123_GRP';
 
     -- I-012: delegations through routines (the signed-in user delegates)
     l_id := xxfnd_workflow_pkg.add_delegation('COMMON', v('APP_USER'), 'R123_DELEGATE', trunc(sysdate), trunc(sysdate) + 5,
@@ -151,6 +155,7 @@ begin
                 when others then ok('in an APEX session without the privilege the change is refused', sqlcode = -20072);
             end;
         end if;
+        rollback;                      -- ending the APEX session commits: nothing of this test may be kept
         apex_session.delete_session;   -- as an application's background job: no signed-in user
         xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'N');
         select count(*) into l_n from xxfnd_user_roles_v where user_name = l_user and role_code = l_role and active_flag = 'Y';
