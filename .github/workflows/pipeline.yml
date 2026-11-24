@@ -21,7 +21,7 @@ run-name: "${{ github.event.pull_request.title || format('{0} full run', inputs.
 on:
   pull_request:
     branches: [main]
-    # I-075: a push to a draft PR runs the quick validation; "Ready for review" runs the full one (and merges)
+    # I-093: a push to a draft PR runs job 1 only (offline checks); "Ready for review" runs the full validation (and merges)
     types: [opened, synchronize, reopened, ready_for_review]
   # K: the full run on demand (Actions > COMMON > Run workflow): all of main - every DB test, every page, ZAP - (a PR
   # tests only what it changes); what fails is logged as an issue for a future release
@@ -54,7 +54,7 @@ env:
   REPORT_DIR: /tmp/pipeline-reports   # reports and recordings; uploaded as report-<job>
   DB_TARGET: dev   # the database jobs run on Oracle_Dev_DB: test data loads only here (I-076)
   # I-075: full validation (APEX-SERT 3.4 / 7.4, DBSAT 7.5, OWASP ZAP 8.4, merge) for a PR that is ready for review
-  # and for the full run; a draft PR gets the quick validation (no scans, no merge)
+  # and for the full run; a draft PR runs job 1 only (I-093: no database jobs, no merge)
   FULL_VALIDATION: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
 
 jobs:
@@ -95,6 +95,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          DRAFT: ${{ github.event.pull_request.draft }}
           INPUT_APP: ${{ inputs.app }}
         run: |
           set -euo pipefail
@@ -124,7 +125,11 @@ jobs:
           # self-test and dry run, no database (I-085); so are the dependency map files step 9.2a adds (generated, I-090)
           app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' \
                 | grep -vxE 'repos/common/db/deploy/(dependencies\.json|DEPENDENCIES\.md)' || true)
-          if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          # I-093: a draft PR runs job 1 only (offline checks); "Ready for review" runs the database jobs and merges
+          if [ -n "$app" ] && [ "$DRAFT" != true ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          if [ -n "$app" ] && [ "$DRAFT" = true ]; then
+            echo "- draft PR: job 1 checks it, no database jobs - mark it Ready for review for the full validation" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
             [ -n "$app" ] || echo "- pipeline-only change: job 1 checks it, no database jobs" >> "$GITHUB_STEP_SUMMARY"
@@ -879,10 +884,10 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2b Draft PR - quick validation passed, not merged
+      - name: 9.2b Draft PR - offline checks passed, not merged
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
         run: |
-          echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "Draft PR: job 1 (offline checks) passed - a draft runs no database jobs and is not merged (I-093). Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
       - name: 9.2a The PR carries its generated files (main takes PRs only - nothing is pushed to main)
         id: carry
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true'

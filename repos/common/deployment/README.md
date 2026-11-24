@@ -153,9 +153,10 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   One row per component (its main table); every other table is in "no_data". A change of the test data alone keeps
   the install fingerprint: after a failed 5.2b, the next run decides deploy=data (5.0a install guard, 5.2b, 5.3-5.5 -
   no redeploy).
-- **Draft PR vs Ready for review (I-075):** a push to a draft PR runs the quick validation - 3.4 / 7.4 APEX-SERT,
-  7.5 DBSAT and 8.4 ZAP are skipped and job 9 does not merge. Marking the PR Ready for review (and the full run) runs
-  the full validation, which merges when it passes. APEX-SERT is installed once and never removed.
+- **Draft PR vs Ready for review (I-075, I-093):** a push to a draft PR runs job 1 only (offline checks: lint, build,
+  APEXlang validation, static checks, PMD) and job 9, which does not merge - no database job. Marking the PR Ready for
+  review (and the full run) runs the full validation (jobs 1-9 with APEX-SERT, DBSAT and ZAP), which merges when it
+  passes. APEX-SERT is installed once and never removed.
 - **Test data only in dev (I-076):** the test-data steps (5.2b, 6.3, 6.7) refuse to run unless `DB_TARGET=dev` (set by
   the workflow for the Oracle_Dev_DB jobs) - a deployment to test or later never loads test data.
 - **Resume inside job 5 (deploy=loaded):** 5.2c records this version installed with its test data; when job 5 then
