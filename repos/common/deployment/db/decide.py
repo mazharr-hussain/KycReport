@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 3.2b: the deploy decision - what this version needs, from what the validation database holds.
+"""Step 3.2a: the deploy decision - what this version needs, from what the validation database holds.
 
 decide.py <record> <code-manifest> <out dir>
   <record>         the output of deployed.sql mode=get: "DEPLOYED <fp> <db> <struct> <app> <verified> <tested head>",
