@@ -5,6 +5,7 @@ reordered, no application or database change.
 
 | Issue | Change |
 |---|---|
+| I-090 (#259) | Cancel stops a run: jobs 5-8 and the ZAP step started with `always()`, which GitHub never cancels; they use `!cancelled()` now (same behaviour otherwise). Jobs 9 and 10 keep `always()` - they report. |
 | I-090 (#259) | Every step number is used once per run (alternative paths share one, only one of them runs), follows the run order, belongs to its own job and leaves no gap. The password step of each database job is N.0; upload and report-collection steps carry no number. |
 
 Checked offline: the pipeline lint, self-test and dry run; the step logs of all 40 dry-run scenarios (no repeat, run

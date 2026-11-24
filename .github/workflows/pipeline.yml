@@ -465,7 +465,7 @@ jobs:
     # every deploy but reuse and upgrade (job 5 passed for this version already); after a quick check (patch) only
     # when it passed - then the full fresh install
     if: >-
-      always() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
+      !cancelled() && needs.db-setup.result == 'success' && needs.db-setup.outputs.deploy != 'reuse' &&
       needs.db-setup.outputs.deploy != 'upgrade' && needs.db-setup.outputs.deploy != 'upgraded' && needs.db-setup.outputs.deploy != 'retest' &&
       (needs.db-setup.outputs.deploy != 'patch' || needs.quick.result == 'success')
     runs-on: ubuntu-24.04
@@ -533,7 +533,7 @@ jobs:
     # full, and patch after its quick check (job 5 ran the full fresh install); upgrade: job 5 passed for this
     # version on an earlier run (6.0a checks that it is still recorded)
     if: >-
-      always() && needs.db-setup.result == 'success' &&
+      !cancelled() && needs.db-setup.result == 'success' &&
       (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data' ||
          needs.db-setup.outputs.deploy == 'loaded') &&
         needs.fresh.result == 'success' && needs.offline.outputs.db_changed != 'false') ||
@@ -593,7 +593,7 @@ jobs:
     # after the upgrade test; or after the fresh install when the database scripts are the base's (F); or straight
     # after job 3 when the database already holds this version (B)
     if: >-
-      always() && needs.db-setup.result == 'success' &&
+      !cancelled() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' || needs.db-setup.outputs.deploy == 'retest' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
        (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
@@ -656,7 +656,7 @@ jobs:
     # after the upgrade test; or after the fresh install when the database scripts are the base's (F); or straight
     # after job 3 when the database already holds this version (B)
     if: >-
-      always() && needs.db-setup.result == 'success' &&
+      !cancelled() && needs.db-setup.result == 'success' &&
       (needs.db-setup.outputs.deploy == 'reuse' ||
        (needs.db-setup.outputs.deploy == 'app' && needs.fresh.result == 'success') ||
        (needs.offline.outputs.db_changed == 'false' && needs.fresh.result == 'success' && needs.upgrade.result == 'skipped') ||
@@ -715,7 +715,7 @@ jobs:
         run: bash repos/common/deployment/db/run.sh ui
       - name: 8.4 OWASP ZAP baseline scan (passive; report only)
         # the full run only (K); also after a failed browser test: every finding in one run (A)
-        if: always() && steps.app.outcome == 'success' && env.FULL_VALIDATION == 'true'
+        if: "!cancelled() && steps.app.outcome == 'success' && env.FULL_VALIDATION == 'true'"
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: ${{ steps.app.outputs.target }}
