@@ -1,14 +1,14 @@
 #!/bin/bash
 # COMMON pipeline job 1 - offline validation, no OCI and no database:
-#   1.0a PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
+#   1.0 PR title "<APP> Release <N>: <summary>" and its linked issues ("Fixes #n") - pr_meta.py
 #   1.0 secret scan of the PR's commits (gitleaks)
 #   1.1 pipeline lint (actionlint on the workflows, shellcheck on the pipeline scripts, the decision self-test and
-#       the dry run of every database-job path against a SQLcl stand-in - checks/dryrun.sh)   1.1b SOURCE-MAP in step
+#       the dry run of every database-job path against a SQLcl stand-in - checks/dryrun.sh)   1.1a SOURCE-MAP in step
 #   1.2 static checks (pr_checks.py)          1.3 requirements check (warning only)
 #   1.4 build                                  1.5 APEXlang source checks (LF line endings) + validation (SQLcl, no DB)
-#   1.6 PMD (PL/SQL rules, warnings only)  1.6b the test data file fits this version's tables (test_data.py)
+#   1.6 PMD (PL/SQL rules, warnings only)  1.6a the test data file fits this version's tables (test_data.py)
 # Usage: run.sh [lint]   (lint: only 1.1; env: SQL = SQLcl binary; PMD = PMD launcher; GITLEAKS = gitleaks binary; BASE = base commit and
-#                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 1.0a; RELEASE = release number, optional)
+#                 BODY = PR body file, optional; PR_TITLE, PR_BODY, GITHUB_TOKEN, GITHUB_REPOSITORY for 1.0; RELEASE = release number, optional)
 # A failing step stops the job and is recorded for the error-handling job (lib/step.sh).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -81,13 +81,13 @@ pmd() { bash "$HERE/pmd.sh"; }
 if [ "${1:-}" = lint ]; then   # 1.1 alone (by hand)
   step 1.1-pipeline-lint lint; exit $?
 fi
-step 1.0a-pr-title-and-issues pr_meta
-step 1.0-secret-scan secrets_scan
+step 1.0-pr-title-and-issues pr_meta
+step 1.0a-secret-scan secrets_scan
 step 1.1-pipeline-lint lint
-step 1.1b-source-map source_map
+step 1.1a-source-map source_map
 step 1.2-static static
 step 1.3-docs-check docs
 step 1.4-build build
 step 1.5-apexlang-validate apexlang
 step 1.6-pmd pmd
-step 1.6b-test-data python3 "$HERE/test_data.py" "$ROOT"
+step 1.6a-test-data python3 "$HERE/test_data.py" "$ROOT"
