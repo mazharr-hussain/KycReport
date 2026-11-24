@@ -119,11 +119,12 @@ jobs:
             echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           changed=$(git diff --name-only "$BASE" HEAD)
-          # the COMMON application: the full pipeline (deploy, upgrade, tests, scans); the pipeline's own code alone
-          # (workflows, actions, repos/common/deployment): job 1 only - its lint, self-test and dry run, no database
-          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/deployment/' || true)
+          # the COMMON application: the full pipeline (deploy, upgrade, tests, scans); the pipeline's own code, release
+          # notes and docs alone (workflows, actions, repos/common/deployment, releases, docs): job 1 only - its lint,
+          # self-test and dry run, no database (I-085)
+          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' || true)
           if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
-          if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/deployment/|\.github/)'; then
+          if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
             [ -n "$app" ] || echo "- pipeline-only change: job 1 checks it, no database jobs" >> "$GITHUB_STEP_SUMMARY"
           else
@@ -881,7 +882,7 @@ jobs:
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
         run: |
           echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
-      - name: 9.2a The PR carries its generated files and ISSUES.md (main takes PRs only - nothing is pushed to main)
+      - name: 9.2a The PR carries its generated files (main takes PRs only - nothing is pushed to main)
         id: carry
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true'
         env:
@@ -889,20 +890,18 @@ jobs:
           # the required check would never report); the next run reuses the deployed database and merges
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
           GH_REPO: ${{ github.repository }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
           BRANCH: ${{ github.event.pull_request.head.ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
-            echo "::warning::secret ADD_TO_PROJECT_PAT is missing - the generated files and ISSUES.md are not carried (merged without them)"
+            echo "::warning::secret ADD_TO_PROJECT_PAT is missing - the generated files are not carried (merged without them)"
             echo "result=nothing" >> "$GITHUB_OUTPUT"; exit 0
           fi
           bash repos/common/deployment/release/carry.sh "$BRANCH" "$HEAD_SHA" "$RUNNER_TEMP/carry.txt"
           echo "result=$(cat "$RUNNER_TEMP/carry.txt")" >> "$GITHUB_OUTPUT"
           if [ "$(cat "$RUNNER_TEMP/carry.txt")" = carried ]; then
-            echo "Passed. The generated files and ISSUES.md were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
+            echo "Passed. The generated files were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: 9.2 Merge the PR (auto-merge; after-merge.yml publishes the release)
         id: merge

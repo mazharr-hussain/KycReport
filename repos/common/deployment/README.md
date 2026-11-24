@@ -43,10 +43,9 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   `repos/common/SOURCE-MAP.json` for the build.
 - **Build with the release number** (1.4): "Release N" from the PR title is stamped into the application; jobs 5-6
   deploy the database scripts of this build (artifact `common-deploy`), not committed copies.
-- **Generated files and ISSUES.md come in the PR (9.2a, `release/carry.sh`):** `main` takes pull requests only, so
+- **Generated files come in the PR (9.2a, `release/carry.sh`):** `main` takes pull requests only, so
   nothing is pushed to it by itself. When a full validation passes, job 9 rebuilds SOURCE-MAP.json, `db/deploy` and
-  `docs/components/*/technical.md` and brings `repos/ISSUES.md` in step with the issues (`release/issues_md.py sync`;
-  the PR's "Fixes #n" issues get "Fix in <release>"). If anything differs it pushes one commit to the PR branch with
+  `docs/components/*/technical.md`. If anything differs it pushes one commit to the PR branch with
   `ADD_TO_PROJECT_PAT`: the pipeline runs once more (same version fingerprint - the database is reused) and merges.
   These files are never committed by hand.
 - **Release**: 9.1 exports the tested application as the release zip; a release folder `repos/common/releases/<N>-*/`
@@ -57,7 +56,8 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   data changes the fingerprint and runs the job in full. `/pipeline start-from 5.5` (or `Pipeline-Start-From: 6.8`)
   asks for a step; it is followed only when the steps before it passed for this version.
 - **What runs (I-085):** the database jobs (2-8) run only when the PR changes the COMMON application (`repos/common/`
-  apart from `repos/common/deployment/`). A PR that changes only workflows, actions or these scripts runs job 1 (lint,
+  apart from `deployment/`, `releases/` and `docs/`). A PR that changes only workflows, actions, these scripts, release
+  notes or docs runs job 1 (lint,
   security scan, self-test, dry run - no database) and job 9. A pipeline mistake that only shows on the real database
   surfaces in the next application release's run.
 - **Pipeline changes** (workflows, actions, these scripts): `main` takes pull requests only, so step 1.1 (actionlint on
@@ -65,7 +65,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Workflow files (I-084, `WORKFLOWS-PLAN.md`)**: `pipeline.yml` (every app; the app is the PR title's `<APP>` or the
   full run's input `app`; KYC, with no `repos/kyc/deployment/app.env` yet, gets the offline checks 1.7-1.10 only),
   `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (release, generated files, project page, docs
-  site - once per merge), `issues.yml` (board, ISSUES.md, weekly summary), `maintenance.yml` (by hand: clean-up of
+  site - once per merge), `issues.yml` (board, weekly summary), `maintenance.yml` (by hand: clean-up of
   runs, training videos); shared actions `setup-sqlcl` and `job-logs`. Copies of the files before I-084:
   `workflows-backup/2026-11-23/`.
 
@@ -202,7 +202,7 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `db/dependencies.sql`, `db/compare_dependencies.py` | dependency check (5.4) |
 | `db/sert-eval.sql` | APEX-SERT evaluation (7.4) |
 | `lib/sql.sh` | SQLcl login to the validation ADB: wallet; connect line on stdin (never on the command line or in a file) |
-| `release/carry.sh`, `release/issues_md.py`, `checks/source_map.py` | 9.2a: the PR carries its generated files and ISSUES.md; SOURCE-MAP in step |
+| `release/carry.sh`, `checks/source_map.py` | 9.2a: the PR carries its generated files; SOURCE-MAP in step |
 | `release/merge.sh`, `release/publish.sh` | 9.2 merge of the green PR (auto-merge); `after-merge.yml` publishes its GitHub Release |
 | `checks/report.py`, `checks/issues.py` | the PR comment's report; issues for the existing findings |
 | `lib/step.sh` | step logging, step summary, failure record for job 10 |

@@ -1,5 +1,5 @@
-# Issues (I-084 - before: add-to-project.yml, weekly-backlog.yml): one run per issue event. repos/ISSUES.md is brought
-# up to date in each release PR (pipeline step 9.2a, release/issues_md.py sync) - main accepts pull requests only.
+# Issues (I-084 - before: add-to-project.yml, weekly-backlog.yml): one run per issue event. The backlog is the GitHub
+# issues on the two Projects; repos/ISSUES.md is frozen history (I-086).
 #   1 Board    each issue on its GitHub Project (label COMMON -> COMMON_PROJECT_URL, KYC -> KYC_PROJECT_URL), with the
 #              fields "Issue Type", "Priority" and "Status" from the body lines Type: / Priority: / Board status:
 #              (text or single-select fields; token: secret ADD_TO_PROJECT_PAT, classic, scopes project + repo)

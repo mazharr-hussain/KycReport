@@ -44,7 +44,7 @@
   run is merged by the pipeline (job 7.2, `release/merge.sh`), which also publishes the release; label `hold` stops it.
 - **Claude thinks, the pipeline repeats (from the user, 3 Nov 2026).** Any task that is fixed steps or a script runs in
   the pipeline, never by hand: running the checks (job 1), the build and its generated files (SOURCE-MAP.json,
-  `db/deploy`, `technical.md` - added to the release PR by pipeline step 9.2a, `release/carry.sh`), the release zip, ISSUES.md rows,
+  `db/deploy`, `technical.md` - added to the release PR by pipeline step 9.2a, `release/carry.sh`), the release zip,
   issues for findings in unchanged code, the merge and the release. Claude does only what needs thinking: the code
   change, an offline review with the Oracle skills, issues from the user's reports, the plan, the PR text, fixes from
   the pipeline's PR comment, and the written docs (requirements, release README, handover). The pipeline jobs are
@@ -69,9 +69,8 @@
   labelled issue on its board. Every issue reported (or found) becomes a GitHub issue at once, before any plan, with its
   one label only (`KYC` / `COMMON`), its I-number in the title, and in its body the lines `Type: Bug|Enhancement|Task`
   and `Priority: P1|P2|P3` - the workflow copies them into the project fields "Issue Type" and "Priority". A release PR closes its issues with "Fixes #n" in the PR body,
-  so they close (Done on the board) when the PR merges. `repos/ISSUES.md` mirrors the list (I-number -> issue number,
-  fixed release); its rows are written by the pipeline in each release PR (step 9.2a, `release/issues_md.py sync` -
-  `main` takes PRs only), never by hand. Read the open issues at the start of every chat and show the closed / still-open issues after each release.
+  so they close (Done on the board) when the PR merges. The backlog is the GitHub issues only; `repos/ISSUES.md` is
+  frozen history (rows from before GitHub issues, I-086) - not updated. Read the open issues at the start of every chat and show the closed / still-open issues after each release.
 - **Golden rule: issues, then plan, then approval.** Collect all the issues the user reports first; when the user
   confirms the list is complete, propose a plan; start nothing without the user's approval of that plan.
 - **Golden rule: no install error, ever (no ORA-00955).** Base table scripts (01-04) create a table, with its indexes

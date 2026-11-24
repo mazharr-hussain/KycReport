@@ -1,4 +1,7 @@
-# Issue backlog (COMMON and KYC)
+# Issue backlog (COMMON and KYC) - frozen history
+
+> **Frozen (I-086, #254).** The live backlog is the GitHub issues on the Projects "Common Application" and "KYC
+> Application". This file is no longer updated: it keeps the rows from before the GitHub issues.
 
 The live backlog is the GitHub issues of the repository, on the Projects "KYC Application" (label KYC) and "Common
 Application" (label COMMON); release PRs close them with "Fixes #n". This file mirrors them. Each issue has a type (bug / enhancement / task = non-code work: tests, setup, docs)

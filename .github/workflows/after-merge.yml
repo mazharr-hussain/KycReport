@@ -4,7 +4,7 @@
 #   2 Release       its GitHub Release (release/publish.sh: the draft made by pipeline job 9.1, or a committed zip)
 #   3 Project page  each app's requirements summary copied to its GitHub Project README - when one changed
 #   4 Docs site     the MkDocs site published to GitHub Pages
-# Nothing is pushed to main (it accepts pull requests only): the generated files and ISSUES.md come in the PR itself
+# Nothing is pushed to main (it accepts pull requests only): the generated files come in the PR itself
 # (pipeline step 9.2a, release/carry.sh).
 # It starts on a push to main (a person's merge, or auto-merge turned on with a person's token) and, for a merge made
 # with the workflow token (it starts no workflow), when the pipeline run that merged the PR completes: job 1 then waits
