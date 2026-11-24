@@ -1,8 +1,8 @@
 # GitHub setup for the COMMON pipeline - steps for later (user)
 
 The pipeline (`.github/workflows/pipeline.yml`) and its scripts are in `main` and run on every pull request. A green
-run merges the PR by itself (job 9.2, `release/merge.sh`, with the workflow token - no GitHub auto-merge needed) and
-publishes its release. The settings below are still to be done by the user.
+run merges the PR by itself (job 9.2, `release/merge.sh`, with the workflow token - no GitHub auto-merge needed); its
+release stays a draft - nothing is published after a merge (I-091). The settings below are still to be done by the user.
 
 | # | Where (github.com, repository KycReport) | Step | Why |
 |---|---|---|---|
@@ -14,6 +14,7 @@ publishes its release. The settings below are still to be done by the user.
 | 5 | Pull request #199 | Close it (replaced by #204) | Old pipeline wrapper PR |
 | 6 (optional) | Settings > Secrets and variables > Actions > Variables | `DBSAT_ZIP_URL` and `DBSAT_ZIP_SHA256`: where the pipeline downloads DBSAT (Oracle download after accepting its licence, e.g. a private release asset) and its SHA-256 | Step 7.5 runs DBSAT; skipped with a notice until set (issue #209) |
 | 7 (optional) | Settings > Secrets and variables > Actions > Variables | `VAL_APP_URL`: the validation APEX URL (`https://.../ords`) - only if the one read from the wallet is wrong | Browser tests (8.3) and ZAP (8.4) |
+| 8 | Settings > Pages | Turn GitHub Pages off (Source: none) | after-merge.yml no longer publishes the docs site (I-091); Pages still serves the old site on `gh-pages` until it is turned off |
 
 ## Clean up the run history (issue #219)
 Actions -> **Clean up workflow runs** -> **Run workflow**: choose the workflow (`pipeline.yml`, ... or `all`), the minimum
