@@ -14,6 +14,7 @@ On top of COMMON 122. Application, database and pipeline changes.
 | I-010 (#145) | Lookup values get a `TONE` (success, warning, danger, info, neutral), set at registration (`P_TONE`) or by update, read with `LOOKUP_TONE`, edited on page 102 and shown by `XXFND_LOOKUP_VALUES_VL`. `XXFND_UI_PKG.STATUS_TONE` uses it first; its own KYC codes remain only as a fallback until KYC sets its tones. |
 | I-011 (#146) | Application Setting (page 10023): another application's setting is read-only, with a note and an Open button for that application (APEX changes a setting only in the running application). |
 | I-3B2 (#166) | Pages 175 and 177 share the LOV `DM_APPLICATIONS`. The other repeated lists filter on their own page's fields and stay on their pages. |
+| I-053 (#209) | Step 7.5 (DBSAT) finds the `dbsat` launcher wherever it is in the downloaded zip (in a folder, or in a zip inside it): the first run with the user's download failed with `./dbsat: No such file or directory`. |
 
 **Database (install and upgrade, re-run safe):** `05c` step 01 adds `XXFND_LOOKUP_VALUES.TONE` with check CK3 (before
 the package that reads it); `15d` step 23 adds `GROUP_CODE` to `XXFND_APPROVAL_RULE_STEPS` and

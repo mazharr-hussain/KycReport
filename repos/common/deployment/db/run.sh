@@ -705,9 +705,16 @@ dbsat() {       # 7.5 Oracle DBSAT (collect + report) - needs the user's DBSAT d
   bash "$HERE/../lib/fetch.sh" "$DBSAT_ZIP_URL" "$DBSAT_ZIP_SHA256" "$d/dbsat.zip" || return 1
   (cd "$ic" && unzip -qo basic.zip && unzip -qo sqlplus.zip) && (cd "$d" && unzip -qo dbsat.zip) && unzip -qo "${WALLET:?}" -d "$wdir" || return 1
   sed -i "s#?/network/admin#$wdir#" "$wdir/sqlnet.ora"
-  local home; home=$(dirname "$(find "$ic" -name sqlplus -type f | head -1)")
+  local home dbsat_dir; home=$(dirname "$(find "$ic" -name sqlplus -type f | head -1)")
+  # the DBSAT launcher may sit in a folder of the zip, or in a zip inside it (Oracle's download): found, not assumed
+  if ! find "$d" -type f -name dbsat | grep -q .; then
+    find "$d" -type f -name '*.zip' ! -path "$d/dbsat.zip" -print0 | while IFS= read -r -d '' z; do (cd "$(dirname "$z")" && unzip -qo "$z"); done
+  fi
+  dbsat_dir=$(dirname "$(find "$d" -type f -name dbsat | head -1)")
+  [ -f "$dbsat_dir/dbsat" ] || { echo "the DBSAT zip has no dbsat launcher (files: $(cd "$d" && find . -maxdepth 2 | head -20 | tr '\n' ' '))"; return 1; }
+  chmod +x "$dbsat_dir/dbsat"
   # DBSAT reads the password from the terminal prompt; it is given on stdin and never echoed
-  (cd "$d" && export PATH="$home:$PATH" LD_LIBRARY_PATH="$home" TNS_ADMIN="$wdir" &&
+  (cd "$dbsat_dir" && export PATH="$home:$PATH" LD_LIBRARY_PATH="$home" TNS_ADMIN="$wdir" &&
     printf '%s\n' "$ADMIN_PW" | ./dbsat collect -n "ADMIN@$VAL_DB_SERVICE" "$REPORT_DIR/dbsat" &&
     ./dbsat report -n "$REPORT_DIR/dbsat")
 }
