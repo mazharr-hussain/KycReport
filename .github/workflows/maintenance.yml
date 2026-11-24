@@ -3,11 +3,11 @@
 #   cleanup-runs     deletes the history of workflow runs (issue #219). Start with "dry run" ticked (the default): it
 #                    only lists what would be deleted. Runs still in progress and this run itself are never deleted.
 #                    A deleted run (with its logs and artifacts) cannot be restored.
-#   training-videos  uploads the training videos (mp4) kept in the repository to the GitHub Release
-#                    "training-videos", so videos are no longer added to git; each docs/components/<x>/video.md links
-#                    to its asset.
+#   training-videos  packs the training videos (mp4) kept in the repository as a workflow artifact (30 days) - no
+#                    GitHub Release, nothing public (I-091, I-092).
 name: Maintenance
 run-name: "Maintenance: ${{ inputs.task }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -31,6 +31,7 @@ on:
         description: Dry run - only list the runs, delete nothing
         type: boolean
         default: true
+
 permissions: {}
 
 jobs:
@@ -43,7 +44,7 @@ jobs:
       group: cleanup-runs
       cancel-in-progress: false
     permissions:
-      actions: write   # list and delete workflow runs
+      actions: write
     steps:
       - name: Delete the matching runs
         env:
@@ -70,7 +71,8 @@ jobs:
             echo; echo "$total completed run(s) match."
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$DRY_RUN" = true ]; then
-            echo "Dry run - nothing deleted. Matching runs:"; cut -f2- runs.tsv | head -200
+            echo "Dry run - nothing deleted. Matching runs:"
+            head -200 runs.tsv | cut -f2-
             echo "Dry run: nothing deleted (run again without dry run to delete them)." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -91,19 +93,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Upload to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view training-videos >/dev/null 2>&1 || gh release create training-videos --title "Training videos" \
-            --notes "Training videos of COMMON and KYC (assets). Each component's docs/components/<x>/video.md links to its video."
-          find . -name '*.mp4' -not -path './.git/*' -print0 | while IFS= read -r -d '' f; do
-            app=$(echo "$f" | grep -q '/kyc/' && echo kyc || echo common)
-            cp "$f" "$app-$(basename "$f")"
-            gh release upload training-videos "$app-$(basename "$f")" --clobber
-          done
+      - name: Package the training videos as workflow artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: training-videos
+          path: '**/*.mp4'
+          retention-days: 30
+          if-no-files-found: error
