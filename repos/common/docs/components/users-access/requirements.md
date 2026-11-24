@@ -45,3 +45,4 @@ application summary is `repos/common/docs/README.md`.
 ## Change - Account status for every administrator (COMMON 126)
 
 - Users (page 103): the Account column (Locked / Active / SSO) reads the workspace's APEX accounts view, so it shows for every COMMON administrator - not only APEX workspace administrators, for whom it was empty and logged an error per row (I-095).
+- `SET_ROLE_ENABLED` works for an application outside an APEX session (its job or install): its own role is checked; in an APEX session the user still needs the role-assignment privilege.
