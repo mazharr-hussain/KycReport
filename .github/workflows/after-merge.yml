@@ -1,185 +1,41 @@
-# Everything that follows a merge to main, once (I-084 - before: release.yml, docs-sync.yml, docs.yml; generated-files.yml
-# and pipeline-check.yml are replaced by pipeline steps 9.2a and 1.1):
-#   1 Which merge   the merged PR and its merge commit; what it changed
-#   2 Release       its GitHub Release (release/publish.sh: the draft made by pipeline job 9.1, or a committed zip)
-#   3 Project page  each app's requirements summary copied to its GitHub Project README - when one changed
-#   4 Docs site     the MkDocs site published to GitHub Pages
-# Nothing is pushed to main (it accepts pull requests only): the generated files come in the PR itself
-# (pipeline step 9.2a, release/carry.sh).
-# It starts on a push to main (a person's merge, or auto-merge turned on with a person's token) and, for a merge made
-# with the workflow token (it starts no workflow), when the pipeline run that merged the PR completes: job 1 then waits
-# for that merge and acts only if github-actions merged it - so each merge is handled by one run. By hand: input pr.
-# The lint of a pipeline-only change is pipeline job 1 (main accepts pull requests only).
+# Private post-merge workflow
+# This workflow intentionally performs no public publishing, release, Pages,
+# project-board, issue, or pull-request-comment operations.
+
 name: After merge
-run-name: "After merge: ${{ github.event.workflow_run.display_title || github.event.head_commit.message || format('PR {0}', inputs.pr) }}"
+run-name: "Private merge check: ${{ github.event.head_commit.message || format('PR {0}', inputs.pr) }}"
+
 on:
   push:
     branches: [main]
-  workflow_run:   # zizmor: ignore[dangerous-triggers] - checks out only the merge commit on main, never the PR's head
-    workflows: [Pipeline]
-    types: [completed]
   workflow_dispatch:
     inputs:
       pr:
-        description: Merged pull request number (its release, generated files, project page and docs site)
+        description: Merged pull request number
         required: true
-permissions: {}
+
+permissions:
+  contents: read
+
 concurrency:
-  group: after-merge
+  group: private-after-merge
   cancel-in-progress: false
 
 jobs:
-  which:
-    name: 1 Which merge
-    if: >-
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      act: ${{ steps.pr.outputs.act }}
-      pr: ${{ steps.pr.outputs.pr }}
-      sha: ${{ steps.pr.outputs.sha }}
-      readme: ${{ steps.changed.outputs.readme }}
-    steps:
-      - name: The merged pull request and its merge commit
-        id: pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          EVENT: ${{ github.event_name }}
-          MESSAGE: ${{ github.event.head_commit.message }}
-          PUSH_SHA: ${{ github.sha }}
-          INPUT_PR: ${{ inputs.pr }}
-          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
-          RUN_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
-        run: |
-          set -euo pipefail
-          out() { { echo "act=$1"; echo "pr=$2"; echo "sha=$3"; } >> "$GITHUB_OUTPUT"; echo "- $4" >> "$GITHUB_STEP_SUMMARY"; }
-          case $EVENT in
-            push)
-              pr=$(printf '%s' "$MESSAGE" | sed -nE '1s/^Merge pull request #([0-9]+).*/\1/p')
-              out true "$pr" "$PUSH_SHA" "push to main ${PUSH_SHA:0:7}${pr:+ (PR #$pr)}" ;;
-            workflow_dispatch)
-              [[ "$INPUT_PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number"; exit 1; }
-              sha=$(gh pr view "$INPUT_PR" --json mergeCommit -q '.mergeCommit.oid // ""')
-              [ -n "$sha" ] || { echo "::error::PR #$INPUT_PR is not merged"; exit 1; }
-              out true "$INPUT_PR" "$sha" "PR #$INPUT_PR by hand (merge ${sha:0:7})" ;;
-            workflow_run)
-              pr=${RUN_PR:-$(gh api "repos/$GH_REPO/commits/$RUN_SHA/pulls" -q '.[0].number // ""')}
-              [ -n "$pr" ] || { out false "" "" "the pipeline run has no pull request - nothing to do"; exit 0; }
-              # auto-merge merges a moment after the required check "9 Finalize the PR" passed: wait up to 10 minutes
-              # (no auto-merge on an open PR - label hold, a refused merge: nothing to wait for)
-              for _ in $(seq 30); do
-                state=$(gh pr view "$pr" --json state -q .state)
-                [ "$state" = OPEN ] || break
-                [ -n "$(gh pr view "$pr" --json autoMergeRequest -q '.autoMergeRequest // "" | tostring')" ] || break
-                sleep 20
-              done
-              if [ "$state" != MERGED ]; then out false "$pr" "" "PR #$pr is $state - nothing to do"; exit 0; fi
-              by=$(gh api "repos/$GH_REPO/pulls/$pr" -q '.merged_by.login // ""')
-              sha=$(gh pr view "$pr" --json mergeCommit -q .mergeCommit.oid)
-              if [ "$by" != "github-actions[bot]" ]; then
-                out false "$pr" "$sha" "PR #$pr was merged by $by - its push to main runs this workflow"; exit 0
-              fi
-              out true "$pr" "$sha" "PR #$pr merged by the pipeline (merge ${sha:0:7})" ;;
-          esac
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.pr.outputs.act == 'true'
-        with:
-          ref: ${{ steps.pr.outputs.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: What the merge changed
-        id: changed
-        if: steps.pr.outputs.act == 'true'
-        run: |
-          set -euo pipefail
-          changed=$(git diff --name-only HEAD^1 HEAD)
-          if printf '%s\n' "$changed" | grep -qE '^repos/(common|kyc)/docs/README\.md$'; then echo "readme=true"; else echo "readme=false"; fi >> "$GITHUB_OUTPUT"
-
-  release:
-    name: 2 Release
-    needs: which
-    if: needs.which.outputs.act == 'true' && needs.which.outputs.pr != ''
+  validate:
+    name: Private merge validation
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.which.outputs.sha }}
-          persist-credentials: false
-      - name: Publish the release of the merged pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR: ${{ needs.which.outputs.pr }}
-          SHA: ${{ needs.which.outputs.sha }}
-        run: bash repos/common/deployment/release/publish.sh "$PR" "$SHA"
-
-  project-page:
-    name: 3 Project page
-    needs: which
-    if: needs.which.outputs.act == 'true' && needs.which.outputs.readme == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.which.outputs.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Copy each app's requirements summary to its GitHub Project README (links made absolute)
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          COMMON_URL: ${{ vars.COMMON_PROJECT_URL }}
-          KYC_URL: ${{ vars.KYC_PROJECT_URL }}
-        with:
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
-          script: |
-            const fs = require('fs');
-            const base = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/`;
-            for (const [app, url] of [['common', process.env.COMMON_URL], ['kyc', process.env.KYC_URL]]) {
-              const file = `repos/${app}/docs/README.md`;
-              if (!url || !fs.existsSync(file)) continue;
-              let md = fs.readFileSync(file, 'utf8')
-                .replace(/\]\((?!https?:|#)([^)]+)\)/g, (m, p) => `](${base}repos/${app}/docs/${p})`);
-              const [, login, number] = url.match(/users\/([^/]+)\/projects\/(\d+)/);
-              const q = await github.graphql(`query($l:String!,$n:Int!){ user(login:$l){ projectV2(number:$n){ id } } }`,
-                                            { l: login, n: Number(number) });
-              await github.graphql(`mutation($p:ID!,$r:String!){ updateProjectV2(input:{projectId:$p, readme:$r}){ projectV2{ id } } }`,
-                                   { p: q.user.projectV2.id, r: md });
-              core.info(`${app}: README synced (${md.length} characters)`);
-            }
+          fetch-depth: 1
 
-  docs-site:
-    name: 4 Docs site
-    needs: which
-    if: needs.which.outputs.act == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write   # mkdocs gh-deploy pushes the site to the gh-pages branch
-    steps:
-      # mkdocs gh-deploy pushes with the checkout's token (this job uploads no artifact)
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1  # zizmor: ignore[artipacked]
-        with:
-          ref: main
-          fetch-depth: 0   # gh-deploy needs the gh-pages branch
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.x'
-          cache: pip
-          cache-dependency-path: requirements.txt
-      - name: Publish the site to GitHub Pages
+      - name: Record private merge result
         run: |
-          pip install -r requirements.txt
-          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdocs gh-deploy --force
+          set -euo pipefail
+          echo "Merge validated for ${{ github.sha }}; no public output was published." >> "$GITHUB_STEP_SUMMARY"
