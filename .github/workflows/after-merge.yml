@@ -1,7 +1,8 @@
 # Everything that follows a merge to main, once (I-084 - before: release.yml, docs-sync.yml, docs.yml; generated-files.yml
 # and pipeline-check.yml are replaced by pipeline steps 9.2a and 1.1):
 #   1 Which merge   the merged PR and its merge commit; what it changed
-#   2 Release       its GitHub Release (release/publish.sh: the draft made by pipeline job 9.1, or a committed zip)
+#   2 Release       its GitHub Release (release/publish.sh: the draft made by pipeline job 9.1, or a committed zip), and
+#                   its "Fixes #n" issues closed (GitHub does not close them for a merge made by the workflow token, I-087)
 #   3 Project page  each app's requirements summary copied to its GitHub Project README - when one changed
 #   4 Docs site     the MkDocs site published to GitHub Pages
 # Nothing is pushed to main (it accepts pull requests only): the generated files come in the PR itself
@@ -110,11 +111,25 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+      issues: write   # close the merged PR's "Fixes #n" issues (I-087)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.which.outputs.sha }}
           persist-credentials: false
+      - name: Close the merged PR's "Fixes #n" issues that are still open (I-087)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ needs.which.outputs.pr }}
+        run: |
+          set -euo pipefail
+          for n in $(gh pr view "$PR" --json body -q .body | grep -ioE '\b(fixes|closes|resolves) #[0-9]+' | grep -oE '[0-9]+' | sort -un); do
+            if [ "$(gh issue view "$n" --json state -q .state 2>/dev/null || echo NONE)" = OPEN ]; then
+              gh issue close "$n" --reason completed --comment "Fixed by #$PR (merged by the pipeline)."
+              echo "- closed #$n (fixed by #$PR)" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
       - name: Publish the release of the merged pull request
         env:
           GH_TOKEN: ${{ github.token }}

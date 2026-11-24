@@ -64,7 +64,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   every workflow, shellcheck, Python compile, self-test, dry run) checks them in their PR.
 - **Workflow files (I-084, `WORKFLOWS-PLAN.md`)**: `pipeline.yml` (every app; the app is the PR title's `<APP>` or the
   full run's input `app`; KYC, with no `repos/kyc/deployment/app.env` yet, gets the offline checks 1.7-1.10 only),
-  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (release, generated files, project page, docs
+  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (release, closing the PR's fixed issues - I-087, project page, docs
   site - once per merge), `issues.yml` (board, weekly summary), `maintenance.yml` (by hand: clean-up of
   runs, training videos); shared actions `setup-sqlcl` and `job-logs`. Copies of the files before I-084:
   `workflows-backup/2026-11-23/`.
