@@ -210,11 +210,17 @@ create or replace package body xxfnd_user_pkg as
     end reset_password;
 
     function account_status(p_user_name in varchar2) return varchar2 is
+        l_locked varchar2(10);
     begin
         if apex_util.get_user_id(p_user_name) is null then
             return case when is_local(p_user_name) = 'N' then 'SSO' end;
         end if;
-        return case when apex_util.get_account_locked_status(p_user_name => p_user_name) then 'Locked' else 'Active' end;
+        -- release 126 (I-095): read from the workspace's APEX accounts view - APEX_UTIL.GET_ACCOUNT_LOCKED_STATUS is
+        -- allowed to workspace administrators only and logged an error for every row for other administrators
+        -- (dynamic, as FAILED_SIGN_INS: an APEX version without the column gives null, not an error)
+        execute immediate 'select max(account_locked) from apex_workspace_apex_users where user_name = upper(:u)'
+           into l_locked using p_user_name;
+        return case when upper(l_locked) in ('YES', 'Y') then 'Locked' else 'Active' end;
     exception
         when others then
             return null;
