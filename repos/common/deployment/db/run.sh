@@ -678,9 +678,11 @@ page_errors_mark() {   # before 8.3: the last error id, so 8.3a lists only the e
 }
 page_errors() {   # 8.3a (I-067): the errors the application logged while the browser test opened its pages - a page can
   # log an error without showing an ORA- code on screen; listed as notices (page, user, message), never a failure
+  # (release 126, I-067: "Dialog page ... cannot be rendered" is left out - the test opens every page by its URL, and
+  # APEX logs that for a dialog page opened outside a dialog; it is the test's doing, not the page's)
   local m out; m=$(cat "$LOG_DIR/error-mark" 2>/dev/null); [[ $m =~ ^[0-9]+$ ]] || m=0
   out=$(ci_exec ADMIN "set heading off feedback off pagesize 0 linesize 700 trimspool on" \
-    "select 'info: page ' || page_id || ' (' || user_name || '): ' || substr(replace(replace(error_message, chr(10), ' '), chr(13)), 1, 400) || ' [error ' || error_id || ']' from $APP_SCHEMA.xxfnd_error_log where error_id > $m and application_id = $APP_ID order by error_id fetch first 50 rows only;") || { echo "$out"; return 0; }
+    "select 'info: page ' || page_id || ' (' || user_name || '): ' || substr(replace(replace(error_message, chr(10), ' '), chr(13)), 1, 400) || ' [error ' || error_id || ']' from $APP_SCHEMA.xxfnd_error_log where error_id > $m and application_id = $APP_ID and error_message not like '%Dialog page % cannot be rendered successfully%' order by error_id fetch first 50 rows only;") || { echo "$out"; return 0; }
   out=$(grep '^info: page ' <<< "$out" || true)
   if [ -n "$out" ]; then echo "$out"; else echo "no page error logged during the browser test"; fi
 }

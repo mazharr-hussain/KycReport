@@ -1,4 +1,4 @@
--- COMMON 123: routines for applications (delegations, approval rules and role grants switched off / on, lookup values
+-- COMMON 123 (release 126: the role grants outside an APEX session): routines for applications (delegations, approval rules and role grants switched off / on, lookup values
 -- changed), status tones of lookup values, approval groups in GROUP_CODE. Run as XXFUSION in an APEX session of a
 -- COMMON administrator (COMMON application, any page). Everything is rolled back.
 set serveroutput on size unlimited feedback off
@@ -23,6 +23,10 @@ declare
 begin
     apex_util.set_workspace('XXCUS');
     apex_session.create_session(p_app_id => 135, p_page_id => 1, p_username => 'ADMIN');
+    -- what an earlier run left (release 126, first push: ending the APEX session committed it); undone by the rollback
+    delete from xxfnd_wf_delegations where delegate_user_name = 'R123_DELEGATE';
+    delete from xxfnd_approval_rules where rule_name = 'R123 rule';   -- its levels and conditions cascade
+    delete from xxfnd_approval_groups where group_code = 'R123_GRP';
 
     -- I-012: delegations through routines (the signed-in user delegates)
     l_id := xxfnd_workflow_pkg.add_delegation('COMMON', v('APP_USER'), 'R123_DELEGATE', trunc(sysdate), trunc(sysdate) + 5,
@@ -83,29 +87,6 @@ begin
         ok('no group level left in ROLE_CODE after the upgrade', l_n = 0);
     end if;
 
-    -- I-013: a user's grant of an application's role switched off and on by that application
-    select max(ur.user_name), max(r.role_code), max(r.application_code)
-      into l_user, l_role, l_app
-      from xxfnd_user_roles_v ur
-      join xxfnd_roles r on r.role_code = ur.role_code
-     where ur.active_flag = 'Y' and r.application_code is not null and rownum = 1;
-    if l_role is null then
-        dbms_output.put_line('SKIP no active grant of an application role');
-    else
-        xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'N');
-        select count(*) into l_n from xxfnd_user_roles_v where user_name = l_user and role_code = l_role and active_flag = 'Y';
-        ok('SET_ROLE_ENABLED switches the grant off', l_n = 0);
-        xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'Y');
-        select count(*) into l_n from xxfnd_user_roles_v where user_name = l_user and role_code = l_role and active_flag = 'Y';
-        ok('SET_ROLE_ENABLED switches it on again', l_n = 1);
-        begin
-            xxfnd_user_pkg.set_role_enabled(other(l_app), l_user, l_role, 'N');
-            ok('another application''s role is refused', false);
-        exception
-            when others then ok('another application''s role is refused', sqlcode in (-20186, -20180));
-        end;
-    end if;
-
     -- I-014 / I-010: an application changes its own lookup value; its tone
     select max(t.lookup_type), max(t.application_code), max(v.lookup_code)
       into l_type, l_app, l_code
@@ -151,6 +132,42 @@ begin
             ok('a COMMON shared value is refused for an application', false);
         exception
             when others then ok('a COMMON shared value is refused for an application', sqlcode in (-20186, -20180));
+        end;
+    end if;
+
+    -- I-013: a user's grant of an application's role switched off and on by that application. In an APEX session the
+    -- signed-in user needs the role-assignment privilege; outside one (an application's job or install) the
+    -- application's own role is enough (release 126)
+    select max(ur.user_name), max(r.role_code), max(r.application_code)
+      into l_user, l_role, l_app
+      from xxfnd_user_roles_v ur
+      join xxfnd_roles r on r.role_code = ur.role_code
+     where ur.active_flag = 'Y' and r.application_code is not null and rownum = 1;
+    if l_role is null then
+        dbms_output.put_line('SKIP no active grant of an application role');
+    else
+        if not (xxfnd_privilege_pkg.has_privilege('USERS_ACCESS', 'MANAGE')
+                or xxfnd_privilege_pkg.has_privilege('ROLES_PRIVILEGES', 'MANAGE')) then
+            begin
+                xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'N');
+                ok('in an APEX session without the privilege the change is refused', false);
+            exception
+                when others then ok('in an APEX session without the privilege the change is refused', sqlcode = -20072);
+            end;
+        end if;
+        rollback;                      -- ending the APEX session commits: nothing of this test may be kept
+        apex_session.delete_session;   -- as an application's background job: no signed-in user
+        xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'N');
+        select count(*) into l_n from xxfnd_user_roles_v where user_name = l_user and role_code = l_role and active_flag = 'Y';
+        ok('SET_ROLE_ENABLED switches the grant off', l_n = 0);
+        xxfnd_user_pkg.set_role_enabled(l_app, l_user, l_role, 'Y');
+        select count(*) into l_n from xxfnd_user_roles_v where user_name = l_user and role_code = l_role and active_flag = 'Y';
+        ok('SET_ROLE_ENABLED switches it on again', l_n = 1);
+        begin
+            xxfnd_user_pkg.set_role_enabled(other(l_app), l_user, l_role, 'N');
+            ok('another application''s role is refused', false);
+        exception
+            when others then ok('another application''s role is refused', sqlcode in (-20186, -20180));
         end;
     end if;
     rollback;

@@ -1,5 +1,9 @@
 
 create or replace package body xxfnd_user_pkg as
+    -- release 126 (I-095 follow-up): TRUE while SET_ROLE_ENABLED runs outside an APEX session - an application's
+    -- background job or install has no signed-in user to hold the privilege; the application check guards it instead
+    g_app_grant boolean := false;
+
 
     g_renaming boolean := false;
 
@@ -210,11 +214,17 @@ create or replace package body xxfnd_user_pkg as
     end reset_password;
 
     function account_status(p_user_name in varchar2) return varchar2 is
+        l_locked varchar2(10);
     begin
         if apex_util.get_user_id(p_user_name) is null then
             return case when is_local(p_user_name) = 'N' then 'SSO' end;
         end if;
-        return case when apex_util.get_account_locked_status(p_user_name => p_user_name) then 'Locked' else 'Active' end;
+        -- release 126 (I-095): read from the workspace's APEX accounts view - APEX_UTIL.GET_ACCOUNT_LOCKED_STATUS is
+        -- allowed to workspace administrators only and logged an error for every row for other administrators
+        -- (dynamic, as FAILED_SIGN_INS: an APEX version without the column gives null, not an error)
+        execute immediate 'select max(account_locked) from apex_workspace_apex_users where user_name = upper(:u)'
+           into l_locked using p_user_name;
+        return case when upper(l_locked) in ('YES', 'Y') then 'Locked' else 'Active' end;
     exception
         when others then
             return null;
@@ -258,6 +268,9 @@ create or replace package body xxfnd_user_pkg as
     -- user-role assignments: from the User screen (Users & Access) or the Role screen (Roles & Privileges)
     procedure check_assign is
     begin
+        if g_app_grant then
+            return;
+        end if;
         if not (xxfnd_privilege_pkg.has_privilege('USERS_ACCESS', 'MANAGE')
                 or xxfnd_privilege_pkg.has_privilege('ROLES_PRIVILEGES', 'MANAGE')) then
             raise_application_error(-20072, 'You are not allowed to assign roles.');
@@ -703,6 +716,9 @@ create or replace package body xxfnd_user_pkg as
         if l_user_id is null then
             xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('User', upper(p_user_name)));
         end if;
+        -- in an APEX session the signed-in user needs the privilege (CHECK_ASSIGN); outside one, the application's own
+        -- role (checked above) is enough
+        g_app_grant := not xxfnd_util_pkg.in_apex_session;
         if p_enabled_flag = 'Y' then
             assign_role(l_user_id, upper(p_role_code));
         else
@@ -712,6 +728,11 @@ create or replace package body xxfnd_user_pkg as
                 unassign_role(r.user_role_id);
             end loop;
         end if;
+        g_app_grant := false;
+    exception
+        when others then
+            g_app_grant := false;
+            raise;
     end set_role_enabled;
 
 end xxfnd_user_pkg;
