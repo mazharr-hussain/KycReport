@@ -121,8 +121,9 @@ jobs:
           changed=$(git diff --name-only "$BASE" HEAD)
           # the COMMON application: the full pipeline (deploy, upgrade, tests, scans); the pipeline's own code, release
           # notes and docs alone (workflows, actions, repos/common/deployment, releases, docs): job 1 only - its lint,
-          # self-test and dry run, no database (I-085)
-          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' || true)
+          # self-test and dry run, no database (I-085); so are the dependency map files step 9.2a adds (generated, I-090)
+          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' \
+                | grep -vxE 'repos/common/db/deploy/(dependencies\.json|DEPENDENCIES\.md)' || true)
           if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
           if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"

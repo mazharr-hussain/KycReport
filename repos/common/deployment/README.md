@@ -56,7 +56,8 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   data changes the fingerprint and runs the job in full. `/pipeline start-from 5.5` (or `Pipeline-Start-From: 6.8`)
   asks for a step; it is followed only when the steps before it passed for this version.
 - **What runs (I-085):** the database jobs (2-8) run only when the PR changes the COMMON application (`repos/common/`
-  apart from `deployment/`, `releases/` and `docs/`). A PR that changes only workflows, actions, these scripts, release
+  apart from `deployment/`, `releases/`, `docs/` and the generated dependency map `db/deploy/dependencies.json` /
+  `DEPENDENCIES.md` that step 9.2a adds). A PR that changes only workflows, actions, these scripts, release
   notes or docs runs job 1 (lint,
   security scan, self-test, dry run - no database) and job 9. A pipeline mistake that only shows on the real database
   surfaces in the next application release's run.
