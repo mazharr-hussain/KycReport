@@ -44,6 +44,7 @@ Lists of values are data, maintained from the console, with translations and lev
 - Seed and change scripts:
     - `db/scripts/01-common-tables-xxfnd-part-1-of-3/03-ensure_table-xxfnd_lookup_values_tl.sql`
     - `db/scripts/04b-applications-and-users/08-merge-xxfnd_applications.sql`
+    - `db/scripts/05c-lookups-package/01-add_column-xxfnd_lookup_values-tone.sql`
     - `db/scripts/15-workflow/01-dbms_scheduler-drop_job.sql`
     - `db/scripts/15e-communications/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/17-seed-data-and-administrator-part-1-of-2/01-apex_string-split.sql`
@@ -64,6 +65,7 @@ Lists of values are data, maintained from the console, with translations and lev
 ## Test scripts
 
 - `tests/r111_common_pending_test.sql`
+- `tests/r123_common_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r80_platform_test.sql`
 - `tests/r82_workflow_test.sql`

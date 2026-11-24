@@ -2,8 +2,29 @@
 create or replace package body xxfnd_ui_pkg as
 
 
-    function status_tone(p_object in varchar2, p_code in varchar2) return varchar2 is
+    -- the lookup type of an object's status codes
+    function status_type(p_object in varchar2) return varchar2 is
     begin
+        return case upper(p_object)
+                   when 'REQUEST'   then 'KYC_REQUEST_STATUS'
+                   when 'PARTY'     then 'PARTY_STATUS'
+                   when 'CASE'      then 'CASE_STATUS'
+                   when 'MATCH'     then 'REQUEST_MATCH_STATUS'
+                   when 'SCREENING' then 'SCREENING_MATCH_STATUS'
+                   when 'DOCUMENT'  then 'DOC_VERIFICATION_STATUS'
+                   when 'RISK'      then 'RISK_TIER'
+                   when 'RFI'       then 'RFI_STATUS'
+               end;
+    end status_type;
+
+    -- release 123 (I-010): the tone the application set on the status lookup value comes first
+    -- (XXFND_LOOKUP_PKG.LOOKUP_TONE); the codes below are kept only until the application sets its tones, then removed
+    function status_tone(p_object in varchar2, p_code in varchar2) return varchar2 is
+        l_tone varchar2(10) := xxfnd_lookup_pkg.lookup_tone(status_type(p_object), p_code);
+    begin
+        if l_tone <> 'neutral' then
+            return l_tone;
+        end if;
         return case upper(p_object)
             when 'REQUEST' then
                 case p_code when 'IN_PROGRESS' then 'info' when 'INFO_NEEDED' then 'warning'
@@ -40,16 +61,7 @@ create or replace package body xxfnd_ui_pkg as
         if p_code is null then
             return null;
         end if;
-        l_type := case upper(p_object)
-                      when 'REQUEST'   then 'KYC_REQUEST_STATUS'
-                      when 'PARTY'     then 'PARTY_STATUS'
-                      when 'CASE'      then 'CASE_STATUS'
-                      when 'MATCH'     then 'REQUEST_MATCH_STATUS'
-                      when 'SCREENING' then 'SCREENING_MATCH_STATUS'
-                      when 'DOCUMENT'  then 'DOC_VERIFICATION_STATUS'
-                      when 'RISK'      then 'RISK_TIER'
-                      when 'RFI'       then 'RFI_STATUS'
-                  end;
+        l_type := status_type(p_object);
         return nvl(xxfnd_lookup_pkg.lookup_meaning(l_type, p_code), p_code);
     end status_label;
 

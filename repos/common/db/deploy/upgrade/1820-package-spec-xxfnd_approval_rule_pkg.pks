@@ -90,7 +90,8 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
     procedure unregister_type(p_application_code in varchar2, p_type in varchar2);
     procedure unregister_application(p_application_code in varchar2);
     -- Release 113: approval groups of a process (approval type) - a named set of approvers; a rule level of approver type
-    -- GROUP names the group code (in ROLE_CODE). The type must belong to P_APPLICATION_CODE (ORA-20186 otherwise).
+    -- GROUP names the group code (release 123: in GROUP_CODE, before in ROLE_CODE). The type must belong to
+    -- P_APPLICATION_CODE (ORA-20186 otherwise).
     procedure save_group(p_application_code in varchar2,
                          p_type             in varchar2,
                          p_group_code       in varchar2,
@@ -102,6 +103,10 @@ create or replace package xxfnd_approval_rule_pkg authid definer as
                                 p_roles in varchar2, p_users in varchar2);
     -- refused (ORA-20537) while a rule level names the group
     procedure delete_group(p_application_code in varchar2, p_group_code in varchar2);
+    -- Release 123 (I-013): an approval rule on (Y) or off (N) through a routine - the type must belong to
+    -- P_APPLICATION_CODE (ORA-20186 otherwise); ORA-20187 for an unknown type or rule.
+    procedure set_rule_enabled(p_application_code in varchar2, p_type in varchar2, p_rule_name in varchar2,
+                               p_enabled_flag in varchar2);
     -- the users of a group (its users and the active users of its roles), comma-separated
     function group_users(p_group_code in varchar2) return varchar2;
 end xxfnd_approval_rule_pkg;

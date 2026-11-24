@@ -85,13 +85,15 @@ create or replace package body xxfnd_approval_rule_pkg as
             return 'Step "' || s.step_name || '" uses the approver type ' || approver_label(s.approver_type, null, null)
                 || ', which is not available yet. Change the step in Approval Setup to a user (or a role).';
         end loop;
-        for s in (select step_name, approver_type, role_code from xxfnd_approval_rule_steps
+        for s in (select step_name, approver_type, role_code, group_code from xxfnd_approval_rule_steps
                    where rule_id = l_rule and approver_type in ('ROLE', 'GROUP') order by step_no) loop
-            -- release 113: a group needs at least one user (its users and the active users of its roles)
+            -- release 113: a group needs at least one user (its users and the active users of its roles);
+            -- release 123: the group in GROUP_CODE
             if (s.approver_type = 'ROLE' and xxfnd_workflow_pkg.users_in_role(s.role_code) is null)
-               or (s.approver_type = 'GROUP' and group_users(s.role_code) is null) then
+               or (s.approver_type = 'GROUP' and group_users(s.group_code) is null) then
                 return xxfnd_error_pkg.message('XXFND_APPROVAL_NO_APPROVER',
-                                               apex_t_varchar2(s.step_name, approver_label(s.approver_type, s.role_code, null)));
+                                               apex_t_varchar2(s.step_name, approver_label(s.approver_type,
+                                                                                           nvl(s.group_code, s.role_code), null)));
             end if;
         end loop;
         return null;
@@ -114,9 +116,9 @@ create or replace package body xxfnd_approval_rule_pkg as
         insert into xxfnd_approval_txns (approval_type_code, txn_id, rule_id, rule_name, requester)
         values (upper(p_type), p_txn_id, l_rule, l_name, upper(p_requester));
         insert into xxfnd_approval_txn_steps (approval_type_code, txn_id, step_seq, step_name, approver_type, role_code,
-                                              user_name, source, due_days)
+                                              group_code, user_name, source, due_days)
         select upper(p_type), p_txn_id, row_number() over (order by step_no) * 10, step_name, approver_type, role_code,
-               user_name, 'RULE', due_days
+               group_code, user_name, 'RULE', due_days
           from xxfnd_approval_rule_steps where rule_id = l_rule;
         select min(step_seq) into l_first from xxfnd_approval_txn_steps
          where approval_type_code = upper(p_type) and txn_id = p_txn_id;
@@ -148,7 +150,7 @@ create or replace package body xxfnd_approval_rule_pkg as
     begin
         return case l.approver_type when 'USER'      then upper(l.user_name)
                                     when 'ROLE'      then xxfnd_workflow_pkg.users_in_role(l.role_code)
-                                    when 'GROUP'     then group_users(l.role_code)
+                                    when 'GROUP'     then group_users(l.group_code)
                                     when 'REQUESTER' then txn(p_type, p_txn_id).requester end;
     end current_approvers;
 
@@ -255,7 +257,7 @@ create or replace package body xxfnd_approval_rule_pkg as
         elsif p_approver_type = 'REQUESTER' then
             return 'Requester';
         elsif p_approver_type = 'GROUP' then
-            -- release 113: an approval group (its code in ROLE_CODE)
+            -- release 113: an approval group (P_ROLE_CODE holds its code; release 123: read from GROUP_CODE by the callers)
             select max(group_name) into l_name from xxfnd_approval_groups where group_code = p_role_code;
             return 'Group: ' || nvl(l_name, p_role_code);
         elsif p_approver_type in ('POSITION', 'MANAGER', 'SUP_HIER', 'POS_HIER', 'AOR', 'QUERY') then
@@ -275,7 +277,9 @@ create or replace package body xxfnd_approval_rule_pkg as
         l_pos  number := 0;
     begin
         if l_txn.approval_type_code is not null then
-            for s in (select step_seq, step_name, approver_type, role_code, user_name, source, added_by, added_comment
+            -- release 123: ROLE_CODE of a row is the approver code - the group code for a GROUP step
+            for s in (select step_seq, step_name, approver_type, nvl(group_code, role_code) as role_code, user_name, source,
+                             added_by, added_comment
                         from xxfnd_approval_txn_steps
                        where approval_type_code = upper(p_type) and txn_id = p_txn_id order by step_seq) loop
                 l_pos := l_pos + 1;
@@ -288,7 +292,7 @@ create or replace package body xxfnd_approval_rule_pkg as
             end loop;
         elsif p_attributes is not null then
             l_rule := matching_rule(p_type, p_attributes);
-            for s in (select step_name, approver_type, role_code, user_name
+            for s in (select step_name, approver_type, nvl(group_code, role_code) as role_code, user_name
                         from xxfnd_approval_rule_steps where rule_id = l_rule order by step_no) loop
                 l_pos := l_pos + 1;
                 pipe row (xxfnd_approval_step_row(l_pos, s.step_name, s.approver_type, s.role_code, s.user_name, 'RULE',
@@ -519,7 +523,7 @@ create or replace package body xxfnd_approval_rule_pkg as
         l_n    pls_integer;
     begin
         check_group_type(p_application_code, group_type(l_code));
-        select count(*) into l_n from xxfnd_approval_rule_steps where approver_type = 'GROUP' and role_code = l_code;
+        select count(*) into l_n from xxfnd_approval_rule_steps where approver_type = 'GROUP' and group_code = l_code;
         if l_n > 0 then
             raise_application_error(-20537, 'Approval group ' || l_code || ' is used by ' || l_n
                 || ' rule level(s): change them first, or disable the group.');
@@ -543,6 +547,19 @@ create or replace package body xxfnd_approval_rule_pkg as
          where exists (select 1 from xxfnd_approval_groups g where g.group_code = upper(p_group_code) and g.enabled_flag = 'Y');
         return l_list;
     end group_users;
+
+    -- release 123 (I-013)
+    procedure set_rule_enabled(p_application_code in varchar2, p_type in varchar2, p_rule_name in varchar2,
+                               p_enabled_flag in varchar2) is
+    begin
+        check_group_type(p_application_code, p_type);
+        update xxfnd_approval_rules
+           set enabled_flag = case when p_enabled_flag = 'Y' then 'Y' else 'N' end
+         where approval_type_code = upper(trim(p_type)) and rule_name = p_rule_name;
+        if sql%rowcount = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Approval rule', upper(trim(p_type)) || ' ' || p_rule_name));
+        end if;
+    end set_rule_enabled;
 
 end xxfnd_approval_rule_pkg;
 /

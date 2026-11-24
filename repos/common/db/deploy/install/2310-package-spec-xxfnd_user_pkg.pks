@@ -69,6 +69,12 @@ create or replace package xxfnd_user_pkg authid definer as
     -- duties, global rules); UNASSIGN_ROLE ends the grant today (the row is kept for the audit).
     procedure assign_role(p_user_id in number, p_role_code in varchar2);
     procedure unassign_role(p_user_role_id in number);
+    -- Release 123 (I-013): a user's grant of a role of P_APPLICATION_CODE switched on (Y: ASSIGN_ROLE, a new grant
+    -- from today) or off (N: UNASSIGN_ROLE of the open grant) by user and role name - for applications and their tests,
+    -- never a direct update of XXFND_USER_ROLES. ORA-20186 for a role of another application, ORA-20187 for an unknown
+    -- user or role.
+    procedure set_role_enabled(p_application_code in varchar2, p_user_name in varchar2, p_role_code in varchar2,
+                               p_enabled_flag in varchar2);
     -- Release 96: a user's access to an application (one user, several applications). ASSIGN_ROLE grants it for the
     -- role's application when missing; END_APPLICATION ends the access and the user's roles of that application.
     procedure grant_application(p_user_id in number, p_application_code in varchar2);

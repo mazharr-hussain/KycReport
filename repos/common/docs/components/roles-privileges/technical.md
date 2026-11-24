@@ -79,6 +79,7 @@ Page access is data driven: every page is mapped to a feature and opened with th
 - `features/approval-setup/tests/r113_approval_groups_test.sql`
 - `features/integrations/tests/r112_server_link_test.sql`
 - `tests/common_apps_ui.py`
+- `tests/r123_common_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r82_workflow_test.sql`

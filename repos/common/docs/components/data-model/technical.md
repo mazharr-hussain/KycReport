@@ -27,6 +27,7 @@ Always current documentation of every application's data model, without exports 
 - Regions: breadcrumb, classicReport, interactiveReport
 - Authorizations: page-manage, page-view
 - Breadcrumbs: breadcrumb
+- LOVs: lov-dm-applications
 - Lists: administration
 
 ### Custom database objects

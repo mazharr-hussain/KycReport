@@ -19,7 +19,8 @@ select v.lookup_type,
        v.end_date_active,
        case when v.enabled_flag = 'Y'
              and trunc(sysdate) between v.start_date_active and nvl(v.end_date_active, trunc(sysdate))
-            then 'Y' else 'N' end        active_flag
+            then 'Y' else 'N' end        active_flag,
+       v.tone                             -- release 123 (I-010): the badge colour as a status
   from xxfnd_lookup_values v
   left join xxfnd_lookup_values_tl t
     on t.lookup_type = v.lookup_type

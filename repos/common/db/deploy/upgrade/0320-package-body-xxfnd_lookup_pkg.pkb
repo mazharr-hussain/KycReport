@@ -123,7 +123,8 @@ create or replace package body xxfnd_lookup_pkg as
                                     p_tag                in varchar2 default null,
                                     p_parent_lookup_type in varchar2 default null,
                                     p_parent_lookup_code in varchar2 default null,
-                                    p_meaning_ar         in varchar2 default null) is
+                                    p_meaning_ar         in varchar2 default null,
+                                    p_tone               in varchar2 default null) is
         l_code varchar2(30) := setup_code(p_application_code);
     begin
         if not type_checked(p_lookup_type, p_application_code) then
@@ -133,10 +134,10 @@ create or replace package body xxfnd_lookup_pkg as
         merge into xxfnd_lookup_values t
         using (select upper(p_lookup_type) lookup_type, p_lookup_code lookup_code from dual) s
            on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code)
-         when not matched then insert (lookup_type, lookup_code, meaning, description, tag, display_sequence,
+         when not matched then insert (lookup_type, lookup_code, meaning, description, tag, tone, display_sequence,
                                        parent_lookup_type, parent_lookup_code)
-                               values (s.lookup_type, s.lookup_code, p_meaning, p_description, p_tag, p_display_sequence,
-                                       upper(p_parent_lookup_type), p_parent_lookup_code);
+                               values (s.lookup_type, s.lookup_code, p_meaning, p_description, p_tag, lower(p_tone),
+                                       p_display_sequence, upper(p_parent_lookup_type), p_parent_lookup_code);
         if p_meaning_ar is not null then
             merge into xxfnd_lookup_values_tl t
             using (select upper(p_lookup_type) lookup_type, p_lookup_code lookup_code, 'ar' language_code from dual) s
@@ -145,6 +146,57 @@ create or replace package body xxfnd_lookup_pkg as
                                    values (s.lookup_type, s.lookup_code, 'ar', p_meaning_ar);
         end if;
     end register_lookup_value;
+
+    -- release 123 (I-014): an application changes its own value; COMMON's shared types (no application) only by COMMON
+    procedure update_lookup_value(p_application_code in varchar2,
+                                  p_lookup_type      in varchar2,
+                                  p_lookup_code      in varchar2,
+                                  p_meaning          in varchar2 default null,
+                                  p_description      in varchar2 default null,
+                                  p_tag              in varchar2 default null,
+                                  p_tone             in varchar2 default null,
+                                  p_meaning_ar       in varchar2 default null) is
+        l_caller varchar2(30) := registered_code(p_application_code);
+        l_n      pls_integer;
+        l_owner  xxfnd_lookup_types.application_code%type;
+    begin
+        select count(*), max(application_code) into l_n, l_owner from xxfnd_lookup_types where lookup_type = upper(p_lookup_type);
+        if l_n = 0 then
+            execute immediate 'begin xxfnd_error_pkg.raise_error(:c, apex_t_varchar2(:w, :k)); end;'
+                using 'XXFND_REG_UNKNOWN', 'Lookup type', upper(p_lookup_type);
+        end if;
+        if nvl(l_owner, 'COMMON') <> l_caller then
+            execute immediate 'begin xxfnd_error_pkg.raise_error(:c, apex_t_varchar2(:w, :k, :o)); end;'
+                using 'XXFND_REG_OTHER_APP', 'Lookup type', upper(p_lookup_type), nvl(l_owner, 'COMMON');
+        end if;
+        update xxfnd_lookup_values
+           set meaning     = nvl(p_meaning, meaning),
+               description = nvl(p_description, description),
+               tag         = nvl(p_tag, tag),
+               tone        = nvl(lower(p_tone), tone)
+         where lookup_type = upper(p_lookup_type) and lookup_code = p_lookup_code;
+        if sql%rowcount = 0 then
+            execute immediate 'begin xxfnd_error_pkg.raise_error(:c, apex_t_varchar2(:w, :k)); end;'
+                using 'XXFND_REG_UNKNOWN', 'Lookup value', upper(p_lookup_type) || ' ' || p_lookup_code;
+        end if;
+        if p_meaning_ar is not null then
+            merge into xxfnd_lookup_values_tl t
+            using (select upper(p_lookup_type) lookup_type, p_lookup_code lookup_code, 'ar' language_code from dual) s
+               on (t.lookup_type = s.lookup_type and t.lookup_code = s.lookup_code and t.language_code = s.language_code)
+             when matched then update set t.meaning = p_meaning_ar
+             when not matched then insert (lookup_type, lookup_code, language_code, meaning)
+                                   values (s.lookup_type, s.lookup_code, 'ar', p_meaning_ar);
+        end if;
+    end update_lookup_value;
+
+    -- release 123 (I-010)
+    function lookup_tone(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2 is
+        l_tone xxfnd_lookup_values.tone%type;
+    begin
+        select max(tone) into l_tone from xxfnd_lookup_values
+         where lookup_type = upper(p_lookup_type) and lookup_code = p_lookup_code;
+        return nvl(l_tone, 'neutral');
+    end lookup_tone;
 
     -- release 88 (C8, C9)
     procedure unregister_lookup_value(p_application_code in varchar2, p_lookup_type in varchar2, p_lookup_code in varchar2) is

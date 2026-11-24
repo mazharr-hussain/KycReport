@@ -20,7 +20,8 @@ create or replace package xxfnd_lookup_pkg authid definer as
                                    p_meaning             in varchar2,
                                    p_customization_level in varchar2 default 'E',
                                    p_description         in varchar2 default null);
-    -- A value of a lookup type (ORA-20187 when the type is not registered); P_MEANING_AR: its Arabic meaning.
+    -- A value of a lookup type (ORA-20187 when the type is not registered); P_MEANING_AR: its Arabic meaning;
+    -- P_TONE (release 123): its badge colour as a status (success, warning, danger, info, neutral).
     procedure register_lookup_value(p_application_code   in varchar2,
                                     p_lookup_type        in varchar2,
                                     p_lookup_code        in varchar2,
@@ -30,7 +31,22 @@ create or replace package xxfnd_lookup_pkg authid definer as
                                     p_tag                in varchar2 default null,
                                     p_parent_lookup_type in varchar2 default null,
                                     p_parent_lookup_code in varchar2 default null,
-                                    p_meaning_ar         in varchar2 default null);
+                                    p_meaning_ar         in varchar2 default null,
+                                    p_tone               in varchar2 default null);
+    -- Release 123 (I-014): an application changes its own lookup value - the meaning, description, tag, tone or Arabic
+    -- meaning given (a null parameter keeps the value). ORA-20186 for a value of another application (COMMON's shared
+    -- values included, unless the caller is COMMON); ORA-20187 for an unknown type or value.
+    procedure update_lookup_value(p_application_code in varchar2,
+                                  p_lookup_type      in varchar2,
+                                  p_lookup_code      in varchar2,
+                                  p_meaning          in varchar2 default null,
+                                  p_description      in varchar2 default null,
+                                  p_tag              in varchar2 default null,
+                                  p_tone             in varchar2 default null,
+                                  p_meaning_ar       in varchar2 default null);
+    -- Release 123 (I-010): the badge colour of a lookup value used as a status (success, warning, danger, info;
+    -- neutral when not set or not found) - the application sets it with REGISTER_LOOKUP_VALUE / UPDATE_LOOKUP_VALUE.
+    function lookup_tone(p_lookup_type in varchar2, p_lookup_code in varchar2) return varchar2;
     -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
     -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
     procedure unregister_lookup_value(p_application_code in varchar2, p_lookup_type in varchar2, p_lookup_code in varchar2);

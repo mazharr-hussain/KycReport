@@ -69,6 +69,7 @@ One workflow engine around APEX workflows and tasks: start / end / state, deadli
 
 ## Test scripts
 
+- `tests/r123_common_test.sql`
 - `tests/r79_security_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`

@@ -417,7 +417,7 @@ table - feature `framework` - `common/db/framework/tables/xxfnd_error_log.sql`
 package spec - feature `framework` - `common/db/framework/package_specs/xxfnd_error_pkg.pks`
 
 - **Uses (body)**: xxfnd_error_log, xxfnd_messages
-- **Used by**: apex:COMMON:application.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_dff_pkg, xxfnd_lookup_pkg, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
+- **Used by**: apex:COMMON:application.apx, xxcmp_case_pkg [KYC], xxcmp_party_pkg [KYC], xxcmp_request_pkg [KYC], xxfnd_application_pkg, xxfnd_approval_rule_pkg, xxfnd_attach_pkg, xxfnd_data_model_pkg, xxfnd_dff_pkg, xxfnd_lookup_pkg, xxfnd_notify_pkg, xxfnd_onboard_pkg, xxfnd_privilege_pkg, xxfnd_user_pkg, xxfnd_vpd_pkg, xxfnd_workflow_pkg
 
 ## xxfnd_feature_pages
 table - feature `roles-privileges` - `common/features/roles-privileges/db/tables/xxfnd_feature_pages.sql`
@@ -789,7 +789,7 @@ view - feature `users-access` - `common/features/users-access/db/views/xxfnd_use
 ## xxfnd_user_pkg
 package spec - feature `users-access` - `common/features/users-access/db/package_specs/xxfnd_user_pkg.pks`
 
-- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_audit_log, xxfnd_privilege_pkg, xxfnd_roles, xxfnd_user_applications, xxfnd_user_roles, xxfnd_users, xxfnd_util_pkg, xxfnd_vpd_pkg, xxhr_employees
+- **Uses (body)**: xxfnd_application_pkg, xxfnd_applications, xxfnd_audit_log, xxfnd_error_pkg, xxfnd_privilege_pkg, xxfnd_roles, xxfnd_user_applications, xxfnd_user_roles, xxfnd_users, xxfnd_util_pkg, xxfnd_vpd_pkg, xxhr_employees
 - **Used by**: apex:COMMON:pages/p00001-home.apx, apex:COMMON:pages/p00103-users.apx, apex:COMMON:pages/p00104-user.apx, apex:COMMON:pages/p00106-role.apx, apex:COMMON:pages/p00183-assign.apx, apex:COMMON:shared-components/app-items.apx, apex:COMMON:shared-components/app-processes.apx, apex:COMMON:shared-components/authentications.apx, apex:COMMON:shared-components/authorizations.apx, xxcmp_cases_lock [KYC], xxcmp_party_pkg [KYC], xxfnd_application_pkg, xxfnd_roles, xxfnd_share_pkg, xxhr_employees_rename
 
 ## xxfnd_user_role_tree_v
