@@ -14,7 +14,7 @@ in this folder. Before the pipeline, Claude changes the code, reviews it, opens 
 | 6 Upgrade app | 6.0 new password · 6.0a guard (upgrade / upgraded only) · 6.0b mark the record · 6.1 remove (= 5.1) · 6.2 build and 6.2a deploy the last release (the PR's base commit) · 6.3 load the last release's test data (its own file from git) · 6.4 snapshot of the app's tables (row counts, rows by key) to a file and the database (no backup schema, I-076) · 6.5 upgrade to this version (once) · 6.5a record it upgraded · 6.6 nothing lost (snapshot before / after) + every key checked against the old rows · 6.7 load this version's test data again (insert + update: the delta) · 6.8 same structure as the fresh install · 6.9 online validation · 6.10 record the version. Skipped when the DB scripts equal the base's (F) or the app has no release yet (I-076) | pipeline user / proxy | `db/run.sh upgrade <base>` |
 | 7 DB tests and security | 7.0 new password · 7.0a version guard · retest only: 7.0b load the test data, 7.0c what the tests rely on · 7.1 select the DB tests (reuse / app: what changed since the last tested commit + last failures) · 7.2 DB tests (every expected file must run): `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 7.2a record the failed files · 7.3 record the version (retest only) · 7.4 APEX-SERT evaluation (report) · 7.5 DBSAT (report; when its download is set) - 7.4-7.5 in the full validation only (I-075) | ADMIN for 7.4, 7.5; proxy for 7.2 | `db/run.sh test` |
 | 8 Browser test and ZAP | 8.0 version guard · 8.1 test users · 8.2 their password of this run · 8.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 8.4 OWASP ZAP baseline scan (report; full validation only) | ADMIN for 8.1 | `db/run.sh ui`, `ui/smoke_ui.py`, ZAP action |
-| 9 Finalize the PR | gate (every earlier job passed) · 9.0 new password · 9.0a version guard · 9.1 APEXlang export of the tested app -> zip (artifact) · 9.1a draft GitHub Release (when the PR adds a release) · 9.2 issues for the existing findings (future releases) · 9.2a the PR carries its generated files · 9.2b auto-merge (full validation only; label `hold` stops it - a draft PR: not merged) - `after-merge.yml` publishes the release · 9.2c report on the PR · 9.3 documentation: 9.3a readable APEX docs (`READABLE_YAML` export), 9.3b database docs (SchemaSpy) - both artifacts and on the release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
+| 9 Finalize the PR | gate (every earlier job passed) · 9.0 new password · 9.0a version guard · 9.1 APEXlang export of the tested app -> zip (artifact) · 9.1a draft GitHub Release (when the PR adds a release) · 9.2 issues for the existing findings (future releases) · 9.2a the PR carries its generated files · 9.2b auto-merge (full validation only; label `hold` stops it - a draft PR: not merged) - the release stays a draft (I-091) · 9.2c report on the PR · 9.3 documentation: 9.3a readable APEX docs (`READABLE_YAML` export), 9.3b database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
 | 10 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
 
 **Naming (issue #218):** PR title `<APP> Release <Number>: <short summary>` (APP = COMMON / KYC, summary at most 60
@@ -65,8 +65,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   every workflow, shellcheck, Python compile, self-test, dry run) checks them in their PR.
 - **Workflow files (I-084, `WORKFLOWS-PLAN.md`)**: `pipeline.yml` (every app; the app is the PR title's `<APP>` or the
   full run's input `app`; KYC, with no `repos/kyc/deployment/app.env` yet, gets the offline checks 1.7-1.10 only),
-  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (release, generated files, project page, docs
-  site - once per merge), `issues.yml` (board, weekly summary), `maintenance.yml` (by hand: clean-up of
+  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (private: records the merge, publishes nothing - I-091), `issues.yml` (board, weekly summary), `maintenance.yml` (by hand: clean-up of
   runs, training videos); shared actions `setup-sqlcl` and `job-logs`. Copies of the files before I-084:
   `workflows-backup/2026-11-23/`.
 
@@ -204,7 +203,7 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `db/sert-eval.sql` | APEX-SERT evaluation (7.4) |
 | `lib/sql.sh` | SQLcl login to the validation ADB: wallet; connect line on stdin (never on the command line or in a file) |
 | `release/carry.sh`, `checks/source_map.py` | 9.2a: the PR carries its generated files; SOURCE-MAP in step |
-| `release/merge.sh`, `release/publish.sh` | 9.2 merge of the green PR (auto-merge); `after-merge.yml` publishes its GitHub Release |
+| `release/merge.sh`, `release/publish.sh` | 9.2 merge of the green PR (auto-merge); `publish.sh` is not called since I-091 (the release stays a draft) |
 | `checks/report.py`, `checks/issues.py` | the PR comment's report; issues for the existing findings |
 | `lib/step.sh` | step logging, step summary, failure record for job 10 |
 | `db/bootstrap.sql` | users, pipeline user and its privileges, workspace, App Builder user, REST-enabled schemas (ADMIN) |
@@ -245,7 +244,7 @@ Secrets (environment "Oracle DB Dev"): `VAL_DB_WALLET`, `VAL_DB_SERVICE`, `VAL_D
 Job 9.1 builds the zip from the application that passed jobs 5-8 (SQLcl `apex export -exptype APEXLANG`) and puts it,
 with the docs, into the draft GitHub Release `common-<N>` (N from the PR title; notes: the title and the linked
 issues, plus `repos/common/releases/<N>-*/README.md` when the PR has one). Job 9.2 turns on auto-merge (GitHub merges once "9 Finalize
-the PR" has passed); `after-merge.yml` then publishes the release (`release/publish.sh`), whoever merged the PR.
+the PR" has passed); the release stays a draft: `after-merge.yml` publishes nothing (I-091) - a release is published by hand when wanted.
 
 ## Run locally
 Set `SQL`, `WALLET`, `VAL_DB_SERVICE`, `ADMIN_PW` (and `XXCUS_PW` for setup, `PMD` for 1.6), then

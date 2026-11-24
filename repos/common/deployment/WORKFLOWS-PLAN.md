@@ -30,6 +30,9 @@ workflow file.
 
 ## 3. The target files
 
+> **Since I-091 (COMMON 121):** `after-merge.yml` publishes nothing - no release, project README, docs site, issue or
+> PR comment; it only records the merge. The rows below about its jobs are history.
+
 | # | File | Starts on | Replaces | What it does |
 |---|---|---|---|---|
 | 1 | `.github/workflows/pipeline.yml` | pull request; PR comment; by hand | `pipeline.yml`, `supersede.yml`, `pipeline-command.yml`, `checks.yml`, `docs-check.yml` | Jobs 1-10 for the app of the PR. Job 0 "Control" handles a newer push replacing an older run (supersede) and the owner's `/pipeline start-from N` comment; it starts nothing else on a comment. |

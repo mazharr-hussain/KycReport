@@ -1,6 +1,5 @@
-# Private post-merge workflow
-# This workflow intentionally performs no public publishing, release, Pages,
-# project-board, issue, or pull-request-comment operations.
+# After a merge to main (I-091): private - it publishes nothing (no GitHub Release, Pages site, project README, issue or
+# PR comment) and only records the merge in the run summary. The pipeline's draft release (step 9.1a) stays a draft.
 
 name: After merge
 run-name: "Private merge check: ${{ github.event.head_commit.message || format('PR {0}', inputs.pr) }}"
@@ -36,6 +35,8 @@ jobs:
           fetch-depth: 1
 
       - name: Record private merge result
+        env:
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          echo "Merge validated for ${{ github.sha }}; no public output was published." >> "$GITHUB_STEP_SUMMARY"
+          echo "Merge validated for $SHA; no public output was published." >> "$GITHUB_STEP_SUMMARY"

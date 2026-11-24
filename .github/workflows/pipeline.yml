@@ -8,7 +8,7 @@
 #    1 Offline validation (no OCI, no DB)      2 OCI setup (placeholder)        3 DB setup
 #    5 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
 #    6 Upgrade app (no data lost)               7 Testing and validation
-#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
+#    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge (the release stays a draft, I-091),
 #      9.3 documentation (readable APEX export, SchemaSpy)
 #    10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 9 only.
@@ -826,7 +826,7 @@ jobs:
           path: ${{ env.ZIP }}
           retention-days: 30
           if-no-files-found: error
-      - name: 9.1a Draft GitHub Release (published by after-merge.yml when the PR merges)
+      - name: 9.1a Draft GitHub Release (stays a draft - nothing is published, I-091)
         if: env.COMMON == 'true' && env.RELEASE != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -904,7 +904,7 @@ jobs:
           if [ "$(cat "$RUNNER_TEMP/carry.txt")" = carried ]; then
             echo "Passed. The generated files were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: 9.2b Merge the PR (auto-merge; after-merge.yml publishes the release)
+      - name: 9.2b Merge the PR (auto-merge; the release stays a draft, I-091)
         id: merge
         if: >-
           github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true' &&

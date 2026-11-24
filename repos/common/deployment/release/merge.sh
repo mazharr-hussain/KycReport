@@ -22,11 +22,11 @@ if ! gh pr merge "$pr" --merge --match-head-commit "$sha"; then
   # Auto-merge instead: GitHub merges the tested head as soon as this job has passed (after-merge.yml then publishes
   # the release)
   if gh pr merge "$pr" --auto --merge --match-head-commit "$sha"; then
-    echo "Auto-merge is on: GitHub merges this PR when the check \"9 Finalize the PR\" has passed (after-merge.yml then publishes the release)." | tee "$out"
+    echo "Auto-merge is on: GitHub merges this PR when the check \"9 Finalize the PR\" has passed (the release stays a draft, I-091)." | tee "$out"
     exit 0
   fi
   echo "GitHub refused the merge and auto-merge (see step 9.2 in the run) - the PR stays open; merge it by hand." | tee "$out"
   exit 1
 fi
 merged=$(gh pr view "$pr" --json mergeCommit -q .mergeCommit.oid)
-echo "Merged by the pipeline (commit ${merged:0:7}); after-merge.yml publishes the release." | tee "$out"
+echo "Merged by the pipeline (commit ${merged:0:7}); the release stays a draft (I-091)." | tee "$out"
