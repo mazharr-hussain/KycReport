@@ -3,7 +3,8 @@ comment on table xxfnd_nav_menu_v is 'Release 104 / 105: the navigation of the r
 
 -- release 106: the links between pages in the APEX definitions of the workspace's applications (buttons, branches,
 -- report column links, list entries) that name a page (f?p=APP:PAGE). Built from the dictionary columns this APEX
--- version has, so a column APEX renames is skipped instead of failing the install. TARGET_APP / TARGET_PAGE as written
+-- version has, so a column APEX renames is skipped instead of failing the install. Release 119: only the applications registered
+-- in XXFND_APPLICATIONS (I-089). TARGET_APP / TARGET_PAGE as written
 -- (an alias, a number or a substitution such as the running application).
 declare
     l_sql varchar2(32767);
@@ -21,7 +22,11 @@ declare
                   || p_source || ' as link_source, '
                   || 'regexp_substr(' || p_target || q'~, 'f\?p=([^:]*):([^:]*)', 1, 1, 'i', 1) as target_app, ~'
                   || 'regexp_substr(' || p_target || q'~, 'f\?p=([^:]*):([^:]*)', 1, 1, 'i', 2) as target_page ~'
-                  || 'from ' || p_view || ' where ' || p_target || q'~ like '%f?p=%'~';
+                  || 'from ' || p_view || ' where ' || p_target || q'~ like '%f?p=%'~'
+                  -- release 119 (I-089): the registered applications only - each APEX dictionary view is read for them,
+                  -- not for every application of the instance (page 169 timed out reading them all)
+                  || ' and application_id in (select a.application_id from apex_applications a'
+                  || ' join xxfnd_applications x on upper(a.alias) = upper(x.apex_app_alias))';
         end if;
     end part;
 begin

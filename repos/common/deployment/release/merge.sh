@@ -4,8 +4,9 @@
 #   - label "hold" on the PR: not merged (the PR stays open for a person to merge)
 #   - a draft PR is marked ready for review first
 #   - merged as a merge commit ("Merge pull request #n ...") and only if its head is still the tested commit
-#   - after-merge.yml starts on the push to main (a person's merge or a person's token) or, for a merge made with the
-#     workflow token (which starts no workflow), on this pipeline run's completion
+#   - run with a person's token (step 9.2b: PIPELINE_MERGE_TOKEN or ADD_TO_PROJECT_PAT): auto-merge turned on as that
+#     person makes the merge theirs, so GitHub closes the PR's "Fixes #n" issues (I-087) and the push to main starts
+#     after-merge.yml (which publishes nothing, I-091); with the workflow token the issues stay open
 # Usage: merge.sh <pr number> <tested head sha> <out file>   (env: GH_TOKEN, GH_REPO; run from the repository root)
 # Writes one line to <out file> for the PR comment. Exit 1 only when GitHub refuses both the merge and auto-merge.
 set -uo pipefail
@@ -23,6 +24,13 @@ if ! gh pr merge "$pr" --merge --match-head-commit "$sha"; then
   # the release)
   if gh pr merge "$pr" --auto --merge --match-head-commit "$sha"; then
     echo "Auto-merge is on: GitHub merges this PR when the check \"9 Finalize the PR\" has passed (the release stays a draft, I-091)." | tee "$out"
+    exit 0
+  fi
+  # the person's token refused (e.g. a classic token without the workflow scope on a PR that changes workflow files):
+  # the workflow token turns auto-merge on instead - the PR's "Fixes #n" issues then stay open (close them by hand)
+  if [ -n "${FALLBACK_TOKEN:-}" ] && [ "$FALLBACK_TOKEN" != "$GH_TOKEN" ] && \
+     GH_TOKEN=$FALLBACK_TOKEN gh pr merge "$pr" --auto --merge --match-head-commit "$sha"; then
+    echo "Auto-merge is on (workflow token - its \"Fixes #n\" issues stay open: close them by hand after the merge)." | tee "$out"
     exit 0
   fi
   echo "GitHub refused the merge and auto-merge (see step 9.2 in the run) - the PR stays open; merge it by hand." | tee "$out"

@@ -72,6 +72,7 @@ One register of every application: COMMON knows each application, its APEX ID an
     - `db/scripts/31-onboarding-and-menu/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/31-onboarding-and-menu/04-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/31b-navigation-menu/01-drop_constraint-xxfnd_app_menu_entries.sql`
+    - `db/scripts/31b-navigation-menu/04-step.sql`
     - `db/scripts/31c-navigation-one-place/01-xxfnd_app_menu_entries-menu_code.sql`
     - `db/scripts/31d-page-access-and-menu-feature/01-add_constraint-xxfnd_app_menu_entries.sql`
     - `db/scripts/32-registration-removal-rfi-contacts/01-xxfnd_error_pkg-register_message.sql`
