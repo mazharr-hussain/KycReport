@@ -385,7 +385,7 @@ page 102 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select v.lookup_type, v.lookup_code, v.meaning, v.description, v.tag,
+                select v.lookup_type, v.lookup_code, v.meaning, v.description, v.tag, v.tone,
                        v.parent_lookup_type, v.parent_lookup_code, v.display_sequence,
                        v.enabled_flag, v.start_date_active, v.end_date_active
                   from xxfnd_lookup_values v
@@ -476,44 +476,51 @@ page 102 (
             )
 
             displayColumn (
-                column: @PARENT_LOOKUP_TYPE
+                column: @TONE
                 layout {
                     sequence: 6
                 }
             )
 
             displayColumn (
-                column: @PARENT_LOOKUP_CODE
+                column: @PARENT_LOOKUP_TYPE
                 layout {
                     sequence: 7
                 }
             )
 
             displayColumn (
-                column: @DISPLAY_SEQUENCE
+                column: @PARENT_LOOKUP_CODE
                 layout {
                     sequence: 8
                 }
             )
 
             displayColumn (
-                column: @ENABLED_FLAG
+                column: @DISPLAY_SEQUENCE
                 layout {
                     sequence: 9
                 }
             )
 
             displayColumn (
-                column: @START_DATE_ACTIVE
+                column: @ENABLED_FLAG
                 layout {
                     sequence: 10
                 }
             )
 
             displayColumn (
-                column: @END_DATE_ACTIVE
+                column: @START_DATE_ACTIVE
                 layout {
                     sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @END_DATE_ACTIVE
+                layout {
+                    sequence: 12
                 }
             )
         )
@@ -620,6 +627,28 @@ page 102 (
             source {
                 type: databaseColumn
                 databaseColumn: TAG
+                dataType: varchar2
+            }
+        )
+
+        column TONE (
+            type: selectList
+            heading {
+                heading: Tone
+            }
+            layout {
+                sequence: 65
+            }
+            help {
+                helpText: Release 123 - the badge colour of the value when it is shown as a status. Empty = neutral.
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC2:Success (green);success,Warning (amber);warning,Danger (red);danger,Info (blue);info,Neutral (grey);neutral
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: TONE
                 dataType: varchar2
             }
         )

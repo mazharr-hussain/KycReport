@@ -686,5 +686,33 @@ create or replace package body xxfnd_user_pkg as
         return apex_util.current_user_in_group(p_group);
     end in_group;
 
+    -- release 123 (I-013)
+    procedure set_role_enabled(p_application_code in varchar2, p_user_name in varchar2, p_role_code in varchar2,
+                               p_enabled_flag in varchar2) is
+        l_user_id xxfnd_users.user_id%type;
+        l_app     xxfnd_roles.application_code%type;
+        l_n       pls_integer;
+    begin
+        select count(*), max(application_code) into l_n, l_app from xxfnd_roles where role_code = upper(p_role_code);
+        if l_n = 0 then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Role', upper(p_role_code)));
+        end if;
+        xxfnd_application_pkg.assert_same_application('Role', upper(p_role_code), l_app,
+                                                      xxfnd_application_pkg.registered_code(p_application_code));
+        select max(user_id) into l_user_id from xxfnd_users where user_name = upper(p_user_name);
+        if l_user_id is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('User', upper(p_user_name)));
+        end if;
+        if p_enabled_flag = 'Y' then
+            assign_role(l_user_id, upper(p_role_code));
+        else
+            for r in (select user_role_id from xxfnd_user_roles
+                       where user_id = l_user_id and role_code = upper(p_role_code) and enabled_flag = 'Y'
+                         and (end_date_active is null or end_date_active >= trunc(sysdate))) loop
+                unassign_role(r.user_role_id);
+            end loop;
+        end if;
+    end set_role_enabled;
+
 end xxfnd_user_pkg;
 /

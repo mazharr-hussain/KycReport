@@ -129,6 +129,20 @@ create or replace package xxfnd_workflow_pkg authid definer as
     -- session: Applications - Manage or Workflow Setup - Manage. ORA-20187 for a process not in the catalogue.
     procedure set_process_enabled(p_application_code in varchar2, p_process_code in varchar2, p_enabled_flag in varchar2);
 
+    -- Release 123 (I-012): a delegation (vacation rule) through a routine, never a direct insert into
+    -- XXFND_WF_DELEGATIONS. The delegate is offered the delegator's tasks (one task definition, or every task when
+    -- null) between the dates. P_APPLICATION_CODE is the calling application (ORA-20187 when not registered). In an
+    -- APEX session: Workflow Setup - Manage, or the delegator is the signed-in user. Returns the DELEGATION_ID.
+    function add_delegation(p_application_code    in varchar2,
+                            p_delegator_user_name in varchar2,
+                            p_delegate_user_name  in varchar2,
+                            p_start_date          in date,
+                            p_end_date            in date,
+                            p_task_definition     in varchar2 default null,
+                            p_reason              in varchar2 default null) return number;
+    -- ends a delegation on P_END_DATE (not before its start date); ORA-20187 when the delegation does not exist
+    procedure end_delegation(p_application_code in varchar2, p_delegation_id in number, p_end_date in date default sysdate);
+
     -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
     -- XXFND_APPLICATION_PKG.REMOVE_REGISTERED: ORA-20187 not registered, ORA-20186 another application's, ORA-20196 in use).
     -- a configuration table no longer changed through approvals

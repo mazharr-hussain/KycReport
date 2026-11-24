@@ -225,7 +225,7 @@ page 149 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select rule_step_id, rule_id, step_no, step_name, approver_type, role_code, user_name, due_days
+                select rule_step_id, rule_id, step_no, step_name, approver_type, role_code, group_code, user_name, due_days
                   from xxfnd_approval_rule_steps
                  where rule_id = :P149_RULE_ID
                 ```
@@ -302,16 +302,23 @@ page 149 (
             )
 
             displayColumn (
-                column: @USER_NAME
+                column: @GROUP_CODE
                 layout {
                     sequence: 5
                 }
             )
 
             displayColumn (
-                column: @DUE_DAYS
+                column: @USER_NAME
                 layout {
                     sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DUE_DAYS
+                layout {
+                    sequence: 7
                 }
             )
         )
@@ -403,7 +410,7 @@ page 149 (
                     ```sql
                     select d, r from (select 'A user' d, 'USER' r, 1 s from dual union all
                                       select 'A role', 'ROLE', 2 from dual union all
-                                      -- release 113: an approval group of the process (Role / Group column)
+                                      -- release 113: an approval group of the process (release 123: the Group column)
                                       select 'An approval group', 'GROUP', 2.5 from dual union all
                                       select 'The requester', 'REQUESTER', 3 from dual union all
                                       -- release 94 (UI issue 8): approver types of AME / BPM, kept as placeholders until
@@ -430,20 +437,47 @@ page 149 (
         column ROLE_CODE (
             type: selectList
             heading {
-                heading: Role / Group
+                heading: Role
             }
             layout {
                 sequence: 60
+            }
+            help {
+                helpText: The role of a Role level.
             }
             lov {
                 type: sqlQuery
                 sqlQuery:
                     ```sql
-                    -- release 113: the roles, and the approval groups of this rule's process
                     select role_name as display_value, role_code as return_value
                       from xxfnd_roles
-                    union all
-                    select 'Group: ' || group_name, group_code
+                     order by 1
+                    ```
+            }
+            source {
+                type: databaseColumn
+                databaseColumn: ROLE_CODE
+                dataType: varchar2
+            }
+        )
+
+        column GROUP_CODE (
+            type: selectList
+            heading {
+                heading: Group
+            }
+            layout {
+                sequence: 65
+            }
+            help {
+                helpText: Release 123 - the approval group of a Group level (its own column; before, it was kept in Role).
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    -- the approval groups of this rule's process
+                    select group_name as display_value, group_code as return_value
                       from xxfnd_approval_groups
                      where approval_type_code = :P149_APPROVAL_TYPE_CODE
                      order by 1
@@ -451,7 +485,7 @@ page 149 (
             }
             source {
                 type: databaseColumn
-                databaseColumn: ROLE_CODE
+                databaseColumn: GROUP_CODE
                 dataType: varchar2
             }
         )

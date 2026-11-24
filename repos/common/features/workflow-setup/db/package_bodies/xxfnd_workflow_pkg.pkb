@@ -532,6 +532,48 @@ create or replace package body xxfnd_workflow_pkg as
         end if;
     end set_process_enabled;
 
+    -- release 123 (I-012): delegations through routines
+    procedure check_delegator(p_delegator_user_name in varchar2) is
+    begin
+        if xxfnd_util_pkg.in_apex_session
+           and not (xxfnd_privilege_pkg.has_privilege('WORKFLOW_SETUP', 'MANAGE')
+                    or upper(p_delegator_user_name) = upper(v('APP_USER'))) then
+            xxfnd_error_pkg.raise_error('XXFND_NOT_ALLOWED');
+        end if;
+    end check_delegator;
+
+    function add_delegation(p_application_code    in varchar2,
+                            p_delegator_user_name in varchar2,
+                            p_delegate_user_name  in varchar2,
+                            p_start_date          in date,
+                            p_end_date            in date,
+                            p_task_definition     in varchar2 default null,
+                            p_reason              in varchar2 default null) return number is
+        l_code xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_id   xxfnd_wf_delegations.delegation_id%type;
+    begin
+        check_delegator(p_delegator_user_name);
+        insert into xxfnd_wf_delegations (delegator_user_name, delegate_user_name, task_definition, start_date, end_date, reason)
+        values (upper(p_delegator_user_name), upper(p_delegate_user_name), p_task_definition, p_start_date, p_end_date,
+                p_reason)
+        returning delegation_id into l_id;
+        return l_id;
+    end add_delegation;
+
+    procedure end_delegation(p_application_code in varchar2, p_delegation_id in number, p_end_date in date default sysdate) is
+        l_code      xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
+        l_delegator xxfnd_wf_delegations.delegator_user_name%type;
+    begin
+        select max(delegator_user_name) into l_delegator from xxfnd_wf_delegations where delegation_id = p_delegation_id;
+        if l_delegator is null then
+            xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Delegation', to_char(p_delegation_id)));
+        end if;
+        check_delegator(l_delegator);
+        update xxfnd_wf_delegations
+           set end_date = greatest(start_date, nvl(p_end_date, sysdate))
+         where delegation_id = p_delegation_id;
+    end end_delegation;
+
     -- release 88 (C8, C9)
     procedure unregister_config_table(p_application_code in varchar2, p_table_name in varchar2) is
     begin

@@ -59,7 +59,7 @@ page 154 (
                                                           and a.attribute_code = c.attribute_code
                          where c.rule_id = r.rule_id)                                     as conditions,
                        (select listagg(s.step_no || '. ' || s.step_name || ' - '
-                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name), ' > ')
+                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, nvl(s.group_code, s.role_code), s.user_name), ' > ')
                                    within group (order by s.step_no)
                           from xxfnd_approval_rule_steps s
                          where s.rule_id = r.rule_id)                                     as levels,
@@ -176,7 +176,7 @@ page 154 (
                           from xxfnd_approval_group_members m
                          where m.group_code = g.group_code)                                as members,
                        (select count(*) from xxfnd_approval_rule_steps s
-                         where s.approver_type = 'GROUP' and s.role_code = g.group_code)     as used_by_levels,
+                         where s.approver_type = 'GROUP' and s.group_code = g.group_code)    as used_by_levels,
                        decode(g.enabled_flag, 'Y', 'Active', 'Off')                       as state,
                        apex_page.get_url(p_page => 155, p_items => 'P155_GROUP_CODE', p_values => g.group_code,
                                          p_clear_cache => '155')                          as open_url

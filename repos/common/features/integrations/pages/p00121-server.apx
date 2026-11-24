@@ -1103,4 +1103,55 @@ page 121 (
         )
 
     )
+
+    dynamicAction remote-server-change (
+        name: Another APEX Remote Server - its name, URL and REST Data Sources at once (I-020)
+        execution {
+            sequence: 40
+        }
+        when {
+            event: change
+            selectionType: items
+            items: P121_REMOTE_SERVER_CODE
+        }
+
+        action remote-server-change-set (
+            action: setValue
+            settings {
+                type: sqlQuery
+                itemsToSubmit: P121_REMOTE_SERVER_CODE,P121_SERVER_CODE
+                sqlQuery:
+                    ```sql
+                    -- the same values the items read when the page loads, for the Remote Server just picked
+                    select max(r.remote_server_name),
+                           max(r.base_url),
+                           max(regexp_substr(r.base_url, 'objectstorage\.([^.]+)\.', 1, 1, 'i', 1)),
+                           max(regexp_substr(r.base_url, '/n/([^/]+)', 1, 1, 'i', 1))
+                      from apex_workspace_remote_servers r
+                     where r.remote_server_static_id = nvl(:P121_REMOTE_SERVER_CODE, :P121_SERVER_CODE)
+                    ```
+            }
+            affectedElements {
+                selectionType: items
+                items: P121_SERVER_NAME,P121_BASE_URL,P121_OCI_REGION,P121_OCI_NAMESPACE
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action remote-server-change-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @data-sources
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
 )

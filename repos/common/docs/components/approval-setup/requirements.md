@@ -21,3 +21,9 @@ application summary is `repos/common/docs/README.md`.
 - The Process Catalogue lists one row per process (for example KYC case approval, KYC request approval); each process opens its Process page with its approval rules and its approval groups.
 - An approval group is a named set of approvers of a process: roles (their active users) and users. A rule level can name a group instead of one role or user; anyone in the group can approve.
 - Fixes: the Server form (ORA-00937) and the User form (grid columns) open again.
+
+## Change - Approval groups in their own column; rules switched by a routine (COMMON 123)
+
+- A Group level keeps its approval group in its own column (GROUP_CODE) on the rule levels and on the approval steps of a record; ROLE_CODE is for a Role level only. Existing group levels are moved on upgrade (I-026).
+- The rule screen (page 149) shows a Role column and a Group column instead of one "Role / Group" column.
+- An application switches one of its approval rules off and on with `XXFND_APPROVAL_RULE_PKG.SET_RULE_ENABLED` - never by changing the table (I-013).

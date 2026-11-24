@@ -42,3 +42,8 @@ application summary is `repos/common/docs/README.md`.
 ## Removed - Fusion Objects (COMMON 112)
 
 The Fusion Objects engine (BICC / REST metadata harvester, replicas, drift) was removed; Fusion endpoints come from the APEX REST Source Catalogs on the server (COMMON 110 / 112).
+
+## Change - Server and Purpose screens (COMMON 123)
+
+- Server (page 121): picking another APEX Remote Server shows its name, URL, OCI region and namespace, and its REST Data Sources at once, before the server is saved (I-020).
+- Purpose (page 123): the Catalog Service field explains that it lists the services of the REST Source Catalogs linked to the server, and is empty until the server has one (I-022).

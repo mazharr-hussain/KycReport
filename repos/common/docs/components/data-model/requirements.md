@@ -23,3 +23,7 @@ application summary is `repos/common/docs/README.md`.
 - Page 116 (Notification Delivery) uses the shared LOVs `ENABLED_APPLICATIONS` and `NOTIFICATION_TEMPLATES`.
 - COMMON no longer names KYC: the party-details access rule moved to the KYC party package, there is no `KYC` fallback for upload limits, KYC lookups are registered by KYC only, the KYC-dependent tests moved to KYC, and the comments use generic examples.
 - Lists, LOVs and authorizations are one file per component.
+
+## Change - Shared application list (COMMON 123)
+
+- Data Model (page 175) and Data Model Diagram (page 177) share the LOV `DM_APPLICATIONS` instead of the same query on each page (I-3B2). The other repeated page lists (setup columns, applications with different filters) each depend on their own page's fields, so they stay on their pages.
