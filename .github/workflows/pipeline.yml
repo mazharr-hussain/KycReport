@@ -9,13 +9,13 @@
 #    5 Deploy fresh app (4 Quick check first when only code objects changed: minutes, then the full deploy)
 #    6 Upgrade app (no data lost)               7 Testing and validation
 #    9 Finalize the PR: 9.1 release zip (APEXlang export), 9.2 issues for a future release + merge + release,
-#      9.3-9.4 documentation (readable APEX export, SchemaSpy)
+#      9.3 documentation (readable APEX export, SchemaSpy)
 #    10 Error handling: any failure skips the remaining work, comments the error on the PR and stops the pipeline
 # Scripts: repos/common/deployment (README there). A PR that does not touch COMMON passes jobs 1 and 9 only.
 # Required check on main: "9 Finalize the PR" (it fails whenever an earlier job failed or was cancelled).
 name: Pipeline
 # run name: "<PR title>: Push Number <N>" - N is the PR's commit count (Claude pushes one commit per push); a retry of
-# the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0a)
+# the same push stays in this run as attempt 2, 3, ... (PR title: "<APP> Release <N>: <summary>", checked in 1.0)
 run-name: "${{ github.event.pull_request.title || format('{0} full run', inputs.app || 'COMMON') }}: Push Number ${{ github.event.pull_request.commits || github.run_number }}"
 
 on:
@@ -53,7 +53,7 @@ env:
   LOG_DIR: /tmp/pipeline-logs   # step logs (lib/step.sh); each job uploads its own as logs-<job>
   REPORT_DIR: /tmp/pipeline-reports   # reports and recordings; uploaded as report-<job>
   DB_TARGET: dev   # the database jobs run on Oracle_Dev_DB: test data loads only here (I-076)
-  # I-075: full validation (APEX-SERT 3.4 / 7.4, DBSAT 7.5, OWASP ZAP 8.6, merge) for a PR that is ready for review
+  # I-075: full validation (APEX-SERT 3.4 / 7.4, DBSAT 7.5, OWASP ZAP 8.4, merge) for a PR that is ready for review
   # and for the full run; a draft PR gets the quick validation (no scans, no merge)
   FULL_VALIDATION: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
 
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      issues: read          # 1.0a: the linked issues and their labels
+      issues: read          # 1.0: the linked issues and their labels
       pull-requests: read   # the PR's start-from-N label
     outputs:
       app: ${{ steps.scope.outputs.app }}         # COMMON / KYC: the PR title, or the full run's input
@@ -98,7 +98,7 @@ jobs:
           INPUT_APP: ${{ inputs.app }}
         run: |
           set -euo pipefail
-          # the application parameter: "<APP> Release <N>: ..." in the PR title (format checked in 1.0a), or the input
+          # the application parameter: "<APP> Release <N>: ..." in the PR title (format checked in 1.0), or the input
           if [ -n "$BASE" ]; then app=$(printf '%s' "$PR_TITLE" | sed -nE 's/^([A-Z]+) Release [0-9]+: .+$/\1/p'); else app=${INPUT_APP:-COMMON}; fi
           app=${app:-COMMON}
           lower=$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')
@@ -134,7 +134,7 @@ jobs:
           # "COMMON Release <N>: ..." -> N (a KYC release has no COMMON release number: no COMMON zip / release)
           release=$(printf '%s' "$PR_TITLE" | sed -nE 's/^COMMON Release ([0-9]+): .+$/\1/p')
           echo "release=$release" >> "$GITHUB_OUTPUT"
-      - name: 1.0d Dependabot PR - the changed workflow and action files are valid YAML
+      - name: 1.0 Dependabot PR - the changed workflow and action files are valid YAML
         if: steps.scope.outputs.dependabot == 'true'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
@@ -212,7 +212,7 @@ jobs:
             unzip -q pmd.zip && rm pmd.zip
           fi
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
-      - name: 1.0a-1.6 Offline validation
+      - name: 1.0-1.6a Offline validation
         if: steps.scope.outputs.common == 'true'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
@@ -378,10 +378,10 @@ jobs:
           admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
           xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
           wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
-      - name: 3.1-3.4 DB setup
+      - name: 3.0-3.4 DB setup
         id: setup
         env:
-          GH_TOKEN: ${{ github.token }}                       # 3.2b: what changed since the version the database passed with
+          GH_TOKEN: ${{ github.token }}                       # 3.2a: what changed since the version the database passed with
         run: |
           set -euo pipefail
           bash repos/common/deployment/db/run.sh setup
@@ -451,7 +451,7 @@ jobs:
           admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
           xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
           wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
-      - name: 4.Q1-4.Q8 Quick check - the changed code objects and their tests
+      - name: 4.0-4.Q8 Quick check - the changed code objects and their tests
         run: bash repos/common/deployment/db/run.sh quick
       - name: Step logs
         if: always()
@@ -475,11 +475,11 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
-      DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 5.7 records the version (no upgrade test)
+      DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 5.6 records the version (no upgrade test)
       APP_ONLY: ${{ needs.db-setup.outputs.deploy == 'app' }}   # true: only the APEX application is replaced
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # data: the install is kept, only the test data loads
       RESUME_AT: ${{ needs.db-setup.outputs.resume_at }}       # I-078: loaded - the steps before it passed for this version
-      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 5.2a records it, 5.0 (data) checks it
+      INSTALL_FINGERPRINT: ${{ needs.offline.outputs.install_fingerprint }}   # 5.2a records it, 5.0a (data) checks it
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}         # 5.6: the DB tests this PR affects (or ALL)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
@@ -509,7 +509,7 @@ jobs:
           admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
           xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
           wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
-      - name: 5.0-5.7 Deploy fresh app (with this version's test data)
+      - name: 5.0-5.6 Deploy fresh app (with this version's test data)
         run: bash repos/common/deployment/db/run.sh fresh
       - name: Dependency report (5.4)
         if: always()
@@ -531,7 +531,7 @@ jobs:
     # application only: these database scripts passed it already, the schema keeps its data. (F - no upgrade test when
     # the scripts are the base's - is held back: job 7's DB tests still need the data the upgrade test restores.)
     # full, and patch after its quick check (job 5 ran the full fresh install); upgrade: job 5 passed for this
-    # version on an earlier run (6.0 checks that it is still recorded)
+    # version on an earlier run (6.0a checks that it is still recorded)
     if: >-
       always() && needs.db-setup.result == 'success' &&
       (((needs.db-setup.outputs.deploy == 'full' || needs.db-setup.outputs.deploy == 'patch' || needs.db-setup.outputs.deploy == 'data' ||
@@ -545,7 +545,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
-      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 6.11 records it: the database holds this version
+      FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 6.10 records it: the database holds this version
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 6.0 checks job 5's earlier pass
       RESUME_AT: ${{ needs.db-setup.outputs.resume_at }}       # I-078: upgraded - the steps before it passed for this version
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
@@ -579,7 +579,7 @@ jobs:
           admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
           xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
           wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
-      - name: 6.0-6.11 Upgrade app (last release = the PR's base commit, with its test data from git)
+      - name: 6.0-6.10 Upgrade app (last release = the PR's base commit, with its test data from git)
         run: bash repos/common/deployment/db/run.sh upgrade "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: Step logs
         if: always()
@@ -708,12 +708,12 @@ jobs:
           url=$(bash repos/common/deployment/lib/app-url.sh)
           echo "APP_URL=$url" >> "$GITHUB_ENV"
           echo "target=$url/r/xxcus/common" >> "$GITHUB_OUTPUT"
-      - name: 8.1, 8.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
+      - name: 8.0-8.3 Test users, browser test of the pages (a PR's pages; every page in the full run)
         env:
           # video and trace only in the full run and only when asked for
           UI_RECORD: ${{ github.event_name == 'workflow_dispatch' && inputs.record_video && '1' || '0' }}
         run: bash repos/common/deployment/db/run.sh ui
-      - name: 8.6 OWASP ZAP baseline scan (passive; report only)
+      - name: 8.4 OWASP ZAP baseline scan (passive; report only)
         # the full run only (K); also after a failed browser test: every finding in one run (A)
         if: always() && steps.app.outcome == 'success' && env.FULL_VALIDATION == 'true'
         uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
@@ -746,14 +746,14 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
-    timeout-minutes: 60   # 9.1 APEXlang export + 9.3 readable export + 9.4 SchemaSpy took more than 15 minutes
+    timeout-minutes: 60   # 9.1 APEXlang export + 9.3a readable export + 9.3b SchemaSpy took more than 15 minutes
     permissions:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: write        # draft GitHub Release of the tested zip; 9.2 merge and release
       pull-requests: write   # 9.2 ready for review, merge, PR comment
       issues: write          # 9.2 issues for the existing findings
     env:
-      COMMON: ${{ needs.offline.outputs.db }}   # the database jobs ran: their results gate, and 9.1 / 9.3-9.4 export the app
+      COMMON: ${{ needs.offline.outputs.db }}   # the database jobs ran: their results gate, and 9.1 / 9.3 export the app
       RELEASE: ${{ needs.offline.outputs.release }}
       TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}   # app.env APP_CODE: release tag <prefix>-<N>
       ZIP_PREFIX: ${{ needs.offline.outputs.zip_prefix }}   # app.env ZIP_NAME: release zip <prefix>_<N>.zip
@@ -817,7 +817,7 @@ jobs:
           (cd "$app" && zip -qr "$RUNNER_TEMP/$name" .)
           echo "ZIP=$RUNNER_TEMP/$name" >> "$GITHUB_ENV"
           echo "- 9.1 release zip: \`$name\`" >> "$GITHUB_STEP_SUMMARY"
-      - name: 9.1 Release zip (artifact)
+      - name: Release zip (artifact)
         if: env.COMMON == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -825,7 +825,7 @@ jobs:
           path: ${{ env.ZIP }}
           retention-days: 30
           if-no-files-found: error
-      - name: 9.1 Draft GitHub Release (published by after-merge.yml when the PR merges)
+      - name: 9.1a Draft GitHub Release (published by after-merge.yml when the PR merges)
         if: env.COMMON == 'true' && env.RELEASE != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -878,7 +878,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2 Draft PR - quick validation passed, not merged
+      - name: 9.2b Draft PR - quick validation passed, not merged
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
         run: |
           echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
@@ -903,7 +903,7 @@ jobs:
           if [ "$(cat "$RUNNER_TEMP/carry.txt")" = carried ]; then
             echo "Passed. The generated files were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: 9.2 Merge the PR (auto-merge; after-merge.yml publishes the release)
+      - name: 9.2b Merge the PR (auto-merge; after-merge.yml publishes the release)
         id: merge
         if: >-
           github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true' &&
@@ -915,7 +915,7 @@ jobs:
         run: |
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \
             "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/merge.txt"
-      - name: 9.2 Report on the PR - passed, merge result, warnings, notices, issues logged
+      - name: 9.2c Report on the PR - passed, merge result, warnings, notices, issues logged
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && (success() || steps.merge.outcome == 'failure' || steps.carry.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
@@ -942,10 +942,10 @@ jobs:
             await core.summary.addRaw(body).write();
 
       # E: the documentation is not needed to merge - it is made after the merge and added to the release
-      - name: 9.2 Dependabot PR - passed; merge it by hand (its token cannot merge or comment)
+      - name: 9.2b Dependabot PR - passed; merge it by hand (its token cannot merge or comment)
         if: env.DEPENDABOT == 'true'
         run: echo "- **Dependabot PR passed** - merge it by hand (GitHub gives Dependabot PRs a read-only token)" >> "$GITHUB_STEP_SUMMARY"
-      - name: 9.3-9.4 Documentation of the tested application (readable APEX export, SchemaSpy) - after the merge
+      - name: 9.3 Documentation of the tested application (readable APEX export, SchemaSpy) - after the merge
         id: docs
         if: env.COMMON == 'true' && github.event_name == 'pull_request' && success()
         continue-on-error: true   # the PR is merged and released already; a docs problem is reported, not a failure
@@ -958,9 +958,9 @@ jobs:
           (cd "$RUNNER_TEMP/out" && zip -qr "$RUNNER_TEMP/COMMON-apex-docs.zip" apex-docs && zip -qr "$RUNNER_TEMP/COMMON-db-docs.zip" db-docs)
           if [ -n "$RELEASE" ] && gh release view "$TAG_PREFIX-$RELEASE" > /dev/null 2>&1; then
             gh release upload "$TAG_PREFIX-$RELEASE" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
-            echo "- 9.3-9.4 documentation added to release \`$TAG_PREFIX-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- 9.3 documentation added to release \`$TAG_PREFIX-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: 9.3-9.4 Documentation (artifact)
+      - name: Documentation (artifact)
         if: steps.docs.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -970,9 +970,9 @@ jobs:
             ${{ runner.temp }}/COMMON-db-docs.zip
           retention-days: 30
           if-no-files-found: ignore
-      - name: 9.3-9.4 Documentation not made
+      - name: Documentation not made
         if: steps.docs.outcome == 'failure'
-        run: echo "::warning::9.3-9.4 documentation failed after the merge - see the step log; the release has its zip"
+        run: echo "::warning::9.3 documentation failed after the merge - see the step log; the release has its zip"
       - name: A start-from-N label counts for one run (it was read by job 1)
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -997,12 +997,12 @@ jobs:
       pull-requests: write   # the error comment
       issues: write          # the full run: its failure becomes an issue (K)
     steps:
-      - name: 10.1 Collect the step logs
+      - name: Collect the step logs
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: logs-*
           path: logs
-      - name: 10.1 The report script
+      - name: The report script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -1010,7 +1010,7 @@ jobs:
           path: src
       - name: 10.1 Warnings and notices of this run
         run: python3 src/repos/common/deployment/checks/report.py logs "$RUNNER_TEMP/report.md"
-      - name: 10.1-10.3 Error details - PR comment and run summary, then stop
+      - name: 10.2-10.3 Error details - PR comment and run summary, then stop
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RESULTS: ${{ toJSON(needs) }}

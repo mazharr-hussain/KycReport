@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keeps repos/common/SOURCE-MAP.json in step with the files (pipeline step 1.1b and the regeneration after a merge).
+"""Keeps repos/common/SOURCE-MAP.json in step with the files (pipeline step 1.1a and the regeneration after a merge).
 
 source_map.py [--check]
 The build (tools/build.py) takes an application file only when SOURCE-MAP.json lists it. This script registers every

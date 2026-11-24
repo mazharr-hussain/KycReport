@@ -1,7 +1,7 @@
 #!/bin/bash
 # COMMON pipeline - the database jobs on the validation ADB (environment "Oracle_Dev_DB"). One call per pipeline job:
 #   run.sh setup               3   DB setup: 3.1 start the DB (placeholder), 3.2 bootstrap only when needed,
-#                                  3.3b drop earlier pipelines' backup schemas (I-076), 3.4 APEX-SERT installed only
+#                                  3.3 drop earlier pipelines' backup schemas (I-076), 3.4 APEX-SERT installed only
 #                                  when missing or its pinned commit changed - full validation only (I-075)
 #   run.sh quick               4   Quick check (deploy=patch: only code objects changed): 4.Q1 mark the record,
 #                                  4.Q2 run the changed code objects alone, 4.Q3 import the app (when it changed),
@@ -10,21 +10,21 @@
 #   run.sh fresh               5   Deploy fresh app: 5.1 remove the app and its own DB objects (I-077), 5.2 deploy this version, 5.2b load
 #                                  this version's test data (db/admin/test-data.json), 5.3 online validation,
 #                                  5.4 dependency check (report), 5.5 record the fresh install's structure
-#   run.sh upgrade <base-ref>  6   Upgrade app: 6.1 remove (= 5.1), 6.2 deploy the last release, 6.3 load the last
+#   run.sh upgrade <base-ref>  6   Upgrade app: 6.1 remove (= 5.1), 6.2 build and 6.2a deploy the last release, 6.3 load the last
 #                                  release's test data (from git), 6.4 snapshot to a file (I-076), 6.5 upgrade,
 #                                  6.6 nothing lost + keys checked, 6.7 load this version's test data again (insert +
 #                                  update: the delta), 6.8 same structure as the fresh install, 6.9 online validation,
-#                                  6.11 record the version
+#                                  6.10 record the version
 #   No test data is kept in the database between runs: it lives in git and is loaded by each run.
 # Jobs 4 (quick check), 5 (application only), 6 (deploy=upgrade), 7, 8 and 9 first check that the database still holds what
 # job 3 found (version guard): a job re-run after another run changed the database stops instead of testing the wrong
 # version.
 #   run.sh test                7   DB tests and security: 7.2 DB tests (any FAIL or error stops the pipeline),
 #                                  7.4 APEX-SERT, 7.5 DBSAT - 7.4-7.5 in the full validation only (I-075)
-#   run.sh ui                  8   Browser test: 8.1 test users, 8.3 every page (video, screenshots, trace);
-#                                  (8.6 OWASP ZAP runs as a workflow step, full validation only)
+#   run.sh ui                  8   Browser test: 8.0 version guard, 8.1 test users, 8.2 their passwords, 8.3 every page (video, screenshots, trace);
+#                                  (8.4 OWASP ZAP runs as a workflow step, full validation only)
 #   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
-#                                  9.3 readable YAML export (<dir>/apex-docs), 9.4 SchemaSpy (<dir>/db-docs)
+#                                  9.3a readable YAML export (<dir>/apex-docs), 9.3b SchemaSpy (<dir>/db-docs)
 # This version's application must already be built in repos/common/dist/app (pipeline job 1).
 # Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 3.2, 8.1), XXCUS_PW (3.2 only), LOG_DIR,
 #      BASE (pull request base commit, to see whether bootstrap.sql / the SERT pin changed), REPORT_DIR (reports and
@@ -61,7 +61,7 @@ ci_exec() {   # ci_exec <login> <statement line>...
 read_record() {   # the record into LOG_DIR/record.txt (DEPLOYED / CODE / PASSED / FAILED lines)
   S CI "$HERE/deployed.sql" check mode=get > "$LOG_DIR/record.txt" || { cat "$LOG_DIR/record.txt"; return 1; }
 }
-decide() {   # 3.2b: reuse | app | patch | data | retest | upgrade | full (LOG_DIR/deploy, patch-files, ...)
+decide() {   # 3.2a: reuse | app | patch | data | retest | upgrade | full (LOG_DIR/deploy, patch-files, ...)
   read_record || return 1
   # retest: only the test data (and the pipeline's own files) changed since the commit the database last passed with
   local head changed
@@ -89,7 +89,7 @@ mark_dirty() {   # before a deploy changes the database: the record no longer cl
             " when matched then update set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY'" \
             " when not matched then insert (app_code, fingerprint, verified) values ('COMMON', '-', 'DIRTY');" \
             "delete from xxci_deployed_code;" "delete from xxci_passed;" "commit;" ;;
-    keep-fresh)   # 6.0a: the fresh install's pass (job 5) stays - a restart from job 6 may skip job 5
+    keep-fresh)   # 6.0b: the fresh install's pass (job 5) stays - a restart from job 6 may skip job 5
           ci_exec CI "update xxci_deployed set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY' where app_code = 'COMMON';" \
             "delete from xxci_deployed_code;" "delete from xxci_passed where check_name <> 'fresh';" "commit;" ;;
     app)  ci_exec CI "update xxci_deployed set fingerprint = '-', app_fingerprint = '-' where app_code = 'COMMON';" \
@@ -100,7 +100,7 @@ mark_dirty() {   # before a deploy changes the database: the record no longer cl
             "delete from xxci_passed where check_name <> 'fresh';" "commit;" ;;
   esac
 }
-record_deployed() {  # 5.7 / 6.8 (FULL) and 4.Q5 (PATCH): this version passed its deploy
+record_deployed() {  # 5.6 / 6.10 (FULL) and 4.Q5 (PATCH): this version passed its deploy
   local verified=$1 k h f lines=()
   safe "${FINGERPRINT:?FINGERPRINT is not set}" "${DB_FINGERPRINT:?DB_FINGERPRINT is not set}" \
        "${STRUCT_FINGERPRINT:?STRUCT_FINGERPRINT is not set}" "${APP_FINGERPRINT:?APP_FINGERPRINT is not set}" || return 1
@@ -117,7 +117,7 @@ record_deployed() {  # 5.7 / 6.8 (FULL) and 4.Q5 (PATCH): this version passed it
   lines+=("commit;" "prompt DEPLOYED $FINGERPRINT $verified")
   ci_exec CI "${lines[@]}"
 }
-record_tests() {   # 7.2b: the head commit tested and the test files that failed (run again next time)
+record_tests() {   # 7.2a: the head commit tested and the test files that failed (run again next time)
   # 4.Q8 (only=failed): the failed files only - the quick check runs a subset, so it never counts as this commit tested
   local f lines=()
   safe "${HEAD_SHA:-}" || return 1
@@ -219,7 +219,7 @@ SQL
   [ "${n:-0}" -gt 0 ] || { echo "::error::APEX-SERT is not installed (SERT_CORE.EVAL_PKG missing or invalid)"; return 1; }
   echo "APEX-SERT installed and valid"
 }
-drop_old_backups() {   # 3.3b: the backup schemas of earlier pipelines are dropped once - the upgrade test no longer
+drop_old_backups() {   # 3.3: the backup schemas of earlier pipelines are dropped once - the upgrade test no longer
   # copies data into a schema (I-076); the test data lives in git. Only names ending in _BKP (backup-schema.sql refuses others)
   S CI "$HERE/backup-schema.sql" check bkp_schema=XXFUSION_BASE_BKP ci_user="$CI_USER" drop_only=Y &&
   S CI "$HERE/backup-schema.sql" check bkp_schema=XXFUSION_BKP ci_user="$CI_USER" drop_only=Y
@@ -244,7 +244,7 @@ snapshot() {   # 6.4 (before) / 6.6 (after): the application's tables, their row
   echo "snapshot: $(grep -c $'^T\t' "$out") table(s), $(grep -c $'^R\t' "$out") keyed row(s)"
 }
 snapshot_before() {   # 6.4: the snapshot before the upgrade, kept in the database too - a run that resumes after the
-  # upgrade (deploy=upgraded, 6.0) compares with it in 6.6 (I-076: no backup schema; I-078)
+  # upgrade (deploy=upgraded, 6.0a) compares with it in 6.6 (I-076: no backup schema; I-078)
   snapshot "$LOG_DIR/snapshot-before.txt" "$LAST/repos/common" "$THIS" || return 1
   LINES=("set define off")
   lines_sql xxci_upgrade_snapshot "$LOG_DIR/snapshot-before.txt"
@@ -263,7 +263,7 @@ snapshot_restore() {   # 6.6 in a resumed run: the snapshot before the upgrade, 
 remove_app() { # 5.1 / 6.1: the APEX application and the application's own database objects (never the schema)
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID" && remove_objects
 }
-record_objects() {   # before a deploy (5.2 / 6.2 / 6.5): the objects its scripts create, so a later remove finds them
+record_objects() {   # before a deploy (5.2 / 6.2a / 6.5): the objects its scripts create, so a later remove finds them
   local dir=$1 kind name lines=()
   while read -r kind name; do
     [[ $kind =~ ^[A-Z_]+$ && $name =~ ^[A-Z][A-Z0-9_\$#]*$ ]] || { echo "bad object line: $kind $name"; return 1; }
@@ -310,7 +310,7 @@ remove_test_accounts() {  # 5.1 (full fresh install): the test users' APEX accou
 remove_apex_app() {  # 5.1 (application only): the APEX application; the schema, its objects and data stay
   S CI "$HERE/remove-app.sql" check app_id="$APP_ID"
 }
-deploy() {     # 5.2 / 6.2 / 6.4: deploy <project dir> install|upgrade|app - DB scripts (not for app), then APEXlang validate + import
+deploy() {     # 5.2 / 6.2a / 6.5: deploy <project dir> install|upgrade|app - DB scripts (not for app), then APEXlang validate + import
   local dir=$1 mode=$2 f out rc
   if [ "$mode" != app ]; then
     record_objects "$dir" || return 1   # first: a deploy that stops half way is still removed in full next time
@@ -322,7 +322,7 @@ deploy() {     # 5.2 / 6.2 / 6.4: deploy <project dir> install|upgrade|app - DB 
   out=$(S "$APP_SCHEMA" "$f"); rc=$?; rm -f "$f"; echo "$out"
   [ "$rc" -eq 0 ] && echo "$out" | grep -q "Validation successful" && echo "$out" | grep -q "Import successful"
 }
-validate_online() {  # 5.3 / 6.6
+validate_online() {  # 5.3 / 6.9
   local pages
   pages=$(find "$THIS/dist/app/pages" -name '*.apx' | wc -l)
   S "$APP_SCHEMA" "$HERE/validate-online.sql" check app_id="$APP_ID" expected_pages="$pages"
@@ -347,7 +347,7 @@ load_data() {   # 5.2b / 6.7 (this version, strict), 6.3 (the last release's own
   python3 "$HERE/load_data.py" "$dir/db/admin/test-data.json" "$mode" "$f" || { rm -f "$f"; return 1; }
   S "$APP_SCHEMA" "$f" check; rc=$?; rm -f "$f"; return "$rc"
 }
-load_last_data() {   # 6.3: the last release's test data, from git (the release installed in 6.2)
+load_last_data() {   # 6.3: the last release's test data, from git (the release installed in 6.2a)
   if [ -f "$LAST/repos/common/db/admin/test-data.json" ]; then
     load_data "$LAST/repos/common" strict
   else   # the first upgrade after the data file came: this version's file on the old structure
@@ -411,7 +411,7 @@ keep_resume_steps() {   # EXIT trap of jobs 5 and 6: a failed job keeps its pass
   fi
   exit "$rc"
 }
-upgraded_guard() {   # 6.0 (deploy=upgraded): the database still holds this version upgraded from the last release
+upgraded_guard() {   # 6.0a (deploy=upgraded): the database still holds this version upgraded from the last release
   local out
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
@@ -420,7 +420,7 @@ upgraded_guard() {   # 6.0 (deploy=upgraded): the database still holds this vers
     || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds this version upgraded ($FINGERPRINT) - start the run again (job 3 decides)"; return 1; }
   echo "the database holds this version upgraded from the last release ($FINGERPRINT) - job 6 resumes at 6.6"
 }
-loaded_guard() {   # 5.0 (deploy=loaded): the database still holds this version installed with its test data
+loaded_guard() {   # 5.0a (deploy=loaded): the database still holds this version installed with its test data
   local out
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
@@ -429,7 +429,7 @@ loaded_guard() {   # 5.0 (deploy=loaded): the database still holds this version 
     || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds this version with its test data ($FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
   echo "the database holds this version with its test data ($FINGERPRINT) - job 5 resumes at 5.3"
 }
-install_guard() {   # 5.0 (deploy=data): the database still holds the install job 3 found
+install_guard() {   # 5.0a (deploy=data): the database still holds the install job 3 found
   local out
   safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
@@ -522,7 +522,7 @@ guard() {   # guard version|app|patch|upgrade <login>: the database still holds 
   echo "FAIL the database no longer holds what job 3 found for this run ($what check: version ${fp:0:16}, $verified, fresh install of ${fresh:--}) - another run changed it in between: re-run all jobs (from job 1)"
   return 1
 }
-test_prerequisites() {   # 7.1b (retest): what the tests rely on, for the step log - information only
+test_prerequisites() {   # 7.0c (retest): what the tests rely on, for the step log - information only
   ci_exec "$APP_SCHEMA" "set heading off feedback off pagesize 0 linesize 400" \
     "select 'INFO workspace administrator: ' || user_name from apex_workspace_apex_users where workspace_name = '$WORKSPACE' and is_admin = 'Yes';" \
     "select 'INFO ' || role_code || ' holder: ' || user_name || ' (' || active_flag || ')' from xxfnd_user_roles_v where role_code in ('COMMON_ADMIN', 'SUPER_ADMIN');" \
@@ -607,7 +607,7 @@ SQL
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]
 }
 
-select_tests() {   # 7.0 / 4.Q6: which DB tests run (LOG_DIR/db-tests; the fixtures always run)
+select_tests() {   # 7.1 / 4.Q6: which DB tests run (LOG_DIR/db-tests; the fixtures always run)
   # full (a fresh install and upgrade test ran): the tests of the pull request (DB_TESTS, job 1 - ALL in the full run).
   # delta (reuse / app: the database held a fully verified version): only what changed since the head commit last
   #   tested, and the test files that failed then (Q2) - everything else passed against the same code.
@@ -664,7 +664,7 @@ apply_code() {   # 4.Q2 the changed code objects alone, in install order, in one
   [ "$rc" -eq 0 ] && echo "$n code object file(s) applied"
 }
 
-test_passwords() {  # 7.1b (H1): this run's random password for every test user
+test_passwords() {  # 8.2 (H1): this run's random password for every test user
   S ADMIN "$HERE/test-passwords.sql" check workspace="$WORKSPACE" users="$(test_user_names)" pw="$UI_PW"
 }
 ui_smoke() {    # 8.3 every page (on a pull request: its pages, PAGES from job 1) as each test user (Playwright: video, screenshots, trace)
@@ -701,7 +701,7 @@ dbsat() {       # 7.5 Oracle DBSAT (collect + report) - needs the user's DBSAT d
 }
 
 # ---- 7 ---------------------------------------------------------------------------------------------------------------
-readable_export() {   # 9.3 the tested application as readable YAML (documentation)
+readable_export() {   # 9.3a the tested application as readable YAML (documentation)
   local out=$1 f
   rm -rf "$out"; mkdir -p "$out"
   f=$(mktemp --suffix .sql)
@@ -709,7 +709,7 @@ readable_export() {   # 9.3 the tested application as readable YAML (documentati
   S "$APP_SCHEMA" "$f" check; local rc=$?; rm -f "$f"
   [ "$rc" -eq 0 ] && [ -n "$(find "$out" -type f | head -1)" ]
 }
-schemaspy() {   # 9.4 SchemaSpy HTML documentation of the tested schema (tables, columns, comments, keys, diagrams)
+schemaspy() {   # 9.3b SchemaSpy HTML documentation of the tested schema (tables, columns, comments, keys, diagrams)
   local out=$1 lib=$TOOLS/schemaspy wdir=$TOOLS/wallet-jdbc
   rm -rf "$lib" "$wdir" "$out"; mkdir -p "$lib" "$wdir" "$out"
   bash "$HERE/../lib/fetch.sh" "$SCHEMASPY_URL" "$SCHEMASPY_SHA256" "$lib/schemaspy.jar" &&
@@ -750,7 +750,10 @@ ci_password() { S ADMIN "$HERE/ci-password.sql" check ci_user="$CI_USER" ci_pw="
 
 # the browser job (ui) runs beside the DB-test job and never signs in as the pipeline user: it leaves the password
 # alone (a new one would lock the other job out)
-if [ "${1:-}" != ui ]; then step ci-password ci_password; fi
+# N.0 of each database job: the pipeline user's new password (job 8 signs in as ADMIN only)
+# (job 9 calls run.sh twice: finalize 9.0, then docs 9.3 - its documentation steps are 9.3a and 9.3b)
+case ${1:-} in setup) n=3.0 ;; quick) n=4.0 ;; fresh) n=5.0 ;; upgrade) n=6.0 ;; test) n=7.0 ;; finalize) n=9.0 ;; docs) n=9.3 ;; *) n=0.0 ;; esac
+if [ "${1:-}" != ui ]; then step "$n-ci-password" ci_password; fi
 if [ "${1:-}" = ui ]; then   # H1: the test users' password of this run (random, masked, never in git or a file)
   UI_PW="Ui$(openssl rand -hex 10)Z9"
   echo "::add-mask::$UI_PW"
@@ -760,8 +763,8 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
   setup)
     step 3.1-start-db start_db
     step 3.2-bootstrap bootstrap
-    step 3.2b-deploy-decision decide
-    step 3.3b-drop-old-backups drop_old_backups
+    step 3.2a-deploy-decision decide
+    step 3.3-drop-old-backups drop_old_backups
     # I-075: APEX-SERT only in the full validation (Ready for review / full run); installed once, never removed
     if [ "${FULL_VALIDATION:-}" = true ]; then step 3.4-apex-sert sert_install
     else step 3.4-apex-sert echo "info: APEX-SERT runs in the full validation only (mark the PR Ready for review) - skipped"; fi ;;
@@ -787,19 +790,19 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
   fresh)
     if [ "${APP_ONLY:-false}" = true ]; then
       # the database already holds this version's database objects: only the APEX application is replaced
-      step 5.0-version-guard guard app CI
-      step 5.1a-mark-record mark_dirty app
+      step 5.0a-version-guard guard app CI
+      step 5.0b-mark-record mark_dirty app
       step 5.1-remove-apex-app remove_apex_app
       step 5.2-import-app deploy "$THIS" app
     else
       if [ "${DEPLOY:-full}" = loaded ]; then
-        step 5.0-loaded-guard loaded_guard
+        step 5.0a-loaded-guard loaded_guard
       elif [ "${DEPLOY:-full}" = data ]; then
-        step 5.0-install-guard install_guard
+        step 5.0a-install-guard install_guard
       else
-        step 5.1a-mark-record mark_dirty all
+        step 5.0b-mark-record mark_dirty all
         step 5.1-remove-app remove_app
-        step 5.1b-remove-test-accounts remove_test_accounts
+        step 5.1a-remove-test-accounts remove_test_accounts
         step 5.2-deploy-this deploy "$THIS" install
         step 5.2a-record-install record_install
       fi
@@ -815,18 +818,18 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     # (C - the DB tests on the fresh install - is held back: the tests still need the data an upgraded database has)
     # F: no upgrade test when this version has the base's database scripts - the fresh install is the deployed version
     # application only, or F (the database scripts are the base's): no upgrade test (job 6) - this version is deployed now
-    if [ "${APP_ONLY:-false}" = true ] || [ "${DB_CHANGED:-true}" = false ]; then step 5.7-record-version record_deployed FULL; fi ;;
+    if [ "${APP_ONLY:-false}" = true ] || [ "${DB_CHANGED:-true}" = false ]; then step 5.6-record-version record_deployed FULL; fi ;;
   upgrade)
     # deploy=upgrade (job 5 skipped: it passed for this version on an earlier run) - that pass must still be recorded
     if [ "${DEPLOY:-full}" = upgraded ]; then
       # deploy=upgraded: 6.1-6.5 passed for this version on an earlier run - resume at 6.6 (I-078 / option A)
-      step 6.0-upgraded-guard upgraded_guard
+      step 6.0a-upgraded-guard upgraded_guard
     else
-      if [ "${DEPLOY:-full}" = upgrade ]; then step 6.0-version-guard guard upgrade CI; fi
-      step 6.0a-mark-record mark_dirty keep-fresh
+      if [ "${DEPLOY:-full}" = upgrade ]; then step 6.0a-version-guard guard upgrade CI; fi
+      step 6.0b-mark-record mark_dirty keep-fresh
       step 6.1-remove-app remove_app
       step 6.2-build-last build_last "${2:?base ref}"
-      step 6.2-deploy-last deploy "$LAST/repos/common" install
+      step 6.2a-deploy-last deploy "$LAST/repos/common" install
       step 6.3-load-last-test-data load_last_data
       step 6.4-snapshot snapshot_before
       step 6.5-upgrade-this deploy "$THIS" upgrade
@@ -837,7 +840,7 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     rstep 6.7-load-this-test-data load_data "$THIS" strict
     rstep 6.8-same-as-fresh-install same_as_fresh
     rstep 6.9-online-validation validate_online
-    step 6.11-record-version record_deployed FULL ;;
+    step 6.10-record-version record_deployed FULL ;;
   test)   # job 7 (database): A - every step runs; the job fails at the end with all of their failures together
     export KEEP_GOING=1
     # reuse / app: the database held a fully verified version - only what changed since the last tested commit (Q2)
@@ -845,21 +848,21 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
       # retest: the database holds the version it passed with; only the test data changed - load it, run the test
       # files that failed last time (and the fixtures), record the version when they pass. No scans, no browser test.
       step 7.0a-version-guard guard retest CI || finish
-      step 7.1-load-test-data load_data "$THIS" strict || finish
-      step 7.1b-test-prerequisites test_prerequisites
-      step 7.0-select-tests select_tests failed
+      step 7.0b-load-test-data load_data "$THIS" strict || finish
+      step 7.0c-test-prerequisites test_prerequisites
+      step 7.1-select-tests select_tests failed
       DB_TESTS=$(cat "$LOG_DIR/db-tests" 2>/dev/null || echo NONE); export DB_TESTS
       step 7.2-db-tests db_tests
-      step 7.2b-record-tests record_tests failed
+      step 7.2a-record-tests record_tests failed
       if [ ! -s "$LOG_DIR/failed" ]; then step 7.3-record-version record_deployed FULL; fi
       finish; exit 0
     fi
     case ${DEPLOY:-full} in reuse|app) kind="delta" ;; *) kind="full" ;; esac
     step 7.0a-version-guard guard version CI || finish
-    step 7.0-select-tests select_tests "$kind"
+    step 7.1-select-tests select_tests "$kind"
     DB_TESTS=$(cat "$LOG_DIR/db-tests" 2>/dev/null || echo "${DB_TESTS:-ALL}"); export DB_TESTS
     step 7.2-db-tests db_tests
-    step 7.2b-record-tests record_tests
+    step 7.2a-record-tests record_tests
     # reuse: the application and database are the ones scanned - a scan that passed for this version is not run again (Q3)
     for c in sert:7.4-apex-sert:sert_eval dbsat:7.5-dbsat:dbsat; do
       IFS=: read -r check name fn <<< "$c"
@@ -876,22 +879,22 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     export KEEP_GOING=1
     # reuse: the application is the one tested - a browser test that passed for this version and these pages is not
     # run again (Q4)
-    step 8.0b-version-guard guard version ADMIN || finish
+    step 8.0-version-guard guard version ADMIN || finish
     if passed_before ui ADMIN; then
       step 8.3-browser-tests echo "info: the browser test passed for this version on an earlier run (application not redeployed) - not run again"
       finish; exit 0
     fi
     step 8.1-test-users test_users
-    step 7.1b-test-passwords test_passwords
+    step 8.2-test-passwords test_passwords
     step 8.3-browser-tests ui_smoke
     if [ ! -s "$LOG_DIR/failed" ]; then record_passed ui ADMIN > /dev/null || true; fi
     finish ;;
   finalize)
-    step 9.0-version-guard guard version CI
+    step 9.0a-version-guard guard version CI
     step 9.1-export export_app "${2:?output dir}/app" ;;
-  docs)   # E: after the merge (9.3-9.4 are not needed to merge)
-    step 9.3-apex-docs readable_export "${2:?output dir}/apex-docs"
-    step 9.4-db-docs schemaspy "$2/db-docs" ;;
+  docs)   # E: after the merge (9.3 is not needed to merge)
+    step 9.3a-apex-docs readable_export "${2:?output dir}/apex-docs"
+    step 9.3b-db-docs schemaspy "$2/db-docs" ;;
   *)
     echo "unknown job: $1" >&2; exit 2 ;;
 esac
