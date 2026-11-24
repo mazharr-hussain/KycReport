@@ -31,7 +31,7 @@ Information (PMD files it cannot parse, the dependency report, test data left ou
 `checks/report.py` from the step logs. **Issues:** a pipeline failure or a warning in the PR's own files is never an
 issue - it is fixed in the PR from that comment (the next push). Only the existing findings (files the PR did not
 change) belong to a future release: on a green run, job 9.2 (`checks/issues.py`) creates one COMMON issue per finding
-(file + rule, line numbers left out; a marker in the body stops duplicates) and issues.yml puts it on the board;
+(file + rule, line numbers left out; a marker in the body stops duplicates) (no workflow puts it on a board since I-091 - added by hand);
 the comment lists the issues created. A change to the pipeline itself (this folder or the workflow files) goes straight to
 `main` without a PR (CLAUDE.md).
 
@@ -65,7 +65,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   every workflow, shellcheck, Python compile, self-test, dry run) checks them in their PR.
 - **Workflow files (I-084, `WORKFLOWS-PLAN.md`)**: `pipeline.yml` (every app; the app is the PR title's `<APP>` or the
   full run's input `app`; KYC, with no `repos/kyc/deployment/app.env` yet, gets the offline checks 1.7-1.10 only),
-  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (private: records the merge, publishes nothing - I-091), `issues.yml` (board, weekly summary), `maintenance.yml` (by hand: clean-up of
+  `control.yml` (supersede, `/pipeline start-from N`), `after-merge.yml` (private: records the merge, publishes nothing - I-091), `issues.yml` (disabled since I-091: no board, no weekly summary - kept as a placeholder; was: board, weekly summary), `maintenance.yml` (by hand: clean-up of
   runs, training videos); shared actions `setup-sqlcl` and `job-logs`. Copies of the files before I-084:
   `workflows-backup/2026-11-23/`.
 

@@ -31,7 +31,8 @@ workflow file.
 ## 3. The target files
 
 > **Since I-091 (COMMON 121):** `after-merge.yml` publishes nothing - no release, project README, docs site, issue or
-> PR comment; it only records the merge. The rows below about its jobs are history.
+> PR comment; it only records the merge. `issues.yml` is disabled too (by hand only, it does nothing): no board
+> automation, no weekly backlog summary. The rows below about both files are history.
 
 | # | File | Starts on | Replaces | What it does |
 |---|---|---|---|---|
