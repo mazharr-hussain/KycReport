@@ -6,22 +6,22 @@ in this folder. Before the pipeline, Claude changes the code, reviews it, opens 
 
 | Job | Steps | Runs as | Script |
 |---|---|---|---|
-| 1 Offline validation | 1.0a PR title and linked issues · 1.0 secret scan of the PR's commits (gitleaks) · 1.1 pipeline lint (actionlint, shellcheck, decision self-test, dry run of every database-job path - `checks/dryrun.sh`) · 1.2 static checks · 1.3 requirements check (warning) · 1.4 build · 1.5 APEXlang LF check + validate · 1.6 PMD (warnings) | no DB | `checks/run.sh`, `checks/pmd.sh` |
+| 1 Offline validation | 1.0 PR title and linked issues (a Dependabot PR: 1.0 its workflow files only) · 1.0a secret scan of the PR's commits (gitleaks) · 1.1 pipeline lint (actionlint, shellcheck, decision self-test, dry run of every database-job path - `checks/dryrun.sh`) · 1.1a SOURCE-MAP in step · 1.2 static checks · 1.3 requirements check (warning) · 1.4 build · 1.5 APEXlang LF check + validate · 1.6 PMD (warnings) · 1.6a test data fits the install · KYC: 1.7-1.10 | no DB | `checks/run.sh`, `checks/pmd.sh` |
 | 2 OCI setup | placeholder (OCI infra, vault, DB Tools, IDCS) | - | - |
-| 3 DB setup | 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2b deploy decision (`db/decide.py`: reuse / app / patch / upgrade / loaded / data / retest / full) · 3.3b drop the backup schemas of earlier pipelines (once; no backup schema since I-076) · 3.4 APEX-SERT installed only when missing or its pinned commit changed - full validation only (I-075) | pipeline user; ADMIN for 3.2 | `db/run.sh setup` |
-| 4 Quick check (patch only) | 4.Q1 mark the record · 4.Q2 run the changed code objects alone · 4.Q3 import the app (when it changed) · 4.Q4 online validation · 4.Q5 record (PATCH) · 4.Q6 select the tests of the changed objects and their callers · 4.Q7 those DB tests · 4.Q8 record the failed files; a pass is followed by jobs 5-8 in the same run | proxy | `db/run.sh quick` |
-| 5 Deploy fresh app | 5.1 remove the app and only its own DB objects (I-077: never the schema or other apps' objects) · 5.2 deploy this version · 5.2b load this version's test data (`db/admin/test-data.json`) · 5.3 online validation · 5.4 dependency check: deployed schema vs the generated map (report) · 5.5 record the fresh install's structure | pipeline user / proxy | `db/run.sh fresh` |
-| 6 Upgrade app | 6.0 version guard (upgrade only) · 6.1 remove (= 5.1) · 6.2 deploy the last release (the PR's base commit) · 6.3 load the last release's test data (its own file from git) · 6.4 snapshot of the app's tables (row counts, rows by key) to a file and the database (no backup schema, I-076) · 6.5 upgrade to this version (once) · 6.6 nothing lost (snapshot before / after) + every key checked against the old rows · 6.7 load this version's test data again (insert + update: the delta) · 6.8 same structure as the fresh install · 6.9 online validation · 6.11 record the version. Skipped when the DB scripts equal the base's (F) or the app has no release yet (I-076) | pipeline user / proxy | `db/run.sh upgrade <base>` |
-| 7 DB tests and security | 7.0 select the DB tests (reuse / app: what changed since the last tested commit + last failures) · 7.2 DB tests (every expected file must run): `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 7.4 APEX-SERT evaluation (report) · 7.5 DBSAT (report; when its download is set) - 7.4-7.5 in the full validation only (I-075) | ADMIN for 7.4, 7.5; proxy for 7.2 | `db/run.sh test` |
-| 8 Browser test and ZAP | 8.1 test users · 8.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 8.6 OWASP ZAP baseline scan (report; full validation only) | ADMIN for 8.1 | `db/run.sh ui`, `ui/smoke_ui.py`, ZAP action |
-| 9 Finalize the PR | gate (every earlier job passed) · 9.1 APEXlang export of the tested app -> zip (artifact; draft GitHub Release when the PR adds a release) · 9.2 issues for the existing findings (future releases), then auto-merge (full validation only; label `hold` stops it) - `after-merge.yml` publishes the release · 9.3 readable APEX docs (`READABLE_YAML` export) · 9.4 database docs (SchemaSpy) - both artifacts and on the draft release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
+| 3 DB setup | 3.0 new password of the pipeline user · 3.1 start the DB (placeholder) · 3.2 bootstrap, only when the environment is missing or `bootstrap.sql` changed · 3.2a deploy decision (`db/decide.py`: reuse / app / patch / upgrade / loaded / data / retest / full) · 3.3 drop the backup schemas of earlier pipelines (once; no backup schema since I-076) · 3.4 APEX-SERT installed only when missing or its pinned commit changed - full validation only (I-075) | pipeline user; ADMIN for 3.0, 3.2 | `db/run.sh setup` |
+| 4 Quick check (patch only) | 4.0 new password · 4.Q0 version guard · 4.Q1 mark the record · 4.Q2 run the changed code objects alone · 4.Q3 import the app (when it changed) · 4.Q4 online validation · 4.Q5 record (PATCH) · 4.Q6 select the tests of the changed objects and their callers · 4.Q7 those DB tests · 4.Q8 record the failed files; a pass is followed by jobs 5-8 in the same run | proxy | `db/run.sh quick` |
+| 5 Deploy fresh app | 5.0 new password · 5.0a guard (app only / loaded / data) · 5.0b mark the record · 5.1 remove the app and only its own DB objects (I-077: never the schema or other apps' objects) · 5.1a remove the test users' APEX accounts · 5.2 deploy this version · 5.2a record the install · 5.2b load this version's test data (`db/admin/test-data.json`) · 5.2c record it loaded · 5.3 online validation · 5.4 dependency check: deployed schema vs the generated map (report) · 5.5 record the fresh install's structure · 5.6 record the version (app only, or no upgrade test) | pipeline user / proxy | `db/run.sh fresh` |
+| 6 Upgrade app | 6.0 new password · 6.0a guard (upgrade / upgraded only) · 6.0b mark the record · 6.1 remove (= 5.1) · 6.2 build and 6.2a deploy the last release (the PR's base commit) · 6.3 load the last release's test data (its own file from git) · 6.4 snapshot of the app's tables (row counts, rows by key) to a file and the database (no backup schema, I-076) · 6.5 upgrade to this version (once) · 6.5a record it upgraded · 6.6 nothing lost (snapshot before / after) + every key checked against the old rows · 6.7 load this version's test data again (insert + update: the delta) · 6.8 same structure as the fresh install · 6.9 online validation · 6.10 record the version. Skipped when the DB scripts equal the base's (F) or the app has no release yet (I-076) | pipeline user / proxy | `db/run.sh upgrade <base>` |
+| 7 DB tests and security | 7.0 new password · 7.0a version guard · retest only: 7.0b load the test data, 7.0c what the tests rely on · 7.1 select the DB tests (reuse / app: what changed since the last tested commit + last failures) · 7.2 DB tests (every expected file must run): `tests/setup` fixtures first, then the feature tests and `tests/*.sql`; a `-- Schema: <NAME>` line runs a file as that schema (any FAIL / ORA- / PLS- fails the job) · 7.2a record the failed files · 7.3 record the version (retest only) · 7.4 APEX-SERT evaluation (report) · 7.5 DBSAT (report; when its download is set) - 7.4-7.5 in the full validation only (I-075) | ADMIN for 7.4, 7.5; proxy for 7.2 | `db/run.sh test` |
+| 8 Browser test and ZAP | 8.0 version guard · 8.1 test users · 8.2 their password of this run · 8.3 browser smoke test: each test user opens every page (Playwright: video, screenshots, trace; an error page fails it) · 8.4 OWASP ZAP baseline scan (report; full validation only) | ADMIN for 8.1 | `db/run.sh ui`, `ui/smoke_ui.py`, ZAP action |
+| 9 Finalize the PR | gate (every earlier job passed) · 9.0 new password · 9.0a version guard · 9.1 APEXlang export of the tested app -> zip (artifact) · 9.1a draft GitHub Release (when the PR adds a release) · 9.2 issues for the existing findings (future releases) · 9.2a the PR carries its generated files · 9.2b auto-merge (full validation only; label `hold` stops it - a draft PR: not merged) - `after-merge.yml` publishes the release · 9.2c report on the PR · 9.3 documentation: 9.3a readable APEX docs (`READABLE_YAML` export), 9.3b database docs (SchemaSpy) - both artifacts and on the release | proxy | `db/run.sh finalize <dir>`, `checks/issues.py`, `release/merge.sh` |
 | 10 Error handling | only on a failure: job, step, errors and log tail -> PR comment (3 retries) and run summary; the pipeline stops, the PR stays open | - | in the workflow |
 
 **Naming (issue #218):** PR title `<APP> Release <Number>: <short summary>` (APP = COMMON / KYC, summary at most 60
 characters); the issues of the release are linked in the PR body with one `Fixes #n` line each (GitHub lists them under
 the PR's Development and closes them on merge). Each push starts one run named `<PR title>: Push Number <N>` (N = the
 PR's commit count - Claude pushes one commit per push); a retry of the same push stays in that run (attempt 2, 3, ...).
-Job 1.0a checks the title and the linked issues; the release number comes from the title.
+Job 1.0 checks the title and the linked issues; the release number comes from the title.
 
 **Annotations:** only findings in the files a PR changes become GitHub warning annotations (1.2 static checks, 1.6
 PMD); findings in unchanged files are existing code and are listed in the step log as `existing: ...`, with a count.
@@ -39,7 +39,7 @@ Any failing step stops its job; every later job is skipped. Job 9 always runs it
 
 ## What the pipeline does so nobody repeats it by hand (agreed 3 Nov 2026)
 Claude changes the code and reviews it; every fixed, repeated step is here:
-- **Source map** (1.1b, `checks/source_map.py`): new / removed application files are registered in
+- **Source map** (1.1a, `checks/source_map.py`): new / removed application files are registered in
   `repos/common/SOURCE-MAP.json` for the build.
 - **Build with the release number** (1.4): "Release N" from the PR title is stamped into the application; jobs 5-6
   deploy the database scripts of this build (artifact `common-deploy`), not committed copies.
@@ -56,7 +56,8 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   data changes the fingerprint and runs the job in full. `/pipeline start-from 5.5` (or `Pipeline-Start-From: 6.8`)
   asks for a step; it is followed only when the steps before it passed for this version.
 - **What runs (I-085):** the database jobs (2-8) run only when the PR changes the COMMON application (`repos/common/`
-  apart from `deployment/`, `releases/` and `docs/`). A PR that changes only workflows, actions, these scripts, release
+  apart from `deployment/`, `releases/`, `docs/` and the generated dependency map `db/deploy/dependencies.json` /
+  `DEPENDENCIES.md` that step 9.2a adds). A PR that changes only workflows, actions, these scripts, release
   notes or docs runs job 1 (lint,
   security scan, self-test, dry run - no database) and job 9. A pipeline mistake that only shows on the real database
   surfaces in the next application release's run.
@@ -75,20 +76,20 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Skip the deploy when nothing to deploy changed (B):** job 1 fingerprints the built application and database
   scripts; 6.8 records the fingerprint of a version that passed its fresh install and upgrade test (`db/deployed.sql`,
   table `XXCI_DEPLOYED` of the pipeline user). When the database already holds this fingerprint (a push that changes
-  only tests, docs or the pipeline), 3.2b says so and jobs 5-6 are skipped - job 7 tests straight away.
+  only tests, docs or the pipeline), 3.2a says so and jobs 5-6 are skipped - job 7 tests straight away.
 - **DB tests on the fresh install (C) - held back:** the DB tests still need data an upgraded database has (11 fail on
   a fresh install, run 41664366800); they run in job 7 only until the tests stand on their own fixtures.
-- **The database is reinstalled only when its scripts change:** 5.7 / 6.8 record two fingerprints of the deployed
-  version - the whole version and its database scripts alone (`XXCI_DEPLOYED`). 3.2b compares: the same version skips
+- **The database is reinstalled only when its scripts change:** 5.6 / 6.10 record two fingerprints of the deployed
+  version - the whole version and its database scripts alone (`XXCI_DEPLOYED`). 3.2a compares: the same version skips
   jobs 5-6 (B); the same database scripts make job 5 replace **only the APEX application** (5.1 remove the
   application, 5.2 import it - the schema, its objects and data stay; no backup schema) and skip job 6; other database
   scripts get the full fresh install (and the upgrade test when they differ from the base, F).
-- **Docs after the merge (E):** 9.1 exports only the release zip; the PR is merged and released, then 9.3-9.4 (readable
+- **Docs after the merge (E):** 9.1 exports only the release zip; the PR is merged and released, then 9.3 (readable
   export, SchemaSpy) are made and added to the release (a docs problem is a warning, not a failure).
 - **No upgrade test without database changes (F) - held back:** job 1 still compares the database scripts with the
   base, but job 6 runs after every full reinstall: job 7's DB tests need the data it restores (as C above).
 - **Browser test beside the DB tests (G):** jobs 7 and 8 run at the same time - "7 DB tests and security" (7.2, 7.4,
-  7.5) and "8 Browser test and ZAP" (8.1, 8.3, 8.6); the browser job never signs in as the pipeline user.
+  7.5) and "8 Browser test and ZAP" (8.0-8.4); the browser job never signs in as the pipeline user.
 - **A PR tests what it changes; the full run tests everything (K, L):** job 1 (`checks/affected.py`) lists what the PR
   affects - the DB tests of its features, its changed tests and the release tests that name an object it changes; its
   pages plus the home page. Steps 5.6 / 7.2 run only those DB tests (the fixtures in `tests/setup` always), 8.3 opens
@@ -101,7 +102,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
 - **Caches (D):** PMD (job 1) and Playwright's Chromium (job 8) are cached between runs.
 
 **Quick fixes (agreed 3 Nov 2026 - one small fix should not cost a full run to find out it fails):**
-- **The deploy decision (3.2b, `db/decide.py`)** compares this version (job 1, `checks/fingerprint.py`) with what the
+- **The deploy decision (3.2a, `db/decide.py`)** compares this version (job 1, `checks/fingerprint.py`) with what the
   database holds (`db/deployed.sql`: `XXCI_DEPLOYED`, `XXCI_DEPLOYED_CODE`). Four fingerprints: the whole version, the
   database scripts, the **structure** (every install / upgrade step that is not a code object), the application without
   its supporting objects; plus a **code manifest** - one hash per package spec / body, view and trigger, keyed by its
@@ -114,7 +115,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   is followed by the full fresh install, upgrade test and job 7 in the same run - the rule "every release: fresh
   install and upgrade" stays; a quick check never merges. Any structure change, removed code object or unfinished
   deploy means the full deploy.
-- **Q2 tests of what changed since the last tested commit:** on reuse / app, 7.0 runs only the tests affected by the
+- **Q2 tests of what changed since the last tested commit:** on reuse / app, 7.1 runs only the tests affected by the
   changes since the head commit job 7 last tested (`TESTED_HEAD`), plus the files that failed or never ran then
   (`XXCI_FAILED_TESTS`); everything else passed against the same code. The quick check records only its failed files,
   never "tested". A full deploy runs the PR's tests (job 1).
@@ -133,7 +134,7 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   (`checks/sqlcl-stub.sh`) on a built copy - a broken path fails before any run on GitHub.
 
 **Hardening (review of 3 Nov 2026):**
-- **H1** the test users get a random password in every run (7.1b, masked; `db/test-passwords.sql`) - the fixed one in
+- **H1** the test users get a random password in every run (8.2, masked; `db/test-passwords.sql`) - the fixed one in
   `db/admin/test-users.sql` never stays on the internet-facing validation app. For live tests by a person, run
   `db/admin/test-users.sql` again (it sets the fixed password).
 - **H2** the database secrets are given only to the steps that sign in, never to third-party actions (ZAP, caches,
@@ -146,20 +147,20 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   and row policies off during the load, WHO columns filled). It is loaded after the fresh install (5.2b), into the last
   release (6.3 - that release's own copy from git, so data and structure always match; while the last release has no
   file yet, this version's file loads tolerantly) and again after the upgrade (6.7). Nothing is kept between runs: the
-  kept baseline schema of run 35 is dropped (3.3b). A release that adds a table or a required column adds its rows in
-  the same PR - 1.6b (`checks/test_data.py`) checks every row offline against the install's own definitions (CREATE
+  kept baseline schema of run 35 is dropped (3.3). A release that adds a table or a required column adds its rows in
+  the same PR - 1.6a (`checks/test_data.py`) checks every row offline against the install's own definitions (CREATE
   TABLE and every later column / constraint change): the table and columns exist, NOT NULL, CHECK constraints, primary
   / unique keys and foreign keys (the parent row earlier in the file or seeded) - a bad row fails job 1, not job 4.
   One row per component (its main table); every other table is in "no_data". A change of the test data alone keeps
-  the install fingerprint: after a failed 5.2b, the next run decides deploy=data (5.0 install guard, 5.2b, 5.3-5.5 -
+  the install fingerprint: after a failed 5.2b, the next run decides deploy=data (5.0a install guard, 5.2b, 5.3-5.5 -
   no redeploy).
 - **Draft PR vs Ready for review (I-075):** a push to a draft PR runs the quick validation - 3.4 / 7.4 APEX-SERT,
-  7.5 DBSAT and 8.6 ZAP are skipped and job 9 does not merge. Marking the PR Ready for review (and the full run) runs
+  7.5 DBSAT and 8.4 ZAP are skipped and job 9 does not merge. Marking the PR Ready for review (and the full run) runs
   the full validation, which merges when it passes. APEX-SERT is installed once and never removed.
 - **Test data only in dev (I-076):** the test-data steps (5.2b, 6.3, 6.7) refuse to run unless `DB_TARGET=dev` (set by
   the workflow for the Oracle_Dev_DB jobs) - a deployment to test or later never loads test data.
 - **Resume inside job 5 (deploy=loaded):** 5.2c records this version installed with its test data; when job 5 then
-  stops later (5.3-5.5) and the fix changes only the pipeline's own files, the next run resumes at 5.3 (5.0 loaded
+  stops later (5.3-5.5) and the fix changes only the pipeline's own files, the next run resumes at 5.3 (5.0a loaded
   guard) - no remove, no redeploy, no data reload. Any change to the DB scripts, app or test data deploys in full.
 - **Upgrade = fresh (6.8):** 5.5 keeps the fresh install's structure (tables, columns, keys and their state, indexes,
   code objects; `XXCI_FRESH_SCHEMA`); after the upgrade and the delta load the upgraded database must show exactly
@@ -209,11 +210,11 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `db/bootstrap.sql` | users, pipeline user and its privileges, workspace, App Builder user, REST-enabled schemas (ADMIN) |
 | `db/ci-password.sql` | new random password of the pipeline user for each job (ADMIN) |
 | `db/needs-bootstrap.sql` | is the environment complete? (pipeline user, read only) |
-| `db/backup-schema.sql` | 3.3b: drops the backup schemas earlier pipelines made (refuses any name not ending in `_BKP`) |
+| `db/backup-schema.sql` | 3.3: drops the backup schemas earlier pipelines made (refuses any name not ending in `_BKP`) |
 | `db/snapshot.sql`, `db/snapshot_compare.py`, `db/keys-checked.sql` | upgrade test: the snapshot before the upgrade (6.4) and the nothing-lost and key checks after it (6.6) |
 | `db/load_data.py`, `db/load-data.sql`, `../db/admin/test-data.json` | the test data: merged into the database in 5.2b, 6.3, 6.7 |
 | `db/schema-summary.sql` | the structure lines of 5.5 / 6.8 (upgrade = fresh) |
-| `checks/test_data.py` | 1.6b: every test row fits the install - columns, NOT NULL, checks, keys, foreign keys |
+| `checks/test_data.py` | 1.6a: every test row fits the install - columns, NOT NULL, checks, keys, foreign keys |
 | `../../../.github/workflows/control.yml` | a newer push replaces the older run; `/pipeline start-from N` on a PR |
 | `db/remove-app.sql`, `db/remove-objects.sql`, `db/app_objects.py` | remove the application and only its own database objects - never the schema or another application's objects (I-077) |
 | `db/validate-online.sql` | no invalid object / compile error; application installed, available, every page present |

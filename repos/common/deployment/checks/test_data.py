@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 1.6b: every test data row (repos/common/db/admin/test-data.json) loads into this version's tables - checked
+"""Step 1.6a: every test data row (repos/common/db/admin/test-data.json) loads into this version's tables - checked
 offline, before any database job, against the install's own definitions.
 
 test_data.py <repo root>   (after the build: reads repos/common/db/deploy/install in install order)

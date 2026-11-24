@@ -13,7 +13,7 @@ publishes its release. The settings below are still to be done by the user.
 | 4 | Netlify | Later, when the user wants Netlify again (not now): remove the `ignore` line from `netlify.toml` (issue #203) | Netlify stays connected; `netlify.toml` keeps every build skipped until then |
 | 5 | Pull request #199 | Close it (replaced by #204) | Old pipeline wrapper PR |
 | 6 (optional) | Settings > Secrets and variables > Actions > Variables | `DBSAT_ZIP_URL` and `DBSAT_ZIP_SHA256`: where the pipeline downloads DBSAT (Oracle download after accepting its licence, e.g. a private release asset) and its SHA-256 | Step 7.5 runs DBSAT; skipped with a notice until set (issue #209) |
-| 7 (optional) | Settings > Secrets and variables > Actions > Variables | `VAL_APP_URL`: the validation APEX URL (`https://.../ords`) - only if the one read from the wallet is wrong | Browser tests (8.3) and ZAP (8.6) |
+| 7 (optional) | Settings > Secrets and variables > Actions > Variables | `VAL_APP_URL`: the validation APEX URL (`https://.../ords`) - only if the one read from the wallet is wrong | Browser tests (8.3) and ZAP (8.4) |
 
 ## Clean up the run history (issue #219)
 Actions -> **Clean up workflow runs** -> **Run workflow**: choose the workflow (`pipeline.yml`, ... or `all`), the minimum
