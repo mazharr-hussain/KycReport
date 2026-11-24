@@ -910,8 +910,11 @@ jobs:
           github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true' &&
           steps.carry.outputs.result != 'carried'
         env:
-          # PIPELINE_MERGE_TOKEN (optional, a person's token): needed only to merge a PR that changes workflow files
-          GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || github.token }}
+          # a person's token (PIPELINE_MERGE_TOKEN, else ADD_TO_PROJECT_PAT): auto-merge turned on as that person makes
+          # GitHub's merge a person's merge, so the PR's "Fixes #n" issues close by themselves (I-087) - with the
+          # workflow token they stayed open; it is also needed to merge a PR that changes workflow files
+          GH_TOKEN: ${{ secrets.PIPELINE_MERGE_TOKEN || secrets.ADD_TO_PROJECT_PAT || github.token }}
+          FALLBACK_TOKEN: ${{ github.token }}   # when GitHub refuses the person's token (e.g. no workflow scope)
           GH_REPO: ${{ github.repository }}
         run: |
           bash repos/common/deployment/release/merge.sh "${{ github.event.pull_request.number }}" \

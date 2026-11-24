@@ -86,6 +86,9 @@ page 169 (
         pagination {
             type: rowRangesXToY
         }
+        performance {
+            lazyLoading: true
+        }
         messages {
             whenNoDataFound: No page found. Register the application first (Applications).
         }
