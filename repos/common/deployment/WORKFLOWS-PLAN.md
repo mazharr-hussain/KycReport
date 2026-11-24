@@ -87,7 +87,7 @@ workflow file.
 - **Pipeline-only lint on `main`** (`pipeline-check.yml`) is dropped: `main` takes PRs only, and job 1.1 now lints every
   workflow file (any `.github/` change runs the full pipeline).
 - **No push to `main` by a workflow:** the ruleset refused `regenerate.sh` and `issues-sync` (their pushes failed since the
-  rule came - Issues sync hid it). The generated files and ISSUES.md now come in the release PR (step 9.2a).
+  rule came - Issues sync hid it). The generated files now come in the release PR (step 9.2a).
 - **A merge made by the workflow token** starts no workflow, so `after-merge.yml` also starts when a pipeline run
   completes. It waits for that PR's merge (up to 10 minutes) and acts only if `github-actions` merged it, so each merge
   is handled once.
@@ -105,6 +105,6 @@ workflow file.
 | docs.yml | push to main; by hand | after-merge.yml job 5 (with push credentials for gh-pages) |
 | pipeline-check.yml | push to main | dropped - pipeline 1.1 in the PR |
 | add-to-project.yml | issue events | issues.yml job 1 |
-| issues-sync.yml | issue opened / closed | pipeline step 9.2a (`issues_md.py sync`, in the PR) |
+| issues-sync.yml | issue opened / closed | dropped - ISSUES.md frozen as history, the backlog is GitHub (I-086) |
 | weekly-backlog.yml | Mondays; by hand | issues.yml job 2 |
 | cleanup-runs.yml, training-videos.yml | by hand | maintenance.yml (input `task`) |

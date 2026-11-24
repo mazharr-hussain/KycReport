@@ -68,7 +68,8 @@ jobs:
       pull-requests: read   # the PR's start-from-N label
     outputs:
       app: ${{ steps.scope.outputs.app }}         # COMMON / KYC: the PR title, or the full run's input
-      common: ${{ steps.scope.outputs.common }}   # the full pipeline (jobs 2-9) runs: the PR touches COMMON
+      common: ${{ steps.scope.outputs.common }}   # COMMON's offline checks (job 1) run: the PR touches COMMON or the pipeline
+      db: ${{ steps.scope.outputs.db }}           # the database jobs (2-8) run: the PR changes the COMMON application
       kyc: ${{ steps.scope.outputs.kyc }}         # the KYC offline checks (1.7-1.10) run: the PR touches KYC
       tag_prefix: ${{ steps.scope.outputs.tag_prefix }}   # COMMON app.env APP_CODE, lower case (release tag <prefix>-<N>)
       zip_prefix: ${{ steps.scope.outputs.zip_prefix }}   # COMMON app.env ZIP_NAME (release zip <prefix>_<N>.zip)
@@ -109,18 +110,23 @@ jobs:
           # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
           # title / Fixes rule; job 1 checks the changed workflow files, job 9 passes, the PR is merged by hand
           if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
-            { echo "common=false"; echo "kyc=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
+            { echo "common=false"; echo "db=false"; echo "kyc=false"; echo "dependabot=true"; echo "release="; } >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
             # the full run: the chosen application (an app without app.env - its offline checks only)
-            if [ "$lower" = common ]; then echo "common=true"; echo "kyc=false"; else echo "common=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
+            if [ "$lower" = common ]; then echo "common=true"; echo "db=true"; echo "kyc=false"; else echo "common=false"; echo "db=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
             echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           changed=$(git diff --name-only "$BASE" HEAD)
-          # COMMON and every workflow / shared action: the full pipeline (it is the pipeline's own code)
-          if printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
+          # the COMMON application: the full pipeline (deploy, upgrade, tests, scans); the pipeline's own code, release
+          # notes and docs alone (workflows, actions, repos/common/deployment, releases, docs): job 1 only - its lint,
+          # self-test and dry run, no database (I-085)
+          app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' || true)
+          if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
+            [ -n "$app" ] || echo "- pipeline-only change: job 1 checks it, no database jobs" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "common=false" >> "$GITHUB_OUTPUT"
           fi
@@ -315,7 +321,7 @@ jobs:
   oci-setup:
     name: 2 OCI setup (placeholder)
     needs: offline
-    if: needs.offline.outputs.common == 'true'
+    if: needs.offline.outputs.db == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
@@ -747,7 +753,7 @@ jobs:
       pull-requests: write   # 9.2 ready for review, merge, PR comment
       issues: write          # 9.2 issues for the existing findings
     env:
-      COMMON: ${{ needs.offline.outputs.common }}
+      COMMON: ${{ needs.offline.outputs.db }}   # the database jobs ran: their results gate, and 9.1 / 9.3-9.4 export the app
       RELEASE: ${{ needs.offline.outputs.release }}
       TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}   # app.env APP_CODE: release tag <prefix>-<N>
       ZIP_PREFIX: ${{ needs.offline.outputs.zip_prefix }}   # app.env ZIP_NAME: release zip <prefix>_<N>.zip
@@ -876,7 +882,7 @@ jobs:
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
         run: |
           echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
-      - name: 9.2a The PR carries its generated files and ISSUES.md (main takes PRs only - nothing is pushed to main)
+      - name: 9.2a The PR carries its generated files (main takes PRs only - nothing is pushed to main)
         id: carry
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true'
         env:
@@ -884,20 +890,18 @@ jobs:
           # the required check would never report); the next run reuses the deployed database and merges
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
           GH_REPO: ${{ github.repository }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
           BRANCH: ${{ github.event.pull_request.head.ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
-            echo "::warning::secret ADD_TO_PROJECT_PAT is missing - the generated files and ISSUES.md are not carried (merged without them)"
+            echo "::warning::secret ADD_TO_PROJECT_PAT is missing - the generated files are not carried (merged without them)"
             echo "result=nothing" >> "$GITHUB_OUTPUT"; exit 0
           fi
           bash repos/common/deployment/release/carry.sh "$BRANCH" "$HEAD_SHA" "$RUNNER_TEMP/carry.txt"
           echo "result=$(cat "$RUNNER_TEMP/carry.txt")" >> "$GITHUB_OUTPUT"
           if [ "$(cat "$RUNNER_TEMP/carry.txt")" = carried ]; then
-            echo "Passed. The generated files and ISSUES.md were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
+            echo "Passed. The generated files were added to the PR as one commit (9.2a): the pipeline runs once more on it (the database is reused) and merges then." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: 9.2 Merge the PR (auto-merge; after-merge.yml publishes the release)
         id: merge

@@ -1,6 +1,6 @@
 # Handover - current state for a new chat (as of 2 Nov 2026: COMMON 113 / KYC 105, COMMON CI/CD chain)
 
-Read this first, then `ISSUES.md` (the issue backlog - keep it updated), then `CLAUDE.md` (rules) and the requirements in
+Read this first, then the open GitHub issues (the backlog, on the two Projects; `ISSUES.md` is frozen history), then `CLAUDE.md` (rules) and the requirements in
 git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder per component under `docs/components/`).
 
 ## 1. Working rules (from the user)
@@ -49,7 +49,7 @@ git: `repos/common/docs/README.md` and `repos/kyc/docs/README.md` (one folder pe
 
 ## 4. Open items
 - COMMON Release 117 (pipeline): 5 workflow files, the app a parameter (I-084); no push to `main` - the release PR
-  carries its generated files and ISSUES.md (9.2a); SERT / DBSAT / ZAP in the full validation only (I-075); no backup
+  carries its generated files (9.2a); SERT / DBSAT / ZAP in the full validation only (I-075); no backup
   schema (I-076); only the app's own objects removed (I-077); resume at the failed step (I-078). Notes:
   `repos/common/releases/117-pipeline-workflows-resume/README.md`.
 - COMMON pipeline redesign (jobs 1-8) merged in #204 (user); first full green run to be confirmed on the next PR.
