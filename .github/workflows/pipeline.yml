@@ -21,7 +21,7 @@ run-name: "${{ github.event.pull_request.title || format('{0} full run', inputs.
 on:
   pull_request:
     branches: [main]
-    # I-075: a push to a draft PR runs the quick validation; "Ready for review" runs the full one (and merges)
+    # I-094: a draft PR runs nothing (job 1 is skipped, so is every job after it); "Ready for review" runs the full validation (and merges)
     types: [opened, synchronize, reopened, ready_for_review]
   # K: the full run on demand (Actions > COMMON > Run workflow): all of main - every DB test, every page, ZAP - (a PR
   # tests only what it changes); what fails is logged as an issue for a future release
@@ -54,12 +54,14 @@ env:
   REPORT_DIR: /tmp/pipeline-reports   # reports and recordings; uploaded as report-<job>
   DB_TARGET: dev   # the database jobs run on Oracle_Dev_DB: test data loads only here (I-076)
   # I-075: full validation (APEX-SERT 3.4 / 7.4, DBSAT 7.5, OWASP ZAP 8.4, merge) for a PR that is ready for review
-  # and for the full run; a draft PR gets the quick validation (no scans, no merge)
+  # and for the full run; a draft PR runs nothing (I-094)
   FULL_VALIDATION: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}
 
 jobs:
   offline:
     name: 1 Offline validation
+    # I-094: a draft PR runs nothing (every job needs this one); "Ready for review" and later pushes run the pipeline
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -743,8 +745,9 @@ jobs:
     name: 9 Finalize the PR
     needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui]
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
-    # the gate below fails it whenever an earlier job did not pass
-    if: always()
+    # the gate below fails it whenever an earlier job did not pass. I-094: not on a draft PR (nothing ran; a draft
+    # cannot be merged, and "Ready for review" starts a new run whose check replaces this one)
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60   # 9.1 APEXlang export + 9.3a readable export + 9.3b SchemaSpy took more than 15 minutes
@@ -879,10 +882,6 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 repos/common/deployment/checks/issues.py "$RUNNER_TEMP/logs" "$RUNNER_TEMP/report.md"
-      - name: 9.2b Draft PR - quick validation passed, not merged
-        if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION != 'true'
-        run: |
-          echo "Draft PR: the quick validation passed (no APEX-SERT, DBSAT or ZAP) - not merged. Mark it **Ready for review** to run the full validation, which merges it when it passes." | tee "$RUNNER_TEMP/merge.txt" >> "$GITHUB_STEP_SUMMARY"
       - name: 9.2a The PR carries its generated files (main takes PRs only - nothing is pushed to main)
         id: carry
         if: github.event_name == 'pull_request' && env.DEPENDABOT != 'true' && env.FULL_VALIDATION == 'true'
