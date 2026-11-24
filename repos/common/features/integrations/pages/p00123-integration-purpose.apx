@@ -295,6 +295,7 @@ page 123 (
         }
         help {
             helpText: The REST Source Catalog service (Workspace Utilities) whose endpoint the purpose calls on its server (release 110); only the services of the server's catalogs are listed (release 112). The server's Web Credential is used, else the catalog's. When empty, the REST Data Source is used.
+            inlineHelpText: Lists the services of the REST Source Catalogs linked to the server (Servers, page 121). Empty until the server has one (I-022).
         }
     )
 

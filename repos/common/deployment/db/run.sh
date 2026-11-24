@@ -21,7 +21,7 @@
 # version.
 #   run.sh test                7   DB tests and security: 7.2 DB tests (any FAIL or error stops the pipeline),
 #                                  7.4 APEX-SERT, 7.5 DBSAT - 7.4-7.5 in the full validation only (I-075)
-#   run.sh ui                  8   Browser test: 8.0 version guard, 8.1 test users, 8.2 their passwords, 8.3 every page (video, screenshots, trace);
+#   run.sh ui                  8   Browser test: 8.0 version guard, 8.1 test users, 8.2 their passwords, 8.3 every page (video, screenshots, trace), 8.3a page errors logged meanwhile;
 #                                  (8.4 OWASP ZAP runs as a workflow step, full validation only)
 #   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
 #                                  9.3a readable YAML export (<dir>/apex-docs), 9.3b SchemaSpy (<dir>/db-docs)
@@ -672,6 +672,18 @@ ui_smoke() {    # 8.3 every page (on a pull request: its pages, PAGES from job 1
     --app-path "$APP_PATH" --pages "$THIS/dist/app/pages" --users "$UI_USERS" --skip "$UI_SKIP_PAGES" \
     --only "$( [ "${PAGES:-ALL}" = ALL ] || echo "$PAGES")" --out "$REPORT_DIR/ui"   # PAGES: a PR's pages (K)
 }
+page_errors_mark() {   # before 8.3: the last error id, so 8.3a lists only the errors the browser test caused
+  ci_exec ADMIN "set heading off feedback off pagesize 0" \
+    "select 'MARK ' || nvl(max(error_id), 0) from $APP_SCHEMA.xxfnd_error_log;" | awk '$1 == "MARK" {print $2}' > "$LOG_DIR/error-mark"
+}
+page_errors() {   # 8.3a (I-067): the errors the application logged while the browser test opened its pages - a page can
+  # log an error without showing an ORA- code on screen; listed as notices (page, user, message), never a failure
+  local m out; m=$(cat "$LOG_DIR/error-mark" 2>/dev/null); [[ $m =~ ^[0-9]+$ ]] || m=0
+  out=$(ci_exec ADMIN "set heading off feedback off pagesize 0 linesize 700 trimspool on" \
+    "select 'info: page ' || page_id || ' (' || user_name || '): ' || substr(replace(replace(error_message, chr(10), ' '), chr(13)), 1, 400) || ' [error ' || error_id || ']' from $APP_SCHEMA.xxfnd_error_log where error_id > $m and application_id = $APP_ID order by error_id fetch first 50 rows only;") || { echo "$out"; return 0; }
+  out=$(grep '^info: page ' <<< "$out" || true)
+  if [ -n "$out" ]; then echo "$out"; else echo "no page error logged during the browser test"; fi
+}
 sert_eval() {   # 7.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
   local out
   out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
@@ -693,9 +705,16 @@ dbsat() {       # 7.5 Oracle DBSAT (collect + report) - needs the user's DBSAT d
   bash "$HERE/../lib/fetch.sh" "$DBSAT_ZIP_URL" "$DBSAT_ZIP_SHA256" "$d/dbsat.zip" || return 1
   (cd "$ic" && unzip -qo basic.zip && unzip -qo sqlplus.zip) && (cd "$d" && unzip -qo dbsat.zip) && unzip -qo "${WALLET:?}" -d "$wdir" || return 1
   sed -i "s#?/network/admin#$wdir#" "$wdir/sqlnet.ora"
-  local home; home=$(dirname "$(find "$ic" -name sqlplus -type f | head -1)")
+  local home dbsat_dir; home=$(dirname "$(find "$ic" -name sqlplus -type f | head -1)")
+  # the DBSAT launcher may sit in a folder of the zip, or in a zip inside it (Oracle's download): found, not assumed
+  if ! find "$d" -type f -name dbsat | grep -q .; then
+    find "$d" -type f -name '*.zip' ! -path "$d/dbsat.zip" -print0 | while IFS= read -r -d '' z; do (cd "$(dirname "$z")" && unzip -qo "$z"); done
+  fi
+  dbsat_dir=$(dirname "$(find "$d" -type f -name dbsat | head -1)")
+  [ -f "$dbsat_dir/dbsat" ] || { echo "the DBSAT zip has no dbsat launcher (files: $(cd "$d" && find . -maxdepth 2 | head -20 | tr '\n' ' '))"; return 1; }
+  chmod +x "$dbsat_dir/dbsat"
   # DBSAT reads the password from the terminal prompt; it is given on stdin and never echoed
-  (cd "$d" && export PATH="$home:$PATH" LD_LIBRARY_PATH="$home" TNS_ADMIN="$wdir" &&
+  (cd "$dbsat_dir" && export PATH="$home:$PATH" LD_LIBRARY_PATH="$home" TNS_ADMIN="$wdir" &&
     printf '%s\n' "$ADMIN_PW" | ./dbsat collect -n "ADMIN@$VAL_DB_SERVICE" "$REPORT_DIR/dbsat" &&
     ./dbsat report -n "$REPORT_DIR/dbsat")
 }
@@ -886,7 +905,9 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     fi
     step 8.1-test-users test_users
     step 8.2-test-passwords test_passwords
+    page_errors_mark || true
     step 8.3-browser-tests ui_smoke
+    step 8.3a-page-errors page_errors
     if [ ! -s "$LOG_DIR/failed" ]; then record_passed ui ADMIN > /dev/null || true; fi
     finish ;;
   finalize)

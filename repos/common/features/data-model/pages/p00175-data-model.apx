@@ -65,13 +65,8 @@ page 175 (
             alignment: left
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select a.application_name || ' (' || a.application_code || ')' as display_value, a.application_code as return_value
-                  from xxfnd_dm_apps_v a
-                 order by 1
-                ```
+            type: sharedComponent
+            lov: @lov-dm-applications
             displayNullValue: false
         }
         settings {

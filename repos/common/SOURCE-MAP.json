@@ -1005,6 +1005,12 @@
    "target": "common/features/notifications/shared-components/lovs/lov-notification-templates.apx",
    "to": 510,
    "whole": true
+  },
+  {
+   "from": 0,
+   "target": "common/features/data-model/shared-components/lovs/lov-dm-applications.apx",
+   "to": 576,
+   "whole": true
   }
  ],
  "apex/src/database/xxfusion/apex_apps/f135/shared-components/rest-data-sources/fusion-hcm-workers.apx": [
@@ -1612,6 +1618,14 @@
    "from": 0,
    "target": "common/tests/setup/04_test1_user.sql",
    "to": 1030,
+   "whole": true
+  }
+ ],
+ "apex/tests/r123_common_test.sql": [
+  {
+   "from": 0,
+   "target": "common/tests/r123_common_test.sql",
+   "to": 8951,
    "whole": true
   }
  ]

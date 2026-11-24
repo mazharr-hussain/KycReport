@@ -37,3 +37,7 @@ application summary is `repos/common/docs/README.md`.
 - The `KYC_USER` scheme is retired; every application uses `APP_USER` (KYC must switch: COMMON-ISSUES C18).
 - Fix: the release 109 install of `XXFND_SERVERS_V` failed in SQL Developer (a comment ending with `;`).
 - Retention stays a placeholder.
+
+## Change - Role grants switched by a routine (COMMON 123)
+
+- An application switches a user's grant of one of its roles off and on with `XXFND_USER_PKG.SET_ROLE_ENABLED` (by user and role name; a role of another application is refused) - never by changing XXFND_USER_ROLES (I-013).

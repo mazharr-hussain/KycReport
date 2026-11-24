@@ -29,6 +29,7 @@ graph LR
     xxfnd_user_pkg --> xxfnd_application_pkg
     xxfnd_user_pkg --> xxfnd_applications
     xxfnd_user_pkg --> xxfnd_audit_log
+    xxfnd_user_pkg --> xxfnd_error_pkg
     xxfnd_user_pkg --> xxfnd_privilege_pkg
     xxfnd_user_pkg --> xxfnd_roles
     xxfnd_user_pkg --> xxfnd_user_applications

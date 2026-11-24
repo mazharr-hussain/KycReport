@@ -76,6 +76,65 @@ page 10023 (
         }
     )
 
+    pageItem P10023_APP_ID (
+        type: hidden
+        layout {
+            sequence: 4
+            region: @setting
+            slot: regionBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 123 (I-011): the APEX application of the setting (the Open button of another application)
+                select xxfnd_application_pkg.apex_app_id(:P10023_APPLICATION_CODE) from dual
+                ```
+            used: always
+        }
+    )
+
+    pageItem P10023_OTHER_APP_NOTE (
+        type: displayOnly
+        label {
+            label: Note
+            alignment: left
+        }
+        layout {
+            sequence: 5
+            region: @setting
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            sendOnPageSubmit: false
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                -- release 123 (I-011): APEX changes a setting only in its own application
+                select 'This setting belongs to ' || :P10023_APPLICATION_CODE || ' and is shown here read-only. APEX changes '
+                       || 'a setting only inside its own application: open ' || :P10023_APPLICATION_CODE
+                       || ' and change it there (Administration > Application Settings).'
+                  from dual
+                ```
+            used: always
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_application_pkg.apex_app_id(:P10023_APPLICATION_CODE) <> :APP_ID
+                ```
+        }
+    )
+
     pageItem P10023_DISPLAY_NAME (
         type: displayOnly
         label {
@@ -124,6 +183,14 @@ page 10023 (
         }
         validation {
             maxLength: 4000
+        }
+        readOnly {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_application_pkg.apex_app_id(:P10023_APPLICATION_CODE) <> :APP_ID   -- release 123 (I-011): another application's setting is read-only here
+                ```
         }
         source {
             type: sqlQuerySingleValue
@@ -175,6 +242,41 @@ page 10023 (
         }
         security {
             authorizationScheme: @page-manage
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_application_pkg.apex_app_id(:P10023_APPLICATION_CODE) = :APP_ID   -- release 123 (I-011): only the running application's settings are changed here
+                ```
+        }
+    )
+
+    button open-app (
+        buttonName: OPEN_APP
+        label: Open &P10023_APPLICATION_CODE.
+        layout {
+            sequence: 30
+            region: @buttons
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectUrl
+            targetUrl: javascript:window.top.location.href = 'f?p=&P10023_APP_ID.';
+        }
+        serverSideCondition {
+            type: expression
+            language: plsql
+            plsqlExpression:
+                ```plsql
+                xxfnd_application_pkg.apex_app_id(:P10023_APPLICATION_CODE) <> :APP_ID   -- release 123 (I-011): the setting belongs to another application - opened there (its home page)
+                ```
         }
     )
 

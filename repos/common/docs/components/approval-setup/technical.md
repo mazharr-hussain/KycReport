@@ -51,6 +51,7 @@ Approval chains are data (AME style), not code.
     - `db/scripts/15d-approval-setup/10-xxfnd_schema_pkg-create_who_trigger.sql`
     - `db/scripts/15d-approval-setup/13-ensure_sequence-xxfnd_approval_rule_s.sql`
     - `db/scripts/15d-approval-setup/21-add_constraint-xxfnd_approval_rule_steps-group.sql`
+    - `db/scripts/15d-approval-setup/23-add_column-approval-steps-group_code.sql`
     - `db/scripts/24-workflow-module/01-xxfnd_util_pkg-set_install_mode.sql`
     - `db/scripts/28-registration/01-xxfnd_error_pkg-register_message.sql`
     - `db/scripts/33-data-model/08-xxfnd_util_pkg-set_install_mode.sql`
@@ -64,6 +65,7 @@ Approval chains are data (AME style), not code.
 ## Test scripts
 
 - `features/approval-setup/tests/r113_approval_groups_test.sql`
+- `tests/r123_common_test.sql`
 - `tests/r78_common_test.sql`
 - `tests/r82_workflow_test.sql`
 - `tests/r84_notifications_test.sql`

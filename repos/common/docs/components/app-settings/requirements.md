@@ -15,3 +15,7 @@ application summary is `repos/common/docs/README.md`.
 - **DB objects:** *Own:* Packages: XXFND\_APP\_SETTING\_PKG. *Uses:* XXFND\_APPLICATIONS, XXFND\_APPLICATION\_PKG.
 
 * **Shared components:** App items: G\_ADMIN\_APP; Authorizations: page-manage, page-submit, page-view; Breadcrumb: breadcrumb; Page groups: features.
+
+## Change - Settings of another application (COMMON 123)
+
+- APEX changes a setting only inside its own application. A setting of another application opens read-only on Application Setting (page 10023), with a note and an Open button that opens that application, where the setting is changed (I-011).

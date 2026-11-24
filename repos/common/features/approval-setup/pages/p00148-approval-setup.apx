@@ -57,7 +57,7 @@ page 148 (
                                                           and a.attribute_code = c.attribute_code
                          where c.rule_id = r.rule_id) as conditions,
                        (select listagg(s.step_no || '. ' || s.step_name || ' - '
-                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, s.role_code, s.user_name), ' > ')
+                                       || xxfnd_approval_rule_pkg.approver_label(s.approver_type, nvl(s.group_code, s.role_code), s.user_name), ' > ')
                                    within group (order by s.step_no)
                           from xxfnd_approval_rule_steps s
                          where s.rule_id = r.rule_id) as approvers,

@@ -5,7 +5,8 @@
 
 create or replace package xxfnd_ui_pkg authid definer as
     -- colour of a status code (UIUX-STANDARD.md section 9); p_object: REQUEST, PARTY, CASE, MATCH, SCREENING,
-    -- DOCUMENT, RISK, RFI
+    -- DOCUMENT, RISK, RFI. Release 123 (I-010): the tone set on the status lookup value comes first; the codes held here
+    -- are a fallback until the application sets its tones - new screens use XXFND_LOOKUP_PKG.LOOKUP_TONE(type, code)
     function status_tone(p_object in varchar2, p_code in varchar2) return varchar2;
 
     -- the lookup meaning of a status code (data; release 74: the screens show it with their own badge template)

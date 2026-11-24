@@ -30,3 +30,7 @@ application summary is `repos/common/docs/README.md`.
 - The Process Catalogue lists one row per process (for example KYC case approval, KYC request approval); each process opens its Process page with its approval rules and its approval groups.
 - An approval group is a named set of approvers of a process: roles (their active users) and users. A rule level can name a group instead of one role or user; anyone in the group can approve.
 - Fixes: the Server form (ORA-00937) and the User form (grid columns) open again.
+
+## Change - Delegations through routines (COMMON 123)
+
+- An application (or its tests) creates and ends a delegation with `XXFND_WORKFLOW_PKG.ADD_DELEGATION` / `END_DELEGATION` - never by writing XXFND_WF_DELEGATIONS. In an APEX session: Workflow Setup - Manage, or the delegator is the signed-in user (I-012).

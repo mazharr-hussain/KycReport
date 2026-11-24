@@ -230,6 +230,7 @@
   ],
   "source_index": 12,
   "units": [
+   "common/db/scripts/05c-lookups-package/01-add_column-xxfnd_lookup_values-tone.sql",
    "common/features/lookups/db/package_specs/xxfnd_lookup_pkg.pks",
    "common/features/lookups/db/package_bodies/xxfnd_lookup_pkg.pkb"
   ]
@@ -554,6 +555,7 @@
    "common/features/approval-setup/db/tables/xxfnd_approval_groups.sql",
    "common/features/approval-setup/db/tables/xxfnd_approval_group_members.sql",
    "common/db/scripts/15d-approval-setup/21-add_constraint-xxfnd_approval_rule_steps-group.sql",
+   "common/db/scripts/15d-approval-setup/23-add_column-approval-steps-group_code.sql",
    "common/features/approval-setup/db/triggers/xxfnd_approval_rules_bi.sql",
    "common/features/approval-setup/db/types/xxfnd_approval_step_row.sql",
    "common/features/approval-setup/db/types/xxfnd_approval_step_tab.sql",
