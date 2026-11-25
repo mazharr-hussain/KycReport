@@ -1,6 +1,5 @@
 set serveroutput on size unlimited feedback off
--- test users (release 76: the shared test_users.sql)
-@@test_users.sql
+-- test users: repos/kyc/db/admin/test-users.sql (pipeline step K.3a, I-098)
 -- test data: a party and two RFIs addressed to different requesters (inserted outside APEX: no VPD filter)
 declare l_party number; l_n pls_integer; l_rfi number; l_token varchar2(4000); l_cat varchar2(30);
 begin

@@ -79,6 +79,12 @@ db_tests() {   # K.6: each file in its own session; a FAIL line or an ORA- / PLS
   pass=$(grep -c '^PASS' "$LOG_DIR/kyc-tests-detail.log")
   fail=$(grep -c '^FAIL' "$LOG_DIR/kyc-tests-detail.log")
   err=$(grep -cE '^(ORA|PLS)-' "$LOG_DIR/kyc-tests-detail.log")
+  # the whole output of each failing file (the FAIL / ORA- lines alone do not show the cause - KYC 106)
+  local bad
+  awk '/^== /{f=$2} /^(FAIL|ORA-|PLS-)/{print f}' "$LOG_DIR/kyc-tests-detail.log" | sort -u | while read -r bad; do
+    echo "---- output of $bad"
+    awk -v f="$bad" '/^== /{show = ($2 == f)} show' "$LOG_DIR/kyc-tests-detail.log" | head -150
+  done
   echo "$n KYC test file(s)"
   echo "PASS: $pass  FAIL: $fail  errors: $err"
   [ "$fail" -eq 0 ] && [ "$err" -eq 0 ]

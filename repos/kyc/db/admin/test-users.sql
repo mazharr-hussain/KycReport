@@ -15,6 +15,9 @@
 --     TKYC_L1         Case approval level 1          (COMPLIANCE_MANAGER)
 --     TKYC_L2         Case approval level 2          (HEAD_OF_COMPLIANCE)
 --     TKYC_ADMIN      KYC administrator              (SYSTEM_ADMIN, KYC_ADMIN)
+--   the users of the KYC DB tests (repos/kyc/tests; was apex/tests/test_users.sql, I-098 #276):
+--     REQ1, REQ2      Requester (REQUESTER) · OFFICER1 Compliance Officer · MGR1 Compliance Manager
+--     HOC1            Head of Compliance
 --------------------------------------------------------------------------------
 alter session set current_schema = XXFUSION;
 set serveroutput on size unlimited
@@ -119,6 +122,12 @@ begin
     usr('TKYC_L1',       'Test Case Approver L1',      'COMPLIANCE_MANAGER');
     usr('TKYC_L2',       'Test Case Approver L2',      'HEAD_OF_COMPLIANCE');
     usr('TKYC_ADMIN',    'Test KYC Admin',             'SYSTEM_ADMIN,KYC_ADMIN');
+    -- the users of the KYC DB tests (I-098, #276)
+    usr('REQ1',          'Req1',                       'REQUESTER');
+    usr('REQ2',          'Req2',                       'REQUESTER');
+    usr('OFFICER1',      'Officer1',                   'COMPLIANCE_OFFICER');
+    usr('MGR1',          'Mgr1',                       'COMPLIANCE_MANAGER');
+    usr('HOC1',          'Hoc1',                       'HEAD_OF_COMPLIANCE');
 
     xxfnd_vpd_pkg.clear_cache;
     xxfnd_vpd_pkg.end_trusted;

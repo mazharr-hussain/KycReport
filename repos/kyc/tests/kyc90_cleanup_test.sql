@@ -133,7 +133,8 @@ begin
        cnt('select count(*) from apex_application_page_buttons where application_id = ' || l_app
            || q'[ and page_id = 206 and lower(condition_expression1) like '%apex_human_task.is_allowed%']') = 0
        and cnt('select count(*) from apex_application_page_buttons where application_id = ' || l_app
-           || q'[ and page_id = 206 and lower(condition_expression1) like '%xxcmp_request_pkg.can_decide%']') = 6);
+           || q'[ and page_id = 206 and lower(condition_expression1) like '%xxcmp_request_pkg.can_decide%']') = 8);
+    -- KYC 106 (I-102, #280): 8 = approve, assign, reject, request-info and their copies at the top (KYC 105)
     ok('page 206: Approver to Add uses the shared employee list',
        cnt('select count(*) from apex_application_page_items where application_id = ' || l_app
            || q'[ and item_name = 'P206_ADD_USER' and lov_named_lov = 'EMPLOYEES BY USER NAME']') = 1);

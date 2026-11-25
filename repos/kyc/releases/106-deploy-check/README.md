@@ -8,6 +8,18 @@ COMMON is finished (25 Nov 2026); KYC work starts. This release changes no KYC c
 | I-096 (#272) | `repos/kyc/deployment/app.env`: the KYC settings (app 134, XXCUS, workspace XXCUS). |
 | I-096 (#272) | Pipeline job **K KYC deploy check** (`repos/common/deployment/db/kyc.sh`), for a `KYC Release <N>: ...` pull request: build COMMON then KYC, import app 134, register KYC in COMMON (`XXFND_ONBOARD_PKG.ONBOARD_SELF` - the grants on the COMMON objects to XXCUS), the KYC database install, the KYC test users (`repos/kyc/db/admin/test-users.sql`, moved from COMMON's test-users.sql - I-097, #274; their APEX accounts are removed first, as COMMON's 5.1a does for its own), import app 134 again, online validation, the KYC DB tests. When the PR also changes COMMON, job K waits for COMMON's jobs 3-8. Every step runs; all failures are reported together in the PR comment. Jobs 9 and 10 wait for it. |
 
+## KYC tests on the current COMMON (found by job K)
+
+| Issue | Change |
+|---|---|
+| I-098 (#276) | The KYC DB tests' users (REQ1, REQ2, OFFICER1, MGR1, HOC1) are made by `repos/kyc/db/admin/test-users.sql` (step K.3a); they came from `apex/tests/test_users.sql`, which never moved to `repos/` (`security_test.sql` and `workflow_test.sql` included it). |
+| I-099 (#277) | `r76_kyc_test.sql` and `workflow_test.sql` no longer use the old test helper `XXFND_TEST_FIXTURE_PKG`: approval rules, role grants and delegations are switched with COMMON's routines (COMMON 123: `SET_RULE_ENABLED`, `SET_ROLE_ENABLED`, `ADD_DELEGATION` / `END_DELEGATION`). |
+| I-100 (#278) | `kyc88_shared_test.sql` follows the design since release 88: page 100 is KYC's Administration page again (release 95), COMMON page 99 is gone, the side menu and the navigation bar are COMMON's subscribed lists built by `XXFND_NAV_PKG` (release 104 / 105). The KYC administrator's menu is checked as TKYC_ADMIN; a page without a KYC feature is named in the result. |
+| I-101 (#279) | The data-security refusal (ORA-28115) came from OFFICER1 not existing - fixed with #276. |
+| I-102 (#280) | `kyc90_cleanup_test.sql`: page 206 has 8 decision buttons with `CAN_DECIDE` (KYC 105 added a copy of each at the top), not 6. |
+
+Job K prints the whole output of each failing test file.
+
 Not in this release: the KYC browser test (after the deploy works), the upgrade test, a KYC release zip.
 
 Each failure the first run reports becomes its own KYC issue; the fixes are the KYC changes on the finished COMMON.
