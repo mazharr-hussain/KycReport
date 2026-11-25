@@ -40,7 +40,8 @@ begin
     ok('KYC_REQUEST workflow switched off', xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST', 'KYC') = 'N');
     xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', 'Auto Org ' || l_tag, 'AE', 'AU-' || l_tag, 'LLC',
                                    date '2015-01-01', 'auto@example.com', null, null, null, dept('FINANCE'), 'Auto approval test',
-                                   'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
+                                   'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR',
+                   p_requesting_country => 'AE')   -- KYC 105: required;
     update xxcmp_request_answers x
        set answer_option_id = (select max(o.answer_option_id) keep (dense_rank first order by o.risk_points)
                                  from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED')

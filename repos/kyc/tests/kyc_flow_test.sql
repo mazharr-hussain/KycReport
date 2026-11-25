@@ -72,7 +72,8 @@ declare
         xxcmp_request_pkg.save_request(l, 'NEW', null, 'ORGANIZATION', dbms_random.string('U', 16), 'AE',
                    upper(replace(p_name, ' ')) || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
                    'contact@example.com', '+971 4 000 0000', null, null, dept('PROCUREMENT'), 'New supplier',
-                   p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
+                   p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR',
+                   p_requesting_country => 'AE')   -- KYC 105: required;
         return l;
     end;
 begin

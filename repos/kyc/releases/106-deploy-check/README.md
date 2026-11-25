@@ -19,6 +19,7 @@ COMMON is finished (25 Nov 2026); KYC work starts. This release changes no KYC c
 | I-102 (#280) | `kyc90_cleanup_test.sql`: page 206 has 8 decision buttons with `CAN_DECIDE` (KYC 105 added a copy of each at the top), not 6. |
 
 | I-098 (#276) | Second run: since KYC 104 the requesting department is an ID (XXHR_ORGANIZATIONS), not a code - the tests passed 'FINANCE' / 'PROCUREMENT' (ORA-06502). `test-users.sql` now makes the two departments through COMMON's `XXFND_VPD_PKG.SAVE_ORGANIZATION` (KYC's), and the tests look up their IDs. `r74_email_test.sql` says so when there is no case to send from; `workflow_test.sql` switches COMMON's CONFIG_CHANGE process on for KYC (onboarding starts it off) and waits for the task the workflow creates in the background. |
+| I-098 (#276) | Third run: the requesting country is required since KYC 105 (ORA-20611) - the tests pass 'AE'. `workflow_test.sql` no longer switches CONFIG_CHANGE (not a KYC process; the task is made anyway) and leaves out "REQ2 does not see REQ1's task" while a REQ1 -> REQ2 delegation of an earlier run today is still active (#281). |
 | I-100 (#278) | Page 100 (Administration, any administrator) belongs to no single feature, like the global page: left out of the "every page belongs to a feature" check. |
 
 Job K prints the whole output of each failing test file.
