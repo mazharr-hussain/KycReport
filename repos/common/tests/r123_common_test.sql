@@ -87,15 +87,18 @@ begin
         ok('no group level left in ROLE_CODE after the upgrade', l_n = 0);
     end if;
 
-    -- I-014 / I-010: an application changes its own lookup value; its tone
-    select max(t.lookup_type), max(t.application_code), max(v.lookup_code)
-      into l_type, l_app, l_code
-      from xxfnd_lookup_types t
-      join xxfnd_lookup_values v on v.lookup_type = t.lookup_type
-     where t.application_code is not null and rownum = 1;
+    -- I-014 / I-010: an application changes its own lookup value; its tone. On a lookup type of an application whose
+    -- values may be changed (customization level U - S and E refuse it, trigger XXFND_LOOKUP_VALUES_LVL), with a value
+    -- the test registers itself (release 127: a fresh install has no such value)
+    select max(lookup_type), max(application_code) into l_type, l_app
+      from (select lookup_type, application_code from xxfnd_lookup_types
+             where application_code is not null and customization_level = 'U' order by lookup_type)
+     where rownum = 1;
     if l_type is null then
-        dbms_output.put_line('SKIP no lookup value of an application');
+        dbms_output.put_line('SKIP no changeable lookup type of an application');
     else
+        l_code := 'R123_VALUE';
+        xxfnd_lookup_pkg.register_lookup_value(l_app, l_type, l_code, 'R123 value');
         xxfnd_lookup_pkg.update_lookup_value(l_app, l_type, l_code, p_meaning => 'R123 meaning', p_tone => 'Success');
         select count(*) into l_n from xxfnd_lookup_values
          where lookup_type = l_type and lookup_code = l_code and meaning = 'R123 meaning' and tone = 'success';
