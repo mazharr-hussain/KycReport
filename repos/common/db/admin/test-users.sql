@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Test users for live validation (COMMON, from release 106). Run as ADMIN in SQL Developer Web (or as XXFUSION
--- without the first line), after COMMON (and, for the application users, the application) is installed.
+-- without the first line), after COMMON is installed.
 -- Local users through COMMON's user routines, default password Welcome#2026, NOT changed at first sign-in.
 -- A user whose role does not exist in this database (its application is not installed) is skipped with a message.
 -- A re-run keeps existing users, adds only missing roles and a missing APEX account, and sets the password again.
@@ -9,16 +9,7 @@
 --     TCOM_ADMIN      Common Administrator (COMMON_ADMIN): every COMMON screen, every application's setup
 --     TALL_ACCESS     Full access: COMMON_ADMIN and every enabled role of every registered application
 --                     (department-scoped roles with every department)
---   KYC
---     TKYC_REQ1       Requesting user, Finance       (REQUESTING_ENTITY_1, department FINANCE)
---     TKYC_REQ2       Requesting user, Procurement   (REQUESTING_ENTITY_2, department PROCUREMENT)
---     TKYC_APPROVER   Request approver and case assignment (COMPLIANCE_OFFICER, COMPLIANCE_MANAGER: approves the
---                     request whichever role the KYC_REQUEST rule names, assigns the case)
---     TKYC_CONTRIB1   Contributor working on cases   (COMPLIANCE_OFFICER)
---     TKYC_CONTRIB2   Contributor working on cases   (COMPLIANCE_OFFICER)
---     TKYC_L1         Case approval level 1          (COMPLIANCE_MANAGER)
---     TKYC_L2         Case approval level 2          (HEAD_OF_COMPLIANCE)
---     TKYC_ADMIN      KYC administrator              (SYSTEM_ADMIN, KYC_ADMIN)
+--   The KYC test users (TKYC_*) are KYC's: repos/kyc/db/admin/test-users.sql (I-097, #274)
 --------------------------------------------------------------------------------
 alter session set current_schema = XXFUSION;
 set serveroutput on size unlimited
@@ -128,16 +119,6 @@ begin
       from xxfnd_roles r
      where r.enabled_flag = 'Y' and r.role_code <> 'COMMON_ADMIN';
     usr('TALL_ACCESS', 'Test Full Access', 'COMMON_ADMIN,' || l_all);
-
-    -- KYC (skipped role by role when KYC is not installed)
-    usr('TKYC_REQ1',     'Test Requester Finance',     'REQUESTING_ENTITY_1:FINANCE');
-    usr('TKYC_REQ2',     'Test Requester Procurement', 'REQUESTING_ENTITY_2:PROCUREMENT');
-    usr('TKYC_APPROVER', 'Test Request Approver',      'COMPLIANCE_OFFICER,COMPLIANCE_MANAGER');
-    usr('TKYC_CONTRIB1', 'Test Contributor One',       'COMPLIANCE_OFFICER');
-    usr('TKYC_CONTRIB2', 'Test Contributor Two',       'COMPLIANCE_OFFICER');
-    usr('TKYC_L1',       'Test Case Approver L1',      'COMPLIANCE_MANAGER');
-    usr('TKYC_L2',       'Test Case Approver L2',      'HEAD_OF_COMPLIANCE');
-    usr('TKYC_ADMIN',    'Test KYC Admin',             'SYSTEM_ADMIN,KYC_ADMIN');
 
     xxfnd_vpd_pkg.clear_cache;
     xxfnd_vpd_pkg.end_trusted;

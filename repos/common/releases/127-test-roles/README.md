@@ -1,0 +1,11 @@
+# COMMON 127 - test data: no KYC role codes in COMMON
+
+On top of COMMON 126. Test data and pipeline only; no table, package, page or seed change.
+
+| Issue | Change |
+|---|---|
+| I-097 (#274) | Found by the KYC deploy check (#273): KYC's install stopped with `ORA-20186: Role REQUESTER belongs to application TDAPP`. COMMON's test data (`db/admin/test-data.json`) registered four of KYC's role codes (REQUESTER, COMPLIANCE_OFFICER, COMPLIANCE_MANAGER, HEAD_OF_COMPLIANCE) for its test application TDAPP; role codes are unique across applications. They are now TD_REQUESTER, TD_OFFICER, TD_MANAGER and TD_HEAD, like every other test row. |
+| I-097 (#274) | The test data file has a `removed` list: rows an earlier version of the file loaded and this one no longer has, deleted before the load (`db/load_data.py`, `db/load-data.sql`). It removes the four old roles and their grants from the validation database - only while a role still belongs to TDAPP, so KYC's own roles are never touched. COMMON's role routine (`UNREGISTER_ROLE`) refuses a role that was ever given to a user, and the test users held these. |
+| I-097 (#274) | The KYC test users (TKYC_*) leave COMMON's `db/admin/test-users.sql`; they move to KYC (`repos/kyc/db/admin/test-users.sql`, KYC 106, #273). |
+
+Checked offline: `checks/test_data.py` (22 rows load), the loader's generated SQL, shellcheck, the pipeline dry run.
