@@ -68,7 +68,7 @@ begin
                'R75' || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
                'contact@example.com', '+971 4 000 0000', null, null, dept('PROCUREMENT'), 'Release 75 assignment test',
                p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR',
-                   p_requesting_country => 'AE')   -- KYC 105: required;
+                   p_requesting_country => 'AE');   -- KYC 105: required
     answer(l_req, 'regulated stock exchange', 'No');
     answer(l_req, 'country of incorporation', 'Medium-risk jurisdiction');
     answer(l_req, 'transaction volume', 'Above 10 million');
