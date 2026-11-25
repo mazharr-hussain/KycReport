@@ -156,6 +156,18 @@ begin
     commit;
 
     ------------------------------------------------------- maker-checker change
+    -- KYC 106: onboarding starts COMMON's shared processes off for a new application - the change approval is
+    -- switched on for KYC first (COMMON's routine, install mode as the installer: r73 does the same for KYC_REQUEST)
+    begin
+        xxfnd_util_pkg.set_install_mode(true);
+        xxfnd_workflow_pkg.set_process_enabled('KYC', 'CONFIG_CHANGE', 'Y');
+        xxfnd_util_pkg.set_install_mode(false);
+        commit;
+    exception
+        when others then
+            xxfnd_util_pkg.set_install_mode(false);
+            dbms_output.put_line('INFO CONFIG_CHANGE for KYC not switched on: ' || sqlerrm);
+    end;
     session_as('MGR1');
     delete from xxcmp_attachment_rules where entity_name = 'XXCMP_PARTIES' and jurisdiction = 'QA';   -- earlier test run
     insert into xxcmp_attachment_rules (entity_name, category_code, jurisdiction, mandatory_flag, priority)
@@ -163,12 +175,19 @@ begin
     returning attachment_rule_id into l_rule;
     xxfnd_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
     commit;
-    select max(task_id) into l_task from apex_tasks
-     where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXCMP_ATTACHMENT_RULES:' || l_rule;
+    -- the COMMON workflow creates the task in the background after the commit (KYC 106: wait for it)
+    for i in 1 .. 60 loop
+        select max(task_id) into l_task from apex_tasks
+         where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXCMP_ATTACHMENT_RULES:' || l_rule;
+        exit when l_task is not null;
+        dbms_session.sleep(2);
+    end loop;
     ok('submitting a change creates a CONFIG_CHANGE task (' || l_task || ')', l_task is not null);
-    ok('the maker (MGR1) may neither claim nor approve it',
-       not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim)
-       and not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_approve));
+    if l_task is not null then
+        ok('the maker (MGR1) may neither claim nor approve it',
+           not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim)
+           and not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_approve));
+    end if;
 
     -- the approval itself (who sees, claims and approves the task) is COMMON's CONFIG_CHANGE workflow, tested by COMMON;
     -- KYC checks only that its change starts it (the task belongs to COMMON's application since COMMON 84)

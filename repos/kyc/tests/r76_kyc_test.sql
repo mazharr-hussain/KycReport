@@ -19,6 +19,14 @@ declare
     l_rules_off apex_t_varchar2 := apex_t_varchar2();   -- 'TYPE|RULE' switched off by the test
     l_roles_off apex_t_varchar2 := apex_t_varchar2();   -- 'ROLE|USER' switched off by the test
 
+    -- KYC 106 (I-098): the requesting department is an ID (XXHR_ORGANIZATIONS, made by db/admin/test-users.sql)
+    function dept(p_code varchar2) return number is
+        l number;
+    begin
+        select min(organization_id) into l from xxhr_organizations
+         where organization_type = 'DEPARTMENT' and organization_code = p_code;
+        return l;
+    end;
     procedure ok(p_label varchar2, p_cond boolean) is
     begin
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
@@ -38,7 +46,7 @@ declare
         l_req := null;
         xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', dbms_random.string('U', 16), 'AE',
                    'R76' || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
-                   'contact@example.com', '+971 4 000 0000', null, null, 'PROCUREMENT', 'Release 76 approval rules test',
+                   'contact@example.com', '+971 4 000 0000', null, null, dept('PROCUREMENT'), 'Release 76 approval rules test',
                    p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
         answer('regulated stock exchange', 'No');
         answer('country of incorporation', 'Medium-risk jurisdiction');

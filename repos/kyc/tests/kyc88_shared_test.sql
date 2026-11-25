@@ -121,12 +121,14 @@ begin
     ok('every KYC page (but the global page, sign-in and the RFI pages of release 89) has an authorization scheme',
        cnt('select count(*) from apex_application_pages where application_id = ' || l_app
            || ' and page_id not in (0, 9999) and page_id not between 30 and 34 and authorization_scheme is null') = 0);
+    -- page 100 (Administration, release 95) is the menu of the setup features, opened by any administrator
+    -- (authorization admin-area): like the global page it belongs to no single feature (KYC 106)
     execute immediate 'select listagg(p.page_id, '', '') within group (order by p.page_id) from apex_application_pages p'
         || ' where p.application_id = ' || l_app
-        || q'[ and p.page_id not in (0, 9999) and p.page_id not between 30 and 34
+        || q'[ and p.page_id not in (0, 100, 9999) and p.page_id not between 30 and 34
               and not exists (select 1 from xxfnd_feature_pages f where upper(f.app_alias) = 'KYC' and f.page_id = p.page_id)]'
         into l_labels;
-    ok('every KYC page (but 0, 9999 and the RFI pages of release 89) belongs to a KYC feature'
+    ok('every KYC page (but 0, 100, 9999 and the RFI pages of release 89) belongs to a KYC feature'
        || nvl2(l_labels, ' - not: ' || l_labels, null), l_labels is null);
 
     -- the Administration list: KYC's own setup and COMMON's shared setup for the administrator

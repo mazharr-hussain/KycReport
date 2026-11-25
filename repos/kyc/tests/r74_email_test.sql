@@ -22,6 +22,11 @@ begin
     apex_session.create_session(l_app, 1, 'OFFICER1');
     apex_app_setting.set_value('MAIL_FROM', 'kyc@example.com');
     select max(case_id) into l_case from xxcmp_cases;
+    if l_case is null then   -- KYC 106: the cases come from kyc_flow_test.sql (it runs first)
+        ok('a case to send the e-mail from (kyc_flow_test.sql makes them)', false);
+        apex_session.delete_session;
+        return;
+    end if;
 
     ok('rules: an address is needed', xxfnd_notify_pkg.email_error('OUT', null, 'S', to_clob('B')) is not null);
     ok('rules: addresses are checked', xxfnd_notify_pkg.email_error('OUT', 'a@b.com, wrong', 'S', to_clob('B')) is not null);

@@ -114,6 +114,11 @@ begin
     apex_session.create_session(l_app, 1, l_admin);   -- an access administrator, as on the User page
     xxfnd_vpd_pkg.begin_trusted;
 
+    -- the requesting departments of the tests (KYC's, through COMMON's routine; KYC 106, I-098) - departments are IDs
+    -- in XXHR_ORGANIZATIONS since KYC 104
+    xxfnd_vpd_pkg.save_organization('KYC', 'DEPARTMENT', 'FINANCE', 'Finance');
+    xxfnd_vpd_pkg.save_organization('KYC', 'DEPARTMENT', 'PROCUREMENT', 'Procurement');
+
     usr('TKYC_REQ1',     'Test Requester Finance',     'REQUESTING_ENTITY_1:FINANCE');
     usr('TKYC_REQ2',     'Test Requester Procurement', 'REQUESTING_ENTITY_2:PROCUREMENT');
     usr('TKYC_APPROVER', 'Test Request Approver',      'COMPLIANCE_OFFICER,COMPLIANCE_MANAGER');

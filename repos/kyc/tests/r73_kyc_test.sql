@@ -12,6 +12,14 @@ declare
     l_html  clob;
     l_owner number;
     l_start timestamp with time zone := systimestamp;
+    -- KYC 106 (I-098): the requesting department is an ID (XXHR_ORGANIZATIONS, made by db/admin/test-users.sql)
+    function dept(p_code varchar2) return number is
+        l number;
+    begin
+        select min(organization_id) into l from xxhr_organizations
+         where organization_type = 'DEPARTMENT' and organization_code = p_code;
+        return l;
+    end;
     procedure ok(p_label varchar2, p_cond boolean) is
     begin
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
@@ -31,7 +39,7 @@ begin
     switch('N');
     ok('KYC_REQUEST workflow switched off', xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST', 'KYC') = 'N');
     xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', 'Auto Org ' || l_tag, 'AE', 'AU-' || l_tag, 'LLC',
-                                   date '2015-01-01', 'auto@example.com', null, null, null, 'FINANCE', 'Auto approval test',
+                                   date '2015-01-01', 'auto@example.com', null, null, null, dept('FINANCE'), 'Auto approval test',
                                    'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
     update xxcmp_request_answers x
        set answer_option_id = (select max(o.answer_option_id) keep (dense_rank first order by o.risk_points)

@@ -18,6 +18,14 @@ declare
         end if;
         apex_session.create_session(l_app, 1, p_user);
     end;
+    -- KYC 106 (I-098): the requesting department is an ID (XXHR_ORGANIZATIONS, made by db/admin/test-users.sql)
+    function dept(p_code varchar2) return number is
+        l number;
+    begin
+        select min(organization_id) into l from xxhr_organizations
+         where organization_type = 'DEPARTMENT' and organization_code = p_code;
+        return l;
+    end;
     procedure ok(p_label varchar2, p_cond boolean) is
     begin
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
@@ -58,7 +66,7 @@ begin
     session_as('REQ1');
     xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', dbms_random.string('U', 16), 'AE',
                'R75' || to_char(systimestamp, 'HH24MISSFF3'), 'LLC', null,
-               'contact@example.com', '+971 4 000 0000', null, null, 'PROCUREMENT', 'Release 75 assignment test',
+               'contact@example.com', '+971 4 000 0000', null, null, dept('PROCUREMENT'), 'Release 75 assignment test',
                p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
     answer(l_req, 'regulated stock exchange', 'No');
     answer(l_req, 'country of incorporation', 'Medium-risk jurisdiction');
