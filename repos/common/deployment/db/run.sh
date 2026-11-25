@@ -320,7 +320,14 @@ deploy() {     # 5.2 / 6.2a / 6.5: deploy <project dir> install|upgrade|app - DB
   # validate and import in the same SQLcl session (APEXlang runtime gate)
   printf 'apex validate -input %s\napex import -input %s\n' "$dir/dist/app" "$dir/dist/app" > "$f"
   out=$(S "$APP_SCHEMA" "$f"); rc=$?; rm -f "$f"; echo "$out"
-  [ "$rc" -eq 0 ] && echo "$out" | grep -q "Validation successful" && echo "$out" | grep -q "Import successful"
+  [ "$rc" -eq 0 ] && echo "$out" | grep -q "Validation successful" && echo "$out" | grep -q "Import successful" || return 1
+  # the pipeline runs the database scripts before the import (App Builder runs them after it): script 21b found no
+  # application to read the APEX ID from on a fresh install - set it now, as 21b does (the deploy before a test job
+  # that follows a fresh install alone left COMMON without its APEX ID: "Application not found", I-097 run 109)
+  ci_exec "$APP_SCHEMA" "begin" "    xxfnd_util_pkg.set_install_mode(true);" \
+    "    for a in (select application_code from xxfnd_applications) loop xxfnd_application_pkg.set_apex_id(a.application_code); end loop;" \
+    "    xxfnd_util_pkg.set_install_mode(false);" "    commit;" \
+    "exception when others then xxfnd_util_pkg.set_install_mode(false); raise;" "end;" "/"
 }
 validate_online() {  # 5.3 / 6.9
   local pages
