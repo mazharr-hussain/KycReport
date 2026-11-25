@@ -53,7 +53,12 @@ SQL
 install() {   # K.3
   S "$APP_SCHEMA" "$THIS/db/deploy/install/run-all.sql" check
 }
-test_users() {   # K.3a
+test_users() {   # K.3a: first the KYC test users' APEX accounts, which outlive COMMON's cleared schema (as COMMON's
+  # 5.1a) - made again over an existing account they fail with ORA-00001 on WWV_FLOW_FND_USER_UQ1 (I-097)
+  local users
+  users=$(grep -oE "usr\('[A-Z][A-Z0-9_]*'" "$THIS/db/admin/test-users.sql" | sed -E "s/.*\('//; s/'//" | sort -u | tr '\n' ' ')
+  echo "KYC test users: $users"
+  S ADMIN "$HERE/remove-test-accounts.sql" check workspace="$WORKSPACE" users="$users" &&
   S ADMIN "$THIS/db/admin/test-users.sql" check
 }
 validate_online() {   # K.5
