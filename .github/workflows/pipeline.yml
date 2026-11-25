@@ -744,9 +744,14 @@ jobs:
   kyc-deploy:
     name: K KYC deploy check
     # I-096 (#272): a "KYC Release <N>: ..." pull request that changes repos/kyc - KYC (app 134, XXCUS) deployed on top of
-    # the COMMON the validation database holds (COMMON is not redeployed); every failure is listed together
-    needs: offline
-    if: needs.offline.outputs.app == 'KYC' && needs.offline.outputs.kyc == 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    # the COMMON the validation database holds; every failure is listed together. When the PR also changes COMMON
+    # (jobs 3-8 run), K waits for them and runs on the COMMON they deployed - not when one of them failed
+    needs: [offline, db-setup, quick, fresh, upgrade, test, ui]
+    if: >-
+      always() && needs.offline.result == 'success' &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') &&
+      needs.offline.outputs.app == 'KYC' && needs.offline.outputs.kyc == 'true' &&
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
     timeout-minutes: 60
@@ -775,7 +780,7 @@ jobs:
           set -euo pipefail
           sh repos/common/build.sh > /dev/null
           sh repos/kyc/build.sh > /dev/null
-      - name: K.0-K.6 KYC import, register in COMMON, install, online validation, DB tests
+      - name: K.0-K.6 KYC import, register in COMMON, install, test users, online validation, DB tests
         run: bash repos/common/deployment/db/kyc.sh
       - name: Step logs
         if: always()
@@ -811,9 +816,12 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
           DEPLOY: ${{ needs.db-setup.outputs.deploy }}
           DB_CHANGED: ${{ needs.offline.outputs.db_changed }}   # false: no upgrade test (F) - job 5 recorded the version
+          APP: ${{ needs.offline.outputs.app }}
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
+          # job K runs for a KYC pull request only (I-096): skipped on purpose for any other application
+          [ "$APP" = KYC ] || sed -i 's/^kyc-deploy=skipped$/kyc-deploy=success/' results.txt
           # jobs skipped on purpose by the deploy decision (M2) count as passed
           # (the quick check runs only for patch, and is then followed by the full deploy - it never replaces it)
           [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt

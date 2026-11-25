@@ -8,6 +8,8 @@
 #   K.2 register KYC in COMMON (XXFND_ONBOARD_PKG.ONBOARD_SELF, as XXCUS): the grants on the COMMON objects to XXCUS,
 #       which the KYC tables and packages need
 #   K.3 the KYC database install (repos/kyc/db/deploy/install/run-all.sql, as XXCUS)
+#   K.3a the KYC test users (repos/kyc/db/admin/test-users.sql, as ADMIN - creating APEX accounts outside an APEX
+#        session needs APEX instance rights, as COMMON's 8.1; I-097)
 #   K.4 import app 134 again, now on its database objects
 #   K.5 online validation (no invalid object, app 134 installed with every page)
 #   K.6 the KYC DB tests (repos/kyc/tests/*.sql, as XXCUS; a FAIL line or an ORA- / PLS- error fails the step)
@@ -51,6 +53,9 @@ SQL
 install() {   # K.3
   S "$APP_SCHEMA" "$THIS/db/deploy/install/run-all.sql" check
 }
+test_users() {   # K.3a
+  S ADMIN "$THIS/db/admin/test-users.sql" check
+}
 validate_online() {   # K.5
   local pages
   pages=$(find "$THIS/dist/app/pages" -name '*.apx' | wc -l)
@@ -83,6 +88,7 @@ export KEEP_GOING=1
 step K.1-import-app import_app
 step K.2-register-in-common onboard
 step K.3-install-db install
+step K.3a-test-users test_users
 step K.4-import-app-again import_app
 step K.5-online-validation validate_online
 step K.6-db-tests db_tests
