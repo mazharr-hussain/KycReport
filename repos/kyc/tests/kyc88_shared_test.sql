@@ -1,8 +1,10 @@
 -- KYC release 88 (run as XXCUS, after the KYC import): KYC has no copy of a COMMON screen.
---   - pages 40, 41, 44, 45, 90, 91, 98, 100, 172, 10020-10023, 10030-10033, 10050-10052 and task definition
+--   - pages 40, 41, 44, 45, 90, 91, 98, 172, 10020-10023, 10030-10033, 10050-10052 and task definition
 --     CONFIG_CHANGE are gone; nothing in KYC links to them (list entries, breadcrumbs, buttons, branches)
---   - the menu links to COMMON: My Tasks (COMMON 40), Feedback (COMMON 173); Administration opens the one
---     Administration list (KYC's own setup, the common functions IT lets KYC manage, COMMON's shared setup)
+--   - KYC 106 (I-100, #278) - the design since: page 100 is KYC's Administration page again (release 95); the side
+--     menu and the navigation bar are COMMON's lists (subscriptions, release 104 / 105), built by XXFND_NAV_PKG from
+--     COMMON's Application Menu (My Tasks, Give Feedback ... are entries there, not in KYC); Administration is the
+--     subscribed list (KYC's own setup, the common functions IT lets KYC manage, COMMON's shared setup)
 --   - the four administration lists are one, the Activity Reports list is gone
 --   - COMMON's LOVs and authorizations are used as subscriptions (masters in COMMON); the flexfield messages and
 --     xxfnd-dff.js stay in KYC (COMMON has no master; APEX_LANG.MESSAGE reads the running application)
@@ -10,7 +12,7 @@
 -- No test rows are written.
 set serveroutput on size unlimited feedback off define off
 declare
-    c_removed constant varchar2(400) := '40,41,44,45,90,91,98,100,172,10020,10021,10022,10023,10030,10031,10032,10033,10050,10051,10052';
+    c_removed constant varchar2(400) := '40,41,44,45,90,91,98,172,10020,10021,10022,10023,10030,10031,10032,10033,10050,10051,10052';
     -- the RFI pages 30-34 go in release 89 (not checked here)
     l_app   number;
     l_n     number;
@@ -42,12 +44,12 @@ begin
     select max(application_id) into l_app from apex_applications where upper(alias) = 'KYC';
 
     -- removed pages and task definition
-    ok('none of the 20 removed pages is in KYC',
+    ok('none of the 19 removed pages is in KYC',
        cnt('select count(*) from apex_application_pages where application_id = ' || l_app
            || ' and page_id in (' || c_removed || ')') = 0);
-    ok('the removed pages are all COMMON pages or COMMON replacements exist (COMMON 40, 47, 48, 99, 100, 141, 144, 170, 171, 173, 10020, 10022)',
+    ok('the removed pages are all COMMON pages or COMMON replacements exist (COMMON 40, 47, 48, 100, 141, 144, 170, 171, 173, 10020, 10022)',
        cnt(q'[select count(*) from apex_application_pages p join apex_applications a on a.application_id = p.application_id
-               where upper(a.alias) = 'COMMON' and p.page_id in (40, 47, 48, 99, 100, 141, 144, 170, 171, 173, 10020, 10022)]') = 12);
+               where upper(a.alias) = 'COMMON' and p.page_id in (40, 47, 48, 100, 141, 144, 170, 171, 173, 10020, 10022)]') = 11);
     ok('KYC has no task definition CONFIG_CHANGE (COMMON''s workflow process approves configuration changes)',
        cnt('select count(*) from apex_appl_taskdefs where application_id = ' || l_app || q'[ and static_id = 'CONFIG_CHANGE']') = 0);
 
@@ -75,18 +77,16 @@ begin
     end loop;
     ok('no branch goes to a removed page', l_n = 0);
 
-    -- the menu links to COMMON
-    ok('My Tasks in the menu opens COMMON page 40',
-       cnt('select count(*) from apex_application_list_entries where application_id = ' || l_app
-           || q'[ and list_name = 'Navigation Menu' and entry_text = 'My Tasks' and entry_target like 'f?p=COMMON:40:%']') = 1);
-    ok('Feedback in the navigation bar opens COMMON page 173 for this page',
-       cnt('select count(*) from apex_application_list_entries where application_id = ' || l_app
-           || q'[ and list_name = 'Navigation Bar' and entry_text = 'Feedback' and entry_target like 'f?p=COMMON:173:%'
-                 and entry_target like '%P173_APPLICATION_ID,P173_PAGE_ID%']') = 1);
-    ok('Administration in the menu opens the Administration list',
-       cnt('select count(*) from apex_application_list_entries e join apex_application_lists l on l.list_id = e.sub_list_id
-             where e.application_id = ' || l_app || q'[ and e.list_name = 'Navigation Menu' and e.entry_text = 'Administration'
-               and l.list_name = 'Administration']') = 1);
+    -- the menu and the navigation bar are COMMON's (KYC 106, I-100: subscriptions built by XXFND_NAV_PKG)
+    ok('the side menu is COMMON''s menu (XXFND_NAV_PKG.NAV_MENU)',
+       cnt('select count(*) from apex_application_lists where application_id = ' || l_app
+           || q'[ and list_name = 'Navigation Menu' and lower(list_query) like '%xxfnd_nav_pkg.nav_menu%']') = 1);
+    ok('the navigation bar is COMMON''s (XXFND_NAV_PKG.NAV_MENU(''TOP_BAR''): notifications, Give Feedback, user menu)',
+       cnt('select count(*) from apex_application_lists where application_id = ' || l_app
+           || q'[ and list_name = 'Navigation Bar' and lower(list_query) like '%xxfnd_nav_pkg.nav_menu(''top_bar'')%']') = 1);
+    ok('page 100 (Administration) shows a list region (the Administration list)',
+       cnt('select count(*) from apex_application_page_regions where application_id = ' || l_app
+           || q'[ and page_id = 100 and lower(source_type) like '%list%']') >= 1);
     ok('the add-document buttons open COMMON''s Attachments page 47 for the KYC record (3)',
        cnt('select count(*) from apex_application_page_buttons where application_id = ' || l_app
            || q'[ and redirect_url like 'f?p=COMMON:47:%' and redirect_url like '%P47_APP_ALIAS%']') = 3);
@@ -121,17 +121,23 @@ begin
     ok('every KYC page (but the global page, sign-in and the RFI pages of release 89) has an authorization scheme',
        cnt('select count(*) from apex_application_pages where application_id = ' || l_app
            || ' and page_id not in (0, 9999) and page_id not between 30 and 34 and authorization_scheme is null') = 0);
-    ok('every KYC page (but 0, 9999 and the RFI pages of release 89) belongs to a KYC feature',
-       cnt('select count(*) from apex_application_pages p where p.application_id = ' || l_app
-           || q'[ and p.page_id not in (0, 9999) and p.page_id not between 30 and 34
-                 and not exists (select 1 from xxfnd_feature_pages f where upper(f.app_alias) = 'KYC' and f.page_id = p.page_id)]') = 0);
+    -- page 100 (Administration, release 95) is the menu of the setup features, opened by any administrator
+    -- (authorization admin-area): like the global page it belongs to no single feature (KYC 106)
+    execute immediate 'select listagg(p.page_id, '', '') within group (order by p.page_id) from apex_application_pages p'
+        || ' where p.application_id = ' || l_app
+        || q'[ and p.page_id not in (0, 100, 9999) and p.page_id not between 30 and 34
+              and not exists (select 1 from xxfnd_feature_pages f where upper(f.app_alias) = 'KYC' and f.page_id = p.page_id)]'
+        into l_labels;
+    ok('every KYC page (but 0, 100, 9999 and the RFI pages of release 89) belongs to a KYC feature'
+       || nvl2(l_labels, ' - not: ' || l_labels, null), l_labels is null);
 
     -- the Administration list: KYC's own setup and COMMON's shared setup for the administrator
     select list_query into l_sql from apex_application_lists where application_id = l_app and list_name = 'Administration';
-    apex_session.create_session(l_app, 1, 'ADMIN');
+    -- the KYC administrator (test user TKYC_ADMIN: SYSTEM_ADMIN, KYC_ADMIN - KYC 106, I-100)
+    apex_session.create_session(l_app, 1, 'TKYC_ADMIN');
     l_sql := replace(replace(l_sql, ':APP_ALIAS', '''KYC'''), ':APP_PAGE_ID', '1');
     execute immediate 'select listagg(label, ''|'') within group (order by label) from (' || l_sql || ')' into l_labels;
-    ok('ADMIN''s Administration menu: KYC Rules, Alert Rules and Shared Setup (' || l_labels || ')',
+    ok('the KYC administrator''s Administration menu: KYC Rules, Alert Rules and Shared Setup (' || l_labels || ')',
        instr(l_labels, 'KYC Rules') > 0 and instr(l_labels, 'Alert Rules') > 0 and instr(l_labels, 'Shared Setup') > 0);
     ok('every Administration entry has a link; Shared Setup opens COMMON',
        cnt('select count(*) from (' || l_sql || ') where target is null') = 0

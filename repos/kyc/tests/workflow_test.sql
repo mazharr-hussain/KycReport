@@ -1,11 +1,20 @@
 -- Chunk 4: native APEX task flows inside real APEX sessions (application alias KYC).
--- Needs security_test.sql first (REQ1, REQ2, OFFICER1 and a party).
+-- Needs security_test.sql first (a party) and the KYC test users (repos/kyc/db/admin/test-users.sql: REQ1, REQ2, REQ3, OFFICER1).
+-- The delegation of the test is REQ1 -> REQ3 (REQ3 is used for nothing else): COMMON cannot remove a delegation before
+-- midnight (#281), so one left by an earlier run today must not make REQ2 a delegate of other tests.
+-- KYC 106 (I-099, #277): delegations through COMMON's routines (COMMON 123: XXFND_WORKFLOW_PKG.ADD_DELEGATION /
+-- END_DELEGATION) - the old test helper XXFND_TEST_FIXTURE_PKG is gone.
 -- Release 89: KYC's RFIs run in COMMON's workflow RFI - its tasks (RFI_RESPONSE, RFI_REVIEW) belong to the COMMON
 -- application (135) and are created by the workflow in the background after each commit (settle waits for it).
 set serveroutput on size unlimited feedback off
-@@test_users.sql
+-- test users: repos/kyc/db/admin/test-users.sql (pipeline step K.3a, I-098)
 begin
-    xxfusion.xxfnd_test_fixture_pkg.clear_delegations;   -- release 93: test helper (common_test_fixtures.sql, COMMON C13)
+    -- REQ1's delegations of an earlier run end (outside an APEX session: COMMON's routine needs no privilege). One made
+    -- today stays active until the end of the day (END_DELEGATION cannot end it before its start date)
+    for d in (select delegation_id from xxfusion.xxfnd_wf_delegations
+               where delegator_user_name = 'REQ1' and (end_date is null or end_date >= trunc(sysdate))) loop
+        xxfnd_workflow_pkg.end_delegation('KYC', d.delegation_id, trunc(sysdate) - 1);
+    end loop;
     commit;
 end;
 /
@@ -23,6 +32,7 @@ declare
     l_list    varchar2(4000);
     l_common  number;
     l_wf      number;
+    l_del     number;
 
     procedure session_as(p_user varchar2) is
     begin
@@ -78,6 +88,16 @@ begin
     ------------------------------------------------------------------ RFI flow (COMMON workflow RFI)
     session_as('OFFICER1');
     apex_app_setting.set_value('MAIL_FROM', 'kyc@example.com');
+    -- KYC 106 diagnostics (ORA-28115 on the RFI insert): what OFFICER1 holds, and the RFI data security predicate
+    declare l_txt varchar2(4000);
+    begin
+        select listagg(role_code || ':' || active_flag, ',') within group (order by role_code) into l_txt
+          from xxfusion.xxfnd_user_roles_v where user_name = 'OFFICER1';
+        dbms_output.put_line('INFO OFFICER1 grants: ' || nvl(l_txt, '-'));
+        dbms_output.put_line('INFO RFI policy for OFFICER1: ' || xxfnd_vpd_pkg.policy('XXFUSION', 'XXFND_RFIS'));
+    exception when others then
+        dbms_output.put_line('INFO diagnostics failed: ' || sqlerrm);
+    end;
     xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Please send the signed board resolution.', 'Y', trunc(sysdate) + 5,
                              p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_token);
@@ -98,7 +118,16 @@ begin
     l_list := my_tasks('RFI_RESPONSE');
     ok('REQ1 sees it in My Tasks: ' || l_list, instr(l_list, to_char(l_task)) > 0);
     session_as('REQ2');
-    ok('REQ2 does not: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) = 0);
+    -- a REQ1 -> REQ2 delegation of an earlier run today is still active (COMMON's END_DELEGATION cannot end it before
+    -- midnight, #281): REQ2 then rightly sees the task - the check is left out with an INFO line
+    select count(*) into l_cnt from xxfusion.xxfnd_wf_delegations
+     where delegator_user_name = 'REQ1' and delegate_user_name = 'REQ2'
+       and trunc(sysdate) between start_date and nvl(end_date, trunc(sysdate));
+    if l_cnt > 0 then
+        dbms_output.put_line('INFO REQ2 does not see the task - not checked: a delegation REQ1 -> REQ2 of an earlier run today is still active (#281)');
+    else
+        ok('REQ2 does not: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) = 0);
+    end if;
 
     session_as('REQ1');
     xxfnd_rfi_pkg.respond(l_rfi, to_clob('Attached, signed on 1 Sept.'));
@@ -117,7 +146,12 @@ begin
     ok('and the workflow ends: ' || xxfnd_workflow_pkg.state(l_wf), xxfnd_workflow_pkg.state(l_wf) = 'COMPLETED');
 
     ------------------------------------------------------------ delegation
-    xxfusion.xxfnd_test_fixture_pkg.add_delegation('REQ1', 'REQ2', trunc(sysdate), trunc(sysdate) + 7, 'Annual leave');
+    -- the delegator makes the delegation (COMMON's routine: the signed-in user delegates), the raiser then asks again
+    session_as('REQ1');
+    l_del := xxfnd_workflow_pkg.add_delegation('KYC', 'REQ1', 'REQ3', trunc(sysdate), trunc(sysdate) + 7,
+                                               p_reason => 'Annual leave');
+    commit;
+    session_as('OFFICER1');
     xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Second request while REQ1 is away.', 'Y', trunc(sysdate) + 5,
                              p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi2, p_token => l_token);
@@ -126,10 +160,10 @@ begin
     l_task := open_task('RFI_RESPONSE');
     select listagg(participant, ',') within group (order by participant) into l_list
       from apex_task_participants where task_id = l_task and participant_type = 'POTENTIAL_OWNER';
-    ok('delegation REQ1 -> REQ2 adds REQ2 as owner: ' || l_list, l_list = 'REQ1,REQ2');
-    session_as('REQ2');
+    ok('delegation REQ1 -> REQ3 adds REQ3 as owner: ' || l_list, instr(',' || l_list || ',', ',REQ1,') > 0 and instr(',' || l_list || ',', ',REQ3,') > 0);
+    session_as('REQ3');
     select count(*) into l_cnt from xxfnd_rfis where rfi_id = l_rfi2;
-    ok('the delegate REQ2 can see the delegated RFI (data security)', l_cnt = 1);
+    ok('the delegate REQ3 can see the delegated RFI (data security)', l_cnt = 1);
     ok('and has the task in My Tasks: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) > 0);
     session_as('OFFICER1');
     xxfnd_rfi_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');
@@ -138,7 +172,8 @@ begin
     ok('cancelling the RFI ends its workflow (' || xxfnd_workflow_pkg.state(l_wf) || ') and its task (' || nvl(l_state, 'removed') || ')',
        xxfnd_workflow_pkg.state(l_wf) in ('TERMINATED', 'COMPLETED')
        and (l_state is null or l_state not in ('UNASSIGNED', 'ASSIGNED')));
-    xxfusion.xxfnd_test_fixture_pkg.clear_delegations;
+    session_as('REQ1');
+    xxfnd_workflow_pkg.end_delegation('KYC', l_del);
     commit;
 
     ------------------------------------------------------- maker-checker change
@@ -149,12 +184,19 @@ begin
     returning attachment_rule_id into l_rule;
     xxfnd_approval_pkg.request('XXCMP_ATTACHMENT_RULES', to_char(l_rule));
     commit;
-    select max(task_id) into l_task from apex_tasks
-     where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXCMP_ATTACHMENT_RULES:' || l_rule;
+    -- the COMMON workflow creates the task in the background after the commit (KYC 106: wait for it)
+    for i in 1 .. 60 loop
+        select max(task_id) into l_task from apex_tasks
+         where task_def_static_id = 'CONFIG_CHANGE' and detail_pk = 'XXCMP_ATTACHMENT_RULES:' || l_rule;
+        exit when l_task is not null;
+        dbms_session.sleep(2);
+    end loop;
     ok('submitting a change creates a CONFIG_CHANGE task (' || l_task || ')', l_task is not null);
-    ok('the maker (MGR1) may neither claim nor approve it',
-       not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim)
-       and not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_approve));
+    if l_task is not null then
+        ok('the maker (MGR1) may neither claim nor approve it',
+           not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_claim)
+           and not apex_human_task.is_allowed(p_task_id => l_task, p_operation => apex_human_task.c_task_op_approve));
+    end if;
 
     -- the approval itself (who sees, claims and approves the task) is COMMON's CONFIG_CHANGE workflow, tested by COMMON;
     -- KYC checks only that its change starts it (the task belongs to COMMON's application since COMMON 84)

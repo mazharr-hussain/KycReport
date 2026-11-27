@@ -106,7 +106,16 @@ begin
     session_as('REQ1');
     ok('REQ1''s open step is that task (the link to COMMON page 143)', xxcmp_case_pkg.rfi_task(l_rfi) = l_task);
     session_as('REQ2');
-    ok('REQ2 has none', xxcmp_case_pkg.rfi_task(l_rfi) is null);
+    -- a REQ1 -> REQ2 delegation left by an earlier run today (COMMON cannot remove it before midnight, #281) gives REQ2
+    -- REQ1's tasks: the check is left out then
+    select count(*) into l_n from xxfusion.xxfnd_wf_delegations
+     where delegator_user_name = 'REQ1' and delegate_user_name = 'REQ2'
+       and trunc(sysdate) between start_date and nvl(end_date, trunc(sysdate));
+    if l_n > 0 then
+        dbms_output.put_line('INFO REQ2 has none - not checked: a delegation REQ1 -> REQ2 of an earlier run today is still active (#281)');
+    else
+        ok('REQ2 has none', xxcmp_case_pkg.rfi_task(l_rfi) is null);
+    end if;
 
     session_as('REQ1');
     xxfnd_rfi_pkg.respond(l_rfi, 'R89 the number is 12345');

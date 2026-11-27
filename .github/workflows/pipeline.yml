@@ -28,7 +28,7 @@ on:
   workflow_dispatch:
     inputs:
       app:
-        description: Application (KYC has no app.env yet - its offline checks only)
+        description: Application (KYC - its offline checks; the deploy check K runs on a KYC pull request)
         type: choice
         options: [COMMON, KYC]
         default: COMMON
@@ -741,9 +741,56 @@ jobs:
         with:
           job: 8-ui
 
+  kyc-deploy:
+    name: K KYC deploy check
+    # I-096 (#272): a "KYC Release <N>: ..." pull request that changes repos/kyc - KYC (app 134, XXCUS) deployed on top of
+    # the COMMON the validation database holds; every failure is listed together. When the PR also changes COMMON
+    # (jobs 3-8 run), K waits for them and runs on the COMMON they deployed - not when one of them failed
+    needs: [offline, db-setup, quick, fresh, upgrade, test, ui]
+    if: >-
+      always() && needs.offline.result == 'success' &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') &&
+      needs.offline.outputs.app == 'KYC' && needs.offline.outputs.kyc == 'true' &&
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-24.04
+    environment: Oracle_Dev_DB   # the dev database (issue #240): its OCIDs here, the OCI sign-in at repository level
+    timeout-minutes: 60
+    permissions:
+      id-token: write        # OIDC token for the OCI token exchange (issue #240)
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/setup-sqlcl
+        with:
+          oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
+          oci-tenancy: ${{ secrets.OCI_TENANCY }}
+          oci-domain: ${{ vars.OCI_DOMAIN_URL }}
+          oci-region: ${{ vars.OCI_REGION }}
+          db-ocid: ${{ secrets.VAL_DB_OCID || vars.VAL_DB_OCID }}
+          admin-secret: ${{ secrets.VAL_ADMIN_SECRET_OCID || vars.VAL_ADMIN_SECRET_OCID }}
+          xxcus-secret: ${{ secrets.VAL_XXCUS_SECRET_OCID || vars.VAL_XXCUS_SECRET_OCID }}
+          wallet-secret: ${{ secrets.VAL_WALLET_SECRET_OCID || vars.VAL_WALLET_SECRET_OCID }}
+      - name: K build (COMMON first, then KYC - as step 1.9)
+        run: |
+          set -euo pipefail
+          sh repos/common/build.sh > /dev/null
+          sh repos/kyc/build.sh > /dev/null
+      - name: K.0-K.6 KYC import, register in COMMON, install, test users, online validation, DB tests
+        run: bash repos/common/deployment/db/kyc.sh
+      - name: Step logs
+        if: always()
+        uses: ./.github/actions/job-logs
+        with:
+          job: K-kyc
+
   finalize:
     name: 9 Finalize the PR
-    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui]
+    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui, kyc-deploy]
     # always() so this required check can never be "skipped" (a skipped required check counts as passed);
     # the gate below fails it whenever an earlier job did not pass. I-094: not on a draft PR (nothing ran; a draft
     # cannot be merged, and "Ready for review" starts a new run whose check replaces this one)
@@ -769,9 +816,12 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
           DEPLOY: ${{ needs.db-setup.outputs.deploy }}
           DB_CHANGED: ${{ needs.offline.outputs.db_changed }}   # false: no upgrade test (F) - job 5 recorded the version
+          APP: ${{ needs.offline.outputs.app }}
         run: |
           set -euo pipefail
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"' | tee results.txt
+          # job K runs for a KYC pull request only (I-096): skipped on purpose for any other application
+          [ "$APP" = KYC ] || sed -i 's/^kyc-deploy=skipped$/kyc-deploy=success/' results.txt
           # jobs skipped on purpose by the deploy decision (M2) count as passed
           # (the quick check runs only for patch, and is then followed by the full deploy - it never replaces it)
           [ "$DEPLOY" = patch ] || sed -i 's/^quick=skipped$/quick=success/' results.txt
@@ -785,7 +835,7 @@ jobs:
           esac
           declare -A title=([offline]="1 Offline validation" [oci-setup]="2 OCI setup" [db-setup]="3 DB setup"
                             [quick]="4 Quick check" [fresh]="5 Deploy fresh app" [upgrade]="6 Upgrade app" [test]="7 DB tests and security"
-                            [ui]="8 Browser test and ZAP")
+                            [ui]="8 Browser test and ZAP" [kyc-deploy]="K KYC deploy check")
           # the job that stopped the pipeline: the first failed / cancelled one in flow order, else the first not passed
           bad=$(grep -m1 -E '=(failure|cancelled)$' results.txt || true)
           if [ "$COMMON" = true ]; then allowed='=success$'; else allowed='=(success|skipped)$'; fi
@@ -990,7 +1040,7 @@ jobs:
 
   error:
     name: 10 Error handling
-    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui, finalize]
+    needs: [offline, oci-setup, db-setup, quick, fresh, upgrade, test, ui, kyc-deploy, finalize]
     # a job stopped by its time limit is "cancelled", which failure() does not see: every failed or cancelled job counts
     if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
     runs-on: ubuntu-24.04
@@ -1029,7 +1079,7 @@ jobs:
             const results = JSON.parse(process.env.RESULTS);
             const title = { offline: '1 Offline validation', 'oci-setup': '2 OCI setup', 'db-setup': '3 DB setup',
               quick: '4 Quick check', fresh: '5 Deploy fresh app', upgrade: '6 Upgrade app', test: '7 DB tests and security', ui: '8 Browser test and ZAP',
-              finalize: '9 Finalize the PR' };
+              'kyc-deploy': 'K KYC deploy check', finalize: '9 Finalize the PR' };
             const order = Object.keys(results);   // flow order (the needs list)
             const failedJobs = order.filter(k => ['failure', 'cancelled'].includes(results[k].result));
             // the job that caused it: the first failed one before job 9 (job 9 only fails because of it)

@@ -113,9 +113,10 @@
   sees what they are allowed to see, from any application (e.g. My Tasks shows their tasks of every application).
 - **COMMON scope only (from the user):** a component that belongs to COMMON lives only in COMMON scope; KYC (and every
   other application) uses it as it is - no change, no redevelopment, no duplication.
-- **COMMON is completed on its own (from the user):** KYC and COMMON are two different applications. For now treat KYC
-  as if it did not exist: no KYC work, no KYC dependency in COMMON's design or tests. COMMON is finished first as a
-  standalone application; the user makes all KYC changes later in one go, on the completed COMMON.
+- **COMMON is finished; KYC work starts (from the user, 25 Nov 2026):** KYC and COMMON are two different applications.
+  COMMON was finished first as a standalone application (its open issues are ongoing work, not blockers). KYC now
+  moves onto the finished COMMON, starting with the pipeline's KYC deploy check (job K, #272); COMMON still has no KYC
+  dependency in its design or tests.
 - **Always use the Oracle skills** for database and APEX work: the Db and Apex skills from
   `mazharr-hussain/OracleskillsMirror` (clone to `/home/user/mazharr-hussain/oracleskillsmirror`, fetch the latest first;
   `db/SKILL.md`, `apex/apexlang/26.1/`). Read the matching skill file before reviewing or changing DB objects or APEXlang.

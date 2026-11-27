@@ -12,6 +12,14 @@ declare
     l_html  clob;
     l_owner number;
     l_start timestamp with time zone := systimestamp;
+    -- KYC 106 (I-098): the requesting department is an ID (XXHR_ORGANIZATIONS, made by db/admin/test-users.sql)
+    function dept(p_code varchar2) return number is
+        l number;
+    begin
+        select min(organization_id) into l from xxhr_organizations
+         where organization_type = 'DEPARTMENT' and organization_code = p_code;
+        return l;
+    end;
     procedure ok(p_label varchar2, p_cond boolean) is
     begin
         dbms_output.put_line(case when p_cond then 'PASS ' else 'FAIL ' end || p_label);
@@ -31,8 +39,9 @@ begin
     switch('N');
     ok('KYC_REQUEST workflow switched off', xxfnd_workflow_pkg.workflow_enabled('KYC_REQUEST', 'KYC') = 'N');
     xxcmp_request_pkg.save_request(l_req, 'NEW', null, 'ORGANIZATION', 'Auto Org ' || l_tag, 'AE', 'AU-' || l_tag, 'LLC',
-                                   date '2015-01-01', 'auto@example.com', null, null, null, 'FINANCE', 'Auto approval test',
-                                   'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR');
+                                   date '2015-01-01', 'auto@example.com', null, null, null, dept('FINANCE'), 'Auto approval test',
+                                   'N', p_registration_type => 'COMMERCIAL_REGISTRATION', p_business_relationship => 'VENDOR',
+                   p_requesting_country => 'AE');   -- KYC 105: required
     update xxcmp_request_answers x
        set answer_option_id = (select max(o.answer_option_id) keep (dense_rank first order by o.risk_points)
                                  from xxcmp_answer_options o where o.question_id = x.question_id and o.approval_status = 'APPROVED')
@@ -56,6 +65,10 @@ begin
     -- beneficial owner on the relationship
     xxfnd_vpd_pkg.begin_trusted;
     select max(party_id) into l_owner from xxcmp_parties where party_id <> l_r.party_id and enabled_flag = 'Y' and party_type = 'PERSON';
+    if l_owner is null then   -- KYC 106: a fresh install has no person party - the test makes one (rolled back below)
+        insert into xxcmp_parties (party_type, party_name, enabled_flag)
+        values ('PERSON', 'R73 test owner ' || to_char(systimestamp, 'yyyymmddhh24missff3'), 'Y') returning party_id into l_owner;
+    end if;
     begin
         insert into xxcmp_party_relationships (object_party_id, subject_party_id, relationship_type, ownership_percentage,
                                                start_date, beneficial_owner_flag)
