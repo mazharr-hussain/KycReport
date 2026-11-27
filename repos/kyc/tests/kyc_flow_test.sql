@@ -90,11 +90,11 @@ begin
     answer(l_req, 'ownership structure', 'Foreign Owned Entity');   -- KYC 99: required gate question
     xxcmp_request_pkg.submit(l_req);
     commit;
-    ok('right after submitting, the requester sees: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'In Progress');
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''IN_PROGRESS''');
+    ok('right after submitting, the requester sees: ' || xxcmp_request_pkg.stage(l_req), xxcmp_request_pkg.stage(l_req) = 'Submitted');   -- KYC 105: Submitted (was In Progress)
+    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status = ''NOT_REQUIRED''');
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('listed company (gate answer) -> ' || l_row.intake_outcome || ' / ' || l_row.request_status || ' / stage ' || xxcmp_request_pkg.stage(l_req),
-       l_row.intake_outcome = 'NOT_REQUIRED' and l_row.request_status = 'APPROVED');
+       l_row.intake_outcome = 'NOT_REQUIRED' and l_row.request_status = 'NOT_REQUIRED');   -- KYC 105: KYC Not Required
 
     -------------------------------------------------------- auto-approve path
     l_req := new_request('Small Supplier');
@@ -106,10 +106,10 @@ begin
     answer(l_req, 'ownership structure', 'Foreign Owned Entity');   -- KYC 99: required gate question
     xxcmp_request_pkg.submit(l_req);
     commit;
-    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status <> ''IN_PROGRESS''');
+    wait_for('select count(*) from xxcmp_requests where request_id = ' || l_req || ' and request_status = ''NOT_REQUIRED''');
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('score ' || l_row.intake_score || ' within the low threshold -> ' || l_row.intake_outcome || ' / ' || l_row.request_status,
-       l_row.intake_outcome = 'AUTO_APPROVED' and l_row.request_status = 'APPROVED');
+       l_row.intake_outcome = 'AUTO_APPROVED' and l_row.request_status = 'NOT_REQUIRED');   -- KYC 105
 
     ---------------------------------------------------- incomplete submission
     l_req := new_request('Incomplete Co');
@@ -135,7 +135,7 @@ begin
     select * into l_row from xxcmp_requests where request_id = l_req;
     ok('score ' || l_row.intake_score || ' above threshold -> ' || l_row.intake_outcome || ' / ' || l_row.request_status
        || ' / party linked: ' || nvl(to_char(l_row.party_id), 'no'),
-       l_row.intake_outcome = 'ASSIGNED' and l_row.request_status = 'IN_PROGRESS' and l_row.party_id is not null);
+       l_row.intake_outcome = 'ASSIGNED' and l_row.request_status = 'SUBMITTED' and l_row.party_id is not null);   -- KYC 105: Submitted until Assign
     l_task := open_task('DOC_CHECKLIST_REVIEW', to_char(l_req));
     ok('document checklist task for Compliance: ' || owners(l_task), l_task is not null and instr(owners(l_task), 'OFFICER1') > 0);
     ok('the requester (initiator) may not approve it',
@@ -143,7 +143,10 @@ begin
     select count(*) into l_cnt from xxcmp_requests where request_id = l_req;
     ok('the requester sees own request (data security)', l_cnt = 1);
     select count(*) into l_cnt from xxcmp_parties where party_id = l_row.party_id;
-    ok('but not the party master (data security)', l_cnt = 0);
+    -- KYC 99: a requester sees the parties he created (the new counterparty of his request), no other party
+    ok('the requester sees the party he created, own records only (data security)', l_cnt = 1);
+    select count(*) into l_cnt from xxcmp_parties where party_id <> l_row.party_id and nvl(created_by, '#') <> 'REQ1';
+    ok('and no party of anyone else', l_cnt = 0);
 
     session_as('OFFICER1');
     apex_human_task.approve_task(l_task, p_autoclaim => true);

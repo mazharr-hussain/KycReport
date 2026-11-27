@@ -168,7 +168,7 @@ begin
     l_txt := submit_message;
     select * into l_r from xxcmp_requests where request_id = l_req;
     ok('a rule with steps: the request waits for its approver' || nvl2(l_txt, ': ' || l_txt, null),
-       l_txt is null and l_r.request_status = 'IN_PROGRESS' and l_r.workflow_id is not null and l_r.auto_approved_date is null);
+       l_txt is null and l_r.request_status = 'SUBMITTED' and l_r.workflow_id is not null and l_r.auto_approved_date is null);
 
     -- 4. a rule without steps: approved at once, the case is opened on submit
     no_approval_rule('KYC_REQUEST', apex_t_varchar2('PARTY_TYPE=ORGANIZATION', 'JURISDICTION=AE'));
@@ -178,7 +178,7 @@ begin
     select * into l_r from xxcmp_requests where request_id = l_req;
     select max(case_id) into l_case from xxcmp_cases where request_id = l_req;
     ok('the request is approved at once and its case opened: ' || l_r.request_status || ', case ' || l_case,
-       l_r.request_status = 'APPROVED' and l_r.auto_approved_date is not null and l_case is not null);
+       l_r.request_status = 'UNDER_REVIEW' and l_r.auto_approved_date is not null and l_case is not null);   -- KYC 105: Under Review
     ok('no request workflow was started', l_r.workflow_id is null);
 
     -- 5. case: the KYC_CASE workflow (1.3) skips the approvers when the matching rule has no steps
