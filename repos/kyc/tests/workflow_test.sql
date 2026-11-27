@@ -1,5 +1,7 @@
 -- Chunk 4: native APEX task flows inside real APEX sessions (application alias KYC).
--- Needs security_test.sql first (a party) and the KYC test users (repos/kyc/db/admin/test-users.sql: REQ1, REQ2, OFFICER1).
+-- Needs security_test.sql first (a party) and the KYC test users (repos/kyc/db/admin/test-users.sql: REQ1, REQ2, REQ3, OFFICER1).
+-- The delegation of the test is REQ1 -> REQ3 (REQ3 is used for nothing else): COMMON cannot remove a delegation before
+-- midnight (#281), so one left by an earlier run today must not make REQ2 a delegate of other tests.
 -- KYC 106 (I-099, #277): delegations through COMMON's routines (COMMON 123: XXFND_WORKFLOW_PKG.ADD_DELEGATION /
 -- END_DELEGATION) - the old test helper XXFND_TEST_FIXTURE_PKG is gone.
 -- Release 89: KYC's RFIs run in COMMON's workflow RFI - its tasks (RFI_RESPONSE, RFI_REVIEW) belong to the COMMON
@@ -146,7 +148,7 @@ begin
     ------------------------------------------------------------ delegation
     -- the delegator makes the delegation (COMMON's routine: the signed-in user delegates), the raiser then asks again
     session_as('REQ1');
-    l_del := xxfnd_workflow_pkg.add_delegation('KYC', 'REQ1', 'REQ2', trunc(sysdate), trunc(sysdate) + 7,
+    l_del := xxfnd_workflow_pkg.add_delegation('KYC', 'REQ1', 'REQ3', trunc(sysdate), trunc(sysdate) + 7,
                                                p_reason => 'Annual leave');
     commit;
     session_as('OFFICER1');
@@ -158,10 +160,10 @@ begin
     l_task := open_task('RFI_RESPONSE');
     select listagg(participant, ',') within group (order by participant) into l_list
       from apex_task_participants where task_id = l_task and participant_type = 'POTENTIAL_OWNER';
-    ok('delegation REQ1 -> REQ2 adds REQ2 as owner: ' || l_list, l_list = 'REQ1,REQ2');
-    session_as('REQ2');
+    ok('delegation REQ1 -> REQ3 adds REQ3 as owner: ' || l_list, instr(',' || l_list || ',', ',REQ1,') > 0 and instr(',' || l_list || ',', ',REQ3,') > 0);
+    session_as('REQ3');
     select count(*) into l_cnt from xxfnd_rfis where rfi_id = l_rfi2;
-    ok('the delegate REQ2 can see the delegated RFI (data security)', l_cnt = 1);
+    ok('the delegate REQ3 can see the delegated RFI (data security)', l_cnt = 1);
     ok('and has the task in My Tasks: ' || my_tasks('RFI_RESPONSE'), instr(my_tasks('RFI_RESPONSE'), to_char(l_task)) > 0);
     session_as('OFFICER1');
     xxfnd_rfi_pkg.resolve(l_rfi2, 'CANCELLED', 'Test cleanup.');

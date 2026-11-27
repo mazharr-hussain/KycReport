@@ -51,7 +51,11 @@ begin
                              'Bank statements for 3 months', 'Y', trunc(sysdate) + 7, p_recipient_name => 'Ext Person',
                              p_recipient_email => 'ext@example.com', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_tok);
     xxfnd_rfi_pkg.send_email(l_rfi, 'https://example.com/respond?t=' || l_tok);
-    select max(body) into l_body from xxfnd_communications where rfi_id = l_rfi;
+    begin
+        select body into l_body from xxfnd_communications where rfi_id = l_rfi fetch first 1 row only;
+    exception
+        when no_data_found then l_body := null;
+    end;
     if l_body is null then
         -- the sender address is a COMMON setting (MAIL_FROM, COMMON 84) that a KYC session cannot set: without it, or
         -- with e-mail switched off, nothing is sent or kept (the notification says why) - KYC 106
