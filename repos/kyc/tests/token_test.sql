@@ -10,6 +10,16 @@ begin
     xxfnd_util_pkg.set_install_mode(false);
     select min(lookup_code) into l_cat from xxfnd_lookup_values where lookup_type='RFI_CATEGORY';
     apex_session.create_session(134, 1, 'OFFICER1');
+    -- KYC 106 diagnostics (ORA-28115 on the RFI insert): what OFFICER1 holds, and the RFI data security predicate
+    declare l_txt varchar2(4000);
+    begin
+        select listagg(role_code || ':' || active_flag, ',') within group (order by role_code) into l_txt
+          from xxfusion.xxfnd_user_roles_v where user_name = 'OFFICER1';
+        dbms_output.put_line('INFO OFFICER1 grants: ' || nvl(l_txt, '-'));
+        dbms_output.put_line('INFO RFI policy for OFFICER1: ' || xxfnd_vpd_pkg.policy('XXFUSION', 'XXFND_RFIS'));
+    exception when others then
+        dbms_output.put_line('INFO diagnostics failed: ' || sqlerrm);
+    end;
     xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'EXTERNAL',
         l_cat, 'x', 'Y', trunc(sysdate)+5, p_recipient_name => 'Ext Person', p_recipient_email => 'ext@example.com',
         p_recipient_reference => to_char(l_contact), p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_tok);

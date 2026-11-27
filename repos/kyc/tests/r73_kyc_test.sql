@@ -65,6 +65,10 @@ begin
     -- beneficial owner on the relationship
     xxfnd_vpd_pkg.begin_trusted;
     select max(party_id) into l_owner from xxcmp_parties where party_id <> l_r.party_id and enabled_flag = 'Y' and party_type = 'PERSON';
+    if l_owner is null then   -- KYC 106: a fresh install has no person party - the test makes one (rolled back below)
+        insert into xxcmp_parties (party_type, party_name, enabled_flag)
+        values ('PERSON', 'R73 test owner ' || to_char(systimestamp, 'yyyymmddhh24missff3'), 'Y') returning party_id into l_owner;
+    end if;
     begin
         insert into xxcmp_party_relationships (object_party_id, subject_party_id, relationship_type, ownership_percentage,
                                                start_date, beneficial_owner_flag)

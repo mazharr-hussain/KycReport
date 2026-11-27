@@ -86,6 +86,16 @@ begin
     ------------------------------------------------------------------ RFI flow (COMMON workflow RFI)
     session_as('OFFICER1');
     apex_app_setting.set_value('MAIL_FROM', 'kyc@example.com');
+    -- KYC 106 diagnostics (ORA-28115 on the RFI insert): what OFFICER1 holds, and the RFI data security predicate
+    declare l_txt varchar2(4000);
+    begin
+        select listagg(role_code || ':' || active_flag, ',') within group (order by role_code) into l_txt
+          from xxfusion.xxfnd_user_roles_v where user_name = 'OFFICER1';
+        dbms_output.put_line('INFO OFFICER1 grants: ' || nvl(l_txt, '-'));
+        dbms_output.put_line('INFO RFI policy for OFFICER1: ' || xxfnd_vpd_pkg.policy('XXFUSION', 'XXFND_RFIS'));
+    exception when others then
+        dbms_output.put_line('INFO diagnostics failed: ' || sqlerrm);
+    end;
     xxfnd_rfi_pkg.create_rfi('XXCMP_PARTIES', to_char(l_party), 'USER', l_cat,
                              'Please send the signed board resolution.', 'Y', trunc(sysdate) + 5,
                              p_recipient_user_name => 'REQ1', p_application_code => 'KYC', p_rfi_id => l_rfi, p_token => l_token);

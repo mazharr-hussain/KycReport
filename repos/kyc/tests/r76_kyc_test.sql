@@ -54,6 +54,7 @@ declare
         answer('transaction volume', 'Above 10 million');
         answer('politically exposed', 'No');
         answer('cash-intensive', 'Yes');
+        answer('ownership structure', 'Foreign Owned Entity');   -- KYC 99: required gate question
     end;
     -- the submit runs as the requester (REQ1, with REQ1's data security); the error message, or null
     function submit_message return varchar2 is

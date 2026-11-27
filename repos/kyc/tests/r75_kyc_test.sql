@@ -74,6 +74,7 @@ begin
     answer(l_req, 'transaction volume', 'Above 10 million');
     answer(l_req, 'politically exposed', 'No');
     answer(l_req, 'cash-intensive', 'Yes');
+    answer(l_req, 'ownership structure', 'Foreign Owned Entity');   -- KYC 99: required gate question
     xxcmp_request_pkg.submit(l_req);
     commit;
     wait_for('select count(*) from apex_tasks where task_def_static_id = ''DOC_CHECKLIST_REVIEW'' and detail_pk = ''' || l_req || '''');
