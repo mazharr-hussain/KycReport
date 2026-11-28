@@ -14,3 +14,6 @@ pipeline run its full validation (fresh install, upgrade test, DB tests, APEX-SE
 - APEX-SERT on APEX 26.1 (COMMON 128, #208): step 7.4 prints `SERT-NOTE ... carried forward` and the evaluation, or `SERT-SKIP` with the reason.
 - The documentation artifact `common-docs` (COMMON 129, #213 / #214): step 9.3 and its artifact.
 - `start-from-N` set by job 10 after a failure in jobs 4-8 (COMMON 130, #287), if a job fails.
+
+## Test fix
+`r82_workflow_test.sql`: the CASE_RFI check looks at COMMON's own rows only (KYC's row is KYC data and can exist on the shared database).

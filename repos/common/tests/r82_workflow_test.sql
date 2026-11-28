@@ -55,8 +55,9 @@ begin
     check_(l_n = 0, 'every application has the RFI process (participants CHOSEN)');
     select count(*) into l_n from xxfnd_workflow_processes where participants_type not in ('RULE', 'CHOSEN');
     check_(l_n = 0, 'participants type is RULE or CHOSEN');
-    select count(*) into l_n from xxfnd_approval_types where approval_type_code = 'CASE_RFI' and enabled_flag = 'Y';
-    check_(l_n = 0, 'Approval Setup type CASE_RFI is disabled (or absent)');
+    select count(*) into l_n from xxfnd_approval_types where approval_type_code = 'CASE_RFI' and enabled_flag = 'Y'
+       and application_code = 'COMMON';   -- KYC's own CASE_RFI row is KYC data (the shared database may hold KYC)
+    check_(l_n = 0, 'Approval Setup type CASE_RFI is disabled (or absent) for COMMON');
     expect_error(-20161, 'workspace e-mail switch refused without the privilege',
                  q'~begin xxfnd_workflow_pkg.set_workspace_email('N'); end;~');
 
