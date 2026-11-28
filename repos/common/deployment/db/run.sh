@@ -739,7 +739,7 @@ page_errors() {   # 8.3a (I-067): the errors the application logged while the br
 }
 sert_eval() {   # 7.4 APEX-SERT evaluation (report; findings are listed, the step fails only when SERT cannot run)
   local out
-  out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
+  out=$(S ADMIN "$HERE/sert-eval.sql" check app_id="$APP_ID" workspace="$WORKSPACE" out="$REPORT_DIR/apex-sert-findings.csv") || { echo "$out"; return 1; }
   if echo "$out" | grep -q '^SERT-SKIP'; then   # no rules for this APEX version, and none to carry forward: a notice, not a failure
     echo "info: $(echo "$out" | sed -n 's/^SERT-SKIP //p')" | tee "$REPORT_DIR/apex-sert-summary.txt"
     return 0

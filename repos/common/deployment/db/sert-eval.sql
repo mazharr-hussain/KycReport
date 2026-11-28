@@ -2,7 +2,7 @@
 -- Step 7.4, run as ADMIN: APEX-SERT security evaluation of the application (installed by step 3.4), in the
 -- foreground, with the SERT-SECURITY rules of the database's APEX version; writes every rule that did not pass
 -- (CSV) and prints the counts by severity.
--- Substitution variables: app_id, out (CSV file).
+-- Substitution variables: app_id, workspace (the application's), out (CSV file).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
 prompt SERT-START evaluation of application &app_id
@@ -45,6 +45,16 @@ begin
         dbms_output.put_line('SERT-SKIP APEX-SERT has no SERT-SECURITY rules for APEX ' || to_char(l_v, 'fm99.9')
             || ' (it has rules for ' || l_n || ' other APEX versions) - not evaluated');
     else
+        -- the evaluation reads the application through the APEX views: they show only the rows of the workspace of the
+        -- session (ADMIN has none) - set the application's workspace first
+        begin
+            apex_util.set_security_group_id(apex_util.find_security_group_id(p_workspace => '&workspace'));
+            dbms_output.put_line('SERT-NOTE workspace &workspace set for the evaluation (security group '
+                || apex_util.find_security_group_id(p_workspace => '&workspace') || ')');
+        exception
+            when others then
+                dbms_output.put_line('SERT-DEBUG workspace &workspace could not be set: ' || substr(sqlerrm, 1, 200));
+        end;
         sert_core.eval_pkg.eval(p_application_id => &app_id, p_rule_set_key => 'SERT-SECURITY', p_eval_by => 'COMMON PIPELINE',
                                 p_run_in_background => 'N', p_eval_id_out => :eval_id);
     end if;
@@ -59,6 +69,7 @@ select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the 
        || ', all evaluations: ' || (select count(*) from sert_core.eval_results_pub_v)
        || ', rule sets: ' || (select count(*) from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY')
   from dual;
+select 'SERT-DEBUG evaluation: ' || json_object(*) from sert_core.evals where eval_id = :eval_id;
 -- where did the evaluation's data go: the rows per SERT_CORE table that has an EVAL_ID
 declare
     l_n pls_integer;
