@@ -1,5 +1,8 @@
 # Working rules (from the user)
 
+- **Answers: short, plain, to the point (from the user, 28 Nov 2026).** No stories, no long explanations. Answer the
+  question in a few plain (layman) words first; a list or table when it helps; one short line per item. Say more only
+  when the user asks. No jargon without a few words saying what it means.
 - Work **feature by feature** (screen by screen with its own db components). Do not fix or refactor anything outside
   the feature asked for; no long unrequested work. Mention other issues briefly instead of fixing them.
 - Before changing a feature, check `apex/ARCHITECTURE.md` for its dependencies in both directions
