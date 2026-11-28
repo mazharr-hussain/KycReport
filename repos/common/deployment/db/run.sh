@@ -746,8 +746,8 @@ sert_eval() {   # 7.4 APEX-SERT evaluation (report; findings are listed, the ste
   fi
   # the rules of an older APEX version were carried forward (SERT's own upgrade path): said once, in the notices
   echo "$out" | sed -n 's/^SERT-NOTE /info: /p'
-  if ! echo "$out" | grep -q '^SERT '; then   # SERT ran but returned no results: show everything it said (the cause), then fail
-    echo "FAIL APEX-SERT returned no evaluation results for application $APP_ID - its output:"; echo "$out"
+  if ! echo "$out" | grep -q '^SERT EVALUATION COMPLETED'; then   # the evaluation did not complete: show everything SERT said (the cause), then fail
+    echo "FAIL APEX-SERT did not complete the evaluation of application $APP_ID - its output:"; echo "$out"
     return 1
   fi
   echo "$out" | grep '^SERT ' | tee "$REPORT_DIR/apex-sert-summary.txt"

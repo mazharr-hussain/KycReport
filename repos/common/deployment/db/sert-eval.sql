@@ -81,6 +81,9 @@ begin
     end loop;
 end;
 /
+-- the evaluation's own verdict: its status and score (APEX-SERT keeps result rows only for what it reports)
+select 'SERT EVALUATION ' || job_status || ': score ' || score || ', approved score ' || approved_score
+  from sert_core.evals where eval_id = :eval_id;
 select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count(*)
   from sert_core.eval_results_pub_v
  where eval_id = :eval_id
