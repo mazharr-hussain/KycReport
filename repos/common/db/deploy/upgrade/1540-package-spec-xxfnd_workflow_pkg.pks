@@ -140,7 +140,9 @@ create or replace package xxfnd_workflow_pkg authid definer as
                             p_end_date            in date,
                             p_task_definition     in varchar2 default null,
                             p_reason              in varchar2 default null) return number;
-    -- ends a delegation on P_END_DATE (not before its start date); ORA-20187 when the delegation does not exist
+    -- ends a delegation on P_END_DATE (not before its start date); ORA-20187 when the delegation does not exist.
+    -- Release 131 (I-103): a delegation that has not started, or starts today, and is ended today or before (the default)
+    -- is removed - a delegation is active the whole day it ends on, so it could not be cancelled any other way.
     procedure end_delegation(p_application_code in varchar2, p_delegation_id in number, p_end_date in date default sysdate);
 
     -- Release 88 (C8, C9): removes what the application registered (its own rows only, through
