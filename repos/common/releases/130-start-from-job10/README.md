@@ -14,3 +14,6 @@ On top of COMMON 129. Pipeline only; no table, package, page or seed change.
 **Per-app records (I-106):** the pipeline's version record - `XXCI_DEPLOYED`, `_DEPLOYED_CODE`, `_PASSED`, `_FAILED_TESTS`, `_APP_OBJECTS`, `_UPGRADE_SNAPSHOT`, `_FRESH_SCHEMA` - is one set per application. COMMON keeps the table names it has (no migration); another application gets `xxci_<app>_...` (KYC: `xxci_kyc_deployed` ...), created by `db/deployed.sql` on its first run, and its own key (`APP_CODE`) in the deployed table. A KYC run no longer touches COMMON's record or its list of app objects. Still left: KYC has no test data file, no own affected-tests rule.
 
 Checked offline: actionlint, the job 10 script parses, shellcheck, the pipeline dry run (0 FAIL), `fingerprint.py` and `affected.py` for KYC after a local build. The first real run is the next failing PR run; if no `start-from-N` label appears on the PR after a failure in jobs 4-8, #287 is reopened.
+
+## Fix
+A failure in job 4 (Quick check) sets no start-from label: the next push runs job 4 again (it was wrongly set to start at job 5, which skipped the failed job).

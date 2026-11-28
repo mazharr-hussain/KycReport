@@ -1068,10 +1068,10 @@ jobs:
             }
             const why = result === 'cancelled' ? 'was cancelled (its time limit, or stopped by hand)' : 'failed';
             // what to do next: a temporary failure is re-run as it is; anything else needs a fix, and the jobs that
-            // passed before the failed one may be skipped (restart points 4, 5, 6 - db/decide.py checks the records)
+            // passed before the failed one may be skipped (restart points 5, 6, 7 - db/decide.py checks the records)
             const temporary = /ORA-12170|ORA-12541|ORA-12514|ORA-12537|ORA-03113|ORA-03114|ORA-29273|ORA-01013|TNS-|timed? ?out|Connection reset|ECONNRESET|503 Service|502 Bad Gateway|rate limit|Could not resolve host/i;
             const hit = (errors + '\n' + tail).match(temporary);
-            const restart = { quick: 5, fresh: 5, upgrade: 6, test: 7, ui: 7 }[job];
+            const restart = { fresh: 5, upgrade: 6, test: 7, ui: 7 }[job];   // quick (job 4) has no label: the failed job runs again with the next push
             // I-105: job 10 sets the start point itself - the next push resumes at the failed job (job 3 follows the
             // label only when its records allow; job 9 clears it after one run). A temporary failure is re-run as it is.
             let autoStart = false;
