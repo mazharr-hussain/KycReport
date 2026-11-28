@@ -343,6 +343,41 @@ dependency_check() {  # 5.4 the deployed schema's dependencies vs the generated 
     "$REPORT_DIR/dependency-check.md"
 }
 
+# ---- 3 --------------------------------------------------------------------------------------------------------------
+prerequisites() {   # 3.5 (I-106): what the application stands on - REQUIRES in its app.env (KYC: COMMON)
+  local req=${REQUIRES:-} r lower f rc req_id req_schema
+  if [ -z "$req" ]; then echo "info: $APP_CODE has no prerequisites (REQUIRES is empty in its app.env)"; return 0; fi
+  for r in $req; do
+    lower=$(printf '%s' "$r" | tr '[:upper:]' '[:lower:]')
+    [ -f "$ROOT/repos/$lower/deployment/app.env" ] || { echo "FAIL prerequisite $r: repos/$lower/deployment/app.env not found"; return 1; }
+    # the required application's id and schema, read in a subshell so they do not replace this application's
+    # shellcheck disable=SC1090   # the required application's settings file
+    read -r req_id req_schema < <( . "$ROOT/repos/$lower/deployment/app.env"; echo "$APP_ID $APP_SCHEMA" )
+    safe "$req_id" "$req_schema" "$APP_CODE" "$r" || return 1
+    f=$(mktemp --suffix .sql)
+    cat > "$f" <<SQL
+declare
+    l_n pls_integer;
+begin
+    select count(*) into l_n from apex_applications where application_id = $req_id;
+    if l_n = 0 then
+        raise_application_error(-20001, 'FAIL prerequisite: $r (application $req_id) is not installed - deploy $r first');
+    end if;
+    -- $APP_CODE must be registered in $r: its tables and packages need the grants on the $r objects
+    if $req_schema.xxfnd_onboard_pkg.is_onboarded('$APP_CODE') <> 'Y' then
+        $req_schema.xxfnd_onboard_pkg.onboard_self(p_schema => user, p_application_code => '$APP_CODE');
+        commit;
+        dbms_output.put_line('registered $APP_CODE in $r (XXFND_ONBOARD_PKG.ONBOARD_SELF)');
+    end if;
+    dbms_output.put_line('prerequisite ok: $r (application $req_id) is installed and $APP_CODE is registered in it');
+end;
+/
+SQL
+    S "$APP_SCHEMA" "$f" check; rc=$?; rm -f "$f"
+    [ "$rc" -eq 0 ] || return "$rc"
+  done
+}
+
 # ---- 5 only ----------------------------------------------------------------------------------------------------------
 build_last() {  # the last release = the pull request's base commit, built the same way
   rm -rf "$LAST"; git -C "$ROOT" worktree prune
@@ -802,7 +837,9 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     step 3.3-drop-old-backups drop_old_backups
     # I-075: APEX-SERT only in the full validation (Ready for review / full run); installed once, never removed
     if [ "${FULL_VALIDATION:-}" = true ]; then step 3.4-apex-sert sert_install
-    else step 3.4-apex-sert echo "info: APEX-SERT runs in the full validation only (mark the PR Ready for review) - skipped"; fi ;;
+    else step 3.4-apex-sert echo "info: APEX-SERT runs in the full validation only (mark the PR Ready for review) - skipped"; fi
+    # I-106: what this application stands on (REQUIRES in its app.env: KYC needs COMMON installed and itself registered in it)
+    step 3.5-prerequisites prerequisites ;;
   quick)   # job 4 quick check (deploy=patch): the changed code alone, then its tests; the full deploy follows
     tr ' ' '\n' <<< "${PATCH_FILES:-}" | grep . > "$LOG_DIR/patch-files"
     tr ' ' '\n' <<< "${CHANGED_OBJECTS:-}" | grep . > "$LOG_DIR/changed-objects"
