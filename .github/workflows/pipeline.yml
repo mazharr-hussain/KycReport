@@ -294,12 +294,14 @@ jobs:
           printf '%s' "$BODY" > "$RUNNER_TEMP/kyc-body.txt"
           if [ -n "$BASE" ]; then python3 repos/tools/pr_checks.py --base "$BASE" --body-file "$RUNNER_TEMP/kyc-body.txt"
           else python3 repos/tools/pr_checks.py; fi
-      - name: 1.9 KYC technical docs up to date (the build is 1.4, the APEXlang validation 1.5, PMD 1.6 - for both applications)
-        if: steps.scope.outputs.kyc == 'true' && steps.scope.outputs.app == 'KYC'
+      - name: 1.9 Generated technical docs up to date (the build is 1.4; both applications - step 9.2a adds the differences to the PR)
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
+        env:
+          APP_DIR: ${{ steps.scope.outputs.app_dir }}
         run: |
-          if ! git diff --quiet -- repos/kyc/docs/components; then
-            echo "::warning::The generated technical docs differ from the committed ones - run repos/kyc/build.sh and commit repos/kyc/docs/components"
-            git diff --stat -- repos/kyc/docs/components | tail -5
+          if ! git diff --quiet -- "$APP_DIR/docs/components"; then
+            echo "::notice::The generated technical docs of $APP_DIR differ from the committed ones - step 9.2a of the pipeline adds them to the PR"
+            git diff --stat -- "$APP_DIR/docs/components" | tail -5
           fi
       - name: 1.10 KYC components changed without their requirements (warning; "no-req-change" in the PR body skips it)
         if: steps.scope.outputs.kyc == 'true' && github.event_name == 'pull_request'

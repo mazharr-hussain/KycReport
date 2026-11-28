@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pipeline step 9.2a - the release PR carries its own generated files (main accepts pull requests only, so nothing is
 # pushed to main by itself; I-084):
-#   - SOURCE-MAP.json in step with the files (checks/source_map.py), then COMMON's build: db/deploy (install / upgrade
+#   - SOURCE-MAP.json in step with the files (checks/source_map.py), then the application's build: db/deploy (install / upgrade
 #     scripts, dependency map) and docs/components/*/technical.md
 # When something differs, one commit is pushed to the PR branch with a person's token (GH_TOKEN), so the pipeline runs
 # again on it: the version fingerprint is the same (job 1 builds these files anyway), so that run reuses the deployed
@@ -21,9 +21,12 @@ if git log -1 --format=%s "$sha" | grep -qF "$mark"; then echo nothing > "$out";
 # a full tree even when job 9 has a sparse checkout (a PR that does not touch COMMON)
 git -c core.sparseCheckout=false worktree add -q --detach "$wt" "$sha"
 cd "$wt"
-python3 repos/common/deployment/checks/source_map.py
+# the application of the run (APP_DIR = repos/<app>, default repos/common; I-106); another application is built after COMMON
+app_rel=${APP_DIR:-repos/common}
+APP_DIR=$app_rel python3 repos/common/deployment/checks/source_map.py
 bash repos/common/build.sh > /dev/null
-git add -A repos/common/SOURCE-MAP.json repos/common/db/deploy repos/common/docs/components
+[ "$app_rel" = repos/common ] || bash "$app_rel/build.sh" > /dev/null
+git add -A "$app_rel/SOURCE-MAP.json" "$app_rel/db/deploy" "$app_rel/docs/components"
 if git diff --cached --quiet; then
   echo nothing > "$out"; echo "the generated files are up to date"
 else

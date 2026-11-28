@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keeps repos/common/SOURCE-MAP.json in step with the files (pipeline step 1.1a and the regeneration after a merge).
+"""Keeps repos/<app>/SOURCE-MAP.json (APP_DIR, default repos/common; I-106: KYC too) in step with the files (pipeline step 1.1a and the regeneration after a merge).
 
 source_map.py [--check]
 The build (tools/build.py) takes an application file only when SOURCE-MAP.json lists it. This script registers every
@@ -17,21 +17,24 @@ Database scripts are not here: their order is in db/manifest.json (a choice, mad
 import json, os, sys
 
 REPOS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-MAP = os.path.join(REPOS, 'common', 'SOURCE-MAP.json')
-F135 = 'apex/src/database/xxfusion/apex_apps/f135'
+APP = os.path.basename((os.environ.get('APP_DIR') or 'repos/common').rstrip('/'))    # common / kyc
+MAP = os.path.join(REPOS, APP, 'SOURCE-MAP.json')
+# the application's folder in the frozen apex/ tree (the keys of the map)
+F135 = {'common': 'apex/src/database/xxfusion/apex_apps/f135',
+        'kyc': 'apex/src/database/xxcus/apex_apps/f134'}[APP]
 
 
 def candidates():
     """Every COMMON file the build may need: target -> source key."""
     out = {}
-    for base, prefix in (('common/app', F135), ('common/tests', 'apex/tests')):
+    for base, prefix in ((f'{APP}/app', F135), (f'{APP}/tests', 'apex/tests')):
         for d, _, files in os.walk(os.path.join(REPOS, base)):
             for f in files:
                 rel = os.path.relpath(os.path.join(d, f), REPOS)
-                if base == 'common/tests' and not f.endswith('.sql'):
+                if base == f'{APP}/tests' and not f.endswith('.sql'):
                     continue
                 out[rel] = prefix + rel[len(base):]
-    feats = os.path.join(REPOS, 'common', 'features')
+    feats = os.path.join(REPOS, APP, 'features')
     for feat in sorted(os.listdir(feats)):
         for d, dirs, files in os.walk(os.path.join(feats, feat)):
             rel_d = os.path.relpath(d, os.path.join(feats, feat))

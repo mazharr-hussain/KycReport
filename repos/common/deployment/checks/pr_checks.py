@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""COMMON stage 1 checks, run by repos/common/deployment/checks/run.sh (also runnable locally).
+"""Stage 1 checks of the application (APP_DIR = repos/<app>, default repos/common; I-106: COMMON and KYC), run by
+repos/common/deployment/checks/run.sh (also runnable locally).
 
 Errors (exit 1): a manifest script or unit that does not exist; a page not listed in SOURCE-MAP.json (the build would
 leave it out); a SQL comment line ending with ';' inside a plain SQL statement (SQL Developer ends the statement there);
@@ -17,10 +18,11 @@ import argparse, glob, json, os, re, subprocess, sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))  # repository root
 R = os.path.join(ROOT, 'repos')
 errors, warnings = [], []
+APP = os.path.basename((os.environ.get('APP_DIR') or 'repos/common').rstrip('/'))   # common / kyc: the application checked
 
 
 def manifest():
-    for app in ('common',):
+    for app in (APP,):
         p = f'{R}/{app}/db/manifest.json'
         if not os.path.exists(p):
             continue
@@ -31,7 +33,7 @@ def manifest():
 
 
 def source_map():
-    for app in ('common',):
+    for app in (APP,):
         p = f'{R}/{app}/SOURCE-MAP.json'
         if not os.path.exists(p):
             continue
@@ -44,7 +46,7 @@ def source_map():
 
 def sql_comments():
     plsql = re.compile(r'(declare|begin|create( or replace)?( editionable)? (package|procedure|function|trigger|type))', re.I)
-    for f in glob.glob(f'{R}/common/db/**/*.sql', recursive=True) + glob.glob(f'{R}/common/features/**/*.sql', recursive=True):
+    for f in glob.glob(f'{R}/{APP}/db/**/*.sql', recursive=True) + glob.glob(f'{R}/{APP}/features/**/*.sql', recursive=True):
         if '/deploy/' in f or '/tests/' in f:
             continue
         inst = is_plsql = False
@@ -59,7 +61,14 @@ def sql_comments():
 
 
 def golden_rules():
-    for f in glob.glob(f'{R}/common/**/*.pkb', recursive=True):
+    if APP == 'kyc':   # golden rule: an application changes COMMON data only through COMMON routines
+        for f in glob.glob(f'{R}/kyc/**/*.sql', recursive=True) + glob.glob(f'{R}/kyc/**/*.pkb', recursive=True):
+            if '/deploy/' in f or '/releases/' in f or '/tests/' in f:
+                continue
+            for i, line in enumerate(open(f, errors='ignore'), 1):
+                if re.search(r'(?i)\b(insert\s+into|update|delete\s+from|merge\s+into)\s+xxfnd_\w+', line) and not line.strip().startswith('--'):
+                    warnings.append(f'{os.path.relpath(f, ROOT)}:{i}: KYC writes a COMMON table directly (call the COMMON routine)')
+    for f in glob.glob(f'{R}/{APP}/**/*.pkb', recursive=True):
         if '/deploy/' in f or '/releases/' in f:
             continue
         lines = open(f, errors='ignore').read().splitlines()
@@ -81,7 +90,7 @@ def src(patterns, skip=('/deploy/', '/releases/', '/dist/', '/tests/')):
 
 
 def apex_security():
-    for f, rel in src(['common/features/*/pages/*.apx', 'common/app/pages/*.apx']):
+    for f, rel in src([f'{APP}/features/*/pages/*.apx', f'{APP}/app/pages/*.apx']):
         txt = open(f, errors='ignore').read()
         sec = re.search(r'\n    security \{(.*?)\n    \}', txt, re.S)
         sec = sec.group(1) if sec else ''
@@ -104,7 +113,7 @@ def plsql_rules():
         (r'(?i)\bdbms_output\.', 'DBMS_OUTPUT in a package (use the log routine)'),
         (r"(?i)\bto_date\s*\([^,()]*\)", 'TO_DATE without a format mask'),
     ]
-    for f, rel in src(['common/**/*.pkb']):
+    for f, rel in src([f'{APP}/**/*.pkb']):
         if '/db/framework/' in rel:  # deployment framework: dynamic DDL by design
             continue
         txt = open(f, errors='ignore').read()
@@ -127,7 +136,7 @@ def plsql_rules():
                     warnings.append(f'{rel}:{i}: {msg}')
             if not auto and re.search(r'(?i)^\s*(commit|rollback)\s*;', code):
                 warnings.append(f'{rel}:{i}: COMMIT / ROLLBACK in a package without an autonomous transaction (the caller commits)')
-    for f, rel in src(['common/**/*.sql', 'common/**/*.pk?']):
+    for f, rel in (src([f'{APP}/**/*.sql', f'{APP}/**/*.pk?']) if APP == 'common' else []):   # COMMON only: no KYC dependency
         for i, line in enumerate(open(f, errors='ignore'), 1):
             if re.search(r'(?i)\bxxcmp_\w+', line.split('--')[0]):
                 warnings.append(f'{rel}:{i}: COMMON code refers to a KYC object (XXCMP_) - COMMON has no KYC dependency')
@@ -135,14 +144,14 @@ def plsql_rules():
 
 def install_safety(names):
     listed = set()
-    for app in ('common',):
+    for app in (APP,):
         p = f'{R}/{app}/db/manifest.json'
         if os.path.exists(p):
             for e in json.load(open(p)):
                 for v in e.values():
                     if isinstance(v, list):
                         listed.update(x for x in v if isinstance(x, str))
-    for f, rel in src(['common/db/scripts/**/*.sql', 'common/features/*/db/scripts/**/*.sql'], ('/admin/', '/tests/')):
+    for f, rel in src([f'{APP}/db/scripts/**/*.sql', f'{APP}/features/*/db/scripts/**/*.sql'], ('/admin/', '/tests/')):
         unit = os.path.relpath(f, R)
         if unit not in listed:
             warnings.append(f'{rel}: step script not listed in db/manifest.json (never installed)')

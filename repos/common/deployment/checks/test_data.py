@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 1.6a: every test data row (repos/common/db/admin/test-data.json) loads into this version's tables - checked
+"""Step 1.6a: every test data row (<APP_DIR, default repos/common>/db/admin/test-data.json) loads into this version's tables - checked
 offline, before any database job, against the install's own definitions.
 
 test_data.py <repo root>   (after the build: reads repos/common/db/deploy/install in install order)
@@ -21,9 +21,12 @@ Prints PASS / FAIL (and INFO) lines; exit 1 on a FAIL.
 import json, os, re, sys
 
 root = sys.argv[1] if len(sys.argv) > 1 else '.'
-common = os.path.join(root, 'repos', 'common')
+common = os.path.join(root, os.environ.get('APP_DIR') or 'repos/common')   # the application (APP_DIR, I-106)
 install = os.path.join(common, 'db', 'deploy', 'install')
 path = os.path.join(common, 'db', 'admin', 'test-data.json')
+if not os.path.isfile(path):   # an application without a test data file (KYC today) has nothing to check
+    print(f'INFO no test data file ({os.path.relpath(path, root)}) - nothing to check')
+    sys.exit(0)
 WHO = {'CREATED_BY', 'CREATION_DATE', 'LAST_UPDATED_BY', 'LAST_UPDATE_DATE'}
 TYPES = (r'(varchar2|nvarchar2|char|number|integer|float|date|timestamp|clob|nclob|blob|raw|binary_double|json|'
          r'xmltype|boolean)')
