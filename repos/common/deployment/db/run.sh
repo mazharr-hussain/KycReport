@@ -25,7 +25,7 @@
 #                                  (8.4 OWASP ZAP runs as a workflow step, full validation only)
 #   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
 #                                  9.3a readable YAML export (<dir>/apex-docs), 9.3b SchemaSpy (<dir>/db-docs)
-# This version's application must already be built in repos/common/dist/app (pipeline job 1).
+# This version's application must already be built in $APP_DIR/dist/app (APP_DIR = repos/<app>, default repos/common; pipeline job 1).
 # Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 3.2, 8.1), XXCUS_PW (3.2 only), LOG_DIR,
 #      BASE (pull request base commit, to see whether bootstrap.sql / the SERT pin changed), REPORT_DIR (reports and
 #      recordings, uploaded by the workflow), APP_URL (ORDS base URL, lib/app-url.sh), DBSAT_ZIP_URL / DBSAT_ZIP_SHA256
@@ -34,8 +34,10 @@
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
+# the application the job deploys: APP_DIR (repos/<app>, set by the workflow from the app parameter, I-106); COMMON when unset
+APP_REL=${APP_DIR:-repos/common}
 # shellcheck source=SCRIPTDIR/../app.env
-. "$HERE/../app.env"
+. "$ROOT/$APP_REL/deployment/app.env"
 # shellcheck source=SCRIPTDIR/../tools.env
 . "$HERE/../tools.env"
 # shellcheck source=SCRIPTDIR/../lib/step.sh
@@ -45,7 +47,7 @@ REPORT_DIR=${REPORT_DIR:-$LOG_DIR/../reports}
 mkdir -p "$REPORT_DIR"
 TOOLS=${RUNNER_TEMP:-/tmp}/pipeline-tools
 mkdir -p "$TOOLS"
-THIS=$ROOT/repos/common
+THIS=$ROOT/$APP_REL
 LAST=${RUNNER_TEMP:-/tmp}/common-last
 
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
@@ -74,8 +76,8 @@ decide() {   # 3.2a: reuse | app | patch | data | retest | upgrade | full (LOG_D
       changed=$(gh api "repos/${GITHUB_REPOSITORY:-}/compare/$head...$(git -C "$ROOT" rev-parse HEAD)" --paginate \
                   --jq '.files[].filename' 2>/dev/null) || changed=""
     fi
-    if echo "$changed" | grep -qx 'repos/common/db/admin/test-data.json' \
-       && ! echo "$changed" | grep -vE '^(repos/common/db/admin/test-data\.json|repos/common/deployment/.*|\.github/.*|repos/ISSUES\.md|repos/common/docs/.*)$' | grep -q .; then
+    if echo "$changed" | grep -qx "$APP_REL/db/admin/test-data.json" \
+       && ! echo "$changed" | grep -vE "^($APP_REL/db/admin/test-data\.json|repos/common/deployment/.*|\.github/.*|repos/ISSUES\.md|$APP_REL/docs/.*)\$" | grep -q .; then
       DATA_ONLY=1; echo "since ${head:0:7} (the version the database passed with): only the test data and pipeline files changed"
     fi
   fi
@@ -245,7 +247,7 @@ snapshot() {   # 6.4 (before) / 6.6 (after): the application's tables, their row
 }
 snapshot_before() {   # 6.4: the snapshot before the upgrade, kept in the database too - a run that resumes after the
   # upgrade (deploy=upgraded, 6.0a) compares with it in 6.6 (I-076: no backup schema; I-078)
-  snapshot "$LOG_DIR/snapshot-before.txt" "$LAST/repos/common" "$THIS" || return 1
+  snapshot "$LOG_DIR/snapshot-before.txt" "$LAST/$APP_REL" "$THIS" || return 1
   LINES=("set define off")
   lines_sql xxci_upgrade_snapshot "$LOG_DIR/snapshot-before.txt"
   LINES+=("commit;")
@@ -344,10 +346,13 @@ dependency_check() {  # 5.4 the deployed schema's dependencies vs the generated 
 # ---- 5 only ----------------------------------------------------------------------------------------------------------
 build_last() {  # the last release = the pull request's base commit, built the same way
   rm -rf "$LAST"; git -C "$ROOT" worktree prune
-  git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
+  git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null \
+    && { [ "$APP_REL" = repos/common ] || bash "$LAST/$APP_REL/build.sh" > /dev/null; }
 }
 load_data() {   # 5.2b / 6.7 (this version, strict), 6.3 (the last release's own file, strict): insert + update
   local dir=$1 mode=$2 f rc
+  # I-106 (app parameter): an application without a test data file has nothing to load
+  [ -f "$dir/db/admin/test-data.json" ] || { echo "info: $dir has no db/admin/test-data.json - no test data to load"; return 0; }
   # I-076: test data only in the dev database (the pipeline's validation DB) - never in test or a later environment
   [ "${DB_TARGET:-}" = dev ] || { echo "FAIL test data loads only into the dev database (DB_TARGET=dev), not '${DB_TARGET:-unset}'"; return 1; }
   f=$(mktemp --suffix .sql)
@@ -355,8 +360,8 @@ load_data() {   # 5.2b / 6.7 (this version, strict), 6.3 (the last release's own
   S "$APP_SCHEMA" "$f" check; rc=$?; rm -f "$f"; return "$rc"
 }
 load_last_data() {   # 6.3: the last release's test data, from git (the release installed in 6.2a)
-  if [ -f "$LAST/repos/common/db/admin/test-data.json" ]; then
-    load_data "$LAST/repos/common" strict
+  if [ -f "$LAST/$APP_REL/db/admin/test-data.json" ]; then
+    load_data "$LAST/$APP_REL" strict
   else   # the first upgrade after the data file came: this version's file on the old structure
     echo "info: the last release has no test data file yet - this version's file is loaded on the old structure (tables and columns the old release does not have are left out, INFO lines)"
     load_data "$THIS" tolerant
@@ -571,7 +576,7 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
     [ -f "$t" ] || continue
     rel=${t#"$ROOT"/}
     case $rel in
-      repos/common/tests/setup/*) ;;
+      "$APP_REL"/tests/setup/*) ;;
       *) if [ "${DB_TESTS:-ALL}" != ALL ] && ! printf ' %s ' "$DB_TESTS" | grep -qF " $rel "; then continue; fi ;;
     esac
     n=$((n + 1)); echo "$rel" >> "$LOG_DIR/tests-expected"
@@ -859,7 +864,7 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
       step 6.0b-mark-record mark_dirty keep-fresh
       step 6.1-remove-app remove_app
       step 6.2-build-last build_last "${2:?base ref}"
-      step 6.2a-deploy-last deploy "$LAST/repos/common" install
+      step 6.2a-deploy-last deploy "$LAST/$APP_REL" install
       step 6.3-load-last-test-data load_last_data
       step 6.4-snapshot snapshot_before
       step 6.5-upgrade-this deploy "$THIS" upgrade

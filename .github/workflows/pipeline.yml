@@ -70,6 +70,7 @@ jobs:
       pull-requests: read   # the PR's start-from-N label
     outputs:
       app: ${{ steps.scope.outputs.app }}         # COMMON / KYC: the PR title, or the full run's input
+      app_dir: ${{ steps.scope.outputs.app_dir }} # repos/<app>: the application the database jobs 3-8 deploy (app parameter, I-106)
       common: ${{ steps.scope.outputs.common }}   # COMMON's offline checks (job 1) run: the PR touches COMMON or the pipeline
       db: ${{ steps.scope.outputs.db }}           # the database jobs (2-8) run: the PR changes the COMMON application
       kyc: ${{ steps.scope.outputs.kyc }}         # the KYC offline checks (1.7-1.10) run: the PR touches KYC
@@ -104,11 +105,13 @@ jobs:
           if [ -n "$BASE" ]; then app=$(printf '%s' "$PR_TITLE" | sed -nE 's/^([A-Z]+) Release [0-9]+: .+$/\1/p'); else app=${INPUT_APP:-COMMON}; fi
           app=${app:-COMMON}
           lower=$(printf '%s' "$app" | tr '[:upper:]' '[:lower:]')
-          # the database jobs deploy the application that has a settings file - COMMON only today; its release tag and
-          # zip name come from that file (a KYC PR that also changes COMMON still deploys and names COMMON)
-          # shellcheck disable=SC1091   # COMMON's settings file (repos/common/deployment/app.env, also read by db/run.sh)
-          . repos/common/deployment/app.env
-          { echo "app=$app"; echo "tag_prefix=$(printf '%s' "$APP_CODE" | tr '[:upper:]' '[:lower:]')"; echo "zip_prefix=$ZIP_NAME"; } >> "$GITHUB_OUTPUT"
+          # the database jobs deploy the application named by the parameter (I-106): its settings file is
+          # repos/<app>/deployment/app.env (read by db/run.sh too); an application without one uses COMMON's
+          app_dir="repos/$lower"
+          [ -f "$app_dir/deployment/app.env" ] || app_dir=repos/common
+          # shellcheck disable=SC1090,SC1091   # the selected application's settings file
+          . "$app_dir/deployment/app.env"
+          { echo "app=$app"; echo "app_dir=$app_dir"; echo "tag_prefix=$(printf '%s' "$APP_CODE" | tr '[:upper:]' '[:lower:]')"; echo "zip_prefix=$ZIP_NAME"; } >> "$GITHUB_OUTPUT"
           # Dependabot (issue #238): GitHub gives its PRs a read-only token and no secrets - no DB jobs, no release
           # title / Fixes rule; job 1 checks the changed workflow files, job 9 passes, the PR is merged by hand
           if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
@@ -117,7 +120,7 @@ jobs:
           echo "dependabot=false" >> "$GITHUB_OUTPUT"
           if [ -z "$BASE" ]; then
             # the full run: the chosen application (an app without app.env - its offline checks only)
-            if [ "$lower" = common ]; then echo "common=true"; echo "db=true"; echo "kyc=false"; else echo "common=false"; echo "db=false"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
+            if [ "$lower" = common ]; then echo "common=true"; echo "db=true"; echo "kyc=false"; else echo "common=false"; echo "db=true"; echo "kyc=true"; fi >> "$GITHUB_OUTPUT"
             echo "release=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           changed=$(git diff --name-only "$BASE" HEAD)
@@ -126,7 +129,12 @@ jobs:
           # self-test and dry run, no database (I-085); so are the dependency map files step 9.2a adds (generated, I-090)
           app=$(printf '%s\n' "$changed" | grep -E '^repos/common/' | grep -vE '^repos/common/(deployment|releases|docs)/' \
                 | grep -vxE 'repos/common/db/deploy/(dependencies\.json|DEPENDENCIES\.md)' || true)
-          if [ -n "$app" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          if [ "$lower" = kyc ]; then
+            # KYC (app parameter, I-106): the same rule for repos/kyc - its own code, not its release notes, docs or deployment files
+            kycapp=$(printf '%s\n' "$changed" | grep -E '^repos/kyc/' | grep -vE '^repos/kyc/(deployment|releases|docs)/' \
+                     | grep -vxE 'repos/kyc/db/deploy/(dependencies\.json|DEPENDENCIES\.md)' || true)
+            if [ -n "$kycapp" ]; then echo "db=true"; else echo "db=false"; fi >> "$GITHUB_OUTPUT"
+          elif [ -n "$app" ]; then echo "db=true" >> "$GITHUB_OUTPUT"; else echo "db=false" >> "$GITHUB_OUTPUT"; fi
           if [ -n "$app" ] || printf '%s\n' "$changed" | grep -qE '^(repos/common/|\.github/)'; then
             echo "common=true" >> "$GITHUB_OUTPUT"
             [ -n "$app" ] || echo "- pipeline-only change: job 1 checks it, no database jobs" >> "$GITHUB_STEP_SUMMARY"
@@ -151,7 +159,7 @@ jobs:
           echo "- Dependabot PR: $n workflow / action file(s) checked; merge it by hand when this run is green" >> "$GITHUB_STEP_SUMMARY"
       - name: Start point - a start-from-N label on the PR, a "Pipeline-Start-From N" line in the pushed commit, or the full run's input
         id: start
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -181,9 +189,10 @@ jobs:
           python-version: '3.11'
       - name: What this pull request affects - the DB tests and pages to test (all of them in the full run)
         id: affected
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          APP: ${{ steps.scope.outputs.app }}
         run: |
           set -euo pipefail
           python3 repos/common/deployment/checks/affected.py "$BASE" | tee -a "$GITHUB_OUTPUT"
@@ -226,48 +235,58 @@ jobs:
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
+      - name: Build KYC (COMMON first, then KYC) - what jobs 3-8 deploy; COMMON is built in 1.4
+        if: steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'
+        run: |
+          set -euo pipefail
+          sh repos/common/build.sh > /dev/null
+          sh repos/kyc/build.sh > /dev/null
       - name: Fingerprints of this version and its code manifest (job 3 compares them with what the database holds)
         id: fingerprint
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
+        env:
+          APP_DIR: ${{ steps.scope.outputs.app_dir }}
         run: |
           set -euo pipefail
           python3 repos/common/deployment/checks/fingerprint.py . | tee -a "$GITHUB_OUTPUT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
       - name: Do the database scripts differ from the base? (no - job 6's upgrade test is skipped, F)
         id: dbdiff
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          APP_DIR: ${{ steps.scope.outputs.app_dir }}
         run: |
           set -euo pipefail
           if [ -z "$BASE" ]; then echo "db_changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           git worktree add -q "$RUNNER_TEMP/base" "$BASE"
           # I-076: an application never released has nothing to upgrade from - no upgrade test (as F)
-          if ! ls -d "$RUNNER_TEMP"/base/repos/common/releases/*/ > /dev/null 2>&1; then
+          if ! ls -d "$RUNNER_TEMP/base/$APP_DIR"/releases/*/ > /dev/null 2>&1; then
             echo "db_changed=false" >> "$GITHUB_OUTPUT"
             echo "- the application has no release yet: no upgrade test (job 6)" >> "$GITHUB_STEP_SUMMARY"; exit 0
           fi
           bash "$RUNNER_TEMP/base/repos/common/build.sh" > /dev/null
+          [ "$APP_DIR" = repos/common ] || bash "$RUNNER_TEMP/base/$APP_DIR/build.sh" > /dev/null
           h() { (cd "$1" && find install upgrade -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum | cut -c1-16; }
-          if [ "$(h repos/common/db/deploy)" = "$(h "$RUNNER_TEMP/base/repos/common/db/deploy")" ]; then
+          if [ "$(h "$APP_DIR/db/deploy")" = "$(h "$RUNNER_TEMP/base/$APP_DIR/db/deploy")" ]; then
             echo "db_changed=false" >> "$GITHUB_OUTPUT"
             echo "- database scripts as on the base: no upgrade test (job 6)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "db_changed=true" >> "$GITHUB_OUTPUT"
           fi
       - name: This version's application (built once, deployed by jobs 5-6)
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ steps.scope.outputs.app_dir }}/dist/app
           retention-days: 3
           if-no-files-found: error
       - name: This version's database scripts (generated by the build, deployed by jobs 5-6)
-        if: steps.scope.outputs.common == 'true'
+        if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: common-deploy
-          path: repos/common/db/deploy
+          path: ${{ steps.scope.outputs.app_dir }}/db/deploy
           retention-days: 3
           if-no-files-found: error
       # 1.7-1.10 KYC (no app.env yet): the offline checks only - before I-084 checks.yml and docs-check.yml
@@ -353,6 +372,7 @@ jobs:
       app_changed: ${{ steps.setup.outputs.app_changed }}           # patch: the application differs from the deployed one
       resume_at: ${{ steps.setup.outputs.resume_at }}               # loaded / upgraded: the step job 5 / 6 resumes at (I-078)
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
@@ -366,11 +386,11 @@ jobs:
           fetch-depth: 2   # L2: the merge commit and its base (bootstrap.sql changed?)
           persist-credentials: false
       - name: This version's database scripts and code manifest - the ones job 1 built (not the committed copies)
-        run: rm -rf repos/common/db/deploy
+        run: rm -rf "$APP_DIR/db/deploy"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-deploy
-          path: repos/common/db/deploy
+          path: ${{ env.APP_DIR }}/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
           oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
@@ -418,6 +438,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
       DB_FINGERPRINT: ${{ needs.offline.outputs.db_fingerprint }}
       STRUCT_FINGERPRINT: ${{ needs.offline.outputs.struct_fingerprint }}
@@ -434,13 +455,13 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ env.APP_DIR }}/dist/app
       - name: This version's database scripts - the ones job 1 built (not the committed copies)
-        run: rm -rf repos/common/db/deploy
+        run: rm -rf "$APP_DIR/db/deploy"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-deploy
-          path: repos/common/db/deploy
+          path: ${{ env.APP_DIR }}/db/deploy
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
@@ -478,6 +499,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       DB_CHANGED: ${{ needs.offline.outputs.db_changed }}     # false: 5.6 records the version (no upgrade test)
       APP_ONLY: ${{ needs.db-setup.outputs.deploy == 'app' }}   # true: only the APEX application is replaced
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # data: the install is kept, only the test data loads
@@ -495,13 +517,13 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ env.APP_DIR }}/dist/app
       - name: This version's database scripts - the ones job 1 built (not the committed copies)
-        run: rm -rf repos/common/db/deploy
+        run: rm -rf "$APP_DIR/db/deploy"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-deploy
-          path: repos/common/db/deploy
+          path: ${{ env.APP_DIR }}/db/deploy
       - uses: ./.github/actions/setup-sqlcl
         with:
           oci-client: ${{ secrets.OCI_OIDC_CLIENT }}
@@ -548,6 +570,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}   # 6.10 records it: the database holds this version
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}             # upgrade: 6.0 checks job 5's earlier pass
       RESUME_AT: ${{ needs.db-setup.outputs.resume_at }}       # I-078: upgraded - the steps before it passed for this version
@@ -562,13 +585,13 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ env.APP_DIR }}/dist/app
       - name: This version's database scripts - the ones job 1 built (not the committed copies)
-        run: rm -rf repos/common/db/deploy
+        run: rm -rf "$APP_DIR/db/deploy"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-deploy
-          path: repos/common/db/deploy
+          path: ${{ env.APP_DIR }}/db/deploy
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
@@ -608,6 +631,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       DB_TESTS: ${{ needs.offline.outputs.db_tests }}  # the DB tests this PR affects (or ALL)
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}     # reuse / app: only what changed since the last tested commit (Q2, Q3)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
@@ -622,7 +646,7 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ env.APP_DIR }}/dist/app
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
@@ -671,6 +695,7 @@ jobs:
       id-token: write        # OIDC token for the OCI token exchange (issue #240)
       contents: read
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       PAGES: ${{ needs.offline.outputs.pages }}        # the pages this PR changes (or ALL)
       DEPLOY: ${{ needs.db-setup.outputs.deploy }}     # reuse: a browser test that passed for this version is not repeated (Q4)
       FINGERPRINT: ${{ needs.offline.outputs.fingerprint }}
@@ -682,7 +707,7 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: common-dist
-          path: repos/common/dist/app
+          path: ${{ env.APP_DIR }}/dist/app
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
@@ -804,6 +829,7 @@ jobs:
       pull-requests: write   # 9.2 ready for review, merge, PR comment
       issues: write          # 9.2 issues for the existing findings
     env:
+      APP_DIR: ${{ needs.offline.outputs.app_dir }}   # the application the database jobs deploy: repos/<app> (app parameter, I-106)
       COMMON: ${{ needs.offline.outputs.db }}   # the database jobs ran: their results gate, and 9.1 / 9.3 export the app
       RELEASE: ${{ needs.offline.outputs.release }}
       TAG_PREFIX: ${{ needs.offline.outputs.tag_prefix }}   # app.env APP_CODE: release tag <prefix>-<N>

@@ -54,6 +54,9 @@ if not base:
     print('db_tests=ALL'); print('pages=ALL'); sys.exit(0)
 changed = subprocess.run(['git', 'diff', '--name-only', base, 'HEAD'], capture_output=True, text=True,
                          check=True).stdout.split()
+# I-106 (app parameter): the rules below are COMMON's; another application's database jobs test all of it for now
+if os.environ.get('APP', 'COMMON').upper() != 'COMMON':
+    print('db_tests=ALL'); print('pages=ALL'); sys.exit(0)
 common = [c for c in changed if c.startswith('repos/common/')]
 everything = re.compile(r'repos/common/(db/|tools/|app/(?!pages/)|tests/setup/|deployment/|build\.sh)')
 if any(everything.match(c) for c in common):

@@ -86,6 +86,13 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   jobs 5-6 (B); the same database scripts make job 5 replace **only the APEX application** (5.1 remove the
   application, 5.2 import it - the schema, its objects and data stay; no backup schema) and skip job 6; other database
   scripts get the full fresh install (and the upgrade test when they differ from the base, F).
+- **App parameter (I-106):** the application is one parameter - `COMMON` or `KYC`, from the PR title (or the full run's
+  input). Job 1 sets `app_dir` (`repos/<app>`), reads `repos/<app>/deployment/app.env`, builds KYC (after COMMON) and
+  sets `db` (jobs 2-8 run) for a KYC PR that changes `repos/kyc` code (not its releases, docs or deployment files).
+  Jobs 3-9 get it as `APP_DIR`; `db/run.sh`, `checks/fingerprint.py` and the artifact paths follow it. COMMON behaves as
+  before. Not done yet (by design): KYC's own affected-tests rule (all DB tests and pages run), and the version record
+  (`XXCI_*` tables) is still one COMMON record - see the release notes of COMMON 130. KYC needs its test users
+  (`UI_USERS` in its `app.env`) and was registered in COMMON by job K.
 - **Docs after the merge (E):** 9.1 exports only the release zip; the PR is merged and released, then 9.3 (readable
   export, SchemaSpy) are made (in their own folder, `$RUNNER_TEMP/docs`), kept as the artifact `common-docs` (9.3) and
   then added to the draft release (9.3c) - a docs problem is a warning, not a failure, and a release that cannot take the
