@@ -59,6 +59,12 @@ select rule_severity_name as severity, rule_name as rule, result, full_page_name
  order by rule_severity_id, rule_name, page_id;
 spool off
 set termout on sqlformat default heading off
+-- diagnostics: which evaluation ran and how many rows it holds (printed when no SERT count line follows)
+select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the results view: '
+       || (select count(*) from sert_core.eval_results_pub_v where eval_id = :eval_id)
+       || ', all evaluations: ' || (select count(*) from sert_core.eval_results_pub_v)
+       || ', rule sets: ' || (select count(*) from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY')
+  from dual;
 select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count(*)
   from sert_core.eval_results_pub_v
  where eval_id = :eval_id
