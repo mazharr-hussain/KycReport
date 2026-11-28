@@ -123,10 +123,12 @@ create or replace package xxcmp_request_pkg authid definer as
     -- Submits the request (In Progress) and starts the KYC_REQUEST workflow.
     procedure submit(p_request_id in number);
 
-    -- Why the signed-in user cannot cancel the request (null = can): its requester, while Draft, In Progress or
-    -- Information Needed.
+    -- Why the signed-in user cannot cancel the request (null = can): its requester, until the request is decided -
+    -- Draft, Submitted, Under Review, In Approval, Information Needed (release 107, I-004: also after it is submitted;
+    -- Rejected as before). An Approved, Rejected-and-closed or already Cancelled request cannot be cancelled.
     function cancel_error(p_request_id in number) return varchar2;
-    -- Cancels the request: ends its workflow and tasks; a Pending party only this request uses is Cancelled.
+    -- Cancels the request: ends its workflow and tasks and its open case (XXCMP_CASE_PKG.CANCEL_CASE); a Pending party
+    -- only this request uses is Cancelled.
     procedure cancel(p_request_id in number, p_reason in varchar2 default null);
     -- Withdraw: the requester pulls a submitted request (In Progress) back to Draft; its workflow and task end.
     function withdraw_error(p_request_id in number) return varchar2;

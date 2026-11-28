@@ -218,6 +218,27 @@ create or replace package body xxcmp_case_pkg as
             raise;
     end withdraw;
 
+    procedure cancel_case(p_case_id in number, p_reason in varchar2 default null) is
+        l_case xxcmp_cases%rowtype;
+    begin
+        xxfnd_vpd_pkg.begin_trusted;
+        l_case := get_case(p_case_id);
+        if l_case.case_status not in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION') then
+            raise_application_error(-20624, 'Case ' || l_case.case_number || ' is closed and cannot be cancelled.');
+        end if;
+        xxfnd_workflow_pkg.end_process(l_case.workflow_id);
+        xxfnd_approval_rule_pkg.cancel('KYC_CASE', to_char(p_case_id));
+        update xxcmp_cases
+           set case_status = 'CANCELLED', current_level = null, closed_date = systimestamp
+         where case_id = p_case_id;
+        xxfnd_vpd_pkg.end_trusted;
+        xxcmp_request_pkg.case_changed(l_case.request_id, 'CANCELLED');   -- the request follows its case
+    exception
+        when others then
+            xxfnd_vpd_pkg.end_trusted;
+            raise;
+    end cancel_case;
+
     function investigation_owners(p_case_id in number) return varchar2 is
         l_case xxcmp_cases%rowtype;
     begin

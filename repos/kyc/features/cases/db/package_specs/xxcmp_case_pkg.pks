@@ -23,6 +23,11 @@ create or replace package xxcmp_case_pkg authid definer as
     -- Withdraw from approval: back to investigation (the submitter or Manage on Cases, while Pending approval).
     function can_withdraw(p_case_id in number) return varchar2;
     procedure withdraw(p_case_id in number, p_reason in varchar2);
+    -- Release 107 (I-004, G2): the requester cancelled the request - its case ends: the KYC_CASE workflow and its
+    -- approval, status Cancelled; the request follows (XXCMP_REQUEST_PKG.CASE_CHANGED). The check of who may cancel is
+    -- the request's (XXCMP_REQUEST_PKG.CANCEL_ERROR). Only a case under investigation, pending approval or pending
+    -- information can be cancelled.
+    procedure cancel_case(p_case_id in number, p_reason in varchar2 default null);
 
     -- Task participants.
     function investigation_owners(p_case_id in number) return varchar2;

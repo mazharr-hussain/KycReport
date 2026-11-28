@@ -4,8 +4,8 @@ authorization kyc-user (
     settings {
         plsqlFunctionBody:
             ```plsql
-            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED
-            return xxfnd_user_pkg.authorized('KYC_USER');
+            -- the rule is in the database: XXFND_USER_PKG.AUTHORIZED (KYC 107: APP_USER - KYC_USER was retired in COMMON 111)
+            return xxfnd_user_pkg.authorized('APP_USER');
             ```
     }
     error {
