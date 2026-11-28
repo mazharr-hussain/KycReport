@@ -87,7 +87,9 @@ Claude changes the code and reviews it; every fixed, repeated step is here:
   application, 5.2 import it - the schema, its objects and data stay; no backup schema) and skip job 6; other database
   scripts get the full fresh install (and the upgrade test when they differ from the base, F).
 - **Docs after the merge (E):** 9.1 exports only the release zip; the PR is merged and released, then 9.3 (readable
-  export, SchemaSpy) are made and added to the release (a docs problem is a warning, not a failure).
+  export, SchemaSpy) are made (in their own folder, `$RUNNER_TEMP/docs`), kept as the artifact `common-docs` (9.3) and
+  then added to the draft release (9.3c) - a docs problem is a warning, not a failure, and a release that cannot take the
+  files leaves them in the artifact (#213, #214).
 - **No upgrade test without database changes (F) - held back:** job 1 still compares the database scripts with the
   base, but job 6 runs after every full reinstall: job 7's DB tests need the data it restores (as C above).
 - **Browser test beside the DB tests (G):** jobs 7 and 8 run at the same time - "7 DB tests and security" (7.2, 7.4,

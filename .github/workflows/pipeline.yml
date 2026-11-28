@@ -1007,22 +1007,38 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          bash repos/common/deployment/db/run.sh docs "$RUNNER_TEMP/out"
-          (cd "$RUNNER_TEMP/out" && zip -qr "$RUNNER_TEMP/COMMON-apex-docs.zip" apex-docs && zip -qr "$RUNNER_TEMP/COMMON-db-docs.zip" db-docs)
-          if [ -n "$RELEASE" ] && gh release view "$TAG_PREFIX-$RELEASE" > /dev/null 2>&1; then
-            gh release upload "$TAG_PREFIX-$RELEASE" "$RUNNER_TEMP/COMMON-apex-docs.zip" "$RUNNER_TEMP/COMMON-db-docs.zip" --clobber
-            echo "- 9.3 documentation added to release \`$TAG_PREFIX-$RELEASE\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          docs="$RUNNER_TEMP/docs"          # own folder: nothing else of job 9 writes there (#213, #214)
+          rm -rf "$docs"; mkdir -p "$docs"
+          bash repos/common/deployment/db/run.sh docs "$docs/out"
+          (cd "$docs/out/apex-docs" && zip -qr "$docs/COMMON-apex-docs.zip" .)
+          (cd "$docs/out/db-docs" && zip -qr "$docs/COMMON-db-docs.zip" .)
+          ls -l "$docs"/*.zip
+          test -s "$docs/COMMON-apex-docs.zip" && test -s "$docs/COMMON-db-docs.zip"
       - name: Documentation (artifact)
         if: steps.docs.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: common-docs
           path: |
-            ${{ runner.temp }}/COMMON-apex-docs.zip
-            ${{ runner.temp }}/COMMON-db-docs.zip
+            ${{ runner.temp }}/docs/COMMON-apex-docs.zip
+            ${{ runner.temp }}/docs/COMMON-db-docs.zip
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: error
+      - name: 9.3c Documentation added to the draft release
+        if: steps.docs.outcome == 'success' && env.RELEASE != ''
+        continue-on-error: true   # the artifact above holds the docs even when the release cannot take them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="$TAG_PREFIX-$RELEASE"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "$RUNNER_TEMP/docs/COMMON-apex-docs.zip" "$RUNNER_TEMP/docs/COMMON-db-docs.zip" --clobber
+            echo "- 9.3 documentation added to release \`$tag\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::notice::release $tag not found - the documentation is in the artifact common-docs"
+          fi
       - name: Documentation not made
         if: steps.docs.outcome == 'failure'
         run: echo "::warning::9.3 documentation failed after the merge - see the step log; the release has its zip"
