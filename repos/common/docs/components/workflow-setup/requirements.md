@@ -34,3 +34,7 @@ application summary is `repos/common/docs/README.md`.
 ## Change - Delegations through routines (COMMON 123)
 
 - An application (or its tests) creates and ends a delegation with `XXFND_WORKFLOW_PKG.ADD_DELEGATION` / `END_DELEGATION` - never by writing XXFND_WF_DELEGATIONS. In an APEX session: Workflow Setup - Manage, or the delegator is the signed-in user (I-012).
+
+## Change - Cancel a delegation that starts today (COMMON 131)
+
+- `XXFND_WORKFLOW_PKG.END_DELEGATION` removes a delegation that has not started, or starts today, when it is ended today or before (the default): a delegation is active the whole day it ends on, so it could not be cancelled before. A later end date only shortens the delegation, as before; one that started earlier ends on the given day, as before.

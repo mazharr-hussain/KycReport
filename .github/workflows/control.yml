@@ -50,8 +50,14 @@ jobs:
                 core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) is in ${busy.join(', ')} - it finishes, then the new push runs.`);
                 continue;
               }
-              await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id });
-              core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) cancelled - replaced by ${pr.head.sha.slice(0, 7)}.`);
+              try {
+                await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id });
+                core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) cancelled - replaced by ${pr.head.sha.slice(0, 7)}.`);
+              } catch (e) {
+                // 409: the run finished between the list and the cancel - nothing left to cancel
+                if (e.status !== 409) throw e;
+                core.notice(`Run ${run.id} (${run.head_sha.slice(0, 7)}) had finished already - nothing to cancel.`);
+              }
             }
 
   start-from:

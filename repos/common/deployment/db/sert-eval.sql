@@ -2,9 +2,10 @@
 -- Step 7.4, run as ADMIN: APEX-SERT security evaluation of the application (installed by step 3.4), in the
 -- foreground, with the SERT-SECURITY rules of the database's APEX version; writes every rule that did not pass
 -- (CSV) and prints the counts by severity.
--- Substitution variables: app_id, out (CSV file).
+-- Substitution variables: app_id, workspace (the application's), out (CSV file).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
+prompt SERT-START evaluation of application &app_id
 variable eval_id number
 -- SERT's security rules (rule set SERT-SECURITY) exist per APEX version (the evaluation picks the rule set of the
 -- database's own APEX version). APEX-SERT's latest release has them for 24.1, 24.2 and 25.1. For an APEX version it
@@ -44,13 +45,54 @@ begin
         dbms_output.put_line('SERT-SKIP APEX-SERT has no SERT-SECURITY rules for APEX ' || to_char(l_v, 'fm99.9')
             || ' (it has rules for ' || l_n || ' other APEX versions) - not evaluated');
     else
+        -- the evaluation reads the application through the APEX views: they show only the rows of the workspace of the
+        -- session (ADMIN has none) - set the application's workspace first
+        begin
+            apex_util.set_security_group_id(apex_util.find_security_group_id(p_workspace => '&workspace'));
+            dbms_output.put_line('SERT-NOTE workspace &workspace set for the evaluation (security group '
+                || apex_util.find_security_group_id(p_workspace => '&workspace') || ')');
+        exception
+            when others then
+                dbms_output.put_line('SERT-DEBUG workspace &workspace could not be set: ' || substr(sqlerrm, 1, 200));
+        end;
         sert_core.eval_pkg.eval(p_application_id => &app_id, p_rule_set_key => 'SERT-SECURITY', p_eval_by => 'COMMON PIPELINE',
                                 p_run_in_background => 'N', p_eval_id_out => :eval_id);
     end if;
 end;
 /
-set heading on pagesize 0 termout off
+set heading off
+set pagesize 0
+set sqlformat default
+-- the counts and diagnostics first, with the terminal output on (the CSV below needs it off)
+select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the results view: '
+       || (select count(*) from sert_core.eval_results_pub_v where eval_id = :eval_id)
+       || ', all evaluations: ' || (select count(*) from sert_core.eval_results_pub_v)
+       || ', rule sets: ' || (select count(*) from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY')
+  from dual;
+select 'SERT-DEBUG evaluation: ' || json_object(*) from sert_core.evals where eval_id = :eval_id;
+-- where did the evaluation's data go: the rows per SERT_CORE table that has an EVAL_ID
+declare
+    l_n pls_integer;
+begin
+    for t in (select table_name from dba_tab_columns where owner = 'SERT_CORE' and column_name = 'EVAL_ID'
+                 and table_name in (select table_name from dba_tables where owner = 'SERT_CORE') order by table_name) loop
+        execute immediate 'select count(*) from sert_core.' || t.table_name || ' where eval_id = :1' into l_n using :eval_id;
+        dbms_output.put_line('SERT-DEBUG ' || t.table_name || ' rows for this evaluation: ' || l_n);
+    end loop;
+end;
+/
+-- the evaluation's own verdict: its status and score (APEX-SERT keeps result rows only for what it reports)
+select 'SERT EVALUATION ' || job_status || ': score ' || score || ', approved score ' || approved_score
+  from sert_core.evals where eval_id = :eval_id;
+select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count(*)
+  from sert_core.eval_results_pub_v
+ where eval_id = :eval_id
+ group by rule_severity_name, result
+ order by 1;
+-- every rule that did not pass, as CSV (the report artifact)
+set heading on
 set sqlformat csv
+set termout off
 spool &out
 select rule_severity_name as severity, rule_name as rule, result, full_page_name as page, component_name, item_name,
        current_value, valid_values, reason
@@ -58,9 +100,6 @@ select rule_severity_name as severity, rule_name as rule, result, full_page_name
  where eval_id = :eval_id and result not in ('PASS', 'APPROVED')
  order by rule_severity_id, rule_name, page_id;
 spool off
-set termout on sqlformat default heading off
-select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count(*)
-  from sert_core.eval_results_pub_v
- where eval_id = :eval_id
- group by rule_severity_name, result
- order by 1;
+set termout on
+set sqlformat default
+set heading off

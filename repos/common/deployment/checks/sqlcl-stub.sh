@@ -15,7 +15,7 @@ printf "%s\n" "$body" >> "$STUB_DIR/sql-bodies"   # every statement sent, for th
 case $(basename "$file") in
   deployed.sql)  [ "$(def mode)" = get ] && [ -f "$STUB_DIR/record" ] && cat "$STUB_DIR/record" ;;
   dependencies.sql) echo 'NAME,TYPE,REFERENCED_NAME,REFERENCED_TYPE' > "$(def out)" ;;
-  sert-eval.sql) echo "SERT 0 findings" ;;
+  sert-eval.sql) echo "SERT EVALUATION COMPLETED: score 100, approved score 100" ;;
   snapshot.sql)  printf 'T\tXXFND_A\t3\nR\tXXFND_A\t1\t99\n' ;;   # the same before and after: nothing lost
   schema-summary.sql) printf 'SCHEMA %s    \n' 'T XXFND_A' 'C XXFND_A.X NUMBER(,,) Y' 'K XXFND_A XXFND_A_PK P ENABLED VALIDATED' 'R XXFND_A 3'
                       [ "${STUB_DIFF:-0}" = 1 ] && [ -n "${STUB_UPGRADED:-}" ] && echo 'SCHEMA C XXFND_A.Y VARCHAR2(10,,) Y' ;;

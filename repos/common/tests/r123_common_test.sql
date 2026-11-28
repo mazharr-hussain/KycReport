@@ -36,6 +36,20 @@ begin
     xxfnd_workflow_pkg.end_delegation('COMMON', l_id, trunc(sysdate) + 1);
     select end_date into l_date from xxfnd_wf_delegations where delegation_id = l_id;
     ok('END_DELEGATION ends it on the given day', l_date = trunc(sysdate) + 1);
+    -- I-103 (release 131): one that starts today or later and is ended today is removed; a future end date only shortens it
+    xxfnd_workflow_pkg.end_delegation('COMMON', l_id);
+    select count(*) into l_n from xxfnd_wf_delegations where delegation_id = l_id;
+    ok('END_DELEGATION today removes a delegation that starts today', l_n = 0);
+    l_id := xxfnd_workflow_pkg.add_delegation('COMMON', v('APP_USER'), 'R123_DELEGATE', trunc(sysdate) + 3, trunc(sysdate) + 5,
+                                              p_reason => 'R123');
+    xxfnd_workflow_pkg.end_delegation('COMMON', l_id);
+    select count(*) into l_n from xxfnd_wf_delegations where delegation_id = l_id;
+    ok('END_DELEGATION removes a delegation that has not started', l_n = 0);
+    l_id := xxfnd_workflow_pkg.add_delegation('COMMON', v('APP_USER'), 'R123_DELEGATE', trunc(sysdate), trunc(sysdate) + 5,
+                                              p_reason => 'R123');
+    xxfnd_workflow_pkg.end_delegation('COMMON', l_id, trunc(sysdate) + 2);
+    select end_date into l_date from xxfnd_wf_delegations where delegation_id = l_id;
+    ok('a future end date only shortens a delegation that starts today', l_date = trunc(sysdate) + 2);
     begin
         xxfnd_workflow_pkg.end_delegation('COMMON', -1);
         ok('an unknown delegation is refused', false);

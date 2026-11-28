@@ -563,15 +563,32 @@ create or replace package body xxfnd_workflow_pkg as
     procedure end_delegation(p_application_code in varchar2, p_delegation_id in number, p_end_date in date default sysdate) is
         l_code      xxfnd_applications.application_code%type := xxfnd_application_pkg.registered_code(p_application_code);
         l_delegator xxfnd_wf_delegations.delegator_user_name%type;
+        l_start     xxfnd_wf_delegations.start_date%type;
     begin
-        select max(delegator_user_name) into l_delegator from xxfnd_wf_delegations where delegation_id = p_delegation_id;
+        select max(delegator_user_name), max(start_date) into l_delegator, l_start
+          from xxfnd_wf_delegations where delegation_id = p_delegation_id;
         if l_delegator is null then
             xxfnd_error_pkg.raise_error('XXFND_REG_UNKNOWN', apex_t_varchar2('Delegation', to_char(p_delegation_id)));
         end if;
         check_delegator(l_delegator);
-        update xxfnd_wf_delegations
-           set end_date = greatest(start_date, nvl(p_end_date, sysdate))
-         where delegation_id = p_delegation_id;
+        -- release 131 (I-103): a delegation that has not started, or starts today, and is ended today or before was never
+        -- in force for a full day: it is removed (a delegation is active the whole day it ends on, so ending it would
+        -- leave it active until midnight)
+        if trunc(l_start) >= trunc(sysdate) and trunc(nvl(p_end_date, sysdate)) <= trunc(sysdate) then
+            xxfnd_vpd_pkg.begin_trusted;
+            begin
+                delete from xxfnd_wf_delegations where delegation_id = p_delegation_id;
+            exception
+                when others then
+                    xxfnd_vpd_pkg.end_trusted;
+                    raise;
+            end;
+            xxfnd_vpd_pkg.end_trusted;
+        else
+            update xxfnd_wf_delegations
+               set end_date = greatest(start_date, nvl(p_end_date, sysdate))
+             where delegation_id = p_delegation_id;
+        end if;
     end end_delegation;
 
     -- release 88 (C8, C9)
