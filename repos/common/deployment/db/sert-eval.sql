@@ -63,8 +63,8 @@ select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the 
 declare
     l_n pls_integer;
 begin
-    for t in (select table_name from all_tab_columns where owner = 'SERT_CORE' and column_name = 'EVAL_ID'
-                 and table_name in (select table_name from all_tables where owner = 'SERT_CORE') order by table_name) loop
+    for t in (select table_name from dba_tab_columns where owner = 'SERT_CORE' and column_name = 'EVAL_ID'
+                 and table_name in (select table_name from dba_tables where owner = 'SERT_CORE') order by table_name) loop
         execute immediate 'select count(*) from sert_core.' || t.table_name || ' where eval_id = :1' into l_n using :eval_id;
         dbms_output.put_line('SERT-DEBUG ' || t.table_name || ' rows for this evaluation: ' || l_n);
     end loop;
