@@ -25,7 +25,7 @@
 #                                  (8.4 OWASP ZAP runs as a workflow step, full validation only)
 #   run.sh finalize <dir>      9   9.1 APEXlang export of the tested application into <dir>/app,
 #                                  9.3a readable YAML export (<dir>/apex-docs), 9.3b SchemaSpy (<dir>/db-docs)
-# This version's application must already be built in repos/common/dist/app (pipeline job 1).
+# This version's application must already be built in $APP_DIR/dist/app (APP_DIR = repos/<app>, default repos/common; pipeline job 1).
 # Env: SQL, WALLET, VAL_DB_SERVICE, ADMIN_PW (pipeline user password per job, 3.2, 8.1), XXCUS_PW (3.2 only), LOG_DIR,
 #      BASE (pull request base commit, to see whether bootstrap.sql / the SERT pin changed), REPORT_DIR (reports and
 #      recordings, uploaded by the workflow), APP_URL (ORDS base URL, lib/app-url.sh), DBSAT_ZIP_URL / DBSAT_ZIP_SHA256
@@ -34,8 +34,14 @@
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
+# the application the job deploys: APP_DIR (repos/<app>, set by the workflow from the app parameter, I-106); COMMON when unset
+APP_REL=${APP_DIR:-repos/common}
 # shellcheck source=SCRIPTDIR/../app.env
-. "$HERE/../app.env"
+. "$ROOT/$APP_REL/deployment/app.env"
+# the pipeline's record of what the database holds (XXCI_* tables) is one per application (I-106): COMMON keeps the
+# names it has always had; another application's tables are xxci_<app>_deployed, xxci_<app>_passed ... (db/deployed.sql)
+XT=xxci
+[ "$APP_CODE" = COMMON ] || XT=xxci_$(printf '%s' "$APP_CODE" | tr '[:upper:]' '[:lower:]')
 # shellcheck source=SCRIPTDIR/../tools.env
 . "$HERE/../tools.env"
 # shellcheck source=SCRIPTDIR/../lib/step.sh
@@ -45,7 +51,7 @@ REPORT_DIR=${REPORT_DIR:-$LOG_DIR/../reports}
 mkdir -p "$REPORT_DIR"
 TOOLS=${RUNNER_TEMP:-/tmp}/pipeline-tools
 mkdir -p "$TOOLS"
-THIS=$ROOT/repos/common
+THIS=$ROOT/$APP_REL
 LAST=${RUNNER_TEMP:-/tmp}/common-last
 
 S() { bash "$HERE/../lib/sql.sh" "$@"; }
@@ -59,7 +65,7 @@ ci_exec() {   # ci_exec <login> <statement line>...
   f=$(mktemp --suffix .sql); printf '%s\n' "$@" > "$f"; S "$login" "$f" check; rc=$?; rm -f "$f"; return "$rc"
 }
 read_record() {   # the record into LOG_DIR/record.txt (DEPLOYED / CODE / PASSED / FAILED lines)
-  S CI "$HERE/deployed.sql" check mode=get > "$LOG_DIR/record.txt" || { cat "$LOG_DIR/record.txt"; return 1; }
+  S CI "$HERE/deployed.sql" check mode=get t="$XT" app_code="$APP_CODE" > "$LOG_DIR/record.txt" || { cat "$LOG_DIR/record.txt"; return 1; }
 }
 decide() {   # 3.2a: reuse | app | patch | data | retest | upgrade | full (LOG_DIR/deploy, patch-files, ...)
   read_record || return 1
@@ -74,8 +80,8 @@ decide() {   # 3.2a: reuse | app | patch | data | retest | upgrade | full (LOG_D
       changed=$(gh api "repos/${GITHUB_REPOSITORY:-}/compare/$head...$(git -C "$ROOT" rev-parse HEAD)" --paginate \
                   --jq '.files[].filename' 2>/dev/null) || changed=""
     fi
-    if echo "$changed" | grep -qx 'repos/common/db/admin/test-data.json' \
-       && ! echo "$changed" | grep -vE '^(repos/common/db/admin/test-data\.json|repos/common/deployment/.*|\.github/.*|repos/ISSUES\.md|repos/common/docs/.*)$' | grep -q .; then
+    if echo "$changed" | grep -qx "$APP_REL/db/admin/test-data.json" \
+       && ! echo "$changed" | grep -vE "^($APP_REL/db/admin/test-data\.json|repos/common/deployment/.*|\.github/.*|repos/ISSUES\.md|$APP_REL/docs/.*)\$" | grep -q .; then
       DATA_ONLY=1; echo "since ${head:0:7} (the version the database passed with): only the test data and pipeline files changed"
     fi
   fi
@@ -85,34 +91,34 @@ key_of() { basename "$1" | sed -E 's/^[0-9]+-//'; }   # install/0050-package-spe
 mark_dirty() {   # before a deploy changes the database: the record no longer claims a version it may not hold
   local what=$1 f keys=""
   case $what in
-    all)  ci_exec CI "merge into xxci_deployed t using (select 'COMMON' app_code from dual) s on (t.app_code = s.app_code)" \
+    all)  ci_exec CI "merge into ${XT}_deployed t using (select '$APP_CODE' app_code from dual) s on (t.app_code = s.app_code)" \
             " when matched then update set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY'" \
-            " when not matched then insert (app_code, fingerprint, verified) values ('COMMON', '-', 'DIRTY');" \
-            "delete from xxci_deployed_code;" "delete from xxci_passed;" "commit;" ;;
+            " when not matched then insert (app_code, fingerprint, verified) values ('$APP_CODE', '-', 'DIRTY');" \
+            "delete from ${XT}_deployed_code;" "delete from ${XT}_passed;" "commit;" ;;
     keep-fresh)   # 6.0b: the fresh install's pass (job 5) stays - a restart from job 6 may skip job 5
-          ci_exec CI "update xxci_deployed set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY' where app_code = 'COMMON';" \
-            "delete from xxci_deployed_code;" "delete from xxci_passed where check_name <> 'fresh';" "commit;" ;;
-    app)  ci_exec CI "update xxci_deployed set fingerprint = '-', app_fingerprint = '-' where app_code = 'COMMON';" \
-            "delete from xxci_passed where check_name in ('ui', 'sert');" "commit;" ;;
+          ci_exec CI "update ${XT}_deployed set fingerprint = '-', db_fingerprint = '-', struct_fingerprint = '-', app_fingerprint = '-', verified = 'DIRTY' where app_code = '$APP_CODE';" \
+            "delete from ${XT}_deployed_code;" "delete from ${XT}_passed where check_name <> 'fresh';" "commit;" ;;
+    app)  ci_exec CI "update ${XT}_deployed set fingerprint = '-', app_fingerprint = '-' where app_code = '$APP_CODE';" \
+            "delete from ${XT}_passed where check_name in ('ui', 'sert');" "commit;" ;;
     code) while read -r f; do [ -n "$f" ] || continue; safe "$f" || return 1; keys="$keys,'$(key_of "$f")'"; done < "$LOG_DIR/patch-files"
-          ci_exec CI "update xxci_deployed set fingerprint = '-', db_fingerprint = '-' where app_code = 'COMMON';" \
-            "update xxci_deployed_code set code_hash = 'APPLYING' where code_key in ('-'$keys);" \
-            "delete from xxci_passed where check_name <> 'fresh';" "commit;" ;;
+          ci_exec CI "update ${XT}_deployed set fingerprint = '-', db_fingerprint = '-' where app_code = '$APP_CODE';" \
+            "update ${XT}_deployed_code set code_hash = 'APPLYING' where code_key in ('-'$keys);" \
+            "delete from ${XT}_passed where check_name <> 'fresh';" "commit;" ;;
   esac
 }
 record_deployed() {  # 5.6 / 6.10 (FULL) and 4.Q5 (PATCH): this version passed its deploy
   local verified=$1 k h f lines=()
   safe "${FINGERPRINT:?FINGERPRINT is not set}" "${DB_FINGERPRINT:?DB_FINGERPRINT is not set}" \
        "${STRUCT_FINGERPRINT:?STRUCT_FINGERPRINT is not set}" "${APP_FINGERPRINT:?APP_FINGERPRINT is not set}" || return 1
-  lines+=("merge into xxci_deployed t using (select 'COMMON' app_code from dual) s on (t.app_code = s.app_code)"
+  lines+=("merge into ${XT}_deployed t using (select '$APP_CODE' app_code from dual) s on (t.app_code = s.app_code)"
           " when matched then update set fingerprint = '$FINGERPRINT', db_fingerprint = '$DB_FINGERPRINT', struct_fingerprint = '$STRUCT_FINGERPRINT',"
           "   app_fingerprint = '$APP_FINGERPRINT', verified = '$verified', deployed_on = systimestamp"
           " when not matched then insert (app_code, fingerprint, db_fingerprint, struct_fingerprint, app_fingerprint, verified)"
-          "   values ('COMMON', '$FINGERPRINT', '$DB_FINGERPRINT', '$STRUCT_FINGERPRINT', '$APP_FINGERPRINT', '$verified');"
-          "delete from xxci_deployed_code;")
+          "   values ('$APP_CODE', '$FINGERPRINT', '$DB_FINGERPRINT', '$STRUCT_FINGERPRINT', '$APP_FINGERPRINT', '$verified');"
+          "delete from ${XT}_deployed_code;")
   while read -r k h f; do
     [ -n "$k" ] || continue; safe "$k" "$h" || return 1
-    lines+=("insert into xxci_deployed_code (code_key, code_hash) values ('$k', '$h');")
+    lines+=("insert into ${XT}_deployed_code (code_key, code_hash) values ('$k', '$h');")
   done < "$THIS/db/deploy/code-manifest.txt"
   lines+=("commit;" "prompt DEPLOYED $FINGERPRINT $verified")
   ci_exec CI "${lines[@]}"
@@ -121,11 +127,11 @@ record_tests() {   # 7.2a: the head commit tested and the test files that failed
   # 4.Q8 (only=failed): the failed files only - the quick check runs a subset, so it never counts as this commit tested
   local f lines=()
   safe "${HEAD_SHA:-}" || return 1
-  [ "${1:-}" = failed ] || lines+=("update xxci_deployed set tested_head = '${HEAD_SHA:--}' where app_code = 'COMMON';")
-  lines+=("delete from xxci_failed_tests;")
+  [ "${1:-}" = failed ] || lines+=("update ${XT}_deployed set tested_head = '${HEAD_SHA:--}' where app_code = '$APP_CODE';")
+  lines+=("delete from ${XT}_failed_tests;")
   while read -r f; do
     [ -n "$f" ] || continue; safe "$f" || return 1
-    lines+=("insert into xxci_failed_tests (test_file) values ('$f');")
+    lines+=("insert into ${XT}_failed_tests (test_file) values ('$f');")
   done < <(cat "$LOG_DIR/failed-tests" 2>/dev/null)
   lines+=("commit;")
   ci_exec CI "${lines[@]}"
@@ -143,14 +149,14 @@ passed_before() {   # passed_before <check> <login>: the check passed for this v
   [ "$login" = ADMIN ] && owner="$CI_USER."
   k=$(passed_key "$check"); safe "$k" || return 1
   ci_exec "$login" "set heading off feedback off pagesize 0" \
-    "select 'PASSED-BEFORE' from ${owner}xxci_passed where check_name = '$check' and fingerprint = '$k';" 2>/dev/null \
+    "select 'PASSED-BEFORE' from ${owner}${XT}_passed where check_name = '$check' and fingerprint = '$k';" 2>/dev/null \
     | grep -q '^PASSED-BEFORE'
 }
 record_passed() {   # record_passed <check> <login>
   local check=$1 login=$2 owner="" k
   [ "$login" = ADMIN ] && owner="$CI_USER."
   k=$(passed_key "$check"); safe "$k" || return 1
-  ci_exec "$login" "merge into ${owner}xxci_passed t using (select '$check' check_name from dual) s on (t.check_name = s.check_name)" \
+  ci_exec "$login" "merge into ${owner}${XT}_passed t using (select '$check' check_name from dual) s on (t.check_name = s.check_name)" \
     " when matched then update set fingerprint = '$k', passed_on = systimestamp" \
     " when not matched then insert (check_name, fingerprint) values ('$check', '$k');" "commit;"
 }
@@ -245,9 +251,9 @@ snapshot() {   # 6.4 (before) / 6.6 (after): the application's tables, their row
 }
 snapshot_before() {   # 6.4: the snapshot before the upgrade, kept in the database too - a run that resumes after the
   # upgrade (deploy=upgraded, 6.0a) compares with it in 6.6 (I-076: no backup schema; I-078)
-  snapshot "$LOG_DIR/snapshot-before.txt" "$LAST/repos/common" "$THIS" || return 1
+  snapshot "$LOG_DIR/snapshot-before.txt" "$LAST/$APP_REL" "$THIS" || return 1
   LINES=("set define off")
-  lines_sql xxci_upgrade_snapshot "$LOG_DIR/snapshot-before.txt"
+  lines_sql "${XT}_upgrade_snapshot" "$LOG_DIR/snapshot-before.txt"
   LINES+=("commit;")
   run_lines
 }
@@ -255,7 +261,7 @@ snapshot_restore() {   # 6.6 in a resumed run: the snapshot before the upgrade, 
   local out
   [ -s "$LOG_DIR/snapshot-before.txt" ] && return 0
   out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 4000 trimspool on" \
-    "select 'SNAP ' || line from xxci_upgrade_snapshot order by line_no;") || { echo "$out"; return 1; }
+    "select 'SNAP ' || line from ${XT}_upgrade_snapshot order by line_no;") || { echo "$out"; return 1; }
   echo "$out" | sed -n 's/^SNAP //p' | sed 's/[[:space:]]*$//' > "$LOG_DIR/snapshot-before.txt"
   [ -s "$LOG_DIR/snapshot-before.txt" ] || { echo "FAIL no snapshot before the upgrade is kept (6.4) - the upgrade test runs in full next time"; return 1; }
   echo "the snapshot before the upgrade read from the database (6.4 of the earlier run)"
@@ -267,7 +273,7 @@ record_objects() {   # before a deploy (5.2 / 6.2a / 6.5): the objects its scrip
   local dir=$1 kind name lines=()
   while read -r kind name; do
     [[ $kind =~ ^[A-Z_]+$ && $name =~ ^[A-Z][A-Z0-9_\$#]*$ ]] || { echo "bad object line: $kind $name"; return 1; }
-    lines+=("merge into xxci_app_objects t using (select '$kind' obj_type, '$name' obj_name from dual) s"
+    lines+=("merge into ${XT}_app_objects t using (select '$kind' obj_type, '$name' obj_name from dual) s"
             " on (t.obj_type = s.obj_type and t.obj_name = s.obj_name) when not matched then insert (obj_type, obj_name) values (s.obj_type, s.obj_name);")
   done < <(python3 "$HERE/app_objects.py" "$dir/db/deploy")
   [ ${#lines[@]} -gt 0 ] || { echo "no objects found in $dir/db/deploy"; return 1; }
@@ -279,7 +285,7 @@ remove_objects() {   # 5.1 / 6.1 (part 2), as the application schema: this versi
   f=$LOG_DIR/app-objects.txt
   python3 "$HERE/app_objects.py" "$THIS/db/deploy" > "$f" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 400" \
-    "select 'APPOBJ ' || obj_type || ' ' || obj_name from xxci_app_objects;") || { echo "$out"; return 1; }
+    "select 'APPOBJ ' || obj_type || ' ' || obj_name from ${XT}_app_objects;") || { echo "$out"; return 1; }
   echo "$out" | sed -n 's/^APPOBJ //p' | awk 'NF == 2 {print $1, $2}' >> "$f"
   sort -u -o "$f" "$f"
   while read -r kind name; do
@@ -295,7 +301,7 @@ remove_objects() {   # 5.1 / 6.1 (part 2), as the application schema: this versi
     echo "  l_list t_list := t_list("; printf '%s\n' "${items[@]}"; echo "  );"
     cat "$HERE/remove-objects.sql"; } > "$sql"
   S "$APP_SCHEMA" "$sql" check || return 1
-  ci_exec CI "delete from xxci_app_objects;" "commit;" > /dev/null   # gone now: the next deploy records its own
+  ci_exec CI "delete from ${XT}_app_objects;" "commit;" > /dev/null   # gone now: the next deploy records its own
 }
 test_user_names() {  # every test user: db/admin/test-users.sql and the users the tests make
   cat "$THIS/db/admin/test-users.sql" "$THIS"/tests/*.sql "$THIS"/tests/setup/*.sql "$THIS"/features/*/tests/*.sql 2>/dev/null \
@@ -341,13 +347,51 @@ dependency_check() {  # 5.4 the deployed schema's dependencies vs the generated 
     "$REPORT_DIR/dependency-check.md"
 }
 
+# ---- 3 --------------------------------------------------------------------------------------------------------------
+prerequisites() {   # 3.5 (I-106): what the application stands on - REQUIRES in its app.env (KYC: COMMON)
+  local req=${REQUIRES:-} r lower f rc req_id req_schema
+  if [ -z "$req" ]; then echo "info: $APP_CODE has no prerequisites (REQUIRES is empty in its app.env)"; return 0; fi
+  for r in $req; do
+    lower=$(printf '%s' "$r" | tr '[:upper:]' '[:lower:]')
+    [ -f "$ROOT/repos/$lower/deployment/app.env" ] || { echo "FAIL prerequisite $r: repos/$lower/deployment/app.env not found"; return 1; }
+    # the required application's id and schema, read in a subshell so they do not replace this application's
+    # shellcheck disable=SC1090   # the required application's settings file
+    read -r req_id req_schema < <( . "$ROOT/repos/$lower/deployment/app.env"; echo "$APP_ID $APP_SCHEMA" )
+    safe "$req_id" "$req_schema" "$APP_CODE" "$r" || return 1
+    f=$(mktemp --suffix .sql)
+    cat > "$f" <<SQL
+declare
+    l_n pls_integer;
+begin
+    select count(*) into l_n from apex_applications where application_id = $req_id;
+    if l_n = 0 then
+        raise_application_error(-20001, 'FAIL prerequisite: $r (application $req_id) is not installed - deploy $r first');
+    end if;
+    -- $APP_CODE must be registered in $r: its tables and packages need the grants on the $r objects
+    if $req_schema.xxfnd_onboard_pkg.is_onboarded('$APP_CODE') <> 'Y' then
+        $req_schema.xxfnd_onboard_pkg.onboard_self(p_schema => user, p_application_code => '$APP_CODE');
+        commit;
+        dbms_output.put_line('registered $APP_CODE in $r (XXFND_ONBOARD_PKG.ONBOARD_SELF)');
+    end if;
+    dbms_output.put_line('prerequisite ok: $r (application $req_id) is installed and $APP_CODE is registered in it');
+end;
+/
+SQL
+    S "$APP_SCHEMA" "$f" check; rc=$?; rm -f "$f"
+    [ "$rc" -eq 0 ] || return "$rc"
+  done
+}
+
 # ---- 5 only ----------------------------------------------------------------------------------------------------------
 build_last() {  # the last release = the pull request's base commit, built the same way
   rm -rf "$LAST"; git -C "$ROOT" worktree prune
-  git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null
+  git -C "$ROOT" worktree add -q "$LAST" "$1" && bash "$LAST/repos/common/build.sh" > /dev/null \
+    && { [ "$APP_REL" = repos/common ] || bash "$LAST/$APP_REL/build.sh" > /dev/null; }
 }
 load_data() {   # 5.2b / 6.7 (this version, strict), 6.3 (the last release's own file, strict): insert + update
   local dir=$1 mode=$2 f rc
+  # I-106 (app parameter): an application without a test data file has nothing to load
+  [ -f "$dir/db/admin/test-data.json" ] || { echo "info: $dir has no db/admin/test-data.json - no test data to load"; return 0; }
   # I-076: test data only in the dev database (the pipeline's validation DB) - never in test or a later environment
   [ "${DB_TARGET:-}" = dev ] || { echo "FAIL test data loads only into the dev database (DB_TARGET=dev), not '${DB_TARGET:-unset}'"; return 1; }
   f=$(mktemp --suffix .sql)
@@ -355,8 +399,8 @@ load_data() {   # 5.2b / 6.7 (this version, strict), 6.3 (the last release's own
   S "$APP_SCHEMA" "$f" check; rc=$?; rm -f "$f"; return "$rc"
 }
 load_last_data() {   # 6.3: the last release's test data, from git (the release installed in 6.2a)
-  if [ -f "$LAST/repos/common/db/admin/test-data.json" ]; then
-    load_data "$LAST/repos/common" strict
+  if [ -f "$LAST/$APP_REL/db/admin/test-data.json" ]; then
+    load_data "$LAST/$APP_REL" strict
   else   # the first upgrade after the data file came: this version's file on the old structure
     echo "info: the last release has no test data file yet - this version's file is loaded on the old structure (tables and columns the old release does not have are left out, INFO lines)"
     load_data "$THIS" tolerant
@@ -368,7 +412,7 @@ schema_summary() {   # the structure lines (schema-summary.sql) into <file>
 }
 record_install() {   # 5.2a: the install of this version (no data yet) - a data-only fix reloads the data on it (deploy=data)
   safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
-  ci_exec CI "merge into xxci_passed t using (select 'install' check_name from dual) s on (t.check_name = s.check_name)" \
+  ci_exec CI "merge into ${XT}_passed t using (select 'install' check_name from dual) s on (t.check_name = s.check_name)" \
     " when matched then update set fingerprint = '$INSTALL_FINGERPRINT', passed_on = systimestamp" \
     " when not matched then insert (check_name, fingerprint) values ('install', '$INSTALL_FINGERPRINT');" "commit;" > /dev/null || return 1
   echo "install recorded for $INSTALL_FINGERPRINT (test data not loaded yet)"
@@ -377,14 +421,14 @@ forget_install() {   # 5.2c: the test data is in - the install record no longer 
   # 'loaded' records this version installed with its data, so a later failure in job 5 resumes at 5.3 (deploy=loaded)
   # or at the step that failed (I-078: the steps kept by an earlier deploy no longer count)
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
-  ci_exec CI "delete from xxci_passed where check_name = 'install' or check_name like 'step:5.%';" \
-    "merge into xxci_passed t using (select 'loaded' check_name from dual) s on (t.check_name = s.check_name)" \
+  ci_exec CI "delete from ${XT}_passed where check_name = 'install' or check_name like 'step:5.%';" \
+    "merge into ${XT}_passed t using (select 'loaded' check_name from dual) s on (t.check_name = s.check_name)" \
     " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp" \
     " when not matched then insert (check_name, fingerprint) values ('loaded', '$FINGERPRINT');" "commit;" > /dev/null
 }
 record_upgraded() {   # 6.5a: 6.1-6.5 passed for this version - a later failure in job 6 resumes at 6.6 or the failed step
   record_passed upgraded CI &&
-  ci_exec CI "delete from xxci_passed where check_name like 'step:6.%';" "commit;" > /dev/null
+  ci_exec CI "delete from ${XT}_passed where check_name like 'step:6.%';" "commit;" > /dev/null
 }
 # ---- resume at the failed step (I-078) -------------------------------------------------------------------------------
 # The steps after a job's checkpoint (5.2c loaded, 6.5a upgraded) are resumable: when the job then fails, the ones that
@@ -408,7 +452,7 @@ keep_resume_steps() {   # EXIT trap of jobs 5 and 6: a failed job keeps its pass
   if [ "$rc" -ne 0 ] && [ -s "$LOG_DIR/resume-passed" ] && safe "${FINGERPRINT:-}"; then
     while read -r name; do
       [[ $name =~ ^[56]\.[0-9]+[a-z]?-[a-z-]+$ ]] || continue
-      lines+=("merge into xxci_passed t using (select 'step:$name' check_name from dual) s on (t.check_name = s.check_name)"
+      lines+=("merge into ${XT}_passed t using (select 'step:$name' check_name from dual) s on (t.check_name = s.check_name)"
               " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp"
               " when not matched then insert (check_name, fingerprint) values ('step:$name', '$FINGERPRINT');")
     done < "$LOG_DIR/resume-passed"
@@ -422,7 +466,7 @@ upgraded_guard() {   # 6.0a (deploy=upgraded): the database still holds this ver
   local out
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
-    "select 'UPGRADED-OF ' || fingerprint from xxci_passed where check_name = 'upgraded';") || { echo "$out"; return 1; }
+    "select 'UPGRADED-OF ' || fingerprint from ${XT}_passed where check_name = 'upgraded';") || { echo "$out"; return 1; }
   [ "$(echo "$out" | sed -n 's/^UPGRADED-OF *//p' | awk 'NR == 1 {print $1}')" = "$FINGERPRINT" ] \
     || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds this version upgraded ($FINGERPRINT) - start the run again (job 3 decides)"; return 1; }
   echo "the database holds this version upgraded from the last release ($FINGERPRINT) - job 6 resumes at 6.6"
@@ -431,7 +475,7 @@ loaded_guard() {   # 5.0a (deploy=loaded): the database still holds this version
   local out
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
-    "select 'LOADED-OF ' || fingerprint from xxci_passed where check_name = 'loaded';") || { echo "$out"; return 1; }
+    "select 'LOADED-OF ' || fingerprint from ${XT}_passed where check_name = 'loaded';") || { echo "$out"; return 1; }
   [ "$(echo "$out" | sed -n 's/^LOADED-OF *//p' | awk 'NR == 1 {print $1}')" = "$FINGERPRINT" ] \
     || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds this version with its test data ($FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
   echo "the database holds this version with its test data ($FINGERPRINT) - job 5 resumes at 5.3"
@@ -440,7 +484,7 @@ install_guard() {   # 5.0a (deploy=data): the database still holds the install j
   local out
   safe "${INSTALL_FINGERPRINT:?INSTALL_FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0" \
-    "select 'INSTALL-OF ' || fingerprint from xxci_passed where check_name = 'install';") || { echo "$out"; return 1; }
+    "select 'INSTALL-OF ' || fingerprint from ${XT}_passed where check_name = 'install';") || { echo "$out"; return 1; }
   # SQLcl pads a line with blanks: the value is read as a word (like guard), not as the whole line
   [ "$(echo "$out" | sed -n 's/^INSTALL-OF *//p' | awk 'NR == 1 {print $1}')" = "$INSTALL_FINGERPRINT" ] \
     || { echo "$out" | grep -v '^ *$' | head -5; echo "FAIL the database no longer holds the install of this version ($INSTALL_FINGERPRINT) - start the run again (job 3 decides a full deploy)"; return 1; }
@@ -478,8 +522,8 @@ record_fresh() {   # 5.5: the fresh install's structure (compared with the upgra
   f=$LOG_DIR/fresh-schema.txt
   schema_summary "$f" || return 1
   LINES=("set define off")
-  lines_sql xxci_fresh_schema "$f"
-  LINES+=("merge into xxci_passed t using (select 'fresh' check_name from dual) s on (t.check_name = s.check_name)"
+  lines_sql "${XT}_fresh_schema" "$f"
+  LINES+=("merge into ${XT}_passed t using (select 'fresh' check_name from dual) s on (t.check_name = s.check_name)"
           " when matched then update set fingerprint = '$FINGERPRINT', passed_on = systimestamp"
           " when not matched then insert (check_name, fingerprint) values ('fresh', '$FINGERPRINT');" "commit;")
   run_lines || return 1
@@ -489,8 +533,8 @@ same_as_fresh() {   # 6.8: the upgraded database has the structure of the fresh 
   local up=$LOG_DIR/upgraded-schema.txt fresh=$LOG_DIR/fresh-schema.txt out only_up only_fresh
   safe "${FINGERPRINT:?FINGERPRINT is not set}" || return 1
   out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 4000 trimspool on" \
-    "select 'FRESH-OF ' || fingerprint from xxci_passed where check_name = 'fresh';" \
-    "select 'FRESH ' || line from xxci_fresh_schema order by line_no;") || { echo "$out"; return 1; }
+    "select 'FRESH-OF ' || fingerprint from ${XT}_passed where check_name = 'fresh';" \
+    "select 'FRESH ' || line from ${XT}_fresh_schema order by line_no;") || { echo "$out"; return 1; }
   if [ "$(echo "$out" | sed -n 's/^FRESH-OF *//p' | awk 'NR == 1 {print $1}')" != "$FINGERPRINT" ]; then
     echo "FAIL no fresh install of this version ($FINGERPRINT) is recorded - job 5 must pass first"; return 1
   fi
@@ -513,8 +557,8 @@ guard() {   # guard version|app|patch|upgrade <login>: the database still holds 
   local what=$1 login=$2 owner="" out dep fp db struct verified fresh ok=1
   [ "$login" = ADMIN ] && owner="$CI_USER."
   out=$(ci_exec "$login" "set heading off feedback off pagesize 0" \
-    "select 'GUARD ' || fingerprint || ' ' || nvl(db_fingerprint, '-') || ' ' || nvl(struct_fingerprint, '-') || ' ' || nvl(verified, 'FULL') from ${owner}xxci_deployed where app_code = 'COMMON';" \
-    "select 'GUARD-FRESH ' || fingerprint from ${owner}xxci_passed where check_name = 'fresh';") || { echo "$out"; return 1; }
+    "select 'GUARD ' || fingerprint || ' ' || nvl(db_fingerprint, '-') || ' ' || nvl(struct_fingerprint, '-') || ' ' || nvl(verified, 'FULL') from ${owner}${XT}_deployed where app_code = '$APP_CODE';" \
+    "select 'GUARD-FRESH ' || fingerprint from ${owner}${XT}_passed where check_name = 'fresh';") || { echo "$out"; return 1; }
   dep=$(echo "$out" | grep -m1 '^GUARD ' || true)
   read -r _ fp db struct verified <<< "${dep:-GUARD - - - DIRTY}"
   fresh=$(echo "$out" | sed -n 's/^GUARD-FRESH *//p' | awk 'NR == 1 {print $1}')   # SQLcl pads lines: read a word
@@ -541,7 +585,7 @@ compare() {     # 6.6: nothing lost (the snapshots before and after the upgrade 
   # script says "enable novalidate"): INFO, not FAIL - 6.8 still checks the upgrade leaves them in the same state
   local out ok
   out=$(ci_exec CI "set heading off feedback off pagesize 0 linesize 4000 trimspool on" \
-    "select 'NV ' || line from xxci_fresh_schema where line like 'K % ENABLED NOT VALIDATED';") || { echo "$out"; return 1; }
+    "select 'NV ' || line from ${XT}_fresh_schema where line like 'K % ENABLED NOT VALIDATED';") || { echo "$out"; return 1; }
   ok=$(echo "$out" | awk '$1 == "NV" && $2 == "K" {printf "%s%s.%s", (n++ ? "," : ""), $3, $4}')
   safe "${ok//,/}" || return 1
   snapshot_restore || return 1
@@ -571,7 +615,7 @@ db_tests() {    # the DB tests; a FAIL line or an ORA- / PLS- error fails the st
     [ -f "$t" ] || continue
     rel=${t#"$ROOT"/}
     case $rel in
-      repos/common/tests/setup/*) ;;
+      "$APP_REL"/tests/setup/*) ;;
       *) if [ "${DB_TESTS:-ALL}" != ALL ] && ! printf ' %s ' "$DB_TESTS" | grep -qF " $rel "; then continue; fi ;;
     esac
     n=$((n + 1)); echo "$rel" >> "$LOG_DIR/tests-expected"
@@ -797,7 +841,9 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     step 3.3-drop-old-backups drop_old_backups
     # I-075: APEX-SERT only in the full validation (Ready for review / full run); installed once, never removed
     if [ "${FULL_VALIDATION:-}" = true ]; then step 3.4-apex-sert sert_install
-    else step 3.4-apex-sert echo "info: APEX-SERT runs in the full validation only (mark the PR Ready for review) - skipped"; fi ;;
+    else step 3.4-apex-sert echo "info: APEX-SERT runs in the full validation only (mark the PR Ready for review) - skipped"; fi
+    # I-106: what this application stands on (REQUIRES in its app.env: KYC needs COMMON installed and itself registered in it)
+    step 3.5-prerequisites prerequisites ;;
   quick)   # job 4 quick check (deploy=patch): the changed code alone, then its tests; the full deploy follows
     tr ' ' '\n' <<< "${PATCH_FILES:-}" | grep . > "$LOG_DIR/patch-files"
     tr ' ' '\n' <<< "${CHANGED_OBJECTS:-}" | grep . > "$LOG_DIR/changed-objects"
@@ -859,7 +905,7 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
       step 6.0b-mark-record mark_dirty keep-fresh
       step 6.1-remove-app remove_app
       step 6.2-build-last build_last "${2:?base ref}"
-      step 6.2a-deploy-last deploy "$LAST/repos/common" install
+      step 6.2a-deploy-last deploy "$LAST/$APP_REL" install
       step 6.3-load-last-test-data load_last_data
       step 6.4-snapshot snapshot_before
       step 6.5-upgrade-this deploy "$THIS" upgrade

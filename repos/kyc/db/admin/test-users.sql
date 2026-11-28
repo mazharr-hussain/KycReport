@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- KYC test users for live validation (I-097, #274 - moved here from COMMON's test-users.sql). Run as ADMIN after
--- COMMON and KYC are installed (pipeline job K, step K.3a; or SQL Developer Web). Local users through COMMON's user
+-- COMMON and KYC are installed (pipeline job 7 / 8, steps 7.0 and 8.1; or SQL Developer Web). Local users through COMMON's user
 -- routines (XXFND_USER_PKG), default password Welcome#2026, NOT changed at first sign-in. A user whose role does not
 -- exist in this database is skipped with a message. A re-run keeps existing users, adds only missing roles and a
 -- missing APEX account, and sets the password again. The helper procedures are those of COMMON's test-users.sql

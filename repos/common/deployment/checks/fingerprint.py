@@ -8,7 +8,7 @@ fingerprint.py <repo root>   (after the build) - prints lines for $GITHUB_OUTPUT
   app_fingerprint=<the application without its supporting objects (pages, shared components ...)>
   install_fingerprint=<the application + database scripts without the test data: what step 5.2 deploys - a change of
                       the test data alone keeps it, so a run whose data load failed reloads the data only (deploy=data)>
-and repos/common/db/deploy/code-manifest.txt: one line per code object - "<key> <hash> install/<file>".
+and <APP_DIR, default repos/common>/db/deploy/code-manifest.txt: one line per code object - "<key> <hash> install/<file>".
 
 Code objects are the files the build names package-spec-*, package-body-*, view-* and trigger-*: each holds one
 CREATE OR REPLACE statement, the same in install and upgrade, so a changed one can be run again on its own (quick
@@ -42,7 +42,7 @@ def key(name):
 
 
 def main(root):
-    common = os.path.join(root, 'repos', 'common')
+    common = os.path.join(root, os.environ.get('APP_DIR') or 'repos/common')   # the application (app parameter, I-106)
     deploy = os.path.join(common, 'db', 'deploy')
     app = os.path.join(common, 'dist', 'app')
     if not os.path.isfile(os.path.join(app, 'application.apx')):

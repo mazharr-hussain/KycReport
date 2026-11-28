@@ -52,28 +52,34 @@ static() {
   [ -n "${BODY:-}" ] && args+=(--body-file "$BODY")
   python3 "$HERE/pr_checks.py" "${args[@]}"
 }
-docs() {   # warning only: a COMMON feature changed without its requirements.md ("no-req-change" in the PR body skips)
+docs() {   # warning only: a feature of the application changed without its requirements.md ("no-req-change" in the PR body skips)
   [ -n "${BASE:-}" ] || return 0
   [ -n "${BODY:-}" ] && grep -qi 'no-req-change' "$BODY" && return 0
   local changed f
   changed=$(git -C "$ROOT" diff --name-only "$BASE" HEAD)
-  for f in $(printf '%s\n' "$changed" | sed -n 's#^repos/common/features/\([^/]*\)/.*#\1#p' | sort -u); do
-    printf '%s\n' "$changed" | grep -q "^repos/common/docs/components/$f/requirements.md$" \
-      || echo "::warning::common/$f changed but repos/common/docs/components/$f/requirements.md did not"
+  for f in $(printf '%s\n' "$changed" | sed -n "s#^$APP_REL/features/\([^/]*\)/.*#\1#p" | sort -u); do
+    printf '%s\n' "$changed" | grep -q "^$APP_REL/docs/components/$f/requirements.md$" \
+      || echo "::warning::${APP_REL#repos/}/$f changed but $APP_REL/docs/components/$f/requirements.md did not"
   done
 }
 source_map() { python3 "$HERE/source_map.py"; }   # new / removed application files registered for the build
 # the release number (from the PR title) is stamped into the application ("Release N"); the generated files (db/deploy,
 # dependency map, technical docs) of this build are what jobs 5-6 deploy, and are committed to main after the merge
-build() { bash "$ROOT/repos/common/build.sh" ${RELEASE:+--release "$RELEASE"}; }
+# I-106 (app parameter): APP_DIR = repos/<app> (default repos/common). Another application is built after COMMON: its
+# dependency map and technical docs list COMMON's pages too.
+APP_REL=${APP_DIR:-repos/common}
+build() {
+  bash "$ROOT/repos/common/build.sh" ${RELEASE:+--release "$RELEASE"} || return 1
+  [ "$APP_REL" = repos/common ] || bash "$ROOT/$APP_REL/build.sh" > /dev/null
+}
 apexlang() {
   local crlf out
   # APEXlang runtime gate: every .apx file must use LF line endings before validate / import
-  crlf=$(grep -rlI $'\r' --include='*.apx' "$ROOT/repos/common/dist/app" || true)
+  crlf=$(grep -rlI $'\r' --include='*.apx' "$ROOT/$APP_REL/dist/app" || true)
   if [ -n "$crlf" ]; then
     echo "APEXLANG_LF_LINE_ENDINGS_REQUIRED_001 - CR line endings in:"; echo "$crlf"; return 1
   fi
-  out=$(printf 'apex validate -input %s\nexit\n' "$ROOT/repos/common/dist/app" | "$SQL" -S /nolog 2>&1); echo "$out"
+  out=$(printf 'apex validate -input %s\nexit\n' "$ROOT/$APP_REL/dist/app" | "$SQL" -S /nolog 2>&1); echo "$out"
   echo "$out" | grep -q "Validation successful"
 }
 pmd() { bash "$HERE/pmd.sh"; }
