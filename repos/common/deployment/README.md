@@ -204,7 +204,7 @@ a one-line change per workflow, made on purpose and tested by a run.
 | `lib/fetch.sh`, `lib/app-url.sh` | checksum-verified download; the APEX URL read from the wallet (or `VAL_APP_URL`) |
 | `ui/smoke_ui.py` | browser smoke test (8.3) |
 | `db/dependencies.sql`, `db/compare_dependencies.py` | dependency check (5.4) |
-| `db/sert-eval.sql` | APEX-SERT evaluation (7.4) |
+| `db/sert-eval.sql` | APEX-SERT evaluation (7.4). APEX-SERT ships rule sets for 24.1, 24.2 and 25.1; for a newer APEX (26.1) it carries the newest rule set forward with SERT's own `RULES_PKG.UPGRADE_RULES` (a notice says so; when that is not possible the step is a notice, not a failure) |
 | `lib/sql.sh` | SQLcl login to the validation ADB: wallet; connect line on stdin (never on the command line or in a file) |
 | `release/carry.sh`, `checks/source_map.py` | 9.2a: the PR carries its generated files; SOURCE-MAP in step |
 | `release/merge.sh`, `release/publish.sh` | 9.2 merge of the green PR (auto-merge); `publish.sh` is not called since I-091 (the release stays a draft) |

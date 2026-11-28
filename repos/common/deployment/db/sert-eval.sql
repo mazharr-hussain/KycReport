@@ -6,14 +6,39 @@
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
 variable eval_id number
--- SERT's security rules (rule set SERT-SECURITY) exist per APEX version; an APEX version SERT has no rules for yet is
--- reported (SERT-SKIP) and nothing is evaluated - a tool limit, not a finding (db/run.sh turns it into a notice)
+-- SERT's security rules (rule set SERT-SECURITY) exist per APEX version (the evaluation picks the rule set of the
+-- database's own APEX version). APEX-SERT's latest release has them for 24.1, 24.2 and 25.1. For an APEX version it
+-- has none for (26.1 today) SERT's own upgrade path is used (SERT_CORE.RULES_PKG.UPGRADE_RULES, the one its installer
+-- runs when a release ships rules for the new version): the newest older rule set and its rules are copied to this
+-- version, exceptions kept, the older set deactivated; a SERT-NOTE says so. When that is not possible, the evaluation is
+-- reported (SERT-SKIP) and nothing is evaluated - a tool limit, not a finding (db/run.sh turns it into a notice).
 declare
-    l_n pls_integer;
-    l_v number;
+    l_n   pls_integer;
+    l_v   number;
+    l_src number;
 begin
     select max(apex_version) into l_v from sert_core.apex_version_v;
     select count(*) into l_n from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY' and apex_version = l_v;
+    if l_n = 0 then
+        select max(apex_version) into l_src from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY' and apex_version < l_v;
+        if l_src is not null then
+            begin
+                -- UPGRADE_RULES reads the previous version from this preference and sets it to the new one
+                update sert_core.prefs set pref_value = trim(to_char(l_src, '99.9')) where pref_key = 'SERT_APEX_VERSION';
+                sert_core.rules_pkg.upgrade_rules;
+                commit;
+                dbms_output.put_line('SERT-NOTE APEX-SERT has no SERT-SECURITY rules for APEX ' || to_char(l_v, 'fm99.9')
+                    || ': its rules for APEX ' || to_char(l_src, 'fm99.9') || ' (the newest it has) were carried forward');
+            exception
+                when others then
+                    rollback;
+                    dbms_output.put_line('SERT-SKIP APEX-SERT has no SERT-SECURITY rules for APEX ' || to_char(l_v, 'fm99.9')
+                        || ' and its rules for APEX ' || to_char(l_src, 'fm99.9') || ' could not be carried forward: '
+                        || substr(sqlerrm, 1, 300));
+            end;
+        end if;
+        select count(*) into l_n from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY' and apex_version = l_v;
+    end if;
     if l_n = 0 then
         select count(*) into l_n from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY';
         dbms_output.put_line('SERT-SKIP APEX-SERT has no SERT-SECURITY rules for APEX ' || to_char(l_v, 'fm99.9')
