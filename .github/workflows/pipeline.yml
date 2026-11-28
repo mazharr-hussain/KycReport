@@ -1137,12 +1137,25 @@ jobs:
             const temporary = /ORA-12170|ORA-12541|ORA-12514|ORA-12537|ORA-03113|ORA-03114|ORA-29273|ORA-01013|TNS-|timed? ?out|Connection reset|ECONNRESET|503 Service|502 Bad Gateway|rate limit|Could not resolve host/i;
             const hit = (errors + '\n' + tail).match(temporary);
             const restart = { quick: 5, fresh: 5, upgrade: 6, test: 7, ui: 7 }[job];
+            // I-105: job 10 sets the start point itself - the next push resumes at the failed job (job 3 follows the
+            // label only when its records allow; job 9 clears it after one run). A temporary failure is re-run as it is.
+            let autoStart = false;
+            if (pr && restart && !hit) {
+              const had = (await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number: pr.number })).data;
+              for (const l of had.filter(l => /^start-from-/.test(l.name))) {
+                await github.rest.issues.removeLabel({ ...context.repo, issue_number: pr.number, name: l.name });
+              }
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: pr.number, labels: [`start-from-${restart}`] });
+              autoStart = true;
+            }
             const next = hit
               ? `**Next:** this looks temporary (\`${hit[0]}\`) - re-run the failed jobs as they are: [run](${runUrl}) > Re-run failed jobs.`
               : restart && pr
-                ? `**Next:** push a fix. A fix to the pipeline's own files resumes at the failed step by itself (I-078); ` +
-                  `to skip the jobs before job ${restart}, add the line \`Pipeline-Start-From: ${restart}\` to the commit message ` +
-                  `(or comment \`/pipeline start-from ${restart}\`, or a step such as 5.5) - job 3 follows it only when its records allow.`
+                ? `**Next:** push a fix. ` + (autoStart
+                    ? `The next run starts at job ${restart} by itself (label \`start-from-${restart}\`, set here); job 3 follows it only when its records allow. ` +
+                      `To start from job 1 instead, comment \`/pipeline start-from auto\`.`
+                    : `A fix to the pipeline's own files resumes at the failed step by itself (I-078); ` +
+                      `to skip the jobs before job ${restart}, comment \`/pipeline start-from ${restart}\`.`)
                 : restart
                   ? `**Next:** fix it on main, then run the full run again with Start from ${restart} (followed only when the records allow).`
                   : '**Next:** push a fix - the pipeline runs again from job 1.';
