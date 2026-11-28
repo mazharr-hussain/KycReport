@@ -848,15 +848,20 @@ case ${1:?usage: run.sh setup|quick|fresh|upgrade <base-ref>|test|ui|finalize <d
     tr ' ' '\n' <<< "${PATCH_FILES:-}" | grep . > "$LOG_DIR/patch-files"
     tr ' ' '\n' <<< "${CHANGED_OBJECTS:-}" | grep . > "$LOG_DIR/changed-objects"
     step 4.Q0-version-guard guard patch CI
-    step 4.Q1-mark-record mark_dirty code
-    step 4.Q2-apply-code apply_code
-    if [ "${APP_CHANGED:-true}" = true ]; then
-      step 4.Q3-import-app deploy "$THIS" app
+    if [ ! -s "$LOG_DIR/patch-files" ] && [ "${APP_CHANGED:-true}" != true ]; then
+      # a failed run (4.Q7) already applied, validated and recorded this code: resume at the tests (4.Q6), no re-apply
+      echo "info: the database already holds this code (applied and validated by an earlier run) - 4.Q1-4.Q5 skipped, the tests run (4.Q6-4.Q8)"
     else
-      step 4.Q3-import-app echo "info: the application (without its supporting objects) is the deployed one - not imported for the quick check"
+      step 4.Q1-mark-record mark_dirty code
+      step 4.Q2-apply-code apply_code
+      if [ "${APP_CHANGED:-true}" = true ]; then
+        step 4.Q3-import-app deploy "$THIS" app
+      else
+        step 4.Q3-import-app echo "info: the application (without its supporting objects) is the deployed one - not imported for the quick check"
+      fi
+      step 4.Q4-online-validation validate_online
+      step 4.Q5-record-version record_deployed PATCH
     fi
-    step 4.Q4-online-validation validate_online
-    step 4.Q5-record-version record_deployed PATCH
     step 4.Q6-select-tests select_tests quick
     DB_TESTS=$(cat "$LOG_DIR/db-tests"); export DB_TESTS
     export KEEP_GOING=1
