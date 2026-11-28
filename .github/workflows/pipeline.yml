@@ -1,7 +1,7 @@
 # The pipeline of every application (I-084) - one record per pull request run, named after the PR title.
 # The application is a parameter: the PR title ("<APP> Release <N>: ...") or the full run's input "app". An application
 # with a settings file repos/<app>/deployment/app.env (COMMON, app 135, schema XXFUSION) gets every job; one without it
-# (KYC today - COMMON is finished first) gets the offline checks of job 1 only (1.7-1.10).
+# (KYC today - COMMON is finished first) gets the offline checks of job 1 only.
 # A newer push replacing an older run and the "/pipeline start-from N" comment are in control.yml: they must run
 # outside this workflow's one-run-at-a-time group (validation-db), which would make them wait behind the run they stop.
 # Agreed flow (Claude changes the code, reviews it, opens the PR and pushes; the jobs are numbered 1-10):
@@ -73,7 +73,7 @@ jobs:
       app_dir: ${{ steps.scope.outputs.app_dir }} # repos/<app>: the application the database jobs 3-8 deploy (app parameter, I-106)
       common: ${{ steps.scope.outputs.common }}   # COMMON's offline checks (job 1) run: the PR touches COMMON or the pipeline
       db: ${{ steps.scope.outputs.db }}           # the database jobs (2-8) run: the PR changes the COMMON application
-      kyc: ${{ steps.scope.outputs.kyc }}         # the KYC offline checks (1.7-1.10) run: the PR touches KYC
+      kyc: ${{ steps.scope.outputs.kyc }}         # the KYC PR checks of job 1 run: the PR touches KYC
       tag_prefix: ${{ steps.scope.outputs.tag_prefix }}   # COMMON app.env APP_CODE, lower case (release tag <prefix>-<N>)
       zip_prefix: ${{ steps.scope.outputs.zip_prefix }}   # COMMON app.env ZIP_NAME (release zip <prefix>_<N>.zip)
       dependabot: ${{ steps.scope.outputs.dependabot }}   # a Dependabot PR: action bumps only (issue #238)
@@ -284,16 +284,6 @@ jobs:
           path: ${{ steps.scope.outputs.app_dir }}/db/deploy
           retention-days: 3
           if-no-files-found: error
-      # 1.7-1.10 KYC (no app.env yet): the offline checks only - before I-084 checks.yml and docs-check.yml
-      - name: 1.7 KYC install safety and golden rules (repos/tools/pr_checks.py)
-        if: steps.scope.outputs.kyc == 'true'
-        env:
-          BODY: ${{ github.event.pull_request.body }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          printf '%s' "$BODY" > "$RUNNER_TEMP/kyc-body.txt"
-          if [ -n "$BASE" ]; then python3 repos/tools/pr_checks.py --base "$BASE" --body-file "$RUNNER_TEMP/kyc-body.txt"
-          else python3 repos/tools/pr_checks.py; fi
       - name: 1.9 Generated technical docs up to date (the build is 1.4; both applications - step 9.2a adds the differences to the PR)
         if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
         env:
