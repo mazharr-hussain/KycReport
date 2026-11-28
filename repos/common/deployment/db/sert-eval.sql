@@ -50,20 +50,35 @@ begin
     end if;
 end;
 /
-set heading off pagesize 0 sqlformat default
+set heading off
+set pagesize 0
+set sqlformat default
 -- the counts and diagnostics first, with the terminal output on (the CSV below needs it off)
 select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the results view: '
        || (select count(*) from sert_core.eval_results_pub_v where eval_id = :eval_id)
        || ', all evaluations: ' || (select count(*) from sert_core.eval_results_pub_v)
        || ', rule sets: ' || (select count(*) from sert_core.rule_sets where rule_set_key = 'SERT-SECURITY')
   from dual;
+-- where did the evaluation's data go: the rows per SERT_CORE table that has an EVAL_ID
+declare
+    l_n pls_integer;
+begin
+    for t in (select table_name from all_tab_columns where owner = 'SERT_CORE' and column_name = 'EVAL_ID'
+                 and table_name in (select table_name from all_tables where owner = 'SERT_CORE') order by table_name) loop
+        execute immediate 'select count(*) from sert_core.' || t.table_name || ' where eval_id = :1' into l_n using :eval_id;
+        dbms_output.put_line('SERT-DEBUG ' || t.table_name || ' rows for this evaluation: ' || l_n);
+    end loop;
+end;
+/
 select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count(*)
   from sert_core.eval_results_pub_v
  where eval_id = :eval_id
  group by rule_severity_name, result
  order by 1;
 -- every rule that did not pass, as CSV (the report artifact)
-set heading on termout off sqlformat csv
+set heading on
+set sqlformat csv
+set termout off
 spool &out
 select rule_severity_name as severity, rule_name as rule, result, full_page_name as page, component_name, item_name,
        current_value, valid_values, reason
@@ -71,4 +86,6 @@ select rule_severity_name as severity, rule_name as rule, result, full_page_name
  where eval_id = :eval_id and result not in ('PASS', 'APPROVED')
  order by rule_severity_id, rule_name, page_id;
 spool off
-set termout on sqlformat default heading off
+set termout on
+set sqlformat default
+set heading off
