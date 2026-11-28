@@ -5,6 +5,7 @@
 -- Substitution variables: app_id, out (CSV file).
 --------------------------------------------------------------------------------
 set define on verify off feedback off serveroutput on
+prompt SERT-START evaluation of application &app_id
 variable eval_id number
 -- SERT's security rules (rule set SERT-SECURITY) exist per APEX version (the evaluation picks the rule set of the
 -- database's own APEX version). APEX-SERT's latest release has them for 24.1, 24.2 and 25.1. For an APEX version it
@@ -49,17 +50,8 @@ begin
     end if;
 end;
 /
-set heading on pagesize 0 termout off
-set sqlformat csv
-spool &out
-select rule_severity_name as severity, rule_name as rule, result, full_page_name as page, component_name, item_name,
-       current_value, valid_values, reason
-  from sert_core.eval_results_pub_v
- where eval_id = :eval_id and result not in ('PASS', 'APPROVED')
- order by rule_severity_id, rule_name, page_id;
-spool off
-set termout on sqlformat default heading off
--- diagnostics: which evaluation ran and how many rows it holds (printed when no SERT count line follows)
+set heading off pagesize 0 sqlformat default
+-- the counts and diagnostics first, with the terminal output on (the CSV below needs it off)
 select 'SERT-DEBUG eval_id=' || nvl(to_char(:eval_id), 'none') || ' rows in the results view: '
        || (select count(*) from sert_core.eval_results_pub_v where eval_id = :eval_id)
        || ', all evaluations: ' || (select count(*) from sert_core.eval_results_pub_v)
@@ -70,3 +62,13 @@ select 'SERT ' || nvl(rule_severity_name, '-') || ' ' || result || ': ' || count
  where eval_id = :eval_id
  group by rule_severity_name, result
  order by 1;
+-- every rule that did not pass, as CSV (the report artifact)
+set heading on termout off sqlformat csv
+spool &out
+select rule_severity_name as severity, rule_name as rule, result, full_page_name as page, component_name, item_name,
+       current_value, valid_values, reason
+  from sert_core.eval_results_pub_v
+ where eval_id = :eval_id and result not in ('PASS', 'APPROVED')
+ order by rule_severity_id, rule_name, page_id;
+spool off
+set termout on sqlformat default heading off
