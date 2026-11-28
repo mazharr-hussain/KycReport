@@ -18,3 +18,4 @@ Checked offline: actionlint, the job 10 script parses, shellcheck, the pipeline 
 ## Fix
 A failure in job 4 (Quick check) sets no start-from label: the next push runs job 4 again (it was wrongly set to start at job 5, which skipped the failed job).
 Job 4 resumes at the tests: when a run failed at 4.Q7 and the code is unchanged since (nothing to apply, application unchanged), the next run skips 4.Q1-4.Q5 and starts at 4.Q6.
+Supersede (control.yml): a run that finished between the list and the cancel (HTTP 409) is no longer an error.
