@@ -3,7 +3,7 @@
 KYC (schema XXCUS, APEX app 134) runs counterparty KYC: requests from departments, the KYC case, parties, monitoring
 and rules. It uses COMMON (app 135) as it is for security, setup, workflow, documents and notifications. Each
 component's detail is in `components/<component>/requirements.md`, next to its technical document and (to be written)
-its training material. State: KYC 105.
+its training material. State: KYC 107.
 
 This file is synced to the README of the GitHub Project "KYC Application" on every merge to main.
 
@@ -20,6 +20,11 @@ This file is synced to the README of the GitHub Project "KYC Application" on eve
 | Kyc Rules | The rules behind KYC decisions. | [requirements](components/kyc-rules/requirements.md) · [technical](components/kyc-rules/technical.md) |
 | Monitoring | Ongoing monitoring of approved counterparties. | [requirements](components/monitoring/requirements.md) · [technical](components/monitoring/technical.md) |
 | Parties | The counterparty master (organisations and individuals). | [requirements](components/parties/requirements.md) · [technical](components/parties/technical.md) |
+
+## Access
+Every KYC page needs a signed-in user with a role of KYC (COMMON scheme `APP_USER`, KYC 107; the retired `KYC_USER`
+scheme refused every user). What each page shows and allows comes from the user's privileges (View / Create / Manage)
+and from data security.
 
 ## Agreed changes (backlog)
 

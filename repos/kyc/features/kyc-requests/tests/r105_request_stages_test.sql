@@ -1,6 +1,6 @@
 -- KYC 105 (request stages, stage 1 Assign): the requesting country is required; no duplicate check on the request form;
 -- the request follows its case (Under Review, In Approval, Information Needed, Approved / Rejected); the submit message;
--- Assign is refused for a task that is not the request's. Everything is rolled back.
+-- Assign is refused for a task that is not the request's; KYC 107: cancel after submit. Everything is rolled back.
 -- Needs security_test.sql (REQ1).
 set serveroutput on size unlimited feedback off
 declare
@@ -8,6 +8,7 @@ declare
     l_tag varchar2(20) := dbms_random.string('U', 10);
     l_a   number;
     l_b   number;
+    l_c   number;
     l_txt varchar2(4000);
     l_st  varchar2(30);
 
@@ -66,6 +67,19 @@ begin
     ok('the not-required message', xxcmp_request_pkg.submit_message(l_b) = 'KYC is not needed. Kindly proceed.');
     ok('the required message', xxcmp_request_pkg.submit_message(l_a) = 'The request is submitted for KYC report.');
     ok('status tones', xxcmp_request_pkg.status_tone('UNDER_REVIEW') = 'info' and xxcmp_request_pkg.status_tone('NOT_REQUIRED') = 'success');
+
+    -- KYC 107 (I-004, G2): the requester can cancel a request after it is submitted, until it is decided
+    ok('an approved request cannot be cancelled', xxcmp_request_pkg.cancel_error(l_a) like '%is closed%');
+    xxcmp_request_pkg.save_request(l_c, 'NEW', null, 'ORGANIZATION', 'R107 ' || l_tag, 'AE', 'CR7-' || l_tag,
+                                   'PRIVATE_COMPANY', null, null, null, null, null, null, null, p_draft => 'Y',
+                                   p_registration_type => 'COMMERCIAL_REGISTRATION', p_requesting_country => 'QA');
+    xxcmp_request_pkg.case_changed(l_c, 'INVESTIGATION');
+    ok('under review: the requester can cancel', xxcmp_request_pkg.cancel_error(l_c) is null);
+    xxcmp_request_pkg.case_changed(l_c, 'PENDING_APPROVAL');
+    ok('in approval: the requester can cancel', xxcmp_request_pkg.cancel_error(l_c) is null);
+    xxcmp_request_pkg.cancel(l_c, 'Not needed any more');
+    ok('cancelled after submit: status Cancelled', status(l_c) = 'CANCELLED');
+    ok('a cancelled request cannot be cancelled again', xxcmp_request_pkg.cancel_error(l_c) like '%is closed%');
 
     -- Assign is refused for a task that is not the request's checklist task
     begin

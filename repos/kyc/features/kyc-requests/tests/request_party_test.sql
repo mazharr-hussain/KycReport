@@ -180,7 +180,8 @@ begin
     ok('answered: In Progress again', xxcmp_request_pkg.stage(l_req) = 'In Progress');
 
     ---------------------------------------------------------------- withdraw, then cancel (release 25)
-    ok('waiting for approval: cancel needs a withdraw first', xxcmp_request_pkg.cancel_error(l_req) like '%withdraw it first%');
+    -- release 107 (I-004): a submitted request can be cancelled without withdrawing it first
+    ok('waiting for approval: the requester can cancel it (KYC 107)', xxcmp_request_pkg.cancel_error(l_req) is null);
     xxcmp_request_pkg.withdraw(l_req);
     commit;
     select * into l_r from xxcmp_requests where request_id = l_req;

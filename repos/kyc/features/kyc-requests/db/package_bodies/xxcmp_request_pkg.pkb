@@ -745,14 +745,14 @@ create or replace package body xxcmp_request_pkg as
     begin
         if upper(l_req.requester_user_name) <> upper(xxfnd_util_pkg.current_user) then
             return 'Only the requester can cancel request ' || l_req.request_number || '.';
-        elsif l_req.request_status = 'SUBMITTED' then
-            return 'Request ' || l_req.request_number || ' is waiting for approval: withdraw it first.';
-        elsif l_req.request_status not in ('DRAFT', 'INFO_NEEDED', 'REJECTED') then
+        elsif l_req.request_status not in ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL', 'INFO_NEEDED', 'REJECTED') then
             return 'Request ' || l_req.request_number || ' is closed and cannot be cancelled.';
         end if;
-        select count(*) into l_cases from xxcmp_cases where request_id = p_request_id;
+        -- release 107 (I-004): a case still open is cancelled with its request; one already decided is not
+        select count(*) into l_cases from xxcmp_cases
+         where request_id = p_request_id and case_status in ('APPROVED', 'REJECTED');
         if l_cases > 0 then
-            return 'A case has been opened for request ' || l_req.request_number || ': it cannot be cancelled.';
+            return 'The case of request ' || l_req.request_number || ' has been decided: the request cannot be cancelled.';
         end if;
         return null;
     end cancel_error;
@@ -766,6 +766,12 @@ create or replace package body xxcmp_request_pkg as
         end if;
         -- the running workflow and its open task end with the request
         xxfnd_workflow_pkg.end_process(l_req.workflow_id);
+        -- release 107 (I-004): its open case ends too (the case logic is the case package's)
+        for c in (select case_id from xxcmp_cases
+                   where request_id = p_request_id
+                     and case_status in ('INVESTIGATION', 'PENDING_APPROVAL', 'PENDING_INFORMATION')) loop
+            xxcmp_case_pkg.cancel_case(c.case_id, p_reason);
+        end loop;
         update xxcmp_requests
            set request_status = 'CANCELLED', completed_date = systimestamp, last_action_date = sysdate,
                match_note = nvl(substr(p_reason, 1, 1000), match_note)

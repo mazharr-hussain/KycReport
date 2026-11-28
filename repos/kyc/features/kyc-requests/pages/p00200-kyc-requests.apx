@@ -66,7 +66,12 @@ page 200 (
                        case when upper(q.requester_user_name) <> upper(:APP_USER) then null
                             when q.request_status in ('DRAFT', 'INFO_NEEDED', 'REJECTED') and q.case_number is null then 'Edit'
                             when q.request_status = 'SUBMITTED' and q.case_number is null then 'Withdraw'
-                       end as edit
+                       end as edit,
+                       -- release 107 (I-004): the requester cancels a request after it is submitted, until it is decided
+                       -- (Draft / Information Needed cancel on the edit screen)
+                       case when q.request_status in ('SUBMITTED', 'UNDER_REVIEW', 'IN_APPROVAL')
+                                 and xxcmp_request_pkg.cancel_error(q.request_id) is null then 'Cancel'
+                       end as cancel_action
                   from (
                         select r.request_id,
                                r.request_number,
@@ -386,6 +391,25 @@ page 200 (
             }
         )
 
+        column CANCEL_ACTION (
+            type: plainText
+            heading {
+                heading: Cancel
+            }
+            layout {
+                sequence: 116
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="#" class="kyc-row-action" data-id="#REQUEST_ID#" data-action="#CANCEL_ACTION#">#CANCEL_ACTION#</a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+        )
+
         column OPEN_URL (
             type: hidden
             heading {
@@ -609,6 +633,12 @@ page 200 (
                 }
             )
 
+            displayColumn CANCEL_ACTION (
+                layout {
+                    sequence: 11
+                }
+            )
+
         )
 
     )
@@ -726,6 +756,72 @@ page 200 (
         }
         execution {
             sequence: 10
+            point: ajaxCallback
+        }
+    )
+
+    dynamicAction cancel-request (
+        name: Cancel a request
+        execution {
+            sequence: 40
+            eventScope: dynamic
+            staticContainer: #report
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: a.kyc-row-action[data-action="Cancel"]
+        }
+
+        action cancel-js (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    var id = $(this.triggeringElement).data("id");
+                    this.browserEvent.preventDefault();
+                    apex.message.confirm("Cancel this request? Its case and approval end too, and this cannot be undone.", function (ok) {
+                        if (!ok) { return; }
+                        apex.server.process("CANCEL_REQUEST", { x01: id }, { dataType: "text" }).done(function (err) {
+                            err = $.trim(err);    // the reply ends with a line break even when there is no error
+                            if (err) {
+                                apex.message.alert(err);
+                            } else {
+                                apex.message.showPageSuccess("Request cancelled.");
+                            }
+                            apex.region("report").refresh();
+                        });
+                    });
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process cancel-request (
+        name: CANCEL_REQUEST
+        type: executeCode
+        source {
+            language: plsql
+            plsqlCode:
+                ```plsql
+                declare
+                    l_id    number := to_number(apex_application.g_x01);
+                    l_error varchar2(4000) := xxcmp_request_pkg.cancel_error(l_id);
+                begin
+                    if l_error is null then
+                        xxcmp_request_pkg.cancel(l_id);
+                    end if;
+                    htp.p(l_error);
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
             point: ajaxCallback
         }
     )
