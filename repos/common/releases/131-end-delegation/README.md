@@ -16,4 +16,4 @@ pipeline run its full validation (fresh install, upgrade test, DB tests, APEX-SE
 - `start-from-N` set by job 10 after a failure in jobs 4-8 (COMMON 130, #287), if a job fails.
 
 ## Test fix
-`r82_workflow_test.sql`: the CASE_RFI check looks at COMMON's own rows only (KYC's row is KYC data and can exist on the shared database).
+`r82_workflow_test.sql`: removed the CASE_RFI check. CASE_RFI is a KYC approval type, so a COMMON test must not check it (the shared database can hold KYC).
