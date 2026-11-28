@@ -199,14 +199,14 @@ jobs:
       - uses: ./.github/actions/setup-sqlcl
         if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
       - name: PMD 7.29.0 (cached between runs)
-        if: steps.scope.outputs.common == 'true'
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
         id: pmd-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/pmd-bin-7.29.0
           key: pmd-7.29.0-d27177c1
       - name: Lint tools, gitleaks and PMD 7.29.0 (checksum verified)
-        if: steps.scope.outputs.common == 'true'
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
         env:
           PMD_URL: https://github.com/pmd/pmd/releases/download/pmd_releases/7.29.0/pmd-dist-7.29.0-bin.zip
           PMD_SHA256: d27177c185b837fa57f097e482d1253468aa035379c5eb2671fa0a279109b179
@@ -225,8 +225,9 @@ jobs:
           fi
           echo "PMD=$RUNNER_TEMP/pmd-bin-7.29.0/bin/pmd" >> "$GITHUB_ENV"
       - name: 1.0-1.6a Offline validation
-        if: steps.scope.outputs.common == 'true'
+        if: steps.scope.outputs.common == 'true' || steps.scope.outputs.kyc == 'true'
         env:
+          APP_DIR: ${{ steps.scope.outputs.app_dir }}   # I-106: the build (1.4), APEXlang validation (1.5) and PMD (1.6) of this application
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -235,12 +236,6 @@ jobs:
         run: |
           if [ -n "$BASE" ]; then printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"; export BODY="$RUNNER_TEMP/body.txt"; fi
           bash repos/common/deployment/checks/run.sh
-      - name: Build KYC (COMMON first, then KYC) - what jobs 3-8 deploy; COMMON is built in 1.4
-        if: steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'
-        run: |
-          set -euo pipefail
-          sh repos/common/build.sh > /dev/null
-          sh repos/kyc/build.sh > /dev/null
       - name: Fingerprints of this version and its code manifest (job 3 compares them with what the database holds)
         id: fingerprint
         if: ((steps.scope.outputs.app == 'COMMON' && steps.scope.outputs.common == 'true') || (steps.scope.outputs.app == 'KYC' && steps.scope.outputs.db == 'true'))
@@ -299,28 +294,13 @@ jobs:
           printf '%s' "$BODY" > "$RUNNER_TEMP/kyc-body.txt"
           if [ -n "$BASE" ]; then python3 repos/tools/pr_checks.py --base "$BASE" --body-file "$RUNNER_TEMP/kyc-body.txt"
           else python3 repos/tools/pr_checks.py; fi
-      - name: 1.8 KYC PL/SQL analysis (PMD, the changed packages; findings are annotations, not failures)
-        if: steps.scope.outputs.kyc == 'true'
-        continue-on-error: true   # warning mode
-        uses: pmd/pmd-github-action@d9c1f3c5940cbf5923f1354e83fa858b4496ebaa # v2
-        with:
-          rulesets: repos/tools/pmd-plsql.xml
-          sourcePath: repos/kyc
-          analyzeModifiedFilesOnly: ${{ github.event_name == 'pull_request' }}
-      - name: 1.9 KYC build, technical docs up to date, APEXlang validation
-        if: steps.scope.outputs.kyc == 'true'
+      - name: 1.9 KYC technical docs up to date (the build is 1.4, the APEXlang validation 1.5, PMD 1.6 - for both applications)
+        if: steps.scope.outputs.kyc == 'true' && steps.scope.outputs.app == 'KYC'
         run: |
-          set -euo pipefail
-          # COMMON first: the dependency map and technical docs list its pages too (the build of a copy, not committed)
-          sh repos/common/build.sh > /dev/null
-          sh repos/kyc/build.sh
           if ! git diff --quiet -- repos/kyc/docs/components; then
             echo "::warning::The generated technical docs differ from the committed ones - run repos/kyc/build.sh and commit repos/kyc/docs/components"
             git diff --stat -- repos/kyc/docs/components | tail -5
           fi
-          out=$(printf "apex validate -input %s\nexit\n" "$PWD/repos/kyc/dist/app" | "$SQL" -S /nolog 2>&1)
-          echo "$out"
-          echo "$out" | grep -q "Validation successful" || { echo "::error::KYC APEXlang validation failed"; exit 1; }
       - name: 1.10 KYC components changed without their requirements (warning; "no-req-change" in the PR body skips it)
         if: steps.scope.outputs.kyc == 'true' && github.event_name == 'pull_request'
         env:

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Job 1.6 - PMD (PL/SQL rules in pmd-plsql.xml) on every COMMON package (features/*/db/package_specs|package_bodies;
+# Job 1.6 - PMD (PL/SQL rules in pmd-plsql.xml) on every package of the application (APP_DIR, default COMMON) (features/*/db/package_specs|package_bodies;
 # db/deploy is generated from them). Warnings only: a finding in a file the PR changes becomes a GitHub warning
 # annotation; findings in unchanged files are listed in the step log only. PMD's PL/SQL grammar does not know every
 # Oracle 23ai construct (e.g. BOOLEAN expressions in SQL): a package it cannot parse is listed in the log (info) - the
@@ -9,7 +9,7 @@ set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
 report=$(mktemp); files=$(mktemp)
-find "$ROOT/repos/common/features" -path '*/db/package_*/*' -type f \( -name '*.pks' -o -name '*.pkb' \) | sort > "$files"
+find "$ROOT/${APP_DIR:-repos/common}/features" -path '*/db/package_*/*' -type f \( -name '*.pks' -o -name '*.pkb' \) | sort > "$files"
 "${PMD:?PMD is not set}" check --no-progress --no-fail-on-violation --no-fail-on-error --format json \
   --rulesets "$HERE/pmd-plsql.xml" --file-list "$files" --report-file "$report"
 rc=$?
